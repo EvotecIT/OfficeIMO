@@ -8,7 +8,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort extensionCount,
             int recordOffset,
             ushort recordType,
-            int payloadLength)
+            int payloadLength,
+            IReadOnlyList<LegacyXlsCellStyleExtensionProperty>? properties = null)
             : this(
                 recordName: "XfExt",
                 formatIndex: formatIndex,
@@ -24,6 +25,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 styleName: null,
                 xfRecordCount: null,
                 checksum: null,
+                properties,
                 recordOffset: recordOffset,
                 recordType: recordType,
                 payloadLength: payloadLength) {
@@ -56,6 +58,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 styleName,
                 xfRecordCount: null,
                 checksum: null,
+                properties: null,
                 recordOffset,
                 recordType,
                 payloadLength) {
@@ -83,6 +86,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 styleName: null,
                 xfRecordCount,
                 checksum,
+                properties: null,
                 recordOffset,
                 recordType,
                 payloadLength) {
@@ -103,6 +107,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             string? styleName,
             ushort? xfRecordCount,
             uint? checksum,
+            IReadOnlyList<LegacyXlsCellStyleExtensionProperty>? properties,
             int recordOffset,
             ushort recordType,
             int payloadLength) {
@@ -128,6 +133,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             StyleName = styleName;
             XfRecordCount = xfRecordCount;
             Checksum = checksum;
+            Properties = properties == null
+                ? Array.Empty<LegacyXlsCellStyleExtensionProperty>()
+                : properties.ToArray();
             RecordOffset = recordOffset;
             RecordType = recordType;
             PayloadLength = payloadLength;
@@ -174,6 +182,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the XFCRC checksum when declared by the record.</summary>
         public uint? Checksum { get; }
+
+        /// <summary>Gets the XFExt property extension entries declared by this record.</summary>
+        public IReadOnlyList<LegacyXlsCellStyleExtensionProperty> Properties { get; }
 
         /// <summary>Gets the byte offset of the source BIFF record.</summary>
         public int RecordOffset { get; }

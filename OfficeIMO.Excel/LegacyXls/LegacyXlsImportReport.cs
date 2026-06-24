@@ -807,6 +807,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             CellStyleExtensionsByChecksum = CountByCode(workbook.CellStyleExtensions
                 .Where(extension => extension.Checksum.HasValue)
                 .Select(extension => $"Checksum:0x{extension.Checksum!.Value:X8}"));
+            CellStyleExtensionPropertiesByType = CountByCode(workbook.CellStyleExtensions
+                .SelectMany(extension => extension.Properties)
+                .Select(property => $"0x{property.PropertyType:X4}"));
+            CellStyleExtensionPropertiesByName = CountByCode(workbook.CellStyleExtensions
+                .SelectMany(extension => extension.Properties)
+                .Select(property => property.PropertyTypeName));
+            CellStyleExtensionPropertiesByDataByteCount = CountByCode(workbook.CellStyleExtensions
+                .SelectMany(extension => extension.Properties)
+                .Select(property => $"Bytes:{property.DataByteCount}"));
             WorkbookMetadataRecordsByKind = CountWorkbookMetadataRecordsByKind(workbook.MetadataRecords);
             WorksheetMetadataRecordsByKind = CountWorksheetMetadataRecordsByKind(workbook.Worksheets.SelectMany(sheet => sheet.MetadataRecords));
             UnsupportedSheetMetadataRecordsByKind = CountUnsupportedSheetMetadataRecordsByKind(workbook.UnsupportedSheets.SelectMany(sheet => sheet.MetadataRecords));
@@ -1905,6 +1914,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets XFCRC records grouped by declared checksum.</summary>
         public IReadOnlyDictionary<string, int> CellStyleExtensionsByChecksum { get; }
 
+        /// <summary>Gets XFExt properties grouped by raw ExtProp type identifier.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByType { get; }
+
+        /// <summary>Gets XFExt properties grouped by decoded ExtProp type name.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByName { get; }
+
+        /// <summary>Gets XFExt properties grouped by ExtProp data payload byte count.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByDataByteCount { get; }
+
         /// <summary>Gets parsed workbook metadata records grouped by metadata kind.</summary>
         public IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> WorkbookMetadataRecordsByKind { get; }
 
@@ -2332,6 +2350,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Cell Style Extensions By Style Name", CellStyleExtensionsByStyleName);
             AppendDictionary(builder, "Cell Style Extensions By XF Record Count", CellStyleExtensionsByXfRecordCount);
             AppendDictionary(builder, "Cell Style Extensions By Checksum", CellStyleExtensionsByChecksum);
+            AppendDictionary(builder, "Cell Style Extension Properties By Type", CellStyleExtensionPropertiesByType);
+            AppendDictionary(builder, "Cell Style Extension Properties By Name", CellStyleExtensionPropertiesByName);
+            AppendDictionary(builder, "Cell Style Extension Properties By Data Byte Count", CellStyleExtensionPropertiesByDataByteCount);
             AppendDictionary(builder, "Workbook Metadata Records By Kind", WorkbookMetadataRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,

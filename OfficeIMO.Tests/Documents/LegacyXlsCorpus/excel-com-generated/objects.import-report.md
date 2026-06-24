@@ -1802,6 +1802,37 @@ Warnings: 0
 | --- | --- |
 | Checksum:0x957A8E1D | 1 |
 
+## Cell Style Extension Properties By Type
+
+| Key | Count |
+| --- | --- |
+| 0x0004 | 32 |
+| 0x0007 | 6 |
+| 0x0008 | 10 |
+| 0x0009 | 5 |
+| 0x000A | 5 |
+| 0x000D | 67 |
+| 0x000E | 67 |
+
+## Cell Style Extension Properties By Name
+
+| Key | Count |
+| --- | --- |
+| BottomBorderColor | 10 |
+| FillForegroundColor | 32 |
+| FontScheme | 67 |
+| LeftBorderColor | 5 |
+| RightBorderColor | 5 |
+| TextColor | 67 |
+| TopBorderColor | 6 |
+
+## Cell Style Extension Properties By Data Byte Count
+
+| Key | Count |
+| --- | --- |
+| Bytes:1 | 67 |
+| Bytes:16 | 125 |
+
 ## Workbook Metadata Records By Kind
 
 | Key | Count |

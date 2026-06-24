@@ -191,8 +191,64 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 BiffRecordReader.ReadUInt16(record.Payload, 18),
                 record.Offset,
                 record.Type,
-                record.Payload.Length);
+                record.Payload.Length,
+                ReadXfExtProperties(record, diagnostics, BiffRecordReader.ReadUInt16(record.Payload, 18)));
             return true;
+        }
+
+        private static IReadOnlyList<LegacyXlsCellStyleExtensionProperty> ReadXfExtProperties(
+            BiffRecord record,
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            ushort extensionCount) {
+            if (extensionCount == 0) {
+                return Array.Empty<LegacyXlsCellStyleExtensionProperty>();
+            }
+
+            var properties = new List<LegacyXlsCellStyleExtensionProperty>(extensionCount);
+            int offset = 20;
+            for (int index = 0; index < extensionCount; index++) {
+                if (offset + 4 > record.Payload.Length) {
+                    diagnostics.Add(new LegacyXlsImportDiagnostic(
+                        LegacyXlsDiagnosticSeverity.Warning,
+                        "XLS-BIFF-XFEXT-PROPERTY-SHORT",
+                        "The XFExt record ended before all declared property extension headers could be read.",
+                        recordOffset: record.Offset,
+                        recordType: record.Type));
+                    break;
+                }
+
+                ushort propertyType = BiffRecordReader.ReadUInt16(record.Payload, offset);
+                ushort totalByteCount = BiffRecordReader.ReadUInt16(record.Payload, offset + 2);
+                if (totalByteCount < 4) {
+                    diagnostics.Add(new LegacyXlsImportDiagnostic(
+                        LegacyXlsDiagnosticSeverity.Warning,
+                        "XLS-BIFF-XFEXT-PROPERTY-SIZE-INVALID",
+                        $"An XFExt property extension declares an invalid size of {totalByteCount} bytes.",
+                        recordOffset: record.Offset,
+                        recordType: record.Type));
+                    break;
+                }
+
+                if (offset + totalByteCount > record.Payload.Length) {
+                    diagnostics.Add(new LegacyXlsImportDiagnostic(
+                        LegacyXlsDiagnosticSeverity.Warning,
+                        "XLS-BIFF-XFEXT-PROPERTY-TRUNCATED",
+                        "An XFExt property extension extends beyond the end of the record.",
+                        recordOffset: record.Offset,
+                        recordType: record.Type));
+                    break;
+                }
+
+                properties.Add(new LegacyXlsCellStyleExtensionProperty(
+                    index,
+                    propertyType,
+                    GetXfExtPropertyTypeName(propertyType),
+                    totalByteCount,
+                    totalByteCount - 4));
+                offset += totalByteCount;
+            }
+
+            return properties;
         }
 
         private static bool TryReadStyleExt(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out LegacyXlsCellStyleExtension? extension) {
@@ -262,6 +318,23 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 0x04 => "ThemedCell",
                 0x05 => "NumberFormat",
                 _ => $"Unknown:0x{category:X2}"
+            };
+        }
+
+        private static string GetXfExtPropertyTypeName(ushort propertyType) {
+            return propertyType switch {
+                0x0004 => "FillForegroundColor",
+                0x0005 => "FillBackgroundColor",
+                0x0006 => "FillGradient",
+                0x0007 => "TopBorderColor",
+                0x0008 => "BottomBorderColor",
+                0x0009 => "LeftBorderColor",
+                0x000A => "RightBorderColor",
+                0x000B => "DiagonalBorderColor",
+                0x000D => "TextColor",
+                0x000E => "FontScheme",
+                0x000F => "Indentation",
+                _ => $"Unknown:0x{propertyType:X4}"
             };
         }
     }
