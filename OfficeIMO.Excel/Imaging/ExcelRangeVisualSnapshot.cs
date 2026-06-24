@@ -547,6 +547,7 @@ namespace OfficeIMO.Excel {
             string text,
             OfficeTextAlignment textAlignment,
             OfficeTextVerticalAlignment textVerticalAlignment,
+            string? textColorArgb,
             string source) {
             Name = name ?? string.Empty;
             Order = order;
@@ -565,6 +566,7 @@ namespace OfficeIMO.Excel {
             Text = text ?? string.Empty;
             TextAlignment = textAlignment;
             TextVerticalAlignment = textVerticalAlignment;
+            TextColorArgb = textColorArgb;
             Source = source ?? string.Empty;
         }
 
@@ -621,6 +623,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Vertical text alignment extracted from the drawing object's body properties.</summary>
         public OfficeTextVerticalAlignment TextVerticalAlignment { get; }
+
+        /// <summary>Text color in ARGB hexadecimal form, when supported.</summary>
+        public string? TextColorArgb { get; }
 
         /// <summary>Source reference used by export diagnostics.</summary>
         public string Source { get; }

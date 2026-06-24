@@ -63,6 +63,7 @@ namespace OfficeIMO.Excel.Utilities {
                 .Where(line => !string.IsNullOrEmpty(line)) ?? Enumerable.Empty<string>());
             OfficeTextAlignment textAlignment = ResolveTextAlignment(shape.TextBody);
             OfficeTextVerticalAlignment textVerticalAlignment = ResolveTextVerticalAlignment(shape.TextBody?.GetFirstChild<A.BodyProperties>());
+            string? textColorArgb = ResolveTextColor(shape.TextBody);
 
             return new ExcelWorksheetDrawingObjectInfo(
                 name,
@@ -89,6 +90,7 @@ namespace OfficeIMO.Excel.Utilities {
                 text,
                 textAlignment,
                 textVerticalAlignment,
+                textColorArgb,
                 unsupportedReason: null);
         }
 
@@ -120,6 +122,7 @@ namespace OfficeIMO.Excel.Utilities {
                 text: string.Empty,
                 textAlignment: OfficeTextAlignment.Center,
                 textVerticalAlignment: OfficeTextVerticalAlignment.Center,
+                textColorArgb: null,
                 unsupportedReason: unsupportedReason);
         }
 
@@ -151,6 +154,12 @@ namespace OfficeIMO.Excel.Utilities {
 
             return OfficeTextVerticalAlignment.Center;
         }
+
+        private static string? ResolveTextColor(Xdr.TextBody? textBody) =>
+            textBody?
+                .Descendants<A.RunProperties>()
+                .Select(runProperties => NormalizeRgb(runProperties.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value))
+                .FirstOrDefault(color => color != null);
 
         private static AnchorPosition GetAnchorPosition(OpenXmlElement anchor) {
             Xdr.MarkerType? fromMarker = anchor switch {
@@ -390,6 +399,7 @@ namespace OfficeIMO.Excel.Utilities {
             string text,
             OfficeTextAlignment textAlignment,
             OfficeTextVerticalAlignment textVerticalAlignment,
+            string? textColorArgb,
             string? unsupportedReason) {
             Name = name ?? string.Empty;
             Kind = kind ?? string.Empty;
@@ -415,6 +425,7 @@ namespace OfficeIMO.Excel.Utilities {
             Text = text ?? string.Empty;
             TextAlignment = textAlignment;
             TextVerticalAlignment = textVerticalAlignment;
+            TextColorArgb = textColorArgb;
             UnsupportedReason = unsupportedReason;
         }
 
@@ -465,6 +476,8 @@ namespace OfficeIMO.Excel.Utilities {
         internal OfficeTextAlignment TextAlignment { get; }
 
         internal OfficeTextVerticalAlignment TextVerticalAlignment { get; }
+
+        internal string? TextColorArgb { get; }
 
         internal string? UnsupportedReason { get; }
 

@@ -311,6 +311,7 @@ namespace OfficeIMO.Excel {
                     drawing.Text,
                     drawing.TextAlignment,
                     drawing.TextVerticalAlignment,
+                    drawing.TextColorArgb,
                     GetDrawingDiagnosticSource(sheet, drawing)));
             }
 

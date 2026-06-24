@@ -400,6 +400,42 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void ExcelRange_ImageExportHonorsDrawingShapeTextColorThroughSharedDrawing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("TextColor");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(2, 2, "Colored label");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Colored label",
+                "Colored label",
+                fillHex: "FEF3C7",
+                strokeHex: "D97706",
+                textColorHex: "B91C1C");
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:D4");
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+                OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+                string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.Equal("FFB91C1C", drawingObject.TextColorArgb);
+                Assert.Contains("fill=\"#B91C1C\"", svgText, StringComparison.Ordinal);
+                Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+                Assert.NotNull(rendered);
+                Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(185, 28, 28)) > 0);
+            }
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -489,7 +525,8 @@ namespace OfficeIMO.Tests {
             string fillHex = "E0F2FE",
             string strokeHex = "0284C7",
             A.TextAlignmentTypeValues? paragraphAlignment = null,
-            A.TextAnchoringTypeValues? verticalAlignment = null) {
+            A.TextAnchoringTypeValues? verticalAlignment = null,
+            string textColorHex = "1F2937") {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
             WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
@@ -499,7 +536,7 @@ namespace OfficeIMO.Tests {
 
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
-                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment));
+                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
@@ -543,7 +580,8 @@ namespace OfficeIMO.Tests {
             string fillHex = "E0F2FE",
             string strokeHex = "0284C7",
             A.TextAlignmentTypeValues? paragraphAlignment = null,
-            A.TextAnchoringTypeValues? verticalAlignment = null) {
+            A.TextAnchoringTypeValues? verticalAlignment = null,
+            string textColorHex = "1F2937") {
             var transform = new A.Transform2D {
                 HorizontalFlip = horizontalFlip,
                 VerticalFlip = verticalFlip
@@ -562,7 +600,9 @@ namespace OfficeIMO.Tests {
                 paragraph.Append(new A.ParagraphProperties { Alignment = paragraphAlignment.Value });
             }
 
-            paragraph.Append(new A.Run(new A.Text(text ?? name)));
+            paragraph.Append(new A.Run(
+                new A.RunProperties(new A.SolidFill(new A.RgbColorModelHex { Val = textColorHex })),
+                new A.Text(text ?? name)));
 
             return new Xdr.TwoCellAnchor(
                 new Xdr.FromMarker(
