@@ -72,11 +72,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 string prompt = BiffStringReader.ReadUnicodeString(payload, ref offset);
                 string error = BiffStringReader.ReadUnicodeString(payload, ref offset);
 
-                if (!TryReadFormula(payload, ref offset, externSheets, externalReferences, sheetNames, definedNames, out string? formula1, out formulaFailure) || string.IsNullOrWhiteSpace(formula1)) {
+                if (!TryReadFormula(payload, ref offset, externSheets, externalReferences, sheetNames, definedNames, out string? formula1, out BiffDataValidationFormulaLayout? formula1Layout, out formulaFailure) || string.IsNullOrWhiteSpace(formula1)) {
                     return false;
                 }
 
-                if (!TryReadFormula(payload, ref offset, externSheets, externalReferences, sheetNames, definedNames, out string? formula2, out formulaFailure)) {
+                if (!TryReadFormula(payload, ref offset, externSheets, externalReferences, sheetNames, definedNames, out string? formula2, out BiffDataValidationFormulaLayout? formula2Layout, out formulaFailure)) {
                     return false;
                 }
 
@@ -106,6 +106,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     offset = rangesOffset + 2;
                     if (!TryReadRanges(payload, ref offset, out ranges) || ranges.Count == 0) {
                         return false;
+                    }
+                }
+
+                if (BiffFormulaAnchor.TryGetFirstRangeAnchor(ranges, out int formulaRow, out int formulaColumn)) {
+                    if (!TryDecodeFormulaLayout(payload, formula1Layout, formulaRow, formulaColumn, externSheets, externalReferences, sheetNames, definedNames, out formula1, out formulaFailure)
+                        || string.IsNullOrWhiteSpace(formula1)
+                        || !TryDecodeFormulaLayout(payload, formula2Layout, formulaRow, formulaColumn, externSheets, externalReferences, sheetNames, definedNames, out formula2, out formulaFailure)) {
+                        return false;
+                    }
+
+                    if (modelValidationType == LegacyXlsDataValidationType.List) {
+                        if (!TryGetListSource(modelValidationType, formula1!, out listItems, out listSourceRange, out listSourceName, out listSourceSheetName)) {
+                            return false;
+                        }
                     }
                 }
 
@@ -181,8 +195,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             out string? formula,
+            out BiffDataValidationFormulaLayout? formulaLayout,
             out BiffFormulaReadFailure? formulaFailure) {
             formula = null;
+            formulaLayout = null;
             formulaFailure = null;
             if (offset + 4 > payload.Length) {
                 formulaFailure = BiffFormulaReadFailure.InvalidPayload("Data-validation formula field ended before its token length and reserved bytes.");
@@ -210,6 +226,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 out formulaFailure,
                 out int parsedOffset)) {
                 offset = parsedOffset;
+                formulaLayout = new BiffDataValidationFormulaLayout(formulaFieldOffset + 2, expressionLength);
                 return true;
             }
 
@@ -228,6 +245,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     out formulaFailure,
                     out parsedOffset)) {
                 offset = parsedOffset;
+                formulaLayout = new BiffDataValidationFormulaLayout(formulaFieldOffset + 2, expressionLength - 2);
                 return true;
             }
 
@@ -245,11 +263,47 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 out formulaFailure,
                 out parsedOffset)) {
                 offset = parsedOffset;
+                formulaLayout = new BiffDataValidationFormulaLayout(formulaFieldOffset, expressionLength);
                 return true;
             }
 
             formulaFailure = firstFormulaFailure ?? formulaFailure;
             return false;
+        }
+
+        private static bool TryDecodeFormulaLayout(
+            byte[] payload,
+            BiffDataValidationFormulaLayout? formulaLayout,
+            int formulaRow,
+            int formulaColumn,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            IReadOnlyList<string> sheetNames,
+            IReadOnlyList<string?> definedNames,
+            out string? formula,
+            out BiffFormulaReadFailure? formulaFailure) {
+            formula = null;
+            formulaFailure = null;
+            if (!formulaLayout.HasValue) {
+                return true;
+            }
+
+            BiffDataValidationFormulaLayout layout = formulaLayout.Value;
+            byte[] normalizedFormula = new byte[checked(layout.TokenLength + 2)];
+            normalizedFormula[0] = (byte)(layout.TokenLength & 0x00ff);
+            normalizedFormula[1] = (byte)(layout.TokenLength >> 8);
+            Buffer.BlockCopy(payload, layout.TokenOffset, normalizedFormula, 2, layout.TokenLength);
+            return BiffFormulaTextReader.TryRead(
+                normalizedFormula,
+                0,
+                formulaRow,
+                formulaColumn,
+                externSheets,
+                externalReferences,
+                sheetNames,
+                definedNames,
+                out formula,
+                out formulaFailure);
         }
 
         private static bool TryReadFormulaLayout(
@@ -502,6 +556,17 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || value == '\r'
                 || (value >= ' ' && value <= '\ud7ff')
                 || (value >= '\ue000' && value <= '\ufffd');
+        }
+
+        private readonly struct BiffDataValidationFormulaLayout {
+            internal BiffDataValidationFormulaLayout(int tokenOffset, int tokenLength) {
+                TokenOffset = tokenOffset;
+                TokenLength = tokenLength;
+            }
+
+            internal int TokenOffset { get; }
+
+            internal int TokenLength { get; }
         }
     }
 }

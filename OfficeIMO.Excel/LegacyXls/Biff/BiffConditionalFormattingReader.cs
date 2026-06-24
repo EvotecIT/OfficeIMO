@@ -95,11 +95,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            if (!TryReadFormula(payload, formulaStart, formula1Length, externSheets, externalReferences, sheetNames, definedNames, out string? formula1, out formulaFailure)) {
+            BiffFormulaAnchor.TryGetFirstRangeAnchor(ranges, out int formulaRow, out int formulaColumn);
+            if (!TryReadFormula(payload, formulaStart, formula1Length, formulaRow, formulaColumn, externSheets, externalReferences, sheetNames, definedNames, out string? formula1, out formulaFailure)) {
                 return false;
             }
 
-            if (!TryReadFormula(payload, formulaStart + formula1Length, formula2Length, externSheets, externalReferences, sheetNames, definedNames, out string? formula2, out formulaFailure)) {
+            if (!TryReadFormula(payload, formulaStart + formula1Length, formula2Length, formulaRow, formulaColumn, externSheets, externalReferences, sheetNames, definedNames, out string? formula2, out formulaFailure)) {
                 return false;
             }
 
@@ -145,6 +146,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             byte[] payload,
             int offset,
             ushort expressionLength,
+            int formulaRow,
+            int formulaColumn,
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
@@ -169,8 +172,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return BiffFormulaTextReader.TryRead(
                 normalizedFormula,
                 0,
-                formulaRow: 0,
-                formulaColumn: 0,
+                formulaRow,
+                formulaColumn,
                 externSheets,
                 externalReferences,
                 sheetNames,

@@ -216,6 +216,70 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Corpus_DataValidationShapes_PreservesExcelAuthoredRules() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "excel-com-generated",
+                "data-validation-shapes.xls");
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.Equal(9, result.ImportReport.DataValidationCount);
+            Assert.Equal(1, result.ImportReport.DataValidationsByType["WholeNumber"]);
+            Assert.Equal(1, result.ImportReport.DataValidationsByType["Decimal"]);
+            Assert.Equal(1, result.ImportReport.DataValidationsByType["Date"]);
+            Assert.Equal(1, result.ImportReport.DataValidationsByType["Time"]);
+            Assert.Equal(1, result.ImportReport.DataValidationsByType["TextLength"]);
+            Assert.Equal(3, result.ImportReport.DataValidationsByType["List"]);
+            Assert.Equal(1, result.ImportReport.DataValidationsByType["Custom"]);
+            Assert.Equal(1, result.ImportReport.DataValidationListSourcesByKind["InlineList"]);
+            Assert.Equal(1, result.ImportReport.DataValidationListSourcesByKind["Range"]);
+            Assert.Equal(1, result.ImportReport.DataValidationListSourcesByKind["DefinedName"]);
+            Assert.Equal(1, result.ImportReport.DataValidationListSourcesByRange["K2:K4"]);
+            Assert.Equal(1, result.ImportReport.DataValidationListSourcesByName["NamedOptions"]);
+
+            LegacyXlsWorksheet validationSheet = Assert.Single(result.Workbook.Worksheets, sheet => sheet.Name == "Validation");
+            Assert.Single(result.Workbook.Worksheets, sheet => sheet.Name == "Lookup");
+
+            AssertValidation(validationSheet, LegacyXlsDataValidationType.WholeNumber, "A2:A6", "1", "10");
+            AssertValidation(validationSheet, LegacyXlsDataValidationType.Decimal, "B2:B6", "1.5", null);
+            AssertValidation(validationSheet, LegacyXlsDataValidationType.Date, "C2:C6", "46023", "46387");
+            AssertValidation(validationSheet, LegacyXlsDataValidationType.Time, "D2:D6", "0.375", "0.708333333333333");
+            AssertValidation(validationSheet, LegacyXlsDataValidationType.TextLength, "E2:E6", "8", null);
+
+            LegacyXlsDataValidation inlineList = AssertValidation(validationSheet, LegacyXlsDataValidationType.List, "F2:F6", "\"Open,Closed,Pending\"", null);
+            Assert.Equal(LegacyXlsDataValidationListSourceKind.InlineList, inlineList.ListSourceKind);
+            Assert.Equal(new[] { "Open", "Closed", "Pending" }, inlineList.ListItems);
+
+            LegacyXlsDataValidation rangeList = AssertValidation(validationSheet, LegacyXlsDataValidationType.List, "G2:G6", "$K$2:$K$4", null);
+            Assert.Equal(LegacyXlsDataValidationListSourceKind.Range, rangeList.ListSourceKind);
+            Assert.Equal("K2:K4", rangeList.ListSourceRange);
+
+            LegacyXlsDataValidation namedList = AssertValidation(validationSheet, LegacyXlsDataValidationType.List, "H2:H6", "NamedOptions", null);
+            Assert.Equal(LegacyXlsDataValidationListSourceKind.DefinedName, namedList.ListSourceKind);
+            Assert.Equal("NamedOptions", namedList.ListSourceName);
+
+            LegacyXlsDataValidation custom = AssertValidation(validationSheet, LegacyXlsDataValidationType.Custom, "I2:I6", "LEN(I2)>0", null);
+            Assert.Equal(LegacyXlsDataValidationOperator.Between, custom.Operator);
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.Worksheet.Descendants<DataValidation>().Any());
+            List<DataValidation> validations = worksheetPart.Worksheet.Descendants<DataValidation>().ToList();
+            Assert.Equal(9, validations.Count);
+            Assert.Contains(validations, validation => validation.Type!.Value == DataValidationValues.Decimal && validation.SequenceOfReferences!.InnerText == "B2:B6" && validation.GetFirstChild<Formula1>()!.Text == "1.5");
+            Assert.Contains(validations, validation => validation.Type!.Value == DataValidationValues.Custom && validation.SequenceOfReferences!.InnerText == "I2:I6" && validation.GetFirstChild<Formula1>()!.Text == "LEN(I2)>0");
+            Assert.Contains(validations, validation => validation.Type!.Value == DataValidationValues.List && validation.SequenceOfReferences!.InnerText == "G2:G6" && validation.GetFirstChild<Formula1>()!.Text == "=K2:K4");
+            Assert.Contains(validations, validation => validation.Type!.Value == DataValidationValues.List && validation.SequenceOfReferences!.InnerText == "H2:H6" && validation.GetFirstChild<Formula1>()!.Text == "=NamedOptions");
+        }
+
+        [Fact]
         public void LegacyXls_Corpus_Analytics_PreservesChartSheetProperties() {
             string workbookPath = Path.Combine(
                 GetTestsProjectRoot(),
@@ -496,6 +560,20 @@ namespace OfficeIMO.Tests {
             Assert.True(cell.IsFormula);
             Assert.Equal(expectedValue, cell.Value);
             Assert.Equal(expectedFormulaText, cell.FormulaText);
+        }
+
+        private static LegacyXlsDataValidation AssertValidation(
+            LegacyXlsWorksheet sheet,
+            LegacyXlsDataValidationType type,
+            string range,
+            string formula1,
+            string? formula2) {
+            LegacyXlsDataValidation validation = Assert.Single(sheet.DataValidations, candidate =>
+                candidate.Type == type
+                && candidate.Ranges.Contains(range)
+                && candidate.Formula1 == formula1
+                && candidate.Formula2 == formula2);
+            return validation;
         }
     }
 }
