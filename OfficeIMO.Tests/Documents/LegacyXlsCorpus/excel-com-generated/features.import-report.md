@@ -184,6 +184,12 @@ Warnings: 0
 | --- | --- |
 | Suppressed | 1 |
 
+## Data Validations By Sheet
+
+| Key | Count |
+| --- | --- |
+| Data | 1 |
+
 ## Data Validations By Range Count
 
 | Key | Count |
@@ -195,6 +201,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | A2:A5 | 1 |
+
+## Data Validations By Sheet And Range
+
+| Key | Count |
+| --- | --- |
+| Data!A2:A5 | 1 |
 
 ## Data Validations By Formula1 State
 
@@ -263,6 +275,12 @@ Warnings: 0
 | --- | --- |
 | GreaterThan | 1 |
 
+## Conditional Formatting By Sheet
+
+| Key | Count |
+| --- | --- |
+| Data | 1 |
+
 ## Conditional Formatting By Range Count
 
 | Key | Count |
@@ -274,6 +292,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | B2:B5 | 1 |
+
+## Conditional Formatting By Sheet And Range
+
+| Key | Count |
+| --- | --- |
+| Data!B2:B5 | 1 |
 
 ## Conditional Formatting By Formula1 State
 
@@ -317,6 +341,12 @@ Warnings: 0
 | --- | --- |
 | Missing | 1 |
 
+## AutoFilter Criteria By Sheet
+
+| Key | Count |
+| --- | --- |
+| Data | 1 |
+
 ## AutoFilter Criteria By Kind
 
 | Key | Count |
@@ -346,6 +376,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Column:0 | 1 |
+
+## AutoFilter Criteria By Sheet And Column
+
+| Key | Count |
+| --- | --- |
+| Data!Column:0 | 1 |
 
 ## AutoFilter Criteria By Condition Count
 

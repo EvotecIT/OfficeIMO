@@ -99,6 +99,12 @@ Warnings: 0
 | --- | --- |
 | Formula | 1 |
 
+## Conditional Formatting By Sheet
+
+| Key | Count |
+| --- | --- |
+| SalesData | 1 |
+
 ## Conditional Formatting By Range Count
 
 | Key | Count |
@@ -110,6 +116,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | G2:G13 | 1 |
+
+## Conditional Formatting By Sheet And Range
+
+| Key | Count |
+| --- | --- |
+| SalesData!G2:G13 | 1 |
 
 ## Conditional Formatting By Formula1 State
 
@@ -153,6 +165,12 @@ Warnings: 0
 | --- | --- |
 | Missing | 1 |
 
+## AutoFilter Criteria By Sheet
+
+| Key | Count |
+| --- | --- |
+| SalesData | 1 |
+
 ## AutoFilter Criteria By Kind
 
 | Key | Count |
@@ -170,6 +188,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Column:3 | 1 |
+
+## AutoFilter Criteria By Sheet And Column
+
+| Key | Count |
+| --- | --- |
+| SalesData!Column:3 | 1 |
 
 ## AutoFilter Criteria By Condition Count
 

@@ -86,6 +86,12 @@ Warnings: 0
 | --- | --- |
 | 0x0018\|PtgArea3d | 1 |
 
+## AutoFilter Criteria By Sheet
+
+| Key | Count |
+| --- | --- |
+| Objects | 1 |
+
 ## AutoFilter Criteria By Kind
 
 | Key | Count |
@@ -115,6 +121,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Column:0 | 1 |
+
+## AutoFilter Criteria By Sheet And Column
+
+| Key | Count |
+| --- | --- |
+| Objects!Column:0 | 1 |
 
 ## AutoFilter Criteria By Condition Count
 
