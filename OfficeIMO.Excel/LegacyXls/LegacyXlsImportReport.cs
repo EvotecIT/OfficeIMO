@@ -794,6 +794,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartSeriesFormatReservedStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.SeriesFormat != null)
                 .Select(record => record.SeriesFormat!.HasZeroReservedBits ? "ReservedZero" : "ReservedNonZero"));
+            ChartClientColorPaletteDeclaredCounts = CountByCode(workbook.ChartRecords
+                .Where(record => record.ClientColorPalette != null)
+                .Select(record => $"Declared:{record.ClientColorPalette!.DeclaredColorCount}"));
+            ChartClientColorPaletteDecodedCounts = CountByCode(workbook.ChartRecords
+                .Where(record => record.ClientColorPalette != null)
+                .Select(record => $"Decoded:{record.ClientColorPalette!.DecodedColorCount}"));
+            ChartClientColorPaletteCompletenessStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.ClientColorPalette != null)
+                .Select(record => record.ClientColorPalette!.HasCompleteColorList ? "Complete" : "Truncated"));
+            ChartClientColorPaletteExpectedCountStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.ClientColorPalette != null)
+                .Select(record => record.ClientColorPalette!.HasExpectedColorCount ? "ExpectedThreeColors" : "UnexpectedColorCount"));
+            ChartClientColorPaletteColors = CountByCode(workbook.ChartRecords
+                .Where(record => record.ClientColorPalette != null)
+                .SelectMany(record => GetChartClientColorPaletteColorKeys(record.ClientColorPalette!)));
             ChartAttachedLabelFlags = CountByCode(workbook.ChartRecords
                 .Where(record => record.AttachedLabel != null)
                 .SelectMany(record => record.AttachedLabel!.FlagNames));
@@ -2247,6 +2262,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets SerFmt records grouped by whether reserved bits are zero.</summary>
         public IReadOnlyDictionary<string, int> ChartSeriesFormatReservedStates { get; }
 
+        /// <summary>Gets ClrtClient records grouped by declared color count.</summary>
+        public IReadOnlyDictionary<string, int> ChartClientColorPaletteDeclaredCounts { get; }
+
+        /// <summary>Gets ClrtClient records grouped by decoded color count.</summary>
+        public IReadOnlyDictionary<string, int> ChartClientColorPaletteDecodedCounts { get; }
+
+        /// <summary>Gets ClrtClient records grouped by whether all declared colors were present.</summary>
+        public IReadOnlyDictionary<string, int> ChartClientColorPaletteCompletenessStates { get; }
+
+        /// <summary>Gets ClrtClient records grouped by whether the expected three colors are present.</summary>
+        public IReadOnlyDictionary<string, int> ChartClientColorPaletteExpectedCountStates { get; }
+
+        /// <summary>Gets ClrtClient records grouped by decoded role-specific color.</summary>
+        public IReadOnlyDictionary<string, int> ChartClientColorPaletteColors { get; }
+
         /// <summary>Gets AttachedLabel records grouped by decoded displayed data-label element.</summary>
         public IReadOnlyDictionary<string, int> ChartAttachedLabelFlags { get; }
 
@@ -3025,6 +3055,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart SerFmt States", ChartSeriesFormatStates);
             AppendDictionary(builder, "Chart SerFmt Reserved Values", ChartSeriesFormatReservedValues);
             AppendDictionary(builder, "Chart SerFmt Reserved States", ChartSeriesFormatReservedStates);
+            AppendDictionary(builder, "Chart ClrtClient Declared Counts", ChartClientColorPaletteDeclaredCounts);
+            AppendDictionary(builder, "Chart ClrtClient Decoded Counts", ChartClientColorPaletteDecodedCounts);
+            AppendDictionary(builder, "Chart ClrtClient Completeness States", ChartClientColorPaletteCompletenessStates);
+            AppendDictionary(builder, "Chart ClrtClient Expected Count States", ChartClientColorPaletteExpectedCountStates);
+            AppendDictionary(builder, "Chart ClrtClient Colors", ChartClientColorPaletteColors);
             AppendDictionary(builder, "Chart AttachedLabel Flags", ChartAttachedLabelFlags);
             AppendDictionary(builder, "Chart AttachedLabel States", ChartAttachedLabelStates);
             AppendDictionary(builder, "Chart DefaultText Targets", ChartDefaultTextTargets);
@@ -3680,6 +3715,20 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartSeriesFormatStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartSeriesFormat seriesFormat = record.SeriesFormat!;
             return $"SmoothLine:{seriesFormat.SmoothLine};ThreeDimensionalBubbles:{seriesFormat.ThreeDimensionalBubbles};Shadow:{seriesFormat.Shadow}";
+        }
+
+        private static IEnumerable<string> GetChartClientColorPaletteColorKeys(LegacyXlsChartClientColorPalette palette) {
+            if (!string.IsNullOrWhiteSpace(palette.ForegroundColor)) {
+                yield return $"Foreground:{palette.ForegroundColor}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(palette.BackgroundColor)) {
+                yield return $"Background:{palette.BackgroundColor}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(palette.NeutralColor)) {
+                yield return $"Neutral:{palette.NeutralColor}";
+            }
         }
 
         private static string FormatDouble(double value) {

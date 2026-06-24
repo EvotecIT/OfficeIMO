@@ -77,7 +77,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartFutureBlock? futureBlock = null,
             LegacyXlsChartUnits? units = null,
             LegacyXlsChartSeriesList? seriesList = null,
-            LegacyXlsChartSeriesFormat? seriesFormat = null) {
+            LegacyXlsChartSeriesFormat? seriesFormat = null,
+            LegacyXlsChartClientColorPalette? clientColorPalette = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -153,6 +154,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Units = units;
             SeriesList = seriesList;
             SeriesFormat = seriesFormat;
+            ClientColorPalette = clientColorPalette;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -295,6 +297,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded series-format flags from SerFmt records, when present.</summary>
         public LegacyXlsChartSeriesFormat? SeriesFormat { get; }
+
+        /// <summary>Gets decoded custom client color palette metadata from ClrtClient records, when present.</summary>
+        public LegacyXlsChartClientColorPalette? ClientColorPalette { get; }
 
         /// <summary>Gets decoded data-label display metadata from AttachedLabel records, when present.</summary>
         public LegacyXlsChartAttachedLabel? AttachedLabel { get; }

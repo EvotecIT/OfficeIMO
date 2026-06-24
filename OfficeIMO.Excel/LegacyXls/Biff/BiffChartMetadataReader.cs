@@ -36,6 +36,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadMarkerFormat(record, out LegacyXlsChartMarkerFormat? markerFormat);
             TryReadPieFormat(record, out LegacyXlsChartPieFormat? pieFormat);
             TryReadSeriesFormat(record, out LegacyXlsChartSeriesFormat? seriesFormat);
+            TryReadClientColorPalette(record, out LegacyXlsChartClientColorPalette? clientColorPalette);
             TryReadAttachedLabel(record, out LegacyXlsChartAttachedLabel? attachedLabel);
             BiffChartTextMetadataReader.TryReadDefaultText(record, out ushort? defaultTextId, out string? defaultTextTargetName);
             BiffChartTextMetadataReader.TryReadText(record, out LegacyXlsChartText? text);
@@ -130,7 +131,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 futureBlock,
                 units,
                 seriesList,
-                seriesFormat));
+                seriesFormat,
+                clientColorPalette));
             return true;
         }
 
@@ -264,6 +266,24 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             seriesFormat = new LegacyXlsChartSeriesFormat(BiffRecordReader.ReadUInt16(record.Payload, 0));
+            return true;
+        }
+
+        private static bool TryReadClientColorPalette(BiffRecord record, out LegacyXlsChartClientColorPalette? palette) {
+            palette = null;
+            if (record.Type != 0x105C || record.Payload.Length < 2) {
+                return false;
+            }
+
+            short declaredColorCount = BiffRecordReader.ReadInt16(record.Payload, 0);
+            int availableColorCount = (record.Payload.Length - 2) / 4;
+            int decodedColorCount = Math.Min(Math.Max((int)declaredColorCount, 0), availableColorCount);
+            var colors = new List<string>(decodedColorCount);
+            for (int index = 0; index < decodedColorCount; index++) {
+                colors.Add(ReadLongRgbHex(record.Payload, 2 + (index * 4)));
+            }
+
+            palette = new LegacyXlsChartClientColorPalette(declaredColorCount, colors);
             return true;
         }
 

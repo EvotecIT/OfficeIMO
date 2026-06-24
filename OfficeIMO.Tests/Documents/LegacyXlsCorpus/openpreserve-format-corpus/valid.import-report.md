@@ -1540,6 +1540,38 @@ Warnings: 0
 | --- | --- |
 | ExplosionPercent:0 | 56 |
 
+## Chart ClrtClient Declared Counts
+
+| Key | Count |
+| --- | --- |
+| Declared:3 | 1 |
+
+## Chart ClrtClient Decoded Counts
+
+| Key | Count |
+| --- | --- |
+| Decoded:3 | 1 |
+
+## Chart ClrtClient Completeness States
+
+| Key | Count |
+| --- | --- |
+| Complete | 1 |
+
+## Chart ClrtClient Expected Count States
+
+| Key | Count |
+| --- | --- |
+| ExpectedThreeColors | 1 |
+
+## Chart ClrtClient Colors
+
+| Key | Count |
+| --- | --- |
+| Background:#FFFFFF | 1 |
+| Foreground:#000000 | 1 |
+| Neutral:#000000 | 1 |
+
 ## Chart AttachedLabel States
 
 | Key | Count |

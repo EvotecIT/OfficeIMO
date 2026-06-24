@@ -1725,6 +1725,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsChartClientColorPaletteMetadata() {
+            byte[] payload = {
+                0x03, 0x00,
+                0x11, 0x22, 0x33, 0x00,
+                0x44, 0x55, 0x66, 0x00,
+                0x00, 0x00, 0x00, 0x00
+            };
+            var chartRecord = new BiffRecord(0x105C, offset: 300, payload);
+            var chartRecords = new List<LegacyXlsChartRecord>();
+
+            Assert.True(BiffChartMetadataReader.TryRead(chartRecord, "ClrtClient", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            Assert.Equal("ClrtClient", record.RecordName);
+            Assert.Equal(LegacyXlsChartRecordKind.Formatting, record.Kind);
+            LegacyXlsChartClientColorPalette? palette = record.ClientColorPalette;
+            Assert.NotNull(palette);
+            Assert.Equal(3, palette!.DeclaredColorCount);
+            Assert.Equal(3, palette.DecodedColorCount);
+            Assert.True(palette.HasCompleteColorList);
+            Assert.True(palette.HasExpectedColorCount);
+            Assert.Equal("#112233", palette.ForegroundColor);
+            Assert.Equal("#445566", palette.BackgroundColor);
+            Assert.Equal("#000000", palette.NeutralColor);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(1, report.ChartClientColorPaletteDeclaredCounts["Declared:3"]);
+            Assert.Equal(1, report.ChartClientColorPaletteDecodedCounts["Decoded:3"]);
+            Assert.Equal(1, report.ChartClientColorPaletteCompletenessStates["Complete"]);
+            Assert.Equal(1, report.ChartClientColorPaletteExpectedCountStates["ExpectedThreeColors"]);
+            Assert.Equal(1, report.ChartClientColorPaletteColors["Foreground:#112233"]);
+            Assert.Equal(1, report.ChartClientColorPaletteColors["Background:#445566"]);
+            Assert.Equal(1, report.ChartClientColorPaletteColors["Neutral:#000000"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart ClrtClient Declared Counts", markdown);
+            Assert.Contains("ExpectedThreeColors", markdown);
+            Assert.Contains("Neutral:#000000", markdown);
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_GroupsChartFutureBlockMetadata() {
             byte[] startPayload = {
                 0x52, 0x08,

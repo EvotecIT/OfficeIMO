@@ -242,7 +242,8 @@ Chart `CatSerRange` records now decode preserve-only category/series axis
 crossing and interval metadata, `AxisLineFormat` records now decode the formatted
 axis component target, `PieFormat` records now decode preserve-only pie/doughnut
 explosion percentages, chart `SerFmt` records now decode preserve-only series-format
-smooth-line, 3-D bubble, shadow, and reserved-bit states, and chart `AttachedLabel` records now decode preserve-only
+smooth-line, 3-D bubble, shadow, and reserved-bit states, chart `ClrtClient` records
+now decode preserve-only client color palettes, and chart `AttachedLabel` records now decode preserve-only
 data-label display flags for value, percent, category label, bubble size, and
 series name states. `StartBlock`, `EndBlock`, `Units`, `ChartFormat`, `SerToCrt`, `SeriesList`, `SBaseRef`, `CatLab`,
 `CrtLayout12`, `CrtLayout12A`, `ChartFrtInfo`, and `CrtMlFrt` records now decode preserve-only chart-group
@@ -252,6 +253,8 @@ plot-area layout bounds, chart future-record version/range envelopes, and XmlTkC
 buckets for axis intervals, axis-line targets, chart-group state, series links,
 enabled data-label flags, full flag-state shapes, axis-label states, chart
 layout states, reserved unit states, plot-area layout states, future-record block scopes, future-record range states, XmlTkChain completion states, series-format states, and pie explosion percentages.
+Client color palette buckets capture declared and decoded color counts, expected-count
+state, completeness, and foreground/background/neutral colors.
 Drawing `ShapePropsStream`, `TextPropsStream`, and `RichTextStream` future-record
 streams now have first-class preserve-only drawing kinds plus decoded FRT headers,
 including compact report buckets for wrapped record type, flags, range-reference
