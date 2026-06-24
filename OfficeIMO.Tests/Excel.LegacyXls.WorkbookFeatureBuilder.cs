@@ -2165,8 +2165,10 @@ namespace OfficeIMO.Tests {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, 0x0864);
                 WriteUInt16(stream, 0);
-                stream.WriteByte(0);
-                stream.WriteByte(0xff);
+                stream.WriteByte(0x03);
+                stream.WriteByte(0x00);
+                WriteUInt32(stream, 1);
+                WriteUInt16(stream, 0);
                 return stream.ToArray();
             }
 

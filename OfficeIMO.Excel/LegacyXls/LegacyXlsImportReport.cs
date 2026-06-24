@@ -234,6 +234,18 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(record => record.GroupingDateStart != null && record.GroupingDateEnd != null && record.GroupingDateInterval.HasValue)
                 .Select(GetPivotTableGroupingDateRangeKey));
             PivotTableExtendedFieldStates = CountByCode(workbook.PivotTableRecords.SelectMany(GetPivotTableExtendedFieldStateKeys));
+            PivotTableAdditionalClasses = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.AdditionalClassName))
+                .Select(record => record.AdditionalClassName!));
+            PivotTableAdditionalTypes = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.AdditionalTypeName))
+                .Select(record => record.AdditionalTypeName!));
+            PivotTableAdditionalClassTypes = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.AdditionalClassName) && !string.IsNullOrWhiteSpace(record.AdditionalTypeName))
+                .Select(GetPivotTableAdditionalClassTypeKey));
+            PivotTableAdditionalCacheIds = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.AdditionalCacheId.HasValue)
+                .Select(record => $"CacheId:{record.AdditionalCacheId!.Value}"));
             ChartRecordsByKind = CountChartRecordsByKind(workbook.ChartRecords);
             ChartRecordsByName = CountByCode(workbook.ChartRecords.Select(record => record.RecordName));
             ChartRecordsByChartType = CountByCode(workbook.ChartRecords
@@ -889,6 +901,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded SXVDEx PivotTable field flags grouped by flag state.</summary>
         public IReadOnlyDictionary<string, int> PivotTableExtendedFieldStates { get; }
 
+        /// <summary>Gets decoded SXAddl records grouped by PivotTable extension class.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableAdditionalClasses { get; }
+
+        /// <summary>Gets decoded SXAddl records grouped by PivotTable extension detail type.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableAdditionalTypes { get; }
+
+        /// <summary>Gets decoded SXAddl records grouped by class and detail type.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableAdditionalClassTypes { get; }
+
+        /// <summary>Gets decoded SXAddl SxcCache/SXDId records grouped by PivotCache identifier.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableAdditionalCacheIds { get; }
+
         /// <summary>Gets preserve-only chart BIFF records grouped by shallow category.</summary>
         public IReadOnlyDictionary<LegacyXlsChartRecordKind, int> ChartRecordsByKind { get; }
 
@@ -1339,6 +1363,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Grouping Numeric Ranges", PivotTableGroupingNumericRanges);
             AppendDictionary(builder, "Pivot Table Grouping Date Ranges", PivotTableGroupingDateRanges);
             AppendDictionary(builder, "Pivot Table Extended Field States", PivotTableExtendedFieldStates);
+            AppendDictionary(builder, "Pivot Table Additional Classes", PivotTableAdditionalClasses);
+            AppendDictionary(builder, "Pivot Table Additional Types", PivotTableAdditionalTypes);
+            AppendDictionary(builder, "Pivot Table Additional Class Types", PivotTableAdditionalClassTypes);
+            AppendDictionary(builder, "Pivot Table Additional Cache Ids", PivotTableAdditionalCacheIds);
             AppendDictionary(builder, "Chart Records By Kind", ChartRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -1776,6 +1804,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             yield return $"CanDragToHide:{record.CanDragToHide!.Value}";
             yield return $"PreventDragToData:{record.PreventDragToData!.Value}";
             yield return $"ServerBased:{record.ServerBased!.Value}";
+        }
+
+        private static string GetPivotTableAdditionalClassTypeKey(LegacyXlsPivotTableRecord record) {
+            return $"{record.AdditionalClassName}|{record.AdditionalTypeName}";
         }
 
         private static IEnumerable<string> GetConditionalFormattingDifferentialFillKeys(LegacyXlsConditionalFormatting formatting) {

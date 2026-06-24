@@ -602,6 +602,57 @@ Warnings: 0
 | ServerBased:False | 1 |
 | ShowAllItems:False | 1 |
 
+## Pivot Table Additional Classes
+
+| Key | Count |
+| --- | --- |
+| SxcCache | 8 |
+| SxcField12 | 35 |
+| SxcView | 7 |
+
+## Pivot Table Additional Types
+
+| Key | Count |
+| --- | --- |
+| SXD:0x01 | 18 |
+| SXD:0x02 | 1 |
+| SXD:0x18 | 1 |
+| SXD:0x1E | 1 |
+| SXD:0x34 | 1 |
+| SXD:0x41 | 1 |
+| SXDEnd | 9 |
+| SXDId | 9 |
+| SXDVer10Info | 1 |
+| SXDVer12Info | 8 |
+
+## Pivot Table Additional Class Types
+
+| Key | Count |
+| --- | --- |
+| SxcCache\|SXD:0x01 | 2 |
+| SxcCache\|SXD:0x02 | 1 |
+| SxcCache\|SXD:0x18 | 1 |
+| SxcCache\|SXD:0x34 | 1 |
+| SxcCache\|SXD:0x41 | 1 |
+| SxcCache\|SXDEnd | 1 |
+| SxcCache\|SXDId | 1 |
+| SxcField12\|SXD:0x01 | 14 |
+| SxcField12\|SXDEnd | 7 |
+| SxcField12\|SXDId | 7 |
+| SxcField12\|SXDVer12Info | 7 |
+| SxcView\|SXD:0x01 | 2 |
+| SxcView\|SXD:0x1E | 1 |
+| SxcView\|SXDEnd | 1 |
+| SxcView\|SXDId | 1 |
+| SxcView\|SXDVer10Info | 1 |
+| SxcView\|SXDVer12Info | 1 |
+
+## Pivot Table Additional Cache Ids
+
+| Key | Count |
+| --- | --- |
+| CacheId:1 | 1 |
+
 ## Chart Records By Kind
 
 | Key | Count |

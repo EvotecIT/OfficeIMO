@@ -124,6 +124,27 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets whether an SXVDEx record marks the pivot field as server-based.</summary>
         public bool? ServerBased { get; private set; }
 
+        /// <summary>Gets the future-record type stored in an SXAddl header, when decoded.</summary>
+        public ushort? AdditionalFutureRecordType { get; private set; }
+
+        /// <summary>Gets the future-record flags stored in an SXAddl header, when decoded.</summary>
+        public ushort? AdditionalFutureFlags { get; private set; }
+
+        /// <summary>Gets the SXAddl class byte, when decoded.</summary>
+        public byte? AdditionalClass { get; private set; }
+
+        /// <summary>Gets the decoded SXAddl class name, or a stable raw identifier for unknown values.</summary>
+        public string? AdditionalClassName { get; private set; }
+
+        /// <summary>Gets the SXAddl detail type byte, when decoded.</summary>
+        public byte? AdditionalType { get; private set; }
+
+        /// <summary>Gets the decoded SXAddl detail type name, or a stable raw identifier for unknown values.</summary>
+        public string? AdditionalTypeName { get; private set; }
+
+        /// <summary>Gets the PivotCache identifier carried by an SXAddl SxcCache/SXDId record, when decoded.</summary>
+        public uint? AdditionalCacheId { get; private set; }
+
         internal void SetDataItem(
             short dataItemFieldIndex,
             short aggregationFunction,
@@ -194,12 +215,96 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ServerBased = serverBased;
         }
 
+        internal void SetAdditionalMetadata(
+            ushort futureRecordType,
+            ushort futureFlags,
+            byte additionalClass,
+            byte additionalType,
+            uint? cacheId) {
+            AdditionalFutureRecordType = futureRecordType;
+            AdditionalFutureFlags = futureFlags;
+            AdditionalClass = additionalClass;
+            AdditionalClassName = GetAdditionalClassName(additionalClass);
+            AdditionalType = additionalType;
+            AdditionalTypeName = GetAdditionalTypeName(additionalClass, additionalType);
+            AdditionalCacheId = cacheId;
+        }
+
         private static LegacyXlsPivotAggregationFunction? TryGetAggregationFunctionKind(short value) {
             return value >= 0 && value <= 10 ? (LegacyXlsPivotAggregationFunction)value : null;
         }
 
         private static LegacyXlsPivotDisplayCalculation? TryGetDisplayCalculationKind(short value) {
             return value >= 0 && value <= 8 ? (LegacyXlsPivotDisplayCalculation)value : null;
+        }
+
+        private static string GetAdditionalClassName(byte value) {
+            switch (value) {
+                case 0x00:
+                    return "SxcView";
+                case 0x01:
+                    return "SxcField";
+                case 0x02:
+                    return "SxcHierarchy";
+                case 0x03:
+                    return "SxcCache";
+                case 0x04:
+                    return "SxcCacheField";
+                case 0x05:
+                    return "SxcQsi";
+                case 0x06:
+                    return "SxcQuery";
+                case 0x07:
+                    return "SxcGrpLevel";
+                case 0x08:
+                    return "SxcGroup";
+                case 0x09:
+                    return "SxcCacheItem";
+                case 0x0C:
+                    return "SxcSXRule";
+                case 0x0D:
+                    return "SxcSXFilt";
+                case 0x10:
+                    return "SxcSXDH";
+                case 0x12:
+                    return "SxcAutoSort";
+                case 0x13:
+                    return "SxcSXMgs";
+                case 0x14:
+                    return "SxcSXMg";
+                case 0x17:
+                    return "SxcField12";
+                case 0x1A:
+                    return "SxcSXCondFmts";
+                case 0x1B:
+                    return "SxcSXCondFmt";
+                case 0x1C:
+                    return "SxcSXFilters12";
+                case 0x1D:
+                    return "SxcSXFilter12";
+                default:
+                    return $"Sxc:0x{value:X2}";
+            }
+        }
+
+        private static string GetAdditionalTypeName(byte additionalClass, byte value) {
+            if (value == 0x00) {
+                return "SXDId";
+            }
+
+            if (additionalClass == 0x00 && value == 0x02) {
+                return "SXDVer10Info";
+            }
+
+            if ((additionalClass == 0x00 || additionalClass == 0x17) && value == 0x19) {
+                return "SXDVer12Info";
+            }
+
+            if (value == 0xFF) {
+                return "SXDEnd";
+            }
+
+            return $"SXD:0x{value:X2}";
         }
     }
 }

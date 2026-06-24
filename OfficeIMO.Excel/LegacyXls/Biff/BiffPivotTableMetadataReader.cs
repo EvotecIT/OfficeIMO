@@ -28,6 +28,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x00FF:
                         ReadExtendedPivotField(record, pivotRecord);
                         break;
+                    case 0x0864:
+                        ReadAdditionalMetadata(record, pivotRecord);
+                        break;
                 }
             } catch (InvalidDataException) {
                 // PivotTable import is currently preserve-only. Keep the typed record node,
@@ -207,6 +210,29 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 canDragToHide: (flags & 0x0010) != 0,
                 preventDragToData: (flags & 0x0020) != 0,
                 serverBased: (flags & 0x0080) != 0);
+        }
+
+        private static void ReadAdditionalMetadata(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            byte[] payload = record.Payload;
+            if (payload.Length < 6) {
+                throw new InvalidDataException("The SXAddl payload is shorter than the future-record header.");
+            }
+
+            ushort futureRecordType = BiffRecordReader.ReadUInt16(payload, 0);
+            ushort futureFlags = BiffRecordReader.ReadUInt16(payload, 2);
+            byte additionalClass = payload[4];
+            byte additionalType = payload[5];
+            uint? cacheId = null;
+            if (additionalClass == 0x03 && additionalType == 0x00 && payload.Length >= 10) {
+                cacheId = BiffRecordReader.ReadUInt32(payload, 6);
+            }
+
+            pivotRecord.SetAdditionalMetadata(
+                futureRecordType,
+                futureFlags,
+                additionalClass,
+                additionalType,
+                cacheId);
         }
     }
 
