@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadLineFormat(record, out LegacyXlsChartLineFormat? lineFormat);
             TryReadAreaFormat(record, out LegacyXlsChartAreaFormat? areaFormat);
             TryReadMarkerFormat(record, out LegacyXlsChartMarkerFormat? markerFormat);
+            TryReadAttachedLabel(record, out LegacyXlsChartAttachedLabel? attachedLabel);
             BiffChartTextMetadataReader.TryReadDefaultText(record, out ushort? defaultTextId, out string? defaultTextTargetName);
             BiffChartTextMetadataReader.TryReadText(record, out LegacyXlsChartText? text);
             BiffChartTextMetadataReader.TryReadObjectLink(record, out LegacyXlsChartObjectLink? objectLink);
@@ -63,6 +64,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 lineFormat,
                 areaFormat,
                 markerFormat,
+                attachedLabel,
                 defaultTextId,
                 defaultTextTargetName,
                 text,
@@ -74,6 +76,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 plotGrowth,
                 dataTableOptions,
                 valueRange));
+            return true;
+        }
+
+        private static bool TryReadAttachedLabel(BiffRecord record, out LegacyXlsChartAttachedLabel? attachedLabel) {
+            attachedLabel = null;
+            if (record.Type != 0x100D || record.Payload.Length < 2) {
+                return false;
+            }
+
+            attachedLabel = new LegacyXlsChartAttachedLabel(BiffRecordReader.ReadUInt16(record.Payload, 0));
             return true;
         }
 

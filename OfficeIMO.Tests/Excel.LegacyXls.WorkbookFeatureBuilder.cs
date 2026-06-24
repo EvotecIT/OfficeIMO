@@ -495,6 +495,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1032, BuildChartFramePayload());
                 WriteRecord(stream, 0x100a, BuildAreaFormatPayload(pattern: 0x0001, flags: 0x0003, foregroundColorIndex: 0x004e, backgroundColorIndex: 0x004d));
                 WriteRecord(stream, 0x1009, BuildMarkerFormatPayload(markerType: 0x0008, flags: 0x0021, foregroundColorIndex: 0x004e, backgroundColorIndex: 0x004d, sizeTwips: 240));
+                WriteRecord(stream, 0x100d, BuildUInt16Payload(0x0051));
                 WriteRecord(stream, 0x1024, BuildUInt16Payload(0x0002));
                 WriteRecord(stream, 0x1025, BuildChartTextPayload());
                 WriteRecord(stream, 0x1026, BuildUInt16Payload(3));

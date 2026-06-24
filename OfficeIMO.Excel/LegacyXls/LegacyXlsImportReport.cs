@@ -391,6 +391,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartMarkerFormatSizes = CountByCode(workbook.ChartRecords
                 .Where(record => record.MarkerFormat != null)
                 .Select(record => $"SizeTwips:{record.MarkerFormat!.SizeTwips}"));
+            ChartAttachedLabelFlags = CountByCode(workbook.ChartRecords
+                .Where(record => record.AttachedLabel != null)
+                .SelectMany(record => record.AttachedLabel!.FlagNames));
+            ChartAttachedLabelStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.AttachedLabel != null)
+                .Select(GetChartAttachedLabelStateKey));
             ChartDefaultTextTargets = CountByCode(workbook.ChartRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.DefaultTextTargetName))
                 .Select(record => record.DefaultTextTargetName!));
@@ -1215,6 +1221,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets MarkerFormat records grouped by marker size in twips.</summary>
         public IReadOnlyDictionary<string, int> ChartMarkerFormatSizes { get; }
 
+        /// <summary>Gets AttachedLabel records grouped by decoded displayed data-label element.</summary>
+        public IReadOnlyDictionary<string, int> ChartAttachedLabelFlags { get; }
+
+        /// <summary>Gets AttachedLabel records grouped by full decoded flag state.</summary>
+        public IReadOnlyDictionary<string, int> ChartAttachedLabelStates { get; }
+
         /// <summary>Gets DefaultText records grouped by decoded target scope.</summary>
         public IReadOnlyDictionary<string, int> ChartDefaultTextTargets { get; }
 
@@ -1703,6 +1715,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart AreaFormat Patterns", ChartAreaFormatPatterns);
             AppendDictionary(builder, "Chart MarkerFormat Types", ChartMarkerFormatTypes);
             AppendDictionary(builder, "Chart MarkerFormat Sizes", ChartMarkerFormatSizes);
+            AppendDictionary(builder, "Chart AttachedLabel Flags", ChartAttachedLabelFlags);
+            AppendDictionary(builder, "Chart AttachedLabel States", ChartAttachedLabelStates);
             AppendDictionary(builder, "Chart DefaultText Targets", ChartDefaultTextTargets);
             AppendDictionary(builder, "Chart Text Horizontal Alignments", ChartTextHorizontalAlignments);
             AppendDictionary(builder, "Chart Text Vertical Alignments", ChartTextVerticalAlignments);
@@ -2049,6 +2063,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartValueRangeStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartValueRange valueRange = record.ValueRange!;
             return $"AutoMin:{valueRange.AutoMinimum};AutoMax:{valueRange.AutoMaximum};AutoMajor:{valueRange.AutoMajorUnit};AutoMinor:{valueRange.AutoMinorUnit};AutoCross:{valueRange.AutoCrossingValue};Log:{valueRange.LogarithmicScale};Reversed:{valueRange.Reversed};MaxCross:{valueRange.MaximumCrossing}";
+        }
+
+        private static string GetChartAttachedLabelStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartAttachedLabel attachedLabel = record.AttachedLabel!;
+            return $"ShowValue:{attachedLabel.ShowValue};ShowPercent:{attachedLabel.ShowPercent};ShowLabelAndPercent:{attachedLabel.ShowLabelAndPercent};ShowLabel:{attachedLabel.ShowLabel};ShowBubbleSizes:{attachedLabel.ShowBubbleSizes};ShowSeriesName:{attachedLabel.ShowSeriesName}";
         }
 
         private static string FormatDouble(double value) {

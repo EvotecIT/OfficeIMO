@@ -840,6 +840,12 @@ Warnings: 0
 | --- | --- |
 | SizeTwips:60 | 2 |
 
+## Chart AttachedLabel States
+
+| Key | Count |
+| --- | --- |
+| ShowValue:False;ShowPercent:False;ShowLabelAndPercent:False;ShowLabel:False;ShowBubbleSizes:False;ShowSeriesName:False | 2 |
+
 ## Chart DefaultText Targets
 
 | Key | Count |
