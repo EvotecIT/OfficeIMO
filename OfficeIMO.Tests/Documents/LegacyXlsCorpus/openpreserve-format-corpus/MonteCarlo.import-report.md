@@ -883,6 +883,36 @@ Warnings: 0
 | Locked | 14 |
 | Printable | 14 |
 
+## Drawing Object Subrecords By Type
+
+| Key | Count |
+| --- | --- |
+| SubRecordType:0x0000 | 14 |
+| SubRecordType:0x0006 | 2 |
+| SubRecordType:0x0015 | 14 |
+
+## Drawing Object Subrecords By Name
+
+| Key | Count |
+| --- | --- |
+| FtCmo | 14 |
+| FtEnd | 14 |
+| FtGmo | 2 |
+
+## Drawing Object Subrecords By Declared Length
+
+| Key | Count |
+| --- | --- |
+| DeclaredBytes:0 | 14 |
+| DeclaredBytes:18 | 14 |
+| DeclaredBytes:2 | 2 |
+
+## Drawing Object Subrecords By Completeness
+
+| Key | Count |
+| --- | --- |
+| Complete | 30 |
+
 ## Drawing Records By Escher Record Type
 
 | Key | Count |

@@ -98,6 +98,36 @@ namespace OfficeIMO.Tests {
             AssertCorpusFormula(sheet, 5, 2, 415d, "SUM('[external-source.xls]Data'!$B$2:$B$4)");
         }
 
+        [Fact]
+        public void LegacyXls_Corpus_ExcelObjects_PreserveDrawingObjectSubrecordModel() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "excel-com-generated",
+                "objects.xls");
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.True(result.ImportReport.DrawingRecordsByObjectTypeName["Picture"] >= 1);
+            Assert.True(result.ImportReport.DrawingRecordsByObjectTypeName["Button"] >= 1);
+            Assert.True(result.ImportReport.DrawingRecordsByObjectTypeName["Checkbox"] >= 1);
+            Assert.True(result.ImportReport.DrawingRecordsByObjectTypeName["DropdownList"] >= 1);
+            Assert.True(result.ImportReport.DrawingObjectSubRecordsByName["FtCmo"] >= 1);
+            Assert.True(result.ImportReport.DrawingObjectSubRecordsByName["FtEnd"] >= 1);
+            Assert.True(result.ImportReport.DrawingObjectSubRecordsByName["FtCblsData"] >= 1);
+            Assert.True(result.ImportReport.DrawingObjectSubRecordsByName["FtLbsData"] >= 1);
+            Assert.True(result.ImportReport.DrawingObjectSubRecordsByCompleteness["Complete"] >= 1);
+            Assert.True(result.ImportReport.DrawingObjectSubRecordsByCompleteness["Truncated"] >= 1);
+            Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByEmbeddedRecordType["OfficeArtBlipPNG"]);
+            Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "Picture" && record.HasObjectSubRecords);
+            Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "Button" && record.HasObjectSubRecords);
+            Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "Checkbox" && record.ObjectSubRecords.Any(subRecord => subRecord.SubRecordName == "FtCblsData"));
+        }
+
         private static bool IsLegacyXlsCorpusBaselineUpdateRequested() {
             string? value = Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES");
             return string.Equals(value, "1", StringComparison.Ordinal)

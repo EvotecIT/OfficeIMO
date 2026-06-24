@@ -417,6 +417,18 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(record => $"ObjectFlags:0x{record.ObjectFlags!.Value:X4}"));
             DrawingRecordsByObjectFlagName = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.ObjectFlagNames));
+            DrawingObjectSubRecordsByType = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ObjectSubRecords)
+                .Select(subRecord => subRecord.SubRecordTypeKey));
+            DrawingObjectSubRecordsByName = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ObjectSubRecords)
+                .Select(subRecord => subRecord.SubRecordName));
+            DrawingObjectSubRecordsByDeclaredLength = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ObjectSubRecords)
+                .Select(subRecord => $"DeclaredBytes:{subRecord.DeclaredLength}"));
+            DrawingObjectSubRecordsByCompleteness = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ObjectSubRecords)
+                .Select(subRecord => subRecord.IsComplete ? "Complete" : "Truncated"));
             DrawingRecordsByEscherRecordType = CountByCode(workbook.DrawingRecords
                 .Where(record => record.EscherRecordType.HasValue)
                 .Select(record => $"EscherRecordType:0x{record.EscherRecordType!.Value:X4}"));
@@ -1197,6 +1209,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets OBJ records grouped by decoded common-object flag name.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByObjectFlagName { get; }
 
+        /// <summary>Gets OBJ subrecords grouped by raw subrecord type.</summary>
+        public IReadOnlyDictionary<string, int> DrawingObjectSubRecordsByType { get; }
+
+        /// <summary>Gets OBJ subrecords grouped by decoded subrecord name.</summary>
+        public IReadOnlyDictionary<string, int> DrawingObjectSubRecordsByName { get; }
+
+        /// <summary>Gets OBJ subrecords grouped by declared payload length.</summary>
+        public IReadOnlyDictionary<string, int> DrawingObjectSubRecordsByDeclaredLength { get; }
+
+        /// <summary>Gets OBJ subrecords grouped by whether the declared payload was fully available.</summary>
+        public IReadOnlyDictionary<string, int> DrawingObjectSubRecordsByCompleteness { get; }
+
         /// <summary>Gets MsoDrawing records grouped by decoded top-level Escher record type.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByEscherRecordType { get; }
 
@@ -1617,6 +1641,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Records By Object Type Name", DrawingRecordsByObjectTypeName);
             AppendDictionary(builder, "Drawing Records By Object Flags", DrawingRecordsByObjectFlags);
             AppendDictionary(builder, "Drawing Records By Object Flag Name", DrawingRecordsByObjectFlagName);
+            AppendDictionary(builder, "Drawing Object Subrecords By Type", DrawingObjectSubRecordsByType);
+            AppendDictionary(builder, "Drawing Object Subrecords By Name", DrawingObjectSubRecordsByName);
+            AppendDictionary(builder, "Drawing Object Subrecords By Declared Length", DrawingObjectSubRecordsByDeclaredLength);
+            AppendDictionary(builder, "Drawing Object Subrecords By Completeness", DrawingObjectSubRecordsByCompleteness);
             AppendDictionary(builder, "Drawing Records By Escher Record Type", DrawingRecordsByEscherRecordType);
             AppendDictionary(builder, "Drawing Records By Escher Record Type Name", DrawingRecordsByEscherRecordTypeName);
             AppendDictionary(builder, "Drawing OfficeArt Records By Type", DrawingOfficeArtRecordsByType);

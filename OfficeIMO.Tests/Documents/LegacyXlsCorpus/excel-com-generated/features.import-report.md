@@ -982,6 +982,40 @@ Warnings: 0
 | Printable | 2 |
 | UiObject | 5 |
 
+## Drawing Object Subrecords By Type
+
+| Key | Count |
+| --- | --- |
+| SubRecordType:0x0000 | 2 |
+| SubRecordType:0x000C | 5 |
+| SubRecordType:0x0013 | 5 |
+| SubRecordType:0x0015 | 7 |
+
+## Drawing Object Subrecords By Name
+
+| Key | Count |
+| --- | --- |
+| FtCmo | 7 |
+| FtEnd | 2 |
+| FtLbsData | 5 |
+| FtSbs | 5 |
+
+## Drawing Object Subrecords By Declared Length
+
+| Key | Count |
+| --- | --- |
+| DeclaredBytes:0 | 2 |
+| DeclaredBytes:18 | 7 |
+| DeclaredBytes:20 | 5 |
+| DeclaredBytes:8174 | 5 |
+
+## Drawing Object Subrecords By Completeness
+
+| Key | Count |
+| --- | --- |
+| Complete | 14 |
+| Truncated | 5 |
+
 ## Drawing Records By Escher Record Type
 
 | Key | Count |

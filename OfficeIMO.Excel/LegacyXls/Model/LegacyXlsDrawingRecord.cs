@@ -27,7 +27,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             IReadOnlyList<LegacyXlsDrawingAnchor>? anchorEntries = null,
             IReadOnlyList<LegacyXlsDrawingChildAnchor>? childAnchorEntries = null,
             IReadOnlyList<LegacyXlsDrawingOfficeArtRecord>? officeArtRecords = null,
-            IReadOnlyList<LegacyXlsDrawingShapeProperty>? shapeProperties = null) {
+            IReadOnlyList<LegacyXlsDrawingShapeProperty>? shapeProperties = null,
+            IReadOnlyList<LegacyXlsDrawingObjectSubRecord>? objectSubRecords = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -56,6 +57,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ChildAnchorEntries = childAnchorEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingChildAnchor>();
             OfficeArtRecords = officeArtRecords?.ToArray() ?? Array.Empty<LegacyXlsDrawingOfficeArtRecord>();
             ShapeProperties = shapeProperties?.ToArray() ?? Array.Empty<LegacyXlsDrawingShapeProperty>();
+            ObjectSubRecords = objectSubRecords?.ToArray() ?? Array.Empty<LegacyXlsDrawingObjectSubRecord>();
         }
 
         /// <summary>Gets the shallow drawing record category.</summary>
@@ -93,6 +95,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets stable names for the defined common-object flags set on this OBJ record.</summary>
         public IReadOnlyList<string> ObjectFlagNames { get; }
+
+        /// <summary>Gets preserve-only subrecord metadata discovered inside this OBJ record.</summary>
+        public IReadOnlyList<LegacyXlsDrawingObjectSubRecord> ObjectSubRecords { get; }
+
+        /// <summary>Gets whether this OBJ record contains discovered subrecords.</summary>
+        public bool HasObjectSubRecords => ObjectSubRecords.Count > 0;
 
         /// <summary>Gets whether the object is locked.</summary>
         public bool IsObjectLocked => HasObjectFlag(0x0001);

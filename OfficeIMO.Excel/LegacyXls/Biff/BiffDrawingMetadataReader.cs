@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             TryReadObjectCommonData(record, out ushort? objectType, out ushort? objectId, out ushort? objectFlags);
+            IReadOnlyList<LegacyXlsDrawingObjectSubRecord> objectSubRecords = ReadObjectSubRecords(record);
             TryReadEscherHeader(record, out ushort? escherRecordType, out ushort? escherRecordInstance, out byte? escherRecordVersion, out uint? escherPayloadLength);
             ReadOfficeArtMetadata(
                 record,
@@ -39,7 +40,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 anchorEntries: anchorEntries,
                 childAnchorEntries: childAnchorEntries,
                 officeArtRecords: officeArtRecords,
-                shapeProperties: shapeProperties));
+                shapeProperties: shapeProperties,
+                objectSubRecords: objectSubRecords));
             return true;
         }
 
@@ -310,6 +312,43 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             return true;
+        }
+
+        private static IReadOnlyList<LegacyXlsDrawingObjectSubRecord> ReadObjectSubRecords(BiffRecord record) {
+            byte[] payload = record.Payload;
+            if (record.Type != (ushort)BiffRecordType.Obj || payload.Length < 4) {
+                return Array.Empty<LegacyXlsDrawingObjectSubRecord>();
+            }
+
+            var records = new List<LegacyXlsDrawingObjectSubRecord>();
+            int offset = 0;
+            while (offset + 4 <= payload.Length) {
+                ushort subRecordType = BiffRecordReader.ReadUInt16(payload, offset);
+                ushort declaredLength = BiffRecordReader.ReadUInt16(payload, offset + 2);
+                int dataOffset = offset + 4;
+                int availableLength = Math.Min(declaredLength, payload.Length - dataOffset);
+                if (availableLength < 0) {
+                    availableLength = 0;
+                }
+
+                records.Add(new LegacyXlsDrawingObjectSubRecord(subRecordType, offset, declaredLength, availableLength));
+                if (subRecordType == 0x0000 || availableLength < declaredLength) {
+                    break;
+                }
+
+                int nextOffset = dataOffset + availableLength;
+                if ((declaredLength & 0x0001) != 0 && nextOffset < payload.Length) {
+                    nextOffset++;
+                }
+
+                if (nextOffset <= offset) {
+                    break;
+                }
+
+                offset = nextOffset;
+            }
+
+            return records;
         }
 
         private static LegacyXlsDrawingRecordKind GetKind(ushort type) {
