@@ -38,9 +38,10 @@ bool IncludeScenario(string name) => scenarioFilter.Count == 0 || scenarioFilter
 var records = SalesRecord.Create(rowCount);
 var npoiXlsx = new Lazy<byte[]>(() => WriteNpoiXlsx(records));
 var npoiXls = new Lazy<byte[]>(() => WriteNpoiXls(records));
+var npoiFormulaXls = new Lazy<byte[]>(() => WriteNpoiFormulaXls(records));
 
-if (IncludeScenario("xls-read-cellvalues") && rowCount + 1 > 65_536) {
-    throw new ArgumentOutOfRangeException(nameof(rowCount), "The xls-read-cellvalues scenario cannot exceed the BIFF8 worksheet row limit.");
+if ((IncludeScenario("xls-read-cellvalues") || IncludeScenario("xls-read-formulas")) && rowCount + 1 > 65_536) {
+    throw new ArgumentOutOfRangeException(nameof(rowCount), "The xls scenarios cannot exceed the BIFF8 worksheet row limit.");
 }
 
 var measurements = new List<NpoiComparisonMeasurement>();
@@ -58,6 +59,11 @@ if (IncludeScenario("xlsx-read-cellvalues")) {
 if (IncludeScenario("xls-read-cellvalues")) {
     AddScenario(measurements, "xls-read-cellvalues", "OfficeIMO.Excel Legacy XLS", "Read an HSSF-generated .xls workbook through the OfficeIMO legacy importer.", () => ReadOfficeImoXls(npoiXls.Value, rowCount), warmupIterations, measuredIterations);
     AddScenario(measurements, "xls-read-cellvalues", "NPOI HSSF", "Read the same HSSF-generated .xls workbook through HSSFWorkbook.", () => ReadNpoiWorkbook(npoiXls.Value, rowCount), warmupIterations, measuredIterations);
+}
+
+if (IncludeScenario("xls-read-formulas")) {
+    AddScenario(measurements, "xls-read-formulas", "OfficeIMO.Excel Legacy XLS", "Read BIFF8 formula text and cached values from an HSSF-generated .xls workbook.", () => ReadOfficeImoXlsFormulas(npoiFormulaXls.Value, rowCount), warmupIterations, measuredIterations);
+    AddScenario(measurements, "xls-read-formulas", "NPOI HSSF", "Read formula text and cached values from the same HSSF-generated .xls workbook.", () => ReadNpoiWorkbookFormulas(npoiFormulaXls.Value, rowCount), warmupIterations, measuredIterations);
 }
 
 if (measurements.Count == 0) {
@@ -140,6 +146,31 @@ static byte[] WriteNpoiXls(IReadOnlyList<SalesRecord> records) {
     return stream.ToArray();
 }
 
+static byte[] WriteNpoiFormulaXls(IReadOnlyList<SalesRecord> records) {
+    using var stream = new MemoryStream();
+    using var workbook = new HSSFWorkbook();
+    ISheet sheet = workbook.CreateSheet("Data");
+    IRow header = sheet.CreateRow(0);
+    header.CreateCell(0).SetCellValue("Id");
+    header.CreateCell(1).SetCellValue("Amount");
+    header.CreateCell(2).SetCellValue("Rate");
+    header.CreateCell(3).SetCellValue("Total");
+
+    for (int i = 0; i < records.Count; i++) {
+        int oneBasedRow = i + 2;
+        IRow row = sheet.CreateRow(i + 1);
+        SalesRecord record = records[i];
+        row.CreateCell(0).SetCellValue(record.Id);
+        row.CreateCell(1).SetCellValue(record.Amount);
+        row.CreateCell(2).SetCellValue(record.Active ? 1.2d : 0.8d);
+        row.CreateCell(3).SetCellFormula($"B{oneBasedRow}*C{oneBasedRow}");
+    }
+
+    HSSFFormulaEvaluator.EvaluateAllFormulaCells(workbook);
+    workbook.Write(stream, leaveOpen: true);
+    return stream.ToArray();
+}
+
 static void WriteOfficeImoRows(ExcelSheet sheet, IReadOnlyList<SalesRecord> records) {
     sheet.CellValue(1, 1, "Id");
     sheet.CellValue(1, 2, "Region");
@@ -206,6 +237,27 @@ static int ReadOfficeImoXls(byte[] workbookBytes, int rowCount) {
     return metric;
 }
 
+static int ReadOfficeImoXlsFormulas(byte[] workbookBytes, int rowCount) {
+    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedRecords = true });
+    LegacyXlsWorksheet worksheet = workbook.Worksheets.Single(sheet => sheet.Name == "Data");
+    List<LegacyXlsCell> formulaCells = worksheet.Cells
+        .Where(cell => cell.IsFormula)
+        .OrderBy(cell => cell.Row)
+        .ThenBy(cell => cell.Column)
+        .ToList();
+    if (formulaCells.Count != rowCount) {
+        throw new InvalidOperationException($"Expected {rowCount} formula cells, got {formulaCells.Count}.");
+    }
+
+    int metric = 0;
+    foreach (LegacyXlsCell cell in formulaCells) {
+        metric = AddValueMetric(metric, cell.FormulaText);
+        metric = AddValueMetric(metric, cell.Value);
+    }
+
+    return metric;
+}
+
 static int ReadNpoiWorkbook(byte[] workbookBytes, int rowCount) {
     using var stream = new MemoryStream(workbookBytes, writable: false);
     using IWorkbook workbook = WorkbookFactory.Create(stream);
@@ -222,6 +274,21 @@ static int ReadNpoiWorkbook(byte[] workbookBytes, int rowCount) {
     return metric;
 }
 
+static int ReadNpoiWorkbookFormulas(byte[] workbookBytes, int rowCount) {
+    using var stream = new MemoryStream(workbookBytes, writable: false);
+    using IWorkbook workbook = WorkbookFactory.Create(stream);
+    ISheet sheet = workbook.GetSheet("Data");
+    int metric = 0;
+    for (int rowIndex = 1; rowIndex <= rowCount; rowIndex++) {
+        IRow row = sheet.GetRow(rowIndex) ?? throw new InvalidOperationException($"Missing row {rowIndex + 1}.");
+        ICell formulaCell = row.GetCell(3) ?? throw new InvalidOperationException($"Missing formula cell {rowIndex + 1},4.");
+        metric = AddValueMetric(metric, formulaCell.CellFormula);
+        metric = AddValueMetric(metric, ReadNpoiFormulaCachedValue(formulaCell));
+    }
+
+    return metric;
+}
+
 static object? ReadNpoiCellValue(ICell cell) {
     return cell.CellType switch {
         CellType.String => cell.StringCellValue,
@@ -230,6 +297,21 @@ static object? ReadNpoiCellValue(ICell cell) {
         CellType.Blank => null,
         CellType.Error => cell.ErrorCellValue,
         CellType.Formula => cell.CellFormula,
+        _ => cell.ToString()
+    };
+}
+
+static object? ReadNpoiFormulaCachedValue(ICell cell) {
+    if (cell.CellType != CellType.Formula) {
+        return ReadNpoiCellValue(cell);
+    }
+
+    return cell.CachedFormulaResultType switch {
+        CellType.String => cell.StringCellValue,
+        CellType.Numeric => cell.NumericCellValue,
+        CellType.Boolean => cell.BooleanCellValue,
+        CellType.Blank => null,
+        CellType.Error => cell.ErrorCellValue,
         _ => cell.ToString()
     };
 }

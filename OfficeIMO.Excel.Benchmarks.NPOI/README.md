@@ -17,6 +17,9 @@ The first lanes are deliberately natural to NPOI:
 - `xlsx-read-cellvalues`: plain row/cell reads from the same `.xlsx` shape.
 - `xls-read-cellvalues`: read an HSSF-generated `.xls` workbook through NPOI and
   OfficeIMO's legacy XLS importer.
+- `xls-read-formulas`: read formula text and cached values from an
+  HSSF-generated `.xls` workbook through NPOI and OfficeIMO's legacy XLS
+  importer.
 
 Do not add OfficeIMO-specific template, preflight, PDF, package-copy,
 direct-package, or report-workflow scenarios here unless NPOI has an equivalent
