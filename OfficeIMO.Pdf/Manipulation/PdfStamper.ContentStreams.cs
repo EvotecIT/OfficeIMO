@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -43,14 +44,17 @@ public static partial class PdfStamper {
         double imageHeight = options.Height ?? pixelHeight;
         double x = options.X ?? (watermarkDefaults ? (pageWidth - imageWidth) / 2.0 : 36);
         double y = options.Y ?? (watermarkDefaults ? (pageHeight - imageHeight) / 2.0 : 36);
-        double radians = options.RotationDegrees * Math.PI / 180.0;
-        double cos = Math.Cos(radians);
-        double sin = Math.Sin(radians);
+        OfficeTransform imageTransform = new OfficeImageProjection(
+            new OfficeImagePlacement(x, y, imageWidth, imageHeight),
+            rotationDegrees: options.RotationDegrees,
+            rotationCenterX: x,
+            rotationCenterY: y)
+            .CreateUnitSquareTransform();
 
         var sb = new StringBuilder();
         new ContentStreamBuilder(sb)
             .SaveState()
-            .TransformMatrix(imageWidth * cos, imageWidth * sin, -imageHeight * sin, imageHeight * cos, x, y)
+            .TransformMatrix(imageTransform.M11, imageTransform.M12, imageTransform.M21, imageTransform.M22, imageTransform.OffsetX, imageTransform.OffsetY)
             .XObject(imageResourceName)
             .RestoreState();
 
