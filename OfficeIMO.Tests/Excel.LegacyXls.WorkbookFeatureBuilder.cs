@@ -1317,7 +1317,7 @@ namespace OfficeIMO.Tests {
             private static byte[] BuildAutoFilterNumberBetweenPayload(ushort columnId, double lowerValue, double upperValue) {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, columnId);
-                WriteUInt16(stream, 0x0001);
+                WriteUInt16(stream, 0x0000);
                 WriteNumberDoper(stream, lowerValue, LegacyAutoFilterComparisonGreaterThanOrEqual);
                 WriteNumberDoper(stream, upperValue, LegacyAutoFilterComparisonLessThanOrEqual);
                 return stream.ToArray();

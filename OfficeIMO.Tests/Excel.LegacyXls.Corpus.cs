@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
@@ -143,6 +145,74 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "Picture" && record.HasObjectSubRecords);
             Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "Button" && record.HasObjectSubRecords);
             Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "Checkbox" && record.ObjectSubRecords.Any(subRecord => subRecord.SubRecordName == "FtCblsData"));
+        }
+
+        [Fact]
+        public void LegacyXls_Corpus_AutoFilterShapes_PreservesExcelAuthoredCriteria() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "excel-com-generated",
+                "auto-filter-shapes.xls");
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.Equal(4, result.ImportReport.AutoFilterCriteriaCount);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByKind["Blanks"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByKind["NonBlanks"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByKind["Top10"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByKind["Custom"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByJoinOperator["And"]);
+            Assert.Equal(2, result.ImportReport.AutoFilterCriteriaByJoinOperator["Single"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByJoinOperator["None"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterTop10Values["TopItems:3"]);
+
+            LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
+            LegacyXlsAutoFilterCriteria blankCriteria = Assert.Single(sheet.AutoFilterCriteria, criteria => criteria.Kind == LegacyXlsAutoFilterKind.Blanks);
+            Assert.Equal(0U, blankCriteria.ColumnId);
+            Assert.Equal(LegacyXlsAutoFilterValueKind.Blank, Assert.Single(blankCriteria.Conditions).ValueKind);
+
+            LegacyXlsAutoFilterCriteria nonBlankCriteria = Assert.Single(sheet.AutoFilterCriteria, criteria => criteria.Kind == LegacyXlsAutoFilterKind.NonBlanks);
+            Assert.Equal(1U, nonBlankCriteria.ColumnId);
+            Assert.Equal(LegacyXlsAutoFilterValueKind.NonBlank, Assert.Single(nonBlankCriteria.Conditions).ValueKind);
+
+            LegacyXlsAutoFilterCriteria topCriteria = Assert.Single(sheet.AutoFilterCriteria, criteria => criteria.Kind == LegacyXlsAutoFilterKind.Top10);
+            Assert.Equal(2U, topCriteria.ColumnId);
+            Assert.Equal((ushort)3, topCriteria.Top10Value);
+            Assert.True(topCriteria.Top10IsTop);
+            Assert.False(topCriteria.Top10IsPercent);
+
+            LegacyXlsAutoFilterCriteria amountCriteria = Assert.Single(sheet.AutoFilterCriteria, criteria => criteria.ColumnId == 3);
+            Assert.Equal(LegacyXlsAutoFilterKind.Custom, amountCriteria.Kind);
+            Assert.True(amountCriteria.MatchAll);
+            Assert.Equal(LegacyXlsAutoFilterJoinOperator.And, amountCriteria.JoinOperator);
+            Assert.Collection(amountCriteria.Conditions,
+                condition => {
+                    Assert.Equal(LegacyXlsAutoFilterOperator.GreaterThanOrEqual, condition.Operator);
+                    Assert.Equal("10", condition.Value);
+                },
+                condition => {
+                    Assert.Equal(LegacyXlsAutoFilterOperator.LessThanOrEqual, condition.Operator);
+                    Assert.Equal("30", condition.Value);
+                });
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            AutoFilter autoFilter = Assert.Single(worksheetPart.Worksheet.Elements<AutoFilter>());
+            Assert.Equal("A1:D8", autoFilter.Reference!.Value);
+            List<FilterColumn> columns = autoFilter.Elements<FilterColumn>().OrderBy(column => column.ColumnId!.Value).ToList();
+            Assert.Equal(4, columns.Count);
+            Assert.True(Assert.Single(columns[0].Elements<Filters>()).Blank!.Value);
+            Assert.Equal(FilterOperatorValues.NotEqual, Assert.Single(columns[1].GetFirstChild<CustomFilters>()!.Elements<CustomFilter>()).Operator!.Value);
+            Assert.Equal(3d, Assert.Single(columns[2].Elements<Top10>()).Val!.Value);
+            CustomFilters amountFilters = Assert.Single(columns[3].Elements<CustomFilters>());
+            Assert.True(amountFilters.And!.Value);
         }
 
         [Fact]

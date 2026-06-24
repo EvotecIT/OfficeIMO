@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            bool matchAll = (flags & 0x0003) == 0x0001;
+            bool matchAll = conditions.Count <= 1 || (flags & 0x0001) == 0;
             LegacyXlsAutoFilterKind kind = ResolveCriteriaKind(conditions, firstKind, secondKind);
             criteria = new LegacyXlsAutoFilterCriteria(columnId, matchAll, conditions, kind);
             return true;
