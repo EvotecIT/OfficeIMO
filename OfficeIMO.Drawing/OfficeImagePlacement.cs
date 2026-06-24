@@ -79,6 +79,50 @@ public readonly struct OfficeImagePlacement {
     }
 
     /// <summary>
+    /// Calculates the visible aspect-ratio change between a source image and a target rectangle.
+    /// </summary>
+    /// <param name="sourceWidth">Source image width.</param>
+    /// <param name="sourceHeight">Source image height.</param>
+    /// <param name="targetWidth">Target rectangle width.</param>
+    /// <param name="targetHeight">Target rectangle height.</param>
+    /// <returns>A ratio greater than or equal to 1 where 1 means the source and target aspect ratios match.</returns>
+    public static double GetAspectRatioDistortionRatio(
+        double sourceWidth,
+        double sourceHeight,
+        double targetWidth,
+        double targetHeight) {
+        EnsurePositive(sourceWidth, nameof(sourceWidth));
+        EnsurePositive(sourceHeight, nameof(sourceHeight));
+        EnsurePositive(targetWidth, nameof(targetWidth));
+        EnsurePositive(targetHeight, nameof(targetHeight));
+
+        double sourceAspect = sourceWidth / sourceHeight;
+        double targetAspect = targetWidth / targetHeight;
+        return Math.Max(sourceAspect, targetAspect) / Math.Min(sourceAspect, targetAspect);
+    }
+
+    /// <summary>
+    /// Returns whether a source image would visibly distort when stretched into a target rectangle.
+    /// </summary>
+    /// <param name="sourceWidth">Source image width.</param>
+    /// <param name="sourceHeight">Source image height.</param>
+    /// <param name="targetWidth">Target rectangle width.</param>
+    /// <param name="targetHeight">Target rectangle height.</param>
+    /// <param name="thresholdRatio">Minimum distortion ratio considered visible. Values below 1 are invalid.</param>
+    public static bool ExceedsAspectRatioDistortion(
+        double sourceWidth,
+        double sourceHeight,
+        double targetWidth,
+        double targetHeight,
+        double thresholdRatio) {
+        if (thresholdRatio < 1D || double.IsNaN(thresholdRatio) || double.IsInfinity(thresholdRatio)) {
+            throw new ArgumentOutOfRangeException(nameof(thresholdRatio), "Aspect-ratio distortion threshold must be finite and greater than or equal to 1.");
+        }
+
+        return GetAspectRatioDistortionRatio(sourceWidth, sourceHeight, targetWidth, targetHeight) > thresholdRatio;
+    }
+
+    /// <summary>
     /// Converts the placement into a tuple.
     /// </summary>
     public (double X, double Y, double Width, double Height) ToTuple() => (X, Y, Width, Height);

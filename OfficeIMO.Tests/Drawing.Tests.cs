@@ -72,6 +72,27 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImagePlacementCalculatesAspectRatioDistortion() {
+        double matching = OfficeImagePlacement.GetAspectRatioDistortionRatio(
+            sourceWidth: 200D,
+            sourceHeight: 100D,
+            targetWidth: 80D,
+            targetHeight: 40D);
+        double distorted = OfficeImagePlacement.GetAspectRatioDistortionRatio(
+            sourceWidth: 200D,
+            sourceHeight: 100D,
+            targetWidth: 80D,
+            targetHeight: 80D);
+
+        Assert.Equal(1D, matching);
+        Assert.Equal(2D, distorted);
+        Assert.False(OfficeImagePlacement.ExceedsAspectRatioDistortion(200D, 100D, 80D, 40D, 1.02D));
+        Assert.True(OfficeImagePlacement.ExceedsAspectRatioDistortion(200D, 100D, 80D, 80D, 1.02D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeImagePlacement.GetAspectRatioDistortionRatio(0D, 100D, 80D, 80D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeImagePlacement.ExceedsAspectRatioDistortion(200D, 100D, 80D, 80D, double.NaN));
+    }
+
+    [Fact]
     public void OfficeImageSourceCropExposesVisibleSourceRatios() {
         var crop = new OfficeImageSourceCrop(0.25D, 0.1D, 0.5D, 0.2D);
 
