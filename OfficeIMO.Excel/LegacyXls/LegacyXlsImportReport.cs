@@ -612,6 +612,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingBlipStoreEntriesByType = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.BlipStoreEntries)
                 .Select(entry => entry.RecordInstanceBlipTypeName));
+            DrawingBlipStoreEntriesByLocation = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.BlipStoreEntries.Select(_ => GetDrawingRecordLocationKey(record))));
+            DrawingBlipStoreEntriesByTypeAndLocation = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.BlipStoreEntries
+                    .Select(entry => $"{GetDrawingRecordLocationKey(record)}|{entry.RecordInstanceBlipTypeName}")));
             DrawingBlipStoreEntriesByEmbeddedRecordType = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.BlipStoreEntries)
                 .Where(entry => !string.IsNullOrWhiteSpace(entry.EmbeddedBlipRecordTypeName))
@@ -624,6 +629,22 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(record => record.BlipStoreEntries)
                 .Where(entry => entry.ReferenceCount.HasValue)
                 .Select(entry => $"References:{entry.ReferenceCount!.Value}"));
+            DrawingShapeBlipPropertiesByLocation = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties
+                    .Where(IsBlipShapeProperty)
+                    .Select(_ => GetDrawingRecordLocationKey(record))));
+            DrawingShapeBlipPropertiesByNameAndValue = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties)
+                .Where(IsBlipShapeProperty)
+                .Select(property => $"{property.PropertyName};Value:0x{property.Value:X8}"));
+            DrawingPictureBlipReferencesByLocation = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties
+                    .Where(IsPictureBlipReferenceProperty)
+                    .Select(_ => GetDrawingRecordLocationKey(record))));
+            DrawingPictureBlipReferencesByValue = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties)
+                .Where(IsPictureBlipReferenceProperty)
+                .Select(property => $"BlipId:{property.Value}"));
             DrawingShapeEntriesByType = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.ShapeEntries)
                 .Select(shape => shape.ShapeTypeName));
@@ -1548,6 +1569,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by decoded BLIP type.</summary>
         public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByType { get; }
 
+        /// <summary>Gets OfficeArt FBSE image-store entries grouped by workbook or sheet location.</summary>
+        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByLocation { get; }
+
+        /// <summary>Gets OfficeArt FBSE image-store entries grouped by workbook/sheet location and decoded BLIP type.</summary>
+        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByTypeAndLocation { get; }
+
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by embedded BLIP record type.</summary>
         public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByEmbeddedRecordType { get; }
 
@@ -1556,6 +1583,18 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by reference count.</summary>
         public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByReferenceCount { get; }
+
+        /// <summary>Gets OfficeArtFOPT BLIP-family shape properties grouped by workbook or sheet location.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapeBlipPropertiesByLocation { get; }
+
+        /// <summary>Gets OfficeArtFOPT BLIP-family shape properties grouped by property name and raw value.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapeBlipPropertiesByNameAndValue { get; }
+
+        /// <summary>Gets OfficeArtFOPT picture BLIP reference properties grouped by workbook or sheet location.</summary>
+        public IReadOnlyDictionary<string, int> DrawingPictureBlipReferencesByLocation { get; }
+
+        /// <summary>Gets OfficeArtFOPT picture BLIP references grouped by referenced image-store id.</summary>
+        public IReadOnlyDictionary<string, int> DrawingPictureBlipReferencesByValue { get; }
 
         /// <summary>Gets OfficeArt shape entries grouped by decoded shape type.</summary>
         public IReadOnlyDictionary<string, int> DrawingShapeEntriesByType { get; }
@@ -1991,9 +2030,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Shape Complex Properties By Available Length", DrawingShapeComplexPropertiesByAvailableLength);
             AppendDictionary(builder, "Drawing Shape Complex Properties By Text", DrawingShapeComplexPropertiesByText);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Type", DrawingBlipStoreEntriesByType);
+            AppendDictionary(builder, "Drawing BLIP Store Entries By Location", DrawingBlipStoreEntriesByLocation);
+            AppendDictionary(builder, "Drawing BLIP Store Entries By Type And Location", DrawingBlipStoreEntriesByTypeAndLocation);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Embedded Record Type", DrawingBlipStoreEntriesByEmbeddedRecordType);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Size", DrawingBlipStoreEntriesBySize);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Reference Count", DrawingBlipStoreEntriesByReferenceCount);
+            AppendDictionary(builder, "Drawing Shape BLIP Properties By Location", DrawingShapeBlipPropertiesByLocation);
+            AppendDictionary(builder, "Drawing Shape BLIP Properties By Name And Value", DrawingShapeBlipPropertiesByNameAndValue);
+            AppendDictionary(builder, "Drawing Picture BLIP References By Location", DrawingPictureBlipReferencesByLocation);
+            AppendDictionary(builder, "Drawing Picture BLIP References By Value", DrawingPictureBlipReferencesByValue);
             AppendDictionary(builder, "Drawing Shape Entries By Type", DrawingShapeEntriesByType);
             AppendDictionary(builder, "Drawing Shape Entries By Id", DrawingShapeEntriesById);
             AppendDictionary(builder, "Drawing Shape Entries By Flags", DrawingShapeEntriesByFlags);
@@ -2366,6 +2411,14 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetDrawingAnchorFlagsKey(LegacyXlsDrawingAnchor anchor) {
             return $"Flags:0x{anchor.Flags:X4}";
+        }
+
+        private static bool IsBlipShapeProperty(LegacyXlsDrawingShapeProperty property) {
+            return string.Equals(property.PropertyGroupName, "Blip", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsPictureBlipReferenceProperty(LegacyXlsDrawingShapeProperty property) {
+            return string.Equals(property.PropertyName, "pib", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string GetShapePropertyFlagState(LegacyXlsDrawingShapeProperty property) {

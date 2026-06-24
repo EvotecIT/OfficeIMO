@@ -1364,6 +1364,18 @@ Warnings: 0
 | --- | --- |
 | Png | 1 |
 
+## Drawing BLIP Store Entries By Location
+
+| Key | Count |
+| --- | --- |
+| (workbook) | 1 |
+
+## Drawing BLIP Store Entries By Type And Location
+
+| Key | Count |
+| --- | --- |
+| (workbook)\|Png | 1 |
+
 ## Drawing BLIP Store Entries By Embedded Record Type
 
 | Key | Count |
@@ -1381,6 +1393,31 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | References:1 | 1 |
+
+## Drawing Shape BLIP Properties By Location
+
+| Key | Count |
+| --- | --- |
+| Objects | 2 |
+
+## Drawing Shape BLIP Properties By Name And Value
+
+| Key | Count |
+| --- | --- |
+| BlipBooleanProperties;Value:0x00060000 | 1 |
+| pib;Value:0x00000001 | 1 |
+
+## Drawing Picture BLIP References By Location
+
+| Key | Count |
+| --- | --- |
+| Objects | 1 |
+
+## Drawing Picture BLIP References By Value
+
+| Key | Count |
+| --- | --- |
+| BlipId:1 | 1 |
 
 ## Drawing Shape Entries By Type
 

@@ -96,11 +96,18 @@ namespace OfficeIMO.Tests {
             Assert.True(result.ImportReport.DrawingObjectSubRecordsByCompleteness["Complete"] >= 1);
             Assert.True(result.ImportReport.DrawingObjectSubRecordsByCompleteness["Truncated"] >= 1);
             Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByEmbeddedRecordType["OfficeArtBlipPNG"]);
+            Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByLocation["(workbook)"]);
+            Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByTypeAndLocation["(workbook)|Png"]);
             Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByName["pib"]);
             Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByName["BlipBooleanProperties"]);
             Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByName["ShapeBooleanProperties"]);
             Assert.Equal(2, result.ImportReport.DrawingShapePropertiesByName["wzName"]);
             Assert.Equal(2, result.ImportReport.DrawingShapePropertiesByGroup["Blip"]);
+            Assert.Equal(2, result.ImportReport.DrawingShapeBlipPropertiesByLocation["Objects"]);
+            Assert.Equal(1, result.ImportReport.DrawingShapeBlipPropertiesByNameAndValue["pib;Value:0x00000001"]);
+            Assert.Equal(1, result.ImportReport.DrawingShapeBlipPropertiesByNameAndValue["BlipBooleanProperties;Value:0x00060000"]);
+            Assert.Equal(1, result.ImportReport.DrawingPictureBlipReferencesByLocation["Objects"]);
+            Assert.Equal(1, result.ImportReport.DrawingPictureBlipReferencesByValue["BlipId:1"]);
             Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByGroup["Shape"]);
             Assert.False(result.ImportReport.DrawingShapePropertiesByGroup.ContainsKey("Unknown"));
             Assert.Equal(1, result.ImportReport.DrawingShapeComplexPropertiesByText["wzName:Chart 5"]);
