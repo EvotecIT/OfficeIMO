@@ -17,15 +17,17 @@ namespace OfficeIMO.Excel {
             ExcelRangeVisualSnapshot snapshot,
             ExcelImageExportOptions options,
             double scale,
+            IReadOnlyDictionary<string, ExcelVisualCell> cellsByAddress,
             List<OfficeImageExportDiagnostic>? diagnostics) {
             if (string.IsNullOrEmpty(cell.Text)) {
                 return;
             }
 
-            double x = cell.X * scale;
-            double y = cell.Y * scale;
-            double w = cell.Width * scale;
-            double h = cell.Height * scale;
+            CellTextViewport viewport = ResolveCellTextViewport(cell, snapshot, scale, cellsByAddress);
+            double x = viewport.X;
+            double y = viewport.Y;
+            double w = viewport.Width;
+            double h = viewport.Height;
             double paddingX = CellTextHorizontalPadding * scale;
             double paddingY = CellTextVerticalPadding * scale;
             double availableWidth = Math.Max(1D, w - (paddingX * 2D));
@@ -126,16 +128,18 @@ namespace OfficeIMO.Excel {
             ExcelRangeVisualSnapshot snapshot,
             ExcelImageExportOptions options,
             OfficeRasterCanvas textMeasureCanvas,
+            IReadOnlyDictionary<string, ExcelVisualCell> cellsByAddress,
             List<OfficeImageExportDiagnostic>? diagnostics) {
             if (string.IsNullOrEmpty(cell.Text)) {
                 return;
             }
 
             double scale = options.Scale;
-            double x = cell.X * scale;
-            double y = cell.Y * scale;
-            double w = cell.Width * scale;
-            double h = cell.Height * scale;
+            CellTextViewport viewport = ResolveCellTextViewport(cell, snapshot, scale, cellsByAddress);
+            double x = viewport.X;
+            double y = viewport.Y;
+            double w = viewport.Width;
+            double h = viewport.Height;
             double paddingX = CellTextHorizontalPadding * scale;
             double paddingY = CellTextVerticalPadding * scale;
             double availableWidth = Math.Max(1D, w - (paddingX * 2D));
@@ -464,6 +468,55 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        private static CellTextViewport ResolveCellTextViewport(
+            ExcelVisualCell cell,
+            ExcelRangeVisualSnapshot snapshot,
+            double scale,
+            IReadOnlyDictionary<string, ExcelVisualCell> cellsByAddress) {
+            double x = cell.X * scale;
+            double y = cell.Y * scale;
+            double width = cell.Width * scale;
+            double height = cell.Height * scale;
+            if (!CanCellTextSpillRight(cell)) {
+                return new CellTextViewport(x, y, width, height);
+            }
+
+            double unscaledRight = cell.X + cell.Width;
+            for (int column = cell.Column + 1; column <= snapshot.LastColumn; column++) {
+                if (!cellsByAddress.TryGetValue(Key(cell.Row, column), out ExcelVisualCell? neighbor) ||
+                    !CanSpillThroughNeighbor(neighbor)) {
+                    break;
+                }
+
+                unscaledRight = neighbor.X + neighbor.Width;
+            }
+
+            return new CellTextViewport(x, y, Math.Max(width, (unscaledRight - cell.X) * scale), height);
+        }
+
+        private static bool CanCellTextSpillRight(ExcelVisualCell cell) {
+            if (cell.CoveredByMerge ||
+                cell.Style.WrapText ||
+                cell.Style.ShrinkToFit ||
+                IsStackedTextRotation(cell.Style.TextRotation) ||
+                cell.Style.TextRotation.GetValueOrDefault() != 0 ||
+                cell.Text.IndexOf('\n') >= 0 ||
+                cell.Text.IndexOf('\r') >= 0) {
+                return false;
+            }
+
+            string? alignment = cell.Style.HorizontalAlignment;
+            return string.IsNullOrWhiteSpace(alignment) ||
+                string.Equals(alignment, "general", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(alignment, "left", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool CanSpillThroughNeighbor(ExcelVisualCell neighbor) {
+            return !neighbor.CoveredByMerge &&
+                string.IsNullOrEmpty(neighbor.Text) &&
+                neighbor.RichTextRuns.Count == 0;
+        }
+
         private static double ResolveMaxRichTextRunFontSize(IReadOnlyList<OfficeRichTextRun> runs) {
             double max = 1D;
             for (int i = 0; i < runs.Count; i++) {
@@ -617,6 +670,23 @@ namespace OfficeIMO.Excel {
 
         private static string GetCellDiagnosticSource(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell) =>
             snapshot.SheetName + "!" + A1.ColumnIndexToLetters(cell.Column) + cell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        private readonly struct CellTextViewport {
+            internal CellTextViewport(double x, double y, double width, double height) {
+                X = x;
+                Y = y;
+                Width = width;
+                Height = height;
+            }
+
+            internal double X { get; }
+
+            internal double Y { get; }
+
+            internal double Width { get; }
+
+            internal double Height { get; }
+        }
 
     }
 }

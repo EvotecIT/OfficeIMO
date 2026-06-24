@@ -139,6 +139,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportSpillsPlainTextIntoBlankNeighborCells() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Spill");
+            sheet.SetColumnWidth(1, 6);
+            sheet.SetColumnWidth(2, 24);
+            sheet.SetColumnWidth(3, 8);
+            sheet.SetRowHeight(1, 24);
+            sheet.CellValue(1, 1, "Plain text spills");
+            sheet.CellValue(1, 3, "Stop");
+
+            ExcelRange range = sheet.Range("A1:C1");
+            ExcelImageExportOptions options = new() { ShowGridlines = false };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(svgResult.Bytes);
+
+            ExcelVisualCell first = snapshot.Cells.Single(cell => cell.Column == 1);
+            ExcelVisualCell blankNeighbor = snapshot.Cells.Single(cell => cell.Column == 2);
+            double expectedWidth = first.Width + blankNeighbor.Width;
+            Assert.Equal(expectedWidth, ExtractSvgClipWidth(svg, "xl-text-1-1"), precision: 2);
+            Assert.DoesNotContain(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "Spill!A1");
+            Assert.DoesNotContain(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "Spill!A1");
+            Assert.Contains("Plain text spills", svg, StringComparison.Ordinal);
+            Assert.Contains("Stop", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("...", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportResolvesThemeTintColorsAcrossSnapshotsAndRenderers() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -2939,6 +2969,18 @@ namespace OfficeIMO.Tests {
             Assert.True(end > start, "SVG font-size attribute was malformed.");
             string value = svg.Substring(start, end - start);
             return double.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static double ExtractSvgClipWidth(string svg, string clipId) {
+            string marker = "id=\"" + clipId + "\"><rect";
+            int clipStart = svg.IndexOf(marker, StringComparison.Ordinal);
+            Assert.True(clipStart >= 0, "SVG did not contain clip path '" + clipId + "'.");
+            int widthStart = svg.IndexOf("width=\"", clipStart, StringComparison.Ordinal);
+            Assert.True(widthStart >= 0, "SVG clip path '" + clipId + "' did not contain a width attribute.");
+            widthStart += "width=\"".Length;
+            int widthEnd = svg.IndexOf('"', widthStart);
+            Assert.True(widthEnd > widthStart, "SVG clip path '" + clipId + "' width attribute was malformed.");
+            return double.Parse(svg.Substring(widthStart, widthEnd - widthStart), System.Globalization.CultureInfo.InvariantCulture);
         }
     }
 }

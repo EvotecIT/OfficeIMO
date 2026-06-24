@@ -139,6 +139,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportSpillsRichTextIntoBlankNeighborCells() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("RichSpill");
+            sheet.SetColumnWidth(1, 6);
+            sheet.SetColumnWidth(2, 24);
+            sheet.SetColumnWidth(3, 8);
+            sheet.SetRowHeight(1, 26);
+            sheet.CellAt(1, 1).SetRichText(
+                new ExcelRichTextRun("Rich") { Bold = true, FontColor = "0F766E", FontSize = 12D },
+                new ExcelRichTextRun(" text spills") { Italic = true, FontColor = "7C3AED", FontSize = 12D });
+            sheet.CellValue(1, 3, "Stop");
+
+            ExcelRange range = sheet.Range("A1:C1");
+            ExcelImageExportOptions options = new() { ShowGridlines = false };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, options);
+            string svg = Encoding.UTF8.GetString(svgResult.Bytes);
+
+            ExcelVisualCell first = snapshot.Cells.Single(cell => cell.Column == 1);
+            ExcelVisualCell blankNeighbor = snapshot.Cells.Single(cell => cell.Column == 2);
+            double expectedWidth = first.Width + blankNeighbor.Width;
+            Assert.Equal(expectedWidth, ExtractSvgClipWidth(svg, "xl-text-1-1"), precision: 2);
+            Assert.DoesNotContain(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
+            Assert.DoesNotContain(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
+            Assert.DoesNotContain(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "RichSpill!A1");
+            Assert.DoesNotContain(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "RichSpill!A1");
+            Assert.Contains("Rich", svg, StringComparison.Ordinal);
+            Assert.Contains("text spills", svg, StringComparison.Ordinal);
+            Assert.Contains("Stop", svg, StringComparison.Ordinal);
+            Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
+            Assert.Contains("font-style=\"italic\"", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportPreservesRotatedRichTextRunsWithApproximationDiagnostic() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -208,6 +244,18 @@ namespace OfficeIMO.Tests {
             Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
             Assert.Contains("font-style=\"italic\"", svg, StringComparison.Ordinal);
             Assert.Contains("text-decoration=\"underline\"", svg, StringComparison.Ordinal);
+        }
+
+        private static double ExtractSvgClipWidth(string svg, string clipId) {
+            string marker = "id=\"" + clipId + "\"><rect";
+            int clipStart = svg.IndexOf(marker, StringComparison.Ordinal);
+            Assert.True(clipStart >= 0, "SVG did not contain clip path '" + clipId + "'.");
+            int widthStart = svg.IndexOf("width=\"", clipStart, StringComparison.Ordinal);
+            Assert.True(widthStart >= 0, "SVG clip path '" + clipId + "' did not contain a width attribute.");
+            widthStart += "width=\"".Length;
+            int widthEnd = svg.IndexOf('"', widthStart);
+            Assert.True(widthEnd > widthStart, "SVG clip path '" + clipId + "' width attribute was malformed.");
+            return double.Parse(svg.Substring(widthStart, widthEnd - widthStart), System.Globalization.CultureInfo.InvariantCulture);
         }
     }
 }
