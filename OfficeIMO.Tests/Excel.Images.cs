@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using Xunit;
@@ -150,6 +151,55 @@ namespace OfficeIMO.Tests {
 
             Assert.True(image.WidthPixels > originalWidth);
             Assert.True(image.HeightPixels > originalHeight);
+        }
+
+        [Fact]
+        public void Test_ExcelImage_MoveOnlyRangeKeepsStoredSizeWhenCellsResize() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.RangeAnchor.MoveOnlySize.xlsx");
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Images");
+            ExcelImage image = sheet.AddImageFromFileToRange("A1:B2", imagePath, name: "MoveOnlyRange", placement: ExcelImagePlacement.MoveOnly);
+            int originalWidth = image.WidthPixels;
+            int originalHeight = image.HeightPixels;
+
+            sheet.SetColumnWidth(1, 30);
+            sheet.SetColumnWidth(2, 30);
+            sheet.SetRowHeight(1, 45);
+            sheet.SetRowHeight(2, 45);
+
+            Assert.Equal(originalWidth, image.WidthPixels);
+            Assert.Equal(originalHeight, image.HeightPixels);
+        }
+
+        [Fact]
+        public void Test_ExcelImage_TwoCellSizeUsesWorkbookDefaultFontWidth() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.RangeAnchor.DefaultFontWidth.xlsx");
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            SetDefaultWorkbookFont(document._spreadSheetDocument, "Consolas", 11);
+            ExcelSheet sheet = document.AddWorkSheet("Images");
+
+            ExcelImage image = sheet.AddImageFromFileToRange("A1:B1", imagePath, name: "FontSizedRange");
+
+            Assert.True(image.WidthPixels > 128);
+        }
+
+        private static void SetDefaultWorkbookFont(SpreadsheetDocument document, string fontName, double fontSize) {
+            WorkbookStylesPart stylesPart = document.WorkbookPart!.WorkbookStylesPart ?? document.WorkbookPart.AddNewPart<WorkbookStylesPart>();
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet(new Fonts(new Font()), new Fills(new Fill()), new Borders(new Border()), new CellFormats(new CellFormat()));
+            stylesheet.Fonts ??= new Fonts(new Font());
+            Font font = stylesheet.Fonts.Elements<Font>().FirstOrDefault() ?? new Font();
+            if (!stylesheet.Fonts.Elements<Font>().Any()) {
+                stylesheet.Fonts.Append(font);
+            }
+
+            font.FontName = new FontName { Val = fontName };
+            font.FontSize = new FontSize { Val = fontSize };
+            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
+            stylesheet.Save();
         }
 
         [Fact]

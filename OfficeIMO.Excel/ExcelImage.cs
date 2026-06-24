@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 using System.Globalization;
 using A = DocumentFormat.OpenXml.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
@@ -233,6 +234,7 @@ namespace OfficeIMO.Excel {
             }
 
             WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
+            double maximumDigitWidth = GetDefaultMaximumDigitWidth(worksheetPart);
             int startColumn = ParseMarkerIndex(fromMarker.ColumnId?.Text);
             int startRow = ParseMarkerIndex(fromMarker.RowId?.Text);
             var columnMarker = ResolveEndMarker(
@@ -240,7 +242,7 @@ namespace OfficeIMO.Excel {
                 ParseMarkerOffset(fromMarker.ColumnOffset?.Text),
                 widthPixels,
                 A1.MaxColumns,
-                index => GetColumnWidthPixels(worksheetPart, index + 1));
+                index => GetColumnWidthPixels(worksheetPart, index + 1, maximumDigitWidth));
             var rowMarker = ResolveEndMarker(
                 startRow,
                 ParseMarkerOffset(fromMarker.RowOffset?.Text),
@@ -391,8 +393,7 @@ namespace OfficeIMO.Excel {
             return (index, PxToEmu(Math.Max(0, remainingPixels)));
         }
 
-        private static int GetColumnWidthPixels(WorksheetPart? worksheetPart, int columnIndex) {
-            const double defaultMaximumDigitWidth = 7D;
+        private static int GetColumnWidthPixels(WorksheetPart? worksheetPart, int columnIndex, double maximumDigitWidth) {
             DocumentFormat.OpenXml.Spreadsheet.Worksheet? worksheet = worksheetPart?.Worksheet;
             DocumentFormat.OpenXml.Spreadsheet.Column? column = worksheet?
                 .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Columns>()?
@@ -407,8 +408,41 @@ namespace OfficeIMO.Excel {
                 : worksheet?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()?.DefaultColumnWidth?.Value > 0
                     ? worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()!.DefaultColumnWidth!.Value
                     : 8.43D;
-            double pixels = Math.Truncate((256D * width + Math.Truncate(128D / defaultMaximumDigitWidth)) / 256D * defaultMaximumDigitWidth);
+            double pixels = Math.Truncate((256D * width + Math.Truncate(128D / maximumDigitWidth)) / 256D * maximumDigitWidth);
             return Math.Max(1, (int)Math.Round(pixels));
+        }
+
+        private static double GetDefaultMaximumDigitWidth(WorksheetPart? worksheetPart) {
+            const double fallbackMaximumDigitWidth = 7D;
+            try {
+                WorkbookPart? workbookPart = worksheetPart?.GetParentParts().OfType<WorkbookPart>().FirstOrDefault();
+                DocumentFormat.OpenXml.Spreadsheet.Font? font = workbookPart?.WorkbookStylesPart?.Stylesheet?.Fonts?
+                    .Elements<DocumentFormat.OpenXml.Spreadsheet.Font>()
+                    .FirstOrDefault();
+                string? fontName = font?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.FontName>()?.Val?.Value;
+                if (string.IsNullOrWhiteSpace(fontName)) {
+                    return fallbackMaximumDigitWidth;
+                }
+
+                double fontSize = font!.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.FontSize>()?.Val?.Value ?? 11D;
+                OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
+                if (font.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Bold>() != null) {
+                    fontStyle |= OfficeFontStyle.Bold;
+                }
+
+                if (font.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Italic>() != null) {
+                    fontStyle |= OfficeFontStyle.Italic;
+                }
+
+                if (font.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Underline>() != null) {
+                    fontStyle |= OfficeFontStyle.Underline;
+                }
+
+                float maximumDigitWidth = ExcelTextMeasurer.Create(new OfficeFontInfo(fontName, fontSize, fontStyle)).DefaultStyle.MaximumDigitWidth;
+                return maximumDigitWidth > 0.0001f ? maximumDigitWidth : fallbackMaximumDigitWidth;
+            } catch {
+                return fallbackMaximumDigitWidth;
+            }
         }
 
         private static int GetRowHeightPixels(WorksheetPart? worksheetPart, int rowIndex) {
@@ -482,6 +516,12 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            if (twoCellAnchor.EditAs != null
+                && (twoCellAnchor.EditAs.Value == Xdr.EditAsValues.OneCell
+                    || twoCellAnchor.EditAs.Value == Xdr.EditAsValues.Absolute)) {
+                return false;
+            }
+
             int from = horizontal
                 ? ParseMarkerIndex(twoCellAnchor.FromMarker.ColumnId?.Text)
                 : ParseMarkerIndex(twoCellAnchor.FromMarker.RowId?.Text);
@@ -500,10 +540,11 @@ namespace OfficeIMO.Excel {
             }
 
             WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
+            double maximumDigitWidth = GetDefaultMaximumDigitWidth(worksheetPart);
             int basePixels = 0;
             for (int index = from; index < to; index++) {
                 basePixels += horizontal
-                    ? GetColumnWidthPixels(worksheetPart, index + 1)
+                    ? GetColumnWidthPixels(worksheetPart, index + 1, maximumDigitWidth)
                     : GetRowHeightPixels(worksheetPart, index + 1);
             }
 
