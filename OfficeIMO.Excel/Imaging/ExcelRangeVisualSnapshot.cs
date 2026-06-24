@@ -161,7 +161,8 @@ namespace OfficeIMO.Excel {
             ExcelCellStyleSnapshot style,
             bool coveredByMerge,
             ExcelHyperlinkSnapshot? hyperlink = null,
-            IReadOnlyList<ExcelVisualTextRun>? richTextRuns = null) {
+            IReadOnlyList<ExcelVisualTextRun>? richTextRuns = null,
+            ExcelVisualCellValueKind valueKind = ExcelVisualCellValueKind.Text) {
             Row = row;
             Column = column;
             X = x;
@@ -173,6 +174,7 @@ namespace OfficeIMO.Excel {
             CoveredByMerge = coveredByMerge;
             Hyperlink = hyperlink;
             RichTextRuns = richTextRuns ?? Array.Empty<ExcelVisualTextRun>();
+            ValueKind = valueKind;
         }
 
         /// <summary>One-based source row.</summary>
@@ -207,6 +209,27 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Rich text runs attached to this cell, when available.</summary>
         public IReadOnlyList<ExcelVisualTextRun> RichTextRuns { get; }
+
+        /// <summary>Value kind used for Excel visual policies such as default General alignment.</summary>
+        public ExcelVisualCellValueKind ValueKind { get; }
+    }
+
+    /// <summary>
+    /// Kind of value represented by an Excel visual cell.
+    /// </summary>
+    public enum ExcelVisualCellValueKind {
+        /// <summary>The cell has no value.</summary>
+        Blank,
+        /// <summary>The cell displays text.</summary>
+        Text,
+        /// <summary>The cell displays a number.</summary>
+        Number,
+        /// <summary>The cell displays a date or time serial.</summary>
+        Date,
+        /// <summary>The cell displays a Boolean value.</summary>
+        Boolean,
+        /// <summary>The cell displays an error value.</summary>
+        Error
     }
 
     /// <summary>

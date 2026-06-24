@@ -115,9 +115,16 @@ namespace OfficeIMO.Excel {
                     }
 
                     ExcelCellStyleSnapshot style = sheet.GetCellStyle(row.Index, column.Index);
-                    string text = sheet.TryGetCellText(row.Index, column.Index, out string cellText)
-                        ? FormatCellDisplayText(cellText, style, sheet.Document.DateSystem)
+                    ExcelCellData valueData = covered
+                        ? new ExcelCellData(ExcelCellDataKind.Blank, null)
+                        : sheet.GetCellValueSnapshot(row.Index, column.Index);
+                    string rawText = sheet.TryGetCellText(row.Index, column.Index, out string cellText)
+                        ? cellText
                         : string.Empty;
+                    string text = string.IsNullOrEmpty(rawText)
+                        ? string.Empty
+                        : FormatCellDisplayText(rawText, style, sheet.Document.DateSystem);
+                    ExcelVisualCellValueKind valueKind = ResolveVisualCellValueKind(valueData, rawText, style);
                     IReadOnlyList<ExcelVisualTextRun> richTextRuns = covered
                         ? Array.Empty<ExcelVisualTextRun>()
                         : BuildRichTextRuns(sheet.GetRichText(row.Index, column.Index));
@@ -132,7 +139,8 @@ namespace OfficeIMO.Excel {
                         style,
                         covered,
                         hyperlink,
-                        richTextRuns));
+                        richTextRuns,
+                        valueKind));
                 }
             }
 
@@ -185,7 +193,8 @@ namespace OfficeIMO.Excel {
                         CloneStyleWithFill(cell.Style, fillColor),
                         cell.CoveredByMerge,
                         cell.Hyperlink,
-                        cell.RichTextRuns));
+                        cell.RichTextRuns,
+                        cell.ValueKind));
                     continue;
                 }
 
@@ -1267,6 +1276,41 @@ namespace OfficeIMO.Excel {
                 ? ExcelNumberFormatDisplay.FormatNumericText(value, style.NumberFormatId, style.NumberFormatCode, text, dateSystem)
                 : text;
         }
+
+        private static ExcelVisualCellValueKind ResolveVisualCellValueKind(ExcelCellData data, string rawText, ExcelCellStyleSnapshot style) {
+            switch (data.Kind) {
+                case ExcelCellDataKind.Blank:
+                    return ExcelVisualCellValueKind.Blank;
+                case ExcelCellDataKind.Boolean:
+                    return ExcelVisualCellValueKind.Boolean;
+                case ExcelCellDataKind.Error:
+                    return ExcelVisualCellValueKind.Error;
+                case ExcelCellDataKind.Text:
+                    return ExcelVisualCellValueKind.Text;
+                case ExcelCellDataKind.Number:
+                    return IsDateLikeNumericCell(style) ? ExcelVisualCellValueKind.Date : ExcelVisualCellValueKind.Number;
+                case ExcelCellDataKind.Formula:
+                    return TryResolveFormulaVisualValueKind(data, rawText, style, out ExcelVisualCellValueKind formulaKind)
+                        ? formulaKind
+                        : ExcelVisualCellValueKind.Text;
+                default:
+                    return ExcelVisualCellValueKind.Text;
+            }
+        }
+
+        private static bool TryResolveFormulaVisualValueKind(ExcelCellData data, string rawText, ExcelCellStyleSnapshot style, out ExcelVisualCellValueKind valueKind) {
+            string? cachedText = string.IsNullOrEmpty(data.CachedText) ? rawText : data.CachedText;
+            if (data.Value is double || double.TryParse(cachedText, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) {
+                valueKind = IsDateLikeNumericCell(style) ? ExcelVisualCellValueKind.Date : ExcelVisualCellValueKind.Number;
+                return true;
+            }
+
+            valueKind = ExcelVisualCellValueKind.Text;
+            return false;
+        }
+
+        private static bool IsDateLikeNumericCell(ExcelCellStyleSnapshot style) =>
+            style.IsDateLike || ExcelNumberFormatDisplay.IsDateNumberFormat(style.NumberFormatId, style.NumberFormatCode);
 
         private static string GetImageDiagnosticSource(ExcelSheet sheet, ExcelImage image) {
             string name = string.IsNullOrWhiteSpace(image.Name) ? "Image" : image.Name;

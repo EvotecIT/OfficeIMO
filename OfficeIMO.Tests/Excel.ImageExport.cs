@@ -91,6 +91,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportUsesExcelGeneralAlignmentByValueKind() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("GeneralAlign");
+            sheet.SetColumnWidth(1, 14);
+            sheet.SetColumnWidth(2, 14);
+            sheet.SetColumnWidth(3, 16);
+            sheet.CellValue(1, 1, "Label");
+            sheet.CellValue(1, 2, 42);
+            sheet.Cell(1, 3, new DateTime(2026, 6, 24).ToOADate(), numberFormat: "m/d/yyyy");
+
+            ExcelRange range = sheet.Range("A1:C1");
+            ExcelImageExportOptions options = new() { ShowGridlines = false };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            string svg = range.ToSvg(options);
+
+            Assert.Equal(ExcelVisualCellValueKind.Text, snapshot.Cells.Single(cell => cell.Column == 1).ValueKind);
+            Assert.Equal(ExcelVisualCellValueKind.Number, snapshot.Cells.Single(cell => cell.Column == 2).ValueKind);
+            Assert.Equal(ExcelVisualCellValueKind.Date, snapshot.Cells.Single(cell => cell.Column == 3).ValueKind);
+            Assert.Contains("text-anchor=\"start\">Label</text>", svg, StringComparison.Ordinal);
+            Assert.Contains("text-anchor=\"end\">42</text>", svg, StringComparison.Ordinal);
+            Assert.Contains("text-anchor=\"end\">6/24/2026</text>", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportLaysOutMultilineCellTextThroughSharedDrawingLayout() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -166,6 +191,29 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Plain text spills", svg, StringComparison.Ordinal);
             Assert.Contains("Stop", svg, StringComparison.Ordinal);
             Assert.DoesNotContain("...", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportDoesNotSpillGeneralNumericTextIntoBlankNeighbors() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("NoNumberSpill");
+            sheet.SetColumnWidth(1, 6);
+            sheet.SetColumnWidth(2, 24);
+            sheet.SetRowHeight(1, 24);
+            sheet.CellValue(1, 1, 123456789);
+
+            ExcelRange range = sheet.Range("A1:B1");
+            ExcelImageExportOptions options = new() { ShowGridlines = false };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            string svg = System.Text.Encoding.UTF8.GetString(svgResult.Bytes);
+
+            ExcelVisualCell first = snapshot.Cells.Single(cell => cell.Column == 1);
+            Assert.Equal(ExcelVisualCellValueKind.Number, first.ValueKind);
+            Assert.Equal(first.Width, ExtractSvgClipWidth(svg, "xl-text-1-1"), precision: 2);
+            Assert.Contains(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "NoNumberSpill!A1");
+            Assert.Contains("text-anchor=\"end\">123456789</text>", svg, StringComparison.Ordinal);
         }
 
         [Fact]

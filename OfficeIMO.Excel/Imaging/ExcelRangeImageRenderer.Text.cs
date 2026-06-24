@@ -289,7 +289,7 @@ namespace OfficeIMO.Excel {
             double layoutHeight = rotated ? Math.Max(availableWidth, availableHeight) : availableHeight;
             OfficeTextAlignment alignment = rotated
                 ? OfficeTextAlignment.Center
-                : ResolveTextAlignment(cell.Style.HorizontalAlignment);
+                : ResolveCellTextAlignment(cell);
             return OfficeTextBlockRenderPlan.CreateTextBlockFromRectangle(
                 cell.Text,
                 fontSize,
@@ -331,7 +331,7 @@ namespace OfficeIMO.Excel {
 
             double centerX = x + (w / 2D);
             double centerY = y + (h / 2D);
-            OfficeTextAlignment alignment = (rotated || stacked) ? OfficeTextAlignment.Center : ResolveTextAlignment(cell.Style.HorizontalAlignment);
+            OfficeTextAlignment alignment = (rotated || stacked) ? OfficeTextAlignment.Center : ResolveCellTextAlignment(cell);
             double layoutWidth = rotated ? Math.Max(availableWidth, availableHeight) : availableWidth;
             double left = rotated ? centerX - (layoutWidth / 2D) : x + paddingX;
             double top = rotated ? centerY - (layout.Height / 2D) : y + paddingY;
@@ -375,7 +375,7 @@ namespace OfficeIMO.Excel {
 
             double centerX = x + (w / 2D);
             double centerY = y + (h / 2D);
-            OfficeTextAlignment alignment = (rotated || stacked) ? OfficeTextAlignment.Center : ResolveTextAlignment(cell.Style.HorizontalAlignment);
+            OfficeTextAlignment alignment = (rotated || stacked) ? OfficeTextAlignment.Center : ResolveCellTextAlignment(cell);
             double layoutWidth = rotated ? Math.Max(availableWidth, availableHeight) : availableWidth;
             double left = rotated ? centerX - (layoutWidth / 2D) : x + paddingX;
             double top = rotated ? centerY - (layout.Height / 2D) : y + paddingY;
@@ -506,15 +506,43 @@ namespace OfficeIMO.Excel {
             }
 
             string? alignment = cell.Style.HorizontalAlignment;
-            return string.IsNullOrWhiteSpace(alignment) ||
-                string.Equals(alignment, "general", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(alignment, "left", StringComparison.OrdinalIgnoreCase);
+            if (string.Equals(alignment, "left", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            return (string.IsNullOrWhiteSpace(alignment) || string.Equals(alignment, "general", StringComparison.OrdinalIgnoreCase)) &&
+                cell.ValueKind == ExcelVisualCellValueKind.Text;
         }
 
         private static bool CanSpillThroughNeighbor(ExcelVisualCell neighbor) {
             return !neighbor.CoveredByMerge &&
                 string.IsNullOrEmpty(neighbor.Text) &&
                 neighbor.RichTextRuns.Count == 0;
+        }
+
+        private static OfficeTextAlignment ResolveCellTextAlignment(ExcelVisualCell cell) {
+            string? alignment = cell.Style.HorizontalAlignment;
+            if (string.Equals(alignment, "center", StringComparison.OrdinalIgnoreCase)) {
+                return OfficeTextAlignment.Center;
+            }
+
+            if (string.Equals(alignment, "right", StringComparison.OrdinalIgnoreCase)) {
+                return OfficeTextAlignment.Right;
+            }
+
+            if (string.Equals(alignment, "left", StringComparison.OrdinalIgnoreCase)) {
+                return OfficeTextAlignment.Left;
+            }
+
+            if (!string.IsNullOrWhiteSpace(alignment) && !string.Equals(alignment, "general", StringComparison.OrdinalIgnoreCase)) {
+                return ResolveTextAlignment(alignment);
+            }
+
+            return cell.ValueKind == ExcelVisualCellValueKind.Number || cell.ValueKind == ExcelVisualCellValueKind.Date
+                ? OfficeTextAlignment.Right
+                : cell.ValueKind == ExcelVisualCellValueKind.Boolean || cell.ValueKind == ExcelVisualCellValueKind.Error
+                    ? OfficeTextAlignment.Center
+                    : OfficeTextAlignment.Left;
         }
 
         private static double ResolveMaxRichTextRunFontSize(IReadOnlyList<OfficeRichTextRun> runs) {
