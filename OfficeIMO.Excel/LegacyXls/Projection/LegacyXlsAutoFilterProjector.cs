@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         private static bool CanProjectAsEqualityList(LegacyXlsAutoFilterCriteria criteria) {
             return criteria.Kind == LegacyXlsAutoFilterKind.Custom
                 && criteria.Conditions.Count > 0
-                && !criteria.MatchAll
+                && (criteria.Conditions.Count == 1 || !criteria.MatchAll)
                 && criteria.Conditions.All(condition => condition.Operator == LegacyXlsAutoFilterOperator.Equal);
         }
 

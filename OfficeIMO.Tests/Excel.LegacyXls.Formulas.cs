@@ -1053,8 +1053,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_Load_ReportsUnsupportedKnownFormulaFunctionNamesAndImportsCachedValue() {
-            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedKnownFunctionFormulaWorkbookStream();
+        public void LegacyXls_Load_ImportsKnownVariableFormulaFunction() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaKnownVariableFunctionWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
@@ -1062,26 +1062,12 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            LegacyXlsImportDiagnostic diagnostic = Assert.Single(legacy.Diagnostics, d =>
-                d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
-                && d.SheetName == "KnownFuncDiag"
-                && d.RecordType == (ushort)BiffRecordType.Formula);
-            Assert.Equal("FormulaVariableFunction0x002E", diagnostic.DetailCode);
-            Assert.True(diagnostic.FormulaToken.HasValue);
-            Assert.Equal((byte)0x42, diagnostic.FormulaToken.Value);
-            Assert.Equal("PtgFuncVar", diagnostic.FormulaTokenName);
-            Assert.True(diagnostic.FormulaTokenOffset.HasValue);
-            Assert.Equal(9, diagnostic.FormulaTokenOffset.Value);
-            Assert.Contains("VAR", diagnostic.Message);
-            Assert.Contains("0x002E", diagnostic.Message);
-            Assert.Contains("Token PtgFuncVar (0x42)", diagnostic.Message);
-            Assert.Contains("parsed-expression offset 9", diagnostic.Message);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
 
             LegacyXlsImportReport report = legacy.CreateImportReport();
             Assert.Equal(1, report.FormulaFunctionsById["Function:0x002E"]);
             Assert.Equal(1, report.FormulaFunctionsByName["VAR"]);
-            Assert.Equal(1, report.FormulaTokenBlockers["FormulaVariableFunction0x002E"]);
-            Assert.Equal(1, report.FormulaTokenBlockersByTokenName["PtgFuncVar"]);
+            Assert.Empty(report.FormulaTokenBlockers);
             Assert.Contains(legacy.FormulaTokenRecords, record =>
                 record.Context == "CellFormula"
                 && record.SheetName == "KnownFuncDiag"
@@ -1096,14 +1082,17 @@ namespace OfficeIMO.Tests {
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
             Assert.True(formula.IsFormula);
             Assert.Equal(50d, formula.Value);
-            Assert.Null(formula.FormulaText);
+            Assert.Equal("VAR(A1:A2)", formula.FormulaText);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
             });
 
-            Assert.True(document.Sheets[0].TryGetCellText(1, 2, out string? cachedText));
-            Assert.Equal("50", cachedText);
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            AssertProjectedFormula(worksheetPart, "B1", "VAR(A1:A2)", "50");
         }
 
         [Fact]
@@ -1472,7 +1461,7 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
-            internal static byte[] CreateUnsupportedKnownFunctionFormulaWorkbookStream() {
+            internal static byte[] CreateFormulaKnownVariableFunctionWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long boundSheetPosition = stream.Position;
@@ -1483,7 +1472,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0203, BuildNumberPayload(0, 0, 10d));
                 WriteRecord(stream, 0x0203, BuildNumberPayload(1, 0, 20d));
-                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 1, 50d, formulaTokens: BuildUnsupportedKnownFunctionFormulaTokens()));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 1, 50d, formulaTokens: BuildVarFormulaTokens()));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -2235,7 +2224,7 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            private static byte[] BuildUnsupportedKnownFunctionFormulaTokens() {
+            private static byte[] BuildVarFormulaTokens() {
                 using var stream = new MemoryStream();
                 byte[] area = BuildAreaReferenceFormulaToken(0, 0, 1, 0);
                 stream.Write(area, 0, area.Length);
