@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>
         /// Creates preserve-only metadata for an OfficeArtFOPTE property entry.
         /// </summary>
-        public LegacyXlsDrawingShapeProperty(int index, ushort rawOperationId, uint value, int? availableComplexDataLength = null) {
+        public LegacyXlsDrawingShapeProperty(int index, ushort rawOperationId, uint value, int? availableComplexDataLength = null, string? complexText = null) {
             if (index < 0) {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             IsComplex = (rawOperationId & 0x8000) != 0;
             Value = value;
             AvailableComplexDataLength = availableComplexDataLength;
+            ComplexText = string.IsNullOrWhiteSpace(complexText) ? null : complexText;
         }
 
         /// <summary>Gets the zero-based index of this property entry inside its FOPT record.</summary>
@@ -54,6 +55,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the complex data bytes available in the containing record, when this is a complex property.</summary>
         public int? AvailableComplexDataLength { get; }
+
+        /// <summary>Gets decoded complex text for text-bearing OfficeArt properties when available.</summary>
+        public string? ComplexText { get; }
 
         private static string GetPropertyName(ushort propertyId) {
             return propertyId switch {

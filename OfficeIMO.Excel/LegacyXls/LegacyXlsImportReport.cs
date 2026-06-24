@@ -571,6 +571,10 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(record => record.ShapeProperties)
                 .Where(property => property.AvailableComplexDataLength.HasValue)
                 .Select(property => $"{property.PropertyIdKey};AvailableBytes:{property.AvailableComplexDataLength!.Value}"));
+            DrawingShapeComplexPropertiesByText = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties)
+                .Where(property => !string.IsNullOrWhiteSpace(property.ComplexText))
+                .Select(property => $"{property.PropertyName}:{property.ComplexText!}"));
             DrawingBlipStoreEntriesByType = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.BlipStoreEntries)
                 .Select(entry => entry.RecordInstanceBlipTypeName));
@@ -1462,6 +1466,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets complex OfficeArtFOPT shape properties grouped by available complex byte length.</summary>
         public IReadOnlyDictionary<string, int> DrawingShapeComplexPropertiesByAvailableLength { get; }
 
+        /// <summary>Gets complex OfficeArtFOPT shape properties grouped by decoded text payload.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapeComplexPropertiesByText { get; }
+
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by decoded BLIP type.</summary>
         public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByType { get; }
 
@@ -1892,6 +1899,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Shape Properties By Value", DrawingShapePropertiesByValue);
             AppendDictionary(builder, "Drawing Shape Complex Properties By Declared Length", DrawingShapeComplexPropertiesByDeclaredLength);
             AppendDictionary(builder, "Drawing Shape Complex Properties By Available Length", DrawingShapeComplexPropertiesByAvailableLength);
+            AppendDictionary(builder, "Drawing Shape Complex Properties By Text", DrawingShapeComplexPropertiesByText);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Type", DrawingBlipStoreEntriesByType);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Embedded Record Type", DrawingBlipStoreEntriesByEmbeddedRecordType);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Size", DrawingBlipStoreEntriesBySize);

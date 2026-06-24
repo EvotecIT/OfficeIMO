@@ -275,6 +275,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal((uint)4, complexProperty.Value);
             Assert.Equal((uint)4, complexProperty.DeclaredComplexDataLength);
             Assert.Equal(4, complexProperty.AvailableComplexDataLength);
+            Assert.Null(complexProperty.ComplexText);
             LegacyXlsDrawingOfficeArtRecord childAnchorRecord = Assert.Single(drawing.OfficeArtRecords, record => record.RecordTypeKind == LegacyXlsDrawingEscherRecordType.OfficeArtChildAnchor);
             Assert.False(childAnchorRecord.IsContainer);
             Assert.Equal(2, childAnchorRecord.Depth);

@@ -1,3 +1,4 @@
+using System.Text;
 using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
@@ -261,13 +262,34 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 uint value = BiffRecordReader.ReadUInt32(payload, propertyOffset + 2);
                 bool isComplex = (rawOperationId & 0x8000) != 0;
                 int? availableComplexDataLength = null;
+                string? complexText = null;
                 if (isComplex) {
                     availableComplexDataLength = GetAvailableComplexDataLength(value, complexOffset, contentEnd);
+                    ushort propertyId = checked((ushort)(rawOperationId & 0x3fff));
+                    complexText = TryReadComplexTextProperty(payload, complexOffset, availableComplexDataLength.Value, propertyId);
                     complexOffset += availableComplexDataLength.Value;
                 }
 
-                properties.Add(new LegacyXlsDrawingShapeProperty(index, rawOperationId, value, availableComplexDataLength));
+                properties.Add(new LegacyXlsDrawingShapeProperty(index, rawOperationId, value, availableComplexDataLength, complexText));
             }
+        }
+
+        private static string? TryReadComplexTextProperty(byte[] payload, int offset, int byteCount, ushort propertyId) {
+            if (!IsComplexTextProperty(propertyId) || byteCount <= 0 || offset < 0 || offset > payload.Length || byteCount > payload.Length - offset) {
+                return null;
+            }
+
+            int evenByteCount = byteCount - (byteCount % 2);
+            if (evenByteCount <= 0) {
+                return null;
+            }
+
+            string value = Encoding.Unicode.GetString(payload, offset, evenByteCount).TrimEnd('\0');
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
+        private static bool IsComplexTextProperty(ushort propertyId) {
+            return propertyId == 0x0380;
         }
 
         private static int GetAvailableComplexDataLength(uint declaredLength, int complexOffset, int contentEnd) {

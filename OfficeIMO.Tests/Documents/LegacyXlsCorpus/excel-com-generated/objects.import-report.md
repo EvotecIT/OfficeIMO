@@ -1314,6 +1314,13 @@ Warnings: 0
 | PropertyId:0x0380;AvailableBytes:16 | 1 |
 | PropertyId:0x0380;AvailableBytes:20 | 1 |
 
+## Drawing Shape Complex Properties By Text
+
+| Key | Count |
+| --- | --- |
+| wzName:Chart 5 | 1 |
+| wzName:Picture 4 | 1 |
+
 ## Drawing BLIP Store Entries By Type
 
 | Key | Count |

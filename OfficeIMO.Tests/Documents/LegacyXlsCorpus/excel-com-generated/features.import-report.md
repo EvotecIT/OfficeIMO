@@ -1276,6 +1276,12 @@ Warnings: 0
 | --- | --- |
 | PropertyId:0x0380;AvailableBytes:16 | 1 |
 
+## Drawing Shape Complex Properties By Text
+
+| Key | Count |
+| --- | --- |
+| wzName:Chart 2 | 1 |
+
 ## Drawing Shape Entries By Type
 
 | Key | Count |
