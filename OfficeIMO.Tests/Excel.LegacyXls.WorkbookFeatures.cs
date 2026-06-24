@@ -196,8 +196,20 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, comment.Row);
             Assert.Equal(1, comment.Column);
             Assert.Equal(1, comment.ObjectId);
+            Assert.Equal((ushort)0x0019, comment.ObjectType);
+            Assert.Equal(LegacyXlsDrawingObjectType.Note, comment.ObjectTypeKind);
+            Assert.Equal("Note", comment.ObjectTypeName);
+            Assert.Equal((ushort)0x4011, comment.ObjectFlags);
+            Assert.Contains("Locked", comment.ObjectFlagNames);
+            Assert.Contains("Printable", comment.ObjectFlagNames);
+            Assert.True(comment.IsObjectLocked);
+            Assert.True(comment.IsObjectPrintable);
             Assert.Equal("Legacy Author", comment.Author);
             Assert.Equal("Imported legacy note", comment.Text);
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.CommentsByObjectTypeName["Note"]);
+            Assert.Equal(1, report.CommentsByObjectFlagName["Locked"]);
+            Assert.Equal(1, report.CommentsByObjectFlagName["Printable"]);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true

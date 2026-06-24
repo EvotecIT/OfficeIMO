@@ -11,14 +11,25 @@ namespace OfficeIMO.Excel.LegacyXls {
         internal LegacyXlsImportReport(LegacyXlsWorkbook workbook) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
+            LegacyXlsComment[] comments = workbook.Worksheets.SelectMany(sheet => sheet.Comments).ToArray();
             LegacyXlsDataValidation[] dataValidations = workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).ToArray();
             LegacyXlsConditionalFormatting[] conditionalFormattings = workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattings).ToArray();
             WorksheetCount = workbook.Worksheets.Count;
             UnsupportedSheetCount = workbook.UnsupportedSheets.Count;
             CellCount = workbook.Worksheets.Sum(sheet => sheet.Cells.Count);
             FormulaCellCount = workbook.Worksheets.Sum(sheet => sheet.Cells.Count(cell => cell.IsFormula));
-            CommentCount = workbook.Worksheets.Sum(sheet => sheet.Comments.Count);
+            CommentCount = comments.Length;
             HyperlinkCount = workbook.Worksheets.Sum(sheet => sheet.Hyperlinks.Count);
+            CommentsByObjectType = CountByCode(comments
+                .Where(comment => comment.ObjectType.HasValue)
+                .Select(comment => $"ObjectType:0x{comment.ObjectType!.Value:X4}"));
+            CommentsByObjectTypeName = CountByCode(comments
+                .Where(comment => !string.IsNullOrWhiteSpace(comment.ObjectTypeName))
+                .Select(comment => comment.ObjectTypeName!));
+            CommentsByObjectFlags = CountByCode(comments
+                .Where(comment => comment.ObjectFlags.HasValue)
+                .Select(comment => $"ObjectFlags:0x{comment.ObjectFlags!.Value:X4}"));
+            CommentsByObjectFlagName = CountByCode(comments.SelectMany(comment => comment.ObjectFlagNames));
             DataValidationCount = dataValidations.Length;
             ConditionalFormattingCount = conditionalFormattings.Length;
             AutoFilterCriteriaCount = workbook.Worksheets.Sum(sheet => sheet.AutoFilterCriteria.Count);
@@ -611,6 +622,18 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of imported comments.</summary>
         public int CommentCount { get; }
+
+        /// <summary>Gets parsed comments grouped by decoded OBJ common-object type id.</summary>
+        public IReadOnlyDictionary<string, int> CommentsByObjectType { get; }
+
+        /// <summary>Gets parsed comments grouped by decoded OBJ common-object type name.</summary>
+        public IReadOnlyDictionary<string, int> CommentsByObjectTypeName { get; }
+
+        /// <summary>Gets parsed comments grouped by decoded OBJ common-object flag bitfield.</summary>
+        public IReadOnlyDictionary<string, int> CommentsByObjectFlags { get; }
+
+        /// <summary>Gets parsed comments grouped by decoded OBJ common-object flag name.</summary>
+        public IReadOnlyDictionary<string, int> CommentsByObjectFlagName { get; }
 
         /// <summary>Gets the number of imported hyperlinks.</summary>
         public int HyperlinkCount { get; }
@@ -1504,6 +1527,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Data Validation List Sources By Range", DataValidationListSourcesByRange);
             AppendDictionary(builder, "Data Validation List Sources By Name", DataValidationListSourcesByName);
             AppendDictionary(builder, "Data Validation List Sources By Sheet Name", DataValidationListSourcesBySheetName);
+            AppendDictionary(builder, "Comments By Object Type", CommentsByObjectType);
+            AppendDictionary(builder, "Comments By Object Type Name", CommentsByObjectTypeName);
+            AppendDictionary(builder, "Comments By Object Flags", CommentsByObjectFlags);
+            AppendDictionary(builder, "Comments By Object Flag Name", CommentsByObjectFlagName);
             AppendDictionary(builder, "Conditional Formatting By Type", ConditionalFormattingsByType);
             AppendDictionary(builder, "Conditional Formatting By Operator", ConditionalFormattingsByOperator);
             AppendDictionary(builder, "Conditional Formatting By Range Count", ConditionalFormattingsByRangeCount);

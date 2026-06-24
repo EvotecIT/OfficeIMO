@@ -212,6 +212,31 @@ Warnings: 0
 | --- | --- |
 | Items:3 | 1 |
 
+## Comments By Object Type
+
+| Key | Count |
+| --- | --- |
+| ObjectType:0x0019 | 1 |
+
+## Comments By Object Type Name
+
+| Key | Count |
+| --- | --- |
+| Note | 1 |
+
+## Comments By Object Flags
+
+| Key | Count |
+| --- | --- |
+| ObjectFlags:0x4011 | 1 |
+
+## Comments By Object Flag Name
+
+| Key | Count |
+| --- | --- |
+| Locked | 1 |
+| Printable | 1 |
+
 ## Conditional Formatting By Type
 
 | Key | Count |

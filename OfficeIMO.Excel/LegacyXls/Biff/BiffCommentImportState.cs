@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private readonly Dictionary<ushort, PendingNote> _notes = new();
         private readonly Dictionary<ushort, string> _texts = new();
         private readonly Dictionary<ushort, IReadOnlyList<LegacyXlsCommentFormattingRun>> _formattingRuns = new();
+        private readonly Dictionary<ushort, CommentObjectInfo> _objectInfos = new();
         private readonly HashSet<ushort> _imported = new();
         private PendingTextObject? _pendingTextObject;
         private ushort? _pendingCommentObjectId;
@@ -33,6 +34,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             _pendingCommentObjectId = BiffRecordReader.ReadUInt16(payload, 6);
+            ushort? objectFlags = null;
+            if (cb >= 6 && payload.Length >= 10) {
+                objectFlags = BiffRecordReader.ReadUInt16(payload, 8);
+            }
+
+            _objectInfos[_pendingCommentObjectId.Value] = new CommentObjectInfo(objectType, objectFlags);
             return true;
         }
 
@@ -133,8 +140,29 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             _formattingRuns.TryGetValue(objectId, out IReadOnlyList<LegacyXlsCommentFormattingRun>? runs);
-            _sheet.AddComment(new LegacyXlsComment(note.Row, note.Column, text!, note.Author, objectId, note.Visible, runs));
+            _objectInfos.TryGetValue(objectId, out CommentObjectInfo objectInfo);
+            _sheet.AddComment(new LegacyXlsComment(
+                note.Row,
+                note.Column,
+                text!,
+                note.Author,
+                objectId,
+                note.Visible,
+                runs,
+                objectInfo.ObjectType,
+                objectInfo.ObjectFlags));
             _imported.Add(objectId);
+        }
+
+        private readonly struct CommentObjectInfo {
+            internal CommentObjectInfo(ushort? objectType, ushort? objectFlags) {
+                ObjectType = objectType;
+                ObjectFlags = objectFlags;
+            }
+
+            internal ushort? ObjectType { get; }
+
+            internal ushort? ObjectFlags { get; }
         }
 
         private readonly struct PendingNote {
