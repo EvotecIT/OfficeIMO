@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsComment> _comments = new();
         private readonly List<LegacyXlsConditionalFormattingExtensionRecord> _conditionalFormattingExtensions = new();
         private readonly List<LegacyXlsConditionalFormatting> _conditionalFormattings = new();
+        private readonly List<LegacyXlsDataValidationCollectionRecord> _dataValidationCollections = new();
         private readonly List<LegacyXlsDataValidation> _dataValidations = new();
         private readonly List<LegacyXlsAutoFilterCriteria> _autoFilterCriteria = new();
         private readonly List<LegacyXlsPageBreak> _columnPageBreaks = new();
@@ -96,6 +97,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets parsed data validation rules for this worksheet.
         /// </summary>
         public IReadOnlyList<LegacyXlsDataValidation> DataValidations => _dataValidations;
+
+        /// <summary>
+        /// Gets parsed DVal collection headers for this worksheet.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsDataValidationCollectionRecord> DataValidationCollections => _dataValidationCollections;
 
         /// <summary>
         /// Gets parsed AutoFilter criteria for this worksheet.
@@ -308,6 +314,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void AddDataValidation(LegacyXlsDataValidation validation) {
             _dataValidations.Add(validation);
+        }
+
+        internal void AddDataValidationCollection(LegacyXlsDataValidationCollectionRecord collectionRecord) {
+            _dataValidationCollections.Add(collectionRecord);
         }
 
         internal void AddAutoFilterCriteria(LegacyXlsAutoFilterCriteria criteria) {

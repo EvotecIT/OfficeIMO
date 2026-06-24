@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
             LegacyXlsComment[] comments = workbook.Worksheets.SelectMany(sheet => sheet.Comments).ToArray();
+            LegacyXlsDataValidationCollectionRecord[] dataValidationCollections = workbook.Worksheets.SelectMany(sheet => sheet.DataValidationCollections).ToArray();
             LegacyXlsDataValidation[] dataValidations = workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).ToArray();
             LegacyXlsConditionalFormatting[] conditionalFormattings = workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattings).ToArray();
             LegacyXlsConditionalFormattingExtensionRecord[] conditionalFormattingExtensions = workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattingExtensions).ToArray();
@@ -41,9 +42,13 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(comment => comment.Anchor != null)
                 .Select(comment => GetDrawingAnchorFlagsKey(comment.Anchor!)));
             DataValidationCount = dataValidations.Length;
+            DataValidationCollectionRecordCount = dataValidationCollections.Length;
             ConditionalFormattingCount = conditionalFormattings.Length;
             AutoFilterCriteriaCount = workbook.Worksheets.Sum(sheet => sheet.AutoFilterCriteria.Count);
             WorksheetFeatureStates = CountByCode(workbook.Worksheets.SelectMany(GetWorksheetFeatureStateKeys));
+            DataValidationCollectionsBySheet = CountByCode(dataValidationCollections.Select(record => record.SheetName));
+            DataValidationCollectionsByDeclaredCount = CountByCode(dataValidationCollections.Select(record => $"Declared:{record.DeclaredValidationCount.ToString(CultureInfo.InvariantCulture)}"));
+            DataValidationCollectionStates = CountByCode(workbook.Worksheets.SelectMany(GetDataValidationCollectionStateKeys));
             DataValidationsByType = CountByCode(dataValidations.Select(validation => validation.Type.ToString()));
             DataValidationsByOperator = CountByCode(dataValidations.Select(validation => validation.Operator.ToString()));
             DataValidationsByErrorStyle = CountByCode(dataValidations.Select(validation => validation.ErrorStyle.ToString()));
@@ -838,6 +843,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of imported data validation rules.</summary>
         public int DataValidationCount { get; }
 
+        /// <summary>Gets the number of parsed DVal data-validation collection headers.</summary>
+        public int DataValidationCollectionRecordCount { get; }
+
         /// <summary>Gets the number of imported conditional formatting rules.</summary>
         public int ConditionalFormattingCount { get; }
 
@@ -846,6 +854,15 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets non-empty worksheet feature bundles grouped by data-validation, conditional-formatting, and AutoFilter state.</summary>
         public IReadOnlyDictionary<string, int> WorksheetFeatureStates { get; }
+
+        /// <summary>Gets parsed DVal collection headers grouped by worksheet name.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationCollectionsBySheet { get; }
+
+        /// <summary>Gets parsed DVal collection headers grouped by declared validation count.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationCollectionsByDeclaredCount { get; }
+
+        /// <summary>Gets parsed DVal collection headers grouped by declared-vs-parsed validation state.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationCollectionStates { get; }
 
         /// <summary>Gets imported data validations grouped by validation type.</summary>
         public IReadOnlyDictionary<string, int> DataValidationsByType { get; }
@@ -1887,6 +1904,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Comments: {CommentCount}");
             builder.AppendLine($"Hyperlinks: {HyperlinkCount}");
             builder.AppendLine($"Data validations: {DataValidationCount}");
+            builder.AppendLine($"Data validation collection headers: {DataValidationCollectionRecordCount}");
             builder.AppendLine($"Conditional formatting rules: {ConditionalFormattingCount}");
             builder.AppendLine($"Conditional formatting extension records: {ConditionalFormattingExtensionRecordCount}");
             builder.AppendLine($"AutoFilter criteria columns: {AutoFilterCriteriaCount}");
@@ -1948,6 +1966,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Data Validations By Prompt Text State", DataValidationsByPromptTextState);
             AppendDictionary(builder, "Data Validations By Error Text State", DataValidationsByErrorTextState);
             AppendDictionary(builder, "Data Validations By Drop Down State", DataValidationsByDropDownState);
+            AppendDictionary(builder, "Data Validation Collections By Sheet", DataValidationCollectionsBySheet);
+            AppendDictionary(builder, "Data Validation Collections By Declared Count", DataValidationCollectionsByDeclaredCount);
+            AppendDictionary(builder, "Data Validation Collection States", DataValidationCollectionStates);
             AppendDictionary(builder, "Data Validations By Sheet", DataValidationsBySheet);
             AppendDictionary(builder, "Data Validations By Range Count", DataValidationsByRangeCount);
             AppendDictionary(builder, "Data Validations By Range", DataValidationsByRange);
@@ -2957,6 +2978,20 @@ namespace OfficeIMO.Excel.LegacyXls {
                 + $"|ConditionalFormatting:{sheet.ConditionalFormattings.Count.ToString(CultureInfo.InvariantCulture)}"
                 + $"|AutoFilterCriteria:{sheet.AutoFilterCriteria.Count.ToString(CultureInfo.InvariantCulture)}"
                 + $"|AutoFilterDropDowns:{dropDownCount}";
+        }
+
+        private static IEnumerable<string> GetDataValidationCollectionStateKeys(LegacyXlsWorksheet sheet) {
+            if (sheet.DataValidationCollections.Count == 0) {
+                yield break;
+            }
+
+            int parsedCount = sheet.DataValidations.Count;
+            foreach (LegacyXlsDataValidationCollectionRecord collection in sheet.DataValidationCollections) {
+                string matchState = collection.DeclaredValidationCount == parsedCount ? "Matched" : "Mismatched";
+                yield return $"Declared:{collection.DeclaredValidationCount.ToString(CultureInfo.InvariantCulture)}"
+                    + $"|Parsed:{parsedCount.ToString(CultureInfo.InvariantCulture)}"
+                    + $"|{matchState}";
+            }
         }
 
         private static string GetDataValidationDropDownState(LegacyXlsDataValidation validation) {

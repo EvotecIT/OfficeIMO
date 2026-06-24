@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
+using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 using Xunit;
@@ -233,6 +234,10 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.Equal(9, result.ImportReport.DataValidationCount);
+            Assert.Equal(1, result.ImportReport.DataValidationCollectionRecordCount);
+            Assert.Equal(1, result.ImportReport.DataValidationCollectionsBySheet["Validation"]);
+            Assert.Equal(1, result.ImportReport.DataValidationCollectionsByDeclaredCount["Declared:9"]);
+            Assert.Equal(1, result.ImportReport.DataValidationCollectionStates["Declared:9|Parsed:9|Matched"]);
             Assert.Equal(1, result.ImportReport.DataValidationsByType["WholeNumber"]);
             Assert.Equal(1, result.ImportReport.DataValidationsByType["Decimal"]);
             Assert.Equal(1, result.ImportReport.DataValidationsByType["Date"]);
@@ -249,6 +254,9 @@ namespace OfficeIMO.Tests {
 
             LegacyXlsWorksheet validationSheet = Assert.Single(result.Workbook.Worksheets, sheet => sheet.Name == "Validation");
             Assert.Single(result.Workbook.Worksheets, sheet => sheet.Name == "Lookup");
+            LegacyXlsDataValidationCollectionRecord collectionRecord = Assert.Single(validationSheet.DataValidationCollections);
+            Assert.Equal(9U, collectionRecord.DeclaredValidationCount);
+            Assert.Equal((ushort)BiffRecordType.DVal, collectionRecord.RecordType);
 
             AssertValidation(validationSheet, LegacyXlsDataValidationType.WholeNumber, "A2:A6", "1", "10");
             AssertValidation(validationSheet, LegacyXlsDataValidationType.Decimal, "B2:B6", "1.5", null);

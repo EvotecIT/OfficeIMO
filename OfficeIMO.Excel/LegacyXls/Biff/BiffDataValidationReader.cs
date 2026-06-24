@@ -13,6 +13,27 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return TryRead(payload, Array.Empty<BiffExternSheetReference>(), Array.Empty<LegacyXlsExternalReference>(), Array.Empty<string>(), Array.Empty<string?>(), out validation, out _);
         }
 
+        internal static bool TryReadCollectionHeader(BiffRecord record, string sheetName, out LegacyXlsDataValidationCollectionRecord? collectionRecord) {
+            collectionRecord = null;
+            byte[] payload = record.Payload;
+            if (payload.Length < 18) {
+                return false;
+            }
+
+            uint validationCount = BiffRecordReader.ReadUInt32(payload, 14);
+            if (validationCount > 65534) {
+                return false;
+            }
+
+            collectionRecord = new LegacyXlsDataValidationCollectionRecord(
+                sheetName,
+                record.Offset,
+                record.Type,
+                payload.Length,
+                validationCount);
+            return true;
+        }
+
         internal static bool TryRead(byte[] payload, IReadOnlyList<string?> definedNames, out LegacyXlsDataValidation? validation) {
             return TryRead(payload, Array.Empty<BiffExternSheetReference>(), Array.Empty<LegacyXlsExternalReference>(), Array.Empty<string>(), definedNames, out validation, out _);
         }

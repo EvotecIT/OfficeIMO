@@ -7,6 +7,7 @@ Formula cells: 7
 Comments: 1
 Hyperlinks: 0
 Data validations: 1
+Data validation collection headers: 1
 Conditional formatting rules: 1
 Conditional formatting extension records: 1
 AutoFilter criteria columns: 1
@@ -190,6 +191,24 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Suppressed | 1 |
+
+## Data Validation Collections By Sheet
+
+| Key | Count |
+| --- | --- |
+| Data | 1 |
+
+## Data Validation Collections By Declared Count
+
+| Key | Count |
+| --- | --- |
+| Declared:1 | 1 |
+
+## Data Validation Collection States
+
+| Key | Count |
+| --- | --- |
+| Declared:1\|Parsed:1\|Matched | 1 |
 
 ## Data Validations By Sheet
 

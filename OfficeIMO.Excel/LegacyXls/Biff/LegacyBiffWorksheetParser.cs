@@ -222,7 +222,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         ParseDimensions(sheet, payload);
                         break;
                     case BiffRecordType.DVal:
-                        if (!IsValidDataValidationCollectionHeader(payload)) {
+                        if (BiffDataValidationReader.TryReadCollectionHeader(new BiffRecord(type, offset, payload), sheet.Name, out LegacyXlsDataValidationCollectionRecord? collectionRecord)) {
+                            sheet.AddDataValidationCollection(collectionRecord!);
+                        } else {
                             AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
@@ -484,15 +486,6 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     recordOffset: offset,
                     recordType: type));
             }
-        }
-
-        private static bool IsValidDataValidationCollectionHeader(byte[] payload) {
-            if (payload.Length < 18) {
-                return false;
-            }
-
-            uint validationCount = BiffRecordReader.ReadUInt32(payload, 14);
-            return validationCount <= 65534;
         }
 
         private static void AddUnsupportedFeature(

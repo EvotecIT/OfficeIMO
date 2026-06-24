@@ -7,6 +7,7 @@ Formula cells: 0
 Comments: 0
 Hyperlinks: 0
 Data validations: 0
+Data validation collection headers: 0
 Conditional formatting rules: 8
 Conditional formatting extension records: 8
 AutoFilter criteria columns: 0

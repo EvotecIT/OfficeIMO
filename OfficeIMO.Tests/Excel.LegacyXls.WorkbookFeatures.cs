@@ -1440,6 +1440,10 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsDataValidationCollectionRecord collectionRecord = Assert.Single(sheet.DataValidationCollections);
+            Assert.Equal("TypedValidation", collectionRecord.SheetName);
+            Assert.Equal((ushort)BiffRecordType.DVal, collectionRecord.RecordType);
+            Assert.Equal(3U, collectionRecord.DeclaredValidationCount);
             Assert.Equal(3, sheet.DataValidations.Count);
             LegacyXlsDataValidation dateValidation = Assert.Single(sheet.DataValidations, validation => validation.Type == LegacyXlsDataValidationType.Date);
             Assert.Equal(LegacyXlsDataValidationOperator.Between, dateValidation.Operator);
