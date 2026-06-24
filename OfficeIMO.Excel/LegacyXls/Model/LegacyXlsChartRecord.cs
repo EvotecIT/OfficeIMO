@@ -21,6 +21,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort? axisType = null,
             string? axisTypeName = null,
             ushort? axesUsedCount = null,
+            LegacyXlsChartCategorySeriesRange? categorySeriesRange = null,
+            LegacyXlsChartAxisLineFormat? axisLineFormat = null,
             ushort? seriesCategoryDataType = null,
             string? seriesCategoryDataTypeName = null,
             ushort? seriesValueDataType = null,
@@ -70,6 +72,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             AxisType = axisType;
             AxisTypeName = string.IsNullOrWhiteSpace(axisTypeName) ? null : axisTypeName;
             AxesUsedCount = axesUsedCount;
+            CategorySeriesRange = categorySeriesRange;
+            AxisLineFormat = axisLineFormat;
             SeriesCategoryDataType = seriesCategoryDataType;
             SeriesCategoryDataTypeName = string.IsNullOrWhiteSpace(seriesCategoryDataTypeName) ? null : seriesCategoryDataTypeName;
             SeriesValueDataType = seriesValueDataType;
@@ -144,6 +148,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the decoded axis group count from AxesUsed records, when present.</summary>
         public ushort? AxesUsedCount { get; }
+
+        /// <summary>Gets decoded category, date, or series axis range metadata from CatSerRange records, when present.</summary>
+        public LegacyXlsChartCategorySeriesRange? CategorySeriesRange { get; }
+
+        /// <summary>Gets decoded axis-line formatting target metadata from AxisLineFormat records, when present.</summary>
+        public LegacyXlsChartAxisLineFormat? AxisLineFormat { get; }
 
         /// <summary>Gets the raw category data type from Series records, when present.</summary>
         public ushort? SeriesCategoryDataType { get; }

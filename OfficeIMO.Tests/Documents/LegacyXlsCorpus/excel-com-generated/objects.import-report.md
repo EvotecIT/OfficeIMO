@@ -757,6 +757,25 @@ Warnings: 0
 | --- | --- |
 | AxesUsed:0 | 2 |
 
+## Chart CatSerRange Intervals
+
+| Key | Count |
+| --- | --- |
+| Cross:1;Labels:1;Ticks:1 | 2 |
+
+## Chart CatSerRange States
+
+| Key | Count |
+| --- | --- |
+| Between:True;MaxCross:False;Reversed:False | 2 |
+
+## Chart AxisLineFormat Targets
+
+| Key | Count |
+| --- | --- |
+| AxisLine | 4 |
+| MajorGridlines | 2 |
+
 ## Chart Series Category Data Types
 
 | Key | Count |

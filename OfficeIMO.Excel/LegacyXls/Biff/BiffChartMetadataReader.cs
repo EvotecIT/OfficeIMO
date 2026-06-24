@@ -13,6 +13,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadChartRectangle(record, out int? chartX, out int? chartY, out int? chartWidth, out int? chartHeight);
             TryReadAxisType(record, out ushort? axisType, out string? axisTypeName);
             TryReadAxesUsedCount(record, out ushort? axesUsedCount);
+            TryReadCategorySeriesRange(record, out LegacyXlsChartCategorySeriesRange? categorySeriesRange);
+            TryReadAxisLineFormat(record, out LegacyXlsChartAxisLineFormat? axisLineFormat);
             TryReadSeries(record, out ushort? seriesCategoryDataType, out string? seriesCategoryDataTypeName, out ushort? seriesValueDataType, out string? seriesValueDataTypeName, out ushort? seriesCategoryCount, out ushort? seriesValueCount, out ushort? seriesBubbleSizeDataType, out string? seriesBubbleSizeDataTypeName, out ushort? seriesBubbleSizeCount);
             TryReadDataFormat(record, out ushort? dataFormatPointIndex, out ushort? dataFormatSeriesIndex, out ushort? dataFormatOrder, out string? dataFormatTarget);
             TryReadNumberFormat(record, out ushort? numberFormatId);
@@ -47,6 +49,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 axisType,
                 axisTypeName,
                 axesUsedCount,
+                categorySeriesRange,
+                axisLineFormat,
                 seriesCategoryDataType,
                 seriesCategoryDataTypeName,
                 seriesValueDataType,
@@ -137,6 +141,31 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             axesUsedCount = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            return true;
+        }
+
+        private static bool TryReadCategorySeriesRange(BiffRecord record, out LegacyXlsChartCategorySeriesRange? categorySeriesRange) {
+            categorySeriesRange = null;
+            if (record.Type != 0x1020 || record.Payload.Length < 8) {
+                return false;
+            }
+
+            categorySeriesRange = new LegacyXlsChartCategorySeriesRange(
+                BiffRecordReader.ReadInt16(record.Payload, 0),
+                BiffRecordReader.ReadInt16(record.Payload, 2),
+                BiffRecordReader.ReadInt16(record.Payload, 4),
+                BiffRecordReader.ReadUInt16(record.Payload, 6));
+            return true;
+        }
+
+        private static bool TryReadAxisLineFormat(BiffRecord record, out LegacyXlsChartAxisLineFormat? axisLineFormat) {
+            axisLineFormat = null;
+            if (record.Type != 0x1021 || record.Payload.Length < 2) {
+                return false;
+            }
+
+            ushort targetId = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            axisLineFormat = new LegacyXlsChartAxisLineFormat(targetId, GetAxisLineFormatTargetName(targetId));
             return true;
         }
 
@@ -525,6 +554,21 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return "ShadowFrame";
                 default:
                     return $"Unknown:0x{frameType:X4}";
+            }
+        }
+
+        private static string GetAxisLineFormatTargetName(ushort targetId) {
+            switch (targetId) {
+                case 0x0000:
+                    return "AxisLine";
+                case 0x0001:
+                    return "MajorGridlines";
+                case 0x0002:
+                    return "MinorGridlines";
+                case 0x0003:
+                    return "WallsOrFloor3D";
+                default:
+                    return $"Unknown:0x{targetId:X4}";
             }
         }
 

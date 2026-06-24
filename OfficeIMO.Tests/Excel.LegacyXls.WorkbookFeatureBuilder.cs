@@ -486,6 +486,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0856, Array.Empty<byte>());
                 WriteRecord(stream, 0x0853, Array.Empty<byte>());
                 WriteRecord(stream, 0x101f, BuildValueRangePayload());
+                WriteRecord(stream, 0x1020, BuildCatSerRangePayload(crossingCategory: 2, labelInterval: 3, tickInterval: 4, flags: 0x0005));
                 WriteRecord(stream, 0x101e, BuildTickPayload());
                 WriteRecord(stream, 0x1045, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x1003, BuildSeriesPayload(0x0003, categoryCount: 4, valueCount: 4, bubbleSizeCount: 0));
@@ -502,6 +503,9 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1026, BuildUInt16Payload(3));
                 WriteRecord(stream, 0x1027, BuildObjectLinkPayload());
                 WriteRecord(stream, 0x1015, BuildLegendPayload());
+                WriteRecord(stream, 0x1021, BuildUInt16Payload(0x0000));
+                WriteRecord(stream, 0x1021, BuildUInt16Payload(0x0001));
+                WriteRecord(stream, 0x1021, BuildUInt16Payload(0x0002));
                 WriteRecord(stream, 0x1062, Array.Empty<byte>());
                 WriteRecord(stream, 0x1063, BuildUInt16Payload(0x000d));
                 WriteRecord(stream, 0x1051, BuildChartPositionPayload());
@@ -1519,6 +1523,15 @@ namespace OfficeIMO.Tests {
                 WriteUInt32(stream, 0);
                 WriteUInt32(stream, 0);
                 WriteUInt32(stream, 0);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildCatSerRangePayload(short crossingCategory, short labelInterval, short tickInterval, ushort flags) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, unchecked((ushort)crossingCategory));
+                WriteUInt16(stream, unchecked((ushort)labelInterval));
+                WriteUInt16(stream, unchecked((ushort)tickInterval));
+                WriteUInt16(stream, flags);
                 return stream.ToArray();
             }
 

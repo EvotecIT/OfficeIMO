@@ -348,6 +348,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartRecordsByAxesUsedCount = CountByCode(workbook.ChartRecords
                 .Where(record => record.AxesUsedCount.HasValue)
                 .Select(record => $"AxesUsed:{record.AxesUsedCount!.Value}"));
+            ChartCategorySeriesRangeIntervals = CountByCode(workbook.ChartRecords
+                .Where(record => record.CategorySeriesRange != null)
+                .Select(GetChartCategorySeriesRangeIntervalKey));
+            ChartCategorySeriesRangeStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.CategorySeriesRange != null)
+                .Select(GetChartCategorySeriesRangeStateKey));
+            ChartAxisLineFormatTargets = CountByCode(workbook.ChartRecords
+                .Where(record => record.AxisLineFormat != null)
+                .Select(record => record.AxisLineFormat!.TargetName));
             ChartSeriesCategoryDataTypes = CountByCode(workbook.ChartRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.SeriesCategoryDataTypeName))
                 .Select(record => record.SeriesCategoryDataTypeName!));
@@ -1182,6 +1191,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets AxesUsed records grouped by decoded axis group count.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByAxesUsedCount { get; }
 
+        /// <summary>Gets CatSerRange records grouped by decoded crossing and interval values.</summary>
+        public IReadOnlyDictionary<string, int> ChartCategorySeriesRangeIntervals { get; }
+
+        /// <summary>Gets CatSerRange records grouped by decoded axis state flags.</summary>
+        public IReadOnlyDictionary<string, int> ChartCategorySeriesRangeStates { get; }
+
+        /// <summary>Gets AxisLineFormat records grouped by decoded formatted axis component.</summary>
+        public IReadOnlyDictionary<string, int> ChartAxisLineFormatTargets { get; }
+
         /// <summary>Gets Series records grouped by decoded category data type.</summary>
         public IReadOnlyDictionary<string, int> ChartSeriesCategoryDataTypes { get; }
 
@@ -1707,6 +1725,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Records By Rectangle", ChartRecordsByRectangle);
             AppendDictionary(builder, "Chart Records By Axis Type", ChartRecordsByAxisType);
             AppendDictionary(builder, "Chart Records By Axes Used Count", ChartRecordsByAxesUsedCount);
+            AppendDictionary(builder, "Chart CatSerRange Intervals", ChartCategorySeriesRangeIntervals);
+            AppendDictionary(builder, "Chart CatSerRange States", ChartCategorySeriesRangeStates);
+            AppendDictionary(builder, "Chart AxisLineFormat Targets", ChartAxisLineFormatTargets);
             AppendDictionary(builder, "Chart Series Category Data Types", ChartSeriesCategoryDataTypes);
             AppendDictionary(builder, "Chart Series Value Data Types", ChartSeriesValueDataTypes);
             AppendDictionary(builder, "Chart Series Bubble Size Data Types", ChartSeriesBubbleSizeDataTypes);
@@ -2070,6 +2091,16 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartValueRangeStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartValueRange valueRange = record.ValueRange!;
             return $"AutoMin:{valueRange.AutoMinimum};AutoMax:{valueRange.AutoMaximum};AutoMajor:{valueRange.AutoMajorUnit};AutoMinor:{valueRange.AutoMinorUnit};AutoCross:{valueRange.AutoCrossingValue};Log:{valueRange.LogarithmicScale};Reversed:{valueRange.Reversed};MaxCross:{valueRange.MaximumCrossing}";
+        }
+
+        private static string GetChartCategorySeriesRangeIntervalKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartCategorySeriesRange range = record.CategorySeriesRange!;
+            return $"Cross:{range.CrossingCategory};Labels:{range.LabelInterval};Ticks:{range.TickInterval}";
+        }
+
+        private static string GetChartCategorySeriesRangeStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartCategorySeriesRange range = record.CategorySeriesRange!;
+            return $"Between:{range.CrossesBetweenTickMarks};MaxCross:{range.CrossesAtMaximum};Reversed:{range.Reversed}";
         }
 
         private static string GetChartAttachedLabelStateKey(LegacyXlsChartRecord record) {
