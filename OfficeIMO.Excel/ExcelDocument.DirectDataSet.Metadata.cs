@@ -647,6 +647,17 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal bool HasMaterializedDirectTabularFastSaveWorksheet(ExcelSheet sheet) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (!ReferenceEquals(sheet.Document, this) || !_materializedDirectDataSetFastSaveModelHasMaterializedWorksheet) {
+                return false;
+            }
+
+            var model = _materializedDirectDataSetFastSaveModel;
+            return model != null
+                && model.Sheets.Any(item => string.Equals(item.SheetName, sheet.Name, StringComparison.Ordinal));
+        }
+
         internal bool TryGetDirectTabularSaveCandidateColumnByHeader(
             ExcelSheet sheet,
             string header,
@@ -655,9 +666,30 @@ namespace OfficeIMO.Excel {
             out int columnIndex,
             out int startRow,
             out int endRow) {
+            return TryGetDirectTabularSaveCandidateColumnByHeader(
+                sheet,
+                header,
+                includeHeader,
+                options,
+                out columnIndex,
+                out startRow,
+                out endRow,
+                out _);
+        }
+
+        internal bool TryGetDirectTabularSaveCandidateColumnByHeader(
+            ExcelSheet sheet,
+            string header,
+            bool includeHeader,
+            ExcelReadOptions? options,
+            out int columnIndex,
+            out int startRow,
+            out int endRow,
+            out bool candidateAvailable) {
             columnIndex = 0;
             startRow = 0;
             endRow = -1;
+            candidateAvailable = false;
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (string.IsNullOrWhiteSpace(header) || !ReferenceEquals(sheet.Document, this)) {
                 return false;
@@ -674,6 +706,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            candidateAvailable = true;
             bool normalizeHeaders = options?.NormalizeHeaders ?? true;
             string normalizedHeader = ExcelHeaderNameHelper.NormalizeHeader(header, normalizeHeaders);
             var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(

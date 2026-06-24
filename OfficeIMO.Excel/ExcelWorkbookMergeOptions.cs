@@ -19,5 +19,10 @@ namespace OfficeIMO.Excel {
         /// Gets or sets sheet name validation behavior for imported worksheets.
         /// </summary>
         public SheetNameValidationMode SheetNameValidationMode { get; set; } = SheetNameValidationMode.Sanitize;
+
+        /// <summary>
+        /// Gets or sets the worksheet copy strategy used for imported sheets.
+        /// </summary>
+        public ExcelWorksheetCopyMode CopyMode { get; set; } = ExcelWorksheetCopyMode.Package;
     }
 }

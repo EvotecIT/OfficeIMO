@@ -388,6 +388,13 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("LargeXlsx", "Streaming export of equivalent four-column row/cell values.", () => LargeXlsxWriteSalesRows(rows, includeAllColumns: false))
         ]);
 
+        AddScenarioGroup(scenarios, scenarioFilter, "copy-worksheet-package", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Copy one worksheet between workbooks with package mode, avoiding row-object materialization.", () => OfficeImoCopyWorksheetFromPackage(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("OfficeIMO.Excel Values", "Copy one worksheet between workbooks through the reader/writer values fallback.", () => OfficeImoCopyWorksheetFromValues(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("ClosedXML", "Copy one worksheet between workbooks with the library worksheet-copy API.", () => ClosedXmlCopyWorksheet(closedXmlWorkbookBytes.Value)),
+            new LibraryComparisonCase("EPPlus", "Copy one worksheet between workbooks with the library worksheet-copy API.", () => EpPlusCopyWorksheet(epPlusWorkbookBytes.Value))
+        ]);
+
         AddScenarioGroup(scenarios, scenarioFilter, "read-range", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Read A1 range with automatic execution policy.", () => OfficeImoReadRange(officeImoWorkbookBytes.Value, dataRange)),
             new LibraryComparisonCase("ClosedXML", "Iterate used data cells from the same workbook payload.", () => ClosedXmlReadRange(officeImoWorkbookBytes.Value)),
@@ -2124,6 +2131,64 @@ internal static partial class ExcelLibraryComparisonRunner {
         }
 
         return stream.ToArray();
+    }
+
+    private static int OfficeImoCopyWorksheetFromPackage(byte[] workbookBytes)
+        => ByteCount(OfficeImoCopyWorksheetFromBytes(workbookBytes, ExcelWorksheetCopyMode.Package));
+
+    private static int OfficeImoCopyWorksheetFromValues(byte[] workbookBytes)
+        => ByteCount(OfficeImoCopyWorksheetFromBytes(workbookBytes, ExcelWorksheetCopyMode.Values));
+
+    private static byte[] OfficeImoCopyWorksheetFromBytes(byte[] workbookBytes, ExcelWorksheetCopyMode copyMode) {
+        using var sourceStream = new MemoryStream(workbookBytes, writable: false);
+        using var sourceDocument = ExcelDocument.Load(sourceStream, readOnly: true);
+        using var targetStream = new MemoryStream();
+        using (var targetDocument = ExcelDocument.Create(targetStream, autoSave: false)) {
+            targetDocument.CopyWorksheetFrom(
+                sourceDocument,
+                "Data",
+                "DataCopy",
+                SheetNameValidationMode.Sanitize,
+                new ExcelWorksheetCopyOptions { CopyMode = copyMode });
+            targetDocument.Save(targetStream);
+        }
+
+        return targetStream.ToArray();
+    }
+
+    private static int ClosedXmlCopyWorksheet(byte[] workbookBytes)
+        => ByteCount(ClosedXmlCopyWorksheetBytes(workbookBytes));
+
+    private static byte[] ClosedXmlCopyWorksheetBytes(byte[] workbookBytes) {
+        using var sourceStream = new MemoryStream(workbookBytes, writable: false);
+        using var sourceWorkbook = new XLWorkbook(sourceStream);
+        using var targetStream = new MemoryStream();
+        using (var targetWorkbook = new XLWorkbook()) {
+            sourceWorkbook.Worksheet("Data").CopyTo(targetWorkbook, "DataCopy");
+            targetWorkbook.SaveAs(targetStream);
+        }
+
+        return targetStream.ToArray();
+    }
+
+    private static int EpPlusCopyWorksheet(byte[] workbookBytes)
+        => ByteCount(EpPlusCopyWorksheetBytes(workbookBytes));
+
+    private static byte[] EpPlusCopyWorksheetBytes(byte[] workbookBytes) {
+        using var sourceStream = new MemoryStream(workbookBytes, writable: false);
+        using var sourcePackage = new ExcelPackage(sourceStream);
+        using var targetStream = new MemoryStream();
+        using (var targetPackage = new ExcelPackage(targetStream)) {
+            var sourceWorksheet = sourcePackage.Workbook.Worksheets["Data"];
+            if (sourceWorksheet == null) {
+                throw new InvalidOperationException("Source worksheet 'Data' was not found.");
+            }
+
+            targetPackage.Workbook.Worksheets.Add("DataCopy", sourceWorksheet);
+            targetPackage.Save();
+        }
+
+        return targetStream.ToArray();
     }
 
     private static int ClosedXmlAppendPlainRows(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows)
