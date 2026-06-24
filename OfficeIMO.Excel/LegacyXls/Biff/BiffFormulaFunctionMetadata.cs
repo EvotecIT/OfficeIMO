@@ -17,6 +17,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     functionName = "NA";
                     parameterCount = 0;
                     return true;
+                case 0x000c:
+                    functionName = "STDEV";
+                    parameterCount = 1;
+                    return true;
                 case 0x000f:
                     functionName = "SIN";
                     parameterCount = 1;
@@ -216,6 +220,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0007:
                     functionName = "MAX";
                     return true;
+                case 0x000c:
+                    functionName = "STDEV";
+                    return true;
                 case 0x001d:
                     functionName = "INDEX";
                     return true;
@@ -268,8 +275,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             switch (functionId) {
-                case 0x000c:
-                    functionName = "STDEV";
+                case 0x000b:
+                    functionName = "NPV";
                     return true;
                 default:
                     functionName = null;
