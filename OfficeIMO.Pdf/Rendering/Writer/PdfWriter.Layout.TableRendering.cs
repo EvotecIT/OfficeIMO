@@ -429,12 +429,17 @@ internal static partial class PdfWriter {
                 double padRight = GetTableCellPaddingRight(style, rowIndex, column);
                 double padTop = GetTableCellPaddingTop(style, rowIndex, column);
                 double padBottom = GetTableCellPaddingBottom(style, rowIndex, column);
-                double contentWidth = System.Math.Max(0D, cellWidth - padLeft - padRight);
-                double barX = cellX + padLeft + contentWidth * dataBar.StartRatio;
-                double barWidth = contentWidth * dataBar.Ratio;
-                double barHeight = System.Math.Max(0D, cellHeight - padTop - padBottom);
-                if (barWidth > 0.001D && barHeight > 0.001D) {
-                    DrawRowFill(sb, dataBar.Color, barX, cellBottom + padBottom, barWidth, barHeight, artifact);
+                OfficeDataBarGeometry bar = OfficeDataBarRenderer.Resolve(
+                    cellX + padLeft,
+                    cellBottom + padBottom,
+                    System.Math.Max(0D, cellWidth - padLeft - padRight),
+                    System.Math.Max(0D, cellHeight - padTop - padBottom),
+                    dataBar.StartRatio,
+                    dataBar.Ratio,
+                    verticalInset: 0D,
+                    minimumHeight: 0D);
+                if (bar.Width > 0.001D && bar.Height > 0.001D) {
+                    DrawRowFill(sb, dataBar.Color, bar.X, bar.Y, bar.Width, bar.Height, artifact);
                     drawn = true;
                 }
             }

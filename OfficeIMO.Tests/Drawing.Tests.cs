@@ -1387,6 +1387,25 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDataBarRendererResolvesReusableGeometryForNativeEmitters() {
+        OfficeDataBarGeometry bar = OfficeDataBarRenderer.Resolve(
+            10D,
+            20D,
+            80D,
+            30D,
+            startRatio: 0.25D,
+            ratio: 0.5D,
+            verticalInset: 3D,
+            minimumHeight: 0D);
+
+        Assert.Equal(30D, bar.X);
+        Assert.Equal(23D, bar.Y);
+        Assert.Equal(40D, bar.Width);
+        Assert.Equal(24D, bar.Height);
+        Assert.True(bar.IsVisible);
+    }
+
+    [Fact]
     public void OfficeSvgImageRendererAppendsCroppedImageProjection() {
         var builder = new StringBuilder();
 

@@ -24,7 +24,7 @@ public static class OfficeDataBarRenderer {
             throw new ArgumentNullException(nameof(canvas));
         }
 
-        ResolvedDataBar bar = Resolve(x, y, width, height, startRatio, ratio, verticalInset);
+        OfficeDataBarGeometry bar = Resolve(x, y, width, height, startRatio, ratio, verticalInset);
         if (bar.Width <= 0D) {
             return;
         }
@@ -49,7 +49,7 @@ public static class OfficeDataBarRenderer {
             throw new ArgumentNullException(nameof(builder));
         }
 
-        ResolvedDataBar bar = Resolve(x, y, width, height, startRatio, ratio, verticalInset);
+        OfficeDataBarGeometry bar = Resolve(x, y, width, height, startRatio, ratio, verticalInset);
         if (bar.Width <= 0D) {
             return builder;
         }
@@ -60,13 +60,25 @@ public static class OfficeDataBarRenderer {
         return builder;
     }
 
-    private static ResolvedDataBar Resolve(double x, double y, double width, double height, double startRatio, double ratio, double verticalInset) {
+    /// <summary>
+    /// Resolves data-bar placement and size without binding the result to a specific output format.
+    /// </summary>
+    public static OfficeDataBarGeometry Resolve(
+        double x,
+        double y,
+        double width,
+        double height,
+        double startRatio,
+        double ratio,
+        double verticalInset = 2D,
+        double minimumHeight = 1D) {
         double inset = Math.Max(0D, verticalInset);
         double barX = x + (width * ClampUnit(startRatio));
         double barY = y + inset;
         double barWidth = Math.Max(0D, width * ClampUnit(ratio));
-        double barHeight = Math.Max(1D, height - (inset * 2D));
-        return new ResolvedDataBar(barX, barY, barWidth, barHeight);
+        double minHeight = Math.Max(0D, minimumHeight);
+        double barHeight = Math.Max(minHeight, height - (inset * 2D));
+        return new OfficeDataBarGeometry(barX, barY, barWidth, barHeight);
     }
 
     private static double ClampUnit(double value) {
@@ -79,22 +91,5 @@ public static class OfficeDataBarRenderer {
         }
 
         return value > 1D ? 1D : value;
-    }
-
-    private readonly struct ResolvedDataBar {
-        internal ResolvedDataBar(double x, double y, double width, double height) {
-            X = x;
-            Y = y;
-            Width = width;
-            Height = height;
-        }
-
-        internal double X { get; }
-
-        internal double Y { get; }
-
-        internal double Width { get; }
-
-        internal double Height { get; }
     }
 }
