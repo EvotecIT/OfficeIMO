@@ -135,7 +135,8 @@ namespace OfficeIMO.Excel {
                     var sanitized = planner.Note(s);
                     return new CellValue(sanitized);
                 },
-                dateTimeOffsetStrategy);
+                dateTimeOffsetStrategy,
+                _excelDocument.DateSystem);
             return (cellValue, GetCachedDataTableCellType(cellType));
         }
 

@@ -267,7 +267,8 @@ public class PdfDocumentImageValidationTests {
             SpacingBefore = 4,
             SpacingAfter = 9,
             KeepWithNext = true,
-            ScaleDownToFit = true
+            ScaleDownToFit = true,
+            RotationAngle = 12
         };
         var options = new PdfOptions {
             DefaultImageStyle = style
@@ -280,11 +281,13 @@ public class PdfDocumentImageValidationTests {
         style.SpacingAfter = 2;
         style.KeepWithNext = false;
         style.ScaleDownToFit = false;
+        style.RotationAngle = 0;
 
         PdfImageStyle readback = options.DefaultImageStyle!;
         readback.Align = PdfAlign.Left;
         readback.ClipPath = OfficeClipPath.Rectangle(2, 2);
         readback.ScaleDownToFit = false;
+        readback.RotationAngle = 3;
 
         PdfOptions clone = options.Clone();
 
@@ -295,10 +298,12 @@ public class PdfDocumentImageValidationTests {
         Assert.Equal(9, options.DefaultImageStyle.SpacingAfter);
         Assert.True(options.DefaultImageStyle.KeepWithNext);
         Assert.True(options.DefaultImageStyle.ScaleDownToFit);
+        Assert.Equal(12, options.DefaultImageStyle.RotationAngle);
         Assert.Equal(PdfAlign.Center, clone.DefaultImageStyle!.Align);
         Assert.Equal(12, clone.DefaultImageStyle.ClipPath!.Width);
         Assert.True(clone.DefaultImageStyle.KeepWithNext);
         Assert.True(clone.DefaultImageStyle.ScaleDownToFit);
+        Assert.Equal(12, clone.DefaultImageStyle.RotationAngle);
     }
 
     [Fact]

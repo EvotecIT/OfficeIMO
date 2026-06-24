@@ -50,6 +50,10 @@ namespace OfficeIMO.Excel {
 
             internal bool IsValid { get; private set; } = true;
 
+            internal DirectDataSetSaveCandidate WithModel(DirectDataSetWorkbookModel model) {
+                return new DirectDataSetSaveCandidate(_dataSet, model, _invalidate, IsDeferred, _subscribed);
+            }
+
             private void Subscribe(DataSet dataSet) {
                 dataSet.Tables.CollectionChanged += OnCollectionChanged;
                 foreach (DataTable table in dataSet.Tables) {

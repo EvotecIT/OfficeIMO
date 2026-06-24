@@ -18,6 +18,7 @@ namespace OfficeIMO.Excel {
         private readonly SpreadsheetDocument _doc;
         private readonly bool _owns;
         private readonly ExcelReadOptions _opt;
+        private readonly ExcelDateSystem _dateSystem;
         private readonly SharedStringCache _sst;
         private readonly StylesCacheProvider _styles;
         private readonly Package? _ownedPackage;
@@ -29,6 +30,7 @@ namespace OfficeIMO.Excel {
             _opt = opt ?? new ExcelReadOptions();
             _ownedPackage = ownedPackage;
             _ownedStream = ownedStream;
+            _dateSystem = GetWorkbookDateSystem(doc);
             _sst = SharedStringCache.Build(doc, _opt);
             _styles = new StylesCacheProvider(doc);
         }
@@ -108,7 +110,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelSheetReader GetSheet(string name) {
             if (TryGetSheetByNameXmlFast(name, out string? fastSheetName, out WorksheetPart? fastWorksheetPart)) {
-                return new ExcelSheetReader(fastSheetName, fastWorksheetPart, _sst, _styles, _opt, _owns);
+                return new ExcelSheetReader(fastSheetName, fastWorksheetPart, _sst, _styles, _opt, _dateSystem, _owns);
             }
 
             var wb = WorkbookRoot;
@@ -122,7 +124,13 @@ namespace OfficeIMO.Excel {
 
             if (sheet is null) throw new KeyNotFoundException($"Sheet '{name}' not found.");
             var wsPart = (WorksheetPart)WorkbookPartRoot.GetPartById(sheet.Id!);
-            return new ExcelSheetReader(sheet.Name!, wsPart, _sst, _styles, _opt, _owns);
+            return new ExcelSheetReader(sheet.Name!, wsPart, _sst, _styles, _opt, _dateSystem, _owns);
+        }
+
+        private static ExcelDateSystem GetWorkbookDateSystem(SpreadsheetDocument document) {
+            return document.WorkbookPart?.Workbook?.GetFirstChild<WorkbookProperties>()?.Date1904?.Value == true
+                ? ExcelDateSystem.NineteenFour
+                : ExcelDateSystem.NineteenHundred;
         }
 
         private bool TryGetSheetByNameXmlFast(string name, out string sheetName, out WorksheetPart worksheetPart) {

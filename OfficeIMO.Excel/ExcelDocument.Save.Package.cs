@@ -73,6 +73,9 @@ namespace OfficeIMO.Excel {
             }
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SaveSharedStrings");
 
+            SaveCustomDocumentProperties();
+            ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SaveCustomDocumentProperties");
+
             WorkbookRoot.Save();
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SaveWorkbookRoot");
             try { _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow; } catch { }

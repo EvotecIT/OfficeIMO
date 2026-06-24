@@ -29,6 +29,55 @@ public class PdfComplianceReadbackTests {
     }
 
     [Fact]
+    public void AssessReadback_UsesCatalogVersionAsEffectiveVersion() {
+        byte[] generated = PdfDocument.Create(new PdfOptions {
+                FileVersion = PdfFileVersion.Pdf17,
+                IncludeStandardFontToUnicodeMaps = true
+            })
+            .PdfAIdentification(3, "B")
+            .Meta(title: "Readback PDF/A", author: "OfficeIMO")
+            .Language("en-US")
+            .SrgbOutputIntent()
+            .Paragraph(paragraph => paragraph.Text("Readback effective version groundwork"))
+            .ToBytes();
+        string rewritten = PdfEncoding.Latin1GetString(generated)
+            .Replace("%PDF-1.7", "%PDF-1.4")
+            .Replace("/Type /Catalog", "/Type /Catalog /Version /1.7");
+        byte[] pdf = PdfEncoding.Latin1GetBytes(rewritten);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfA3B, info);
+
+        Assert.Equal("1.4", info.HeaderVersion);
+        Assert.Equal("1.7", info.CatalogVersion);
+        Assert.Equal("1.7", info.EffectiveVersion);
+        AssertRequirement(report, "readback-pdf-file-version", PdfComplianceRequirementStatus.Satisfied);
+    }
+
+    [Fact]
+    public void AssessReadback_RejectsPdf20EffectiveVersionForPdfA3() {
+        byte[] generated = PdfDocument.Create(new PdfOptions {
+                FileVersion = PdfFileVersion.Pdf17,
+                IncludeStandardFontToUnicodeMaps = true
+            })
+            .PdfAIdentification(3, "B")
+            .Meta(title: "Readback PDF/A", author: "OfficeIMO")
+            .Language("en-US")
+            .SrgbOutputIntent()
+            .Paragraph(paragraph => paragraph.Text("Readback effective version groundwork"))
+            .ToBytes();
+        string rewritten = PdfEncoding.Latin1GetString(generated)
+            .Replace("/Type /Catalog", "/Type /Catalog /Version /2.0");
+        byte[] pdf = PdfEncoding.Latin1GetBytes(rewritten);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfA3B, info);
+
+        Assert.Equal("2.0", info.EffectiveVersion);
+        AssertRequirement(report, "readback-pdf-file-version", PdfComplianceRequirementStatus.Missing);
+    }
+
+    [Fact]
     public void AssessReadback_ReportsPdfA4GroundworkFromSavedPdf() {
         byte[] pdf = PdfDocument.Create()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4F, "en-US")

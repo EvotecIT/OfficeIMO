@@ -23,13 +23,14 @@ namespace OfficeIMO.Excel {
             TableStyle tableStyle = TableStyle.TableStyleMedium2,
             bool includeHeaders = true,
             bool includeAutoFilter = true,
-            CancellationToken ct = default) {
+            CancellationToken ct = default,
+            ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(stream));
             if (dataSet == null) throw new ArgumentNullException(nameof(dataSet));
             if (dataSet.Tables.Count == 0) throw new ArgumentException("The DataSet must contain at least one DataTable.", nameof(dataSet));
 
-            var model = DirectDataSetWorkbookModel.Create(dataSet, createTables: true, tableStyle, includeHeaders, includeAutoFilter, autoFit: false, DefaultDateTimeOffsetWriteStrategy, ct, omitBlankCells: true);
+            var model = DirectDataSetWorkbookModel.Create(dataSet, createTables: true, tableStyle, includeHeaders, includeAutoFilter, autoFit: false, DefaultDateTimeOffsetWriteStrategy, ct, omitBlankCells: true, dateSystem: dateSystem);
             if (stream.CanSeek) {
                 PrepareDestinationStreamForWrite(stream);
             }
@@ -62,7 +63,8 @@ namespace OfficeIMO.Excel {
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
                     CancellationToken.None,
-                    results);
+                    results,
+                    dateSystem: DateSystem);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(dataSet, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: true);
                 _directDataSetMetadataSourceSheet = null;
             } catch {
@@ -106,7 +108,8 @@ namespace OfficeIMO.Excel {
                         includeAutoFilter,
                         autoFit,
                         _dateTimeOffsetWriteStrategy,
-                        CancellationToken.None);
+                        CancellationToken.None,
+                        dateSystem: DateSystem);
                     _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
                     _directDataSetMetadataSourceSheet = sheet;
                 } else {
@@ -130,7 +133,8 @@ namespace OfficeIMO.Excel {
                         autoFit,
                         _dateTimeOffsetWriteStrategy,
                         CancellationToken.None,
-                        results);
+                        results,
+                        dateSystem: DateSystem);
                     _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(dataSet, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
                     _directDataSetMetadataSourceSheet = null;
                 }
@@ -177,7 +181,8 @@ namespace OfficeIMO.Excel {
                     includeAutoFilter,
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
-                    CancellationToken.None);
+                    CancellationToken.None,
+                    dateSystem: DateSystem);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
                 _packageDirty = true;
@@ -233,7 +238,8 @@ namespace OfficeIMO.Excel {
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
                     CancellationToken.None,
-                    useCellValueNumberFormats);
+                    useCellValueNumberFormats,
+                    DateSystem);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
                 _packageDirty = true;
@@ -292,7 +298,8 @@ namespace OfficeIMO.Excel {
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
                     CancellationToken.None,
-                    useCellValueNumberFormats);
+                    useCellValueNumberFormats,
+                    DateSystem);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
                 _packageDirty = true;
@@ -343,7 +350,8 @@ namespace OfficeIMO.Excel {
                     includeAutoFilter,
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
-                    CancellationToken.None);
+                    CancellationToken.None,
+                    dateSystem: DateSystem);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
             } catch {
@@ -392,7 +400,8 @@ namespace OfficeIMO.Excel {
                     includeAutoFilter,
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
-                    CancellationToken.None);
+                    CancellationToken.None,
+                    dateSystem: DateSystem);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
             } catch {

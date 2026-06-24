@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel {
                     "</Relationships>");
                 WriteCoreProperties(archive);
                 WriteAppProperties(archive);
-                WriteWorkbook(archive, model.Sheets);
+                WriteWorkbook(archive, model);
                 WriteWorkbookRelationships(archive, model.Sheets.Count, sharedStrings != null);
                 WriteStyles(archive, stylePlan);
                 if (sharedStrings != null) {
@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     var sheet = model.Sheets[i];
-                    WriteWorksheet(archive, sheet, model.DateTimeOffsetWriteStrategy, sharedStrings, stylePlan, columnWritePlans[i], ct);
+                    WriteWorksheet(archive, sheet, model.DateTimeOffsetWriteStrategy, model.DateSystem, sharedStrings, stylePlan, columnWritePlans[i], ct);
                     if (sheet.HasTable) {
                         string sheetIndexText = InvariantNumberText.Get(sheet.Index);
                         WriteTextEntry(archive, "xl/worksheets/_rels/sheet" + sheetIndexText + ".xml.rels",
@@ -96,7 +96,7 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException("The direct worksheet is not part of the extended direct write plan.");
                 }
 
-                WriteWorksheet(archive, sheet, plan.Model.DateTimeOffsetWriteStrategy, plan.SharedStrings, plan.StylePlan, plan.ColumnWritePlans[sheetIndex], ct, worksheetPath, tableRelationshipId);
+                WriteWorksheet(archive, sheet, plan.Model.DateTimeOffsetWriteStrategy, plan.Model.DateSystem, plan.SharedStrings, plan.StylePlan, plan.ColumnWritePlans[sheetIndex], ct, worksheetPath, tableRelationshipId);
             }
 
             private static void WriteContentTypes(ZipArchive archive, IReadOnlyList<DirectDataSetSheetModel> sheets, bool includeSharedStrings) {
@@ -129,10 +129,16 @@ namespace OfficeIMO.Excel {
                 WriteTextEntry(archive, "[Content_Types].xml", builder.ToString());
             }
 
-            private static void WriteWorkbook(ZipArchive archive, IReadOnlyList<DirectDataSetSheetModel> sheets) {
+            private static void WriteWorkbook(ZipArchive archive, DirectDataSetWorkbookModel model) {
+                IReadOnlyList<DirectDataSetSheetModel> sheets = model.Sheets;
                 var builder = new StringBuilder(256 + sheets.Count * 120);
                 builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-                builder.Append("<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets>");
+                builder.Append("<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
+                if (model.DateSystem == ExcelDateSystem.NineteenFour) {
+                    builder.Append("<workbookPr date1904=\"1\"/>");
+                }
+
+                builder.Append("<sheets>");
                 foreach (var sheet in sheets) {
                     builder.Append("<sheet name=\"");
                     AppendEscaped(builder, sheet.SheetName);

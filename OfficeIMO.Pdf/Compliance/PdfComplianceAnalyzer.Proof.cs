@@ -59,7 +59,8 @@ public static partial class PdfComplianceAnalyzer {
             validators.Add(PdfExternalValidatorKind.VeraPdf);
         }
 
-        if (profile == PdfComplianceProfile.PdfUa1 || profile == PdfComplianceProfile.PdfUa2) {
+        if (profile == PdfComplianceProfile.PdfUa1 ||
+            profile == PdfComplianceProfile.PdfUa2) {
             validators.Add(PdfExternalValidatorKind.PdfUaValidator);
         }
 

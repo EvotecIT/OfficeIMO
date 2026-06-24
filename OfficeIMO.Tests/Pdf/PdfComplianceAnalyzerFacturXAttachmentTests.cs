@@ -55,5 +55,37 @@ public partial class PdfComplianceAnalyzerTests {
         Assert.Contains("CrossIndustryInvoice", AssertRequirement(wrongRootReport, "einvoice-xml-attachment", PdfComplianceRequirementStatus.Missing).Diagnostic);
     }
 
+    [Fact]
+    public void FacturXReadbackAcceptsCanonicalInvoiceXmlAttachment() {
+        var options = new PdfOptions()
+            .ConfigureFacturXGroundwork(CreateCiiXml());
+        byte[] pdf = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("Factur-X invoice"))
+            .ToBytes();
+
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.FacturX, pdf);
+
+        PdfComplianceRequirement requirement = AssertRequirement(report, "readback-associated-invoice-file", PdfComplianceRequirementStatus.Satisfied);
+        Assert.Contains("CrossIndustryInvoice", requirement.Diagnostic);
+    }
+
+    [Fact]
+    public void FacturXReadbackRejectsNonInvoiceDataAttachment() {
+        var options = new PdfOptions {
+                IncludeStandardFontToUnicodeMaps = true
+            }
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("terms.pdf", Encoding.UTF8.GetBytes("%PDF-1.7\n"), "application/pdf", PdfAssociatedFileRelationship.Data);
+        byte[] pdf = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("Factur-X invoice shell"))
+            .ToBytes();
+
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.FacturX, pdf);
+
+        PdfComplianceRequirement requirement = AssertRequirement(report, "readback-associated-invoice-file", PdfComplianceRequirementStatus.Missing);
+        Assert.Contains("factur-x.xml", requirement.Diagnostic);
+    }
 
 }

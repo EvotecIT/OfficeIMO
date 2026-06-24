@@ -179,6 +179,23 @@ internal sealed class PdfStandardSecurityHandler {
             : StartsWith(userEntry, expected, 16);
     }
 
+    private static bool TryAuthenticateUserPasswordBytes(
+        byte[] passwordBytes,
+        int revision,
+        int keyLengthBytes,
+        byte[] ownerEntry,
+        byte[] userEntry,
+        int permissions,
+        byte[] fileId,
+        bool encryptMetadata,
+        out byte[] fileKey) {
+        fileKey = ComputeFileKeyFromPasswordBytes(passwordBytes, revision, keyLengthBytes, ownerEntry, permissions, fileId, encryptMetadata);
+        byte[] expected = ComputeUserEntry(revision, fileKey, fileId);
+        return revision == 2
+            ? StartsWith(userEntry, expected, 32)
+            : StartsWith(userEntry, expected, 16);
+    }
+
     private static bool TryAuthenticateOwnerPassword(
         string password,
         int revision,
@@ -194,32 +211,15 @@ internal sealed class PdfStandardSecurityHandler {
         byte[] userPasswordBytes = revision == 2
             ? Rc4.Transform(ownerKey, ownerEntry)
             : DecryptOwnerEntryRevision3Or4(ownerKey, ownerEntry);
-        return TryAuthenticatePaddedUserPassword(PadPassword(userPasswordBytes), revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out fileKey);
+        return TryAuthenticateUserPasswordBytes(TrimPadding(userPasswordBytes), revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out fileKey);
     }
 
     private static byte[] ComputeFileKey(string password, int revision, int keyLengthBytes, byte[] ownerEntry, int permissions, byte[] fileId, bool encryptMetadata) {
-        return ComputeFileKey(PadPassword(password), revision, keyLengthBytes, ownerEntry, permissions, fileId, encryptMetadata);
+        return ComputeFileKeyFromPasswordBytes(EncodePassword(password), revision, keyLengthBytes, ownerEntry, permissions, fileId, encryptMetadata);
     }
 
-    private static bool TryAuthenticatePaddedUserPassword(
-        byte[] paddedPassword,
-        int revision,
-        int keyLengthBytes,
-        byte[] ownerEntry,
-        byte[] userEntry,
-        int permissions,
-        byte[] fileId,
-        bool encryptMetadata,
-        out byte[] fileKey) {
-        fileKey = ComputeFileKey(paddedPassword, revision, keyLengthBytes, ownerEntry, permissions, fileId, encryptMetadata);
-        byte[] expected = ComputeUserEntry(revision, fileKey, fileId);
-        return revision == 2
-            ? StartsWith(userEntry, expected, 32)
-            : StartsWith(userEntry, expected, 16);
-    }
-
-    private static byte[] ComputeFileKey(byte[] paddedPassword, int revision, int keyLengthBytes, byte[] ownerEntry, int permissions, byte[] fileId, bool encryptMetadata) {
-        byte[] padded = paddedPassword;
+    private static byte[] ComputeFileKeyFromPasswordBytes(byte[] passwordBytes, int revision, int keyLengthBytes, byte[] ownerEntry, int permissions, byte[] fileId, bool encryptMetadata) {
+        byte[] padded = PadPasswordBytes(passwordBytes);
         var buffer = new List<byte>(padded.Length + ownerEntry.Length + 16 + fileId.Length + 4);
         buffer.AddRange(padded);
         buffer.AddRange(ownerEntry);
@@ -344,10 +344,10 @@ internal sealed class PdfStandardSecurityHandler {
     }
 
     private static byte[] PadPassword(string password) {
-        return PadPassword(EncodePassword(password));
+        return PadPasswordBytes(EncodePassword(password));
     }
 
-    private static byte[] PadPassword(byte[] passwordBytes) {
+    private static byte[] PadPasswordBytes(byte[] passwordBytes) {
         var padded = new byte[32];
         int copy = Math.Min(passwordBytes.Length, 32);
         Buffer.BlockCopy(passwordBytes, 0, padded, 0, copy);
@@ -366,6 +366,26 @@ internal sealed class PdfStandardSecurityHandler {
         return PdfWinAnsiEncoding.CanEncode(password, out _)
             ? PdfWinAnsiEncoding.Encode(password)
             : Encoding.UTF8.GetBytes(password);
+    }
+
+    private static byte[] TrimPadding(byte[] value) {
+        int length = value.Length;
+        for (int i = 0; i <= value.Length - PasswordPadding.Length; i++) {
+            bool match = true;
+            for (int j = 0; j < PasswordPadding.Length; j++) {
+                if (value[i + j] != PasswordPadding[j]) {
+                    match = false;
+                    break;
+                }
+            }
+
+            if (match) {
+                length = i;
+                break;
+            }
+        }
+
+        return Take(value, length);
     }
 
     private static int GetRequiredInt(PdfDictionary dictionary, string key) {

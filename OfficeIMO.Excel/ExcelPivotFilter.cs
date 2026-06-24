@@ -17,7 +17,9 @@ namespace OfficeIMO.Excel {
             string? description,
             bool? isTop = null,
             bool? isPercent = null,
-            string? filterValue = null) {
+            string? filterValue = null,
+            DateTime? dateValue1 = null,
+            DateTime? dateValue2 = null) {
             FieldName = string.IsNullOrWhiteSpace(fieldName) ? throw new ArgumentNullException(nameof(fieldName)) : fieldName.Trim();
             Type = type;
             Value1 = string.IsNullOrWhiteSpace(value1) ? null : value1;
@@ -28,6 +30,8 @@ namespace OfficeIMO.Excel {
             IsTop = isTop;
             IsPercent = isPercent;
             FilterValue = string.IsNullOrWhiteSpace(filterValue) ? null : filterValue;
+            DateValue1 = dateValue1;
+            DateValue2 = dateValue2;
         }
 
         /// <summary>Gets the source field name to filter.</summary>
@@ -59,6 +63,10 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Gets the optional calculated top/bottom filter value threshold.</summary>
         public string? FilterValue { get; }
+
+        internal DateTime? DateValue1 { get; }
+
+        internal DateTime? DateValue2 { get; }
 
         /// <summary>Creates a label-equals pivot filter.</summary>
         public static ExcelPivotFilter LabelEquals(string fieldName, string value, string? name = null, string? description = null)
@@ -318,7 +326,7 @@ namespace OfficeIMO.Excel {
 
             string first = FormatDateFilterValue(value1);
             string? second = value2.HasValue ? FormatDateFilterValue(value2.Value) : null;
-            return new ExcelPivotFilter(fieldName, type, first, second, null, name, description);
+            return new ExcelPivotFilter(fieldName, type, first, second, null, name, description, dateValue1: value1, dateValue2: value2);
         }
 
         /// <summary>Creates a dynamic date pivot filter using a supported Open XML pivot filter type.</summary>

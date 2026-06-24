@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel {
             if (useDateStyle
                 && (TryParseInvariantDoubleFast(rawText, out double oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
-                return DateTime.FromOADate(oa);
+                return FromExcelSerialDate(oa);
             }
 
             if (numericAsDecimal
@@ -192,7 +192,7 @@ namespace OfficeIMO.Excel {
                             if (useDateStyle
                                 && (TryParseInvariantDoubleFast(rawText, out double oa)
                                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
-                                return DateTime.FromOADate(oa);
+                                return FromExcelSerialDate(oa);
                             }
 
                             if (rawText == null) {
@@ -250,7 +250,7 @@ namespace OfficeIMO.Excel {
             if (useDateStyle
                 && (TryParseInvariantDoubleFast(rawText, out double oaValue)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oaValue))) {
-                return DateTime.FromOADate(oaValue);
+                return FromExcelSerialDate(oaValue);
             }
 
             if (numericAsDecimal
@@ -298,7 +298,7 @@ namespace OfficeIMO.Excel {
             if (useDateStyle
                 && (TryParseInvariantDoubleFast(rawText, out double oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
-                value = DateTime.FromOADate(oa);
+                value = FromExcelSerialDate(oa);
                 return true;
             }
 
@@ -606,7 +606,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string text = inlineReader.ReadElementContentAsString();
+                string text = ReadXmlTextElement(inlineReader);
                 if (builder != null) {
                     builder.Append(text);
                 } else if (first == null) {
@@ -619,6 +619,45 @@ namespace OfficeIMO.Excel {
             }
 
             return builder?.ToString() ?? first ?? string.Empty;
+        }
+
+        private static string ReadXmlTextElement(XmlReader textReader) {
+            if (textReader.IsEmptyElement) {
+                return string.Empty;
+            }
+
+            int depth = textReader.Depth;
+            string? first = null;
+            System.Text.StringBuilder? builder = null;
+            while (textReader.Read()) {
+                if (textReader.NodeType == XmlNodeType.EndElement && textReader.Depth == depth && textReader.LocalName == "t") {
+                    break;
+                }
+
+                if (!IsXmlTextNode(textReader.NodeType)) {
+                    continue;
+                }
+
+                string text = textReader.Value;
+                if (builder != null) {
+                    builder.Append(text);
+                } else if (first == null) {
+                    first = text;
+                } else {
+                    builder = new System.Text.StringBuilder(first.Length + text.Length);
+                    builder.Append(first);
+                    builder.Append(text);
+                }
+            }
+
+            return builder?.ToString() ?? first ?? string.Empty;
+        }
+
+        private static bool IsXmlTextNode(XmlNodeType nodeType) {
+            return nodeType == XmlNodeType.Text
+                || nodeType == XmlNodeType.CDATA
+                || nodeType == XmlNodeType.SignificantWhitespace
+                || nodeType == XmlNodeType.Whitespace;
         }
 
         private static int ParsePositiveIntAttribute(string? value) {

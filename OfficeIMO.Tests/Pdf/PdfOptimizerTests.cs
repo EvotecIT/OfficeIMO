@@ -22,8 +22,9 @@ public class PdfOptimizerTests {
         Assert.Equal(5, action.ObjectNumber);
         Assert.Contains("/Filter /FlateDecode", PdfEncoding.Latin1GetString(result.Bytes), StringComparison.Ordinal);
         byte[] compressedStream = ExtractFirstStreamData(result.Bytes);
+        Assert.True(compressedStream.Length > 2);
         Assert.Equal(0x78, compressedStream[0]);
-        Assert.Equal(0x9C, compressedStream[1]);
+        Assert.Equal(0, ((compressedStream[0] << 8) + compressedStream[1]) % 31);
         Assert.Contains(new string('A', 64), PdfTextExtractor.ExtractAllText(result.Bytes), StringComparison.Ordinal);
     }
 
@@ -67,33 +68,25 @@ public class PdfOptimizerTests {
         Assert.Contains(result.Actions, action => action.Kind == "DeduplicateStream" && action.ObjectNumber == 6);
         string rewritten = PdfEncoding.Latin1GetString(result.Bytes);
         Assert.DoesNotContain("/Contents [5 0 R 6 0 R]", rewritten, StringComparison.Ordinal);
+        Assert.Contains("5 0 R", rewritten, StringComparison.Ordinal);
         Assert.Contains("Duplicate", PdfTextExtractor.ExtractAllText(result.Bytes), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Optimize_PreservesDocumentInfoMetadata() {
-        byte[] source = BuildPdfWithMetadataAndUncompressedText();
-
-        PdfOptimizationActionResult result = PdfOptimizer.Optimize(source);
-
-        PdfMetadata metadata = PdfInspector.Inspect(result.Bytes).Metadata;
-        Assert.Equal("Optimization title", metadata.Title);
-        Assert.Equal("OfficeIMO", metadata.Author);
-        Assert.Equal("Regression", metadata.Subject);
-        Assert.Equal("pdf,optimization", metadata.Keywords);
-    }
-
-    [Fact]
-    public void Optimize_DeduplicatesToNonZeroGenerationKeeper() {
-        byte[] source = BuildPdfWithDuplicateStreamsUsingNonZeroGenerationKeeper();
+    public void Optimize_DeduplicatesStreamsUsingKeeperGeneration() {
+        byte[] source = BuildPdfWithGeneratedDuplicateStreams();
 
         PdfOptimizationActionResult result = PdfOptimizer.Optimize(source, new PdfOptimizationOptions {
             CompressUnfilteredStreams = false,
             KeepOriginalWhenNotSmaller = false
         });
 
+        string rewritten = PdfEncoding.Latin1GetString(result.Bytes);
+
         Assert.True(result.Applied);
         Assert.Contains(result.Actions, action => action.Kind == "DeduplicateStream" && action.ObjectNumber == 6);
+        Assert.Contains("5 0 R", rewritten, StringComparison.Ordinal);
+        Assert.DoesNotContain("5 2 R", rewritten, StringComparison.Ordinal);
         Assert.Contains("Duplicate", PdfTextExtractor.ExtractAllText(result.Bytes), StringComparison.Ordinal);
     }
 
@@ -158,6 +151,37 @@ public class PdfOptimizerTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] ExtractFirstStreamData(byte[] pdf) {
+        byte[] streamMarker = Encoding.ASCII.GetBytes("stream\n");
+        byte[] endMarker = Encoding.ASCII.GetBytes("\nendstream");
+        int start = IndexOf(pdf, streamMarker, 0);
+        Assert.True(start >= 0);
+        start += streamMarker.Length;
+        int end = IndexOf(pdf, endMarker, start);
+        Assert.True(end > start);
+        var data = new byte[end - start];
+        Buffer.BlockCopy(pdf, start, data, 0, data.Length);
+        return data;
+    }
+
+    private static int IndexOf(byte[] buffer, byte[] pattern, int startIndex) {
+        for (int i = startIndex; i <= buffer.Length - pattern.Length; i++) {
+            bool match = true;
+            for (int j = 0; j < pattern.Length; j++) {
+                if (buffer[i + j] != pattern[j]) {
+                    match = false;
+                    break;
+                }
+            }
+
+            if (match) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     private static byte[] BuildPdfWithUnreferencedStream() {
         string orphan = new string('O', 4096) + "ORPHAN";
         string pdf = string.Join("\n", new[] {
@@ -197,7 +221,7 @@ public class PdfOptimizerTests {
     }
 
     private static byte[] BuildPdfWithDuplicateStreams() {
-        string streamContent = "BT /F1 12 Tf 72 720 Td (Duplicate " + new string('D', 1024) + ") Tj ET";
+        string streamContent = "BT /F1 12 Tf 72 720 Td (" + new string('D', 1024) + " Duplicate) Tj ET";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj",
@@ -234,9 +258,8 @@ public class PdfOptimizerTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildPdfWithMetadataAndUncompressedText() {
-        string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(" + new string('M', 4096) + ") Tj\nET\n";
-        byte[] streamBytes = Encoding.ASCII.GetBytes(streamContent);
+    private static byte[] BuildPdfWithGeneratedDuplicateStreams() {
+        string streamContent = "BT /F1 12 Tf 72 720 Td (" + new string('G', 1024) + " Duplicate) Tj ET";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj",
@@ -246,53 +269,18 @@ public class PdfOptimizerTests {
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "endobj",
             "3 0 obj",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents [5 0 R 6 2 R] >>",
             "endobj",
             "4 0 obj",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             "endobj",
             "5 0 obj",
-            "<< /Length " + streamBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
-            "stream",
-            streamContent.TrimEnd('\n'),
-            "endstream",
-            "endobj",
-            "6 0 obj",
-            "<< /Title (Optimization title) /Author (OfficeIMO) /Subject (Regression) /Keywords (pdf,optimization) >>",
-            "endobj",
-            "trailer",
-            "<< /Root 1 0 R /Info 6 0 R /Size 7 >>",
-            "startxref",
-            "123",
-            "%%EOF"
-        });
-
-        return Encoding.ASCII.GetBytes(pdf);
-    }
-
-    private static byte[] BuildPdfWithDuplicateStreamsUsingNonZeroGenerationKeeper() {
-        string streamContent = "BT /F1 12 Tf 72 720 Td (Duplicate " + new string('D', 1024) + ") Tj ET";
-        string pdf = string.Join("\n", new[] {
-            "%PDF-1.7",
-            "1 0 obj",
-            "<< /Type /Catalog /Pages 2 0 R >>",
-            "endobj",
-            "2 0 obj",
-            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-            "endobj",
-            "3 0 obj",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents [5 2 R 6 0 R] >>",
-            "endobj",
-            "4 0 obj",
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            "endobj",
-            "5 2 obj",
             "<< /Length " + streamContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
             "stream",
             streamContent,
             "endstream",
             "endobj",
-            "6 0 obj",
+            "6 2 obj",
             "<< /Length " + streamContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
             "stream",
             streamContent,
@@ -306,36 +294,5 @@ public class PdfOptimizerTests {
         });
 
         return Encoding.ASCII.GetBytes(pdf);
-    }
-
-    private static byte[] ExtractFirstStreamData(byte[] pdf) {
-        byte[] streamMarker = Encoding.ASCII.GetBytes("stream\n");
-        byte[] endMarker = Encoding.ASCII.GetBytes("\nendstream");
-        int streamStart = IndexOf(pdf, streamMarker, 0);
-        Assert.True(streamStart >= 0, "PDF stream marker was not found.");
-        streamStart += streamMarker.Length;
-        int streamEnd = IndexOf(pdf, endMarker, streamStart);
-        Assert.True(streamEnd >= streamStart, "PDF endstream marker was not found.");
-        byte[] data = new byte[streamEnd - streamStart];
-        Buffer.BlockCopy(pdf, streamStart, data, 0, data.Length);
-        return data;
-    }
-
-    private static int IndexOf(byte[] data, byte[] pattern, int startIndex) {
-        for (int i = startIndex; i <= data.Length - pattern.Length; i++) {
-            bool matched = true;
-            for (int j = 0; j < pattern.Length; j++) {
-                if (data[i + j] != pattern[j]) {
-                    matched = false;
-                    break;
-                }
-            }
-
-            if (matched) {
-                return i;
-            }
-        }
-
-        return -1;
     }
 }

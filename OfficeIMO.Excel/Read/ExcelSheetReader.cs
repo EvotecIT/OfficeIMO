@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel {
         private readonly SharedStringCache _sst;
         private readonly StylesCacheProvider _styles;
         private readonly ExcelReadOptions _opt;
+        private readonly ExcelDateSystem _dateSystem;
         private readonly bool _canStreamWorksheetPart;
         private StylesCache? _stylesCache;
         private List<string>? _sharedStringItems;
@@ -26,14 +27,17 @@ namespace OfficeIMO.Excel {
         private bool _lastDateStyleAttributeResult;
         private static readonly XmlReaderSettings WorksheetXmlReaderSettings = CreateWorksheetXmlReaderSettings();
 
-        internal ExcelSheetReader(string sheetName, WorksheetPart wsPart, SharedStringCache sst, StylesCacheProvider styles, ExcelReadOptions opt, bool canStreamWorksheetPart) {
+        internal ExcelSheetReader(string sheetName, WorksheetPart wsPart, SharedStringCache sst, StylesCacheProvider styles, ExcelReadOptions opt, ExcelDateSystem dateSystem, bool canStreamWorksheetPart) {
             _sheetName = sheetName;
             _wsPart = wsPart;
             _sst = sst;
             _styles = styles;
             _opt = opt;
+            _dateSystem = dateSystem;
             _canStreamWorksheetPart = canStreamWorksheetPart;
         }
+
+        private DateTime FromExcelSerialDate(double serial) => ExcelDateSystemConverter.FromSerial(serial, _dateSystem);
 
         private StylesCache Styles => _stylesCache ??= _styles.Value;
 
@@ -503,7 +507,7 @@ namespace OfficeIMO.Excel {
             if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                 if (TryParseInvariantDoubleFast(rawText, out var oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
-                    value = DateTime.FromOADate(oa);
+                    value = FromExcelSerialDate(oa);
                 } else {
                     value = rawText;
                 }
@@ -842,7 +846,7 @@ namespace OfficeIMO.Excel {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if (TryParseInvariantDoubleFast(rawText, out var oa)
                         || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
-                        return System.DateTime.FromOADate(oa);
+                        return FromExcelSerialDate(oa);
                 }
                 if (_opt.NumericAsDecimal) {
                     if (TryParseRawDecimal(rawText, out var dec))
@@ -873,7 +877,7 @@ namespace OfficeIMO.Excel {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if (TryParseInvariantDoubleFast(rawText, out var oa)
                         || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
-                        return System.DateTime.FromOADate(oa);
+                        return FromExcelSerialDate(oa);
                     return rawText;
                 }
 

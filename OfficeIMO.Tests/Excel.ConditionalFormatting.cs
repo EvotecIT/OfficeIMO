@@ -82,6 +82,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AdditionalConditionalFormattingRuleTypes() {
+            string filePath = Path.Combine(_directoryWithFiles, "ConditionalAdditionalRuleTypes.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Ready");
+                sheet.CellValue(2, 1, "Blocked");
+                sheet.CellValue(3, 1, "Ready");
+                sheet.CellValue(1, 2, 1d);
+                sheet.CellValue(2, 2, 2d);
+                sheet.CellValue(3, 2, 3d);
+                sheet.CellValue(1, 3, new System.DateTime(2026, 6, 22));
+                sheet.CellValue(2, 3, new System.DateTime(2026, 6, 21));
+
+                sheet.AddConditionalUniqueValuesRule("A1:A3");
+                sheet.AddConditionalTextRule("A1:A3", ConditionalFormatValues.ContainsText, "Ready");
+                sheet.AddConditionalBlanksRule("D1:D3");
+                sheet.AddConditionalErrorsRule("E1:E3", containsErrors: false);
+                sheet.AddConditionalAboveAverageRule("B1:B3", aboveAverage: false, equalAverage: true, standardDeviation: 1);
+                sheet.AddConditionalTimePeriodRule("C1:C3", TimePeriodValues.Today);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var rules = wsPart.Worksheet.Elements<ConditionalFormatting>()
+                    .SelectMany(cf => cf.Elements<ConditionalFormattingRule>())
+                    .ToList();
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.UniqueValues);
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.ContainsText && rule.Text?.Value == "Ready");
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.ContainsBlanks);
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.NotContainsErrors);
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.AboveAverage && rule.AboveAverage?.Value == false && rule.EqualAverage?.Value == true && rule.StdDev?.Value == 1);
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.TimePeriod && rule.TimePeriod?.Value == TimePeriodValues.Today);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                var rules = document.Sheets[0].GetConditionalFormattingRules();
+                Assert.Contains(rules, info => info.Type == "UniqueValues");
+                Assert.Contains(rules, info => info.Type == "ContainsText" && info.Formulas.Count == 1);
+                Assert.Contains(rules, info => info.Type == "ContainsBlanks");
+                Assert.Contains(rules, info => info.Type == "NotContainsErrors");
+                Assert.Contains(rules, info => info.Type == "AboveAverage");
+                Assert.Contains(rules, info => info.Type == "TimePeriod");
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_AddConditionalColorScale() {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalColorScale.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {

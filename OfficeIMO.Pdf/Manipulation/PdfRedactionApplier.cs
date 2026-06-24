@@ -7,11 +7,9 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Applies rectangle-based redactions by removing matched text objects and annotations, then painting redaction marks.
 /// </summary>
-public static class PdfRedactionApplier {
+public static partial class PdfRedactionApplier {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
-    private static readonly Regex TextObjectRegex = new Regex(@"\bBT\b[\s\S]*?\bET\b", RegexOptions.Compiled, RegexTimeout);
-    private static readonly Regex HexStringRegex = new Regex(@"<([0-9A-Fa-f\s]+)>", RegexOptions.Compiled, RegexTimeout);
-    private static readonly Regex LiteralStringRegex = new Regex(@"\((?:\\.|[^\\()])*\)", RegexOptions.Compiled, RegexTimeout);
+    private static readonly Regex FontSelectionRegex = new Regex(@"/([^\s/]+)\s+[-+]?(?:\d+(?:\.\d+)?|\.\d+)\s+Tf\b", RegexOptions.Compiled, RegexTimeout);
 
     /// <summary>
     /// Applies rectangle-based redactions to a PDF byte array and returns rewritten PDF bytes.
@@ -50,6 +48,7 @@ public static class PdfRedactionApplier {
             return pdf.ToArray();
         }
 
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         return RewriteAllObjects(objects, catalogObjectNumber, document.Metadata, pdf);
     }
 
@@ -136,11 +135,13 @@ public static class PdfRedactionApplier {
                 continue;
             }
 
-            bool pageChanged = RemoveMatchedTextObjects(objects, pageDictionary, pageMatches ?? Array.Empty<PdfRedactionMatch>(), ref nextObjectNumber);
-            pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, pageMatches ?? Array.Empty<PdfRedactionMatch>()) || pageChanged;
+            PdfRedactionMatch[] currentMatches = pageMatches ?? Array.Empty<PdfRedactionMatch>();
+            bool pageChanged = RemoveMatchedTextObjects(objects, pageDictionary, currentMatches, ref nextObjectNumber);
+            pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, currentMatches) || pageChanged;
 
-            PdfRedactionArea[] paintAreas = SelectPaintAreas(pageAreas ?? Array.Empty<PdfRedactionArea>(), pageMatches ?? Array.Empty<PdfRedactionMatch>(), options);
+            PdfRedactionArea[] paintAreas = SelectPaintAreas(pageAreas ?? Array.Empty<PdfRedactionArea>(), currentMatches, options);
             if (paintAreas.Length > 0) {
+                IsolateExistingPageContents(objects, pageDictionary, ref nextObjectNumber);
                 int contentObjectNumber = nextObjectNumber++;
                 objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, BuildRedactionContentStream(paintAreas, options.FillColor));
                 AppendPageContent(objects, pageDictionary, contentObjectNumber);
@@ -161,364 +162,12 @@ public static class PdfRedactionApplier {
         }
     }
 
-    private static bool RemoveMatchedTextObjects(
-        Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary pageDictionary,
-        IReadOnlyList<PdfRedactionMatch> matches,
-        ref int nextObjectNumber) {
-        TextMatchTarget[] textMatches = matches
-            .Where(match => match.Kind == PdfRedactionMatchKind.TextBlock && !string.IsNullOrWhiteSpace(match.Text))
-            .Select(match => new TextMatchTarget(NormalizeText(match.Text!), match.X, match.Y, match.Width, match.Height))
-            .Where(target => target.Text.Length > 0)
-            .ToArray();
-        if (textMatches.Length == 0 ||
-            !pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) {
-            return false;
-        }
-
-        bool changed = false;
-        foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject)) {
-            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
-                indirect.Value is not PdfStream stream ||
-                stream.DecodingFailed) {
-                continue;
-            }
-
-            byte[] contentBytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
-            string content = PdfEncoding.Latin1GetString(contentBytes);
-            string scrubbed = ScrubTextObjects(content, textMatches);
-            if (string.Equals(content, scrubbed, StringComparison.Ordinal)) {
-                continue;
-            }
-
-            PdfStream scrubbedStream = new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed));
-            if (CountPageContentReferences(objects, reference) <= 1) {
-                objects[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, reference.Generation, scrubbedStream);
-            } else {
-                int clonedObjectNumber = nextObjectNumber++;
-                objects[clonedObjectNumber] = new PdfIndirectObject(clonedObjectNumber, 0, scrubbedStream);
-                ReplacePageContentReference(objects, pageDictionary, reference, new PdfReference(clonedObjectNumber, 0));
-            }
-
-            changed = true;
-        }
-
-        changed = ScrubFormXObjects(objects, pageDictionary, textMatches, new HashSet<int>(), ref nextObjectNumber) || changed;
-        return changed;
-    }
-
-    private static string ScrubTextObjects(string content, TextMatchTarget[] normalizedTextMatches, bool requireIntersection = true) {
-        return TextObjectRegex.Replace(content, match => {
-            string shownText = NormalizeText(ExtractTextFromTextObject(match.Value));
-            bool hasShownText = shownText.Length > 0;
-            string contextualTextObject = BuildContextualTextObject(content, match);
-
-            for (int i = 0; i < normalizedTextMatches.Length; i++) {
-                bool intersects = TextObjectIntersects(contextualTextObject, normalizedTextMatches[i]);
-                if (hasShownText &&
-                    ContainsOrdinal(shownText, normalizedTextMatches[i].Text) &&
-                    (!requireIntersection || intersects)) {
-                    return string.Empty;
-                }
-
-                if (intersects) {
-                    return string.Empty;
-                }
-            }
-
-            return match.Value;
-        });
-    }
-
-    private static bool ScrubFormXObjects(
-        Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary ownerDictionary,
-        TextMatchTarget[] textMatches,
-        HashSet<int> visitedFormObjects,
-        ref int nextObjectNumber) {
-        if (textMatches.Length == 0 ||
-            !TryCloneXObjectResourceDictionary(objects, ownerDictionary, out PdfDictionary xObjects)) {
-            return false;
-        }
-
-        bool changed = false;
-        foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items.ToArray()) {
-            PdfObject xObject = entry.Value;
-            if (xObject is not PdfReference reference ||
-                !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
-                indirect.Value is not PdfStream stream ||
-                stream.DecodingFailed ||
-                !IsFormXObject(stream.Dictionary)) {
-                continue;
-            }
-
-            if (!visitedFormObjects.Add(reference.ObjectNumber)) {
-                continue;
-            }
-
-            byte[] contentBytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
-            string content = PdfEncoding.Latin1GetString(contentBytes);
-            string scrubbed = ScrubTextObjects(content, textMatches, requireIntersection: false);
-            PdfDictionary clonedFormDictionary = CloneDictionary(stream.Dictionary);
-            bool nestedChanged = ScrubFormXObjects(objects, clonedFormDictionary, textMatches, visitedFormObjects, ref nextObjectNumber);
-            visitedFormObjects.Remove(reference.ObjectNumber);
-            if (string.Equals(content, scrubbed, StringComparison.Ordinal) && !nestedChanged) {
-                continue;
-            }
-
-            PdfDictionary streamDictionary = CleanStreamDictionary(clonedFormDictionary);
-            if (CountXObjectReferences(objects, reference.ObjectNumber) <= 1) {
-                objects[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, reference.Generation, new PdfStream(streamDictionary, PdfEncoding.Latin1GetBytes(scrubbed)));
-                xObjects.Items[entry.Key] = reference;
-            } else {
-                int clonedObjectNumber = nextObjectNumber++;
-                objects[clonedObjectNumber] = new PdfIndirectObject(clonedObjectNumber, 0, new PdfStream(streamDictionary, PdfEncoding.Latin1GetBytes(scrubbed)));
-                xObjects.Items[entry.Key] = new PdfReference(clonedObjectNumber, 0);
-            }
-
-            changed = true;
-        }
-
-        return changed;
-    }
-
-    private static int CountXObjectReferences(Dictionary<int, PdfIndirectObject> objects, int objectNumber) {
-        int count = 0;
-        foreach (PdfIndirectObject indirect in objects.Values) {
-            PdfDictionary? dictionary = indirect.Value switch {
-                PdfDictionary value => value,
-                PdfStream stream => stream.Dictionary,
-                _ => null
-            };
-            if (dictionary is null ||
-                ResolveDictionary(objects, dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) is not PdfDictionary resources ||
-                ResolveDictionary(objects, resources.Items.TryGetValue("XObject", out PdfObject? xObjectObject) ? xObjectObject : null) is not PdfDictionary xObjects) {
-                continue;
-            }
-
-            count += xObjects.Items.Values.Count(value => value is PdfReference reference && reference.ObjectNumber == objectNumber);
-        }
-
-        return count;
-    }
-
-    private static int CountPageContentReferences(Dictionary<int, PdfIndirectObject> objects, PdfReference contentReference) {
-        int count = 0;
-        foreach (PdfIndirectObject indirect in objects.Values) {
-            if (indirect.Value is not PdfDictionary dictionary ||
-                !dictionary.Items.ContainsKey("Contents")) {
-                continue;
-            }
-
-            count += EnumerateContentReferences(objects, dictionary.Items["Contents"])
-                .Count(reference => reference.ObjectNumber == contentReference.ObjectNumber && reference.Generation == contentReference.Generation);
-        }
-
-        return count;
-    }
-
-    private static bool TryCloneXObjectResourceDictionary(
-        Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary ownerDictionary,
-        out PdfDictionary xObjects) {
-        xObjects = null!;
-        if (!TryGetInheritedValue(objects, ownerDictionary, "Resources", out PdfObject? resourcesObject) ||
-            ResolveDictionary(objects, resourcesObject) is not PdfDictionary resources ||
-            ResolveDictionary(objects, resources.Items.TryGetValue("XObject", out PdfObject? xObjectObject) ? xObjectObject : null) is not PdfDictionary sourceXObjects) {
-            return false;
-        }
-
-        PdfDictionary clonedResources = CloneDictionary(resources);
-        xObjects = CloneDictionary(sourceXObjects);
-        clonedResources.Items["XObject"] = xObjects;
-        ownerDictionary.Items["Resources"] = clonedResources;
-        return true;
-    }
-
-    private static PdfDictionary CloneDictionary(PdfDictionary source) {
-        var clone = new PdfDictionary();
-        foreach (KeyValuePair<string, PdfObject> item in source.Items) {
-            clone.Items[item.Key] = item.Value;
-        }
-
-        return clone;
-    }
-
-    private static bool TryGetInheritedValue(
-        Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary dictionary,
-        string key,
-        out PdfObject? value) {
-        var visitedParents = new HashSet<int>();
-        PdfDictionary? current = dictionary;
-        while (current is not null) {
-            if (current.Items.TryGetValue(key, out value)) {
-                return true;
-            }
-
-            if (!current.Items.TryGetValue("Parent", out PdfObject? parentObject)) {
-                break;
-            }
-
-            if (parentObject is PdfReference parentReference) {
-                if (!visitedParents.Add(parentReference.ObjectNumber) ||
-                    !PdfObjectLookup.TryGet(objects, parentReference, out PdfIndirectObject? parentIndirect) ||
-                    parentIndirect.Value is not PdfDictionary parentDictionary) {
-                    break;
-                }
-
-                current = parentDictionary;
-                continue;
-            }
-
-            current = ResolveDictionary(objects, parentObject);
-        }
-
-        value = null;
-        return false;
-    }
-
-    private static void ReplacePageContentReference(
-        Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary pageDictionary,
-        PdfReference oldReference,
-        PdfReference newReference) {
-        if (!pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) {
-            return;
-        }
-
-        if (ReferenceEquals(oldReference, contentsObject) || PdfReferenceEquals(contentsObject, oldReference)) {
-            pageDictionary.Items["Contents"] = newReference;
-            return;
-        }
-
-        PdfArray? sourceArray = PdfObjectLookup.Resolve(objects, contentsObject) as PdfArray;
-        if (sourceArray is null) {
-            return;
-        }
-
-        var clonedArray = new PdfArray();
-        foreach (PdfObject item in sourceArray.Items) {
-            clonedArray.Items.Add(PdfReferenceEquals(item, oldReference) ? newReference : item);
-        }
-
-        pageDictionary.Items["Contents"] = clonedArray;
-    }
-
-    private static bool PdfReferenceEquals(PdfObject value, PdfReference reference) {
-        return value is PdfReference other &&
-            other.ObjectNumber == reference.ObjectNumber &&
-            other.Generation == reference.Generation;
-    }
-
-    private static bool IsFormXObject(PdfDictionary dictionary) =>
-        dictionary.Get<PdfName>("Type")?.Name == "XObject" &&
-        dictionary.Get<PdfName>("Subtype")?.Name == "Form";
-
-    private static PdfDictionary? ResolveDictionary(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) =>
-        PdfObjectLookup.Resolve(objects, value) as PdfDictionary;
-
-    private static string BuildContextualTextObject(string content, Match textObjectMatch) {
-        string prefix = content.Substring(0, textObjectMatch.Index);
-        return TextObjectRegex.Replace(prefix, string.Empty) + textObjectMatch.Value;
-    }
-
-    private static bool TextObjectIntersects(string textObject, TextMatchTarget target) {
-        List<PdfTextSpan> spans = TextContentParser.Parse(
-            textObject,
-            static (_, bytes) => PdfWinAnsiEncoding.Decode(bytes),
-            static (_, bytes) => Math.Max(0D, bytes.Length * 500D));
-        if (spans.Count == 0) {
-            return false;
-        }
-
-        for (int i = 0; i < spans.Count; i++) {
-            PdfTextSpan span = spans[i];
-            double width = Math.Max(span.Advance, Math.Max(1, span.Text.Length) * Math.Max(1D, span.FontSize) * 0.5D);
-            double height = Math.Max(1D, span.FontSize) * 1.5D;
-            double x = Math.Min(span.X, span.X + width);
-            double y = span.Y - Math.Max(1D, span.FontSize);
-            if (Intersects(target.X, target.Y, target.Width, target.Height, x, y, Math.Abs(width), height)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool Intersects(double ax, double ay, double aw, double ah, double bx, double by, double bw, double bh) {
-        return ax < bx + bw &&
-            ax + aw > bx &&
-            ay < by + bh &&
-            ay + ah > by;
-    }
-
-    private static string ExtractTextFromTextObject(string textObject) {
-        var builder = new StringBuilder();
-        foreach (Match match in HexStringRegex.Matches(textObject)) {
-            builder.Append(DecodeHexString(match.Groups[1].Value));
-        }
-
-        foreach (Match match in LiteralStringRegex.Matches(textObject)) {
-            builder.Append(DecodeLiteralString(match.Value));
-        }
-
-        return builder.ToString();
-    }
-
-    private static string DecodeHexString(string value) {
-        string hex = RemoveWhitespace(value);
-        if (hex.Length == 0) {
-            return string.Empty;
-        }
-
-        if ((hex.Length & 1) == 1) {
-            hex += "0";
-        }
-
-        var bytes = new byte[hex.Length / 2];
-        for (int i = 0; i < bytes.Length; i++) {
-            bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
-        }
-
-        return PdfWinAnsiEncoding.Decode(bytes);
-    }
-
-    private static string DecodeLiteralString(string value) {
-        if (value.Length < 2) {
-            return string.Empty;
-        }
-
-        string body = value.Substring(1, value.Length - 2);
-        var builder = new StringBuilder(body.Length);
-        for (int i = 0; i < body.Length; i++) {
-            char ch = body[i];
-            if (ch != '\\' || i + 1 >= body.Length) {
-                builder.Append(ch);
-                continue;
-            }
-
-            char next = body[++i];
-            builder.Append(next switch {
-                'n' => '\n',
-                'r' => '\r',
-                't' => '\t',
-                'b' => '\b',
-                'f' => '\f',
-                _ => next
-            });
-        }
-
-        return builder.ToString();
-    }
-
     private static bool RemoveMatchedAnnotations(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary pageDictionary,
         IReadOnlyList<PdfRedactionMatch> matches) {
-        AnnotationMatchTarget[] annotationMatches = matches
+        PdfRedactionMatch[] annotationMatches = matches
             .Where(match => match.Kind == PdfRedactionMatchKind.Annotation)
-            .Select(static match => new AnnotationMatchTarget(match.ObjectNumber, match.X, match.Y, match.Width, match.Height))
             .ToArray();
         if (annotationMatches.Length == 0 ||
             !pageDictionary.Items.TryGetValue("Annots", out PdfObject? annotsObject) ||
@@ -526,37 +175,37 @@ public static class PdfRedactionApplier {
             return false;
         }
 
-        var removedObjectNumbers = new HashSet<int>();
+        var annotationObjectNumbers = new HashSet<int>(annotationMatches
+            .Where(match => match.ObjectNumber.HasValue)
+            .Select(match => match.ObjectNumber!.Value));
+        var popupObjectNumbers = new HashSet<int>();
         bool changed = false;
         for (int i = annotations.Items.Count - 1; i >= 0; i--) {
             PdfObject item = annotations.Items[i];
-            int? objectNumber = item is PdfReference reference ? reference.ObjectNumber : null;
+            PdfReference? reference = item as PdfReference;
             PdfDictionary? annotation = PdfObjectLookup.Resolve(objects, item) as PdfDictionary;
-            if (annotation is null ||
-                !MatchesAnnotationRedaction(objects, annotation, objectNumber, annotationMatches)) {
+            if (annotation is null) {
                 continue;
             }
 
+            bool removeAnnotation =
+                (reference is not null && annotationObjectNumbers.Contains(reference.ObjectNumber)) ||
+                MatchesAnnotationRedaction(objects, annotation, annotationMatches);
+            if (!removeAnnotation) {
+                continue;
+            }
+
+            AddPopupObjectNumber(annotation, popupObjectNumbers);
+            if (reference is not null) {
+                annotationObjectNumbers.Add(reference.ObjectNumber);
+                objects.Remove(reference.ObjectNumber);
+            }
+
             annotations.Items.RemoveAt(i);
-            if (annotation.Items.TryGetValue("Popup", out PdfObject? popupObject) &&
-                popupObject is PdfReference popupReference) {
-                removedObjectNumbers.Add(popupReference.ObjectNumber);
-            }
-
-            if (objectNumber.HasValue) {
-                removedObjectNumbers.Add(objectNumber.Value);
-            }
-
             changed = true;
         }
 
-        if (removedObjectNumbers.Count > 0) {
-            changed = RemoveLinkedPopupAnnotations(objects, annotations, removedObjectNumbers) || changed;
-            changed = ClearRemovedPopupReferences(objects, annotations, removedObjectNumbers) || changed;
-            foreach (int objectNumber in removedObjectNumbers) {
-                objects.Remove(objectNumber);
-            }
-        }
+        RemovePopupReferences(objects, annotations, annotationObjectNumbers, popupObjectNumbers, ref changed);
 
         if (!changed) {
             return false;
@@ -572,19 +221,23 @@ public static class PdfRedactionApplier {
     private static bool MatchesAnnotationRedaction(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary annotation,
-        int? objectNumber,
-        AnnotationMatchTarget[] annotationMatches) {
+        PdfRedactionMatch[] annotationMatches) {
+        if (!TryReadRect(objects, annotation, out double x, out double y, out double width, out double height)) {
+            return false;
+        }
+
+        string? subtype = TryReadName(objects, annotation, "Subtype");
         for (int i = 0; i < annotationMatches.Length; i++) {
-            AnnotationMatchTarget target = annotationMatches[i];
-            if (objectNumber.HasValue &&
-                target.ObjectNumber.HasValue &&
-                objectNumber.Value == target.ObjectNumber.Value) {
-                return true;
+            PdfRedactionMatch match = annotationMatches[i];
+            if (!string.IsNullOrEmpty(match.Subtype) &&
+                !string.Equals(match.Subtype, subtype, StringComparison.OrdinalIgnoreCase)) {
+                continue;
             }
 
-            if (!objectNumber.HasValue &&
-                TryReadRectangle(objects, annotation, "Rect", out double x, out double y, out double width, out double height) &&
-                Intersects(target.X, target.Y, target.Width, target.Height, x, y, width, height)) {
+            if (AreClose(match.X, x) &&
+                AreClose(match.Y, y) &&
+                AreClose(match.Width, width) &&
+                AreClose(match.Height, height)) {
                 return true;
             }
         }
@@ -592,64 +245,77 @@ public static class PdfRedactionApplier {
         return false;
     }
 
-    private static bool RemoveLinkedPopupAnnotations(
+    private static void AddPopupObjectNumber(PdfDictionary annotation, HashSet<int> popupObjectNumbers) {
+        if (annotation.Items.TryGetValue("Popup", out PdfObject? popupObject) &&
+            popupObject is PdfReference popupReference) {
+            popupObjectNumbers.Add(popupReference.ObjectNumber);
+        }
+    }
+
+    private static void RemovePopupReferences(
         Dictionary<int, PdfIndirectObject> objects,
         PdfArray annotations,
-        HashSet<int> removedObjectNumbers) {
-        bool changed = false;
+        HashSet<int> removedAnnotationObjectNumbers,
+        HashSet<int> popupObjectNumbers,
+        ref bool changed) {
         for (int i = annotations.Items.Count - 1; i >= 0; i--) {
-            if (annotations.Items[i] is not PdfReference reference ||
-                !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
-                indirect.Value is not PdfDictionary annotation) {
+            PdfObject item = annotations.Items[i];
+            PdfReference? reference = item as PdfReference;
+            PdfDictionary? annotation = PdfObjectLookup.Resolve(objects, item) as PdfDictionary;
+            if (annotation is null) {
                 continue;
             }
 
-            if (removedObjectNumbers.Contains(reference.ObjectNumber) ||
-                IsPopupForRemovedAnnotation(annotation, removedObjectNumbers)) {
-                annotations.Items.RemoveAt(i);
-                removedObjectNumbers.Add(reference.ObjectNumber);
-                changed = true;
+            bool removePopup =
+                (reference is not null && popupObjectNumbers.Contains(reference.ObjectNumber)) ||
+                IsPopupForRemovedAnnotation(annotation, removedAnnotationObjectNumbers);
+            if (!removePopup) {
+                continue;
             }
+
+            if (reference is not null) {
+                objects.Remove(reference.ObjectNumber);
+            }
+
+            annotations.Items.RemoveAt(i);
+            changed = true;
         }
 
-        return changed;
+        for (int i = 0; i < annotations.Items.Count; i++) {
+            if (PdfObjectLookup.Resolve(objects, annotations.Items[i]) is not PdfDictionary annotation ||
+                !annotation.Items.TryGetValue("Popup", out PdfObject? popupObject) ||
+                popupObject is not PdfReference popupReference ||
+                (!removedAnnotationObjectNumbers.Contains(popupReference.ObjectNumber) &&
+                !popupObjectNumbers.Contains(popupReference.ObjectNumber))) {
+                continue;
+            }
+
+            annotation.Items.Remove("Popup");
+            changed = true;
+        }
     }
 
-    private static bool ClearRemovedPopupReferences(
-        Dictionary<int, PdfIndirectObject> objects,
-        PdfObject annotationObject,
-        HashSet<int> removedObjectNumbers) {
-        if (PdfObjectLookup.Resolve(objects, annotationObject) is PdfArray annotations) {
-            bool changed = false;
-            for (int i = 0; i < annotations.Items.Count; i++) {
-                changed = ClearRemovedPopupReferences(objects, annotations.Items[i], removedObjectNumbers) || changed;
-            }
-
-            return changed;
-        }
-
-        if (PdfObjectLookup.Resolve(objects, annotationObject) is not PdfDictionary annotation ||
-            !annotation.Items.TryGetValue("Popup", out PdfObject? popupObject) ||
-            popupObject is not PdfReference popupReference ||
-            !removedObjectNumbers.Contains(popupReference.ObjectNumber)) {
+    private static bool IsPopupForRemovedAnnotation(PdfDictionary annotation, HashSet<int> removedAnnotationObjectNumbers) {
+        if (!string.Equals(annotation.Get<PdfName>("Subtype")?.Name, "Popup", StringComparison.OrdinalIgnoreCase)) {
             return false;
         }
 
-        annotation.Items.Remove("Popup");
-        return true;
-    }
-
-    private static bool IsPopupForRemovedAnnotation(PdfDictionary annotation, HashSet<int> removedObjectNumbers) {
-        return annotation.Get<PdfName>("Subtype")?.Name == "Popup" &&
-            annotation.Items.TryGetValue("Parent", out PdfObject? parentObject) &&
+        return annotation.Items.TryGetValue("Parent", out PdfObject? parentObject) &&
             parentObject is PdfReference parentReference &&
-            removedObjectNumbers.Contains(parentReference.ObjectNumber);
+            removedAnnotationObjectNumbers.Contains(parentReference.ObjectNumber);
     }
 
-    private static bool TryReadRectangle(
+    private static string? TryReadName(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
+        return dictionary.Items.TryGetValue(key, out PdfObject? value) &&
+            PdfObjectLookup.Resolve(objects, value) is PdfName name &&
+            !string.IsNullOrEmpty(name.Name)
+            ? name.Name
+            : null;
+    }
+
+    private static bool TryReadRect(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary dictionary,
-        string key,
         out double x,
         out double y,
         out double width,
@@ -658,7 +324,7 @@ public static class PdfRedactionApplier {
         y = 0D;
         width = 0D;
         height = 0D;
-        if (!dictionary.Items.TryGetValue(key, out PdfObject? rectObject) ||
+        if (!dictionary.Items.TryGetValue("Rect", out PdfObject? rectObject) ||
             PdfObjectLookup.Resolve(objects, rectObject) is not PdfArray rect ||
             rect.Items.Count < 4 ||
             PdfObjectLookup.Resolve(objects, rect.Items[0]) is not PdfNumber x1 ||
@@ -668,11 +334,24 @@ public static class PdfRedactionApplier {
             return false;
         }
 
-        x = Math.Min(x1.Value, x2.Value);
-        y = Math.Min(y1.Value, y2.Value);
-        width = Math.Abs(x2.Value - x1.Value);
-        height = Math.Abs(y2.Value - y1.Value);
-        return width > 0D && height > 0D;
+        double left = Math.Min(x1.Value, x2.Value);
+        double right = Math.Max(x1.Value, x2.Value);
+        double bottom = Math.Min(y1.Value, y2.Value);
+        double top = Math.Max(y1.Value, y2.Value);
+        if (double.IsNaN(left) || double.IsInfinity(left) ||
+            double.IsNaN(right) || double.IsInfinity(right) ||
+            double.IsNaN(bottom) || double.IsInfinity(bottom) ||
+            double.IsNaN(top) || double.IsInfinity(top) ||
+            right <= left ||
+            top <= bottom) {
+            return false;
+        }
+
+        x = left;
+        y = bottom;
+        width = right - left;
+        height = top - bottom;
+        return true;
     }
 
     private static PdfRedactionArea[] SelectPaintAreas(PdfRedactionArea[] areas, PdfRedactionMatch[] matches, PdfRedactionApplyOptions options) {
@@ -762,6 +441,66 @@ public static class PdfRedactionApplier {
         yield return contents;
     }
 
+    private static void ReplacePageContentReference(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary page,
+        PdfObject contents,
+        PdfReference source,
+        PdfReference replacement) {
+        if (ReferenceEquals(source, replacement)) {
+            return;
+        }
+
+        if (contents is PdfReference reference && SameReference(reference, source)) {
+            page.Items["Contents"] = replacement;
+            return;
+        }
+
+        PdfArray? array = contents as PdfArray;
+        if (array is null &&
+            contents is PdfReference arrayReference &&
+            PdfObjectLookup.TryGet(objects, arrayReference, out PdfIndirectObject? indirect) &&
+            indirect.Value is PdfArray referencedArray) {
+            array = CloneArray(referencedArray);
+            page.Items["Contents"] = array;
+        }
+
+        if (array is null) {
+            return;
+        }
+
+        for (int i = 0; i < array.Items.Count; i++) {
+            if (array.Items[i] is PdfReference itemReference && SameReference(itemReference, source)) {
+                array.Items[i] = replacement;
+            }
+        }
+    }
+
+    private static void IsolateExistingPageContents(Dictionary<int, PdfIndirectObject> objects, PdfDictionary pageDictionary, ref int nextObjectNumber) {
+        if (!pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) {
+            return;
+        }
+
+        PdfObject[] originalContents = EnumerateContentObjects(objects, contentsObject).ToArray();
+        if (originalContents.Length == 0) {
+            return;
+        }
+
+        int saveStateObjectNumber = nextObjectNumber++;
+        int restoreStateObjectNumber = nextObjectNumber++;
+        objects[saveStateObjectNumber] = new PdfIndirectObject(saveStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("q\n")));
+        objects[restoreStateObjectNumber] = new PdfIndirectObject(restoreStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n")));
+
+        var isolatedContents = new PdfArray();
+        isolatedContents.Items.Add(new PdfReference(saveStateObjectNumber, 0));
+        for (int i = 0; i < originalContents.Length; i++) {
+            isolatedContents.Items.Add(originalContents[i]);
+        }
+
+        isolatedContents.Items.Add(new PdfReference(restoreStateObjectNumber, 0));
+        pageDictionary.Items["Contents"] = isolatedContents;
+    }
+
     private static PdfDictionary CleanStreamDictionary(PdfDictionary source) {
         var dictionary = new PdfDictionary();
         foreach (KeyValuePair<string, PdfObject> entry in source.Items) {
@@ -776,6 +515,91 @@ public static class PdfRedactionApplier {
 
         return dictionary;
     }
+
+    private static Dictionary<int, int> CountIndirectReferenceUsage(Dictionary<int, PdfIndirectObject> objects) {
+        var counts = new Dictionary<int, int>();
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            CountIndirectReferenceUsage(indirect.Value, counts, new HashSet<PdfObject>());
+        }
+
+        return counts;
+    }
+
+    private static void CountIndirectReferenceUsage(PdfObject value, Dictionary<int, int> counts, HashSet<PdfObject> visited) {
+        if (!visited.Add(value)) {
+            return;
+        }
+
+        switch (value) {
+            case PdfReference reference:
+                counts.TryGetValue(reference.ObjectNumber, out int count);
+                counts[reference.ObjectNumber] = count + 1;
+                break;
+            case PdfArray array:
+                foreach (PdfObject item in array.Items) {
+                    CountIndirectReferenceUsage(item, counts, visited);
+                }
+
+                break;
+            case PdfDictionary dictionary:
+                foreach (PdfObject item in dictionary.Items.Values) {
+                    CountIndirectReferenceUsage(item, counts, visited);
+                }
+
+                break;
+            case PdfStream stream:
+                CountIndirectReferenceUsage(stream.Dictionary, counts, visited);
+                break;
+        }
+    }
+
+    private static bool IsSharedReference(IReadOnlyDictionary<int, int> referenceCounts, PdfReference reference) =>
+        referenceCounts.TryGetValue(reference.ObjectNumber, out int count) && count > 1;
+
+    private static PdfReference CloneIndirectObject(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReference source,
+        PdfIndirectObject indirect,
+        ref int nextObjectNumber) {
+        int objectNumber = nextObjectNumber++;
+        var reference = new PdfReference(objectNumber, 0);
+        objects[objectNumber] = new PdfIndirectObject(objectNumber, 0, CloneObject(indirect.Value));
+        return reference;
+    }
+
+    private static PdfObject CloneObject(PdfObject value) {
+        switch (value) {
+            case PdfDictionary dictionary:
+                return CloneDictionary(dictionary);
+            case PdfArray array:
+                return CloneArray(array);
+            case PdfStream stream:
+                return new PdfStream(CloneDictionary(stream.Dictionary), (byte[])stream.Data.Clone(), stream.DecodingFailed, stream.DecodingError);
+            default:
+                return value;
+        }
+    }
+
+    private static PdfDictionary CloneDictionary(PdfDictionary source) {
+        var dictionary = new PdfDictionary();
+        foreach (KeyValuePair<string, PdfObject> entry in source.Items) {
+            dictionary.Items[entry.Key] = CloneObject(entry.Value);
+        }
+
+        return dictionary;
+    }
+
+    private static PdfArray CloneArray(PdfArray source) {
+        var array = new PdfArray();
+        foreach (PdfObject item in source.Items) {
+            array.Items.Add(CloneObject(item));
+        }
+
+        return array;
+    }
+
+    private static bool SameReference(PdfReference left, PdfReference right) =>
+        left.ObjectNumber == right.ObjectNumber && left.Generation == right.Generation;
 
     private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf) {
         int[] sourceIds = objects.Keys.OrderBy(id => id).ToArray();
@@ -902,35 +726,4 @@ public static class PdfRedactionApplier {
         public bool HasChanges { get; }
     }
 
-    private readonly struct TextMatchTarget {
-        public TextMatchTarget(string text, double x, double y, double width, double height) {
-            Text = text;
-            X = x;
-            Y = y;
-            Width = width;
-            Height = height;
-        }
-
-        public string Text { get; }
-        public double X { get; }
-        public double Y { get; }
-        public double Width { get; }
-        public double Height { get; }
-    }
-
-    private readonly struct AnnotationMatchTarget {
-        public AnnotationMatchTarget(int? objectNumber, double x, double y, double width, double height) {
-            ObjectNumber = objectNumber;
-            X = x;
-            Y = y;
-            Width = width;
-            Height = height;
-        }
-
-        public int? ObjectNumber { get; }
-        public double X { get; }
-        public double Y { get; }
-        public double Width { get; }
-        public double Height { get; }
-    }
 }

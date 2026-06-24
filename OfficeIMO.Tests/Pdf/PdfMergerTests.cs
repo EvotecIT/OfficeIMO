@@ -95,6 +95,40 @@ public class PdfMergerTests {
     }
 
     [Fact]
+    public void Merge_WithResizePagesOption_NormalizesMixedSourcePageSizes() {
+        byte[] first = BuildPdf(
+            "Mixed size first",
+            "Letter source page",
+            ("Small source page", new PageSize(300, 500)));
+        byte[] second = BuildPdf(
+            "Mixed size second",
+            "Landscape source page",
+            ("A4 source page", PageSizes.A4));
+
+        byte[] merged = PdfMerger.Merge(
+            new PdfMergeOptions {
+                ResizePages = new PdfPageResizeOptions(PageSizes.A4) {
+                    Margin = 12,
+                    Mode = PdfPageResizeMode.Fit
+                }
+            },
+            first,
+            second);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(merged);
+        Assert.Equal(4, info.PageCount);
+        Assert.All(info.Pages, page => {
+            Assert.Equal(595, Math.Round(page.Width));
+            Assert.Equal(842, Math.Round(page.Height));
+        });
+
+        string pdf = Encoding.ASCII.GetString(merged);
+        Assert.Contains(" cm", pdf, StringComparison.Ordinal);
+        string text = NormalizeExtractedText(PdfReadDocument.Load(merged).ExtractText());
+        AssertContainsInOrder(text, "Lettersourcepage", "Smallsourcepage", "Landscapesourcepage", "A4sourcepage");
+    }
+
+    [Fact]
     public void Merge_ReadsStreamsFromCurrentPositions() {
         using var first = CreatePrefixedStream(BuildPdf("First stream", "First stream page"));
         using var second = CreatePrefixedStream(BuildPdf("Second stream", "Second stream page"));

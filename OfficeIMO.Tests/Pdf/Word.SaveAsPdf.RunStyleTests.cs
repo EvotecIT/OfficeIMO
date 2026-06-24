@@ -135,6 +135,82 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Embeds_Unmapped_Run_Font_When_Allowed_And_Available() {
+            string? fontFamily = FindUnmappedEmbeddableWordFontFamily();
+            if (fontFamily == null) {
+                return;
+            }
+
+            const string unicodeMarker = "RichFontUnicode Zażółć";
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeUnmappedRunFontEmbedding.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeUnmappedRunFontEmbedding.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordParagraph paragraph = document.AddParagraph();
+                paragraph.AddText("Before ");
+                paragraph.AddText(unicodeMarker).SetFontFamily(fontFamily);
+                paragraph.AddText(" After");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    AllowSystemFontEmbedding = true,
+                    IncludePageNumbers = false
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            string content = Encoding.ASCII.GetString(bytes);
+            using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+                string pageText = string.Concat(pdf.GetPages().Select(page => page.Text));
+
+                Assert.Contains(unicodeMarker, pageText, StringComparison.Ordinal);
+            }
+
+            Assert.Contains("/Subtype /Type0", content, StringComparison.Ordinal);
+            Assert.Contains("/Encoding /Identity-H", content, StringComparison.Ordinal);
+            Assert.Contains("/ToUnicode", content, StringComparison.Ordinal);
+            Assert.Contains("/FontFile2", content, StringComparison.Ordinal);
+            Assert.Contains("/BaseFont /" + SanitizeExpectedPdfFontName(fontFamily), content, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Embeds_Unmapped_Table_Cell_Run_Font_When_Allowed_And_Available() {
+            string? fontFamily = FindUnmappedEmbeddableWordFontFamily();
+            if (fontFamily == null) {
+                return;
+            }
+
+            const string cellMarker = "TableCellRichFont";
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeUnmappedTableCellFontEmbedding.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeUnmappedTableCellFontEmbedding.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordTable table = document.AddTable(1, 1);
+                WordParagraph cellParagraph = table.Rows[0].Cells[0].Paragraphs[0];
+                cellParagraph.Text = string.Empty;
+                cellParagraph.AddText(cellMarker).SetFontFamily(fontFamily);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    AllowSystemFontEmbedding = true,
+                    IncludePageNumbers = false
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            string content = Encoding.ASCII.GetString(bytes);
+            using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+                string pageText = string.Concat(pdf.GetPages().Select(page => page.Text));
+
+                Assert.Contains(cellMarker, pageText, StringComparison.Ordinal);
+            }
+
+            Assert.Contains("/Subtype /Type0", content, StringComparison.Ordinal);
+            Assert.Contains("/FontFile2", content, StringComparison.Ordinal);
+            Assert.Contains("/BaseFont /" + SanitizeExpectedPdfFontName(fontFamily), content, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Run_Highlight_To_Background() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeRunHighlight.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRunHighlight.pdf");
@@ -352,6 +428,39 @@ namespace OfficeIMO.Tests {
 
             Assert.True(backgroundFill >= 0, "Expected Word document background color to emit a PDF page fill color.");
             Assert.True(backgroundRect > backgroundFill, "Expected Word document background color to emit a filled page rectangle.");
+        }
+
+        private static string? FindUnmappedEmbeddableWordFontFamily() {
+            foreach (string candidate in new[] {
+                "Comic Sans MS",
+                "Candara",
+                "Corbel",
+                "Constantia",
+                "Franklin Gothic Medium",
+                "Trebuchet MS",
+                "Segoe Print",
+                "Bahnschrift",
+                "Book Antiqua"
+            }) {
+                if (!PdfStandardFontMapper.TryMapFontFamily(candidate, out _) &&
+                    PdfEmbeddedFontFamily.TryFromSystem(candidate, out PdfEmbeddedFontFamily? family) &&
+                    family != null) {
+                    return family.FamilyName;
+                }
+            }
+
+            return null;
+        }
+
+        private static string SanitizeExpectedPdfFontName(string fontFamily) {
+            var builder = new StringBuilder(fontFamily.Length + "-Regular".Length);
+            foreach (char ch in fontFamily + "-Regular") {
+                if (char.IsLetterOrDigit(ch) || ch == '-' || ch == '_' || ch == '+') {
+                    builder.Append(ch);
+                }
+            }
+
+            return builder.Length == 0 ? "OfficeIMOEmbeddedFont" : builder.ToString();
         }
     }
 }

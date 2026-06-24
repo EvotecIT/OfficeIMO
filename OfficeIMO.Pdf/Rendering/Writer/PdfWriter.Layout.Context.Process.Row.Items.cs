@@ -215,9 +215,11 @@ internal static partial class PdfWriter {
                     var rowSizes = new double[tb2.Rows.Count];
                     var rowBold = new bool[tb2.Rows.Count];
                     for (int ri = 0; ri < tb2.Rows.Count; ri++) {
-                        double rowSize = GetTableRowFontSize(style, ri, headerRowCount, footerStartRowIndex, currentOpts.DefaultFontSize);
-                        double rowLeading = GetTableLeading(style, rowSize);
                         bool rowUsesBold = GetTableRowBold(style, ri, headerRowCount, footerStartRowIndex);
+                        double originalRowSize = GetTableRowFontSize(style, ri, headerRowCount, footerStartRowIndex, currentOpts.DefaultFontSize);
+                        double rowSize = ResolveTableRowShrinkFontSize(tb2, style, ri, cols, colPixel, columnGap, originalRowSize, rowUsesBold, currentOpts);
+                        double runFontSizeScale = GetTableRunFontSizeScale(tb2, style, ri, cols, colPixel, columnGap, originalRowSize, rowSize, rowUsesBold, currentOpts);
+                        double rowLeading = GetTableLeading(style, rowSize);
                         rowSizes[ri] = rowSize;
                         rowLeadings[ri] = rowLeading;
                         rowBold[ri] = rowUsesBold;
@@ -234,7 +236,7 @@ internal static partial class PdfWriter {
                             var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
                             double cellWidth = GetTableCellWidth(colPixel, cell.Column, cell.ColumnSpan, columnGap);
                             double innerWidth = Math.Max(1, cellWidth - GetTableCellPaddingLeft(style, ri, cell.Column) - GetTableCellPaddingRight(style, ri, cell.Column));
-                            TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts);
+                            TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D);
                             rowLines[ri][cell.Column] = lines;
                             if (cell.RowSpan <= 1) {
                                 maxLines = Math.Max(maxLines, lines.LineCount);

@@ -139,7 +139,7 @@ namespace OfficeIMO.Word.Pdf {
                     page.Size(sectionPageSize);
                     page.Margin(sectionMargins);
                     ConfigureNativePageNumbering(page, firstSection);
-                    ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer);
+                    ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap);
                     INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf));
 
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
@@ -176,7 +176,8 @@ namespace OfficeIMO.Word.Pdf {
                                 listMarkers,
                                 listIndices,
                                 footnoteNumbersById,
-                                nativeDefaults)) {
+                                nativeDefaults,
+                                nativeFontMap)) {
                                 continue;
                             }
 

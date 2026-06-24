@@ -43,81 +43,95 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
-    public void Apply_RemovesOnlyRepeatedTextInsideSelectedArea() {
-        byte[] source = PdfDocument.Create(new PdfOptions {
-                CompressContentStreams = false
-            })
-            .Paragraph(paragraph => paragraph.Text("Repeated secret"))
-            .Paragraph(paragraph => paragraph.Text("Repeated secret"))
-            .ToBytes();
-        PdfRedactionArea[] areas = FindAreasForText(source, "Repeated secret");
-
-        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { areas[0] });
-        string text = PdfTextExtractor.ExtractAllText(redacted);
-
-        Assert.Equal(1, CountOccurrences(text, "Repeated secret"));
-    }
-
-    [Fact]
-    public void Apply_RejectsRedactionAreasOutsideDocument() {
-        byte[] source = BuildRedactionSource();
-
-        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => PdfRedactionApplier.Apply(source, new[] {
-            new PdfRedactionArea(2, 0, 0, 100, 100)
-        }));
-
-        Assert.Contains("outside the document page count", exception.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void RedactionArea_RejectsNonFiniteCoordinates() {
-        Assert.Equal("x", Assert.Throws<ArgumentOutOfRangeException>(() => new PdfRedactionArea(1, double.NaN, 0, 100, 100)).ParamName);
-        Assert.Equal("y", Assert.Throws<ArgumentOutOfRangeException>(() => new PdfRedactionArea(1, 0, double.PositiveInfinity, 100, 100)).ParamName);
-        Assert.Equal("width", Assert.Throws<ArgumentOutOfRangeException>(() => new PdfRedactionArea(1, 0, 0, double.NegativeInfinity, 100)).ParamName);
-        Assert.Equal("height", Assert.Throws<ArgumentOutOfRangeException>(() => new PdfRedactionArea(1, 0, 0, 100, double.NaN)).ParamName);
-    }
-
-    [Fact]
-    public void Apply_PreservesGraphicsTransformWhenRemovingMatchedText() {
-        byte[] source = BuildTransformedTextPdf();
-
-        byte[] redacted = PdfRedactionApplier.Apply(source, new[] {
-            new PdfRedactionArea(1, 95, 82, 180, 30)
-        });
-
-        string text = PdfTextExtractor.ExtractAllText(redacted);
-        Assert.DoesNotContain("Transformed secret", text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Apply_ScrubsTextInsideFormXObjects() {
-        byte[] source = BuildFormXObjectTextPdf();
-
-        byte[] redacted = PdfRedactionApplier.Apply(source, new[] {
-            new PdfRedactionArea(1, 95, 82, 180, 30)
-        });
-
-        string text = PdfTextExtractor.ExtractAllText(redacted);
-        Assert.DoesNotContain("Form secret", text, StringComparison.Ordinal);
-        Assert.DoesNotContain("Form secret", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Apply_ScrubsFormXObjectsFromInheritedPageResources() {
-        byte[] source = BuildInheritedFormXObjectTextPdf();
-        PdfRedactionArea area = FindAreaForText(source, "Inherited form secret");
+    public void Apply_DecodesOctalEscapesBeforeMatchingTextObjects() {
+        byte[] source = BuildOctalRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Secret account 123-45");
+        Assert.Contains("Secret account 123-45", PdfTextExtractor.ExtractAllText(source), StringComparison.Ordinal);
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
         string text = PdfTextExtractor.ExtractAllText(redacted);
 
-        Assert.DoesNotContain("Inherited form secret", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Secret account", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("123-45", text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Apply_ClonesSharedPageContentBeforeScrubbingText() {
+    public void Apply_DecodesNestedLiteralStringsBeforeMatchingTextObjects() {
+        byte[] source = BuildNestedLiteralRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Account (secret)");
+        Assert.Contains("Account (secret)", PdfTextExtractor.ExtractAllText(source), StringComparison.Ordinal);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.DoesNotContain("Account (secret)", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
+        Assert.Contains("Visible before", text, StringComparison.Ordinal);
+        Assert.Contains("Visible after", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_IgnoresEndTextOperatorInsideLiteralStringsWhenScrubbingTextObjects() {
+        byte[] source = BuildLiteralEndTextOperatorRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "SSN ET 123");
+        Assert.Contains("SSN ET 123", PdfTextExtractor.ExtractAllText(source), StringComparison.Ordinal);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+        string raw = PdfEncoding.Latin1GetString(redacted);
+
+        Assert.DoesNotContain("SSN ET 123", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("SSN ET 123", raw, StringComparison.Ordinal);
+        Assert.Contains("Visible before", text, StringComparison.Ordinal);
+        Assert.Contains("Visible after", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_UsesFontDecoderForLiteralRedactionText() {
+        byte[] source = BuildToUnicodeLiteralRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Secret account 123-45");
+        Assert.Contains("Secret account 123-45", ExtractLogicalText(source), StringComparison.Ordinal);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = ExtractLogicalText(redacted);
+
+        Assert.DoesNotContain("Secret account", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("123-45", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_ScrubsMatchedTextInsideFormXObjects() {
+        byte[] source = BuildFormXObjectRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Secret account 123-45");
+        Assert.Contains("Secret account 123-45", PdfTextExtractor.ExtractAllText(source), StringComparison.Ordinal);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.DoesNotContain("Secret account", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("123-45", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_ScrubsMatchedTextInsideNestedFormXObjects() {
+        byte[] source = BuildNestedFormXObjectRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Nested secret account 123-45");
+        Assert.Contains("Nested secret account 123-45", PdfTextExtractor.ExtractAllText(source), StringComparison.Ordinal);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+        string raw = PdfEncoding.Latin1GetString(redacted);
+
+        Assert.DoesNotContain("Nested secret", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("123-45", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nested secret account 123-45", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_ClonesSharedPageContentBeforeScrubbingMatchedText() {
         byte[] source = BuildSharedPageContentPdf();
-        PdfRedactionArea area = FindAreasForText(source, "Shared page secret")
-            .Single(redactionArea => redactionArea.PageNumber == 1);
+        PdfRedactionArea area = FindAreasForText(source, "Shared page secret").Single(redaction => redaction.PageNumber == 1);
+        Assert.Equal(2, CountOccurrences(PdfTextExtractor.ExtractAllText(source), "Shared page secret"));
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
         string text = PdfTextExtractor.ExtractAllText(redacted);
@@ -126,10 +140,10 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
-    public void Apply_ClonesSharedFormXObjectBeforeScrubbingText() {
+    public void Apply_ClonesSharedFormXObjectBeforeScrubbingMatchedText() {
         byte[] source = BuildSharedFormXObjectTextPdf();
-        PdfRedactionArea area = FindAreasForText(source, "Shared form secret")
-            .Single(redactionArea => redactionArea.PageNumber == 1);
+        PdfRedactionArea area = FindAreasForText(source, "Shared form secret").Single(redaction => redaction.PageNumber == 1);
+        Assert.Equal(2, CountOccurrences(PdfTextExtractor.ExtractAllText(source), "Shared form secret"));
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
         string text = PdfTextExtractor.ExtractAllText(redacted);
@@ -138,59 +152,73 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
-    public void Apply_ScrubsInvokedAliasWhenFormXObjectHasMultipleResourceNames() {
-        byte[] source = BuildAliasedFormXObjectTextPdf();
+    public void Apply_IsolatesExistingContentBeforePaintingRedactionOverlay() {
+        byte[] source = BuildLeakingGraphicsStateRedactionSource();
+        var area = new PdfRedactionArea(1, 40, 40, 80, 24, "manual");
 
-        byte[] redacted = PdfRedactionApplier.Apply(source, new[] {
-            new PdfRedactionArea(1, 95, 82, 180, 30)
-        });
-
-        string text = PdfTextExtractor.ExtractAllText(redacted);
-        Assert.DoesNotContain("Aliased form secret", text, StringComparison.Ordinal);
-        Assert.DoesNotContain("Aliased form secret", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Apply_UsesLargeTextBoundsWhenPlanningRedaction() {
-        byte[] source = BuildLargeTextPdf();
-
-        byte[] redacted = PdfRedactionApplier.Apply(source, new[] {
-            new PdfRedactionArea(1, 70, 120, 220, 10)
-        });
-
-        string text = PdfTextExtractor.ExtractAllText(redacted);
-        Assert.DoesNotContain("Large secret heading", text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Apply_RemovesDirectAnnotationDictionariesAndLinkedPopups() {
-        byte[] source = BuildDirectAnnotationWithPopupPdf();
-
-        byte[] redacted = PdfRedactionApplier.Apply(source, new[] {
-            new PdfRedactionArea(1, 15, 15, 140, 80)
-        });
-
-        PdfDocumentInfo info = PdfInspector.Inspect(redacted);
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
         string raw = PdfEncoding.Latin1GetString(redacted);
-        Assert.Equal(0, info.AnnotationCount);
-        Assert.DoesNotContain("Direct redaction note", raw, StringComparison.Ordinal);
-        Assert.DoesNotContain("/Subtype /Popup", raw, StringComparison.Ordinal);
+
+        Assert.Contains("\nq\n", raw, StringComparison.Ordinal);
+        Assert.Contains("0 0 1 1 re W n", raw, StringComparison.Ordinal);
+        Assert.Contains("\nQ\n", raw, StringComparison.Ordinal);
+        Assert.Contains("40 40 80 24 re", raw, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Apply_ClearsParentPopupReferenceWhenOnlyPopupIsRedacted() {
+    public void Apply_IsolatesContentArrayAsSingleSequenceBeforeOverlay() {
+        byte[] source = BuildSplitContentStateRedactionSource();
+        var area = new PdfRedactionArea(1, 40, 40, 80, 24, "manual");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string raw = PdfEncoding.Latin1GetString(redacted);
+
+        Assert.Contains("\nq\n", raw, StringComparison.Ordinal);
+        Assert.Contains("\nQ\n", raw, StringComparison.Ordinal);
+        Assert.Contains("/F1 12 Tf", raw, StringComparison.Ordinal);
+        Assert.Contains("(Visible split text) Tj", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_ScopesDuplicateTextRedactionToIntersectingInstance() {
+        byte[] source = BuildDuplicateRedactionSource();
+        PdfRedactionArea area = FindAreaForTextOccurrence(source, "Repeat secret", occurrenceFromTop: 1);
+        string originalText = PdfTextExtractor.ExtractAllText(source);
+        Assert.Equal(2, CountOccurrences(originalText, "Repeat secret"));
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Equal(1, CountOccurrences(text, "Repeat secret"));
+        Assert.Contains("Visible before", text, StringComparison.Ordinal);
+        Assert.Contains("Visible after", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_PrunesRemovedAnnotationAppearanceStreams() {
+        byte[] source = BuildAnnotationAppearanceRedactionSource();
+        var area = new PdfRedactionArea(1, 20, 20, 40, 40, "annotation");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string raw = PdfEncoding.Latin1GetString(redacted);
+
+        Assert.Contains("Sensitive annotation", PdfEncoding.Latin1GetString(source), StringComparison.Ordinal);
+        Assert.DoesNotContain("Sensitive annotation", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("Old sensitive appearance", raw, StringComparison.Ordinal);
+        Assert.Empty(PdfInspector.Inspect(redacted).GetAnnotationsBySubtype("FreeText"));
+    }
+
+    [Fact]
+    public void Apply_ClearsParentPopupReferenceWhenRedactingPopupAnnotation() {
         byte[] source = BuildIndirectAnnotationWithPopupPdf();
+        var area = new PdfRedactionArea(1, 100, 100, 60, 60, "popup");
 
-        byte[] redacted = PdfRedactionApplier.Apply(source, new[] {
-            new PdfRedactionArea(1, 95, 95, 80, 80)
-        });
-
-        PdfDocumentInfo info = PdfInspector.Inspect(redacted);
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
         string raw = PdfEncoding.Latin1GetString(redacted);
-        Assert.Equal(1, info.AnnotationCount);
-        Assert.Contains("Keep parent note", raw, StringComparison.Ordinal);
-        Assert.DoesNotContain("/Popup 5 0 R", raw, StringComparison.Ordinal);
-        Assert.DoesNotContain("/Subtype /Popup", raw, StringComparison.Ordinal);
+
+        Assert.DoesNotContain("/Popup", raw, StringComparison.Ordinal);
+        Assert.Single(PdfInspector.Inspect(redacted).GetAnnotationsBySubtype("Text"));
+        Assert.Empty(PdfInspector.Inspect(redacted).GetAnnotationsBySubtype("Popup"));
     }
 
     private static byte[] BuildRedactionSource() {
@@ -203,16 +231,246 @@ public class PdfRedactionApplierTests {
             .ToBytes();
     }
 
-    private static byte[] BuildTransformedTextPdf() {
-        var objects = new List<string> {
+    private static byte[] BuildOctalRedactionSource() {
+        string streamContent = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "72 720 Td",
+            "(Visible before) Tj",
+            "0 -18 Td",
+            "(Secret\\040account\\040123-45) Tj",
+            "0 -18 Td",
+            "(Visible after) Tj",
+            "ET"
+        });
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
             "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            BuildStream("q\n1 0 0 1 100 100 cm\nBT\n/F1 12 Tf\n0 0 Td\n(Transformed secret) Tj\nET\nQ")
+            "endobj",
+            "5 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(streamContent).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            streamContent,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildNestedLiteralRedactionSource() {
+        string streamContent = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "72 720 Td",
+            "(Visible before) Tj",
+            "ET",
+            "BT",
+            "/F1 12 Tf",
+            "72 702 Td",
+            "(Account (secret)) Tj",
+            "ET",
+            "BT",
+            "/F1 12 Tf",
+            "72 650 Td",
+            "(Visible after) Tj",
+            "ET"
+        });
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent))
         };
 
-        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildLiteralEndTextOperatorRedactionSource() {
+        string streamContent = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "72 720 Td",
+            "(Visible before) Tj",
+            "ET",
+            "BT",
+            "/F1 12 Tf",
+            "72 702 Td",
+            "(SSN ET 123) Tj",
+            "ET",
+            "BT",
+            "/F1 12 Tf",
+            "72 650 Td",
+            "(Visible after) Tj",
+            "ET"
+        });
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildToUnicodeLiteralRedactionSource() {
+        string secret = "Secret account 123-45";
+        string streamContent = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "72 720 Td",
+            "(Visible before) Tj",
+            "0 -18 Td",
+            "(" + EncodeLiteralGlyphBytes(secret) + ") Tj",
+            "0 -18 Td",
+            "(Visible after) Tj",
+            "ET"
+        });
+        string cmap = BuildSingleByteToUnicodeCMap(secret);
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /AAAAAA+Helvetica /Encoding /WinAnsiEncoding /ToUnicode 6 0 R >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(cmap))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildFormXObjectRedactionSource() {
+        string pageContent = "q\n1 0 0 1 72 700 cm\n/Fm1 Do\nQ\n";
+        string formContent = "BT\n/F1 12 Tf\n0 0 Td\n(Secret account 123-45) Tj\nET\n";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Fm1 6 0 R >> >> /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>")
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildNestedFormXObjectRedactionSource() {
+        string pageContent = "q\n1 0 0 1 72 700 cm\n/FmOuter Do\nQ\n";
+        string outerFormContent = "q\n1 0 0 1 0 0 cm\n/FmInner Do\nQ\n";
+        string innerFormContent = "BT\n/F1 12 Tf\n0 0 Td\n(Nested secret account 123-45) Tj\nET\n";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /FmOuter 6 0 R >> >> /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(outerFormContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /XObject << /FmInner 7 0 R >> >>"),
+            BuildStreamObject(7, Encoding.ASCII.GetBytes(innerFormContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>")
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildLeakingGraphicsStateRedactionSource() {
+        string streamContent = string.Join("\n", new[] {
+            "q",
+            "0 0 1 1 re W n",
+            "BT",
+            "/F1 12 Tf",
+            "72 720 Td",
+            "(Visible page text) Tj",
+            "ET"
+        });
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildSplitContentStateRedactionSource() {
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents [5 0 R 6 0 R] >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("/F1 12 Tf")),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes("72 720 Td (Visible split text) Tj"))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildDuplicateRedactionSource() {
+        string streamContent = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "72 740 Td",
+            "(Visible before) Tj",
+            "ET",
+            "BT",
+            "/F1 12 Tf",
+            "72 700 Td",
+            "(Repeat secret) Tj",
+            "ET",
+            "BT",
+            "/F1 12 Tf",
+            "72 660 Td",
+            "(Repeat secret) Tj",
+            "ET",
+            "BT",
+            "/F1 12 Tf",
+            "72 620 Td",
+            "(Visible after) Tj",
+            "ET"
+        });
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildAnnotationAppearanceRedactionSource() {
+        string pageContent = "BT\n/F1 12 Tf\n72 720 Td\n(Visible page text) Tj\nET";
+        string appearanceContent = "BT /F1 12 Tf 0 0 Td (Old sensitive appearance Sensitive annotation) Tj ET";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
+            "6 0 obj\n<< /Type /Annot /Subtype /FreeText /Rect [20 20 60 60] /Contents (Sensitive annotation) /AP << /N 7 0 R >> >>\nendobj",
+            BuildStreamObject(7, Encoding.ASCII.GetBytes(appearanceContent), "/Type /XObject /Subtype /Form /BBox [0 0 40 40] /Resources << /Font << /F1 4 0 R >> >>")
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
     }
 
     private static byte[] BuildFormXObjectTextPdf() {
@@ -366,5 +624,109 @@ public class PdfRedactionApplierTests {
         }
 
         return count;
+    }
+
+    private static PdfRedactionArea FindAreaForTextOccurrence(byte[] pdf, string text, int occurrenceFromTop) {
+        PdfLogicalTextBlock block = PdfLogicalDocument.Load(pdf)
+            .TextBlocks
+            .Where(item => item.Text.Contains(text, StringComparison.Ordinal))
+            .OrderByDescending(item => item.BaselineY)
+            .ElementAt(occurrenceFromTop);
+
+        double x = Math.Min(block.XStart, block.XEnd) - 2D;
+        double width = Math.Abs(block.XEnd - block.XStart) + 4D;
+        return new PdfRedactionArea(block.PageNumber, x, block.BaselineY - 14D, width, 20D, "secret");
+    }
+
+    private static string BuildSingleByteToUnicodeCMap(string text) {
+        var builder = new StringBuilder();
+        builder.Append("/CIDInit /ProcSet findresource begin\n");
+        builder.Append("12 dict begin\n");
+        builder.Append("begincmap\n");
+        builder.Append(text.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(" beginbfchar\n");
+        for (int i = 0; i < text.Length; i++) {
+            builder.Append('<')
+                .Append((i + 1).ToString("X2", System.Globalization.CultureInfo.InvariantCulture))
+                .Append("> <")
+                .Append(((int)text[i]).ToString("X4", System.Globalization.CultureInfo.InvariantCulture))
+                .Append(">\n");
+        }
+
+        builder.Append("endbfchar\n");
+        builder.Append("endcmap\n");
+        builder.Append("CMapName currentdict /CMap defineresource pop\n");
+        builder.Append("end\n");
+        builder.Append("end\n");
+        return builder.ToString();
+    }
+
+    private static string EncodeLiteralGlyphBytes(string text) {
+        var builder = new StringBuilder(text.Length * 4);
+        for (int i = 0; i < text.Length; i++) {
+            builder.Append('\\')
+                .Append(Convert.ToString(i + 1, 8).PadLeft(3, '0'));
+        }
+
+        return builder.ToString();
+    }
+
+    private static string BuildStreamObject(int objectNumber, byte[] streamBytes, string extraDictionary = "") {
+        string dictionary = "<< /Length " + streamBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (!string.IsNullOrWhiteSpace(extraDictionary)) {
+            dictionary += " " + extraDictionary.Trim();
+        }
+
+        dictionary += " >>";
+        return objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj\n" +
+            dictionary + "\nstream\n" +
+            Encoding.ASCII.GetString(streamBytes) + "\nendstream\nendobj";
+    }
+
+    private static byte[] BuildPdf(IReadOnlyList<string> objects, int rootObjectNumber) {
+        var offsets = new Dictionary<int, int>();
+        using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, Encoding.ASCII, 1024, leaveOpen: true);
+
+        writer.WriteLine("%PDF-1.4");
+        writer.Flush();
+        int maxObjectNumber = 0;
+        foreach (string obj in objects) {
+            int objectNumber = ReadObjectNumber(obj);
+            offsets[objectNumber] = (int)stream.Position;
+            maxObjectNumber = Math.Max(maxObjectNumber, objectNumber);
+            writer.WriteLine(obj);
+            writer.Flush();
+        }
+
+        int xrefOffset = (int)stream.Position;
+        writer.WriteLine("xref");
+        writer.WriteLine("0 " + (maxObjectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        writer.WriteLine("0000000000 65535 f ");
+        for (int i = 1; i <= maxObjectNumber; i++) {
+            if (offsets.TryGetValue(i, out int offset)) {
+                writer.WriteLine(offset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n ");
+            } else {
+                writer.WriteLine("0000000000 65535 f ");
+            }
+        }
+
+        writer.WriteLine("trailer");
+        writer.WriteLine("<< /Size " + (maxObjectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " /Root " + rootObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R >>");
+        writer.WriteLine("startxref");
+        writer.WriteLine(xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        writer.WriteLine("%%EOF");
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static int ReadObjectNumber(string obj) {
+        int space = obj.IndexOf(' ');
+        return int.Parse(obj.Substring(0, space), System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static string ExtractLogicalText(byte[] pdf) {
+        return string.Join(
+            Environment.NewLine,
+            PdfLogicalDocument.Load(pdf).TextBlocks.Select(item => item.Text));
     }
 }

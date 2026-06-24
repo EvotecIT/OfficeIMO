@@ -33,6 +33,10 @@ public static partial class PdfFormFiller {
             throw new NotSupportedException("Signed PDF files are not supported for form filling by OfficeIMO.Pdf yet.");
         }
 
+        if (PdfSyntax.HasEncryptionMarkers(pdf)) {
+            throw new NotSupportedException("Encrypted PDF files are not supported for form filling by OfficeIMO.Pdf yet.");
+        }
+
         if (PdfSyntax.HasActiveContentMarkers(pdf)) {
             throw new NotSupportedException("PDF active content is not supported for form filling by OfficeIMO.Pdf yet.");
         }

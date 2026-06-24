@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(rowIndex), "Row index must be greater than 0.");
             }
 
-            ValidateOutlineLevel(outlineLevel);
+            ValidateDirectOutlineLevel(outlineLevel);
             _excelDocument.MaterializeDeferredDataSetImport();
             WriteLock(() => {
                 SheetData sheetData = GetOrCreateSheetData();
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(columnIndex), "Column index must be greater than 0.");
             }
 
-            ValidateOutlineLevel(outlineLevel);
+            ValidateDirectOutlineLevel(outlineLevel);
             _excelDocument.MaterializeDeferredDataSetImport();
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
@@ -68,7 +68,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private static void ValidateOutlineLevel(byte outlineLevel) {
+        private static void ValidateDirectOutlineLevel(byte outlineLevel) {
             if (outlineLevel > 7) {
                 throw new ArgumentOutOfRangeException(nameof(outlineLevel), "Outline level must be from 0 through 7.");
             }

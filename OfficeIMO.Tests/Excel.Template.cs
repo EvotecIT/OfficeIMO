@@ -47,6 +47,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelTemplate_CreateFromTemplatePreservesStylesAndThemeParts() {
+            string templatePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.SourceTemplate.xlsx");
+            string outputPath = Path.Combine(_directoryWithFiles, "ExcelTemplate.FromTemplate.xlsx");
+
+            using (var document = ExcelDocument.Create(templatePath)) {
+                var sheet = document.AddWorkSheet("Template");
+                sheet.CellAt(1, 1).SetValue("{{Name}}").SetBold().SetFillColor("FFF2CC");
+                sheet.CellAt(2, 1).SetValue("Footer");
+                var data = new ExcelChartData(
+                    new[] { "Q1", "Q2" },
+                    new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) });
+                sheet.AddChart(data, row: 1, column: 4, widthPixels: 320, heightPixels: 200, type: ExcelChartType.ColumnClustered, title: "Template Chart");
+                document.Save(false);
+            }
+
+            using (var document = ExcelDocument.CreateFromTemplate(templatePath, outputPath)) {
+                int replacements = document.ApplyTemplate(new Dictionary<string, object?> {
+                    ["Name"] = "Adatum"
+                });
+
+                Assert.Equal(1, replacements);
+                document.Save(false);
+            }
+
+            using (var document = ExcelDocument.Load(outputPath, readOnly: true)) {
+                var sheet = document["Template"];
+                Assert.Equal("Adatum", sheet.CellAt(1, 1).GetValue<string>());
+                Assert.Equal("Footer", sheet.CellAt(2, 1).GetValue<string>());
+
+                var style = sheet.CellAt(1, 1).GetStyle();
+                Assert.True(style.Bold);
+                Assert.Equal("FFFFF2CC", style.FillColorArgb);
+
+                Assert.NotNull(document.WorkbookPartRoot.GetPartsOfType<ThemePart>().FirstOrDefault());
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_ExcelTemplate_CanThrowOnMissingMarker() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.MissingMarker.xlsx");
 
@@ -132,6 +171,22 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Footer", sheet.CellAt(4, 1).GetValue<string>());
                 Assert.Empty(document.ValidateOpenXml());
             }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_RepeatingRowsRejectsExpansionBeyondWorksheetLimit() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsBounds.xlsx");
+
+            using var document = ExcelDocument.Create(filePath);
+            var sheet = document.AddWorkSheet("Invoice");
+            sheet.CellAt(A1.MaxRows, 1).SetValue("{{Name}}");
+
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                sheet.ApplyTemplateRows(A1.MaxRows, new[] {
+                    new Dictionary<string, object?> { ["Name"] = "One" },
+                    new Dictionary<string, object?> { ["Name"] = "Two" }
+                }));
+            Assert.Equal("rowBindings", exception.ParamName);
         }
 
         [Fact]

@@ -97,6 +97,80 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_SetRowLayout_AppliesHeightHiddenAndCellStyles() {
+            string filePath = Path.Combine(_directoryWithFiles, "RowLayout.Basic.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValues(new[] {
+                    (1, 1, (object)"Name"),
+                    (1, 2, (object)"Notes"),
+                    (2, 1, (object)"Alice"),
+                    (2, 2, (object)"Long line that should wrap")
+                });
+
+                sheet.SetRowLayout(2, new ExcelRowLayoutOptions {
+                    Height = 32,
+                    Hidden = true,
+                    Bold = true,
+                    WrapText = true,
+                    FirstColumn = 1,
+                    LastColumn = 2
+                });
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Row row2 = wsPart.Worksheet.Descendants<Row>().First(r => r.RowIndex != null && r.RowIndex.Value == 2);
+                Assert.True(row2.CustomHeight?.Value ?? false);
+                Assert.Equal(32D, row2.Height!.Value);
+                Assert.True(row2.Hidden?.Value ?? false);
+
+                var workbookPart = spreadsheet.WorkbookPart!;
+                var stylesheet = workbookPart.WorkbookStylesPart!.Stylesheet;
+                Cell cell = row2.Elements<Cell>().First(c => c.CellReference?.Value == "B2");
+                CellFormat format = stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)cell.StyleIndex!.Value);
+                Font font = stylesheet.Fonts!.Elements<Font>().ElementAt((int)format.FontId!.Value);
+                Assert.NotNull(font.Bold);
+                Assert.True(format.Alignment?.WrapText?.Value ?? false);
+            }
+        }
+
+        [Fact]
+        public void Test_SetRowLayout_ClearsHeightAndWrapText() {
+            string filePath = Path.Combine(_directoryWithFiles, "RowLayout.Clear.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Line 1\nLine 2");
+                sheet.SetRowLayout(1, new ExcelRowLayoutOptions {
+                    Height = 28,
+                    WrapText = true,
+                    FirstColumn = 1,
+                    LastColumn = 1
+                });
+                sheet.SetRowLayout(1, new ExcelRowLayoutOptions {
+                    ClearHeight = true,
+                    WrapText = false,
+                    FirstColumn = 1,
+                    LastColumn = 1
+                });
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Row row1 = wsPart.Worksheet.Descendants<Row>().First(r => r.RowIndex != null && r.RowIndex.Value == 1);
+                Assert.False(row1.CustomHeight?.Value ?? false);
+                Assert.False(row1.Height?.HasValue ?? false);
+
+                var stylesheet = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet;
+                Cell cell = row1.Elements<Cell>().First(c => c.CellReference?.Value == "A1");
+                CellFormat format = stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)cell.StyleIndex!.Value);
+                Assert.False(format.Alignment?.WrapText?.Value ?? false);
+            }
+        }
+
+        [Fact]
         public void Test_AutoFitColumns_RemovesCustomWidthWhenCleared() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.ClearColumn.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {

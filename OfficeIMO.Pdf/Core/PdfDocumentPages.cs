@@ -14,14 +14,14 @@ public sealed class PdfDocumentPages {
     /// Creates a new PDF containing selected pages in caller order.
     /// </summary>
     public PdfDocument Extract(params int[] pageNumbers) {
-        return PdfDocument.FromBytes(PdfPageExtractor.ExtractPages(_document.Snapshot(), pageNumbers));
+        return PdfDocument.FromBytes(PdfPageExtractor.ExtractPages(_document.Snapshot(), _document.ReadOptions, pageNumbers));
     }
 
     /// <summary>
     /// Creates a new PDF containing one inclusive one-based page range.
     /// </summary>
     public PdfDocument Extract(PdfPageRange pageRange) {
-        return PdfDocument.FromBytes(PdfPageExtractor.ExtractPageRange(_document.Snapshot(), pageRange));
+        return PdfDocument.FromBytes(PdfPageExtractor.ExtractPages(_document.Snapshot(), pageRange.ToPageNumbers(), _document.ReadOptions));
     }
 
     /// <summary>
@@ -29,7 +29,12 @@ public sealed class PdfDocumentPages {
     /// </summary>
     public PdfDocument Extract(PdfPageSelection selection) {
         Guard.NotNull(selection, nameof(selection));
-        return PdfDocument.FromBytes(PdfPageExtractor.ExtractPageRanges(_document.Snapshot(), selection.ToRanges()));
+        return Extract(selection, _document.ReadOptions);
+    }
+
+    private PdfDocument Extract(PdfPageSelection selection, PdfReadOptions? options) {
+        Guard.NotNull(selection, nameof(selection));
+        return PdfDocument.FromBytes(PdfPageExtractor.ExtractPageRanges(_document.Snapshot(), selection.ToRanges(), options));
     }
 
     /// <summary>
@@ -37,7 +42,7 @@ public sealed class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryExtract(PdfPageSelection selection, PdfReadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.TryOperation("Extract pages", PdfPreflightCapability.ManipulatePages, () => Extract(selection), options);
+        return TryPageExtractionOperation("Extract pages", effectiveOptions => Extract(selection, effectiveOptions), options);
     }
 
     /// <summary>
@@ -51,7 +56,11 @@ public sealed class PdfDocumentPages {
     /// Creates one PDF per page.
     /// </summary>
     public IReadOnlyList<PdfDocument> Split() {
-        return PdfPageExtractor.SplitPages(_document.Snapshot())
+        return Split(_document.ReadOptions);
+    }
+
+    private PdfDocument[] Split(PdfReadOptions? options) {
+        return PdfPageExtractor.SplitPages(_document.Snapshot(), options)
             .Select(PdfDocument.FromBytes)
             .ToArray();
     }
@@ -64,7 +73,15 @@ public sealed class PdfDocumentPages {
             throw new ArgumentOutOfRangeException(nameof(pagesPerDocument), pagesPerDocument, "Pages per document must be greater than zero.");
         }
 
-        int pageCount = _document.Inspect().PageCount;
+        return Split(pagesPerDocument, _document.ReadOptions);
+    }
+
+    private PdfDocument[] Split(int pagesPerDocument, PdfReadOptions? options) {
+        if (pagesPerDocument <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(pagesPerDocument), pagesPerDocument, "Pages per document must be greater than zero.");
+        }
+
+        int pageCount = _document.Inspect(options).PageCount;
         if (pageCount == 0) {
             throw new InvalidOperationException("PDF does not contain any readable pages.");
         }
@@ -75,7 +92,7 @@ public sealed class PdfDocumentPages {
             ranges.Add(PdfPageRange.From(firstPage, lastPage));
         }
 
-        return Split(ranges);
+        return Split(ranges, options);
     }
 
     /// <summary>
@@ -87,10 +104,14 @@ public sealed class PdfDocumentPages {
             throw new ArgumentException("At least one page selection must be specified.", nameof(selections));
         }
 
+        return Split(selections, _document.ReadOptions);
+    }
+
+    private PdfDocument[] Split(PdfPageSelection[] selections, PdfReadOptions? options) {
         var documents = new PdfDocument[selections.Length];
         for (int i = 0; i < selections.Length; i++) {
             Guard.NotNull(selections[i], nameof(selections));
-            documents[i] = Extract(selections[i]);
+            documents[i] = Extract(selections[i], options);
         }
 
         return documents;
@@ -106,7 +127,17 @@ public sealed class PdfDocumentPages {
             throw new ArgumentException("At least one page range must be specified.", nameof(pageRanges));
         }
 
-        return PdfPageExtractor.SplitPageRanges(_document.Snapshot(), ranges)
+        return Split(ranges, _document.ReadOptions);
+    }
+
+    private PdfDocument[] Split(IEnumerable<PdfPageRange> pageRanges, PdfReadOptions? options) {
+        Guard.NotNull(pageRanges, nameof(pageRanges));
+        PdfPageRange[] ranges = pageRanges.ToArray();
+        if (ranges.Length == 0) {
+            throw new ArgumentException("At least one page range must be specified.", nameof(pageRanges));
+        }
+
+        return PdfPageExtractor.SplitPageRanges(_document.Snapshot(), ranges, options)
             .Select(PdfDocument.FromBytes)
             .ToArray();
     }
@@ -115,7 +146,11 @@ public sealed class PdfDocumentPages {
     /// Returns outline/bookmark-derived page ranges in document order.
     /// </summary>
     public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(params string[] bookmarkTitles) {
-        PdfDocumentInfo info = _document.Inspect();
+        return BookmarkPageRanges(_document.ReadOptions, bookmarkTitles);
+    }
+
+    private IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(PdfReadOptions? options, params string[] bookmarkTitles) {
+        PdfDocumentInfo info = _document.Inspect(options);
         PdfBookmarkPageRange[] allRanges = BuildBookmarkPageRanges(info);
         if (bookmarkTitles is null || bookmarkTitles.Length == 0) {
             return allRanges;
@@ -148,18 +183,27 @@ public sealed class PdfDocumentPages {
         return Split(ranges.Select(range => range.PageRange));
     }
 
+    private PdfDocument[] SplitByBookmarks(PdfReadOptions? options, params string[] bookmarkTitles) {
+        IReadOnlyList<PdfBookmarkPageRange> ranges = BookmarkPageRanges(options, bookmarkTitles);
+        if (ranges.Count == 0) {
+            throw new InvalidOperationException("PDF does not contain any readable bookmarks with page destinations.");
+        }
+
+        return Split(ranges.Select(range => range.PageRange), options);
+    }
+
     /// <summary>
     /// Attempts to create one PDF per page, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplit(PdfReadOptions? options = null) {
-        return _document.TryOperation("Split pages", PdfPreflightCapability.ManipulatePages, Split, options);
+        return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>("Split pages", effectiveOptions => Split(effectiveOptions), options);
     }
 
     /// <summary>
     /// Attempts to create PDFs containing consecutive groups of the requested page count.
     /// </summary>
     public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplit(int pagesPerDocument, PdfReadOptions? options = null) {
-        return _document.TryOperation("Split page groups", PdfPreflightCapability.ManipulatePages, () => Split(pagesPerDocument), options);
+        return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>("Split page groups", effectiveOptions => Split(pagesPerDocument, effectiveOptions), options);
     }
 
     /// <summary>
@@ -167,17 +211,23 @@ public sealed class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplit(IReadOnlyList<PdfPageSelection> selections, PdfReadOptions? options = null) {
         Guard.NotNull(selections, nameof(selections));
-        return _document.TryOperation("Split page selections", PdfPreflightCapability.ManipulatePages, () => Split(selections.ToArray()), options);
+        if (selections.Count == 0) {
+            return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>(
+                "Split page selections",
+                _ => throw new ArgumentException("At least one page selection must be specified.", nameof(selections)),
+                options);
+        }
+
+        return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>("Split page selections", effectiveOptions => Split(selections.ToArray(), effectiveOptions), options);
     }
 
     /// <summary>
     /// Attempts to create one PDF for each outline/bookmark-derived page range.
     /// </summary>
     public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplitByBookmarks(IReadOnlyList<string>? bookmarkTitles = null, PdfReadOptions? options = null) {
-        return _document.TryOperation(
+        return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>(
             "Split bookmarks",
-            PdfPreflightCapability.ManipulatePages,
-            () => SplitByBookmarks(bookmarkTitles is null ? Array.Empty<string>() : bookmarkTitles.ToArray()),
+            effectiveOptions => SplitByBookmarks(effectiveOptions, bookmarkTitles is null ? Array.Empty<string>() : bookmarkTitles.ToArray()),
             options);
     }
 
@@ -382,10 +432,7 @@ public sealed class PdfDocumentPages {
         }
 
         anchors = anchors
-            .Select((anchor, index) => new { Anchor = anchor, Index = index })
-            .OrderBy(item => item.Anchor.PageNumber!.Value)
-            .ThenBy(item => item.Index)
-            .Select(item => item.Anchor)
+            .OrderBy(anchor => anchor.PageNumber!.Value)
             .ToList();
 
         var ranges = new List<PdfBookmarkPageRange>(anchors.Count);
@@ -419,5 +466,49 @@ public sealed class PdfDocumentPages {
                 FlattenOutlines(outline.Children, destination);
             }
         }
+    }
+
+    private PdfOperationResult<T> TryPageExtractionOperation<T>(
+        string operationName,
+        Func<PdfReadOptions?, T> operation,
+        PdfReadOptions? options) where T : class {
+        PdfReadOptions? effectiveOptions = options ?? _document.ReadOptions;
+        PdfDocumentPreflight preflight = _document.Preflight(effectiveOptions);
+        bool canAttempt = preflight.Can(PdfPreflightCapability.ManipulatePages);
+        bool canAttemptEncryptedExtraction = !canAttempt && CanAttemptEncryptedPageExtraction(preflight);
+        if (!canAttempt && !canAttemptEncryptedExtraction) {
+            return PdfOperationResult<T>.Blocked(operationName, PdfPreflightCapability.ManipulatePages, preflight);
+        }
+
+        try {
+            return PdfOperationResult<T>.Success(
+                operationName,
+                PdfPreflightCapability.ManipulatePages,
+                preflight,
+                operation(effectiveOptions),
+                canAttemptEncryptedExtraction ? true : null);
+        } catch (Exception ex) {
+            return PdfOperationResult<T>.Failed(
+                operationName,
+                PdfPreflightCapability.ManipulatePages,
+                preflight,
+                ex,
+                canAttemptEncryptedExtraction ? true : null);
+        }
+    }
+
+    private static bool CanAttemptEncryptedPageExtraction(PdfDocumentPreflight preflight) {
+        if (!preflight.CanRead ||
+            !preflight.Probe.HasEncryption) {
+            return false;
+        }
+
+        foreach (PdfRewriteBlocker blocker in preflight.RewriteBlockers) {
+            if (blocker.Kind != PdfRewriteBlockerKind.Encryption) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

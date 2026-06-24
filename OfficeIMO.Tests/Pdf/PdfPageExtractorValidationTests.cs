@@ -46,7 +46,7 @@ public partial class PdfPageExtractorTests {
         Assert.Throws<ArgumentNullException>(() => PdfPageExtractor.ExtractPageRanges((Stream)null!, PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentNullException>(() => PdfPageExtractor.ExtractPageRanges(new MemoryStream(source), (PdfPageRange[])null!));
         Assert.Throws<ArgumentException>(() => PdfPageExtractor.ExtractPageRanges(new WriteOnlyStream(), PdfPageRange.From(1, 1)));
-        Assert.Throws<ArgumentNullException>(() => PdfPageExtractor.ExtractPageRanges(source, null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfPageExtractor.ExtractPageRanges(source, (Stream)null!, PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentException>(() => PdfPageExtractor.ExtractPageRanges(source, new ReadOnlyStream(), PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentNullException>(() => PdfPageExtractor.ExtractPageRanges(new MemoryStream(source), null!, PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentException>(() => PdfPageExtractor.ExtractPageRanges(new MemoryStream(source), new ReadOnlyStream(), PdfPageRange.From(1, 1)));

@@ -31,6 +31,11 @@ namespace OfficeIMO.Excel {
         public ApplicationProperties ApplicationProperties = null!;
 
         /// <summary>
+        /// Custom workbook properties keyed by property name.
+        /// </summary>
+        public readonly ExcelCustomDocumentPropertyCollection CustomDocumentProperties = new ExcelCustomDocumentPropertyCollection();
+
+        /// <summary>
         /// FileOpenAccess of the document
         /// </summary>
         public FileAccess FileOpenAccess => _spreadSheetDocument.FileOpenAccess;

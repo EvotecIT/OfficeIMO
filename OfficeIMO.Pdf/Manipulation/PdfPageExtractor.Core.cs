@@ -9,7 +9,8 @@ public static partial class PdfPageExtractor {
         int[] pageObjectNumbers,
         Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides = null,
         IEnumerable<AdditionalObject>? additionalObjects = null,
-        CatalogRewriteState? catalogState = null) {
+        CatalogRewriteState? catalogState = null,
+        PdfFileVersion fileVersion = PdfFileVersion.Pdf14) {
         catalogState ??= CatalogRewriteState.Empty;
         var copiedPageObjectIds = new HashSet<int>(pageObjectNumbers);
         catalogState = PruneCatalogStateForPages(sourceObjects, catalogState, copiedPageObjectIds, pageObjectNumbers);
@@ -23,15 +24,19 @@ public static partial class PdfPageExtractor {
         collector.CollectObjectGraph(catalogState.Outlines);
         collector.CollectObjectGraph(catalogState.PageLabels);
         collector.CollectObjectGraph(catalogState.NamedDestinationNameTree);
+        collector.CollectObjectGraph(catalogState.OpenAction);
         collector.CollectObjectGraph(catalogState.XmpMetadata);
         collector.CollectObjectGraph(catalogState.CatalogUri);
         collector.CollectObjectGraph(catalogState.OutputIntents);
         collector.CollectObjectGraph(catalogState.EmbeddedFiles);
         collector.CollectObjectGraph(catalogState.AssociatedFiles);
         collector.CollectObjectGraph(catalogState.OptionalContent);
-    
-        var sourceIds = collector.ObjectIds;
         var extraObjects = additionalObjects?.ToArray() ?? Array.Empty<AdditionalObject>();
+        foreach (var extraObject in extraObjects) {
+            collector.CollectObjectGraph(extraObject.Value);
+        }
+
+        var sourceIds = collector.ObjectIds;
         var numberMap = new Dictionary<int, int>();
         for (int i = 0; i < sourceIds.Count; i++) {
             numberMap[sourceIds[i]] = i + 1;
@@ -123,7 +128,7 @@ public static partial class PdfPageExtractor {
         objects.Add(WrapObject(catalogId, PdfEncoding.Latin1GetBytes(BuildCatalogDictionary(pagesId, catalogState, context))));
         objects.Add(WrapObject(infoId, PdfEncoding.Latin1GetBytes(BuildInfoDictionary(metadata))));
     
-        return Assemble(objects, catalogId, infoId);
+        return Assemble(objects, catalogId, infoId, fileVersion);
     }
     
     private static ClonedAnnotationState BuildClonedAnnotationState(

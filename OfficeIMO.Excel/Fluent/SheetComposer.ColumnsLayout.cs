@@ -199,6 +199,7 @@ namespace OfficeIMO.Excel.Fluent {
                 _sheet.AddTable(range, hasHeader: true, name: tableName, style: style, includeAutoFilter: autoFilter);
 
                 var viz = new TableVisualOptions(); visuals?.Invoke(viz);
+                _sheet.SetTableStyle(range, style, viz.ShowFirstColumn, viz.ShowLastColumn, viz.ShowRowStripes, viz.ShowColumnStripes);
                 try {
                     for (int i = 0; i < headersT.Count; i++) {
                         string hdr = headersT[i];

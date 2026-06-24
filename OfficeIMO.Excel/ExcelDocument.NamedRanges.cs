@@ -47,22 +47,23 @@ namespace OfficeIMO.Excel {
             name = EnsureValidDefinedName(name, validationMode);
 
             if (scope == null) {
+                string reference = NormalizeRange(range, validationMode); // may already contain a sheet prefix
                 // Workbook-global name: remove any existing global with same name
                 foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId == null).ToList())
                     dn.Remove();
-                string reference = NormalizeRange(range, validationMode); // may already contain a sheet prefix
                 var dnNew = new DefinedName { Name = name, Text = reference, Hidden = hidden ? true : (bool?)null };
                 definedNames.Append(dnNew);
             } else {
                 // Sheet-local name: remove existing with same name for this sheet
                 ushort sheetPos = GetSheetPositionIndex(scope);
+                string localRef = NormalizeLocalNamedRange(scope, range, validationMode);
                 foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == sheetPos).ToList())
                     dn.Remove();
-                string localRef = NormalizeLocalNamedRange(scope, range, validationMode);
                 var dnNew = new DefinedName { Name = name, Text = localRef, LocalSheetId = sheetPos, Hidden = hidden ? true : (bool?)null };
                 definedNames.Append(dnNew);
             }
-            if (save) workbook.Save();
+            MarkPackageDirty();
+            SaveWorkbookScopedChange(save);
         }
 
         /// <summary>
@@ -85,7 +86,8 @@ namespace OfficeIMO.Excel {
             string normalized = NormalizeRange($"'{EscapeSheetName(sheet.Name)}'!{range}");
             var printArea = new DefinedName { Name = "_xlnm.Print_Area", LocalSheetId = sheetPos, Text = normalized };
             definedNames.Append(printArea);
-            if (save) workbook.Save();
+            MarkPackageDirty();
+            SaveWorkbookScopedChange(save);
         }
 
         /// <summary>
@@ -176,9 +178,8 @@ namespace OfficeIMO.Excel {
             if (!definedNames.Elements<DefinedName>().Any()) {
                 WorkbookRoot.DefinedNames = null;
             }
-            if (save) {
-                WorkbookRoot.Save();
-            }
+            MarkPackageDirty();
+            SaveWorkbookScopedChange(save);
             return true;
         }
 
@@ -223,15 +224,17 @@ namespace OfficeIMO.Excel {
             // Remove existing sheet-local Print_Titles for this sheet
             ushort sheetPos = GetSheetPositionIndex(sheet);
             foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == "_xlnm.Print_Titles").ToList()) {
-                if (dn.LocalSheetId != null && dn.LocalSheetId.Value == sheetPos)
+                if (dn.LocalSheetId != null && dn.LocalSheetId.Value == sheetPos) {
                     dn.Remove();
+                    MarkPackageDirty();
+                }
             }
 
             // Nothing to set? stop here (clears existing titles)
             bool hasRows = firstRow.HasValue && lastRow.HasValue && firstRow.Value > 0 && lastRow.Value >= firstRow.Value;
             bool hasCols = firstCol.HasValue && lastCol.HasValue && firstCol.Value > 0 && lastCol.Value >= firstCol.Value;
             if (!hasRows && !hasCols) {
-                if (save) workbook.Save();
+                SaveWorkbookScopedChange(save);
                 return;
             }
 
@@ -248,7 +251,23 @@ namespace OfficeIMO.Excel {
             string text = hasRows && hasCols ? string.Concat(rowsPart, ",", colsPart) : (rowsPart ?? colsPart)!;
             var dnNew = new DefinedName { Name = "_xlnm.Print_Titles", LocalSheetId = sheetPos, Text = text };
             definedNames.Append(dnNew);
-            if (save) workbook.Save();
+            MarkPackageDirty();
+            SaveWorkbookScopedChange(save);
+        }
+
+        private void SaveWorkbookScopedChange(bool save) {
+            if (!save) {
+                return;
+            }
+
+            WorkbookRoot.Save();
+            if (_packageContentTypesKnownNormalized
+                && !string.IsNullOrEmpty(FilePath)
+                && !_copyPackageToFilePathOnDispose
+                && !_copyPackageToSourceOnDispose
+                && _spreadSheetDocument.FileOpenAccess != System.IO.FileAccess.Read) {
+                Save(FilePath, openExcel: false);
+            }
         }
 
         /// <summary>

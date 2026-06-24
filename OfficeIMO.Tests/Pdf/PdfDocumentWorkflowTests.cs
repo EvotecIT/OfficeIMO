@@ -58,6 +58,287 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void TableStyle_CanShrinkTextToFitResolvedCellWidth() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Name", "Value" },
+                new[] { "Alpha", longValue }
+            }, style: new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+        PdfLogicalTextBlock valueBlock = Assert.Single(blocks, block => block.Text.Contains(longValue, StringComparison.Ordinal));
+
+        Assert.True(valueBlock.FontSize < 18D);
+        Assert.True(valueBlock.FontSize >= 7D);
+    }
+
+    [Fact]
+    public void TableStyle_ShrinksExplicitRichRunFontSizesToFitResolvedCellWidth() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
+
+        Assert.Contains(longValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => block.FontSize < 30D && block.FontSize >= 7D);
+    }
+
+    [Fact]
+    public void TableStyle_ClampsShrunkExplicitRichRunFontSizesToMinimum() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(longValue, fontSize: 8, font: PdfStandardFont.Courier)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
+
+        Assert.Contains(longValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => Math.Abs(block.FontSize - 7D) < 0.001D);
+    }
+
+    [Fact]
+    public void TableStyle_ShrinksExplicitRichRunsWhenRowFontIsAtMinimum() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 8,
+                HeaderFontSize = 8,
+                MinimumShrinkFontSize = 8,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
+
+        Assert.Contains(longValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => Math.Abs(block.FontSize - 8D) < 0.001D);
+        Assert.DoesNotContain(blocks, block => block.FontSize > 8.001D && block.Text.Contains(longValue, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TableStyle_DoesNotEnlargeExplicitRichRunsBelowShrinkMinimum() {
+        const string tinyValue = "Tiny";
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(tinyValue, fontSize: 4, font: PdfStandardFont.Courier),
+                        TextRun.Normal(longValue)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        string raw = PdfEncoding.Latin1GetString(bytes);
+
+        Assert.Matches(@"(?s)/F\d+\s+4\s+Tf.*<54696E79>\s+Tj", raw);
+    }
+
+    [Fact]
+    public void TableStyle_ScalesExplicitRichRunsAgainstRemainingCellWidth() {
+        const string prefix = "PrefixConsumesWidth";
+        const string largeValue = "WideValue";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(prefix),
+                        TextRun.Normal(largeValue, fontSize: 30, font: PdfStandardFont.Courier)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 8,
+                HeaderFontSize = 8,
+                MinimumShrinkFontSize = 8,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
+
+        Assert.Contains(prefix + largeValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => block.Text.Contains(largeValue, StringComparison.Ordinal) && Math.Abs(block.FontSize - 8D) < 0.001D);
+        Assert.DoesNotContain(blocks, block => block.Text.Contains(largeValue, StringComparison.Ordinal) && block.FontSize > 8.001D);
+    }
+
+    [Fact]
+    public void TableStyle_ChoosesLargestFittingExplicitRichRunScale() {
+        const string prefix = "Short";
+        const string largeValue = "WideValue";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(prefix),
+                        TextRun.Normal(largeValue, fontSize: 20, font: PdfStandardFont.Courier)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 10,
+                HeaderFontSize = 10,
+                MinimumShrinkFontSize = 6,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+
+        Assert.Contains(blocks, block => block.Text.Contains(largeValue, StringComparison.Ordinal) && block.FontSize > 6.001D && block.FontSize < 20D);
+    }
+
+    [Fact]
+    public void TableStyle_CanShrinkTextToFitInsideRowColumnLayout() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180
+            })
+            .Compose(document =>
+                document.Page(page =>
+                    page.Content(content =>
+                        content.Row(row =>
+                            row.Column(100, column =>
+                                column.Table(new[] {
+                                    new[] { "Name", "Value" },
+                                    new[] { "Alpha", longValue }
+                                }, style: new PdfTableStyle {
+                                    FontSize = 18,
+                                    HeaderFontSize = 18,
+                                    MinimumShrinkFontSize = 7,
+                                    ShrinkTextToFit = true,
+                                    ColumnWidthPoints = new List<double?> { 54, 108 },
+                                    HeaderRowCount = 1
+                                }))))))
+            .ToBytes();
+
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
+
+        Assert.Contains(longValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => block.FontSize < 18D && block.FontSize >= 7D);
+    }
+
+    [Fact]
+    public void TableStyle_CanShrinkTextToFitInsideCanvasTable() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180
+            })
+            .Canvas(canvas => canvas.Table(new[] {
+                new[] { "Name", "Value" },
+                new[] { "Alpha", longValue }
+            }, 20, 20, 162, 80, new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            }))
+            .ToBytes();
+
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+        PdfLogicalTextBlock valueBlock = Assert.Single(blocks, block => block.Text.Contains(longValue, StringComparison.Ordinal));
+
+        Assert.True(valueBlock.FontSize < 18D);
+        Assert.True(valueBlock.FontSize >= 7D);
+    }
+
+    [Fact]
     public void PageSizes_ResolveExpandedStandardNames() {
         Assert.True(PageSizes.TryGet("a0", out PageSize a0));
         Assert.Equal(2384, a0.Width);
@@ -152,6 +433,11 @@ public class PdfDocumentWorkflowTests {
         PdfOperationResult<IReadOnlyList<PdfDocument>> split = PdfDocument.Open(source).Pages.TrySplit();
         Assert.True(split.Succeeded);
         Assert.Equal(3, split.RequireValue().Count);
+
+        PdfOperationResult<IReadOnlyList<PdfDocument>> emptySelectionSplit = PdfDocument.Open(source).Pages.TrySplit(Array.Empty<PdfPageSelection>());
+        Assert.False(emptySelectionSplit.Succeeded);
+        Assert.Null(emptySelectionSplit.Value);
+        Assert.Contains("At least one page selection", string.Join(" ", emptySelectionSplit.Diagnostics), StringComparison.Ordinal);
 
         PdfDocument invalid = PdfDocument.Open(Encoding.ASCII.GetBytes("not a pdf"));
         PdfOperationResult<PdfDocument> blocked = invalid.Pages.TryExtract(PdfPageSelection.From(1));
@@ -344,10 +630,10 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
-    public void PageOperations_BookmarkRangesFollowPageOrderWhenOutlineTreeIsOutOfOrder() {
-        PdfDocument bookmarkDocument = PdfDocument.Open(BuildOutOfOrderBookmarkPdf());
+    public void PageOperations_BookmarkPageRangesUsePageOrderWhenOutlineOrderDiffers() {
+        PdfDocument document = PdfDocument.Open(BuildOutOfOrderBookmarkPdf());
 
-        IReadOnlyList<PdfBookmarkPageRange> ranges = bookmarkDocument.Pages.BookmarkPageRanges();
+        IReadOnlyList<PdfBookmarkPageRange> ranges = document.Pages.BookmarkPageRanges();
 
         Assert.Equal(new[] { "Chapter One", "Chapter Two", "Chapter Three" }, ranges.Select(range => range.Title).ToArray());
         Assert.Equal(PdfPageRange.From(1, 1), ranges[0].PageRange);
@@ -765,45 +1051,65 @@ public class PdfDocumentWorkflowTests {
     }
 
     private static byte[] BuildOutOfOrderBookmarkPdf() {
-        var objects = new List<string> {
-            "<< /Type /Catalog /Pages 2 0 R /Outlines 10 0 R /PageMode /UseOutlines >>",
+        string pageOneContent = BuildStreamObject("BT /F1 12 Tf 72 720 Td (Chapter One) Tj ET");
+        string pageTwoContent = BuildStreamObject("BT /F1 12 Tf 72 720 Td (Chapter Two) Tj ET");
+        string pageThreeContent = BuildStreamObject("BT /F1 12 Tf 72 720 Td (Chapter Three) Tj ET");
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 9 0 R /PageMode /UseOutlines >>",
+            "endobj",
+            "2 0 obj",
             "<< /Type /Pages /Count 3 /Kids [3 0 R 4 0 R 5 0 R] >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 9 0 R >> >> /Contents 6 0 R >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 9 0 R >> >> /Contents 7 0 R >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 9 0 R >> >> /Contents 8 0 R >>",
-            BuildWorkflowStream("BT\n/F1 12 Tf\n72 200 Td\n(Chapter One body) Tj\nET"),
-            BuildWorkflowStream("BT\n/F1 12 Tf\n72 200 Td\n(Chapter Two body) Tj\nET"),
-            BuildWorkflowStream("BT\n/F1 12 Tf\n72 200 Td\n(Chapter Three body) Tj\nET"),
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 6 0 R >> >> /Contents 7 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 6 0 R >> >> /Contents 8 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 6 0 R >> >> /Contents 10 0 R >>",
+            "endobj",
+            "6 0 obj",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "7 0 obj",
+            pageOneContent,
+            "endobj",
+            "8 0 obj",
+            pageTwoContent,
+            "endobj",
+            "9 0 obj",
             "<< /Type /Outlines /First 11 0 R /Last 13 0 R /Count 3 >>",
-            "<< /Title (Chapter Three) /Parent 10 0 R /Next 12 0 R /Dest [5 0 R /XYZ 0 200 0] >>",
-            "<< /Title (Chapter One) /Parent 10 0 R /Prev 11 0 R /Next 13 0 R /Dest [3 0 R /XYZ 0 200 0] >>",
-            "<< /Title (Chapter Two) /Parent 10 0 R /Prev 12 0 R /Dest [4 0 R /XYZ 0 200 0] >>"
-        };
+            "endobj",
+            "10 0 obj",
+            pageThreeContent,
+            "endobj",
+            "11 0 obj",
+            "<< /Title (Chapter Three) /Parent 9 0 R /Dest [5 0 R /Fit] /Next 12 0 R >>",
+            "endobj",
+            "12 0 obj",
+            "<< /Title (Chapter One) /Parent 9 0 R /Dest [3 0 R /Fit] /Prev 11 0 R /Next 13 0 R >>",
+            "endobj",
+            "13 0 obj",
+            "<< /Title (Chapter Two) /Parent 9 0 R /Dest [4 0 R /Fit] /Prev 12 0 R >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 14 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        });
 
-        return Encoding.ASCII.GetBytes(BuildWorkflowPdf(objects));
+        return Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static string BuildWorkflowStream(string content) {
+    private static string BuildStreamObject(string content) {
         byte[] bytes = Encoding.ASCII.GetBytes(content);
-        return "<< /Length " + bytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + content + "\nendstream";
-    }
-
-    private static string BuildWorkflowPdf(IReadOnlyList<string> objects) {
-        var builder = new StringBuilder();
-        builder.AppendLine("%PDF-1.7");
-        for (int i = 0; i < objects.Count; i++) {
-            builder.Append((i + 1).ToString(CultureInfo.InvariantCulture)).AppendLine(" 0 obj");
-            builder.AppendLine(objects[i]);
-            builder.AppendLine("endobj");
-        }
-
-        builder.AppendLine("trailer");
-        builder.Append("<< /Root 1 0 R /Size ").Append(objects.Count + 1).AppendLine(" >>");
-        builder.AppendLine("startxref");
-        builder.AppendLine("123");
-        builder.AppendLine("%%EOF");
-        return builder.ToString();
+        return "<< /Length " + bytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n" +
+            content +
+            "\nendstream";
     }
 
     private static byte[] BuildPdf(string title, string text) {

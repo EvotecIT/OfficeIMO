@@ -113,34 +113,75 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
-    public void IncrementalUpdater_PreservesChangedObjectGeneration() {
-        byte[] pdf = BuildNonZeroGenerationFormPdf();
+    public void IncrementalUpdater_UpdatesButtonAppearanceStateWithoutRegeneratingAppearances() {
+        byte[] pdf = PdfDocument.Create()
+            .CheckBox("Accept", isChecked: false)
+            .ToBytes();
 
         byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
-            ["Name"] = "Grace"
+            ["Accept"] = "Yes"
         });
 
-        string text = PdfEncoding.Latin1GetString(updated);
-        Assert.True(updated.Length > pdf.Length);
-        Assert.Contains("5 2 obj", text, StringComparison.Ordinal);
-        Assert.Contains("/V <4772616365>", text, StringComparison.Ordinal);
-        Assert.Contains("/Fields [ 5 2 R ]", text, StringComparison.Ordinal);
-        Assert.Contains("00002 n", text, StringComparison.Ordinal);
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("Yes", field.Value);
+        Assert.Contains("/AS /Yes", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Form", appended, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void IncrementalUpdater_AppendsParentObjectForDirectChildFields() {
-        byte[] pdf = BuildDirectChildFormPdf();
+    public void IncrementalUpdater_ResolvesCheckboxTruthyValueToAvailableAppearanceState() {
+        byte[] pdf = PdfDocument.Create()
+            .CheckBox("Accept", isChecked: false)
+            .ToBytes();
 
         byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
-            ["Parent.Child"] = "Grace"
+            ["Accept"] = "true"
         });
 
-        PdfDocumentInfo info = PdfInspector.Inspect(updated);
-        PdfFormField field = Assert.Single(info.FormFields);
-        Assert.Equal("Parent.Child", field.Name);
-        Assert.Equal("Grace", field.Value);
-        Assert.Contains("5 0 obj", PdfEncoding.Latin1GetString(updated), StringComparison.Ordinal);
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("Yes", field.Value);
+        Assert.Contains("/V /Yes", appended, StringComparison.Ordinal);
+        Assert.Contains("/AS /Yes", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("/AS /true", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_PreservesRadioWidgetOnStatesWhenRegeneratingAppearances() {
+        byte[] pdf = PdfDocument.Create()
+            .RadioButtonGroup("Payment.Method", new[] { "Card", "Cash", "Wire" }, value: "Card")
+            .ToBytes();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Payment.Method"] = "Cash"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        byte[] updatedAgain = PdfIncrementalUpdater.UpdateFormFields(updated, new Dictionary<string, string> {
+            ["Payment.Method"] = "Card"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updatedAgain).FormFields);
+        Assert.Equal("Card", field.Value);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_RejectsInvalidNonEditableChoiceValue() {
+        byte[] pdf = PdfDocument.Create()
+            .ChoiceField("Country", new[] { "PL", "DE" }, value: "PL")
+            .ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Country"] = "US"
+        }));
     }
 
     [Fact]
@@ -148,9 +189,13 @@ public class PdfITextInspiredCoverageTests {
         byte[] pdf = BuildDocMdpFormPdf(permissionLevel: 2);
 
         PdfAppendOnlyMutationReport plan = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(pdf);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf);
         Assert.True(plan.CanAppendFormFields);
         Assert.False(plan.CanAppendMetadata);
         Assert.Contains("SignedDocMDPFormFill", plan.Warnings);
+        Assert.True(preflight.RequiresAppendOnlyMutation);
+        Assert.True(preflight.CanAppendOnlyMutate);
+        Assert.Empty(preflight.AppendOnlyMutationDiagnostics);
 
         byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
             ["Name"] = "Grace"
@@ -185,38 +230,80 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
-    public void IncrementalUpdater_BlocksDocMDPCertifiedFormFillWhenSignatureFieldLockIncludesRequestedField() {
+    public void IncrementalUpdater_BlocksDocMDPFormFillForLockedRequestedField() {
         byte[] pdf = BuildDocMdpFormPdf(
             permissionLevel: 2,
-            signatureFieldLock: " /Lock << /Type /SigFieldLock /Action /Include /Fields [(Name)] >>");
+            lockDictionary: "<< /Type /SigFieldLock /Action /Include /Fields [(Name)] >>");
 
-        PdfAppendOnlyMutationReport plan = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(pdf);
-        Assert.False(plan.CanAppendFormFields);
-        Assert.Contains("SignatureFieldLock", plan.Blockers);
-
-        var exception = Assert.Throws<NotSupportedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
             ["Name"] = "Grace"
-        }, new PdfIncrementalFormFieldUpdateOptions {
-            GenerateAppearanceStreams = true,
-            KeepNeedAppearances = false
         }));
-        Assert.Contains("SignatureFieldLock", exception.Message, StringComparison.Ordinal);
+
+        Assert.Contains("locked by a signature field lock", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void IncrementalUpdater_BlocksDocMDPCertifiedFormFillWhenSignatureFieldLockIncludesParentField() {
+    public void IncrementalUpdater_AllowsHierarchicalDocMDPFieldLockExclude() {
         byte[] pdf = BuildDocMdpFormPdf(
             permissionLevel: 2,
-            signatureFieldLock: " /Lock << /Type /SigFieldLock /Action /Include /Fields [(Billing)] >>",
-            textFieldName: "Billing.Name");
+            lockDictionary: "<< /Type /SigFieldLock /Action /Exclude /Fields [(Parent)] >>",
+            fieldName: "Parent.Child");
 
-        var exception = Assert.Throws<NotSupportedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
-            ["Billing.Name"] = "Grace"
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Parent.Child"] = "Grace"
+        });
+
+        PdfFormField textField = Assert.Single(PdfInspector.Inspect(updated).FormFields, static field => field.Name == "Parent.Child");
+        Assert.Equal("Grace", textField.Value);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_PreservesObjectGenerationWhenAppendingFormFieldRevision() {
+        byte[] pdf = BuildGeneratedFormPdf();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Grace"
+        });
+
+        string updatedText = PdfEncoding.Latin1GetString(updated);
+        int originalLength = PdfEncoding.Latin1GetString(pdf).Length;
+        int appendedFieldObject = updatedText.IndexOf("5 2 obj\n", originalLength, StringComparison.Ordinal);
+
+        Assert.True(appendedFieldObject >= originalLength);
+        Assert.Contains("\n5 1\n", updatedText, StringComparison.Ordinal);
+        Assert.Contains(" 00002 n ", updatedText, StringComparison.Ordinal);
+        Assert.Contains("[ 5 2 R ]", updatedText, StringComparison.Ordinal);
+        Assert.Equal("Grace", Assert.Single(PdfInspector.Inspect(updated).FormFields).Value);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_PreservesTrailerReferenceGenerationsWhenAppendingFormFieldRevision() {
+        byte[] pdf = BuildGeneratedFormPdfWithTrailerGenerations();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Grace"
+        });
+
+        string updatedText = PdfEncoding.Latin1GetString(updated);
+        int appendedTrailer = updatedText.LastIndexOf("trailer", StringComparison.Ordinal);
+
+        Assert.True(appendedTrailer >= PdfEncoding.Latin1GetString(pdf).Length);
+        Assert.Contains("/Root 1 2 R", updatedText.Substring(appendedTrailer), StringComparison.Ordinal);
+        Assert.Contains("/Info 8 3 R", updatedText.Substring(appendedTrailer), StringComparison.Ordinal);
+        Assert.Equal("Grace", Assert.Single(PdfInspector.Inspect(updated).FormFields).Value);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_RejectsUnknownRadioButtonState() {
+        byte[] pdf = PdfDocument.Create()
+            .RadioButtonGroup("Payment.Method", new[] { "Card", "Cash", "Wire" }, value: "Card")
+            .ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Payment.Method"] = "Crypto"
         }, new PdfIncrementalFormFieldUpdateOptions {
-            GenerateAppearanceStreams = true,
-            KeepNeedAppearances = false
+            GenerateAppearanceStreams = true
         }));
-        Assert.Contains("SignatureFieldLock", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -231,6 +318,213 @@ public class PdfITextInspiredCoverageTests {
         Assert.Equal(14, geometry.TrimBox.Bottom);
         Assert.Equal(222, geometry.TrimBox.Right);
         Assert.Equal(244, geometry.TrimBox.Top);
+    }
+
+    [Fact]
+    public void PageEditor_SetPageBoxPreservesSourceHeaderVersion() {
+        byte[] pdf = BuildVersionedPageBoxPdf("2.0");
+
+        byte[] updated = PdfPageEditor.SetPageBox(pdf, "TrimBox", 12, 14, 222, 244);
+        PdfDocumentInfo info = PdfInspector.Inspect(updated);
+
+        Assert.StartsWith("%PDF-2.0", PdfEncoding.Latin1GetString(updated), StringComparison.Ordinal);
+        Assert.Equal("2.0", info.HeaderVersion);
+        Assert.Equal("2.0", info.EffectiveVersion);
+        Assert.Equal(12, info.Pages[0].Geometry!.TrimBox!.Left);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesTransformsAnnotationsAndNormalizesProductionBoxes() {
+        byte[] pdf = BuildResizableAnnotatedPagePdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+        PdfPageGeometry geometry = info.Pages[0].Geometry!;
+        PdfAnnotation annotation = Assert.Single(info.GetAnnotationsBySubtype("Link"));
+        string raw = Encoding.ASCII.GetString(resized);
+
+        Assert.Equal(600, geometry.MediaBox.Width);
+        Assert.Equal(600, geometry.CropBox!.Width);
+        Assert.Equal(600, geometry.TrimBox!.Width);
+        Assert.Equal(600, geometry.BleedBox!.Width);
+        Assert.Equal(600, geometry.ArtBox!.Width);
+        Assert.Equal(120, annotation.X1);
+        Assert.Equal(420, annotation.Y1);
+        Assert.Equal(240, annotation.X2);
+        Assert.Equal(540, annotation.Y2);
+        Assert.Contains("/UserUnit 1", raw, StringComparison.Ordinal);
+        Assert.Contains("/Rotate 0", raw, StringComparison.Ordinal);
+        Assert.Contains("0 -6 6 0 -60 660 cm", raw, StringComparison.Ordinal);
+        Assert.Contains("10 10 100 100 re\nW n", raw, StringComparison.Ordinal);
+        Assert.Contains("/QuadPoints [ 420 540 420 420 360 540 360 420 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/L [ 120 540 240 420 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/Vertices [ 120 540 240 420 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/InkList [ [ 120 540 240 420 ] ]", raw, StringComparison.Ordinal);
+
+        Assert.NotNull(info.OpenAction);
+        Assert.Equal(420, info.OpenAction!.DestinationLeft);
+        Assert.Equal(540, info.OpenAction.DestinationTop);
+        PdfNamedDestination namedDestination = Assert.Single(info.NamedDestinations, destination => destination.Name == "Target");
+        Assert.Equal(420, namedDestination.DestinationLeft);
+        Assert.Equal(540, namedDestination.DestinationTop);
+        PdfOutlineItem outline = Assert.Single(info.Outlines);
+        Assert.Equal(420, outline.DestinationLeft);
+        Assert.Equal(540, outline.DestinationTop);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesTransformsDestinationsFromUnresizedPages() {
+        byte[] pdf = BuildResizableTwoPageLinkPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        }, 1);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+        PdfLinkAnnotation link = Assert.Single(info.Pages[1].LinkAnnotations);
+
+        Assert.Equal(60, link.DestinationLeft);
+        Assert.Equal(420, link.DestinationTop);
+        Assert.Equal(600, info.Pages[0].Geometry!.MediaBox.Width);
+        Assert.Equal(300, info.Pages[1].Geometry!.MediaBox.Width);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesConvertsRotatedFitDestinationsToConcretePoints() {
+        byte[] pdf = BuildResizableRotatedFitDestinationPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+
+        Assert.NotNull(info.OpenAction);
+        Assert.Equal(PdfOpenActionDestinationMode.Xyz, info.OpenAction!.DestinationMode);
+        Assert.Equal(420, info.OpenAction.DestinationLeft);
+        Assert.Equal(600, info.OpenAction.DestinationTop);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesConvertsRotatedPartialXyzDestinationsToConcretePoints() {
+        byte[] pdf = BuildResizableRotatedPartialXyzDestinationPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+
+        Assert.NotNull(info.OpenAction);
+        Assert.Equal(PdfOpenActionDestinationMode.Xyz, info.OpenAction!.DestinationMode);
+        Assert.Equal(420, info.OpenAction.DestinationLeft);
+        Assert.Equal(600, info.OpenAction.DestinationTop);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesFillClipsToMarginBoxBeforeScaling() {
+        byte[] pdf = BuildResizableTallPagePdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Fill,
+            Margin = 50
+        });
+        string raw = PdfEncoding.Latin1GetString(resized);
+
+        int targetClip = raw.IndexOf("50 50 500 500 re\nW n\n", StringComparison.Ordinal);
+        int transform = raw.IndexOf("5 0 0 5 50 -450 cm\n", StringComparison.Ordinal);
+        int sourceClip = raw.IndexOf("0 0 100 300 re\nW n\n", StringComparison.Ordinal);
+        Assert.True(targetClip >= 0, "Expected resized content stream to clip to the target margin box.");
+        Assert.True(transform > targetClip, "Expected target-space margin clipping before the resize transform.");
+        Assert.True(sourceClip > transform, "Expected source-space clipping after the resize transform.");
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesFillClipsAnnotationRectanglesToMarginBox() {
+        byte[] pdf = BuildResizableTallPageWithCroppedAnnotationsPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Fill,
+            Margin = 50
+        });
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+        string raw = PdfEncoding.Latin1GetString(resized);
+
+        PdfAnnotation annotation = Assert.Single(info.GetAnnotationsBySubtype("Link"));
+        Assert.Equal(100, annotation.X1);
+        Assert.Equal(50, annotation.Y1);
+        Assert.Equal(200, annotation.X2);
+        Assert.Equal(100, annotation.Y2);
+        Assert.Contains("/Rect [ 100 50 200 100 ]", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("https://example.com/clipped-away", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesTransformsSharedIndirectDestinationsOnce() {
+        byte[] pdf = BuildResizableSharedDestinationPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+
+        Assert.Equal(2, info.Pages[0].LinkAnnotations.Count);
+        Assert.All(info.Pages[0].LinkAnnotations, link => {
+            Assert.Equal(60, link.DestinationLeft);
+            Assert.Equal(420, link.DestinationTop);
+        });
+        Assert.NotNull(info.OpenAction);
+        Assert.Equal(60, info.OpenAction!.DestinationLeft);
+        Assert.Equal(420, info.OpenAction.DestinationTop);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesTransformsIndirectAnnotationGeometryArrays() {
+        byte[] pdf = BuildResizableIndirectAnnotationGeometryPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+        string raw = PdfEncoding.Latin1GetString(resized);
+
+        Assert.Contains("/Rect [ 60 120 180 240 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/QuadPoints [ 60 420 180 420 60 360 180 360 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/InkList [ [ 60 420 180 360 ] ]", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Rect 7 0 R", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/QuadPoints 8 0 R", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/InkList 9 0 R", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesRemapsPopupAnnotationReferencesToTransformedClones() {
+        byte[] pdf = BuildResizablePopupAnnotationPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+        string raw = PdfEncoding.Latin1GetString(resized);
+
+        Assert.DoesNotContain("/Rect [ 50 50 150 120 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/Rect [ 240 240 600 600 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/Popup", raw, StringComparison.Ordinal);
+        Assert.Contains("/Parent", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesCollectsClonedAnnotationActionDependencies() {
+        byte[] pdf = BuildResizableAnnotationActionPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+        string raw = PdfEncoding.Latin1GetString(resized);
+
+        Assert.Contains("/A ", raw, StringComparison.Ordinal);
+        Assert.Contains("/URI (https://example.com/review)", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -296,93 +590,75 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
-    public void AnnotationEditor_UpdateRejectsNonAnnotationSubtypeObjects() {
+    public void AnnotationEditor_InvalidatesAppearanceWhenUpdatingVisibleAnnotationText() {
         byte[] pdf = BuildAnnotationEditPdf();
 
-        var exception = Assert.Throws<ArgumentException>(() => PdfAnnotationEditor.UpdateAnnotation(pdf, 4, new PdfAnnotationUpdateOptions {
-            Contents = "Do not write annotation keys into a font"
-        }));
+        PdfAnnotationEditResult updated = PdfAnnotationEditor.UpdateAnnotation(pdf, 6, new PdfAnnotationUpdateOptions {
+            Contents = "Updated note"
+        });
 
-        Assert.Contains("PDF annotation object was not found", exception.Message, StringComparison.Ordinal);
+        string annotationObject = ExtractObjectBlock(PdfEncoding.Latin1GetString(updated.Bytes), 6);
+        PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(updated.Bytes).GetAnnotationsBySubtype("Text"));
+
+        Assert.True(updated.Applied);
+        Assert.Equal("Updated note", annotation.Contents);
+        Assert.DoesNotContain("/AP", annotationObject, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AnnotationEditor_UpdateRejectsNonFiniteColorComponents() {
+    public void AnnotationEditor_PrunesOrphanedAppearanceAndActionObjectsWhenUpdating() {
         byte[] pdf = BuildAnnotationEditPdf();
 
-        var exception = Assert.Throws<ArgumentException>(() => PdfAnnotationEditor.UpdateAnnotation(pdf, 6, new PdfAnnotationUpdateOptions {
-            Color = new[] { 0D, double.NaN, 1D }
+        PdfAnnotationEditResult updated = PdfAnnotationEditor.UpdateAnnotation(pdf, 6, new PdfAnnotationUpdateOptions {
+            Contents = "Updated note",
+            RemoveActions = true
+        });
+        string raw = PdfEncoding.Latin1GetString(updated.Bytes);
+
+        Assert.True(updated.Applied);
+        Assert.DoesNotContain("Old note appearance", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("old-action", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnnotationEditor_RejectsNonAnnotationDictionaryWithSubtype() {
+        byte[] pdf = BuildAnnotationEditPdf();
+
+        Assert.Throws<ArgumentException>(() => PdfAnnotationEditor.UpdateAnnotation(pdf, 4, new PdfAnnotationUpdateOptions {
+            Contents = "Not an annotation"
         }));
-
-        Assert.Contains("finite RGB", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AnnotationEditor_RemovesDirectAnnotationDictionaries() {
-        byte[] pdf = BuildDirectAnnotationPdf();
-
-        PdfAnnotationEditResult removed = PdfAnnotationEditor.RemoveAnnotations(pdf, new PdfAnnotationRemovalOptions {
-            Subtype = "Text"
-        });
-
-        string text = PdfEncoding.Latin1GetString(removed.Bytes);
-        Assert.True(removed.Applied);
-        Assert.Equal(1, removed.AffectedAnnotationCount);
-        Assert.DoesNotContain("Direct note", text, StringComparison.Ordinal);
-        Assert.Equal(0, PdfInspector.Inspect(removed.Bytes).AnnotationCount);
-    }
-
-    [Fact]
-    public void AnnotationEditor_RemovesPopupReferencesWhenRemovingParentAnnotation() {
-        byte[] pdf = BuildAnnotationWithLinkedPopupPdf();
-
-        PdfAnnotationEditResult removed = PdfAnnotationEditor.RemoveAnnotations(pdf, new PdfAnnotationRemovalOptions {
-            Subtype = "Text"
-        });
-
-        PdfDocumentInfo info = PdfInspector.Inspect(removed.Bytes);
-        string text = PdfEncoding.Latin1GetString(removed.Bytes);
-        Assert.True(removed.Applied);
-        Assert.Equal(2, removed.AffectedAnnotationCount);
-        Assert.Equal(0, info.AnnotationCount);
-        Assert.DoesNotContain("/Subtype /Popup", text, StringComparison.Ordinal);
-        Assert.DoesNotContain("/Popup 7 0 R", text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void AnnotationEditor_ClearsParentPopupReferenceWhenRemovingPopupAnnotation() {
-        byte[] pdf = BuildAnnotationWithLinkedPopupPdf();
+    public void AnnotationEditor_ClearsParentPopupReferencesWhenRemovingPopupAnnotations() {
+        byte[] pdf = BuildAnnotationWithPopupPdf();
 
         PdfAnnotationEditResult removed = PdfAnnotationEditor.RemoveAnnotations(pdf, new PdfAnnotationRemovalOptions {
             Subtype = "Popup"
         });
+        string raw = PdfEncoding.Latin1GetString(removed.Bytes);
 
-        PdfDocumentInfo info = PdfInspector.Inspect(removed.Bytes);
-        string text = PdfEncoding.Latin1GetString(removed.Bytes);
         Assert.True(removed.Applied);
-        Assert.Equal(1, removed.AffectedAnnotationCount);
-        Assert.Single(info.GetAnnotationsBySubtype("Text"));
-        Assert.Empty(info.GetAnnotationsBySubtype("Popup"));
-        Assert.DoesNotContain("/Subtype /Popup", text, StringComparison.Ordinal);
-        Assert.DoesNotContain("/Popup 7 0 R", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Popup", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Popup", raw, StringComparison.Ordinal);
+        Assert.Single(PdfInspector.Inspect(removed.Bytes).GetAnnotationsBySubtype("Text"));
     }
 
     [Fact]
-    public void AnnotationEditor_ClearsDirectParentPopupReferenceWhenRemovingPopupAnnotation() {
-        byte[] pdf = BuildDirectAnnotationWithLinkedPopupPdf();
+    public void PdfOptions_RejectsEncryptionWithPdfABackedGroundwork() {
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(
+                new PdfOptions()
+                    .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4)
+                    .SetEncryption("open"))
+            .Paragraph(p => p.Text("PDF/A and encryption should not mix."))
+            .ToBytes());
 
-        PdfAnnotationEditResult removed = PdfAnnotationEditor.RemoveAnnotations(pdf, new PdfAnnotationRemovalOptions {
-            Subtype = "Popup"
-        });
-
-        PdfDocumentInfo info = PdfInspector.Inspect(removed.Bytes);
-        string text = PdfEncoding.Latin1GetString(removed.Bytes);
-        Assert.True(removed.Applied);
-        Assert.Equal(1, removed.AffectedAnnotationCount);
-        Assert.Single(info.GetAnnotationsBySubtype("Text"));
-        Assert.Empty(info.GetAnnotationsBySubtype("Popup"));
-        Assert.DoesNotContain("/Subtype /Popup", text, StringComparison.Ordinal);
-        Assert.DoesNotContain("/Popup 7 0 R", text, StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(
+                new PdfOptions()
+                    .ConfigureFacturXGroundwork(Encoding.UTF8.GetBytes("<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:invoice\"/>"))
+                    .SetEncryption("open"))
+            .Paragraph(p => p.Text("Factur-X and encryption should not mix."))
+            .ToBytes());
     }
 
     [Fact]
@@ -438,80 +714,78 @@ public class PdfITextInspiredCoverageTests {
 
     private static byte[] BuildAnnotationEditPdf() {
         byte[] contentBytes = Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n72 720 Td\n(Annotation editing) Tj\nET\n");
+        byte[] appearanceBytes = Encoding.ASCII.GetBytes("BT /F1 12 Tf 0 0 Td (Old note appearance) Tj ET");
         var objects = new List<string> {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             BuildStream(contentBytes),
-            "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Review note) /F 132 /NM (Note-1) /T (Reviewer) /M (D:20260622090000Z) /C [1 0 0] /A << /S /URI /URI (https://example.com) >> >>"
+            "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Review note) /F 132 /NM (Note-1) /T (Reviewer) /M (D:20260622090000Z) /C [1 0 0] /AP << /N 7 0 R >> /A 8 0 R >>",
+            BuildStream(appearanceBytes),
+            "<< /S /URI /URI (https://example.com/old-action) >>"
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));
     }
 
-    private static byte[] BuildDirectAnnotationPdf() {
-        byte[] contentBytes = Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n72 720 Td\n(Direct annotation) Tj\nET\n");
-        var objects = new List<string> {
-            "<< /Type /Catalog /Pages 2 0 R >>",
-            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Direct note) >>] /Contents 5 0 R >>",
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            BuildStream(contentBytes)
-        };
-
-        return Encoding.ASCII.GetBytes(BuildPdf(objects));
-    }
-
-    private static byte[] BuildAnnotationWithLinkedPopupPdf() {
-        byte[] contentBytes = Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n72 720 Td\n(Popup annotation) Tj\nET\n");
+    private static byte[] BuildAnnotationWithPopupPdf() {
+        byte[] contentBytes = Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n72 720 Td\n(Annotation popup cleanup) Tj\nET\n");
         var objects = new List<string> {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R 7 0 R] /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             BuildStream(contentBytes),
-            "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Parent note) /Popup 7 0 R >>",
-            "<< /Type /Annot /Subtype /Popup /Rect [45 20 120 80] /Parent 6 0 R >>"
+            "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Review note) /Popup 7 0 R >>",
+            "<< /Type /Annot /Subtype /Popup /Rect [50 50 150 120] /Parent 6 0 R >>"
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));
     }
 
-    private static byte[] BuildDirectAnnotationWithLinkedPopupPdf() {
-        byte[] contentBytes = Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n72 720 Td\n(Direct popup annotation) Tj\nET\n");
+    private static string ExtractObjectBlock(string pdf, int objectNumber) {
+        string marker = objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj";
+        int start = pdf.IndexOf(marker, StringComparison.Ordinal);
+        Assert.True(start >= 0);
+        int end = pdf.IndexOf("endobj", start, StringComparison.Ordinal);
+        Assert.True(end > start);
+        return pdf.Substring(start, end - start);
+    }
+
+    private static byte[] BuildDocMdpFormPdf(int permissionLevel, string? lockDictionary = null, string fieldName = "Name") {
+        string lockEntry = string.IsNullOrWhiteSpace(lockDictionary) ? string.Empty : " /Lock " + lockDictionary;
         var objects = new List<string> {
-            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 8 0 R /Perms << /DocMDP 7 0 R >> >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Direct parent note) /Popup 7 0 R >> 7 0 R] /Contents 5 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 0 R 6 0 R] /Contents 9 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            BuildStream(contentBytes),
-            "<< /Producer (OfficeIMO) >>",
-            "<< /Type /Annot /Subtype /Popup /Rect [45 20 120 80] >>"
+            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (" + fieldName + ") /V (Ada) /Rect [50 50 180 70] /F 4 >>",
+            "<< /FT /Sig /T (Approval) /V 7 0 R /Subtype /Widget /Rect [10 10 120 40]" + lockEntry + " >>",
+            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 10 20 30] /Contents <001122> /Reference [<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /V /1.2 /P " + permissionLevel.ToString(CultureInfo.InvariantCulture) + " >> >>] >>",
+            "<< /Fields [5 0 R 6 0 R] /SigFlags 3 >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Signed form) Tj ET"))
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));
     }
 
-    private static byte[] BuildNonZeroGenerationFormPdf() {
-        byte[] contentBytes = Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Generated form) Tj ET");
-        var objects = new List<(int Number, int Generation, string Body)> {
+    private static byte[] BuildGeneratedFormPdf() {
+        var entries = new List<(int ObjectNumber, int Generation, string Body)> {
             (1, 0, "<< /Type /Catalog /Pages 2 0 R /AcroForm 6 0 R >>"),
             (2, 0, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>"),
             (3, 0, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 2 R] /Contents 7 0 R >>"),
             (4, 0, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"),
             (5, 2, "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Name) /V (Ada) /Rect [50 50 180 70] /F 4 >>"),
-            (6, 0, "<< /Fields [5 2 R] >>"),
-            (7, 0, BuildStream(contentBytes))
+            (6, 0, "<< /Fields [5 2 R] /SigFlags 2 >>"),
+            (7, 0, BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Generated form) Tj ET")))
         };
 
         var builder = new StringBuilder();
         builder.AppendLine("%PDF-1.7");
-        foreach ((int number, int generation, string body) in objects) {
-            builder.Append(number.ToString(CultureInfo.InvariantCulture))
-                .Append(' ')
-                .Append(generation.ToString(CultureInfo.InvariantCulture))
-                .AppendLine(" obj");
+        foreach ((int objectNumber, int generation, string body) in entries) {
+            builder.Append(objectNumber.ToString(CultureInfo.InvariantCulture)).Append(' ')
+                .Append(generation.ToString(CultureInfo.InvariantCulture)).AppendLine(" obj");
             builder.AppendLine(body);
             builder.AppendLine("endobj");
         }
@@ -524,30 +798,181 @@ public class PdfITextInspiredCoverageTests {
         return Encoding.ASCII.GetBytes(builder.ToString());
     }
 
-    private static byte[] BuildDirectChildFormPdf() {
+    private static byte[] BuildGeneratedFormPdfWithTrailerGenerations() {
+        var entries = new List<(int ObjectNumber, int Generation, string Body)> {
+            (1, 2, "<< /Type /Catalog /Pages 2 0 R /AcroForm 6 0 R >>"),
+            (2, 0, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>"),
+            (3, 0, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 0 R] /Contents 7 0 R >>"),
+            (4, 0, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"),
+            (5, 0, "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Name) /V (Ada) /Rect [50 50 180 70] /F 4 >>"),
+            (6, 0, "<< /Fields [5 0 R] /SigFlags 2 >>"),
+            (7, 0, BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Generated form) Tj ET"))),
+            (8, 3, "<< /Producer (OfficeIMO) >>")
+        };
+
+        var builder = new StringBuilder();
+        builder.AppendLine("%PDF-1.7");
+        foreach ((int objectNumber, int generation, string body) in entries) {
+            builder.Append(objectNumber.ToString(CultureInfo.InvariantCulture)).Append(' ')
+                .Append(generation.ToString(CultureInfo.InvariantCulture)).AppendLine(" obj");
+            builder.AppendLine(body);
+            builder.AppendLine("endobj");
+        }
+
+        builder.AppendLine("trailer");
+        builder.AppendLine("<< /Root 1 2 R /Info 8 3 R /Size 9 >>");
+        builder.AppendLine("startxref");
+        builder.AppendLine("123");
+        builder.AppendLine("%%EOF");
+        return Encoding.ASCII.GetBytes(builder.ToString());
+    }
+
+    private static byte[] BuildVersionedPageBoxPdf(string version) {
         var objects = new List<string> {
-            "<< /Type /Catalog /Pages 2 0 R /AcroForm 6 0 R >>",
+            "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R >>",
-            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Direct child form) Tj ET")),
-            "<< /T (Parent) /Kids [<< /Type /Annot /Subtype /Widget /FT /Tx /T (Child) /V (Ada) /Rect [50 50 180 70] /F 4 >>] >>",
-            "<< /Fields [5 0 R] >>"
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R /UserUnit 2 >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Versioned page box) Tj ET"))
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects).Replace("%PDF-1.7", "%PDF-" + version));
+    }
+
+    private static byte[] BuildResizableAnnotatedPagePdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /XYZ 20 80 1] /Dests << /Target [3 0 R /XYZ 20 80 1] >> /Outlines 7 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /BleedBox [5 5 295 295] /TrimBox [10 10 290 290] /ArtBox [20 20 280 280] /UserUnit 2 /Rotate 90 /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Resize source) Tj ET")),
+            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /QuadPoints [20 80 40 80 20 70 40 70] /L [20 30 40 50] /Vertices [20 30 40 50] /InkList [[20 30 40 50]] /Dest [3 0 R /XYZ 20 80 1] >>",
+            "<< /Type /Outlines /First 8 0 R /Last 8 0 R /Count 1 >>",
+            "<< /Title (Target) /Parent 7 0 R /Dest [3 0 R /XYZ 20 80 1] >>"
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));
     }
 
-    private static byte[] BuildDocMdpFormPdf(int permissionLevel, string signatureFieldLock = "", string textFieldName = "Name") {
+    private static byte[] BuildResizableTwoPageLinkPdf() {
         var objects = new List<string> {
-            "<< /Type /Catalog /Pages 2 0 R /AcroForm 8 0 R /Perms << /DocMDP 7 0 R >> >>",
-            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 0 R 6 0 R] /Contents 9 0 R >>",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 7 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (" + textFieldName + ") /V (Ada) /Rect [50 50 180 70] /F 4 >>",
-            "<< /FT /Sig /T (Approval) /V 7 0 R /Subtype /Widget /Rect [10 10 120 40]" + signatureFieldLock + " >>",
-            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 10 20 30] /Contents <001122> /Reference [<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /V /1.2 /P " + permissionLevel.ToString(CultureInfo.InvariantCulture) + " >> >>] >>",
-            "<< /Fields [5 0 R 6 0 R] /SigFlags 3 >>",
-            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Signed form) Tj ET"))
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Resize target) Tj ET")),
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Link source) Tj ET")),
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [8 0 R] /Contents 6 0 R >>",
+            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /Dest [3 0 R /XYZ 20 80 1] >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableRotatedFitDestinationPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /FitH 80] >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Rotate 90 /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Fit target) Tj ET"))
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableRotatedPartialXyzDestinationPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /XYZ null 80 1] >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Rotate 90 /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Partial XYZ target) Tj ET"))
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableTallPagePdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 10 280 Td (Fill should crop to margins) Tj ET"))
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableTallPageWithCroppedAnnotationsPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R 7 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 10 280 Td (Fill annotations should crop to margins) Tj ET")),
+            "<< /Type /Annot /Subtype /Link /Rect [10 90 30 110] /A << /S /URI /URI (https://example.com/kept) >> >>",
+            "<< /Type /Annot /Subtype /Link /Rect [10 10 30 20] /A << /S /URI /URI (https://example.com/clipped-away) >> >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableSharedDestinationPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction 8 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R 7 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Shared target) Tj ET")),
+            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /Dest 8 0 R >>",
+            "<< /Type /Annot /Subtype /Link /Rect [60 30 80 50] /Dest 8 0 R >>",
+            "[3 0 R /XYZ 20 80 1]"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableIndirectAnnotationGeometryPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Indirect geometry) Tj ET")),
+            "<< /Type /Annot /Subtype /Link /Rect 7 0 R /QuadPoints 8 0 R /InkList 9 0 R /Dest [3 0 R /XYZ 20 80 1] >>",
+            "[20 30 40 50]",
+            "[20 80 40 80 20 70 40 70]",
+            "[[20 80 40 70]]"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizablePopupAnnotationPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R 7 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Popup geometry) Tj ET")),
+            "<< /Type /Annot /Subtype /Text /Rect [20 30 40 50] /Popup 7 0 R /Contents (Note) >>",
+            "<< /Type /Annot /Subtype /Popup /Rect [50 50 150 120] /Parent 6 0 R >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableAnnotationActionPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Action dependency) Tj ET")),
+            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /A 7 0 R >>",
+            "<< /S /URI /URI (https://example.com/review) >>"
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));

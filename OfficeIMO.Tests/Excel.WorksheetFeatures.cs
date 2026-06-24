@@ -654,6 +654,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WorksheetTabColorSetClearAndInspect() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetTabColor.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Colored");
+                sheet.CellValue(1, 1, "Header");
+                sheet.SetTabColor("#336699");
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TabColor tabColor = wsPart.Worksheet.GetFirstChild<SheetProperties>()!.TabColor!;
+                Assert.Equal("FF336699", tabColor.Rgb!.Value);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelWorksheetSnapshot worksheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+                Assert.Equal("FF336699", worksheet.TabColorArgb);
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.First();
+                sheet.ClearTabColor();
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Assert.Null(wsPart.Worksheet.GetFirstChild<SheetProperties>()?.TabColor);
+            }
+        }
+
+        [Fact]
         public void Test_WorksheetVeryHiddenPersistence() {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetVeryHidden.xlsx");
 
@@ -688,6 +722,196 @@ namespace OfficeIMO.Tests {
                 Sheets sheets = workbook.Sheets!;
                 var workbookSheet = sheets.OfType<Sheet>().First(s => s.Name == "Internal");
                 Assert.Null(workbookSheet.State);
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetViewInfoReadsFreezeAndGridlines() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetViewInfo.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("View");
+                sheet.CellValue(1, 1, "Header");
+                sheet.Freeze(2, 1);
+                sheet.SetGridlinesVisible(false);
+                document.Save(false);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                var sheet = document.Sheets.First();
+                ExcelWorksheetViewInfo view = sheet.GetViewInfo();
+
+                Assert.True(view.HasPane);
+                Assert.Equal("frozen", view.PaneState);
+                Assert.Equal(2, view.FrozenRowCount);
+                Assert.Equal(1, view.FrozenColumnCount);
+                Assert.Equal(2D, view.VerticalSplit);
+                Assert.Equal(1D, view.HorizontalSplit);
+                Assert.Equal("B3", view.TopLeftCell);
+                Assert.Equal("bottomRight", view.ActivePane);
+                Assert.False(view.ShowGridlines);
+                Assert.False(view.RightToLeft);
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetViewOptionsSetZoomDirectionGridlinesAndMode() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetViewOptions.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("View");
+                sheet.CellValue(1, 1, "Header");
+                sheet.SetViewOptions(showGridlines: false, rightToLeft: true, zoomScale: 125, zoomScaleNormal: 100, view: ExcelWorksheetViewKind.PageLayout);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                SheetView sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
+                Assert.False(sheetView.ShowGridLines!.Value);
+                Assert.True(sheetView.RightToLeft!.Value);
+                Assert.Equal(125U, sheetView.ZoomScale!.Value);
+                Assert.Equal(100U, sheetView.ZoomScaleNormal!.Value);
+                Assert.Equal(SheetViewValues.PageLayout, sheetView.View!.Value);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                var sheet = document.Sheets.First();
+                ExcelWorksheetViewInfo view = sheet.GetViewInfo();
+                Assert.False(view.ShowGridlines);
+                Assert.True(view.RightToLeft);
+                Assert.Equal(125U, view.ZoomScale);
+                Assert.Equal(100U, view.ZoomScaleNormal);
+                Assert.Equal("pageLayout", view.View);
+
+                ExcelWorksheetSnapshot worksheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+                Assert.False(worksheet.ShowGridlines);
+                Assert.True(worksheet.RightToLeft);
+                Assert.Equal(125U, worksheet.ZoomScale);
+                Assert.Equal(100U, worksheet.ZoomScaleNormal);
+                Assert.Equal("pageLayout", worksheet.View);
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetViewOptions_StreamBackedWorkbookPersistsOnDispose() {
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream)) {
+                var sheet = document.AddWorkSheet("View");
+                sheet.CellValue(1, 1, "Header");
+                sheet.SetViewOptions(showGridlines: false, rightToLeft: true);
+            }
+
+            stream.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(stream, false);
+            WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            SheetView sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
+            Assert.False(sheetView.ShowGridLines!.Value);
+            Assert.True(sheetView.RightToLeft!.Value);
+        }
+
+        [Fact]
+        public void Test_WorkbookActiveWorksheetSetAndInspect() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookActiveWorksheet.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var summary = document.AddWorkSheet("Summary");
+                summary.CellValue(1, 1, "Summary");
+                var details = document.AddWorkSheet("Details");
+                details.CellValue(1, 1, "Details");
+                var archive = document.AddWorkSheet("Archive");
+                archive.CellValue(1, 1, "Archive");
+                document.SetActiveWorksheet(details);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                Workbook workbook = spreadsheet.WorkbookPart!.Workbook;
+                WorkbookView workbookView = workbook.GetFirstChild<BookViews>()!.GetFirstChild<WorkbookView>()!;
+                Assert.Equal(1U, workbookView.ActiveTab!.Value);
+                Assert.Equal(1U, workbookView.FirstSheet!.Value);
+
+                var sheets = workbook.Sheets!.Elements<Sheet>().ToArray();
+                for (int index = 0; index < sheets.Length; index++) {
+                    var worksheetPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(sheets[index].Id!);
+                    SheetView sheetView = worksheetPart.Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
+                    Assert.Equal(index == 1, sheetView.TabSelected!.Value);
+                }
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                Assert.Equal(1, snapshot.ActiveWorksheetIndex);
+                Assert.Equal("Details", snapshot.ActiveWorksheetName);
+                Assert.False(snapshot.Worksheets[0].IsActive);
+                Assert.True(snapshot.Worksheets[1].IsActive);
+                Assert.False(snapshot.Worksheets[2].IsActive);
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetOutlineGroupsRowsAndColumnsWithSnapshotReadback() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetOutlineGroups.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Outline");
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(2, 1, "North");
+                sheet.CellValue(3, 1, "South");
+                sheet.CellValue(1, 2, "Q1");
+                sheet.CellValue(1, 3, "Q2");
+
+                sheet.SetOutlineSummary(summaryBelow: true, summaryRight: true);
+                sheet.GroupRows(2, 3, outlineLevel: 1, collapsed: true);
+                sheet.GroupColumns(2, 3, outlineLevel: 1, collapsed: true);
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(A1.MaxRows, A1.MaxRows, outlineLevel: 1, collapsed: true));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(A1.MaxRows + 1, A1.MaxRows + 1));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupColumns(A1.MaxColumns + 1, A1.MaxColumns + 1));
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Worksheet worksheet = wsPart.Worksheet;
+                OutlineProperties outline = worksheet.GetFirstChild<SheetProperties>()!.GetFirstChild<OutlineProperties>()!;
+                Assert.True(outline.SummaryBelow!.Value);
+                Assert.True(outline.SummaryRight!.Value);
+
+                var rows = worksheet.GetFirstChild<SheetData>()!.Elements<Row>().ToDictionary(row => row.RowIndex!.Value);
+                Assert.Equal(1, rows[2].OutlineLevel!.Value);
+                Assert.Equal(1, rows[3].OutlineLevel!.Value);
+                Assert.True(rows[2].Hidden!.Value);
+                Assert.True(rows[3].Hidden!.Value);
+                Assert.True(rows[4].Collapsed!.Value);
+
+                var columns = worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToList();
+                Column columnB = Assert.Single(columns, column => column.Min!.Value == 2 && column.Max!.Value == 2);
+                Column columnC = Assert.Single(columns, column => column.Min!.Value == 3 && column.Max!.Value == 3);
+                Column columnD = Assert.Single(columns, column => column.Min!.Value == 4 && column.Max!.Value == 4);
+                Assert.Equal(1, columnB.OutlineLevel!.Value);
+                Assert.Equal(1, columnC.OutlineLevel!.Value);
+                Assert.True(columnB.Hidden!.Value);
+                Assert.True(columnC.Hidden!.Value);
+                Assert.True(columnD.Collapsed!.Value);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelWorksheetSnapshot worksheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+                Assert.True(worksheet.OutlineSummaryBelow);
+                Assert.True(worksheet.OutlineSummaryRight);
+
+                ExcelRowSnapshot row2 = Assert.Single(worksheet.Rows, row => row.Index == 2);
+                ExcelRowSnapshot row4 = Assert.Single(worksheet.Rows, row => row.Index == 4);
+                Assert.Equal((byte)1, row2.OutlineLevel.GetValueOrDefault());
+                Assert.True(row2.Hidden);
+                Assert.True(row4.Collapsed);
+
+                ExcelColumnSnapshot column2 = Assert.Single(worksheet.Columns, column => column.StartIndex == 2 && column.EndIndex == 2);
+                ExcelColumnSnapshot column4 = Assert.Single(worksheet.Columns, column => column.StartIndex == 4 && column.EndIndex == 4);
+                Assert.Equal((byte)1, column2.OutlineLevel.GetValueOrDefault());
+                Assert.True(column2.Hidden);
+                Assert.True(column4.Collapsed);
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
     }

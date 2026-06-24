@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                result = DateTime.Today.ToOADate();
+                result = ToExcelDateSerial(DateTime.Today);
                 return true;
             }
 
@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                result = DateTime.Now.ToOADate();
+                result = ToExcelDateSerial(DateTime.Now);
                 return true;
             }
 
@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 try {
-                    result = new DateTime(year, 1, 1).AddMonths(month - 1).AddDays(day - 1).ToOADate();
+                    result = ToExcelDateSerial(new DateTime(year, 1, 1).AddMonths(month - 1).AddDays(day - 1));
                 } catch (ArgumentOutOfRangeException) {
                     return false;
                 }
@@ -104,8 +104,8 @@ namespace OfficeIMO.Excel {
                 try {
                     DateTime shifted = startDate.AddMonths(months);
                     result = function == "EOMONTH"
-                        ? new DateTime(shifted.Year, shifted.Month, DateTime.DaysInMonth(shifted.Year, shifted.Month)).ToOADate()
-                        : shifted.ToOADate();
+                        ? ToExcelDateSerial(new DateTime(shifted.Year, shifted.Month, DateTime.DaysInMonth(shifted.Year, shifted.Month)))
+                        : ToExcelDateSerial(shifted);
                 } catch (ArgumentOutOfRangeException) {
                     return false;
                 }
@@ -201,7 +201,7 @@ namespace OfficeIMO.Excel {
 
             DateTime dateTime;
             try {
-                dateTime = DateTime.FromOADate(numbers[0]);
+                dateTime = ExcelDateSystemConverter.FromSerial(numbers[0], _excelDocument.DateSystem);
             } catch (ArgumentException) {
                 return false;
             }
@@ -570,7 +570,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (days == 0) {
-                result = current.ToOADate();
+                result = ToExcelDateSerial(current);
                 return true;
             }
 
@@ -583,7 +583,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            result = current.ToOADate();
+            result = ToExcelDateSerial(current);
             return true;
         }
 
@@ -603,7 +603,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                result = date.Date.ToOADate();
+                result = ToExcelDateSerial(date.Date);
                 return true;
             }
 

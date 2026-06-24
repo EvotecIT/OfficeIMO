@@ -105,6 +105,20 @@ namespace OfficeIMO.Tests {
             }
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void RenameNamedRange_StrictValidationFailureKeepsOriginalName() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data");
+                document.SetNamedRange("OriginalName", "'Data'!A1:A2", save: false);
+
+                Assert.Throws<ArgumentException>(() => document.RenameNamedRange("OriginalName", "A1", validationMode: NameValidationMode.Strict, save: false));
+                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRange("OriginalName"));
+                Assert.Null(document.GetNamedRange("A1"));
+            }
+            File.Delete(filePath);
+        }
     }
 }
 

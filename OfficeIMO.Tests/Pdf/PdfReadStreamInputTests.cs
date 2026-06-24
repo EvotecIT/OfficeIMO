@@ -101,8 +101,10 @@ public partial class PdfReadStreamTests {
         }
 
         static void AssertEncrypted(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
-            Assert.Contains("Encrypted PDF files are not supported", exception.Message, StringComparison.Ordinal);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
+            Assert.True(
+                exception is PdfEncryptionException ||
+                exception.Message.Contains("Encrypted PDF", StringComparison.OrdinalIgnoreCase));
         }
     }
 

@@ -42,33 +42,51 @@ namespace OfficeIMO.Word.Pdf {
 
                 PdfCore.PdfStandardFont slot = SelectNativeAdditionalFontSlot(familyName!, registeredFontSlots);
                 bool slotAlreadyEmbedded = pdfOptions.HasEmbeddedStandardFontFamily(slot);
-                registeredFontSlots.Add(slot);
                 if (!slotAlreadyEmbedded) {
                     pdfOptions.RegisterOfficeFontFamily(familyName, slot, embedSystemFont: true);
                 }
 
-                nativeFontMap.Register(familyName!, slot);
+                if (slotAlreadyEmbedded || pdfOptions.HasEmbeddedStandardFontFamily(slot)) {
+                    registeredFontSlots.Add(slot);
+                    nativeFontMap.Register(familyName!, slot);
+                    continue;
+                }
+
+                if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)) {
+                    nativeFontMap.Register(familyName!, PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont));
+                }
             }
         }
 
         private static PdfCore.PdfStandardFont SelectNativeAdditionalFontSlot(string familyName, HashSet<PdfCore.PdfStandardFont> registeredFontSlots) {
+            if (TrySelectNativeAdditionalFontSlot(familyName, registeredFontSlots, out PdfCore.PdfStandardFont fontSlot)) {
+                return fontSlot;
+            }
+
+            return PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)
+                ? PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont)
+                : PdfCore.PdfStandardFont.Helvetica;
+        }
+
+        private static bool TrySelectNativeAdditionalFontSlot(string familyName, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, out PdfCore.PdfStandardFont fontSlot) {
             if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)) {
                 PdfCore.PdfStandardFont mappedFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont);
                 if (!registeredFontSlots.Contains(mappedFamily)) {
-                    return mappedFamily;
+                    fontSlot = mappedFamily;
+                    return true;
                 }
             }
 
             foreach (PdfCore.PdfStandardFont candidate in new[] { PdfCore.PdfStandardFont.TimesRoman, PdfCore.PdfStandardFont.Courier, PdfCore.PdfStandardFont.Helvetica }) {
                 PdfCore.PdfStandardFont family = PdfCore.PdfStandardFontMapper.GetFontFamily(candidate);
                 if (!registeredFontSlots.Contains(family)) {
-                    return family;
+                    fontSlot = family;
+                    return true;
                 }
             }
 
-            return PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out mappedFont)
-                ? PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont)
-                : PdfCore.PdfStandardFont.Helvetica;
+            fontSlot = PdfCore.PdfStandardFont.Helvetica;
+            return false;
         }
 
         private static string? ResolveNativeParagraphStyleFontFamily(WordDocument? document, string? styleId) {

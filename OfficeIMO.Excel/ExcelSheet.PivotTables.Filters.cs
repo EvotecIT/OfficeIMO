@@ -80,7 +80,8 @@ namespace OfficeIMO.Excel {
 
         private static PivotFilters? CreatePivotFilters(IReadOnlyList<ExcelPivotFilter> filters,
             IDictionary<string, int> headerIndex,
-            IReadOnlyList<ExcelPivotDataField> dataFields) {
+            IReadOnlyList<ExcelPivotDataField> dataFields,
+            ExcelDateSystem dateSystem) {
             if (filters.Count == 0) return null;
 
             var pivotFilters = new PivotFilters { Count = (uint)filters.Count };
@@ -94,22 +95,24 @@ namespace OfficeIMO.Excel {
                     Id = (uint)(i + 1)
                 };
 
-                if (!string.IsNullOrWhiteSpace(filter.Value1)) pivotFilter.StringValue1 = filter.Value1;
-                if (!string.IsNullOrWhiteSpace(filter.Value2)) pivotFilter.StringValue2 = filter.Value2;
+                string? value1 = GetPivotFilterValue1(filter, dateSystem);
+                string? value2 = GetPivotFilterValue2(filter, dateSystem);
+                if (!string.IsNullOrWhiteSpace(value1)) pivotFilter.StringValue1 = value1;
+                if (!string.IsNullOrWhiteSpace(value2)) pivotFilter.StringValue2 = value2;
                 if (!string.IsNullOrWhiteSpace(filter.Name)) pivotFilter.Name = filter.Name;
                 if (!string.IsNullOrWhiteSpace(filter.Description)) pivotFilter.Description = filter.Description;
                 if (!string.IsNullOrWhiteSpace(filter.DataFieldName)) {
                     pivotFilter.MeasureField = (uint)ResolvePivotDataFieldIndex(filter.DataFieldName!, dataFields);
                 }
 
-                pivotFilter.AutoFilter = CreatePivotFilterAutoFilter(filter);
+                pivotFilter.AutoFilter = CreatePivotFilterAutoFilter(filter, dateSystem);
                 pivotFilters.Append(pivotFilter);
             }
 
             return pivotFilters;
         }
 
-        private static AutoFilter CreatePivotFilterAutoFilter(ExcelPivotFilter filter) {
+        private static AutoFilter CreatePivotFilterAutoFilter(ExcelPivotFilter filter, ExcelDateSystem dateSystem) {
             var autoFilter = new AutoFilter { Reference = "A1" };
             var filterColumn = new FilterColumn { ColumnId = 0U };
 
@@ -128,28 +131,31 @@ namespace OfficeIMO.Excel {
             CustomFilters customFilters;
 
             if (TryResolveBetweenFilter(filter.Type, out var firstOperator, out var secondOperator, out bool matchAll)) {
-                if (filter.Value1 == null || filter.Value2 == null) {
+                string? value1 = GetPivotFilterValue1(filter, dateSystem);
+                string? value2 = GetPivotFilterValue2(filter, dateSystem);
+                if (value1 == null || value2 == null) {
                     throw new ArgumentException($"Pivot filter '{filter.Type}' requires two values.", nameof(filter));
                 }
 
                 customFilters = new CustomFilters { And = matchAll };
                 customFilters.Append(new CustomFilter {
                     Operator = firstOperator,
-                    Val = filter.Value1
+                    Val = value1
                 });
                 customFilters.Append(new CustomFilter {
                     Operator = secondOperator,
-                    Val = filter.Value2
+                    Val = value2
                 });
             } else {
-                if (filter.Value1 == null) {
+                string? value1 = GetPivotFilterValue1(filter, dateSystem);
+                if (value1 == null) {
                     throw new ArgumentException($"Pivot filter '{filter.Type}' requires a value.", nameof(filter));
                 }
 
                 customFilters = new CustomFilters();
                 customFilters.Append(new CustomFilter {
                     Operator = ResolveSingleFilterOperator(filter.Type),
-                    Val = NormalizePivotFilterAutoFilterValue(filter.Type, filter.Value1)
+                    Val = NormalizePivotFilterAutoFilterValue(filter.Type, value1)
                 });
             }
 
@@ -157,6 +163,16 @@ namespace OfficeIMO.Excel {
             autoFilter.Append(filterColumn);
             return autoFilter;
         }
+
+        private static string? GetPivotFilterValue1(ExcelPivotFilter filter, ExcelDateSystem dateSystem)
+            => filter.DateValue1.HasValue
+                ? ExcelDateSystemConverter.ToSerial(filter.DateValue1.Value, dateSystem).ToString("G17", CultureInfo.InvariantCulture)
+                : filter.Value1;
+
+        private static string? GetPivotFilterValue2(ExcelPivotFilter filter, ExcelDateSystem dateSystem)
+            => filter.DateValue2.HasValue
+                ? ExcelDateSystemConverter.ToSerial(filter.DateValue2.Value, dateSystem).ToString("G17", CultureInfo.InvariantCulture)
+                : filter.Value2;
 
         private static bool TryCreateTop10Filter(ExcelPivotFilter filter, out Top10 top10) {
             if (filter.Type != PivotFilterValues.Count && filter.Type != PivotFilterValues.Percent && filter.Type != PivotFilterValues.Sum) {

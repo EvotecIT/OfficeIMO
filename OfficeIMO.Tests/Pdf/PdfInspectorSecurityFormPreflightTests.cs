@@ -29,7 +29,7 @@ public partial class PdfInspectorTests {
         Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
         Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractImages));
         Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects));
-        Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
+        Assert.Contains("Encrypted PDF files can be read when the password is valid, but rewriting encrypted PDFs is not supported yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
         Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Null(report.DocumentInfo);
         Assert.True(report.Probe.HasEncryption);

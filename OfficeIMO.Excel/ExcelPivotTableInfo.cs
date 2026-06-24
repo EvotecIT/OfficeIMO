@@ -112,7 +112,11 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<ExcelPivotFieldInfo>? fields = null,
             IReadOnlyList<ExcelPivotFilterInfo>? filters = null,
             IReadOnlyList<ExcelPivotCalculatedFieldInfo>? calculatedFields = null,
-            IReadOnlyList<ExcelPivotGroupingInfo>? groupings = null) {
+            IReadOnlyList<ExcelPivotGroupingInfo>? groupings = null,
+            bool? refreshOnOpen = null,
+            bool? saveSourceData = null,
+            bool? preserveFormatting = null,
+            bool? enableDrill = null) {
             Name = name;
             CacheId = cacheId;
             Location = location;
@@ -148,6 +152,10 @@ namespace OfficeIMO.Excel {
             Filters = filters ?? Array.Empty<ExcelPivotFilterInfo>();
             CalculatedFields = calculatedFields ?? Array.Empty<ExcelPivotCalculatedFieldInfo>();
             Groupings = groupings ?? Array.Empty<ExcelPivotGroupingInfo>();
+            RefreshOnOpen = refreshOnOpen;
+            SaveSourceData = saveSourceData;
+            PreserveFormatting = preserveFormatting;
+            EnableDrill = enableDrill;
         }
 
         /// <summary>
@@ -284,6 +292,26 @@ namespace OfficeIMO.Excel {
         /// Gets whether custom-list sorting is enabled.
         /// </summary>
         public bool? CustomListSort { get; }
+
+        /// <summary>
+        /// Gets whether Excel should refresh the pivot cache when the workbook opens.
+        /// </summary>
+        public bool? RefreshOnOpen { get; }
+
+        /// <summary>
+        /// Gets whether source cache records are saved in the workbook package.
+        /// </summary>
+        public bool? SaveSourceData { get; }
+
+        /// <summary>
+        /// Gets whether pivot formatting is preserved during refreshes.
+        /// </summary>
+        public bool? PreserveFormatting { get; }
+
+        /// <summary>
+        /// Gets whether pivot detail drill interaction is enabled.
+        /// </summary>
+        public bool? EnableDrill { get; }
 
         /// <summary>
         /// Gets row field names.
