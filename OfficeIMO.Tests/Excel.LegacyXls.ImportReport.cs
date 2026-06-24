@@ -1686,6 +1686,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsChartSeriesFormatMetadata() {
+            byte[] payload = {
+                0x0D, 0x00
+            };
+            var chartRecord = new BiffRecord(0x105D, offset: 296, payload);
+            var chartRecords = new List<LegacyXlsChartRecord>();
+
+            Assert.True(BiffChartMetadataReader.TryRead(chartRecord, "SerFmt", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            Assert.Equal("SerFmt", record.RecordName);
+            Assert.Equal(LegacyXlsChartRecordKind.Formatting, record.Kind);
+            LegacyXlsChartSeriesFormat? seriesFormat = record.SeriesFormat;
+            Assert.NotNull(seriesFormat);
+            Assert.Equal(0x000D, seriesFormat!.Flags);
+            Assert.True(seriesFormat.SmoothLine);
+            Assert.False(seriesFormat.ThreeDimensionalBubbles);
+            Assert.True(seriesFormat.Shadow);
+            Assert.Equal(0x0008, seriesFormat.Reserved);
+            Assert.False(seriesFormat.HasZeroReservedBits);
+            Assert.Equal(new[] { "SmoothLine", "Shadow" }, seriesFormat.FlagNames);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(1, report.ChartSeriesFormatFlags["SmoothLine"]);
+            Assert.Equal(1, report.ChartSeriesFormatFlags["Shadow"]);
+            Assert.Equal(1, report.ChartSeriesFormatStates["SmoothLine:True;ThreeDimensionalBubbles:False;Shadow:True"]);
+            Assert.Equal(1, report.ChartSeriesFormatReservedValues["Reserved:0x0008"]);
+            Assert.Equal(1, report.ChartSeriesFormatReservedStates["ReservedNonZero"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart SerFmt Flags", markdown);
+            Assert.Contains("SmoothLine", markdown);
+            Assert.Contains("ReservedNonZero", markdown);
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_GroupsChartFutureBlockMetadata() {
             byte[] startPayload = {
                 0x52, 0x08,

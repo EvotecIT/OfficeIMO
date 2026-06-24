@@ -76,7 +76,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartPlotAreaLayout12? plotAreaLayout12 = null,
             LegacyXlsChartFutureBlock? futureBlock = null,
             LegacyXlsChartUnits? units = null,
-            LegacyXlsChartSeriesList? seriesList = null) {
+            LegacyXlsChartSeriesList? seriesList = null,
+            LegacyXlsChartSeriesFormat? seriesFormat = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -151,6 +152,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             FutureBlock = futureBlock;
             Units = units;
             SeriesList = seriesList;
+            SeriesFormat = seriesFormat;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -290,6 +292,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded pie or doughnut explosion metadata from PieFormat records, when present.</summary>
         public LegacyXlsChartPieFormat? PieFormat { get; }
+
+        /// <summary>Gets decoded series-format flags from SerFmt records, when present.</summary>
+        public LegacyXlsChartSeriesFormat? SeriesFormat { get; }
 
         /// <summary>Gets decoded data-label display metadata from AttachedLabel records, when present.</summary>
         public LegacyXlsChartAttachedLabel? AttachedLabel { get; }

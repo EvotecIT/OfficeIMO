@@ -241,7 +241,8 @@ and field counts, property flags, and last-refresh-user presence.
 Chart `CatSerRange` records now decode preserve-only category/series axis
 crossing and interval metadata, `AxisLineFormat` records now decode the formatted
 axis component target, `PieFormat` records now decode preserve-only pie/doughnut
-explosion percentages, and chart `AttachedLabel` records now decode preserve-only
+explosion percentages, chart `SerFmt` records now decode preserve-only series-format
+smooth-line, 3-D bubble, shadow, and reserved-bit states, and chart `AttachedLabel` records now decode preserve-only
 data-label display flags for value, percent, category label, bubble size, and
 series name states. `StartBlock`, `EndBlock`, `Units`, `ChartFormat`, `SerToCrt`, `SeriesList`, `SBaseRef`, `CatLab`,
 `CrtLayout12`, `CrtLayout12A`, `ChartFrtInfo`, and `CrtMlFrt` records now decode preserve-only chart-group
@@ -250,7 +251,7 @@ axis-label offset/alignment/count-state metadata, chart layout modes/checksums,
 plot-area layout bounds, chart future-record version/range envelopes, and XmlTkChain byte-count envelopes, with compact import-report
 buckets for axis intervals, axis-line targets, chart-group state, series links,
 enabled data-label flags, full flag-state shapes, axis-label states, chart
-layout states, reserved unit states, plot-area layout states, future-record block scopes, future-record range states, XmlTkChain completion states, and pie explosion percentages.
+layout states, reserved unit states, plot-area layout states, future-record block scopes, future-record range states, XmlTkChain completion states, series-format states, and pie explosion percentages.
 Drawing `ShapePropsStream`, `TextPropsStream`, and `RichTextStream` future-record
 streams now have first-class preserve-only drawing kinds plus decoded FRT headers,
 including compact report buckets for wrapped record type, flags, range-reference

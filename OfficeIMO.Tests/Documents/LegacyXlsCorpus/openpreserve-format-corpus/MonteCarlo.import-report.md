@@ -1398,6 +1398,30 @@ Warnings: 0
 | --- | --- |
 | ExplosionPercent:0 | 40 |
 
+## Chart SerFmt Flags
+
+| Key | Count |
+| --- | --- |
+| SmoothLine | 12 |
+
+## Chart SerFmt States
+
+| Key | Count |
+| --- | --- |
+| SmoothLine:True;ThreeDimensionalBubbles:False;Shadow:False | 12 |
+
+## Chart SerFmt Reserved Values
+
+| Key | Count |
+| --- | --- |
+| Reserved:0x0000 | 12 |
+
+## Chart SerFmt Reserved States
+
+| Key | Count |
+| --- | --- |
+| ReservedZero | 12 |
+
 ## Chart AttachedLabel States
 
 | Key | Count |

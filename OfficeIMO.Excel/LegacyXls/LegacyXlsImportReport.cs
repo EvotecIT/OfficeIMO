@@ -782,6 +782,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartPieFormatExplosions = CountByCode(workbook.ChartRecords
                 .Where(record => record.PieFormat != null)
                 .Select(record => $"ExplosionPercent:{record.PieFormat!.ExplosionPercentage}"));
+            ChartSeriesFormatFlags = CountByCode(workbook.ChartRecords
+                .Where(record => record.SeriesFormat != null)
+                .SelectMany(record => record.SeriesFormat!.FlagNames));
+            ChartSeriesFormatStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.SeriesFormat != null)
+                .Select(GetChartSeriesFormatStateKey));
+            ChartSeriesFormatReservedValues = CountByCode(workbook.ChartRecords
+                .Where(record => record.SeriesFormat != null)
+                .Select(record => $"Reserved:0x{record.SeriesFormat!.Reserved:X4}"));
+            ChartSeriesFormatReservedStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.SeriesFormat != null)
+                .Select(record => record.SeriesFormat!.HasZeroReservedBits ? "ReservedZero" : "ReservedNonZero"));
             ChartAttachedLabelFlags = CountByCode(workbook.ChartRecords
                 .Where(record => record.AttachedLabel != null)
                 .SelectMany(record => record.AttachedLabel!.FlagNames));
@@ -2223,6 +2235,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets PieFormat records grouped by decoded explosion distance percentage.</summary>
         public IReadOnlyDictionary<string, int> ChartPieFormatExplosions { get; }
 
+        /// <summary>Gets SerFmt records grouped by enabled formatting flag.</summary>
+        public IReadOnlyDictionary<string, int> ChartSeriesFormatFlags { get; }
+
+        /// <summary>Gets SerFmt records grouped by full decoded flag state.</summary>
+        public IReadOnlyDictionary<string, int> ChartSeriesFormatStates { get; }
+
+        /// <summary>Gets SerFmt records grouped by reserved bit value.</summary>
+        public IReadOnlyDictionary<string, int> ChartSeriesFormatReservedValues { get; }
+
+        /// <summary>Gets SerFmt records grouped by whether reserved bits are zero.</summary>
+        public IReadOnlyDictionary<string, int> ChartSeriesFormatReservedStates { get; }
+
         /// <summary>Gets AttachedLabel records grouped by decoded displayed data-label element.</summary>
         public IReadOnlyDictionary<string, int> ChartAttachedLabelFlags { get; }
 
@@ -2997,6 +3021,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart MarkerFormat Types", ChartMarkerFormatTypes);
             AppendDictionary(builder, "Chart MarkerFormat Sizes", ChartMarkerFormatSizes);
             AppendDictionary(builder, "Chart PieFormat Explosions", ChartPieFormatExplosions);
+            AppendDictionary(builder, "Chart SerFmt Flags", ChartSeriesFormatFlags);
+            AppendDictionary(builder, "Chart SerFmt States", ChartSeriesFormatStates);
+            AppendDictionary(builder, "Chart SerFmt Reserved Values", ChartSeriesFormatReservedValues);
+            AppendDictionary(builder, "Chart SerFmt Reserved States", ChartSeriesFormatReservedStates);
             AppendDictionary(builder, "Chart AttachedLabel Flags", ChartAttachedLabelFlags);
             AppendDictionary(builder, "Chart AttachedLabel States", ChartAttachedLabelStates);
             AppendDictionary(builder, "Chart DefaultText Targets", ChartDefaultTextTargets);
@@ -3647,6 +3675,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartAttachedLabelStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartAttachedLabel attachedLabel = record.AttachedLabel!;
             return $"ShowValue:{attachedLabel.ShowValue};ShowPercent:{attachedLabel.ShowPercent};ShowLabelAndPercent:{attachedLabel.ShowLabelAndPercent};ShowLabel:{attachedLabel.ShowLabel};ShowBubbleSizes:{attachedLabel.ShowBubbleSizes};ShowSeriesName:{attachedLabel.ShowSeriesName}";
+        }
+
+        private static string GetChartSeriesFormatStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartSeriesFormat seriesFormat = record.SeriesFormat!;
+            return $"SmoothLine:{seriesFormat.SmoothLine};ThreeDimensionalBubbles:{seriesFormat.ThreeDimensionalBubbles};Shadow:{seriesFormat.Shadow}";
         }
 
         private static string FormatDouble(double value) {

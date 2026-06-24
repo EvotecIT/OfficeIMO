@@ -35,6 +35,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadAreaFormat(record, out LegacyXlsChartAreaFormat? areaFormat);
             TryReadMarkerFormat(record, out LegacyXlsChartMarkerFormat? markerFormat);
             TryReadPieFormat(record, out LegacyXlsChartPieFormat? pieFormat);
+            TryReadSeriesFormat(record, out LegacyXlsChartSeriesFormat? seriesFormat);
             TryReadAttachedLabel(record, out LegacyXlsChartAttachedLabel? attachedLabel);
             BiffChartTextMetadataReader.TryReadDefaultText(record, out ushort? defaultTextId, out string? defaultTextTargetName);
             BiffChartTextMetadataReader.TryReadText(record, out LegacyXlsChartText? text);
@@ -128,7 +129,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 plotAreaLayout12,
                 futureBlock,
                 units,
-                seriesList));
+                seriesList,
+                seriesFormat));
             return true;
         }
 
@@ -252,6 +254,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             pieFormat = new LegacyXlsChartPieFormat(BiffRecordReader.ReadInt16(record.Payload, 0));
+            return true;
+        }
+
+        private static bool TryReadSeriesFormat(BiffRecord record, out LegacyXlsChartSeriesFormat? seriesFormat) {
+            seriesFormat = null;
+            if (record.Type != 0x105D || record.Payload.Length < 2) {
+                return false;
+            }
+
+            seriesFormat = new LegacyXlsChartSeriesFormat(BiffRecordReader.ReadUInt16(record.Payload, 0));
             return true;
         }
 
