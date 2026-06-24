@@ -412,8 +412,8 @@ namespace OfficeIMO.Excel {
                 if (detectedFormat == OfficeImageFormat.Unknown) {
                     diagnostics.Add(new OfficeImageExportDiagnostic(
                         OfficeImageExportDiagnosticSeverity.Warning,
-                        "ExcelImageFormatUnknown",
-                        "Worksheet image bytes do not contain a recognized image header. Exporters may skip or approximate this image.",
+                        ExcelImageExportDiagnosticCodes.ImageFormatUnknown,
+                        "Worksheet image bytes do not contain a recognized image header. Declared content type: '" + image.ContentType + "'. Exporters may skip or approximate this image.",
                         source));
                 }
 

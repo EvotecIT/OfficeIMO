@@ -863,6 +863,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportReportsUnknownImageFormatWithStableCodeAndSource() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("UnknownImage");
+            sheet.CellValue(1, 1, "Image");
+            sheet.AddImage(1, 2, new byte[] { 1, 2, 3, 4, 5, 6 }, "image/bmp", widthPixels: 16, heightPixels: 12, name: "MysteryBitmap");
+
+            ExcelRange range = sheet.Range("A1:C3");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg);
+
+            ExcelVisualImage image = Assert.Single(snapshot.Images);
+            Assert.Equal(OfficeImageFormat.Unknown, image.DetectedFormat);
+            Assert.Equal("image/bmp", image.ContentType);
+
+            OfficeImageExportDiagnostic snapshotDiagnostic = Assert.Single(snapshot.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ImageFormatUnknown);
+            Assert.Equal("UnknownImage!MysteryBitmap", snapshotDiagnostic.Source);
+            Assert.Contains("image/bmp", snapshotDiagnostic.Message, StringComparison.Ordinal);
+
+            OfficeImageExportDiagnostic pngDiagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
+            Assert.Equal("UnknownImage!MysteryBitmap", pngDiagnostic.Source);
+            Assert.Contains("declared content type 'image/bmp'", pngDiagnostic.Message, StringComparison.Ordinal);
+
+            OfficeImageExportDiagnostic svgDiagnostic = Assert.Single(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported);
+            Assert.Equal("UnknownImage!MysteryBitmap", svgDiagnostic.Source);
+            Assert.Contains("detected format 'Unknown'", svgDiagnostic.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelRange_ExportsChartsThroughSharedDrawingRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

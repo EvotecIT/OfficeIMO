@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
                 diagnostics?.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported,
-                    "Worksheet image format '" + image.DetectedFormat + "' cannot be rasterized to PNG by the dependency-free image renderer yet.",
+                    "Worksheet image " + DescribeImageFormat(image) + " cannot be rasterized to PNG by the dependency-free image renderer yet.",
                     image.Source));
                 return;
             }
@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
                 diagnostics?.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported,
-                    "Worksheet image format '" + image.DetectedFormat + "' cannot be embedded reliably in SVG output by the dependency-free image renderer yet.",
+                    "Worksheet image " + DescribeImageFormat(image) + " cannot be embedded reliably in SVG output by the dependency-free image renderer yet.",
                     image.Source));
                 return;
             }
@@ -73,5 +73,10 @@ namespace OfficeIMO.Excel {
                 image.RotationDegrees,
                 flipHorizontal: image.FlipHorizontal,
                 flipVertical: image.FlipVertical).Scale(scale);
+
+        private static string DescribeImageFormat(ExcelVisualImage image) {
+            string contentType = string.IsNullOrWhiteSpace(image.ContentType) ? "none" : image.ContentType;
+            return "detected format '" + image.DetectedFormat + "' with declared content type '" + contentType + "'";
+        }
     }
 }

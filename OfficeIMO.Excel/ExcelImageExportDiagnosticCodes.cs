@@ -75,6 +75,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Worksheet image bytes could not be read.</summary>
     public const string ImageBytesMissing = "ExcelImageBytesMissing";
 
+    /// <summary>Worksheet image bytes did not contain a recognized image header.</summary>
+    public const string ImageFormatUnknown = "ExcelImageFormatUnknown";
+
     /// <summary>Worksheet image was omitted because its anchor row or column is hidden.</summary>
     public const string ImageAnchorHidden = "ExcelImageAnchorHidden";
 
