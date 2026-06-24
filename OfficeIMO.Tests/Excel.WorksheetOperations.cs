@@ -632,6 +632,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeDoesNotRewriteFunctionCallsAsTableReferences() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageFunctionNameTableSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageFunctionNameTableTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("Source");
+                source.CellValue(1, 1, "Value");
+                source.CellValue(2, 1, 10);
+                source.AddTable("A1:A2", hasHeader: true, name: "SUM", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.CellFormula(4, 1, "SUM(A2:A2)+ROWS(SUM)");
+                sourceDocument.Save();
+            }
+
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                ExcelSheet existing = targetDocument.AddWorkSheet("Existing");
+                existing.CellValue(1, 1, "Value");
+                existing.CellValue(2, 1, 20);
+                existing.AddTable("A1:A2", hasHeader: true, name: "SUM", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                targetDocument.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Source", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                string copiedTableName = Assert.Single(copiedPart.TableDefinitionParts).Table.Name!.Value!;
+                Assert.NotEqual("SUM", copiedTableName);
+                Cell formulaCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A4");
+                Assert.Equal($"SUM(A2:A2)+ROWS({copiedTableName})", formulaCell.CellFormula?.Text);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
         public void Test_CopyWorkSheetFrom_PackageModeRewritesStructuredReferencesOnce() {
             string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageStructuredOnceSource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageStructuredOnceTarget.xlsx");

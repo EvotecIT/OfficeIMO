@@ -631,6 +631,10 @@ namespace OfficeIMO.Excel {
                 int nextIndex = index + tableName.Length;
                 bool hasStructuredSpecifier = nextIndex < formula.Length && formula[nextIndex] == '[';
                 bool hasBareReferenceBoundary = nextIndex >= formula.Length || IsFormulaTokenBoundary(formula[nextIndex]);
+                if (!hasStructuredSpecifier && nextIndex < formula.Length && formula[nextIndex] == '(') {
+                    continue;
+                }
+
                 if (!hasStructuredSpecifier && !hasBareReferenceBoundary) {
                     continue;
                 }
