@@ -42,6 +42,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.CompoundVbaModulesByCodeNameMatchAndName["WorkbookCodeName|ThisWorkbook"]);
             Assert.Equal(1, result.ImportReport.CompoundVbaModulesByCodeNameMatchAndName["WorksheetCodeName|Sheet1"]);
             Assert.Equal(1, result.ImportReport.CompoundVbaProjectsByStructure["Modules:8|DirStreams:1|ProjectStreams:2|Storages:2"]);
+            Assert.Equal(1, result.ImportReport.VbaProjectWorkbookStates["BiffMarker:Present|NoMacrosMarker:Present|CompoundProject:Present|Modules:Present"]);
         }
 
         [Fact]

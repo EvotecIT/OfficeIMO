@@ -1278,6 +1278,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, result.ImportReport.CompoundVbaModuleCount);
             Assert.Equal(1, result.ImportReport.CompoundVbaProjectsByModuleCount["Modules:0"]);
             Assert.Equal(1, result.ImportReport.CompoundVbaProjectsByModuleByteCount["Bytes:0"]);
+            Assert.Equal(1, result.ImportReport.VbaProjectWorkbookStates["BiffMarker:Missing|NoMacrosMarker:Missing|CompoundProject:Present|Modules:Missing"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.VbaProject]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["VbaProject|XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED|Compound:VbaProjectStorage"]);
@@ -1292,6 +1293,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_ImportReport_SummarizesCompoundVbaModuleNames() {
             var workbook = new LegacyXlsWorkbook();
+            workbook.SetHasVbaProjectMarker();
             workbook.SetCodeName("ThisWorkbook");
             var sheet = new LegacyXlsWorksheet("Data", 0, 0, 0);
             sheet.SetCodeName("Sheet1");
@@ -1368,6 +1370,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.CompoundVbaProjectsByModuleCount["Modules:3"]);
             Assert.Equal(1, report.CompoundVbaProjectsByModuleByteCount["Bytes:600"]);
             Assert.Equal(1, report.CompoundVbaProjectsByStructure["Modules:3|DirStreams:1|ProjectStreams:1|Storages:2"]);
+            Assert.Equal(1, report.VbaProjectWorkbookStates["BiffMarker:Present|NoMacrosMarker:Missing|CompoundProject:Present|Modules:Present"]);
             string markdown = report.ToMarkdown();
             Assert.Contains("Compound VBA modules: 3", markdown);
             Assert.Contains("Compound VBA module bytes: 600", markdown);
@@ -1380,6 +1383,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Compound VBA Projects By Module Count", markdown);
             Assert.Contains("Compound VBA Projects By Module Byte Count", markdown);
             Assert.Contains("Compound VBA Projects By Structure", markdown);
+            Assert.Contains("VBA Project Workbook States", markdown);
         }
 
         [Fact]

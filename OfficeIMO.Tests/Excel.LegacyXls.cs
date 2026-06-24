@@ -511,6 +511,7 @@ namespace OfficeIMO.Tests {
 
             LegacyXlsImportReport report = new LegacyXlsImportReport(legacy);
             Assert.Equal(1, report.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.VbaProjectMarker]);
+            Assert.Equal(1, report.VbaProjectWorkbookStates["BiffMarker:Present|NoMacrosMarker:Missing|CompoundProject:Missing|Modules:Missing"]);
         }
 
         [Fact]

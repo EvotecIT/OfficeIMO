@@ -1576,6 +1576,12 @@ Warnings: 0
 | --- | --- |
 | Modules:8\|DirStreams:1\|ProjectStreams:2\|Storages:2 | 1 |
 
+## VBA Project Workbook States
+
+| Key | Count |
+| --- | --- |
+| BiffMarker:Present\|NoMacrosMarker:Present\|CompoundProject:Present\|Modules:Present | 1 |
+
 ## Calculation Settings By Kind
 
 | Key | Count |

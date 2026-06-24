@@ -744,6 +744,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             CompoundVbaProjectsByStructure = CountByCode(workbook.CompoundFeatureRecords
                 .Where(record => record.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject)
                 .Select(GetCompoundVbaProjectStructureKey));
+            VbaProjectWorkbookStates = CountByCode(GetVbaProjectWorkbookStateKeys(workbook));
             CalculationSettingsByKind = CountCalculationSettingsByKind(workbook.CalculationSettings.Records);
             CellStylesByKind = CountByCode(workbook.CellStyles.Select(style => style.IsBuiltIn ? "BuiltIn" : "Custom"));
             CellStyleExtensionsByRecordName = CountByCode(workbook.CellStyleExtensions.Select(extension => extension.RecordName));
@@ -1761,6 +1762,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets VBA project compound features grouped by module, dir stream, and project stream counts.</summary>
         public IReadOnlyDictionary<string, int> CompoundVbaProjectsByStructure { get; }
 
+        /// <summary>Gets VBA project workbook states grouped by marker, compound storage, and module presence.</summary>
+        public IReadOnlyDictionary<string, int> VbaProjectWorkbookStates { get; }
+
         /// <summary>Gets parsed calculation setting records grouped by setting kind.</summary>
         public IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CalculationSettingsByKind { get; }
 
@@ -2180,6 +2184,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Compound VBA Projects By Module Count", CompoundVbaProjectsByModuleCount);
             AppendDictionary(builder, "Compound VBA Projects By Module Byte Count", CompoundVbaProjectsByModuleByteCount);
             AppendDictionary(builder, "Compound VBA Projects By Structure", CompoundVbaProjectsByStructure);
+            AppendDictionary(builder, "VBA Project Workbook States", VbaProjectWorkbookStates);
             AppendDictionary(builder, "Calculation Settings By Kind", CalculationSettingsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -2442,6 +2447,26 @@ namespace OfficeIMO.Excel.LegacyXls {
             int storageEntries = record.EntryDetails.Count(entry => entry.Role == LegacyXlsCompoundFeatureEntryRole.VbaProjectStorage
                 || entry.Role == LegacyXlsCompoundFeatureEntryRole.VbaStorage);
             return $"Modules:{record.VbaModuleCount}|DirStreams:{dirStreams}|ProjectStreams:{projectStreams}|Storages:{storageEntries}";
+        }
+
+        private static IEnumerable<string> GetVbaProjectWorkbookStateKeys(LegacyXlsWorkbook workbook) {
+            LegacyXlsCompoundFeatureRecord[] vbaProjectRecords = workbook.CompoundFeatureRecords
+                .Where(record => record.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject)
+                .ToArray();
+            bool hasCompoundProject = vbaProjectRecords.Length > 0;
+            int moduleCount = vbaProjectRecords.Sum(record => record.VbaModuleCount);
+            if (!workbook.HasVbaProjectMarker && !workbook.HasVbaProjectWithoutMacros && !hasCompoundProject && moduleCount == 0) {
+                yield break;
+            }
+
+            yield return $"BiffMarker:{GetPresenceKey(workbook.HasVbaProjectMarker)}"
+                + $"|NoMacrosMarker:{GetPresenceKey(workbook.HasVbaProjectWithoutMacros)}"
+                + $"|CompoundProject:{GetPresenceKey(hasCompoundProject)}"
+                + $"|Modules:{GetPresenceKey(moduleCount > 0)}";
+        }
+
+        private static string GetPresenceKey(bool value) {
+            return value ? "Present" : "Missing";
         }
 
         private static IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> CountWorkbookMetadataRecordsByKind(IEnumerable<LegacyXlsWorkbookMetadataRecord> records) {
