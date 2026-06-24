@@ -448,6 +448,110 @@ public static class OfficeGeometry {
     }
 
     /// <summary>
+    /// Samples a quadratic Bezier curve into straight-line points, excluding the start point and including the end point.
+    /// </summary>
+    /// <param name="start">Curve start point.</param>
+    /// <param name="control">Quadratic control point.</param>
+    /// <param name="end">Curve end point.</param>
+    /// <param name="segments">Number of line segments used to approximate the curve.</param>
+    public static List<OfficePoint> CreateQuadraticBezierPoints(OfficePoint start, OfficePoint control, OfficePoint end, int segments) {
+        EnsurePositiveSegmentCount(segments);
+        var points = new List<OfficePoint>(segments);
+        for (int i = 1; i <= segments; i++) {
+            double t = i / (double)segments;
+            double inverse = 1D - t;
+            double x = (inverse * inverse * start.X) + (2D * inverse * t * control.X) + (t * t * end.X);
+            double y = (inverse * inverse * start.Y) + (2D * inverse * t * control.Y) + (t * t * end.Y);
+            points.Add(new OfficePoint(x, y));
+        }
+
+        return points;
+    }
+
+    /// <summary>
+    /// Samples a tuple quadratic Bezier curve into straight-line points, excluding the start point and including the end point.
+    /// </summary>
+    /// <param name="start">Curve start point.</param>
+    /// <param name="control">Quadratic control point.</param>
+    /// <param name="end">Curve end point.</param>
+    /// <param name="segments">Number of line segments used to approximate the curve.</param>
+    public static List<(double X, double Y)> CreateQuadraticBezierPoints(
+        (double X, double Y) start,
+        (double X, double Y) control,
+        (double X, double Y) end,
+        int segments) {
+        List<OfficePoint> sampled = CreateQuadraticBezierPoints(
+            new OfficePoint(start.X, start.Y),
+            new OfficePoint(control.X, control.Y),
+            new OfficePoint(end.X, end.Y),
+            segments);
+        var points = new List<(double X, double Y)>(sampled.Count);
+        for (int i = 0; i < sampled.Count; i++) {
+            points.Add((sampled[i].X, sampled[i].Y));
+        }
+
+        return points;
+    }
+
+    /// <summary>
+    /// Samples a cubic Bezier curve into straight-line points, excluding the start point and including the end point.
+    /// </summary>
+    /// <param name="start">Curve start point.</param>
+    /// <param name="control1">First cubic control point.</param>
+    /// <param name="control2">Second cubic control point.</param>
+    /// <param name="end">Curve end point.</param>
+    /// <param name="segments">Number of line segments used to approximate the curve.</param>
+    public static List<OfficePoint> CreateCubicBezierPoints(OfficePoint start, OfficePoint control1, OfficePoint control2, OfficePoint end, int segments) {
+        EnsurePositiveSegmentCount(segments);
+        var points = new List<OfficePoint>(segments);
+        for (int i = 1; i <= segments; i++) {
+            double t = i / (double)segments;
+            double inverse = 1D - t;
+            double inverseSquared = inverse * inverse;
+            double tSquared = t * t;
+            double x = (inverseSquared * inverse * start.X) +
+                       (3D * inverseSquared * t * control1.X) +
+                       (3D * inverse * tSquared * control2.X) +
+                       (tSquared * t * end.X);
+            double y = (inverseSquared * inverse * start.Y) +
+                       (3D * inverseSquared * t * control1.Y) +
+                       (3D * inverse * tSquared * control2.Y) +
+                       (tSquared * t * end.Y);
+            points.Add(new OfficePoint(x, y));
+        }
+
+        return points;
+    }
+
+    /// <summary>
+    /// Samples a tuple cubic Bezier curve into straight-line points, excluding the start point and including the end point.
+    /// </summary>
+    /// <param name="start">Curve start point.</param>
+    /// <param name="control1">First cubic control point.</param>
+    /// <param name="control2">Second cubic control point.</param>
+    /// <param name="end">Curve end point.</param>
+    /// <param name="segments">Number of line segments used to approximate the curve.</param>
+    public static List<(double X, double Y)> CreateCubicBezierPoints(
+        (double X, double Y) start,
+        (double X, double Y) control1,
+        (double X, double Y) control2,
+        (double X, double Y) end,
+        int segments) {
+        List<OfficePoint> sampled = CreateCubicBezierPoints(
+            new OfficePoint(start.X, start.Y),
+            new OfficePoint(control1.X, control1.Y),
+            new OfficePoint(control2.X, control2.Y),
+            new OfficePoint(end.X, end.Y),
+            segments);
+        var points = new List<(double X, double Y)>(sampled.Count);
+        for (int i = 0; i < sampled.Count; i++) {
+            points.Add((sampled[i].X, sampled[i].Y));
+        }
+
+        return points;
+    }
+
+    /// <summary>
     /// Converts degrees to radians.
     /// </summary>
     /// <param name="degrees">Angle in degrees.</param>
@@ -606,6 +710,12 @@ public static class OfficeGeometry {
         }
 
         return position > 1D ? 1D : position;
+    }
+
+    private static void EnsurePositiveSegmentCount(int segments) {
+        if (segments <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(segments), "Curve segment count must be positive.");
+        }
     }
 
     private static double NormalizeNonNegative(double value) =>

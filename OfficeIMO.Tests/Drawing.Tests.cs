@@ -1749,6 +1749,31 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeGeometrySamplesBezierCurvesForSharedFlattening() {
+        List<OfficePoint> quadratic = OfficeGeometry.CreateQuadraticBezierPoints(
+            new OfficePoint(0D, 0D),
+            new OfficePoint(10D, 20D),
+            new OfficePoint(20D, 0D),
+            2);
+
+        Assert.Equal(2, quadratic.Count);
+        AssertPointNear(quadratic[0], 10D, 10D);
+        AssertPointNear(quadratic[1], 20D, 0D);
+
+        List<(double X, double Y)> cubic = OfficeGeometry.CreateCubicBezierPoints(
+            (0D, 0D),
+            (10D, 30D),
+            (20D, 30D),
+            (30D, 0D),
+            3);
+
+        Assert.Equal(3, cubic.Count);
+        AssertPointNear(new OfficePoint(cubic[0].X, cubic[0].Y), 10D, 20D);
+        AssertPointNear(new OfficePoint(cubic[1].X, cubic[1].Y), 20D, 20D);
+        AssertPointNear(new OfficePoint(cubic[2].X, cubic[2].Y), 30D, 0D);
+    }
+
+    [Fact]
     public void OfficeGeometryRotatesPointsAndConvertsAngles() {
         double radians = OfficeGeometry.DegreesToRadians(90D);
         Assert.Equal(90D, OfficeGeometry.RadiansToDegrees(radians), precision: 10);
