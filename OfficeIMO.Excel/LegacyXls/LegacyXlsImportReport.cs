@@ -187,24 +187,31 @@ namespace OfficeIMO.Excel.LegacyXls {
             ErrorCount = workbook.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             WarningCount = workbook.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning);
             DiagnosticsByCode = CountByCode(workbook.Diagnostics.Select(diagnostic => diagnostic.Code));
-            FormulaTokenBlockers = CountByCode(workbook.Diagnostics
+            LegacyXlsImportDiagnostic[] formulaTokenDiagnostics = workbook.Diagnostics
                 .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            FormulaTokenBlockers = CountByCode(formulaTokenDiagnostics
                 .Select(diagnostic => diagnostic.DetailCode ?? "FormulaUnknown"));
-            FormulaTokenBlockersByToken = CountByCode(workbook.Diagnostics
-                .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
+            FormulaTokenBlockersByToken = CountByCode(formulaTokenDiagnostics
                 .Where(diagnostic => diagnostic.FormulaToken.HasValue)
                 .Select(diagnostic => $"Token:0x{diagnostic.FormulaToken!.Value:X2}"));
-            FormulaTokenBlockersByTokenName = CountByCode(workbook.Diagnostics
-                .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
+            FormulaTokenBlockersByTokenName = CountByCode(formulaTokenDiagnostics
                 .Where(diagnostic => !string.IsNullOrWhiteSpace(diagnostic.FormulaTokenName))
                 .Select(diagnostic => diagnostic.FormulaTokenName!));
-            FormulaTokenBlockersByOffset = CountByCode(workbook.Diagnostics
-                .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
+            FormulaTokenBlockersByOffset = CountByCode(formulaTokenDiagnostics
                 .Where(diagnostic => diagnostic.FormulaTokenOffset.HasValue)
                 .Select(diagnostic => $"Offset:{diagnostic.FormulaTokenOffset!.Value}"));
-            FormulaTokenBlockersBySheet = CountByCode(workbook.Diagnostics
-                .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
+            FormulaTokenBlockersBySheet = CountByCode(formulaTokenDiagnostics
                 .Select(GetDiagnosticSheetKey));
+            FormulaTokenBlockersByContext = CountByCode(formulaTokenDiagnostics.Select(GetDiagnosticFormulaContextKey));
+            FormulaTokenBlockersByContextAndToken = CountByCode(formulaTokenDiagnostics
+                .Where(diagnostic => diagnostic.FormulaToken.HasValue)
+                .Select(diagnostic => $"{GetDiagnosticFormulaContextKey(diagnostic)}|Token:0x{diagnostic.FormulaToken!.Value:X2}"));
+            FormulaTokenBlockersByContextAndTokenName = CountByCode(formulaTokenDiagnostics
+                .Where(diagnostic => !string.IsNullOrWhiteSpace(diagnostic.FormulaTokenName))
+                .Select(diagnostic => $"{GetDiagnosticFormulaContextKey(diagnostic)}|{diagnostic.FormulaTokenName!}"));
+            FormulaTokenBlockersByContextAndDetail = CountByCode(formulaTokenDiagnostics
+                .Select(diagnostic => $"{GetDiagnosticFormulaContextKey(diagnostic)}|{diagnostic.DetailCode ?? "FormulaUnknown"}"));
             FormulaTokensByName = CountByCode(workbook.FormulaTokenRecords.Select(record => record.TokenName));
             FormulaTokensByContext = CountByCode(workbook.FormulaTokenRecords.Select(record => record.Context));
             FormulaTokensBySheet = CountByCode(workbook.FormulaTokenRecords.Select(GetFormulaTokenSheetKey));
@@ -1100,6 +1107,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported formula token blockers grouped by worksheet name.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokenBlockersBySheet { get; }
 
+        /// <summary>Gets unsupported formula token blockers grouped by formula source context.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByContext { get; }
+
+        /// <summary>Gets unsupported formula token blockers grouped by formula source context and raw formula token byte.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByContextAndToken { get; }
+
+        /// <summary>Gets unsupported formula token blockers grouped by formula source context and BIFF parsed-formula token name.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByContextAndTokenName { get; }
+
+        /// <summary>Gets unsupported formula token blockers grouped by formula source context and stable detail key.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByContextAndDetail { get; }
+
         /// <summary>Gets observed parsed-formula tokens grouped by BIFF token name.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokensByName { get; }
 
@@ -1839,6 +1858,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Formula Token Blockers By Token Name", FormulaTokenBlockersByTokenName);
             AppendDictionary(builder, "Formula Token Blockers By Offset", FormulaTokenBlockersByOffset);
             AppendDictionary(builder, "Formula Token Blockers By Sheet", FormulaTokenBlockersBySheet);
+            AppendDictionary(builder, "Formula Token Blockers By Context", FormulaTokenBlockersByContext);
+            AppendDictionary(builder, "Formula Token Blockers By Context And Token", FormulaTokenBlockersByContextAndToken);
+            AppendDictionary(builder, "Formula Token Blockers By Context And Token Name", FormulaTokenBlockersByContextAndTokenName);
+            AppendDictionary(builder, "Formula Token Blockers By Context And Detail", FormulaTokenBlockersByContextAndDetail);
             AppendDictionary(builder, "Formula Tokens By Name", FormulaTokensByName);
             AppendDictionary(builder, "Formula Tokens By Context", FormulaTokensByContext);
             AppendDictionary(builder, "Formula Tokens By Sheet", FormulaTokensBySheet);
@@ -2501,6 +2524,10 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetDiagnosticSheetKey(LegacyXlsImportDiagnostic diagnostic) {
             return string.IsNullOrWhiteSpace(diagnostic.SheetName) ? "(workbook)" : diagnostic.SheetName!;
+        }
+
+        private static string GetDiagnosticFormulaContextKey(LegacyXlsImportDiagnostic diagnostic) {
+            return string.IsNullOrWhiteSpace(diagnostic.FormulaContext) ? "Unknown" : diagnostic.FormulaContext!;
         }
 
         private static string GetFormulaTokenSheetKey(LegacyXlsFormulaTokenRecord record) {

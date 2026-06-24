@@ -181,6 +181,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         recordOffset: recordOffset,
                         recordType: (ushort)BiffRecordType.Array,
                         detailCode: failure?.DetailCode,
+                        formulaContext: "ArrayFormula",
                         formulaToken: failure?.Token,
                         formulaTokenName: failure?.TokenName,
                         formulaTokenOffset: failure?.TokenOffset));
@@ -257,6 +258,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 recordOffset: definition.RecordOffset,
                 recordType: (ushort)BiffRecordType.ShrFmla,
                 detailCode: failure?.DetailCode,
+                formulaContext: "SharedFormula",
                 formulaToken: failure?.Token,
                 formulaTokenName: failure?.TokenName,
                 formulaTokenOffset: failure?.TokenOffset));

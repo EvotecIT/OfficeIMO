@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Diagnostics {
         /// <param name="recordOffset">Optional byte offset of the related BIFF record.</param>
         /// <param name="recordType">Optional BIFF record type identifier.</param>
         /// <param name="detailCode">Optional stable detail key for grouped import reports.</param>
+        /// <param name="formulaContext">Optional formula source context associated with formula-token diagnostics.</param>
         /// <param name="formulaToken">Optional BIFF formula token byte associated with formula-token diagnostics.</param>
         /// <param name="formulaTokenOffset">Optional zero-based parsed-expression token offset associated with formula-token diagnostics.</param>
         /// <param name="formulaTokenName">Optional BIFF formula token name associated with formula-token diagnostics.</param>
@@ -24,6 +25,7 @@ namespace OfficeIMO.Excel.LegacyXls.Diagnostics {
             int? recordOffset = null,
             ushort? recordType = null,
             string? detailCode = null,
+            string? formulaContext = null,
             byte? formulaToken = null,
             int? formulaTokenOffset = null,
             string? formulaTokenName = null) {
@@ -34,6 +36,7 @@ namespace OfficeIMO.Excel.LegacyXls.Diagnostics {
             RecordOffset = recordOffset;
             RecordType = recordType;
             DetailCode = detailCode;
+            FormulaContext = formulaContext;
             FormulaToken = formulaToken;
             FormulaTokenName = formulaTokenName;
             FormulaTokenOffset = formulaTokenOffset;
@@ -73,6 +76,11 @@ namespace OfficeIMO.Excel.LegacyXls.Diagnostics {
         /// Gets a stable detail key for report grouping, when available.
         /// </summary>
         public string? DetailCode { get; }
+
+        /// <summary>
+        /// Gets the formula source context associated with a formula-token diagnostic, when available.
+        /// </summary>
+        public string? FormulaContext { get; }
 
         /// <summary>
         /// Gets the BIFF formula token byte associated with a formula-token diagnostic, when available.

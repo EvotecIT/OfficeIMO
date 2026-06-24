@@ -177,7 +177,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case BiffRecordType.Cf:
                         if (!conditionalFormattingState.TryReadRule(payload, out BiffFormulaReadFailure? conditionalFormattingFormulaFailure)) {
                             AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
-                            AddFormulaTokenDiagnostic(diagnostics, options, conditionalFormattingFormulaFailure, type, offset, sheet.Name, "Conditional-formatting formula");
+                            AddFormulaTokenDiagnostic(diagnostics, options, conditionalFormattingFormulaFailure, type, offset, sheet.Name, "ConditionalFormatting", "Conditional-formatting formula");
                         }
 
                         break;
@@ -232,7 +232,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             sheet.AddDataValidation(validation!);
                         } else {
                             AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
-                            AddFormulaTokenDiagnostic(diagnostics, options, dataValidationFormulaFailure, type, offset, sheet.Name, "Data-validation formula");
+                            AddFormulaTokenDiagnostic(diagnostics, options, dataValidationFormulaFailure, type, offset, sheet.Name, "DataValidation", "Data-validation formula");
                         }
 
                         break;
@@ -522,7 +522,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort type,
             int offset,
             string? sheetName,
-            string formulaContext) {
+            string formulaContext,
+            string formulaContextDisplay) {
             if (!options.ReportUnsupportedRecords || failure == null) {
                 return;
             }
@@ -530,11 +531,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             diagnostics.Add(new LegacyXlsImportDiagnostic(
                 LegacyXlsDiagnosticSeverity.Info,
                 "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED",
-                $"{failure.Description} {formulaContext} was preserved without projection.",
+                $"{failure.Description} {formulaContextDisplay} was preserved without projection.",
                 sheetName: sheetName,
                 recordOffset: offset,
                 recordType: type,
                 detailCode: failure.DetailCode,
+                formulaContext: formulaContext,
                 formulaToken: failure.Token,
                 formulaTokenName: failure.TokenName,
                 formulaTokenOffset: failure.TokenOffset));
@@ -778,6 +780,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     recordOffset: recordOffset,
                     recordType: (ushort)BiffRecordType.Formula,
                     detailCode: formulaFailure?.DetailCode,
+                    formulaContext: "CellFormula",
                     formulaToken: formulaFailure?.Token,
                     formulaTokenName: formulaFailure?.TokenName,
                     formulaTokenOffset: formulaFailure?.TokenOffset));

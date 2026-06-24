@@ -447,6 +447,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             recordOffset: record.Offset,
                             recordType: record.Type,
                             detailCode: formulaFailure.DetailCode,
+                            formulaContext: "DefinedName",
                             formulaToken: formulaFailure.Token,
                             formulaTokenName: formulaFailure.TokenName,
                             formulaTokenOffset: formulaFailure.TokenOffset));

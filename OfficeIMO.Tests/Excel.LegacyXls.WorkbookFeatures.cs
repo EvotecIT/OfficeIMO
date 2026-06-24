@@ -1604,6 +1604,7 @@ namespace OfficeIMO.Tests {
                 d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
                 && d.RecordType == (ushort)BiffRecordType.Dv);
             Assert.Equal("FormulaToken0x01", diagnostic.DetailCode);
+            Assert.Equal("DataValidation", diagnostic.FormulaContext);
             Assert.Equal((byte)0x01, diagnostic.FormulaToken);
             Assert.Equal("PtgExp", diagnostic.FormulaTokenName);
             Assert.Equal(0, diagnostic.FormulaTokenOffset);
@@ -1614,6 +1615,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByToken["Token:0x01"]);
             Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByTokenName["PtgExp"]);
             Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByOffset["Offset:0"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByContext["DataValidation"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByContextAndToken["DataValidation|Token:0x01"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByContextAndTokenName["DataValidation|PtgExp"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByContextAndDetail["DataValidation|FormulaToken0x01"]);
         }
 
         [Fact]
@@ -1827,6 +1832,7 @@ namespace OfficeIMO.Tests {
                 d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
                 && d.RecordType == (ushort)BiffRecordType.Cf);
             Assert.Equal("FormulaToken0x01", diagnostic.DetailCode);
+            Assert.Equal("ConditionalFormatting", diagnostic.FormulaContext);
             Assert.Equal((byte)0x01, diagnostic.FormulaToken);
             Assert.Equal("PtgExp", diagnostic.FormulaTokenName);
             Assert.Equal(0, diagnostic.FormulaTokenOffset);
@@ -1837,6 +1843,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByToken["Token:0x01"]);
             Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByTokenName["PtgExp"]);
             Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByOffset["Offset:0"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByContext["ConditionalFormatting"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByContextAndToken["ConditionalFormatting|Token:0x01"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByContextAndTokenName["ConditionalFormatting|PtgExp"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByContextAndDetail["ConditionalFormatting|FormulaToken0x01"]);
         }
 
         [Fact]
