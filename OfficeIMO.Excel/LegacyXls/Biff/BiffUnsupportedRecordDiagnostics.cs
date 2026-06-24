@@ -400,7 +400,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x08A3: return "ShapePropsStream";
                 case 0x08A4: return "TextPropsStream";
                 case 0x08A5: return "RichTextStream";
-                case 0x08A7: return "Units";
+                case 0x08A7: return "CrtLayout12A";
                 case 0x1001: return "Units";
                 case 0x1002: return "Chart";
                 case 0x1003: return "Series";
@@ -548,7 +548,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || type == (ushort)BiffRecordType.CrtLayout12
                 || type == (ushort)BiffRecordType.CrtMlFrt
                 || type == (ushort)BiffRecordType.CrtMlFrtContinue
-                || type == (ushort)BiffRecordType.Units12;
+                || type == (ushort)BiffRecordType.CrtLayout12A;
         }
 
         internal static bool IsDrawingRecord(ushort type) {

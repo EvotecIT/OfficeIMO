@@ -487,6 +487,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormatLink | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFrtInfo | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtLayout12 | 2 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtLayout12A | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtMlFrt | 7 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DataFormat | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DefaultText | 2 |
@@ -511,7 +512,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:StartBlock | 14 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Text | 4 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Tick | 2 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 2 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ValueRange | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:CfEx | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 1 |
@@ -653,8 +654,8 @@ Warnings: 0
 | Container | 35 |
 | Formatting | 18 |
 | FutureMetadata | 29 |
-| Layout | 12 |
-| PreserveOnly | 10 |
+| Layout | 13 |
+| PreserveOnly | 9 |
 | Series | 15 |
 | Text | 15 |
 
@@ -667,8 +668,8 @@ Warnings: 0
 | Sheet:RevenueChart;Kind:Container | 35 |
 | Sheet:RevenueChart;Kind:Formatting | 18 |
 | Sheet:RevenueChart;Kind:FutureMetadata | 29 |
-| Sheet:RevenueChart;Kind:Layout | 12 |
-| Sheet:RevenueChart;Kind:PreserveOnly | 10 |
+| Sheet:RevenueChart;Kind:Layout | 13 |
+| Sheet:RevenueChart;Kind:PreserveOnly | 9 |
 | Sheet:RevenueChart;Kind:Series | 15 |
 | Sheet:RevenueChart;Kind:Text | 15 |
 
@@ -1047,8 +1048,8 @@ Warnings: 0
 | Container | 35 |
 | Formatting | 18 |
 | FutureMetadata | 29 |
-| Layout | 12 |
-| PreserveOnly | 10 |
+| Layout | 13 |
+| PreserveOnly | 9 |
 | Series | 15 |
 | Text | 15 |
 
@@ -1073,6 +1074,7 @@ Warnings: 0
 | ChartFormatLink | 1 |
 | ChartFrtInfo | 1 |
 | CrtLayout12 | 2 |
+| CrtLayout12A | 1 |
 | CrtMlFrt | 7 |
 | DataFormat | 1 |
 | DefaultText | 2 |
@@ -1097,7 +1099,7 @@ Warnings: 0
 | StartBlock | 14 |
 | Text | 4 |
 | Tick | 2 |
-| Units | 2 |
+| Units | 1 |
 | ValueRange | 1 |
 
 ## Chart Records By Name And Payload Length
@@ -1123,6 +1125,7 @@ Warnings: 0
 | ChartFormat\|Bytes:20 | 1 |
 | ChartFrtInfo\|Bytes:24 | 1 |
 | Chart\|Bytes:16 | 1 |
+| CrtLayout12A\|Bytes:68 | 1 |
 | CrtLayout12\|Bytes:60 | 2 |
 | CrtMlFrt\|Bytes:24 | 1 |
 | CrtMlFrt\|Bytes:30 | 4 |
@@ -1152,7 +1155,6 @@ Warnings: 0
 | Text\|Bytes:32 | 4 |
 | Tick\|Bytes:30 | 2 |
 | Units\|Bytes:2 | 1 |
-| Units\|Bytes:68 | 1 |
 | ValueRange\|Bytes:42 | 1 |
 
 ## Chart Workbook States
@@ -1219,6 +1221,7 @@ Warnings: 0
 | ChartFormat\|Depth:2 | 1 |
 | ChartFrtInfo\|Depth:0 | 1 |
 | Chart\|Depth:0 | 1 |
+| CrtLayout12A\|Depth:1 | 1 |
 | CrtLayout12\|Depth:2 | 1 |
 | CrtLayout12\|Depth:4 | 1 |
 | CrtMlFrt\|Depth:0 | 2 |
@@ -1269,7 +1272,6 @@ Warnings: 0
 | Text\|Depth:4 | 1 |
 | Tick\|Depth:3 | 2 |
 | Units\|Depth:0 | 1 |
-| Units\|Depth:1 | 1 |
 | ValueRange\|Depth:3 | 1 |
 
 ## Chart Records By Name And Container Transition
@@ -1292,6 +1294,7 @@ Warnings: 0
 | ChartFormat\|InsideContainer | 1 |
 | ChartFrtInfo\|OutsideContainer | 1 |
 | Chart\|OutsideContainer | 1 |
+| CrtLayout12A\|InsideContainer | 1 |
 | CrtLayout12\|InsideContainer | 2 |
 | CrtMlFrt\|InsideContainer | 5 |
 | CrtMlFrt\|OutsideContainer | 2 |
@@ -1318,7 +1321,6 @@ Warnings: 0
 | StartBlock\|InsideContainer | 14 |
 | Text\|InsideContainer | 4 |
 | Tick\|InsideContainer | 2 |
-| Units\|InsideContainer | 1 |
 | Units\|OutsideContainer | 1 |
 | ValueRange\|InsideContainer | 1 |
 
@@ -1570,6 +1572,36 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | X:0;Y:0;Width:0;Height:0 | 2 |
+
+## Chart CrtLayout12A Targets
+
+| Key | Count |
+| --- | --- |
+| OuterPlotArea | 1 |
+
+## Chart CrtLayout12A Mode Pairs
+
+| Key | Count |
+| --- | --- |
+| X:Automatic;Y:Automatic;Width:Automatic;Height:Automatic | 1 |
+
+## Chart CrtLayout12A Checksums
+
+| Key | Count |
+| --- | --- |
+| Checksum:0x00000001 | 1 |
+
+## Chart CrtLayout12A Bounds
+
+| Key | Count |
+| --- | --- |
+| X:40;Y:274;Width:3603;Height:3719 | 1 |
+
+## Chart CrtLayout12A Rectangles
+
+| Key | Count |
+| --- | --- |
+| X:0;Y:0;Width:0;Height:0 | 1 |
 
 ## Chart Future Record Info Versions
 
@@ -2573,6 +2605,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormatLink | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFrtInfo | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtLayout12 | 2 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtLayout12A | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtMlFrt | 7 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DataFormat | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DefaultText | 2 |
@@ -2597,7 +2630,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:StartBlock | 14 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Text | 4 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Tick | 2 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 2 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ValueRange | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:CfEx | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 1 |

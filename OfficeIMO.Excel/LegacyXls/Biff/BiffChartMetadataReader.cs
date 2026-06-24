@@ -54,6 +54,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadLayout12(record, out LegacyXlsChartLayout12? layout12);
             TryReadFutureRecordInfo(record, out LegacyXlsChartFutureRecordInfo? futureRecordInfo);
             TryReadXmlTokenChain(record, out LegacyXlsChartXmlTokenChain? xmlTokenChain);
+            TryReadPlotAreaLayout12(record, out LegacyXlsChartPlotAreaLayout12? plotAreaLayout12);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -120,7 +121,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 fontBasisOptions,
                 layout12,
                 futureRecordInfo,
-                xmlTokenChain));
+                xmlTokenChain,
+                plotAreaLayout12));
             return true;
         }
 
@@ -695,6 +697,36 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
+        private static bool TryReadPlotAreaLayout12(BiffRecord record, out LegacyXlsChartPlotAreaLayout12? layout) {
+            layout = null;
+            if (record.Type != 0x08A7 || record.Payload.Length < 68) {
+                return false;
+            }
+
+            ushort frtRecordType = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            if (frtRecordType != 0x08A7) {
+                return false;
+            }
+
+            ushort flags = BiffRecordReader.ReadUInt16(record.Payload, 16);
+            layout = new LegacyXlsChartPlotAreaLayout12(
+                BiffRecordReader.ReadUInt32(record.Payload, 12),
+                (flags & 0x0001) != 0,
+                BiffRecordReader.ReadInt16(record.Payload, 18),
+                BiffRecordReader.ReadInt16(record.Payload, 20),
+                BiffRecordReader.ReadInt16(record.Payload, 22),
+                BiffRecordReader.ReadInt16(record.Payload, 24),
+                BiffRecordReader.ReadUInt16(record.Payload, 26),
+                BiffRecordReader.ReadUInt16(record.Payload, 28),
+                BiffRecordReader.ReadUInt16(record.Payload, 30),
+                BiffRecordReader.ReadUInt16(record.Payload, 32),
+                BiffRecordReader.ReadDouble(record.Payload, 34),
+                BiffRecordReader.ReadDouble(record.Payload, 42),
+                BiffRecordReader.ReadDouble(record.Payload, 50),
+                BiffRecordReader.ReadDouble(record.Payload, 58));
+            return true;
+        }
+
         private static bool TryReadSheetProperties(BiffRecord record, out LegacyXlsChartSheetProperties? sheetProperties) {
             sheetProperties = null;
             if (record.Type != 0x1041 || record.Payload.Length < 4) {
@@ -1092,6 +1124,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x1035: // PlotArea
                 case 0x104F: // Pos
                 case 0x1064: // PlotGrowth
+                case 0x08A7: // CrtLayout12A
                     return LegacyXlsChartRecordKind.Layout;
                 case 0x1015: // Legend
                 case 0x1017: // Bar

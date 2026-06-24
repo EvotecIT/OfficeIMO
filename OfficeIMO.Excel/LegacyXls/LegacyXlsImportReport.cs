@@ -695,6 +695,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartLayout12Rectangles = CountByCode(workbook.ChartRecords
                 .Where(record => record.Layout12 != null)
                 .Select(record => $"X:{FormatDouble(record.Layout12!.X)};Y:{FormatDouble(record.Layout12.Y)};Width:{FormatDouble(record.Layout12.Width)};Height:{FormatDouble(record.Layout12.Height)}"));
+            ChartPlotAreaLayout12Targets = CountByCode(workbook.ChartRecords
+                .Where(record => record.PlotAreaLayout12 != null)
+                .Select(record => record.PlotAreaLayout12!.TargetName));
+            ChartPlotAreaLayout12ModePairs = CountByCode(workbook.ChartRecords
+                .Where(record => record.PlotAreaLayout12 != null)
+                .Select(record => $"X:{record.PlotAreaLayout12!.XModeName};Y:{record.PlotAreaLayout12.YModeName};Width:{record.PlotAreaLayout12.WidthModeName};Height:{record.PlotAreaLayout12.HeightModeName}"));
+            ChartPlotAreaLayout12Checksums = CountByCode(workbook.ChartRecords
+                .Where(record => record.PlotAreaLayout12 != null)
+                .Select(record => $"Checksum:0x{record.PlotAreaLayout12!.Checksum:X8}"));
+            ChartPlotAreaLayout12Bounds = CountByCode(workbook.ChartRecords
+                .Where(record => record.PlotAreaLayout12 != null)
+                .Select(record => $"X:{record.PlotAreaLayout12!.UpperLeftX};Y:{record.PlotAreaLayout12.UpperLeftY};Width:{record.PlotAreaLayout12.WidthSprc};Height:{record.PlotAreaLayout12.HeightSprc}"));
+            ChartPlotAreaLayout12Rectangles = CountByCode(workbook.ChartRecords
+                .Where(record => record.PlotAreaLayout12 != null)
+                .Select(record => $"X:{FormatDouble(record.PlotAreaLayout12!.X)};Y:{FormatDouble(record.PlotAreaLayout12.Y)};Width:{FormatDouble(record.PlotAreaLayout12.Width)};Height:{FormatDouble(record.PlotAreaLayout12.Height)}"));
             ChartFutureRecordInfoVersions = CountByCode(workbook.ChartRecords
                 .Where(record => record.FutureRecordInfo != null)
                 .Select(record => $"Originator:{record.FutureRecordInfo!.OriginatorVersionName};Writer:{record.FutureRecordInfo.WriterVersionName}"));
@@ -2094,6 +2109,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets CrtLayout12 records grouped by decoded layout rectangle values.</summary>
         public IReadOnlyDictionary<string, int> ChartLayout12Rectangles { get; }
 
+        /// <summary>Gets CrtLayout12A records grouped by decoded plot-area target.</summary>
+        public IReadOnlyDictionary<string, int> ChartPlotAreaLayout12Targets { get; }
+
+        /// <summary>Gets CrtLayout12A records grouped by decoded layout modes.</summary>
+        public IReadOnlyDictionary<string, int> ChartPlotAreaLayout12ModePairs { get; }
+
+        /// <summary>Gets CrtLayout12A records grouped by checksum value.</summary>
+        public IReadOnlyDictionary<string, int> ChartPlotAreaLayout12Checksums { get; }
+
+        /// <summary>Gets CrtLayout12A records grouped by SPRC plot-area bounds.</summary>
+        public IReadOnlyDictionary<string, int> ChartPlotAreaLayout12Bounds { get; }
+
+        /// <summary>Gets CrtLayout12A records grouped by decoded layout rectangle values.</summary>
+        public IReadOnlyDictionary<string, int> ChartPlotAreaLayout12Rectangles { get; }
+
         /// <summary>Gets ChartFrtInfo records grouped by originator and writer application version.</summary>
         public IReadOnlyDictionary<string, int> ChartFutureRecordInfoVersions { get; }
 
@@ -2884,6 +2914,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart CrtLayout12 Auto Layout Types", ChartLayout12AutoLayoutTypes);
             AppendDictionary(builder, "Chart CrtLayout12 Checksums", ChartLayout12Checksums);
             AppendDictionary(builder, "Chart CrtLayout12 Rectangles", ChartLayout12Rectangles);
+            AppendDictionary(builder, "Chart CrtLayout12A Targets", ChartPlotAreaLayout12Targets);
+            AppendDictionary(builder, "Chart CrtLayout12A Mode Pairs", ChartPlotAreaLayout12ModePairs);
+            AppendDictionary(builder, "Chart CrtLayout12A Checksums", ChartPlotAreaLayout12Checksums);
+            AppendDictionary(builder, "Chart CrtLayout12A Bounds", ChartPlotAreaLayout12Bounds);
+            AppendDictionary(builder, "Chart CrtLayout12A Rectangles", ChartPlotAreaLayout12Rectangles);
             AppendDictionary(builder, "Chart Future Record Info Versions", ChartFutureRecordInfoVersions);
             AppendDictionary(builder, "Chart Future Record Info Range Counts", ChartFutureRecordInfoRangeCounts);
             AppendDictionary(builder, "Chart Future Record Info Ranges", ChartFutureRecordInfoRanges);

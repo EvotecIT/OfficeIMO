@@ -127,7 +127,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         Theme = 0x0896,
         TopMargin = 0x0028,
         Txo = 0x01B6,
-        Units12 = 0x08A7,
+        CrtLayout12A = 0x08A7,
         UsesElfs = 0x0160,
         VCenter = 0x0084,
         VerticalPageBreaks = 0x001A,

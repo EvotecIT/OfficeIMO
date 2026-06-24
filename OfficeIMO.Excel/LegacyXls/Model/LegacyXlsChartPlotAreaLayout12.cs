@@ -1,11 +1,15 @@
 namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
-    /// Describes preserve-only CrtLayout12 chart layout metadata.
+    /// Describes preserve-only CrtLayout12A plot-area layout metadata.
     /// </summary>
-    public sealed class LegacyXlsChartLayout12 {
-        internal LegacyXlsChartLayout12(
+    public sealed class LegacyXlsChartPlotAreaLayout12 {
+        internal LegacyXlsChartPlotAreaLayout12(
             uint checksum,
-            byte automaticLayoutType,
+            bool targetsInnerPlotArea,
+            short upperLeftX,
+            short upperLeftY,
+            short widthSprc,
+            short heightSprc,
             ushort xMode,
             ushort yMode,
             ushort widthMode,
@@ -15,7 +19,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             double width,
             double height) {
             Checksum = checksum;
-            AutomaticLayoutType = automaticLayoutType;
+            TargetsInnerPlotArea = targetsInnerPlotArea;
+            UpperLeftX = upperLeftX;
+            UpperLeftY = upperLeftY;
+            WidthSprc = widthSprc;
+            HeightSprc = heightSprc;
             XMode = xMode;
             YMode = yMode;
             WidthMode = widthMode;
@@ -26,21 +34,26 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Height = height;
         }
 
-        /// <summary>Gets the CrtLayout12 checksum value.</summary>
+        /// <summary>Gets the CrtLayout12A checksum value.</summary>
         public uint Checksum { get; }
 
-        /// <summary>Gets the automatic legend layout type.</summary>
-        public byte AutomaticLayoutType { get; }
+        /// <summary>Gets whether the layout target is the inner plot area.</summary>
+        public bool TargetsInnerPlotArea { get; }
 
-        /// <summary>Gets the decoded automatic legend layout type name.</summary>
-        public string AutomaticLayoutTypeName => AutomaticLayoutType switch {
-            0x00 => "Bottom",
-            0x01 => "TopRight",
-            0x02 => "Top",
-            0x03 => "Right",
-            0x04 => "Left",
-            _ => $"Unknown:0x{AutomaticLayoutType:X2}"
-        };
+        /// <summary>Gets the decoded plot-area target name.</summary>
+        public string TargetName => TargetsInnerPlotArea ? "InnerPlotArea" : "OuterPlotArea";
+
+        /// <summary>Gets the horizontal offset of the plot area's upper-left corner in SPRC units.</summary>
+        public short UpperLeftX { get; }
+
+        /// <summary>Gets the vertical offset of the plot area's upper-left corner in SPRC units.</summary>
+        public short UpperLeftY { get; }
+
+        /// <summary>Gets the plot-area width in SPRC units.</summary>
+        public short WidthSprc { get; }
+
+        /// <summary>Gets the plot-area height in SPRC units.</summary>
+        public short HeightSprc { get; }
 
         /// <summary>Gets the raw X layout mode.</summary>
         public ushort XMode { get; }
@@ -77,6 +90,5 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the height or lower-right Y layout value.</summary>
         public double Height { get; }
-
     }
 }

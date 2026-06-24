@@ -1491,6 +1491,87 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsChartPlotAreaLayout12Metadata() {
+            byte[] payload = new byte[68];
+            WriteUInt16(payload, 0, 0x08A7);
+            WriteUInt32(payload, 12, 0x00000001);
+            WriteUInt16(payload, 16, 0x0001);
+            WriteInt16(payload, 18, 10);
+            WriteInt16(payload, 20, 20);
+            WriteInt16(payload, 22, 300);
+            WriteInt16(payload, 24, 400);
+            WriteUInt16(payload, 26, 0x0001);
+            WriteUInt16(payload, 28, 0x0002);
+            WriteUInt16(payload, 30, 0x0000);
+            WriteUInt16(payload, 32, 0x0001);
+            WriteDouble(payload, 34, 0.1);
+            WriteDouble(payload, 42, 0.2);
+            WriteDouble(payload, 50, 0.3);
+            WriteDouble(payload, 58, 0.4);
+            var chartRecord = new BiffRecord(0x08A7, offset: 224, payload);
+            var chartRecords = new List<LegacyXlsChartRecord>();
+
+            Assert.True(BiffChartMetadataReader.TryRead(chartRecord, "CrtLayout12A", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            Assert.Equal("CrtLayout12A", record.RecordName);
+            Assert.Equal(LegacyXlsChartRecordKind.Layout, record.Kind);
+            LegacyXlsChartPlotAreaLayout12? layout = record.PlotAreaLayout12;
+            Assert.NotNull(layout);
+            Assert.Equal(0x00000001u, layout!.Checksum);
+            Assert.True(layout.TargetsInnerPlotArea);
+            Assert.Equal("InnerPlotArea", layout.TargetName);
+            Assert.Equal(10, layout.UpperLeftX);
+            Assert.Equal(20, layout.UpperLeftY);
+            Assert.Equal(300, layout.WidthSprc);
+            Assert.Equal(400, layout.HeightSprc);
+            Assert.Equal("Factor", layout.XModeName);
+            Assert.Equal("Edge", layout.YModeName);
+            Assert.Equal("Automatic", layout.WidthModeName);
+            Assert.Equal("Factor", layout.HeightModeName);
+            Assert.Equal(0.1, layout.X);
+            Assert.Equal(0.2, layout.Y);
+            Assert.Equal(0.3, layout.Width);
+            Assert.Equal(0.4, layout.Height);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(1, report.ChartPlotAreaLayout12Targets["InnerPlotArea"]);
+            Assert.Equal(1, report.ChartPlotAreaLayout12ModePairs["X:Factor;Y:Edge;Width:Automatic;Height:Factor"]);
+            Assert.Equal(1, report.ChartPlotAreaLayout12Checksums["Checksum:0x00000001"]);
+            Assert.Equal(1, report.ChartPlotAreaLayout12Bounds["X:10;Y:20;Width:300;Height:400"]);
+            Assert.Equal(1, report.ChartPlotAreaLayout12Rectangles["X:0.1;Y:0.2;Width:0.3;Height:0.4"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart CrtLayout12A Targets", markdown);
+            Assert.Contains("InnerPlotArea", markdown);
+            Assert.Contains("X:10;Y:20;Width:300;Height:400", markdown);
+
+            static void WriteUInt16(byte[] buffer, int offset, ushort value) {
+                buffer[offset] = (byte)(value & 0xff);
+                buffer[offset + 1] = (byte)(value >> 8);
+            }
+
+            static void WriteInt16(byte[] buffer, int offset, short value) {
+                WriteUInt16(buffer, offset, unchecked((ushort)value));
+            }
+
+            static void WriteUInt32(byte[] buffer, int offset, uint value) {
+                buffer[offset] = (byte)(value & 0xff);
+                buffer[offset + 1] = (byte)((value >> 8) & 0xff);
+                buffer[offset + 2] = (byte)((value >> 16) & 0xff);
+                buffer[offset + 3] = (byte)(value >> 24);
+            }
+
+            static void WriteDouble(byte[] buffer, int offset, double value) {
+                byte[] bytes = BitConverter.GetBytes(value);
+                Array.Copy(bytes, 0, buffer, offset, bytes.Length);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_GroupsChartFutureRecordInfo() {
             byte[] payload = {
                 0x50, 0x08,
