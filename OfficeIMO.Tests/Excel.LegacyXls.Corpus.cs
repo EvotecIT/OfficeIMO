@@ -128,6 +128,64 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "Checkbox" && record.ObjectSubRecords.Any(subRecord => subRecord.SubRecordName == "FtCblsData"));
         }
 
+        [Fact]
+        public void LegacyXls_Corpus_FormulaStress_ProjectsSupportedFormulaTokens() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "excel-com-generated",
+                "formula-stress.xls");
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.Empty(result.ImportReport.FormulaTokenBlockers);
+            Assert.Contains("ROUND", result.ImportReport.FormulaFunctionsByName.Keys);
+            Assert.Contains("IF", result.ImportReport.FormulaFunctionsByName.Keys);
+            Assert.Contains("If", result.ImportReport.FormulaAttributesByName.Keys);
+            Assert.Contains("Sum", result.ImportReport.FormulaAttributesByName.Keys);
+
+            foreach (string tokenName in new[] {
+                "PtgAdd",
+                "PtgArea",
+                "PtgArray",
+                "PtgAttr",
+                "PtgConcat",
+                "PtgDiv",
+                "PtgFunc",
+                "PtgFuncVar",
+                "PtgGt",
+                "PtgLe",
+                "PtgNe",
+                "PtgPercent",
+                "PtgPower",
+                "PtgStr",
+                "PtgUminus",
+                "PtgUplus"
+            }) {
+                Assert.Contains(tokenName, result.ImportReport.FormulaTokensByName.Keys);
+            }
+
+            LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
+            AssertCorpusFormula(sheet, 1, 2, 100d, "A1^2");
+            AssertCorpusFormula(sheet, 2, 2, "North-Q1", "A4&\"-\"&A5");
+            AssertCorpusFormula(sheet, 3, 2, -3d, "-A2");
+            AssertCorpusFormula(sheet, 4, 2, 5d, "+A3");
+            AssertCorpusFormula(sheet, 5, 2, 0.03d, "A2%");
+            AssertCorpusFormula(sheet, 6, 2, true, "A1>A2");
+            AssertCorpusFormula(sheet, 7, 2, true, "A2<=A3");
+            AssertCorpusFormula(sheet, 8, 2, true, "A1<>A3");
+            AssertCorpusFormula(sheet, 9, 2, 6d, "SUM({1,2,3})");
+            AssertCorpusFormula(sheet, 10, 2, 3.33d, "ROUND(A1/A2,2)");
+            AssertCorpusFormula(sheet, 11, 2, "yes", "IF(A1>A3,\"yes\",\"no\")");
+            AssertCorpusFormula(sheet, 12, 2, 18d, "SUM(A1:A3)");
+            AssertCorpusFormula(sheet, 1, 3, 103.33d, "B1+B10");
+        }
+
         private static bool IsLegacyXlsCorpusBaselineUpdateRequested() {
             string? value = Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES");
             return string.Equals(value, "1", StringComparison.Ordinal)
