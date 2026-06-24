@@ -86,6 +86,12 @@ Warnings: 0
 | --- | --- |
 | 0x0018\|PtgArea3d | 1 |
 
+## Worksheet Feature States
+
+| Key | Count |
+| --- | --- |
+| DataValidations:0\|ConditionalFormatting:0\|AutoFilterCriteria:1\|AutoFilterDropDowns:4 | 1 |
+
 ## AutoFilter Criteria By Sheet
 
 | Key | Count |

@@ -93,6 +93,12 @@ Warnings: 0
 | 0x0006\|PtgRef | 24 |
 | 0x0018\|PtgArea3d | 2 |
 
+## Worksheet Feature States
+
+| Key | Count |
+| --- | --- |
+| DataValidations:0\|ConditionalFormatting:1\|AutoFilterCriteria:1\|AutoFilterDropDowns:7 | 1 |
+
 ## Conditional Formatting By Type
 
 | Key | Count |

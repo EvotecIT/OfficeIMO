@@ -130,6 +130,12 @@ Warnings: 0
 | Goto | 2 |
 | If | 1 |
 
+## Worksheet Feature States
+
+| Key | Count |
+| --- | --- |
+| DataValidations:1\|ConditionalFormatting:1\|AutoFilterCriteria:1\|AutoFilterDropDowns:5 | 1 |
+
 ## Data Validations By Type
 
 | Key | Count |

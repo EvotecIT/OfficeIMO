@@ -53,6 +53,12 @@ Warnings: 0
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 6 |
 
+## Worksheet Feature States
+
+| Key | Count |
+| --- | --- |
+| DataValidations:0\|ConditionalFormatting:8\|AutoFilterCriteria:0\|AutoFilterDropDowns:Missing | 1 |
+
 ## Conditional Formatting By Type
 
 | Key | Count |

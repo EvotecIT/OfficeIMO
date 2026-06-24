@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
 
                 if (modelValidationType == LegacyXlsDataValidationType.List && listItems?.Count > 0) {
-                    formula1 = "\"" + string.Join(",", listItems) + "\"";
+                    formula1 = NormalizeInlineListFormula(listItems);
                 }
 
                 int rangesOffset = offset;
@@ -119,6 +119,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     if (modelValidationType == LegacyXlsDataValidationType.List) {
                         if (!TryGetListSource(modelValidationType, formula1!, out listItems, out listSourceRange, out listSourceName, out listSourceSheetName)) {
                             return false;
+                        }
+
+                        if (listItems?.Count > 0) {
+                            formula1 = NormalizeInlineListFormula(listItems);
                         }
                     }
                 }
@@ -450,6 +454,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 .Where(item => item.Length > 0)
                 .ToArray();
             return items.Count > 0;
+        }
+
+        private static string NormalizeInlineListFormula(IReadOnlyList<string> items) {
+            return "\"" + string.Join(",", items) + "\"";
         }
 
         private static bool TryParseSheetQualifiedListSourceRange(string formula, out string? sourceSheetName, out string? sourceRange) {

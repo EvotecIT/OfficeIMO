@@ -42,6 +42,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             DataValidationCount = dataValidations.Length;
             ConditionalFormattingCount = conditionalFormattings.Length;
             AutoFilterCriteriaCount = workbook.Worksheets.Sum(sheet => sheet.AutoFilterCriteria.Count);
+            WorksheetFeatureStates = CountByCode(workbook.Worksheets.SelectMany(GetWorksheetFeatureStateKeys));
             DataValidationsByType = CountByCode(dataValidations.Select(validation => validation.Type.ToString()));
             DataValidationsByOperator = CountByCode(dataValidations.Select(validation => validation.Operator.ToString()));
             DataValidationsByErrorStyle = CountByCode(dataValidations.Select(validation => validation.ErrorStyle.ToString()));
@@ -832,6 +833,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of imported AutoFilter criteria columns.</summary>
         public int AutoFilterCriteriaCount { get; }
+
+        /// <summary>Gets non-empty worksheet feature bundles grouped by data-validation, conditional-formatting, and AutoFilter state.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetFeatureStates { get; }
 
         /// <summary>Gets imported data validations grouped by validation type.</summary>
         public IReadOnlyDictionary<string, int> DataValidationsByType { get; }
@@ -1902,6 +1906,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Formula Functions By Id", FormulaFunctionsById);
             AppendDictionary(builder, "Formula Functions By Name", FormulaFunctionsByName);
             AppendDictionary(builder, "Formula Attributes By Name", FormulaAttributesByName);
+            AppendDictionary(builder, "Worksheet Feature States", WorksheetFeatureStates);
             AppendDictionary(builder, "Data Validations By Type", DataValidationsByType);
             AppendDictionary(builder, "Data Validations By Operator", DataValidationsByOperator);
             AppendDictionary(builder, "Data Validations By Error Style", DataValidationsByErrorStyle);
@@ -2855,6 +2860,23 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetFormulaPairStateKey(string? formula1, string? formula2) {
             return $"Formula1:{GetFormulaStateKey(formula1)}|Formula2:{GetFormulaStateKey(formula2)}";
+        }
+
+        private static IEnumerable<string> GetWorksheetFeatureStateKeys(LegacyXlsWorksheet sheet) {
+            if (sheet.DataValidations.Count == 0
+                && sheet.ConditionalFormattings.Count == 0
+                && sheet.AutoFilterCriteria.Count == 0
+                && !sheet.AutoFilterDropDownCount.HasValue) {
+                yield break;
+            }
+
+            string dropDownCount = sheet.AutoFilterDropDownCount.HasValue
+                ? sheet.AutoFilterDropDownCount.Value.ToString(CultureInfo.InvariantCulture)
+                : "Missing";
+            yield return $"DataValidations:{sheet.DataValidations.Count.ToString(CultureInfo.InvariantCulture)}"
+                + $"|ConditionalFormatting:{sheet.ConditionalFormattings.Count.ToString(CultureInfo.InvariantCulture)}"
+                + $"|AutoFilterCriteria:{sheet.AutoFilterCriteria.Count.ToString(CultureInfo.InvariantCulture)}"
+                + $"|AutoFilterDropDowns:{dropDownCount}";
         }
 
         private static string GetDataValidationDropDownState(LegacyXlsDataValidation validation) {

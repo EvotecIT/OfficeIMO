@@ -172,6 +172,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, result.ImportReport.AutoFilterCriteriaByJoinOperator["Single"]);
             Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByJoinOperator["None"]);
             Assert.Equal(1, result.ImportReport.AutoFilterTop10Values["TopItems:3"]);
+            Assert.Equal(1, result.ImportReport.WorksheetFeatureStates["DataValidations:0|ConditionalFormatting:0|AutoFilterCriteria:4|AutoFilterDropDowns:4"]);
 
             LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
             LegacyXlsAutoFilterCriteria blankCriteria = Assert.Single(sheet.AutoFilterCriteria, criteria => criteria.Kind == LegacyXlsAutoFilterKind.Blanks);
@@ -244,6 +245,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.DataValidationListSourcesByKind["DefinedName"]);
             Assert.Equal(1, result.ImportReport.DataValidationListSourcesByRange["K2:K4"]);
             Assert.Equal(1, result.ImportReport.DataValidationListSourcesByName["NamedOptions"]);
+            Assert.Equal(1, result.ImportReport.WorksheetFeatureStates["DataValidations:9|ConditionalFormatting:0|AutoFilterCriteria:0|AutoFilterDropDowns:Missing"]);
 
             LegacyXlsWorksheet validationSheet = Assert.Single(result.Workbook.Worksheets, sheet => sheet.Name == "Validation");
             Assert.Single(result.Workbook.Worksheets, sheet => sheet.Name == "Lookup");
@@ -318,6 +320,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4, result.ImportReport.ConditionalFormattingsByStopIfTrueState["StopIfTrue"]);
             Assert.Equal(4, result.ImportReport.ConditionalFormattingsByStopIfTrueState["Continue"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:Dxf"]);
+            Assert.Equal(1, result.ImportReport.WorksheetFeatureStates["DataValidations:0|ConditionalFormatting:8|AutoFilterCriteria:0|AutoFilterDropDowns:Missing"]);
 
             LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
             AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.GreaterThan, "A2:A6", "50", null);

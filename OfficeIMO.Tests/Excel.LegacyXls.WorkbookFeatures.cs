@@ -1711,6 +1711,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.DataValidationCount);
             Assert.Equal(1, result.ImportReport.DataValidationListSourcesByKind["InlineList"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingCount);
+            Assert.Equal(1, result.ImportReport.WorksheetFeatureStates["DataValidations:1|ConditionalFormatting:1|AutoFilterCriteria:0|AutoFilterDropDowns:Missing"]);
             ExcelSheet projectedSheet = result.Document.Sheets[0];
             Assert.Single(projectedSheet.GetDataValidations("A2:A5"));
             Assert.Single(projectedSheet.GetConditionalFormattingRules("B2:B5"));
