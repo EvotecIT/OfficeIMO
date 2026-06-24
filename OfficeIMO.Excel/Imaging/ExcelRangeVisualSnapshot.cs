@@ -703,6 +703,8 @@ namespace OfficeIMO.Excel {
             string contentType,
             OfficeImageFormat detectedFormat,
             byte[] bytes,
+            double sourceWidth,
+            double sourceHeight,
             double x,
             double y,
             double width,
@@ -720,6 +722,8 @@ namespace OfficeIMO.Excel {
             ContentType = contentType ?? string.Empty;
             DetectedFormat = detectedFormat;
             Bytes = bytes ?? Array.Empty<byte>();
+            SourceWidth = sourceWidth;
+            SourceHeight = sourceHeight;
             X = x;
             Y = y;
             Width = width;
@@ -745,6 +749,12 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Image bytes.</summary>
         public byte[] Bytes { get; }
+
+        /// <summary>Intrinsic source image width in pixels, when it could be identified.</summary>
+        public double SourceWidth { get; }
+
+        /// <summary>Intrinsic source image height in pixels, when it could be identified.</summary>
+        public double SourceHeight { get; }
 
         /// <summary>X position in CSS pixels.</summary>
         public double X { get; }

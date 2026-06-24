@@ -122,7 +122,7 @@ namespace OfficeIMO.Visio {
             (double centerX, double centerY) = ToRaster(page, cx, cy, canvas.Scale);
             double targetWidth = imageWidth * canvas.Scale;
             double targetHeight = imageHeight * canvas.Scale;
-            OfficeImagePlacement placement = OfficeImagePlacement.Fit(
+            OfficeImageRenderPlan renderPlan = OfficeImageRenderPlan.CreateTopLeft(
                 raster.Width,
                 raster.Height,
                 centerX - (targetWidth / 2D),
@@ -133,8 +133,7 @@ namespace OfficeIMO.Visio {
 
             canvas.DrawImage(
                 raster,
-                new OfficeImageProjection(
-                    placement,
+                renderPlan.ToVisibleProjection(
                     rotationDegrees: OfficeGeometry.RadiansToDegrees(ToRasterRotation(shape.Angle)),
                     rotationCenterX: centerX,
                     rotationCenterY: centerY));

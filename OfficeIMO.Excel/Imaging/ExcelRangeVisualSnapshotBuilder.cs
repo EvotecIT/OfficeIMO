@@ -405,7 +405,8 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                OfficeImageFormat detectedFormat = OfficeImageReader.TryIdentify(bytes, image.Name, out OfficeImageInfo info)
+                bool identifiedImage = OfficeImageReader.TryIdentify(bytes, image.Name, out OfficeImageInfo info);
+                OfficeImageFormat detectedFormat = identifiedImage
                     ? info.Format
                     : OfficeImageFormat.Unknown;
                 if (detectedFormat == OfficeImageFormat.Unknown) {
@@ -422,6 +423,8 @@ namespace OfficeIMO.Excel {
                     image.ContentType,
                     detectedFormat,
                     bytes,
+                    identifiedImage ? info.Width : 0D,
+                    identifiedImage ? info.Height : 0D,
                     x,
                     y,
                     width,

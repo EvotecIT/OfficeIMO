@@ -61,9 +61,15 @@ namespace OfficeIMO.Excel {
         }
 
         private static OfficeImageProjection CreateImageProjection(ExcelVisualImage image, double scale) =>
-            new OfficeImageProjection(
-                new OfficeImagePlacement(image.X, image.Y, image.Width, image.Height),
-                image.SourceCrop,
+            OfficeImageRenderPlan.CreateTopLeft(
+                image.SourceWidth > 0D ? image.SourceWidth : image.Width,
+                image.SourceHeight > 0D ? image.SourceHeight : image.Height,
+                image.X,
+                image.Y,
+                image.Width,
+                image.Height,
+                OfficeImageFit.Stretch,
+                image.SourceCrop).ToVisibleProjection(
                 image.RotationDegrees,
                 flipHorizontal: image.FlipHorizontal,
                 flipVertical: image.FlipVertical).Scale(scale);

@@ -650,6 +650,8 @@ namespace OfficeIMO.Tests {
             string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
 
             ExcelVisualImage image = Assert.Single(snapshot.Images);
+            Assert.Equal(96D, image.SourceWidth);
+            Assert.Equal(24D, image.SourceHeight);
             Assert.True(image.X < 0D, "The overlapping image should keep its true negative X position relative to the exported range.");
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.Contains("clip-path=\"url(#xl-image-clip-", svg, StringComparison.Ordinal);
@@ -723,6 +725,8 @@ namespace OfficeIMO.Tests {
             ExcelVisualImage image = Assert.Single(snapshot.Images);
             Assert.Equal(0.25D, image.CropLeftRatio, precision: 3);
             Assert.Equal(0.25D, image.CropRightRatio, precision: 3);
+            Assert.True(image.SourceWidth > 0D);
+            Assert.True(image.SourceHeight > 0D);
             Assert.True(image.HasCrop);
             Assert.Contains("clip-path=\"url(#xl-image-clip-", svg, StringComparison.Ordinal);
             Assert.Contains("x=\"-", svg, StringComparison.Ordinal);
