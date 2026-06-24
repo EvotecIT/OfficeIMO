@@ -1672,6 +1672,18 @@ Warnings: 0
 | Kind:Sheet | 1 |
 | Kind:Sheet;Context:0x0000;Instance1:0x0000;Instance2:0x0000 | 1 |
 
+## Chart Units Reserved Values
+
+| Key | Count |
+| --- | --- |
+| Reserved:0x0000 | 1 |
+
+## Chart Units Reserved States
+
+| Key | Count |
+| --- | --- |
+| ReservedZero | 1 |
+
 ## Chart XmlTkChain Declared Byte Counts
 
 | Key | Count |

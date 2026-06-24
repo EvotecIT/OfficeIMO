@@ -1328,6 +1328,18 @@ Warnings: 0
 | Basis:9806x6226;HeightTwips:242;Scale:ChartArea;FontIndex:16 | 1 |
 | Basis:9806x6226;HeightTwips:242;Scale:ChartArea;FontIndex:24 | 1 |
 
+## Chart Units Reserved Values
+
+| Key | Count |
+| --- | --- |
+| Reserved:0x0000 | 8 |
+
+## Chart Units Reserved States
+
+| Key | Count |
+| --- | --- |
+| ReservedZero | 8 |
+
 ## Chart Sheet Property Empty Cell Modes
 
 | Key | Count |

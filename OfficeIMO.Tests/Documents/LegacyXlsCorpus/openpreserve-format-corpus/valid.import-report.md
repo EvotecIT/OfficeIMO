@@ -1477,6 +1477,18 @@ Warnings: 0
 | Basis:9597x5621;HeightTwips:200;Scale:ChartArea;FontIndex:30 | 1 |
 | Basis:9597x5621;HeightTwips:200;Scale:ChartArea;FontIndex:9 | 1 |
 
+## Chart Units Reserved Values
+
+| Key | Count |
+| --- | --- |
+| Reserved:0x0000 | 8 |
+
+## Chart Units Reserved States
+
+| Key | Count |
+| --- | --- |
+| ReservedZero | 8 |
+
 ## Chart Sheet Property States
 
 | Key | Count |

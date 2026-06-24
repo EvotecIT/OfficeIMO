@@ -1617,6 +1617,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsChartUnitsMetadata() {
+            byte[] payload = {
+                0x00, 0x00
+            };
+            var chartRecord = new BiffRecord(0x1001, offset: 284, payload);
+            var chartRecords = new List<LegacyXlsChartRecord>();
+
+            Assert.True(BiffChartMetadataReader.TryRead(chartRecord, "Units", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            Assert.Equal("Units", record.RecordName);
+            Assert.Equal(LegacyXlsChartRecordKind.Container, record.Kind);
+            LegacyXlsChartUnits? units = record.Units;
+            Assert.NotNull(units);
+            Assert.Equal(0, units!.Reserved);
+            Assert.True(units.HasZeroReservedValue);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(1, report.ChartUnitsReservedValues["Reserved:0x0000"]);
+            Assert.Equal(1, report.ChartUnitsReservedStates["ReservedZero"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart Units Reserved Values", markdown);
+            Assert.Contains("Reserved:0x0000", markdown);
+            Assert.Contains("ReservedZero", markdown);
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_GroupsChartFutureBlockMetadata() {
             byte[] startPayload = {
                 0x52, 0x08,

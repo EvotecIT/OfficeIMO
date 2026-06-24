@@ -728,6 +728,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartFutureBlockScopes = CountByCode(workbook.ChartRecords
                 .Where(record => record.FutureBlock != null)
                 .Select(record => record.FutureBlock!.ScopeKey));
+            ChartUnitsReservedValues = CountByCode(workbook.ChartRecords
+                .Where(record => record.Units != null)
+                .Select(record => $"Reserved:0x{record.Units!.Reserved:X4}"));
+            ChartUnitsReservedStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.Units != null)
+                .Select(record => record.Units!.HasZeroReservedValue ? "ReservedZero" : "ReservedNonZero"));
             ChartXmlTokenChainDeclaredByteCounts = CountByCode(workbook.ChartRecords
                 .Where(record => record.XmlTokenChain != null)
                 .Select(record => $"DeclaredBytes:{record.XmlTokenChain!.DeclaredByteCount}"));
@@ -2151,6 +2157,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets StartBlock and EndBlock records grouped by compact scope key.</summary>
         public IReadOnlyDictionary<string, int> ChartFutureBlockScopes { get; }
 
+        /// <summary>Gets Units records grouped by reserved field value.</summary>
+        public IReadOnlyDictionary<string, int> ChartUnitsReservedValues { get; }
+
+        /// <summary>Gets Units records grouped by whether the reserved field is zero.</summary>
+        public IReadOnlyDictionary<string, int> ChartUnitsReservedStates { get; }
+
         /// <summary>Gets CrtMlFrt records grouped by declared XmlTkChain byte count.</summary>
         public IReadOnlyDictionary<string, int> ChartXmlTokenChainDeclaredByteCounts { get; }
 
@@ -2943,6 +2955,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Future Block Directions", ChartFutureBlockDirections);
             AppendDictionary(builder, "Chart Future Block Object Kinds", ChartFutureBlockObjectKinds);
             AppendDictionary(builder, "Chart Future Block Scopes", ChartFutureBlockScopes);
+            AppendDictionary(builder, "Chart Units Reserved Values", ChartUnitsReservedValues);
+            AppendDictionary(builder, "Chart Units Reserved States", ChartUnitsReservedStates);
             AppendDictionary(builder, "Chart XmlTkChain Declared Byte Counts", ChartXmlTokenChainDeclaredByteCounts);
             AppendDictionary(builder, "Chart XmlTkChain First Segment Byte Counts", ChartXmlTokenChainFirstSegmentByteCounts);
             AppendDictionary(builder, "Chart XmlTkChain Completion States", ChartXmlTokenChainCompletionStates);

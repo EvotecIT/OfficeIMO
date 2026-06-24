@@ -56,6 +56,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadXmlTokenChain(record, out LegacyXlsChartXmlTokenChain? xmlTokenChain);
             TryReadPlotAreaLayout12(record, out LegacyXlsChartPlotAreaLayout12? plotAreaLayout12);
             TryReadFutureBlock(record, out LegacyXlsChartFutureBlock? futureBlock);
+            TryReadUnits(record, out LegacyXlsChartUnits? units);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -124,7 +125,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 futureRecordInfo,
                 xmlTokenChain,
                 plotAreaLayout12,
-                futureBlock));
+                futureBlock,
+                units));
             return true;
         }
 
@@ -167,6 +169,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             reference = new LegacyXlsChartSeriesChartGroupReference(BiffRecordReader.ReadUInt16(record.Payload, 0));
+            return true;
+        }
+
+        private static bool TryReadUnits(BiffRecord record, out LegacyXlsChartUnits? units) {
+            units = null;
+            if (record.Type != 0x1001 || record.Payload.Length < 2) {
+                return false;
+            }
+
+            units = new LegacyXlsChartUnits(BiffRecordReader.ReadUInt16(record.Payload, 0));
             return true;
         }
 
