@@ -52,6 +52,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             int offset = sheet.StreamOffset;
+            var chartMetadataState = new BiffChartMetadataReaderState();
             var pivotTableMetadataState = new BiffPivotTableMetadataReaderState();
             while (offset < workbookStream.Length) {
                 if (offset + 4 > workbookStream.Length) {
@@ -95,7 +96,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, length);
                     BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, drawingRecords);
                     int chartRecordCountBefore = chartRecords.Count;
-                    if (BiffChartMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, chartRecords)
+                    if (BiffChartMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, chartRecords, chartMetadataState)
                         && sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet
                         && chartRecords.Count > chartRecordCountBefore) {
                         sheet.AddChartRecord(chartRecords[chartRecords.Count - 1]);

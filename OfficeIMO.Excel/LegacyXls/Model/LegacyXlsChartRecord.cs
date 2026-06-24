@@ -13,6 +13,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             int recordOffset,
             ushort recordType,
             int payloadLength,
+            int? sequenceIndex = null,
+            int? containerDepthBefore = null,
+            int? containerDepthAfter = null,
+            string? containerTransition = null,
             string? chartTypeName = null,
             int? chartX = null,
             int? chartY = null,
@@ -68,6 +72,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             RecordOffset = recordOffset;
             RecordType = recordType;
             PayloadLength = payloadLength;
+            SequenceIndex = sequenceIndex;
+            ContainerDepthBefore = containerDepthBefore;
+            ContainerDepthAfter = containerDepthAfter;
+            ContainerTransition = string.IsNullOrWhiteSpace(containerTransition) ? null : containerTransition;
             ChartTypeName = string.IsNullOrWhiteSpace(chartTypeName) ? null : chartTypeName;
             ChartX = chartX;
             ChartY = chartY;
@@ -132,6 +140,18 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the BIFF record payload length in bytes.</summary>
         public int PayloadLength { get; }
+
+        /// <summary>Gets the one-based chart record sequence index within the scanned chart scope.</summary>
+        public int? SequenceIndex { get; }
+
+        /// <summary>Gets the chart container nesting depth before this record is applied.</summary>
+        public int? ContainerDepthBefore { get; }
+
+        /// <summary>Gets the chart container nesting depth after this record is applied.</summary>
+        public int? ContainerDepthAfter { get; }
+
+        /// <summary>Gets the shallow nesting transition represented by this chart record.</summary>
+        public string? ContainerTransition { get; }
 
         /// <summary>Gets the decoded chart family name for BIFF chart-type records, when available.</summary>
         public string? ChartTypeName { get; }

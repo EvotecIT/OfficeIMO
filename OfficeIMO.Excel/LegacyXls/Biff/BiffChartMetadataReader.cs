@@ -5,11 +5,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal static bool TryRead(
             BiffRecord record,
             string? sheetName,
-            List<LegacyXlsChartRecord> records) {
+            List<LegacyXlsChartRecord> records,
+            BiffChartMetadataReaderState? state = null) {
             if (!BiffUnsupportedRecordDiagnostics.IsChartRecord(record.Type)) {
                 return false;
             }
 
+            BiffChartNestingInfo nestingInfo = (state ?? new BiffChartMetadataReaderState()).Capture(record.Type);
             TryReadChartRectangle(record, out int? chartX, out int? chartY, out int? chartWidth, out int? chartHeight);
             TryReadAxisType(record, out ushort? axisType, out string? axisTypeName);
             TryReadAxesUsedCount(record, out ushort? axesUsedCount);
@@ -44,6 +46,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 record.Offset,
                 record.Type,
                 record.Payload.Length,
+                nestingInfo.SequenceIndex,
+                nestingInfo.DepthBefore,
+                nestingInfo.DepthAfter,
+                nestingInfo.Transition,
                 GetChartTypeName(record.Type),
                 chartX,
                 chartY,

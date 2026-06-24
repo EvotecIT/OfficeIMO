@@ -1020,6 +1020,167 @@ Warnings: 0
 | --- | --- |
 | Containers:Present\|ChartTypes:Present\|Series:Present\|Axes:Present\|Text:Present\|Formatting:Present\|Layout:Present\|Future:Present\|PreserveOnly:Present\|Scopes:ChartSheetsOnly | 1 |
 
+## Chart Records By Container Depth Before
+
+| Key | Count |
+| --- | --- |
+| Depth:0 | 9 |
+| Depth:1 | 21 |
+| Depth:2 | 49 |
+| Depth:3 | 50 |
+| Depth:4 | 9 |
+| Depth:5 | 11 |
+
+## Chart Records By Container Depth After
+
+| Key | Count |
+| --- | --- |
+| Depth:0 | 9 |
+| Depth:1 | 21 |
+| Depth:2 | 49 |
+| Depth:3 | 50 |
+| Depth:4 | 9 |
+| Depth:5 | 11 |
+
+## Chart Records By Container Transition
+
+| Key | Count |
+| --- | --- |
+| Begin | 16 |
+| End | 16 |
+| InsideContainer | 109 |
+| OutsideContainer | 8 |
+
+## Chart Records By Name And Container Depth
+
+| Key | Count |
+| --- | --- |
+| AreaFormat\|Depth:2 | 1 |
+| AreaFormat\|Depth:3 | 3 |
+| AreaFormat\|Depth:5 | 1 |
+| AttachedLabel\|Depth:2 | 2 |
+| AxcExt\|Depth:3 | 1 |
+| AxesUsed\|Depth:2 | 1 |
+| AxisLineFormat\|Depth:3 | 3 |
+| Axis\|Depth:2 | 2 |
+| Bar\|Depth:3 | 1 |
+| Begin\|Depth:0 | 1 |
+| Begin\|Depth:1 | 6 |
+| Begin\|Depth:2 | 6 |
+| Begin\|Depth:3 | 1 |
+| Begin\|Depth:4 | 2 |
+| CatLab\|Depth:3 | 1 |
+| CatSerRange\|Depth:3 | 1 |
+| Chart3DBarShape\|Depth:3 | 1 |
+| ChartFormatLink\|Depth:3 | 1 |
+| ChartFormat\|Depth:2 | 1 |
+| ChartFrtInfo\|Depth:0 | 1 |
+| Chart\|Depth:0 | 1 |
+| CrtLayout12\|Depth:2 | 1 |
+| CrtLayout12\|Depth:4 | 1 |
+| CrtMlFrt\|Depth:0 | 2 |
+| CrtMlFrt\|Depth:1 | 1 |
+| CrtMlFrt\|Depth:2 | 1 |
+| CrtMlFrt\|Depth:3 | 2 |
+| CrtMlFrt\|Depth:4 | 1 |
+| DataFormat\|Depth:2 | 1 |
+| DefaultText\|Depth:1 | 2 |
+| EndBlock\|Depth:1 | 1 |
+| EndBlock\|Depth:2 | 5 |
+| EndBlock\|Depth:3 | 6 |
+| EndBlock\|Depth:4 | 1 |
+| EndBlock\|Depth:5 | 1 |
+| End\|Depth:1 | 1 |
+| End\|Depth:2 | 6 |
+| End\|Depth:3 | 6 |
+| End\|Depth:4 | 1 |
+| End\|Depth:5 | 2 |
+| FontX\|Depth:2 | 3 |
+| FontX\|Depth:3 | 2 |
+| FontX\|Depth:5 | 1 |
+| Frame\|Depth:1 | 1 |
+| Frame\|Depth:2 | 2 |
+| Frame\|Depth:4 | 1 |
+| GelFrame\|Depth:3 | 1 |
+| Ifmt\|Depth:2 | 4 |
+| Ifmt\|Depth:4 | 1 |
+| Ifmt\|Depth:5 | 1 |
+| Legend\|Depth:3 | 1 |
+| LineFormat\|Depth:2 | 1 |
+| LineFormat\|Depth:3 | 6 |
+| LineFormat\|Depth:5 | 1 |
+| MarkerFormat\|Depth:3 | 1 |
+| ObjectLink\|Depth:2 | 1 |
+| PieFormat\|Depth:3 | 1 |
+| PlotArea\|Depth:2 | 1 |
+| PlotGrowth\|Depth:1 | 1 |
+| Pos\|Depth:2 | 7 |
+| Pos\|Depth:5 | 1 |
+| SBaseRef\|Depth:1 | 1 |
+| Series\|Depth:1 | 1 |
+| SerToCrt\|Depth:1 | 1 |
+| ShtProps\|Depth:1 | 1 |
+| SIIndex\|Depth:0 | 3 |
+| StartBlock\|Depth:2 | 3 |
+| StartBlock\|Depth:3 | 8 |
+| StartBlock\|Depth:5 | 3 |
+| Text\|Depth:1 | 3 |
+| Text\|Depth:4 | 1 |
+| Tick\|Depth:3 | 2 |
+| Units\|Depth:0 | 1 |
+| Units\|Depth:1 | 1 |
+| ValueRange\|Depth:3 | 1 |
+
+## Chart Records By Name And Container Transition
+
+| Key | Count |
+| --- | --- |
+| AreaFormat\|InsideContainer | 5 |
+| AttachedLabel\|InsideContainer | 2 |
+| AxcExt\|InsideContainer | 1 |
+| AxesUsed\|InsideContainer | 1 |
+| AxisLineFormat\|InsideContainer | 3 |
+| Axis\|InsideContainer | 2 |
+| Bar\|InsideContainer | 1 |
+| Begin\|Begin | 16 |
+| CatLab\|InsideContainer | 1 |
+| CatSerRange\|InsideContainer | 1 |
+| Chart3DBarShape\|InsideContainer | 1 |
+| ChartFormatLink\|InsideContainer | 1 |
+| ChartFormat\|InsideContainer | 1 |
+| ChartFrtInfo\|OutsideContainer | 1 |
+| Chart\|OutsideContainer | 1 |
+| CrtLayout12\|InsideContainer | 2 |
+| CrtMlFrt\|InsideContainer | 5 |
+| CrtMlFrt\|OutsideContainer | 2 |
+| DataFormat\|InsideContainer | 1 |
+| DefaultText\|InsideContainer | 2 |
+| EndBlock\|InsideContainer | 14 |
+| End\|End | 16 |
+| FontX\|InsideContainer | 6 |
+| Frame\|InsideContainer | 4 |
+| GelFrame\|InsideContainer | 1 |
+| Ifmt\|InsideContainer | 6 |
+| Legend\|InsideContainer | 1 |
+| LineFormat\|InsideContainer | 8 |
+| MarkerFormat\|InsideContainer | 1 |
+| ObjectLink\|InsideContainer | 1 |
+| PieFormat\|InsideContainer | 1 |
+| PlotArea\|InsideContainer | 1 |
+| PlotGrowth\|InsideContainer | 1 |
+| Pos\|InsideContainer | 8 |
+| SBaseRef\|InsideContainer | 1 |
+| Series\|InsideContainer | 1 |
+| SerToCrt\|InsideContainer | 1 |
+| ShtProps\|InsideContainer | 1 |
+| SIIndex\|OutsideContainer | 3 |
+| StartBlock\|InsideContainer | 14 |
+| Text\|InsideContainer | 4 |
+| Tick\|InsideContainer | 2 |
+| Units\|InsideContainer | 1 |
+| Units\|OutsideContainer | 1 |
+| ValueRange\|InsideContainer | 1 |
+
 ## Chart Records By Chart Type
 
 | Key | Count |

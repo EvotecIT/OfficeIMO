@@ -793,6 +793,147 @@ Warnings: 0
 | --- | --- |
 | Containers:Present\|ChartTypes:Present\|Series:Present\|Axes:Present\|Text:Present\|Formatting:Present\|Layout:Present\|Future:Missing\|PreserveOnly:Missing\|Scopes:Workbook:Missing;Worksheets:Present;ChartSheets:Present | 1 |
 
+## Chart Records By Container Depth Before
+
+| Key | Count |
+| --- | --- |
+| Depth:0 | 70 |
+| Depth:1 | 160 |
+| Depth:2 | 452 |
+| Depth:3 | 376 |
+| Depth:4 | 64 |
+| Depth:5 | 12 |
+
+## Chart Records By Container Depth After
+
+| Key | Count |
+| --- | --- |
+| Depth:0 | 70 |
+| Depth:1 | 160 |
+| Depth:2 | 452 |
+| Depth:3 | 376 |
+| Depth:4 | 64 |
+| Depth:5 | 12 |
+
+## Chart Records By Container Transition
+
+| Key | Count |
+| --- | --- |
+| Begin | 156 |
+| End | 156 |
+| InsideContainer | 760 |
+| OutsideContainer | 62 |
+
+## Chart Records By Name And Container Depth
+
+| Key | Count |
+| --- | --- |
+| AreaFormat\|Depth:2 | 4 |
+| AreaFormat\|Depth:3 | 36 |
+| AreaFormat\|Depth:4 | 8 |
+| AttachedLabel\|Depth:2 | 24 |
+| AttachedLabel\|Depth:3 | 16 |
+| AxesUsed\|Depth:2 | 24 |
+| Axis\|Depth:2 | 16 |
+| Begin\|Depth:0 | 8 |
+| Begin\|Depth:1 | 56 |
+| Begin\|Depth:2 | 76 |
+| Begin\|Depth:3 | 12 |
+| Begin\|Depth:4 | 4 |
+| Chart3DBarShape\|Depth:2 | 4 |
+| Chart3DBarShape\|Depth:3 | 28 |
+| Chart3DBarShape\|Depth:4 | 8 |
+| ChartFormatLink\|Depth:3 | 8 |
+| ChartFormat\|Depth:2 | 8 |
+| Chart\|Depth:0 | 8 |
+| DataFormat\|Depth:1 | 4 |
+| DataFormat\|Depth:2 | 28 |
+| DataFormat\|Depth:3 | 8 |
+| DefaultText\|Depth:1 | 16 |
+| End\|Depth:1 | 8 |
+| End\|Depth:2 | 56 |
+| End\|Depth:3 | 76 |
+| End\|Depth:4 | 12 |
+| End\|Depth:5 | 4 |
+| Fbi\|Depth:0 | 22 |
+| FontX\|Depth:2 | 16 |
+| Frame\|Depth:2 | 8 |
+| Ifmt\|Depth:2 | 28 |
+| Ifmt\|Depth:3 | 16 |
+| Ifmt\|Depth:4 | 4 |
+| Ifmt\|Depth:5 | 4 |
+| Legend\|Depth:3 | 4 |
+| LineFormat\|Depth:2 | 4 |
+| LineFormat\|Depth:3 | 36 |
+| LineFormat\|Depth:4 | 8 |
+| MarkerFormat\|Depth:2 | 4 |
+| MarkerFormat\|Depth:3 | 28 |
+| MarkerFormat\|Depth:4 | 8 |
+| ObjectLink\|Depth:2 | 4 |
+| ObjectLink\|Depth:3 | 16 |
+| PieFormat\|Depth:2 | 4 |
+| PieFormat\|Depth:3 | 28 |
+| PieFormat\|Depth:4 | 8 |
+| PlotArea\|Depth:2 | 8 |
+| PlotGrowth\|Depth:1 | 8 |
+| Pos\|Depth:2 | 116 |
+| Pos\|Depth:3 | 16 |
+| Pos\|Depth:5 | 4 |
+| SBaseRef\|Depth:1 | 8 |
+| Scatter\|Depth:3 | 8 |
+| SerFmt\|Depth:2 | 4 |
+| SerFmt\|Depth:3 | 8 |
+| Series\|Depth:1 | 24 |
+| SerToCrt\|Depth:1 | 8 |
+| ShtProps\|Depth:1 | 8 |
+| SIIndex\|Depth:0 | 24 |
+| Text\|Depth:1 | 20 |
+| Text\|Depth:2 | 16 |
+| Text\|Depth:4 | 4 |
+| Tick\|Depth:3 | 16 |
+| Units\|Depth:0 | 8 |
+| ValueRange\|Depth:3 | 16 |
+
+## Chart Records By Name And Container Transition
+
+| Key | Count |
+| --- | --- |
+| AreaFormat\|InsideContainer | 48 |
+| AttachedLabel\|InsideContainer | 40 |
+| AxesUsed\|InsideContainer | 24 |
+| Axis\|InsideContainer | 16 |
+| Begin\|Begin | 156 |
+| Chart3DBarShape\|InsideContainer | 40 |
+| ChartFormatLink\|InsideContainer | 8 |
+| ChartFormat\|InsideContainer | 8 |
+| Chart\|OutsideContainer | 8 |
+| DataFormat\|InsideContainer | 40 |
+| DefaultText\|InsideContainer | 16 |
+| End\|End | 156 |
+| Fbi\|OutsideContainer | 22 |
+| FontX\|InsideContainer | 16 |
+| Frame\|InsideContainer | 8 |
+| Ifmt\|InsideContainer | 52 |
+| Legend\|InsideContainer | 4 |
+| LineFormat\|InsideContainer | 48 |
+| MarkerFormat\|InsideContainer | 40 |
+| ObjectLink\|InsideContainer | 20 |
+| PieFormat\|InsideContainer | 40 |
+| PlotArea\|InsideContainer | 8 |
+| PlotGrowth\|InsideContainer | 8 |
+| Pos\|InsideContainer | 136 |
+| SBaseRef\|InsideContainer | 8 |
+| Scatter\|InsideContainer | 8 |
+| SerFmt\|InsideContainer | 12 |
+| Series\|InsideContainer | 24 |
+| SerToCrt\|InsideContainer | 8 |
+| ShtProps\|InsideContainer | 8 |
+| SIIndex\|OutsideContainer | 24 |
+| Text\|InsideContainer | 40 |
+| Tick\|InsideContainer | 16 |
+| Units\|OutsideContainer | 8 |
+| ValueRange\|InsideContainer | 16 |
+
 ## Chart Records By Chart Type
 
 | Key | Count |

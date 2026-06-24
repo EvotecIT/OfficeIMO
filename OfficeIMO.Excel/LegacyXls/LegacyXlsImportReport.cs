@@ -471,6 +471,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartRecordsByKind = CountChartRecordsByKind(workbook.ChartRecords);
             ChartRecordsByName = CountByCode(workbook.ChartRecords.Select(record => record.RecordName));
             ChartWorkbookStates = CountByCode(GetChartWorkbookStateKeys(workbook.ChartRecords, workbook.UnsupportedSheets));
+            ChartRecordsByContainerDepthBefore = CountByCode(workbook.ChartRecords
+                .Where(record => record.ContainerDepthBefore.HasValue)
+                .Select(record => $"Depth:{record.ContainerDepthBefore!.Value}"));
+            ChartRecordsByContainerDepthAfter = CountByCode(workbook.ChartRecords
+                .Where(record => record.ContainerDepthAfter.HasValue)
+                .Select(record => $"Depth:{record.ContainerDepthAfter!.Value}"));
+            ChartRecordsByContainerTransition = CountByCode(workbook.ChartRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.ContainerTransition))
+                .Select(record => record.ContainerTransition!));
+            ChartRecordsByNameAndContainerDepth = CountByCode(workbook.ChartRecords
+                .Where(record => record.ContainerDepthBefore.HasValue)
+                .Select(record => $"{record.RecordName}|Depth:{record.ContainerDepthBefore!.Value}"));
+            ChartRecordsByNameAndContainerTransition = CountByCode(workbook.ChartRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.ContainerTransition))
+                .Select(record => $"{record.RecordName}|{record.ContainerTransition}"));
             ChartRecordsByChartType = CountByCode(workbook.ChartRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.ChartTypeName))
                 .Select(record => record.ChartTypeName!));
@@ -1653,6 +1668,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets workbook-level chart model-shape states derived from preserve-only chart BIFF records.</summary>
         public IReadOnlyDictionary<string, int> ChartWorkbookStates { get; }
 
+        /// <summary>Gets chart BIFF records grouped by container nesting depth before each record is applied.</summary>
+        public IReadOnlyDictionary<string, int> ChartRecordsByContainerDepthBefore { get; }
+
+        /// <summary>Gets chart BIFF records grouped by container nesting depth after each record is applied.</summary>
+        public IReadOnlyDictionary<string, int> ChartRecordsByContainerDepthAfter { get; }
+
+        /// <summary>Gets chart BIFF records grouped by shallow container transition state.</summary>
+        public IReadOnlyDictionary<string, int> ChartRecordsByContainerTransition { get; }
+
+        /// <summary>Gets chart BIFF records grouped by record name and container depth before each record.</summary>
+        public IReadOnlyDictionary<string, int> ChartRecordsByNameAndContainerDepth { get; }
+
+        /// <summary>Gets chart BIFF records grouped by record name and shallow container transition state.</summary>
+        public IReadOnlyDictionary<string, int> ChartRecordsByNameAndContainerTransition { get; }
+
         /// <summary>Gets preserve-only chart BIFF chart-type records grouped by decoded chart family.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByChartType { get; }
 
@@ -2382,6 +2412,11 @@ namespace OfficeIMO.Excel.LegacyXls {
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Chart Records By Name", ChartRecordsByName);
             AppendDictionary(builder, "Chart Workbook States", ChartWorkbookStates);
+            AppendDictionary(builder, "Chart Records By Container Depth Before", ChartRecordsByContainerDepthBefore);
+            AppendDictionary(builder, "Chart Records By Container Depth After", ChartRecordsByContainerDepthAfter);
+            AppendDictionary(builder, "Chart Records By Container Transition", ChartRecordsByContainerTransition);
+            AppendDictionary(builder, "Chart Records By Name And Container Depth", ChartRecordsByNameAndContainerDepth);
+            AppendDictionary(builder, "Chart Records By Name And Container Transition", ChartRecordsByNameAndContainerTransition);
             AppendDictionary(builder, "Chart Records By Chart Type", ChartRecordsByChartType);
             AppendDictionary(builder, "Chart Records By Rectangle", ChartRecordsByRectangle);
             AppendDictionary(builder, "Chart Records By Axis Type", ChartRecordsByAxisType);

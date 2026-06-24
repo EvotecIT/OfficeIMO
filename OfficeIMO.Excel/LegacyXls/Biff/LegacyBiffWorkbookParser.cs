@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var definedNameTable = new List<string?>();
             LegacyXlsExternalReference? currentExternalReference = null;
             LegacyXlsExternalCellCache? currentExternalCellCache = null;
+            var chartMetadataState = new BiffChartMetadataReaderState();
             var pivotTableMetadataState = new BiffPivotTableMetadataReaderState();
 
             if (!LegacyBiffVersionValidator.ValidateWorkbookGlobals(records, workbook)) {
@@ -109,7 +110,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     if (options.ReportUnsupportedRecords) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                     }
-                } else if (BiffChartMetadataReader.TryRead(record, sheetName: null, workbook.MutableChartRecords)) {
+                } else if (BiffChartMetadataReader.TryRead(record, sheetName: null, workbook.MutableChartRecords, chartMetadataState)) {
                     AddUnsupportedRecordFeature(workbook, record, sheetName: null);
                     if (options.ReportUnsupportedRecords) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
