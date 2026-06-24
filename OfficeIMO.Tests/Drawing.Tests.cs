@@ -1774,6 +1774,56 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeGeometrySamplesEllipticalArcsForSharedRendering() {
+        List<OfficePoint> arc = OfficeGeometry.CreateEllipticalArcPoints(
+            centerX: 10D,
+            centerY: 20D,
+            radiusX: 8D,
+            radiusY: 4D,
+            startRadians: 0D,
+            sweepRadians: Math.PI / 2D,
+            segments: 2);
+
+        Assert.Equal(2, arc.Count);
+        AssertPointNear(arc[0], 10D + (Math.Sqrt(0.5D) * 8D), 20D + (Math.Sqrt(0.5D) * 4D));
+        AssertPointNear(arc[1], 10D, 24D);
+
+        List<(double X, double Y)> tuples = OfficeGeometry.CreateEllipticalArcPointsAsTuples(
+            centerX: 0D,
+            centerY: 0D,
+            radiusX: 10D,
+            radiusY: 10D,
+            startRadians: 0D,
+            sweepRadians: Math.PI,
+            segments: 2);
+
+        Assert.Equal(2, tuples.Count);
+        AssertPointNear(new OfficePoint(tuples[0].X, tuples[0].Y), 0D, 10D);
+        AssertPointNear(new OfficePoint(tuples[1].X, tuples[1].Y), -10D, 0D);
+    }
+
+    [Fact]
+    public void OfficeGeometryRotatesSampledEllipticalArcs() {
+        List<OfficePoint> arc = OfficeGeometry.CreateEllipticalArcPoints(
+            centerX: 1D,
+            centerY: 0D,
+            radiusX: 1D,
+            radiusY: 1D,
+            startRadians: 0D,
+            sweepRadians: Math.PI / 2D,
+            segments: 1,
+            rotationRadians: Math.PI / 2D,
+            rotationCenterX: 0D,
+            rotationCenterY: 0D);
+
+        Assert.Single(arc);
+        AssertPointNear(arc[0], -1D, 1D);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeGeometry.CreateEllipticalArcPoints(0D, 0D, 1D, 1D, 0D, Math.PI, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeGeometry.CreateEllipticalArcPoints(0D, 0D, 0D, 1D, 0D, Math.PI, 1));
+    }
+
+    [Fact]
     public void OfficeGeometryRotatesPointsAndConvertsAngles() {
         double radians = OfficeGeometry.DegreesToRadians(90D);
         Assert.Equal(90D, OfficeGeometry.RadiansToDegrees(radians), precision: 10);

@@ -341,11 +341,21 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         int segments = Math.Max(4, (int)Math.Ceiling(Math.Abs(sweep) / 10D));
+        double startRadians = OfficeGeometry.DegreesToRadians(startDegrees);
+        double sweepRadians = OfficeGeometry.DegreesToRadians(sweep);
         double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
-        OfficePoint previous = ArcPoint(centerX, centerY, radiusX, radiusY, startDegrees, rotationRadians, rotationCenterX, rotationCenterY);
-        for (int i = 1; i <= segments; i++) {
-            double degrees = startDegrees + (sweep * i / segments);
-            OfficePoint current = ArcPoint(centerX, centerY, radiusX, radiusY, degrees, rotationRadians, rotationCenterX, rotationCenterY);
+        OfficePoint previous = CreateArcStartPoint(centerX, centerY, radiusX, radiusY, startRadians, rotationRadians, rotationCenterX, rotationCenterY);
+        foreach (OfficePoint current in OfficeGeometry.CreateEllipticalArcPoints(
+            centerX,
+            centerY,
+            radiusX,
+            radiusY,
+            startRadians,
+            sweepRadians,
+            segments,
+            rotationRadians,
+            rotationCenterX,
+            rotationCenterY)) {
             DrawLine(previous.X, previous.Y, current.X, current.Y, color, thickness);
             previous = current;
         }
@@ -849,10 +859,9 @@ public sealed partial class OfficeRasterCanvas {
         return Math.Sqrt((dx * dx) + (dy * dy));
     }
 
-    private static OfficePoint ArcPoint(double centerX, double centerY, double radiusX, double radiusY, double degrees, double rotationRadians, double rotationCenterX, double rotationCenterY) {
-        double radians = OfficeGeometry.DegreesToRadians(degrees);
-        OfficePoint point = new OfficePoint(centerX + (Math.Cos(radians) * radiusX), centerY + (Math.Sin(radians) * radiusY));
-        return Math.Abs(rotationRadians) > 0.0001D
+    private static OfficePoint CreateArcStartPoint(double centerX, double centerY, double radiusX, double radiusY, double startRadians, double rotationRadians, double rotationCenterX, double rotationCenterY) {
+        OfficePoint point = new OfficePoint(centerX + (Math.Cos(startRadians) * radiusX), centerY + (Math.Sin(startRadians) * radiusY));
+        return Math.Abs(rotationRadians) > 0.000001D
             ? OfficeGeometry.RotatePoint(point, rotationCenterX, rotationCenterY, rotationRadians)
             : point;
     }

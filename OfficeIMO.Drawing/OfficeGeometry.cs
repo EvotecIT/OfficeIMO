@@ -552,6 +552,93 @@ public static class OfficeGeometry {
     }
 
     /// <summary>
+    /// Samples an elliptical arc into straight-line points, excluding the start point and including the end point.
+    /// </summary>
+    /// <param name="centerX">Arc center X coordinate.</param>
+    /// <param name="centerY">Arc center Y coordinate.</param>
+    /// <param name="radiusX">Horizontal radius before optional rotation.</param>
+    /// <param name="radiusY">Vertical radius before optional rotation.</param>
+    /// <param name="startRadians">Start angle in radians.</param>
+    /// <param name="sweepRadians">Sweep angle in radians.</param>
+    /// <param name="segments">Number of line segments used to approximate the arc.</param>
+    /// <param name="rotationRadians">Optional rotation angle in radians.</param>
+    /// <param name="rotationCenterX">Rotation center X coordinate.</param>
+    /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
+    public static List<OfficePoint> CreateEllipticalArcPoints(
+        double centerX,
+        double centerY,
+        double radiusX,
+        double radiusY,
+        double startRadians,
+        double sweepRadians,
+        int segments,
+        double rotationRadians = 0D,
+        double rotationCenterX = 0D,
+        double rotationCenterY = 0D) {
+        EnsurePositiveSegmentCount(segments);
+        if (!IsFinite(radiusX) || radiusX <= 0D || !IsFinite(radiusY) || radiusY <= 0D) {
+            throw new ArgumentOutOfRangeException(nameof(radiusX), "Arc radii must be positive finite values.");
+        }
+
+        var points = new List<OfficePoint>(segments);
+        for (int i = 1; i <= segments; i++) {
+            double t = i / (double)segments;
+            double angle = startRadians + (sweepRadians * t);
+            OfficePoint point = new(
+                centerX + (Math.Cos(angle) * radiusX),
+                centerY + (Math.Sin(angle) * radiusY));
+            points.Add(Math.Abs(rotationRadians) > 0.000001D
+                ? RotatePoint(point, rotationCenterX, rotationCenterY, rotationRadians)
+                : point);
+        }
+
+        return points;
+    }
+
+    /// <summary>
+    /// Samples a tuple elliptical arc into straight-line points, excluding the start point and including the end point.
+    /// </summary>
+    /// <param name="centerX">Arc center X coordinate.</param>
+    /// <param name="centerY">Arc center Y coordinate.</param>
+    /// <param name="radiusX">Horizontal radius before optional rotation.</param>
+    /// <param name="radiusY">Vertical radius before optional rotation.</param>
+    /// <param name="startRadians">Start angle in radians.</param>
+    /// <param name="sweepRadians">Sweep angle in radians.</param>
+    /// <param name="segments">Number of line segments used to approximate the arc.</param>
+    /// <param name="rotationRadians">Optional rotation angle in radians.</param>
+    /// <param name="rotationCenterX">Rotation center X coordinate.</param>
+    /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
+    public static List<(double X, double Y)> CreateEllipticalArcPointsAsTuples(
+        double centerX,
+        double centerY,
+        double radiusX,
+        double radiusY,
+        double startRadians,
+        double sweepRadians,
+        int segments,
+        double rotationRadians = 0D,
+        double rotationCenterX = 0D,
+        double rotationCenterY = 0D) {
+        List<OfficePoint> sampled = CreateEllipticalArcPoints(
+            centerX,
+            centerY,
+            radiusX,
+            radiusY,
+            startRadians,
+            sweepRadians,
+            segments,
+            rotationRadians,
+            rotationCenterX,
+            rotationCenterY);
+        var points = new List<(double X, double Y)>(sampled.Count);
+        for (int i = 0; i < sampled.Count; i++) {
+            points.Add((sampled[i].X, sampled[i].Y));
+        }
+
+        return points;
+    }
+
+    /// <summary>
     /// Converts degrees to radians.
     /// </summary>
     /// <param name="degrees">Angle in degrees.</param>

@@ -91,10 +91,18 @@ public sealed partial class OfficeRasterCanvas {
 
         double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
         double patternPosition = 0D;
-        OfficePoint previous = ArcPoint(centerX, centerY, radiusX, radiusY, 0D, rotationRadians, rotationCenterX, rotationCenterY);
-        for (int i = 1; i <= segments; i++) {
-            double degrees = 360D * i / segments;
-            OfficePoint current = ArcPoint(centerX, centerY, radiusX, radiusY, degrees, rotationRadians, rotationCenterX, rotationCenterY);
+        OfficePoint previous = CreateArcStartPoint(centerX, centerY, radiusX, radiusY, 0D, rotationRadians, rotationCenterX, rotationCenterY);
+        foreach (OfficePoint current in OfficeGeometry.CreateEllipticalArcPoints(
+            centerX,
+            centerY,
+            radiusX,
+            radiusY,
+            0D,
+            Math.PI * 2D,
+            segments,
+            rotationRadians,
+            rotationCenterX,
+            rotationCenterY)) {
             if (resetDashPatternForEachSegment) {
                 DrawDashedLine(previous.X, previous.Y, current.X, current.Y, color, thickness, dashLength, gapLength);
             } else {
@@ -143,10 +151,18 @@ public sealed partial class OfficeRasterCanvas {
 
         double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
         double patternPosition = 0D;
-        OfficePoint previous = ArcPoint(centerX, centerY, radiusX, radiusY, 0D, rotationRadians, rotationCenterX, rotationCenterY);
-        for (int i = 1; i <= segments; i++) {
-            double degrees = 360D * i / segments;
-            OfficePoint current = ArcPoint(centerX, centerY, radiusX, radiusY, degrees, rotationRadians, rotationCenterX, rotationCenterY);
+        OfficePoint previous = CreateArcStartPoint(centerX, centerY, radiusX, radiusY, 0D, rotationRadians, rotationCenterX, rotationCenterY);
+        foreach (OfficePoint current in OfficeGeometry.CreateEllipticalArcPoints(
+            centerX,
+            centerY,
+            radiusX,
+            radiusY,
+            0D,
+            Math.PI * 2D,
+            segments,
+            rotationRadians,
+            rotationCenterX,
+            rotationCenterY)) {
             DrawPatternedPathSegment(previous, current, color, thickness, pattern, ref patternPosition);
             previous = current;
         }
