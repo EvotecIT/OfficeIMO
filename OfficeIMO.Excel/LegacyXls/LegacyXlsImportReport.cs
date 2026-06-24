@@ -87,6 +87,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ConditionalFormattingsByStopIfTrueState = CountByCode(conditionalFormattings.Select(formatting => formatting.StopIfTrue ? "StopIfTrue" : "Continue"));
             ConditionalFormattingsByDifferentialFormatState = CountByCode(conditionalFormattings.Select(formatting => formatting.DifferentialFormat == null ? "Missing" : "Present"));
             ConditionalFormattingsByDifferentialFill = CountByCode(conditionalFormattings.SelectMany(GetConditionalFormattingDifferentialFillKeys));
+            ConditionalFormattingsByDifferentialFont = CountByCode(conditionalFormattings.SelectMany(GetConditionalFormattingDifferentialFontKeys));
             AutoFilterCriteriaByOperator = CountByCode(workbook.Worksheets
                 .SelectMany(sheet => sheet.AutoFilterCriteria)
                 .SelectMany(criteria => criteria.Conditions)
@@ -757,6 +758,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets imported conditional formatting differential formats grouped by decoded fill shape.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialFill { get; }
+
+        /// <summary>Gets imported conditional formatting differential formats grouped by decoded font shape.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialFont { get; }
 
         /// <summary>Gets imported AutoFilter conditions grouped by comparison operator.</summary>
         public IReadOnlyDictionary<string, int> AutoFilterCriteriaByOperator { get; }
@@ -1564,6 +1568,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Conditional Formatting By Stop If True State", ConditionalFormattingsByStopIfTrueState);
             AppendDictionary(builder, "Conditional Formatting By Differential Format State", ConditionalFormattingsByDifferentialFormatState);
             AppendDictionary(builder, "Conditional Formatting By Differential Fill", ConditionalFormattingsByDifferentialFill);
+            AppendDictionary(builder, "Conditional Formatting By Differential Font", ConditionalFormattingsByDifferentialFont);
             AppendDictionary(builder, "AutoFilter Criteria By Kind", AutoFilterCriteriaByKind);
             AppendDictionary(builder, "AutoFilter Criteria By Operator", AutoFilterCriteriaByOperator);
             AppendDictionary(builder, "AutoFilter Criteria By Value Kind", AutoFilterCriteriaByValueKind);
@@ -2178,6 +2183,25 @@ namespace OfficeIMO.Excel.LegacyXls {
 
             if (!string.IsNullOrWhiteSpace(format.FillBackgroundColor)) {
                 yield return $"Background:{format.FillBackgroundColor}";
+            }
+        }
+
+        private static IEnumerable<string> GetConditionalFormattingDifferentialFontKeys(LegacyXlsConditionalFormatting formatting) {
+            LegacyXlsDifferentialFormat? format = formatting.DifferentialFormat;
+            if (format == null) {
+                yield break;
+            }
+
+            if (!string.IsNullOrWhiteSpace(format.FontColor)) {
+                yield return $"Color:{format.FontColor}";
+            }
+
+            if (format.FontBold.HasValue) {
+                yield return format.FontBold.Value ? "Bold" : "NotBold";
+            }
+
+            if (format.FontItalic.HasValue) {
+                yield return format.FontItalic.Value ? "Italic" : "NotItalic";
             }
         }
 

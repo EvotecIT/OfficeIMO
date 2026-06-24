@@ -167,8 +167,12 @@ metadata. More complex formula shapes remain preserve-only diagnostics for later
 slices. Classic BIFF `CondFmt`/`CF` conditional formatting rules now import for
 simple cell-value comparison rules and formula-expression rules when the rule
 formulas are decodable by the existing BIFF formula reader. These project through
-the normal OfficeIMO conditional-formatting APIs. Differential formatting payloads
-and richer visual rule formatting remain future hardening work. Simple BIFF
+the normal OfficeIMO conditional-formatting APIs. `CfEx` priority and stop-if-true
+metadata now attach to imported classic rules, and `DXF` differential formats can
+project decoded fill colors plus text color, bold, and italic font styling when a
+single workbook differential style is available. Richer visual rule families,
+borders, number formats, and multi-style rule association remain future hardening
+work. Simple BIFF
 `AUTOFILTERINFO`/`AUTOFILTER` criteria import now covers decodable string
 equality and numeric/string custom comparisons, stores them in the legacy model,
 and projects through the normal OfficeIMO AutoFilter APIs.
@@ -197,8 +201,10 @@ validation features so corpus tooling can flag validation rules before broader
 native projection is implemented.
 BIFF conditional-formatting records outside the supported simple classic
 `CondFmt`/`CF` rule subset are reported as preserve-only conditional-formatting
-features. Extended `CF12`, `CFEx`, and `DXF` records remain diagnostics-only until
-their richer rule and differential-formatting models are implemented.
+features. Extended `CF12` rules and richer `CFEx`/`DXF` payloads beyond the
+currently decoded priority, stop-if-true, fill, and font-style subset remain
+diagnostics-first until their broader rule and differential-formatting models are
+implemented.
 `BoundSheet8` entries for macro sheets, chart sheets, and VBA module sheets are also
 reported as explicit feature diagnostics while worksheet sheets continue to import.
 Unsupported sheet substreams are scanned for preserve-only feature records, so

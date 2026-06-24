@@ -43,6 +43,48 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 return null;
             }
 
+            Font? font = TryCreateFont(differentialFormat);
+            Fill? fill = TryCreateFill(differentialFormat);
+            if (font == null && fill == null) {
+                return null;
+            }
+
+            var openXmlFormat = new DifferentialFormat();
+            if (font != null) {
+                openXmlFormat.Append(font);
+            }
+
+            if (fill != null) {
+                openXmlFormat.Append(fill);
+            }
+
+            return sheet.AppendConditionalDifferentialFormat(openXmlFormat);
+        }
+
+        private static Font? TryCreateFont(LegacyXlsDifferentialFormat differentialFormat) {
+            if (string.IsNullOrWhiteSpace(differentialFormat.FontColor)
+                && differentialFormat.FontBold != true
+                && differentialFormat.FontItalic != true) {
+                return null;
+            }
+
+            var font = new Font();
+            if (!string.IsNullOrWhiteSpace(differentialFormat.FontColor)) {
+                font.Append(new Color { Rgb = differentialFormat.FontColor });
+            }
+
+            if (differentialFormat.FontBold == true) {
+                font.Append(new Bold());
+            }
+
+            if (differentialFormat.FontItalic == true) {
+                font.Append(new Italic());
+            }
+
+            return font;
+        }
+
+        private static Fill? TryCreateFill(LegacyXlsDifferentialFormat differentialFormat) {
             string? color = differentialFormat.FillForegroundColor ?? differentialFormat.FillBackgroundColor;
             if (string.IsNullOrWhiteSpace(color)) {
                 return null;
@@ -54,7 +96,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 ForegroundColor = new ForegroundColor { Rgb = color },
                 BackgroundColor = new BackgroundColor { Rgb = differentialFormat.FillBackgroundColor ?? color }
             };
-            return sheet.AppendConditionalDifferentialFormat(new DifferentialFormat(new Fill(patternFill)));
+            return new Fill(patternFill);
         }
 
         private static PatternValues? ToPattern(byte? pattern) {

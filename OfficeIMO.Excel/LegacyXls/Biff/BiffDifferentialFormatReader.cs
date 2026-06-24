@@ -30,6 +30,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             byte? fillPattern = null;
             string? fillForegroundColor = null;
             string? fillBackgroundColor = null;
+            string? fontColor = null;
+            bool? fontBold = null;
+            bool? fontItalic = null;
 
             for (int i = 0; i < propertyCount; i++) {
                 if (offset + XfPropHeaderSize > payload.Length) {
@@ -50,12 +53,24 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     fillForegroundColor = foregroundColor;
                 } else if (propertyType == 0x0002 && TryReadColor(payload, dataOffset, dataLength, workbook, out string? backgroundColor)) {
                     fillBackgroundColor = backgroundColor;
+                } else if (propertyType == 0x0005 && TryReadColor(payload, dataOffset, dataLength, workbook, out string? textColor)) {
+                    fontColor = textColor;
+                } else if (propertyType == 0x0019 && dataLength >= 2) {
+                    ushort weight = BiffRecordReader.ReadUInt16(payload, dataOffset);
+                    fontBold = weight >= 0x02bc;
+                } else if (propertyType == 0x001c && dataLength >= 1) {
+                    fontItalic = payload[dataOffset] != 0;
                 }
 
                 offset += propertySize;
             }
 
-            if (!fillPattern.HasValue && fillForegroundColor == null && fillBackgroundColor == null) {
+            if (!fillPattern.HasValue
+                && fillForegroundColor == null
+                && fillBackgroundColor == null
+                && fontColor == null
+                && !fontBold.HasValue
+                && !fontItalic.HasValue) {
                 return false;
             }
 
@@ -64,6 +79,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 fillPattern,
                 fillForegroundColor,
                 fillBackgroundColor,
+                fontColor,
+                fontBold,
+                fontItalic,
                 record.Type,
                 record.Offset);
             return true;

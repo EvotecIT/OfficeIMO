@@ -124,7 +124,9 @@ namespace OfficeIMO.Tests {
             ExternalRelationship externalRelationship = Assert.Single(externalWorkbookPart.ExternalRelationships);
             Assert.Equal("http://schemas.openxmlformats.org/officeDocument/2006/relationships/externalLinkPath", externalRelationship.RelationshipType);
             Assert.EndsWith("Budget.xls", externalRelationship.Uri.OriginalString, StringComparison.Ordinal);
-            Assert.Equal(new[] { "Jan", "Feb" }, externalWorkbookPart.ExternalLink!.ExternalBook!.SheetNames!.Elements<SheetName>().Select(sheetName => sheetName.Val!.Value).ToArray());
+            ExternalBook projectedExternalBook = externalWorkbookPart.ExternalLink!.GetFirstChild<ExternalBook>()!;
+            Assert.NotNull(projectedExternalBook);
+            Assert.Equal(new[] { "Jan", "Feb" }, projectedExternalBook.SheetNames!.Elements<SheetName>().Select(sheetName => sheetName.Val!.Value).ToArray());
 
             WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
             Cell projectedReferenceFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A1");
@@ -164,7 +166,9 @@ namespace OfficeIMO.Tests {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
             WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
             ExternalWorkbookPart externalWorkbookPart = Assert.Single(workbookPart.GetPartsOfType<ExternalWorkbookPart>());
-            ExternalDefinedName projectedExternalName = Assert.Single(externalWorkbookPart.ExternalLink!.ExternalBook!.ExternalDefinedNames!.Elements<ExternalDefinedName>());
+            ExternalBook projectedExternalBook = externalWorkbookPart.ExternalLink!.GetFirstChild<ExternalBook>()!;
+            Assert.NotNull(projectedExternalBook);
+            ExternalDefinedName projectedExternalName = Assert.Single(projectedExternalBook.ExternalDefinedNames!.Elements<ExternalDefinedName>());
             Assert.Equal("TaxRate", projectedExternalName.Name!.Value);
 
             WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();

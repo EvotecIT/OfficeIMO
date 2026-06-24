@@ -1894,5 +1894,40 @@ namespace OfficeIMO.Tests {
             Assert.Equal("FFFFFF00", patternFill.ForegroundColor!.Rgb!.Value);
             Assert.Equal("FFFFFF00", patternFill.BackgroundColor!.Rgb!.Value);
         }
+
+        [Fact]
+        public void LegacyXls_Load_ProjectsConditionalFormattingDxfFontWhenSingleStyleIsAvailable() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5ConditionalFormattingExtensionWithFontDxfWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.True(result.HasUnsupportedFeatures);
+            LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
+            Assert.NotNull(conditionalFormatting.DifferentialFormat);
+            Assert.Equal("FFFF0000", conditionalFormatting.DifferentialFormat!.FontColor);
+            Assert.True(conditionalFormatting.DifferentialFormat.FontBold);
+            Assert.True(conditionalFormatting.DifferentialFormat.FontItalic);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFormatState["Present"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFont["Color:FFFF0000"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFont["Bold"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFont["Italic"]);
+
+            using var packageStream = new MemoryStream();
+            result.Document.Save(packageStream);
+            packageStream.Position = 0;
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(packageStream, false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            ConditionalFormattingRule rule = Assert.Single(Assert.Single(worksheetPart.Worksheet.Elements<ConditionalFormatting>()).Elements<ConditionalFormattingRule>());
+            Assert.Equal(0U, rule.FormatId!.Value);
+            DifferentialFormat dxf = Assert.Single(spreadsheet.WorkbookPart.WorkbookStylesPart!.Stylesheet!.DifferentialFormats!.Elements<DifferentialFormat>());
+            Font font = Assert.Single(dxf.Elements<Font>());
+            Assert.Equal("FFFF0000", Assert.Single(font.Elements<Color>()).Rgb!.Value);
+            Assert.Single(font.Elements<Bold>());
+            Assert.Single(font.Elements<Italic>());
+        }
     }
 }
