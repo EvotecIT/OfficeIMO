@@ -184,7 +184,7 @@ public static class OfficeDrawingSvgExporter {
     }
 
     private static void AppendText(StringBuilder sb, OfficeDrawingText text) {
-        if (text.VerticalAlignment != OfficeTextVerticalAlignment.Top) {
+        if (text.WrapText || text.VerticalAlignment != OfficeTextVerticalAlignment.Top) {
             AppendTextBlock(sb, text);
             return;
         }
@@ -235,7 +235,7 @@ public static class OfficeDrawingSvgExporter {
                 OfficeTextMeasurementStyle measuredStyle = measurer.CreateStyle(new OfficeFontInfo(text.Font.FamilyName, size, text.Font.Style));
                 return measurer.MeasureWidth(value, measuredStyle);
             },
-            wrap: false);
+            wrap: text.WrapText);
         sb.AppendSvgTextBlock(
             layout,
             text.X,

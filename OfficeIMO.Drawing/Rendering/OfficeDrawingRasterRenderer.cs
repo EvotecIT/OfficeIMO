@@ -83,7 +83,7 @@ public static class OfficeDrawingRasterRenderer {
     }
 
     private static void RenderText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale) {
-        if (Math.Abs(text.RotationDegrees) <= 0.000001D && text.VerticalAlignment == OfficeTextVerticalAlignment.Top) {
+        if (!text.WrapText && Math.Abs(text.RotationDegrees) <= 0.000001D && text.VerticalAlignment == OfficeTextVerticalAlignment.Top) {
             canvas.DrawText(
                 text.Text,
                 text.X * scale,
@@ -112,7 +112,7 @@ public static class OfficeDrawingRasterRenderer {
             lineHeightFactor,
             minimumFontSize: Math.Min(6D, fontSize),
             (value, size) => canvas.MeasureText(value, size, text.Font.FamilyName),
-            wrap: false);
+            wrap: text.WrapText);
         OfficeTextBlockRenderer.DrawRasterTextBlock(
             canvas,
             layout,

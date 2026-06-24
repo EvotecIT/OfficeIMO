@@ -10,7 +10,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     /// <summary>
     /// Creates a positioned drawing text box.
     /// </summary>
-    public OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null) {
+    public OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool wrapText = false) {
         if (text == null) {
             throw new ArgumentNullException(nameof(text));
         }
@@ -37,6 +37,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         RotationDegrees = rotationDegrees;
         RotationCenterX = rotationCenterX ?? x + width / 2D;
         RotationCenterY = rotationCenterY ?? y + height / 2D;
+        WrapText = wrapText;
         ValidateFinite(RotationCenterX, nameof(rotationCenterX));
         ValidateFinite(RotationCenterY, nameof(rotationCenterY));
     }
@@ -80,8 +81,11 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     /// <summary>Y coordinate of the text rotation center in the drawing's local coordinate space.</summary>
     public double RotationCenterY { get; }
 
+    /// <summary>Whether renderers should wrap text to the text box width.</summary>
+    public bool WrapText { get; }
+
     /// <summary>Creates a detached copy of this positioned text box.</summary>
-    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY);
+    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText);
 
     internal override OfficeDrawingElement CloneElement() => Clone();
 

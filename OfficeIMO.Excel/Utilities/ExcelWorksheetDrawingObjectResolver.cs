@@ -62,7 +62,9 @@ namespace OfficeIMO.Excel.Utilities {
                 .Select(paragraph => string.Concat(paragraph.Descendants<A.Text>().Select(item => item.Text)))
                 .Where(line => !string.IsNullOrEmpty(line)) ?? Enumerable.Empty<string>());
             OfficeTextAlignment textAlignment = ResolveTextAlignment(shape.TextBody);
-            OfficeTextVerticalAlignment textVerticalAlignment = ResolveTextVerticalAlignment(shape.TextBody?.GetFirstChild<A.BodyProperties>());
+            A.BodyProperties? bodyProperties = shape.TextBody?.GetFirstChild<A.BodyProperties>();
+            OfficeTextVerticalAlignment textVerticalAlignment = ResolveTextVerticalAlignment(bodyProperties);
+            bool textWrap = ResolveTextWrap(bodyProperties);
             DrawingTextStyle textStyle = ResolveTextStyle(shape.TextBody);
 
             return new ExcelWorksheetDrawingObjectInfo(
@@ -94,6 +96,7 @@ namespace OfficeIMO.Excel.Utilities {
                 textStyle.FontFamily,
                 textStyle.FontSize,
                 textStyle.FontStyle,
+                textWrap,
                 unsupportedReason: null);
         }
 
@@ -129,6 +132,7 @@ namespace OfficeIMO.Excel.Utilities {
                 textFontFamily: null,
                 textFontSize: null,
                 textFontStyle: OfficeFontStyle.Regular,
+                textWrap: false,
                 unsupportedReason: unsupportedReason);
         }
 
@@ -159,6 +163,15 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             return OfficeTextVerticalAlignment.Center;
+        }
+
+        private static bool ResolveTextWrap(A.BodyProperties? bodyProperties) {
+            if (bodyProperties == null) {
+                return false;
+            }
+
+            A.TextWrappingValues? wrap = bodyProperties.Wrap?.Value;
+            return wrap != A.TextWrappingValues.None;
         }
 
         private static DrawingTextStyle ResolveTextStyle(Xdr.TextBody? textBody) {
@@ -458,6 +471,7 @@ namespace OfficeIMO.Excel.Utilities {
             string? textFontFamily,
             double? textFontSize,
             OfficeFontStyle textFontStyle,
+            bool textWrap,
             string? unsupportedReason) {
             Name = name ?? string.Empty;
             Kind = kind ?? string.Empty;
@@ -487,6 +501,7 @@ namespace OfficeIMO.Excel.Utilities {
             TextFontFamily = textFontFamily;
             TextFontSize = textFontSize;
             TextFontStyle = textFontStyle;
+            TextWrap = textWrap;
             UnsupportedReason = unsupportedReason;
         }
 
@@ -545,6 +560,8 @@ namespace OfficeIMO.Excel.Utilities {
         internal double? TextFontSize { get; }
 
         internal OfficeFontStyle TextFontStyle { get; }
+
+        internal bool TextWrap { get; }
 
         internal string? UnsupportedReason { get; }
 

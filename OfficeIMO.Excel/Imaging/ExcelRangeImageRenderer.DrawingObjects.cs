@@ -78,7 +78,8 @@ namespace OfficeIMO.Excel {
                     verticalAlignment: drawingObject.TextVerticalAlignment,
                     rotationDegrees: drawingObject.RotationDegrees,
                     rotationCenterX: offsetX + width / 2D,
-                    rotationCenterY: offsetY + height / 2D);
+                    rotationCenterY: offsetY + height / 2D,
+                    wrapText: drawingObject.TextWrap);
             }
 
             return new DrawingObjectScene(drawing, offsetX, offsetY);

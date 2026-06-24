@@ -485,6 +485,46 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void ExcelRange_ImageExportWrapsDrawingShapeTextThroughSharedDrawing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("TextWrap");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Wrapped label",
+                "Alpha beta gamma delta epsilon",
+                fillHex: "EFF6FF",
+                strokeHex: "2563EB",
+                paragraphAlignment: A.TextAlignmentTypeValues.Left,
+                verticalAlignment: A.TextAnchoringTypeValues.Top,
+                textColorHex: "111827",
+                textFontSize: 8D,
+                textWrap: true);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:D4");
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+                OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+                string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.True(drawingObject.TextWrap);
+                Assert.Contains("Alpha", svgText, StringComparison.Ordinal);
+                Assert.Contains("epsilon", svgText, StringComparison.Ordinal);
+                Assert.True(CountOccurrences(svgText, "<text") >= 2);
+                Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+                Assert.NotNull(rendered);
+                Assert.True(CountDarkPixels(rendered!) > 0);
+            }
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -580,7 +620,8 @@ namespace OfficeIMO.Tests {
             double? textFontSize = null,
             bool textBold = false,
             bool textItalic = false,
-            bool textUnderline = false) {
+            bool textUnderline = false,
+            bool textWrap = false) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
             WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
@@ -590,7 +631,7 @@ namespace OfficeIMO.Tests {
 
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
-                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, textFontFamily, textFontSize, textBold, textItalic, textUnderline));
+                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
@@ -640,7 +681,8 @@ namespace OfficeIMO.Tests {
             double? textFontSize = null,
             bool textBold = false,
             bool textItalic = false,
-            bool textUnderline = false) {
+            bool textUnderline = false,
+            bool textWrap = false) {
             var transform = new A.Transform2D {
                 HorizontalFlip = horizontalFlip,
                 VerticalFlip = verticalFlip
@@ -652,6 +694,10 @@ namespace OfficeIMO.Tests {
             var bodyProperties = new A.BodyProperties();
             if (verticalAlignment.HasValue) {
                 bodyProperties.Anchor = verticalAlignment.Value;
+            }
+
+            if (textWrap) {
+                bodyProperties.Wrap = A.TextWrappingValues.Square;
             }
 
             var paragraph = new A.Paragraph();
@@ -733,6 +779,20 @@ namespace OfficeIMO.Tests {
                         Math.Abs(color.G - expected.G) <= 8 &&
                         Math.Abs(color.B - expected.B) <= 8 &&
                         color.A >= 248) {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        private static int CountDarkPixels(OfficeRasterImage image) {
+            int count = 0;
+            for (int y = 0; y < image.Height; y++) {
+                for (int x = 0; x < image.Width; x++) {
+                    OfficeColor color = image.GetPixel(x, y);
+                    if (color.A >= 248 && color.R < 90 && color.G < 100 && color.B < 120) {
                         count++;
                     }
                 }

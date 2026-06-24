@@ -551,6 +551,7 @@ namespace OfficeIMO.Excel {
             string? textFontFamily,
             double? textFontSize,
             OfficeFontStyle textFontStyle,
+            bool textWrap,
             string source) {
             Name = name ?? string.Empty;
             Order = order;
@@ -573,6 +574,7 @@ namespace OfficeIMO.Excel {
             TextFontFamily = textFontFamily;
             TextFontSize = textFontSize;
             TextFontStyle = textFontStyle;
+            TextWrap = textWrap;
             Source = source ?? string.Empty;
         }
 
@@ -641,6 +643,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Text font style flags extracted from the drawing text run.</summary>
         public OfficeFontStyle TextFontStyle { get; }
+
+        /// <summary>Whether text should wrap inside the drawing object's text box.</summary>
+        public bool TextWrap { get; }
 
         /// <summary>Source reference used by export diagnostics.</summary>
         public string Source { get; }

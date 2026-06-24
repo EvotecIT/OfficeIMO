@@ -315,6 +315,7 @@ namespace OfficeIMO.Excel {
                     drawing.TextFontFamily,
                     drawing.TextFontSize,
                     drawing.TextFontStyle,
+                    drawing.TextWrap,
                     GetDrawingDiagnosticSource(sheet, drawing)));
             }
 
