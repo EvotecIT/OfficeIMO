@@ -526,16 +526,24 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        double radians = OfficeGeometry.DegreesToRadians(rotationDegrees);
-        bool rotated = Math.Abs(rotationDegrees) >= 0.0001D;
-        OfficePoint topLeft = rotated ? OfficeGeometry.RotatePoint(new OfficePoint(x, y), rotationCenterX, rotationCenterY, radians) : new OfficePoint(x, y);
-        OfficePoint topRight = rotated ? OfficeGeometry.RotatePoint(new OfficePoint(x + width, y), rotationCenterX, rotationCenterY, radians) : new OfficePoint(x + width, y);
-        OfficePoint bottomRight = rotated ? OfficeGeometry.RotatePoint(new OfficePoint(x + width, y + height), rotationCenterX, rotationCenterY, radians) : new OfficePoint(x + width, y + height);
-        OfficePoint bottomLeft = rotated ? OfficeGeometry.RotatePoint(new OfficePoint(x, y + height), rotationCenterX, rotationCenterY, radians) : new OfficePoint(x, y + height);
-        double minX = Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomRight.X, bottomLeft.X));
-        double maxX = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomRight.X, bottomLeft.X));
-        double minY = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomRight.Y, bottomLeft.Y));
-        double maxY = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomRight.Y, bottomLeft.Y));
+        var projection = new OfficeImageProjection(
+            new OfficeImagePlacement(x, y, width, height),
+            new OfficeImageSourceCrop(
+                sourceLeft,
+                sourceTop,
+                Math.Max(0D, 1D - sourceLeft - sourceWidth),
+                Math.Max(0D, 1D - sourceTop - sourceHeight)),
+            rotationDegrees,
+            rotationCenterX,
+            rotationCenterY,
+            flipHorizontal,
+            flipVertical);
+        OfficeTransform imageTransform = projection.CreateUnitSquareTransform();
+        if (!imageTransform.TryInvert(out OfficeTransform inverseTransform)) {
+            return;
+        }
+
+        (double minX, double minY, double maxX, double maxY) = projection.GetDestinationBounds();
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
@@ -543,21 +551,11 @@ public sealed partial class OfficeRasterCanvas {
         bool cropped = sourceLeft > 0D || sourceTop > 0D || sourceWidth < 1D || sourceHeight < 1D;
         for (int py = top; py <= bottom; py++) {
             for (int px = left; px <= right; px++) {
-                OfficePoint local = rotated
-                    ? OfficeGeometry.RotatePoint(new OfficePoint(px + 0.5D, py + 0.5D), rotationCenterX, rotationCenterY, -radians)
-                    : new OfficePoint(px + 0.5D, py + 0.5D);
-                double u = (local.X - x) / width;
-                double v = (local.Y - y) / height;
+                OfficePoint unit = inverseTransform.TransformPoint(new OfficePoint(px + 0.5D, py + 0.5D));
+                double u = unit.X;
+                double v = unit.Y;
                 if (u < 0D || u >= 1D || v < 0D || v >= 1D) {
                     continue;
-                }
-
-                if (flipHorizontal) {
-                    u = 1D - u;
-                }
-
-                if (flipVertical) {
-                    v = 1D - v;
                 }
 
                 double sourceX;

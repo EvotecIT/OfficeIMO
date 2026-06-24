@@ -186,6 +186,11 @@ public class DrawingTests {
         Assert.Equal(new OfficeTransform(0D, 60D, -30D, 0D, 75D, 75D), rotated);
         Assert.Equal(new OfficeTransform(-80D, 0D, 0D, 40D, 90D, 20D), flipped);
         Assert.Equal(new OfficeTransform(0D, 20D, -10D, 0D, -20D, 10D), customCenter);
+
+        Assert.Equal((30D, 90D, 90D, 120D), normal.TransformRectangleBounds(0D, 0D, 1D, 1D));
+        Assert.Equal((10D, 20D, 90D, 60D), new OfficeImageProjection(
+            new OfficeImagePlacement(10D, 20D, 80D, 40D),
+            flipHorizontal: true).GetDestinationBounds());
     }
 
     [Fact]
@@ -209,6 +214,21 @@ public class DrawingTests {
         Assert.Equal(new OfficePoint(90D, 20D), flipped.CreateDestinationTransform().TransformPoint(new OfficePoint(10D, 20D)));
         Assert.True(rotated.HasRotation);
         Assert.Equal(new OfficePoint(70D, 40D), rotated.CreateDestinationTransform().TransformPoint(new OfficePoint(50D, 20D)));
+    }
+
+    [Fact]
+    public void OfficeTransformInvertsAffineMatrix() {
+        OfficeTransform transform = OfficeTransform.Translate(10D, 20D)
+            .Then(OfficeTransform.Scale(2D, 4D))
+            .Then(OfficeTransform.RotateDegrees(90D));
+
+        Assert.True(transform.TryInvert(out OfficeTransform inverse));
+        OfficePoint projected = transform.TransformPoint(new OfficePoint(3D, 5D));
+        OfficePoint restored = inverse.TransformPoint(projected);
+
+        Assert.Equal(3D, restored.X, precision: 10);
+        Assert.Equal(5D, restored.Y, precision: 10);
+        Assert.Throws<InvalidOperationException>(() => new OfficeTransform(0D, 0D, 0D, 0D, 0D, 0D).Invert());
     }
 
     [Fact]

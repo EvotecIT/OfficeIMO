@@ -83,11 +83,71 @@ public readonly struct OfficeTransform : IEquatable<OfficeTransform> {
             next.M12 * OffsetX + next.M22 * OffsetY + next.OffsetY);
     }
 
+    /// <summary>
+    /// Returns the inverse transform.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the transform cannot be inverted.</exception>
+    public OfficeTransform Invert() {
+        if (!TryInvert(out OfficeTransform inverse)) {
+            throw new InvalidOperationException("Transform cannot be inverted because its determinant is zero.");
+        }
+
+        return inverse;
+    }
+
+    /// <summary>
+    /// Attempts to create the inverse transform.
+    /// </summary>
+    /// <param name="inverse">Inverse transform when inversion succeeds.</param>
+    /// <returns>True when the transform has a non-zero determinant.</returns>
+    public bool TryInvert(out OfficeTransform inverse) {
+        double determinant = (M11 * M22) - (M21 * M12);
+        if (Math.Abs(determinant) < 0.000000000001D) {
+            inverse = default;
+            return false;
+        }
+
+        inverse = new OfficeTransform(
+            NormalizeZero(M22 / determinant),
+            NormalizeZero(-M12 / determinant),
+            NormalizeZero(-M21 / determinant),
+            NormalizeZero(M11 / determinant),
+            NormalizeZero(((M21 * OffsetY) - (M22 * OffsetX)) / determinant),
+            NormalizeZero(((M12 * OffsetX) - (M11 * OffsetY)) / determinant));
+        return true;
+    }
+
     /// <summary>Transforms a point in local top-left coordinates.</summary>
     public OfficePoint TransformPoint(OfficePoint point) {
         double x = M11 * point.X + M21 * point.Y + OffsetX;
         double y = M12 * point.X + M22 * point.Y + OffsetY;
         return new OfficePoint(x, y);
+    }
+
+    /// <summary>
+    /// Calculates axis-aligned bounds for a transformed rectangle.
+    /// </summary>
+    /// <param name="x">Rectangle left coordinate.</param>
+    /// <param name="y">Rectangle top coordinate.</param>
+    /// <param name="width">Rectangle width.</param>
+    /// <param name="height">Rectangle height.</param>
+    /// <returns>Axis-aligned bounds of the transformed rectangle.</returns>
+    public (double Left, double Top, double Right, double Bottom) TransformRectangleBounds(double x, double y, double width, double height) {
+        ValidateFinite(x, nameof(x));
+        ValidateFinite(y, nameof(y));
+        ValidateFinite(width, nameof(width));
+        ValidateFinite(height, nameof(height));
+
+        OfficePoint topLeft = TransformPoint(new OfficePoint(x, y));
+        OfficePoint topRight = TransformPoint(new OfficePoint(x + width, y));
+        OfficePoint bottomRight = TransformPoint(new OfficePoint(x + width, y + height));
+        OfficePoint bottomLeft = TransformPoint(new OfficePoint(x, y + height));
+
+        return (
+            Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomRight.X, bottomLeft.X)),
+            Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomRight.Y, bottomLeft.Y)),
+            Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomRight.X, bottomLeft.X)),
+            Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomRight.Y, bottomLeft.Y)));
     }
 
     /// <inheritdoc />

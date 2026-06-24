@@ -160,6 +160,13 @@ public readonly struct OfficeImageProjection {
     }
 
     /// <summary>
+    /// Calculates axis-aligned destination bounds after applying this projection's rotation and mirror settings.
+    /// </summary>
+    /// <returns>Projected destination bounds.</returns>
+    public (double Left, double Top, double Right, double Bottom) GetDestinationBounds() =>
+        CreateUnitSquareTransform().TransformRectangleBounds(0D, 0D, 1D, 1D);
+
+    /// <summary>
     /// Converts the projection into a tuple useful for assertions and diagnostics.
     /// </summary>
     public (double X, double Y, double Width, double Height, double SourceLeft, double SourceTop, double SourceWidth, double SourceHeight, double RotationDegrees, double RotationCenterX, double RotationCenterY, bool FlipHorizontal, bool FlipVertical) ToTuple() =>
