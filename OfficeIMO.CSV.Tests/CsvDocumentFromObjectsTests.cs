@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using OfficeIMO.CSV;
 using Xunit;
@@ -46,6 +47,83 @@ public class CsvDocumentFromObjectsTests
         Assert.Equal(2, doc.AsEnumerable().Count());
         Assert.Equal("C", doc.AsEnumerable().ElementAt(0).AsString("Name"));    
         Assert.Equal(4, doc.AsEnumerable().ElementAt(1).AsInt32("Value"));      
+    }
+
+    [Fact]
+    public void WriteObjects_WritesWithoutMaterializingDocument()
+    {
+        var items = new object?[]
+        {
+            new { Name = "A", Value = 1 },
+            new { Name = "B, quoted", Value = 2 }
+        };
+
+        using var writer = new StringWriter();
+        CsvDocument.WriteObjects(writer, items, new CsvSaveOptions { NewLine = "\n" });
+
+        Assert.Equal("Name,Value\nA,1\n\"B, quoted\",2\n", writer.ToString());
+    }
+
+    [Fact]
+    public void CsvObjectWriter_StreamsRowsAndCanLeaveWriterOpen()
+    {
+        using var writer = new StringWriter();
+        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        {
+            csvWriter.WriteObject(new { Name = "A", Value = 1 });
+            csvWriter.WriteObject(new { Name = "B", Value = 2 });
+            Assert.True(csvWriter.HasRows);
+        }
+
+        writer.Write("#");
+        Assert.Equal("Name,Value\nA,1\nB,2\n#", writer.ToString());
+    }
+
+    [Fact]
+    public void CsvObjectWriter_WritesProjectedRows()
+    {
+        using var writer = new StringWriter();
+        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        {
+            csvWriter.WriteRow(new[] { "Name", "Value" }, new object?[] { "A", 1 });
+            csvWriter.WriteRow(new[] { "Name", "Value" }, new object?[] { "B", 2 });
+        }
+
+        Assert.Equal("Name,Value\nA,1\nB,2\n", writer.ToString());
+    }
+
+    [Fact]
+    public void ReadRows_StreamsHeaderAndRows()
+    {
+        using var reader = new StringReader("Name,Value\nA,1\nB,2\n");
+        var rows = new List<string>();
+
+        CsvDocument.ReadRows(reader, (header, values) =>
+        {
+            Assert.Equal(new[] { "Name", "Value" }, header);
+            rows.Add(values[0] + ":" + values[1]);
+        });
+
+        Assert.Equal(new[] { "A:1", "B:2" }, rows);
+    }
+
+    [Fact]
+    public void SaveObjects_WritesFile()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.SaveObjects." + Guid.NewGuid().ToString("N") + ".csv");
+        try
+        {
+            CsvDocument.SaveObjects(path, new object?[] { new { Name = "A", Value = 1 } }, new CsvSaveOptions { NewLine = "\n" });
+
+            Assert.Equal("Name,Value\nA,1\n", File.ReadAllText(path));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
     }
 
     [Fact]
