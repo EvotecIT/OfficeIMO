@@ -1017,7 +1017,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(escapedDisplayName, thumbnail);
             Assert.Contains("<rect x=\"0\" y=\"0\" width=\"180\" height=\"120\" rx=\"8\" ry=\"8\" fill=\"#FFFFFF\"/>", thumbnail);
             Assert.Contains("<rect x=\"0.5\" y=\"0.5\" width=\"179\" height=\"119\" rx=\"7.5\" ry=\"7.5\" fill=\"none\" stroke=\"#D3E0EC\"/>", thumbnail);
-            Assert.Contains("<image x=\"14\" y=\"12\" width=\"152\" height=\"78\" preserveAspectRatio=\"xMidYMid meet\" href=\"data:image/png;base64,", thumbnail);
+            Assert.Contains("<clipPath id=\"visio-thumbnail-image-clip\"><rect x=\"14\" y=\"12\" width=\"152\" height=\"78\"/></clipPath>", thumbnail);
+            Assert.Contains("<image x=\"14\" y=\"12\" width=\"152\" height=\"78\" clip-path=\"url(#visio-thumbnail-image-clip)\" preserveAspectRatio=\"xMidYMid meet\" href=\"data:image/png;base64,", thumbnail);
             Assert.Contains("<text x=\"14\" y=\"106\" font-family=\"Aptos, Segoe UI, Arial, sans-serif\" font-size=\"12\" text-anchor=\"start\" fill=\"#657586\">" + escapedDisplayName + "</text>", thumbnail);
 
             string html = File.ReadAllText(gallery.IndexPath!);

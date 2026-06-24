@@ -313,13 +313,12 @@ namespace OfficeIMO.Visio.Stencils {
             builder.Append("  ").AppendRectElement(0D, 0D, options.ThumbnailWidth, options.ThumbnailHeight, 8D, 8D, " fill=\"#FFFFFF\"").AppendLine();
             builder.Append("  ").AppendRectElement(0.5D, 0.5D, options.ThumbnailWidth - 1D, options.ThumbnailHeight - 1D, 7.5D, 7.5D, " fill=\"none\" stroke=\"#D3E0EC\"").AppendLine();
             builder.Append("  ");
-            OfficeSvgImageRenderer.AppendImage(
+            OfficeSvgImageRenderer.AppendImageInViewport(
                 builder,
                 dataUri,
-                14D,
-                12D,
-                imageWidth,
-                imageHeight,
+                new OfficeImageProjection(new OfficeImagePlacement(14D, 12D, imageWidth, imageHeight)),
+                "visio-thumbnail-image-clip",
+                new OfficeImagePlacement(14D, 12D, imageWidth, imageHeight),
                 preserveAspectRatio: "xMidYMid meet").AppendLine();
             builder.Append("  ").AppendSvgTextElement(
                 displayName,
