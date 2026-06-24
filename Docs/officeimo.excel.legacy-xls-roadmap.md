@@ -234,7 +234,10 @@ legacy model.
 PivotCache cache item records for numeric, integer, Boolean, error, string, date/time,
 and empty values are now decoded into the preserve-only PivotTable model, with
 import-report buckets limited to type/value-state metadata rather than dumping raw
-source values.
+source values. PivotCache stream identifiers, source-data type records, and the fixed
+`SXDB` cache-property header now decode into preserve-only PivotTable metadata,
+including compact report buckets for cache stream names, source types, cache record
+and field counts, property flags, and last-refresh-user presence.
 Chart `CatSerRange` records now decode preserve-only category/series axis
 crossing and interval metadata, `AxisLineFormat` records now decode the formatted
 axis component target, `PieFormat` records now decode preserve-only pie/doughnut

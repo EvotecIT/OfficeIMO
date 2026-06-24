@@ -290,6 +290,25 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableCacheItemBooleanValues = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.CacheItemBooleanValue.HasValue)
                 .Select(record => record.CacheItemBooleanValue!.Value ? "True" : "False"));
+            PivotTableCacheStreamNames = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.CacheStreamName))
+                .Select(record => $"{record.RecordName}|{record.CacheStreamName}"));
+            PivotTableCacheSourceTypes = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.CacheSourceTypeName))
+                .Select(record => $"{record.RecordName}|{record.CacheSourceTypeName}"));
+            PivotTableCacheRecordCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.CacheRecordCount.HasValue)
+                .Select(record => $"Records:{record.CacheRecordCount!.Value}"));
+            PivotTableCacheFieldCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.CacheSourceFieldCount.HasValue && record.CacheTotalFieldCount.HasValue)
+                .Select(record => $"SourceFields:{record.CacheSourceFieldCount!.Value};TotalFields:{record.CacheTotalFieldCount!.Value}"));
+            PivotTableCacheUsedRecordCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.CacheUsedRecordCount.HasValue)
+                .Select(record => $"UsedRecords:{record.CacheUsedRecordCount!.Value}"));
+            PivotTableCachePropertyFlags = CountByCode(workbook.PivotTableRecords.SelectMany(GetPivotTableCachePropertyFlagKeys));
+            PivotTableCacheRefreshUserStates = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.CacheRecordCount.HasValue)
+                .Select(record => string.IsNullOrWhiteSpace(record.CacheRefreshedBy) ? "NoRefreshUser" : "HasRefreshUser"));
             PivotTableDataItemAggregations = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.AggregationFunction.HasValue)
                 .Select(record => $"AggregationFunction:{record.AggregationFunction!.Value}"));
@@ -1136,6 +1155,27 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded PivotCache Boolean item records grouped by value.</summary>
         public IReadOnlyDictionary<string, int> PivotTableCacheItemBooleanValues { get; }
 
+        /// <summary>Gets decoded PivotCache stream identifiers grouped by BIFF record name and stream name.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableCacheStreamNames { get; }
+
+        /// <summary>Gets decoded PivotCache source-data types grouped by BIFF record name and source type.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableCacheSourceTypes { get; }
+
+        /// <summary>Gets decoded SXDB PivotCache records grouped by declared cache record count.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableCacheRecordCounts { get; }
+
+        /// <summary>Gets decoded SXDB PivotCache records grouped by source and total field counts.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableCacheFieldCounts { get; }
+
+        /// <summary>Gets decoded SXDB PivotCache records grouped by used cache record count.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableCacheUsedRecordCounts { get; }
+
+        /// <summary>Gets decoded SXDB PivotCache records grouped by cache property flag state.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableCachePropertyFlags { get; }
+
+        /// <summary>Gets decoded SXDB PivotCache records grouped by whether the last-refresh user was present.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableCacheRefreshUserStates { get; }
+
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by raw aggregation function identifier.</summary>
         public IReadOnlyDictionary<string, int> PivotTableDataItemAggregations { get; }
 
@@ -1716,6 +1756,13 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Cache Item String Lengths", PivotTableCacheItemStringLengths);
             AppendDictionary(builder, "Pivot Table Cache Item Error Codes", PivotTableCacheItemErrorCodes);
             AppendDictionary(builder, "Pivot Table Cache Item Boolean Values", PivotTableCacheItemBooleanValues);
+            AppendDictionary(builder, "Pivot Table Cache Stream Names", PivotTableCacheStreamNames);
+            AppendDictionary(builder, "Pivot Table Cache Source Types", PivotTableCacheSourceTypes);
+            AppendDictionary(builder, "Pivot Table Cache Record Counts", PivotTableCacheRecordCounts);
+            AppendDictionary(builder, "Pivot Table Cache Field Counts", PivotTableCacheFieldCounts);
+            AppendDictionary(builder, "Pivot Table Cache Used Record Counts", PivotTableCacheUsedRecordCounts);
+            AppendDictionary(builder, "Pivot Table Cache Property Flags", PivotTableCachePropertyFlags);
+            AppendDictionary(builder, "Pivot Table Cache Refresh User States", PivotTableCacheRefreshUserStates);
             AppendDictionary(builder, "Pivot Table Data Item Aggregations", PivotTableDataItemAggregations);
             AppendDictionary(builder, "Pivot Table Data Item Aggregation Kinds", PivotTableDataItemAggregationKinds);
             AppendDictionary(builder, "Pivot Table Data Item Field Indexes", PivotTableDataItemFieldIndexes);
@@ -2243,6 +2290,19 @@ namespace OfficeIMO.Excel.LegacyXls {
             yield return $"CanDragToHide:{record.CanDragToHide!.Value}";
             yield return $"PreventDragToData:{record.PreventDragToData!.Value}";
             yield return $"ServerBased:{record.ServerBased!.Value}";
+        }
+
+        private static IEnumerable<string> GetPivotTableCachePropertyFlagKeys(LegacyXlsPivotTableRecord record) {
+            if (!record.CacheHasRecords.HasValue) {
+                yield break;
+            }
+
+            yield return $"HasRecords:{record.CacheHasRecords.Value}";
+            yield return $"Invalid:{record.CacheInvalid!.Value}";
+            yield return $"RefreshOnLoad:{record.CacheRefreshOnLoad!.Value}";
+            yield return $"OptimizeMemory:{record.CacheOptimizeMemory!.Value}";
+            yield return $"BackgroundQuery:{record.CacheBackgroundQuery!.Value}";
+            yield return $"EnableRefresh:{record.CacheEnableRefresh!.Value}";
         }
 
         private static string GetPivotTableAdditionalClassTypeKey(LegacyXlsPivotTableRecord record) {

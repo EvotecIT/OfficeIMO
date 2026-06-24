@@ -76,6 +76,54 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the optional custom SXDI data item name, when decoded.</summary>
         public string? Name { get; private set; }
 
+        /// <summary>Gets the PivotCache stream identifier, when decoded from SXStreamID or SXDB.</summary>
+        public ushort? CacheStreamId { get; private set; }
+
+        /// <summary>Gets the four-character PivotCache stream name implied by the stream identifier.</summary>
+        public string? CacheStreamName { get; private set; }
+
+        /// <summary>Gets the number of cache records declared by SXDB, when decoded.</summary>
+        public int? CacheRecordCount { get; private set; }
+
+        /// <summary>Gets whether SXDB declares cached records exist for this PivotCache.</summary>
+        public bool? CacheHasRecords { get; private set; }
+
+        /// <summary>Gets whether SXDB marks the PivotCache records as invalid.</summary>
+        public bool? CacheInvalid { get; private set; }
+
+        /// <summary>Gets whether SXDB requests refresh when the workbook is loaded.</summary>
+        public bool? CacheRefreshOnLoad { get; private set; }
+
+        /// <summary>Gets whether SXDB requests optimized cache storage.</summary>
+        public bool? CacheOptimizeMemory { get; private set; }
+
+        /// <summary>Gets whether SXDB declares background refresh for external cache data.</summary>
+        public bool? CacheBackgroundQuery { get; private set; }
+
+        /// <summary>Gets whether SXDB declares that cache refresh is enabled.</summary>
+        public bool? CacheEnableRefresh { get; private set; }
+
+        /// <summary>Gets the source-data field count declared by SXDB, when decoded.</summary>
+        public short? CacheSourceFieldCount { get; private set; }
+
+        /// <summary>Gets the total PivotCache field count declared by SXDB, when decoded.</summary>
+        public short? CacheTotalFieldCount { get; private set; }
+
+        /// <summary>Gets the cache record count used to calculate the PivotTable report, when decoded.</summary>
+        public ushort? CacheUsedRecordCount { get; private set; }
+
+        /// <summary>Gets the raw PivotCache source-data type declared by SXDB or SXVS.</summary>
+        public ushort? CacheSourceType { get; private set; }
+
+        /// <summary>Gets the decoded PivotCache source-data type, when known.</summary>
+        public LegacyXlsPivotCacheSourceType? CacheSourceTypeKind { get; private set; }
+
+        /// <summary>Gets the source-data type name, or a stable raw identifier for unknown values.</summary>
+        public string? CacheSourceTypeName { get; private set; }
+
+        /// <summary>Gets the optional user name stored in SXDB for the last cache refresh.</summary>
+        public string? CacheRefreshedBy { get; private set; }
+
         /// <summary>Gets whether an SXRng record recalculates its starting value from source data.</summary>
         public bool? AutoStart { get; private set; }
 
@@ -196,6 +244,46 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Name = name;
         }
 
+        internal void SetCacheStream(ushort streamId) {
+            CacheStreamId = streamId;
+            CacheStreamName = streamId.ToString("X4");
+        }
+
+        internal void SetCacheSourceType(ushort sourceType) {
+            CacheSourceType = sourceType;
+            CacheSourceTypeKind = TryGetCacheSourceTypeKind(sourceType);
+            CacheSourceTypeName = CacheSourceTypeKind?.ToString() ?? $"SourceType:0x{sourceType:X4}";
+        }
+
+        internal void SetCacheProperties(
+            int recordCount,
+            ushort streamId,
+            bool hasRecords,
+            bool invalid,
+            bool refreshOnLoad,
+            bool optimizeMemory,
+            bool backgroundQuery,
+            bool enableRefresh,
+            short sourceFieldCount,
+            short totalFieldCount,
+            ushort usedRecordCount,
+            ushort sourceType,
+            string? refreshedBy) {
+            CacheRecordCount = recordCount;
+            SetCacheStream(streamId);
+            CacheHasRecords = hasRecords;
+            CacheInvalid = invalid;
+            CacheRefreshOnLoad = refreshOnLoad;
+            CacheOptimizeMemory = optimizeMemory;
+            CacheBackgroundQuery = backgroundQuery;
+            CacheEnableRefresh = enableRefresh;
+            CacheSourceFieldCount = sourceFieldCount;
+            CacheTotalFieldCount = totalFieldCount;
+            CacheUsedRecordCount = usedRecordCount;
+            SetCacheSourceType(sourceType);
+            CacheRefreshedBy = refreshedBy;
+        }
+
         internal void SetGroupingRange(bool autoStart, bool autoEnd, LegacyXlsPivotGroupingKind groupingKind) {
             AutoStart = autoStart;
             AutoEnd = autoEnd;
@@ -308,6 +396,21 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         private static LegacyXlsPivotDisplayCalculation? TryGetDisplayCalculationKind(short value) {
             return value >= 0 && value <= 8 ? (LegacyXlsPivotDisplayCalculation)value : null;
+        }
+
+        private static LegacyXlsPivotCacheSourceType? TryGetCacheSourceTypeKind(ushort value) {
+            switch (value) {
+                case 0x0001:
+                    return LegacyXlsPivotCacheSourceType.Sheet;
+                case 0x0002:
+                    return LegacyXlsPivotCacheSourceType.External;
+                case 0x0004:
+                    return LegacyXlsPivotCacheSourceType.Consolidation;
+                case 0x0010:
+                    return LegacyXlsPivotCacheSourceType.Scenario;
+                default:
+                    return null;
+            }
         }
 
         private static string GetAdditionalClassName(byte value) {

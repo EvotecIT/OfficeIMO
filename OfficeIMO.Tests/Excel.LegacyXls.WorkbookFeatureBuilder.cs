@@ -602,7 +602,9 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "PivotMeta"));
                 WriteRecord(stream, 0x00b0, Array.Empty<byte>());
                 WriteRecord(stream, 0x00c1, BuildSxdiPayload());
-                WriteRecord(stream, 0x00c5, Array.Empty<byte>());
+                WriteRecord(stream, 0x00d5, BuildUInt16Payload(1));
+                WriteRecord(stream, 0x00e3, BuildUInt16Payload(1));
+                WriteRecord(stream, 0x00c5, BuildSxdbPayload());
                 WriteRecord(stream, 0x00c8, BuildSxNumPayload(42.5));
                 WriteRecord(stream, 0x00c9, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x00ca, BuildUInt16Payload(0x0007));
@@ -2243,6 +2245,21 @@ namespace OfficeIMO.Tests {
             private static byte[] BuildSxIntPayload(short value) {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, unchecked((ushort)value));
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxdbPayload() {
+                using var stream = new MemoryStream();
+                WriteInt32(stream, 12);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 0x0025);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 3);
+                WriteUInt16(stream, 4);
+                WriteUInt16(stream, 10);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 5);
+                WriteCompressedUnicodeStringNoCch(stream, "Excel");
                 return stream.ToArray();
             }
 

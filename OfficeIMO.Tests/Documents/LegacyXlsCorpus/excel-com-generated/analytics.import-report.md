@@ -650,6 +650,7 @@ Warnings: 0
 | --- | --- |
 | Additional | 50 |
 | Cache | 2 |
+| CacheSource | 1 |
 | CacheStream | 1 |
 | DataItem | 1 |
 | ExtendedPivotField | 1 |
@@ -661,7 +662,6 @@ Warnings: 0
 | Item | 15 |
 | LineItem | 2 |
 | PageItem | 1 |
-| PreserveOnly | 1 |
 | View | 1 |
 
 ## Pivot Table Records By Name
@@ -683,6 +683,18 @@ Warnings: 0
 | Sxvi | 15 |
 | SxView | 1 |
 | Sxvs | 1 |
+
+## Pivot Table Cache Stream Names
+
+| Key | Count |
+| --- | --- |
+| SxStreamId\|0001 | 1 |
+
+## Pivot Table Cache Source Types
+
+| Key | Count |
+| --- | --- |
+| Sxvs\|Sheet | 1 |
 
 ## Pivot Table Grouping Kinds
 

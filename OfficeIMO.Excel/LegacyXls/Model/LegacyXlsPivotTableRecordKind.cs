@@ -39,6 +39,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Pivot cache stream metadata.</summary>
         CacheStream,
 
+        /// <summary>Pivot cache source-data metadata.</summary>
+        CacheSource,
+
         /// <summary>Grouping range metadata from an SXRng record.</summary>
         GroupingRange,
 
