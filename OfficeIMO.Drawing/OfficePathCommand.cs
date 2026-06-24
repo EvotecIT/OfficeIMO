@@ -79,6 +79,28 @@ public struct OfficePathCommand : IEquatable<OfficePathCommand> {
         }
     }
 
+    internal OfficePathCommand Scale(double scaleX, double scaleY) {
+        switch (Kind) {
+            case OfficePathCommandKind.MoveTo:
+            case OfficePathCommandKind.LineTo:
+                return new OfficePathCommand(Kind, new OfficePoint(Point.X * scaleX, Point.Y * scaleY), default(OfficePoint), default(OfficePoint));
+            case OfficePathCommandKind.QuadraticBezierTo:
+                return new OfficePathCommand(
+                    Kind,
+                    new OfficePoint(Point.X * scaleX, Point.Y * scaleY),
+                    new OfficePoint(ControlPoint1.X * scaleX, ControlPoint1.Y * scaleY),
+                    default(OfficePoint));
+            case OfficePathCommandKind.CubicBezierTo:
+                return new OfficePathCommand(
+                    Kind,
+                    new OfficePoint(Point.X * scaleX, Point.Y * scaleY),
+                    new OfficePoint(ControlPoint1.X * scaleX, ControlPoint1.Y * scaleY),
+                    new OfficePoint(ControlPoint2.X * scaleX, ControlPoint2.Y * scaleY));
+            default:
+                return this;
+        }
+    }
+
     /// <inheritdoc />
     public bool Equals(OfficePathCommand other) =>
         Kind == other.Kind &&

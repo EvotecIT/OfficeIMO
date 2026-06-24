@@ -8,7 +8,7 @@ internal static partial class PdfWriter {
         CreatePageImage(block, style, targetX, targetBottomY, block.Width, block.Height);
 
     private static PageImage CreatePageImage(ImageBlock block, PdfImageStyle style, double targetX, double targetBottomY, double targetWidth, double targetHeight) {
-        OfficeClipPath? clipPath = ScaleClipPath(style.ClipPath, targetWidth / block.Width, targetHeight / block.Height);
+        OfficeClipPath? clipPath = style.ClipPath?.Scale(targetWidth / block.Width, targetHeight / block.Height);
         PdfImageSourceCrop? sourceCrop = style.SourceCrop;
         OfficeImageSourceCrop crop = sourceCrop?.ToOfficeImageSourceCrop() ?? default;
         OfficeImageRenderPlan renderPlan = OfficeImageRenderPlan.CreateBottomLeft(
@@ -55,48 +55,6 @@ internal static partial class PdfWriter {
         y1 = targetBottomY;
         x2 = targetX + targetWidth;
         y2 = targetBottomY + targetHeight;
-    }
-
-    private static OfficeClipPath? ScaleClipPath(OfficeClipPath? clipPath, double scaleX, double scaleY) {
-        if (clipPath == null || (Math.Abs(scaleX - 1D) <= 0.0001D && Math.Abs(scaleY - 1D) <= 0.0001D)) {
-            return clipPath?.Clone();
-        }
-
-        switch (clipPath.Kind) {
-            case OfficeClipPathKind.Rectangle:
-                return OfficeClipPath.Rectangle(clipPath.Width * scaleX, clipPath.Height * scaleY);
-            case OfficeClipPathKind.RoundedRectangle:
-                return OfficeClipPath.RoundedRectangle(clipPath.Width * scaleX, clipPath.Height * scaleY, clipPath.CornerRadius * Math.Min(scaleX, scaleY));
-            case OfficeClipPathKind.Path:
-                var commands = new List<OfficePathCommand>(clipPath.Commands.Count);
-                for (int i = 0; i < clipPath.Commands.Count; i++) {
-                    OfficePathCommand command = clipPath.Commands[i];
-                    switch (command.Kind) {
-                        case OfficePathCommandKind.MoveTo:
-                            commands.Add(OfficePathCommand.MoveTo(command.Point.X * scaleX, command.Point.Y * scaleY));
-                            break;
-                        case OfficePathCommandKind.LineTo:
-                            commands.Add(OfficePathCommand.LineTo(command.Point.X * scaleX, command.Point.Y * scaleY));
-                            break;
-                        case OfficePathCommandKind.CubicBezierTo:
-                            commands.Add(OfficePathCommand.CubicBezierTo(
-                                command.ControlPoint1.X * scaleX,
-                                command.ControlPoint1.Y * scaleY,
-                                command.ControlPoint2.X * scaleX,
-                                command.ControlPoint2.Y * scaleY,
-                                command.Point.X * scaleX,
-                                command.Point.Y * scaleY));
-                            break;
-                        case OfficePathCommandKind.Close:
-                            commands.Add(OfficePathCommand.Close());
-                            break;
-                    }
-                }
-
-                return OfficeClipPath.Path(commands);
-            default:
-                return clipPath.Clone();
-        }
     }
 
     private static void AddHeaderFooterImages(LayoutResult.Page page, PdfOptions options, int variantPageNumber) {

@@ -944,8 +944,21 @@ public class DrawingTests {
         Assert.Equal(OfficePathCommand.MoveTo(0, 30), clone.Commands[0]);
         Assert.Equal(OfficePathCommand.QuadraticBezierTo(40, 0, 80, 30), clone.Commands[1]);
         Assert.Equal(OfficePathCommand.Close(), clone.Commands[2]);
+
+        OfficeClipPath scaled = clipPath.Scale(2D, 3D);
+        Assert.Equal(160, scaled.Width);
+        Assert.Equal(90, scaled.Height);
+        Assert.Equal(OfficePathCommand.MoveTo(0, 90), scaled.Commands[0]);
+        Assert.Equal(OfficePathCommand.QuadraticBezierTo(80, 0, 160, 90), scaled.Commands[1]);
+        Assert.Equal(OfficePathCommand.Close(), scaled.Commands[2]);
+
+        OfficeClipPath rounded = OfficeClipPath.RoundedRectangle(20, 10, 4).Scale(3D, 2D);
+        Assert.Equal(60, rounded.Width);
+        Assert.Equal(20, rounded.Height);
+        Assert.Equal(8, rounded.CornerRadius);
         Assert.Throws<ArgumentException>(() => OfficeClipPath.Path(OfficePathCommand.LineTo(10, 10)));
         Assert.Throws<ArgumentOutOfRangeException>(() => OfficeClipPath.Rectangle(double.NaN, 10));
+        Assert.Throws<ArgumentOutOfRangeException>(() => clipPath.Scale(0D, 1D));
     }
 
     [Fact]
