@@ -70,42 +70,50 @@ public sealed partial class CsvDocument
             return;
         }
 
-        using var enumerator = CsvParser.Parse(reader, options).GetEnumerator();
-
         var explicitHeader = NormalizeExplicitHeader(options);
         if (explicitHeader is not null)
         {
-            while (enumerator.MoveNext())
+            CsvParser.ReadRecords(reader, options, record =>
             {
-                InvokeRowAction(rowAction, explicitHeader, enumerator.Current, options.ColumnCountMismatchPolicy);
-            }
+                InvokeRowAction(rowAction, explicitHeader, record, options.ColumnCountMismatchPolicy);
+            });
 
             return;
         }
 
-        IReadOnlyList<string> header;
+        IReadOnlyList<string>? header = null;
         if (options.HasHeaderRow)
         {
-            if (!TryReadHeader(enumerator, options, out header, out _))
+            CsvParser.ReadRecords(reader, options, record =>
             {
-                return;
-            }
-        }
-        else
-        {
-            if (!enumerator.MoveNext())
-            {
-                return;
-            }
+                if (header is null)
+                {
+                    if (TryGetW3CFieldsHeader(record, options, out var w3cHeader))
+                    {
+                        header = w3cHeader;
+                        return;
+                    }
 
-            header = GenerateDefaultHeader(enumerator.Current.Length);
-            InvokeRowAction(rowAction, header, enumerator.Current, options.ColumnCountMismatchPolicy);
+                    if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options))
+                    {
+                        return;
+                    }
+
+                    header = NormalizeParsedHeader(record, options);
+                    return;
+                }
+
+                InvokeRowAction(rowAction, header, record, options.ColumnCountMismatchPolicy);
+            });
+
+            return;
         }
 
-        while (enumerator.MoveNext())
+        CsvParser.ReadRecords(reader, options, record =>
         {
-            InvokeRowAction(rowAction, header, enumerator.Current, options.ColumnCountMismatchPolicy);
-        }
+            header ??= GenerateDefaultHeader(record.Length);
+            InvokeRowAction(rowAction, header, record, options.ColumnCountMismatchPolicy);
+        });
     }
 
     /// <summary>

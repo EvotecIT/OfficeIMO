@@ -112,6 +112,19 @@ public class CsvBenchmarks
     }
 
     [Benchmark]
+    public int OfficeIMO_ReadRowsCallback()
+    {
+        using var reader = new StringReader(_csvText);
+        var fieldCount = 0;
+        CsvDocument.ReadRows(reader, (_, values) =>
+        {
+            fieldCount += values.Count;
+        });
+
+        return fieldCount;
+    }
+
+    [Benchmark]
     public int OfficeIMO_ReadStreamingRows()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });

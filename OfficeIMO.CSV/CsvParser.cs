@@ -11,6 +11,75 @@ internal static class CsvParser
         return ParseLineOrQuoted(reader, options);
     }
 
+    public static void ReadRecords(TextReader reader, CsvLoadOptions options, Action<string[]> recordAction)
+    {
+        if (recordAction == null)
+        {
+            throw new ArgumentNullException(nameof(recordAction));
+        }
+
+        ReadLineOrQuoted(reader, options, recordAction);
+    }
+
+    private static void ReadLineOrQuoted(TextReader reader, CsvLoadOptions options, Action<string[]> recordAction)
+    {
+        var delimiter = options.Delimiter;
+        var trim = options.TrimWhitespace;
+        var allowEmpty = options.AllowEmptyLines;
+        var lineNumber = 1;
+
+        while (reader.ReadLine() is { } line)
+        {
+            if (ShouldSkipCommentLine(line, options))
+            {
+                lineNumber++;
+                continue;
+            }
+
+            if (line.IndexOf('"') < 0)
+            {
+                var record = SplitUnquotedRecord(line, delimiter, trim);
+                if (ShouldEmitRecord(record, allowEmpty))
+                {
+                    recordAction(record);
+                }
+
+                lineNumber++;
+                continue;
+            }
+
+            string[] fields;
+            if (!TryParseQuotedRecord(line, delimiter, trim, out fields))
+            {
+                var logicalRecord = new StringBuilder(line);
+                while (true)
+                {
+                    var next = reader.ReadLine();
+                    if (next == null)
+                    {
+                        throw new CsvParseException("Unterminated quoted field.", lineNumber);
+                    }
+
+                    logicalRecord.Append('\n');
+                    logicalRecord.Append(next);
+                    lineNumber++;
+
+                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, out fields))
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (ShouldEmitRecord(fields, allowEmpty))
+            {
+                recordAction(fields);
+            }
+
+            lineNumber++;
+        }
+    }
+
     private static IEnumerable<string[]> ParseLineOrQuoted(TextReader reader, CsvLoadOptions options)
     {
         var delimiter = options.Delimiter;
