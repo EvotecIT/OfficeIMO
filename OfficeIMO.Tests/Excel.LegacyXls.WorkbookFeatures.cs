@@ -1851,6 +1851,10 @@ namespace OfficeIMO.Tests {
             Assert.False(result.HasImportErrors);
             Assert.True(result.HasUnsupportedFeatures);
             Assert.Equal(1, result.ImportReport.DifferentialFormatCount);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByRecordType["RecordType:0x088C"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByContentState["FillOnly"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByFill["Background:FFFFFF00"]);
+            Assert.Empty(result.ImportReport.DifferentialFormatsByFont);
             LegacyXlsDifferentialFormat format = Assert.Single(result.Workbook.DifferentialFormats);
             Assert.Equal(0, format.Index);
             Assert.Null(format.FillPattern);
@@ -1879,6 +1883,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByStopIfTrueState["StopIfTrue"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFormatState["Present"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFill["Background:FFFFFF00"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByContentState["FillOnly"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByFill["Background:FFFFFF00"]);
 
             using var packageStream = new MemoryStream();
             result.Document.Save(packageStream);
@@ -1915,6 +1921,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFont["Color:FFFF0000"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFont["Bold"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFont["Italic"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByRecordType["RecordType:0x088C"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByContentState["FontOnly"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByFont["Color:FFFF0000"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByFont["Bold"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByFont["Italic"]);
+            string markdown = result.ImportReport.ToMarkdown();
+            Assert.Contains("Differential Formats By Content State", markdown);
+            Assert.Contains("Differential Formats By Font", markdown);
 
             using var packageStream = new MemoryStream();
             result.Document.Save(packageStream);

@@ -164,6 +164,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingOfficeArtRecordCount = workbook.DrawingRecords.Sum(record => record.OfficeArtRecords.Count);
             DrawingShapePropertyCount = workbook.DrawingRecords.Sum(record => record.ShapeProperties.Count);
             DifferentialFormatCount = workbook.DifferentialFormats.Count;
+            DifferentialFormatsByRecordType = CountByCode(workbook.DifferentialFormats
+                .Select(format => $"RecordType:0x{format.RecordType:X4}"));
+            DifferentialFormatsByContentState = CountByCode(workbook.DifferentialFormats
+                .Select(GetDifferentialFormatContentStateKey));
+            DifferentialFormatsByFill = CountByCode(workbook.DifferentialFormats.SelectMany(GetDifferentialFormatFillKeys));
+            DifferentialFormatsByFont = CountByCode(workbook.DifferentialFormats.SelectMany(GetDifferentialFormatFontKeys));
             CompoundFeatureRecordCount = workbook.CompoundFeatureRecords.Count;
             CompoundFeatureEntryCount = workbook.CompoundFeatureRecords.Sum(record => record.Entries.Count);
             CompoundVbaModuleCount = workbook.CompoundFeatureRecords.Sum(record => record.VbaModuleCount);
@@ -1009,6 +1015,18 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of parsed differential formats discovered during import.</summary>
         public int DifferentialFormatCount { get; }
+
+        /// <summary>Gets parsed differential formats grouped by source BIFF record type.</summary>
+        public IReadOnlyDictionary<string, int> DifferentialFormatsByRecordType { get; }
+
+        /// <summary>Gets parsed differential formats grouped by decoded content state.</summary>
+        public IReadOnlyDictionary<string, int> DifferentialFormatsByContentState { get; }
+
+        /// <summary>Gets parsed differential formats grouped by decoded fill shape.</summary>
+        public IReadOnlyDictionary<string, int> DifferentialFormatsByFill { get; }
+
+        /// <summary>Gets parsed differential formats grouped by decoded font shape.</summary>
+        public IReadOnlyDictionary<string, int> DifferentialFormatsByFont { get; }
 
         /// <summary>Gets the number of preserve-only compound container features discovered during import.</summary>
         public int CompoundFeatureRecordCount { get; }
@@ -1860,6 +1878,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Conditional Formatting By Differential Format State", ConditionalFormattingsByDifferentialFormatState);
             AppendDictionary(builder, "Conditional Formatting By Differential Fill", ConditionalFormattingsByDifferentialFill);
             AppendDictionary(builder, "Conditional Formatting By Differential Font", ConditionalFormattingsByDifferentialFont);
+            AppendDictionary(builder, "Differential Formats By Record Type", DifferentialFormatsByRecordType);
+            AppendDictionary(builder, "Differential Formats By Content State", DifferentialFormatsByContentState);
+            AppendDictionary(builder, "Differential Formats By Fill", DifferentialFormatsByFill);
+            AppendDictionary(builder, "Differential Formats By Font", DifferentialFormatsByFont);
             AppendDictionary(builder, "AutoFilter Criteria By Sheet", AutoFilterCriteriaBySheet);
             AppendDictionary(builder, "AutoFilter Criteria By Kind", AutoFilterCriteriaByKind);
             AppendDictionary(builder, "AutoFilter Criteria By Operator", AutoFilterCriteriaByOperator);
@@ -2612,6 +2634,12 @@ namespace OfficeIMO.Excel.LegacyXls {
                 yield break;
             }
 
+            foreach (string key in GetDifferentialFormatFillKeys(format)) {
+                yield return key;
+            }
+        }
+
+        private static IEnumerable<string> GetDifferentialFormatFillKeys(LegacyXlsDifferentialFormat format) {
             if (format.FillPattern.HasValue) {
                 yield return $"Pattern:{format.FillPattern.Value}";
             }
@@ -2631,6 +2659,12 @@ namespace OfficeIMO.Excel.LegacyXls {
                 yield break;
             }
 
+            foreach (string key in GetDifferentialFormatFontKeys(format)) {
+                yield return key;
+            }
+        }
+
+        private static IEnumerable<string> GetDifferentialFormatFontKeys(LegacyXlsDifferentialFormat format) {
             if (!string.IsNullOrWhiteSpace(format.FontColor)) {
                 yield return $"Color:{format.FontColor}";
             }
@@ -2642,6 +2676,25 @@ namespace OfficeIMO.Excel.LegacyXls {
             if (format.FontItalic.HasValue) {
                 yield return format.FontItalic.Value ? "Italic" : "NotItalic";
             }
+        }
+
+        private static string GetDifferentialFormatContentStateKey(LegacyXlsDifferentialFormat format) {
+            bool hasFill = format.FillPattern.HasValue
+                || !string.IsNullOrWhiteSpace(format.FillForegroundColor)
+                || !string.IsNullOrWhiteSpace(format.FillBackgroundColor);
+            bool hasFont = !string.IsNullOrWhiteSpace(format.FontColor)
+                || format.FontBold.HasValue
+                || format.FontItalic.HasValue;
+
+            if (hasFill && hasFont) {
+                return "FillAndFont";
+            }
+
+            if (hasFill) {
+                return "FillOnly";
+            }
+
+            return hasFont ? "FontOnly" : "DecodedNoContent";
         }
 
         private static void AppendDictionary(StringBuilder builder, string title, IReadOnlyDictionary<string, int> values) {
