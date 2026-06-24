@@ -120,6 +120,21 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImageSourceCropStrictFractionsRequireVisibleSourceArea() {
+        OfficeImageSourceCrop crop = OfficeImageSourceCrop.FromStrictFractions(
+            left: 0.25D,
+            top: 0.1D,
+            right: 0.25D,
+            bottom: 0.2D);
+
+        Assert.True(crop.HasVisibleSourceArea);
+        Assert.True(OfficeImageSourceCrop.LeavesVisibleSourceArea(0.25D, 0.1D, 0.25D, 0.2D));
+        Assert.False(new OfficeImageSourceCrop(0.75D, 0D, 0.25D, 0D).HasVisibleSourceArea);
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeImageSourceCrop.FromStrictFractions(0.75D, 0D, 0.25D, 0D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeImageSourceCrop.FromStrictFractions(0D, 0.6D, 0D, 0.4D));
+    }
+
+    [Fact]
     public void OfficeImageSourceCropRejectsInvalidFractions() {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeImageSourceCrop(-0.01D, 0D, 0D, 0D));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeImageSourceCrop(0D, 1D, 0D, 0D));

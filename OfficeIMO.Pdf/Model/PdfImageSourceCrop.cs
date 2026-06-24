@@ -51,27 +51,10 @@ public sealed class PdfImageSourceCrop {
     internal OfficeImageSourceCrop ToOfficeImageSourceCrop() => new(Left, Top, Right, Bottom);
 
     private void Set(double left, double top, double right, double bottom) {
-        ValidateCropFraction(left, nameof(Left));
-        ValidateCropFraction(top, nameof(Top));
-        ValidateCropFraction(right, nameof(Right));
-        ValidateCropFraction(bottom, nameof(Bottom));
-        if (left + right >= 1D) {
-            throw new System.ArgumentOutOfRangeException(nameof(left), "Image source crop left and right fractions must leave a visible source width.");
-        }
-
-        if (top + bottom >= 1D) {
-            throw new System.ArgumentOutOfRangeException(nameof(top), "Image source crop top and bottom fractions must leave a visible source height.");
-        }
-
-        _left = left;
-        _top = top;
-        _right = right;
-        _bottom = bottom;
-    }
-
-    private static void ValidateCropFraction(double value, string paramName) {
-        if (value < 0D || value >= 1D || double.IsNaN(value) || double.IsInfinity(value)) {
-            throw new System.ArgumentOutOfRangeException(paramName, "Image source crop fractions must be finite values from 0 to less than 1.");
-        }
+        OfficeImageSourceCrop crop = OfficeImageSourceCrop.FromStrictFractions(left, top, right, bottom);
+        _left = crop.Left;
+        _top = crop.Top;
+        _right = crop.Right;
+        _bottom = crop.Bottom;
     }
 }

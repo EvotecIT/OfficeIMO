@@ -34,6 +34,9 @@ public readonly struct OfficeImageSourceCrop {
     /// <summary>Whether any crop edge is greater than zero.</summary>
     public bool HasCrop => Left > 0D || Top > 0D || Right > 0D || Bottom > 0D;
 
+    /// <summary>Whether the crop leaves a non-empty source area without requiring fallback clamping.</summary>
+    public bool HasVisibleSourceArea => LeavesVisibleSourceArea(Left, Top, Right, Bottom);
+
     /// <summary>Visible width ratio after applying left and right crop fractions.</summary>
     public double VisibleWidth => Math.Max(MinimumVisibleRatio, 1D - Left - Right);
 
@@ -49,6 +52,33 @@ public readonly struct OfficeImageSourceCrop {
             ClampFraction(top),
             ClampFraction(right),
             ClampFraction(bottom));
+
+    /// <summary>
+    /// Creates a source crop from normalized fractions and rejects crops that collapse the visible source area.
+    /// </summary>
+    public static OfficeImageSourceCrop FromStrictFractions(double left, double top, double right, double bottom) {
+        var crop = new OfficeImageSourceCrop(left, top, right, bottom);
+        if (!crop.HasVisibleSourceArea) {
+            if (left + right >= 1D) {
+                throw new ArgumentOutOfRangeException(nameof(left), "Image source crop left and right fractions must leave a visible source width.");
+            }
+
+            throw new ArgumentOutOfRangeException(nameof(top), "Image source crop top and bottom fractions must leave a visible source height.");
+        }
+
+        return crop;
+    }
+
+    /// <summary>
+    /// Returns whether crop fractions leave a non-empty visible source area.
+    /// </summary>
+    public static bool LeavesVisibleSourceArea(double left, double top, double right, double bottom) {
+        left = ValidateFraction(left, nameof(left));
+        top = ValidateFraction(top, nameof(top));
+        right = ValidateFraction(right, nameof(right));
+        bottom = ValidateFraction(bottom, nameof(bottom));
+        return left + right < 1D && top + bottom < 1D;
+    }
 
     /// <summary>
     /// Converts the crop into a tuple.
