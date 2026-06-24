@@ -36,6 +36,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

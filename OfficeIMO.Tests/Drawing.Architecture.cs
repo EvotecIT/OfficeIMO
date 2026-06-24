@@ -23,14 +23,35 @@ public class DrawingArchitectureTests {
     public void PrimaryImageExportOwnersReferenceOfficeDrawing() {
         string[] projectFolders = {
             "OfficeIMO.Excel",
+            "OfficeIMO.Excel.Pdf",
             "OfficeIMO.Visio",
             "OfficeIMO.Pdf",
             "OfficeIMO.Markdown.Pdf",
-            "OfficeIMO.PowerPoint.Pdf"
+            "OfficeIMO.PowerPoint.Pdf",
+            "OfficeIMO.Word.Pdf"
         };
 
         foreach (string projectFolder in projectFolders) {
             XDocument project = LoadProject(projectFolder, projectFolder + ".csproj");
+            Assert.Contains(
+                GetReferencedItems(project, "ProjectReference"),
+                reference => reference.Replace('\\', '/').EndsWith("/OfficeIMO.Drawing/OfficeIMO.Drawing.csproj", StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    [Fact]
+    public void ProjectsUsingOfficeDrawingReferenceOfficeDrawingDirectly() {
+        foreach (string projectPath in Directory.GetFiles(RepositoryRoot, "OfficeIMO.*.csproj", SearchOption.AllDirectories)) {
+            if (IsNonProductionProject(projectPath) || IsOfficeDrawingProject(projectPath)) {
+                continue;
+            }
+
+            string projectFolder = Path.GetDirectoryName(projectPath)!;
+            if (!ProjectSourceUsesOfficeDrawing(projectFolder)) {
+                continue;
+            }
+
+            XDocument project = XDocument.Load(projectPath);
             Assert.Contains(
                 GetReferencedItems(project, "ProjectReference"),
                 reference => reference.Replace('\\', '/').EndsWith("/OfficeIMO.Drawing/OfficeIMO.Drawing.csproj", StringComparison.OrdinalIgnoreCase));
@@ -141,6 +162,27 @@ public class DrawingArchitectureTests {
             normalized.Contains(".Tests/", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains(".Benchmarks/", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains("/OfficeIMO.Examples/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsOfficeDrawingProject(string projectPath) =>
+        string.Equals(Path.GetFileNameWithoutExtension(projectPath), "OfficeIMO.Drawing", StringComparison.OrdinalIgnoreCase);
+
+    private static bool ProjectSourceUsesOfficeDrawing(string projectFolder) {
+        foreach (string filePath in Directory.GetFiles(projectFolder, "*.cs", SearchOption.AllDirectories)) {
+            string normalized = filePath.Replace('\\', '/');
+            if (normalized.Contains("/obj/", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            string source = File.ReadAllText(filePath);
+            if (source.Contains("using OfficeIMO.Drawing", StringComparison.Ordinal) ||
+                source.Contains("OfficeIMO.Drawing.", StringComparison.Ordinal) ||
+                source.Contains("OfficeIMO.Drawing;", StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string LocateRepositoryRoot() {
