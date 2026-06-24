@@ -119,6 +119,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ConditionalFormattingsByDifferentialFill = CountByCode(conditionalFormattings.SelectMany(GetConditionalFormattingDifferentialFillKeys));
             ConditionalFormattingsByDifferentialFont = CountByCode(conditionalFormattings.SelectMany(GetConditionalFormattingDifferentialFontKeys));
             ConditionalFormattingsByDifferentialBorder = CountByCode(conditionalFormattings.SelectMany(GetConditionalFormattingDifferentialBorderKeys));
+            ConditionalFormattingsByDifferentialNumberFormat = CountByCode(conditionalFormattings.SelectMany(GetConditionalFormattingDifferentialNumberFormatKeys));
             ConditionalFormattingExtensionRecordCount = conditionalFormattingExtensions.Length;
             ConditionalFormattingExtensionsBySheet = CountByCode(conditionalFormattingExtensions.Select(record => record.SheetName));
             ConditionalFormattingExtensionsByRecordType = CountByCode(conditionalFormattingExtensions.Select(record => $"0x{record.RecordType:X4}"));
@@ -208,6 +209,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             DifferentialFormatsByFill = CountByCode(workbook.DifferentialFormats.SelectMany(GetDifferentialFormatFillKeys));
             DifferentialFormatsByFont = CountByCode(workbook.DifferentialFormats.SelectMany(GetDifferentialFormatFontKeys));
             DifferentialFormatsByBorder = CountByCode(workbook.DifferentialFormats.SelectMany(GetDifferentialFormatBorderKeys));
+            DifferentialFormatsByNumberFormat = CountByCode(workbook.DifferentialFormats.SelectMany(GetDifferentialFormatNumberFormatKeys));
             CompoundFeatureRecordCount = workbook.CompoundFeatureRecords.Count;
             CompoundFeatureEntryCount = workbook.CompoundFeatureRecords.Sum(record => record.Entries.Count);
             CompoundVbaModuleCount = workbook.CompoundFeatureRecords.Sum(record => record.VbaModuleCount);
@@ -1231,6 +1233,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets imported conditional formatting differential formats grouped by decoded border shape.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialBorder { get; }
 
+        /// <summary>Gets imported conditional formatting differential formats grouped by decoded number format shape.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialNumberFormat { get; }
+
         /// <summary>Gets the number of preserve-only conditional-formatting extension records discovered during import.</summary>
         public int ConditionalFormattingExtensionRecordCount { get; }
 
@@ -1374,6 +1379,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets parsed differential formats grouped by decoded border shape.</summary>
         public IReadOnlyDictionary<string, int> DifferentialFormatsByBorder { get; }
+
+        /// <summary>Gets parsed differential formats grouped by decoded number format shape.</summary>
+        public IReadOnlyDictionary<string, int> DifferentialFormatsByNumberFormat { get; }
 
         /// <summary>Gets the number of preserve-only compound container features discovered during import.</summary>
         public int CompoundFeatureRecordCount { get; }
@@ -2502,6 +2510,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Conditional Formatting By Differential Fill", ConditionalFormattingsByDifferentialFill);
             AppendDictionary(builder, "Conditional Formatting By Differential Font", ConditionalFormattingsByDifferentialFont);
             AppendDictionary(builder, "Conditional Formatting By Differential Border", ConditionalFormattingsByDifferentialBorder);
+            AppendDictionary(builder, "Conditional Formatting By Differential Number Format", ConditionalFormattingsByDifferentialNumberFormat);
             AppendDictionary(builder, "Conditional Formatting Extensions By Sheet", ConditionalFormattingExtensionsBySheet);
             AppendDictionary(builder, "Conditional Formatting Extensions By Record Type", ConditionalFormattingExtensionsByRecordType);
             AppendDictionary(builder, "Conditional Formatting Extension States", ConditionalFormattingExtensionStates);
@@ -2512,6 +2521,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Differential Formats By Fill", DifferentialFormatsByFill);
             AppendDictionary(builder, "Differential Formats By Font", DifferentialFormatsByFont);
             AppendDictionary(builder, "Differential Formats By Border", DifferentialFormatsByBorder);
+            AppendDictionary(builder, "Differential Formats By Number Format", DifferentialFormatsByNumberFormat);
             AppendDictionary(builder, "AutoFilter Criteria By Sheet", AutoFilterCriteriaBySheet);
             AppendDictionary(builder, "AutoFilter Criteria By Kind", AutoFilterCriteriaByKind);
             AppendDictionary(builder, "AutoFilter Criteria By Operator", AutoFilterCriteriaByOperator);
@@ -3722,6 +3732,27 @@ namespace OfficeIMO.Excel.LegacyXls {
             }
         }
 
+        private static IEnumerable<string> GetConditionalFormattingDifferentialNumberFormatKeys(LegacyXlsConditionalFormatting formatting) {
+            LegacyXlsDifferentialFormat? format = formatting.DifferentialFormat;
+            if (format == null) {
+                yield break;
+            }
+
+            foreach (string key in GetDifferentialFormatNumberFormatKeys(format)) {
+                yield return key;
+            }
+        }
+
+        private static IEnumerable<string> GetDifferentialFormatNumberFormatKeys(LegacyXlsDifferentialFormat format) {
+            if (format.NumberFormatId.HasValue) {
+                yield return $"Id:{format.NumberFormatId.Value}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(format.NumberFormatCode)) {
+                yield return $"Code:{format.NumberFormatCode}";
+            }
+        }
+
         private static string GetConditionalFormattingExtensionStateKey(LegacyXlsConditionalFormattingExtensionRecord record) {
             return $"Cf12:{GetPresenceKey(record.IsCf12)}"
                 + $"|UnprojectedFormatting:{GetPresenceKey(record.HasUnprojectedFormatting)}"
@@ -3746,9 +3777,27 @@ namespace OfficeIMO.Excel.LegacyXls {
                 || format.FontBold.HasValue
                 || format.FontItalic.HasValue;
             bool hasBorder = format.Border?.HasAnySide == true;
+            bool hasNumberFormat = format.NumberFormatId.HasValue
+                || !string.IsNullOrWhiteSpace(format.NumberFormatCode);
+
+            if (hasFill && hasFont && hasBorder && hasNumberFormat) {
+                return "FillFontBorderAndNumberFormat";
+            }
 
             if (hasFill && hasFont && hasBorder) {
                 return "FillFontAndBorder";
+            }
+
+            if (hasFill && hasFont && hasNumberFormat) {
+                return "FillFontAndNumberFormat";
+            }
+
+            if (hasFill && hasBorder && hasNumberFormat) {
+                return "FillBorderAndNumberFormat";
+            }
+
+            if (hasFont && hasBorder && hasNumberFormat) {
+                return "FontBorderAndNumberFormat";
             }
 
             if (hasFill && hasFont) {
@@ -3759,8 +3808,20 @@ namespace OfficeIMO.Excel.LegacyXls {
                 return "FillAndBorder";
             }
 
+            if (hasFill && hasNumberFormat) {
+                return "FillAndNumberFormat";
+            }
+
             if (hasFont && hasBorder) {
                 return "FontAndBorder";
+            }
+
+            if (hasFont && hasNumberFormat) {
+                return "FontAndNumberFormat";
+            }
+
+            if (hasBorder && hasNumberFormat) {
+                return "BorderAndNumberFormat";
             }
 
             if (hasFill) {
@@ -3771,7 +3832,11 @@ namespace OfficeIMO.Excel.LegacyXls {
                 return "FontOnly";
             }
 
-            return hasBorder ? "BorderOnly" : "DecodedNoContent";
+            if (hasBorder) {
+                return "BorderOnly";
+            }
+
+            return hasNumberFormat ? "NumberFormatOnly" : "DecodedNoContent";
         }
 
         private static void AppendDictionary(StringBuilder builder, string title, IReadOnlyDictionary<string, int> values) {

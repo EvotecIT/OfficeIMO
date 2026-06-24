@@ -2062,5 +2062,45 @@ namespace OfficeIMO.Tests {
             Assert.Equal(BorderStyleValues.Thin, openXmlBorder.TopBorder!.Style!.Value);
             Assert.Equal("FF336699", openXmlBorder.TopBorder.Color!.Rgb!.Value);
         }
+
+        [Fact]
+        public void LegacyXls_Load_ProjectsConditionalFormattingDxfNumberFormatWhenSingleStyleIsAvailable() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5ConditionalFormattingExtensionWithNumberFormatDxfWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.True(result.HasUnsupportedFeatures);
+            LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
+            Assert.NotNull(conditionalFormatting.DifferentialFormat);
+            LegacyXlsDifferentialFormat differentialFormat = conditionalFormatting.DifferentialFormat!;
+            Assert.Equal((ushort)164, differentialFormat.NumberFormatId);
+            Assert.Equal("$#,##0.00", differentialFormat.NumberFormatCode);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFormatState["Present"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialNumberFormat["Id:164"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialNumberFormat["Code:$#,##0.00"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByRecordType["RecordType:0x088C"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByContentState["NumberFormatOnly"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByNumberFormat["Id:164"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByNumberFormat["Code:$#,##0.00"]);
+            string markdown = result.ImportReport.ToMarkdown();
+            Assert.Contains("Differential Formats By Number Format", markdown);
+            Assert.Contains("Conditional Formatting By Differential Number Format", markdown);
+
+            using var packageStream = new MemoryStream();
+            result.Document.Save(packageStream);
+            packageStream.Position = 0;
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(packageStream, false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            ConditionalFormattingRule rule = Assert.Single(Assert.Single(worksheetPart.Worksheet.Elements<ConditionalFormatting>()).Elements<ConditionalFormattingRule>());
+            Assert.Equal(0U, rule.FormatId!.Value);
+            DifferentialFormat dxf = Assert.Single(spreadsheet.WorkbookPart.WorkbookStylesPart!.Stylesheet!.DifferentialFormats!.Elements<DifferentialFormat>());
+            NumberingFormat numberingFormat = Assert.Single(dxf.Elements<NumberingFormat>());
+            Assert.Equal(164U, numberingFormat.NumberFormatId!.Value);
+            Assert.Equal("$#,##0.00", numberingFormat.FormatCode!.Value);
+        }
     }
 }

@@ -37,6 +37,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             LegacyXlsDifferentialBorderSide? bottomBorder = null;
             LegacyXlsDifferentialBorderSide? leftBorder = null;
             LegacyXlsDifferentialBorderSide? rightBorder = null;
+            ushort? numberFormatId = null;
+            string? numberFormatCode = null;
 
             for (int i = 0; i < propertyCount; i++) {
                 if (offset + XfPropHeaderSize > payload.Length) {
@@ -64,6 +66,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     fontBold = weight >= 0x02bc;
                 } else if (propertyType == 0x001c && dataLength >= 1) {
                     fontItalic = payload[dataOffset] != 0;
+                } else if (propertyType == 0x0026
+                    && TryReadNumberFormatCode(payload, dataOffset, dataLength, out string? inlineNumberFormatCode)) {
+                    numberFormatCode = inlineNumberFormatCode;
+                } else if (propertyType == 0x0029 && dataLength >= 2) {
+                    numberFormatId = BiffRecordReader.ReadUInt16(payload, dataOffset);
+                    if (TryResolveNumberFormatCode(workbook, numberFormatId.Value, out string? resolvedNumberFormatCode)) {
+                        numberFormatCode = resolvedNumberFormatCode;
+                    }
                 } else if (propertyType >= 0x0006
                     && propertyType <= 0x0009
                     && TryReadBorderSide(payload, dataOffset, dataLength, workbook, out LegacyXlsDifferentialBorderSide? borderSide)) {
@@ -93,7 +103,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 && fontColor == null
                 && !fontBold.HasValue
                 && !fontItalic.HasValue
-                && border == null) {
+                && border == null
+                && !numberFormatId.HasValue
+                && string.IsNullOrWhiteSpace(numberFormatCode)) {
                 return false;
             }
 
@@ -107,7 +119,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 fontItalic,
                 record.Type,
                 record.Offset,
-                border);
+                border,
+                numberFormatId,
+                numberFormatCode);
             return true;
         }
 
@@ -140,6 +154,38 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             borderSide = new LegacyXlsDifferentialBorderSide(style, color);
             return true;
+        }
+
+        private static bool TryReadNumberFormatCode(byte[] payload, int offset, int length, out string? numberFormatCode) {
+            numberFormatCode = null;
+            if (length <= 0 || offset + length > payload.Length) {
+                return false;
+            }
+
+            try {
+                byte[] formatPayload = new byte[length];
+                Array.Copy(payload, offset, formatPayload, 0, length);
+                int stringOffset = 0;
+                string value = BiffStringReader.ReadUnicodeString(formatPayload, ref stringOffset);
+                if (stringOffset > formatPayload.Length || string.IsNullOrWhiteSpace(value)) {
+                    return false;
+                }
+
+                numberFormatCode = value;
+                return true;
+            } catch (Exception ex) when (ex is InvalidDataException || ex is OverflowException) {
+                return false;
+            }
+        }
+
+        private static bool TryResolveNumberFormatCode(LegacyXlsWorkbook workbook, ushort numberFormatId, out string? numberFormatCode) {
+            if (BiffBuiltInNumberFormat.TryGetCode(numberFormatId, out numberFormatCode)) {
+                return true;
+            }
+
+            LegacyXlsNumberFormat? format = workbook.NumberFormats.FirstOrDefault(format => format.FormatId == numberFormatId);
+            numberFormatCode = format?.FormatCode;
+            return !string.IsNullOrWhiteSpace(numberFormatCode);
         }
 
         private static bool TryReadColor(

@@ -1046,6 +1046,30 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase5ConditionalFormattingExtensionWithNumberFormatDxfWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long formattingBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ConditionalNumberDxf"));
+                WriteRecord(stream, 0x041e, BuildFormatPayload(164, "$#,##0.00"));
+                WriteRecord(stream, 0x088c, BuildDifferentialFormatNumberFormatPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Amount"));
+                WriteRecord(stream, 0x027e, BuildRkPayload(1, 0, 0, EncodeRkInteger(5)));
+                WriteRecord(stream, 0x027e, BuildRkPayload(2, 0, 0, EncodeRkInteger(15)));
+                WriteRecord(stream, 0x01b0, BuildConditionalFormattingRangePayload(0, 0, 2, 0, 1, headerId: 2));
+                WriteRecord(stream, 0x01b1, BuildCellIsGreaterThanConditionalFormattingRulePayload(10));
+                WriteRecord(stream, 0x087b, BuildConditionalFormattingExtensionPayload(headerId: 1, priority: 4, stopIfTrue: false, hasDxf: true));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)formattingBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase5EmbeddedChartBeforeWorksheetFeaturesWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -1178,6 +1202,23 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(0x99);
                 stream.WriteByte(0xff);
                 WriteUInt16(stream, 1);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildDifferentialFormatNumberFormatPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x088c);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0x0003);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 0x0029);
+                WriteUInt16(stream, 6);
+                WriteUInt16(stream, 164);
                 return stream.ToArray();
             }
 

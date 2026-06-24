@@ -64,7 +64,38 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             bool? fontItalic,
             ushort recordType,
             int recordOffset,
-            LegacyXlsDifferentialBorder? border) {
+            LegacyXlsDifferentialBorder? border)
+            : this(
+                index,
+                fillPattern,
+                fillForegroundColor,
+                fillBackgroundColor,
+                fontColor,
+                fontBold,
+                fontItalic,
+                recordType,
+                recordOffset,
+                border,
+                numberFormatId: null,
+                numberFormatCode: null) {
+        }
+
+        /// <summary>
+        /// Creates a legacy differential format model.
+        /// </summary>
+        public LegacyXlsDifferentialFormat(
+            int index,
+            byte? fillPattern,
+            string? fillForegroundColor,
+            string? fillBackgroundColor,
+            string? fontColor,
+            bool? fontBold,
+            bool? fontItalic,
+            ushort recordType,
+            int recordOffset,
+            LegacyXlsDifferentialBorder? border,
+            ushort? numberFormatId,
+            string? numberFormatCode) {
             Index = index;
             FillPattern = fillPattern;
             FillForegroundColor = fillForegroundColor;
@@ -75,6 +106,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             RecordType = recordType;
             RecordOffset = recordOffset;
             Border = border;
+            NumberFormatId = numberFormatId;
+            NumberFormatCode = numberFormatCode;
         }
 
         /// <summary>
@@ -116,6 +149,16 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets decoded border formatting, when present.
         /// </summary>
         public LegacyXlsDifferentialBorder? Border { get; }
+
+        /// <summary>
+        /// Gets the decoded number format id, when present.
+        /// </summary>
+        public ushort? NumberFormatId { get; }
+
+        /// <summary>
+        /// Gets the decoded number format code, when present.
+        /// </summary>
+        public string? NumberFormatCode { get; }
 
         /// <summary>
         /// Gets the BIFF record type that supplied this differential format.

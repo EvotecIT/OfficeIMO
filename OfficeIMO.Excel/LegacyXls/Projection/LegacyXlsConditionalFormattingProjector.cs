@@ -44,15 +44,20 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             Font? font = TryCreateFont(differentialFormat);
+            NumberingFormat? numberFormat = TryCreateNumberingFormat(differentialFormat);
             Fill? fill = TryCreateFill(differentialFormat);
             Border? border = TryCreateBorder(differentialFormat);
-            if (font == null && fill == null && border == null) {
+            if (font == null && numberFormat == null && fill == null && border == null) {
                 return null;
             }
 
             var openXmlFormat = new DifferentialFormat();
             if (font != null) {
                 openXmlFormat.Append(font);
+            }
+
+            if (numberFormat != null) {
+                openXmlFormat.Append(numberFormat);
             }
 
             if (fill != null) {
@@ -87,6 +92,17 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             return font;
+        }
+
+        private static NumberingFormat? TryCreateNumberingFormat(LegacyXlsDifferentialFormat differentialFormat) {
+            if (string.IsNullOrWhiteSpace(differentialFormat.NumberFormatCode)) {
+                return null;
+            }
+
+            return new NumberingFormat {
+                NumberFormatId = differentialFormat.NumberFormatId ?? 164U,
+                FormatCode = differentialFormat.NumberFormatCode
+            };
         }
 
         private static Fill? TryCreateFill(LegacyXlsDifferentialFormat differentialFormat) {
