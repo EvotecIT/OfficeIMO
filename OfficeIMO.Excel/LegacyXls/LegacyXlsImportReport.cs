@@ -249,6 +249,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             UnsupportedBiffVersionsBySubstream = CountByCode(workbook.UnsupportedFeatures
                 .Where(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion)
                 .Select(GetBiffSubstreamKey));
+            UnsupportedBiffVersionsByVersionAndSubstream = CountByCode(workbook.UnsupportedFeatures
+                .Where(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion)
+                .Select(feature => $"{GetBiffVersionKey(feature)}|{GetBiffSubstreamKey(feature)}"));
             UnsupportedSheetsByKind = CountUnsupportedSheetsByKind(workbook.UnsupportedSheets);
             UnsupportedSheetsByType = CountByCode(workbook.UnsupportedSheets.Select(sheet => $"0x{sheet.SheetType:X2}|{sheet.Kind}"));
             UnsupportedSheetsByName = CountByCode(workbook.UnsupportedSheets.Select(sheet => sheet.Name));
@@ -1170,6 +1173,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported BIFF blockers grouped by BOF substream.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedBiffVersionsBySubstream { get; }
 
+        /// <summary>Gets unsupported BIFF blockers grouped by BIFF version and BOF substream.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedBiffVersionsByVersionAndSubstream { get; }
+
         /// <summary>Gets unsupported sheet entries grouped by decoded sheet kind.</summary>
         public IReadOnlyDictionary<LegacyXlsUnsupportedSheetKind, int> UnsupportedSheetsByKind { get; }
 
@@ -1948,6 +1954,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Encrypted Workbooks By Method", EncryptedWorkbooksByMethod);
             AppendDictionary(builder, "Unsupported BIFF Versions By Version", UnsupportedBiffVersionsByVersion);
             AppendDictionary(builder, "Unsupported BIFF Versions By Substream", UnsupportedBiffVersionsBySubstream);
+            AppendDictionary(builder, "Unsupported BIFF Versions By Version And Substream", UnsupportedBiffVersionsByVersionAndSubstream);
             AppendDictionary(builder, "Unsupported Sheets By Kind", UnsupportedSheetsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,

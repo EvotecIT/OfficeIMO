@@ -99,3 +99,9 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | WorkbookGlobals | 1 |
+
+## Unsupported BIFF Versions By Version And Substream
+
+| Key | Count |
+| --- | --- |
+| BIFF5\|WorkbookGlobals | 1 |
