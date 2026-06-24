@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel.Pdf {
                         IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>> imagesByCellReference = CreateWorksheetImageMap(plan);
                         foreach (WorksheetImageExportData image in plan.Images) {
                             if (!imagesByCellReference.ContainsKey(NormalizeCellReference(image.CellReference))) {
-                                item.Image(image.Bytes, image.WidthPoints, image.HeightPoints, PdfCore.PdfAlign.Left, spacingBefore: 4, spacingAfter: 6, style: CreateConverterImageStyle());
+                                item.Image(image.Bytes, image.WidthPoints, image.HeightPoints, PdfCore.PdfAlign.Left, spacingBefore: 4, spacingAfter: 6, style: CreateConverterImageStyle(image));
                             }
                         }
 
@@ -79,6 +79,12 @@ namespace OfficeIMO.Excel.Pdf {
         private static PdfCore.PdfImageStyle CreateConverterImageStyle() => new() {
             ScaleDownToFit = true
         };
+
+        private static PdfCore.PdfImageStyle CreateConverterImageStyle(WorksheetImageExportData image) {
+            PdfCore.PdfImageStyle style = CreateConverterImageStyle();
+            style.RotationAngle = -image.RotationDegrees;
+            return style;
+        }
 
         /// <summary>
         /// Converts an Excel workbook to PDF bytes.

@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -88,13 +89,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 // Add the image part
-                PartTypeInfo type = contentType.ToLowerInvariant() switch {
-                    "image/png" => ImagePartType.Png,
-                    "image/jpeg" or "image/jpg" => ImagePartType.Jpeg,
-                    "image/gif" => ImagePartType.Gif,
-                    "image/bmp" => ImagePartType.Bmp,
-                    _ => ImagePartType.Png
-                };
+                PartTypeInfo type = ToImagePartType(contentType);
                 var imagePart = drawingPart.AddImagePart(type);
                 using (var s = new MemoryStream(imageBytes)) imagePart.FeedData(s);
                 string imgRelId = drawingPart.GetIdOfPart(imagePart);
@@ -166,7 +161,8 @@ namespace OfficeIMO.Excel {
             int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true) {
             if (string.IsNullOrWhiteSpace(url)) return null;
             if (ImageDownloader.TryFetch(url, timeoutSeconds: 5, maxBytes: 2_000_000, out var bytes, out var ct) && bytes != null) {
-                return AddImage(row, column, bytes, contentType: string.IsNullOrEmpty(ct) ? "image/png" : ct!, widthPixels: widthPixels,
+                OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo info);
+                return AddImage(row, column, bytes, contentType: ResolveImageContentType(ct, info), widthPixels: widthPixels,
                     heightPixels: heightPixels, offsetXPixels: offsetXPixels, offsetYPixels: offsetYPixels, name: name, altText: altText,
                     lockAspectRatio: lockAspectRatio);
             }

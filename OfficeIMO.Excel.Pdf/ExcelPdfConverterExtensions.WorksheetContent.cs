@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                images.Add(new WorksheetImageExportData(bytes, PixelsToPoints(image.WidthPixels), PixelsToPoints(image.HeightPixels), A1.CellReference(image.RowIndex, image.ColumnIndex)));
+                images.Add(new WorksheetImageExportData(bytes, PixelsToPoints(image.WidthPixels), PixelsToPoints(image.HeightPixels), A1.CellReference(image.RowIndex, image.ColumnIndex), image.RotationDegrees));
             }
 
             return images;

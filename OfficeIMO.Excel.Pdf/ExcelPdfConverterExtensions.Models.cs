@@ -92,17 +92,19 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private sealed class WorksheetImageExportData {
-            public WorksheetImageExportData(byte[] bytes, double widthPoints, double heightPoints, string cellReference) {
+            public WorksheetImageExportData(byte[] bytes, double widthPoints, double heightPoints, string cellReference, double rotationDegrees) {
                 Bytes = bytes;
                 WidthPoints = widthPoints;
                 HeightPoints = heightPoints;
                 CellReference = cellReference;
+                RotationDegrees = rotationDegrees;
             }
 
             public byte[] Bytes { get; }
             public double WidthPoints { get; }
             public double HeightPoints { get; }
             public string CellReference { get; }
+            public double RotationDegrees { get; }
         }
 
         private sealed class WorksheetChartExportData {
