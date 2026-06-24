@@ -827,6 +827,8 @@ The anti-pattern is a second product renderer that quietly grows a private answe
 7. When a feature cannot be rendered with parity, add a stable diagnostic code with source reference before improving visual output.
 8. Delete or shrink the old private implementation after its shared replacement is proven by contract tests and visual baselines.
 
+Current consolidation checkpoint: Visio SVG and PNG text rendering now share `OfficeTextBlockRenderPlan` for fitted center-based text boxes, aligned placement, text background bounds, and rotated background corners. Visio still owns VSDX coordinate/style semantics, while `OfficeIMO.Drawing` owns the reusable placement math both Visio adapters need.
+
 ## Premium Excel Export Goal
 
 Premium Excel export means PNG/SVG output that looks intentionally rendered, not hand-drawn, while still being honest about the places where Office-exact parity is not implemented. The goal is not byte-identical desktop Excel screenshots. The goal is deterministic, dependency-free OfficeIMO rendering with strong fidelity, stable diagnostics, and visual QA gates.

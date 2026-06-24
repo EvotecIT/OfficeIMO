@@ -411,6 +411,66 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextBlockRenderPlan_ResolvesCenteredPlacementAndBackgroundBounds() {
+            var layout = new OfficeTextBlockLayout(
+                new[] { new OfficeTextLine("Shared", 30D) },
+                fontSize: 10D,
+                lineHeight: 12D,
+                width: 30D,
+                height: 12D);
+
+            OfficeTextBlockRenderPlan plan = OfficeTextBlockRenderPlan.CreateFromCenter(
+                layout,
+                centerX: 100D,
+                centerY: 50D,
+                width: 80D,
+                height: 40D,
+                OfficeTextAlignment.Right,
+                OfficeTextVerticalAlignment.Bottom);
+
+            Assert.Equal(60D, plan.Left);
+            Assert.Equal(30D, plan.Top);
+            Assert.Equal(140D, plan.AnchorX);
+            Assert.Equal(110D, plan.TextLeft);
+            Assert.Equal(58D, plan.TextTop);
+
+            OfficeTextBlockBackgroundBounds background = plan.CreateBackgroundBounds(4D, 2D);
+            Assert.Equal(106D, background.Left);
+            Assert.Equal(56D, background.Top);
+            Assert.Equal(38D, background.Width);
+            Assert.Equal(16D, background.Height);
+
+            OfficePoint[] corners = background.GetRotatedCorners(90D, 100D, 50D);
+            Assert.Equal(4, corners.Length);
+            Assert.InRange(corners[0].X, 93.999D, 94.001D);
+            Assert.InRange(corners[0].Y, 55.999D, 56.001D);
+        }
+
+        [Fact]
+        public void OfficeTextBlockRenderPlan_FitsTextBeforeResolvingPlacement() {
+            static double Measure(string? value, double size) => (value?.Length ?? 0) * size * 0.5D;
+
+            OfficeTextBlockRenderPlan plan = OfficeTextBlockRenderPlan.CreateFittedFromCenter(
+                "alpha beta gamma",
+                fontSize: 12D,
+                centerX: 100D,
+                centerY: 80D,
+                width: 48D,
+                height: 30D,
+                Measure,
+                OfficeTextAlignment.Center,
+                OfficeTextVerticalAlignment.Center,
+                lineHeightFactor: 1.2D,
+                minimumFontSize: 6D);
+
+            Assert.Equal(76D, plan.Left);
+            Assert.Equal(65D, plan.Top);
+            Assert.Equal(100D, plan.AnchorX);
+            Assert.True(plan.Layout.Width <= 48D);
+            Assert.True(plan.Layout.Height <= 30D);
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_ClipsDrawingToRectangleAndRestoresPreviousClip() {
             OfficeRasterImage image = new OfficeRasterImage(12, 12, OfficeColor.Transparent);
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);

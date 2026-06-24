@@ -376,3 +376,5 @@ After Excel range/image works, the same raster core can support:
 ## Bottom Line
 
 OfficeIMO is closer than it first looks. The workbook understanding, style extraction, chart snapshots, images, and PDF export planning already exist. The missing reusable piece is a dependency-free raster layer plus a neutral Excel visual snapshot/renderer. Borrowing ChartForgeX's raster approach into `OfficeIMO.Drawing` is the right way to keep the implementation first-party, reusable, and dependency-free.
+
+Latest Visio shared-text checkpoint: `OfficeIMO.Drawing` now owns a reusable `OfficeTextBlockRenderPlan` for fitted center-based text placement, background bounds, and rotated background corners. Visio SVG and PNG text adapters consume that plan instead of carrying separate placement math, giving the Excel image-export work another non-Excel proof point for the shared Drawing engine.
