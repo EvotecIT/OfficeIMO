@@ -19,6 +19,22 @@ namespace OfficeIMO.Tests {
             Assert.Equal(decoded.GetPixel(0, 0), wrappedDecoded!.GetPixel(0, 0));
         }
 
+        [Fact]
+        public void OfficePngWriter_CanEncodeRasterImagesWithStoredCompression() {
+            OfficeRasterImage image = new OfficeRasterImage(1, 1, OfficeColor.Transparent);
+            image.SetPixel(0, 0, OfficeColor.FromRgba(255, 0, 0, 128));
+
+            byte[] png = OfficePngWriter.Encode(image, OfficePngCompression.Stored);
+            byte[] idat = ExtractChunk(png, "IDAT");
+
+            Assert.Equal(0x78, idat[0]);
+            Assert.Equal(0x01, idat[1]);
+            Assert.Equal(1, idat[2]);
+            Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? decoded));
+            Assert.NotNull(decoded);
+            Assert.Equal(OfficeColor.FromRgba(255, 0, 0, 128), decoded!.GetPixel(0, 0));
+        }
+
         private static byte[] ExtractChunk(byte[] png, string type) {
             int offset = 8;
             while (offset + 8 <= png.Length) {

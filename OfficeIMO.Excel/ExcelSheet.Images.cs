@@ -1,9 +1,9 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 using A = DocumentFormat.OpenXml.Drawing;
-using OfficeIMO.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -89,7 +89,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 // Add the image part
-                var imagePart = drawingPart.AddImagePart(ResolveOpenXmlImagePartType(contentType));
+                PartTypeInfo type = ToImagePartType(contentType);
+                var imagePart = drawingPart.AddImagePart(type);
                 using (var s = new MemoryStream(imageBytes)) imagePart.FeedData(s);
                 string imgRelId = drawingPart.GetIdOfPart(imagePart);
 
@@ -160,7 +161,8 @@ namespace OfficeIMO.Excel {
             int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true) {
             if (string.IsNullOrWhiteSpace(url)) return null;
             if (ImageDownloader.TryFetch(url, timeoutSeconds: 5, maxBytes: 2_000_000, out var bytes, out var ct) && bytes != null) {
-                return AddImage(row, column, bytes, contentType: string.IsNullOrEmpty(ct) ? OfficeImageInfo.GetMimeType(OfficeImageFormat.Png) : ct!, widthPixels: widthPixels,
+                OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo info);
+                return AddImage(row, column, bytes, contentType: ResolveImageContentType(ct, info), widthPixels: widthPixels,
                     heightPixels: heightPixels, offsetXPixels: offsetXPixels, offsetYPixels: offsetYPixels, name: name, altText: altText,
                     lockAspectRatio: lockAspectRatio);
             }
@@ -173,16 +175,6 @@ namespace OfficeIMO.Excel {
         private static bool IsSupportedImageAnchor(OpenXmlElement anchor)
             => (anchor is Xdr.OneCellAnchor || anchor is Xdr.TwoCellAnchor || anchor is Xdr.AbsoluteAnchor)
                 && anchor.Descendants<Xdr.Picture>().Any();
-
-        private static PartTypeInfo ResolveOpenXmlImagePartType(string? contentType) {
-            OfficeImageFormat format = OfficeImageInfo.FromMimeType(contentType);
-            return format switch {
-                OfficeImageFormat.Jpeg => ImagePartType.Jpeg,
-                OfficeImageFormat.Gif => ImagePartType.Gif,
-                OfficeImageFormat.Bmp => ImagePartType.Bmp,
-                _ => ImagePartType.Png
-            };
-        }
 
         private static UInt32Value NextDrawingId(DrawingsPart dp) {
             uint max = 0;

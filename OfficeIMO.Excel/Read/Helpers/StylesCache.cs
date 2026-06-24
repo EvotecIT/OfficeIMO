@@ -32,6 +32,7 @@ namespace OfficeIMO.Excel {
         private static readonly bool[] EmptyDateStyleIndexes = Array.Empty<bool>();
         private static readonly XmlReaderSettings StylesXmlReaderSettings = CreateStylesXmlReaderSettings();
         private bool[] _dateStyleIndexes = EmptyDateStyleIndexes;
+        private bool[] _dateSystemShiftStyleIndexes = EmptyDateStyleIndexes;
 
         private StylesCache() { }
 
@@ -63,8 +64,8 @@ namespace OfficeIMO.Excel {
             if (xfs != null) {
                 int idx = 0;
                 foreach (var cf in xfs.Elements<CellFormat>()) {
-                    if (idx == cache._dateStyleIndexes.Length) {
-                        Array.Resize(ref cache._dateStyleIndexes, Math.Max(4, idx * 2));
+                    if (idx >= cache._dateStyleIndexes.Length) {
+                        Array.Resize(ref cache._dateStyleIndexes, Math.Max(4, (idx + 1) * 2));
                     }
 
                     var nId = (uint)(cf.NumberFormatId?.Value ?? 0);
@@ -74,13 +75,25 @@ namespace OfficeIMO.Excel {
                         cache.HasDateStyles = true;
                     }
 
+                    if (IsDateSystemShiftNumberFormat(nId, nf)) {
+                        if (idx >= cache._dateSystemShiftStyleIndexes.Length) {
+                            Array.Resize(ref cache._dateSystemShiftStyleIndexes, Math.Max(4, (idx + 1) * 2));
+                        }
+
+                        cache._dateSystemShiftStyleIndexes[idx] = true;
+                    }
+
                     idx++;
                 }
 
                 if (idx == 0) {
                     cache._dateStyleIndexes = EmptyDateStyleIndexes;
+                    cache._dateSystemShiftStyleIndexes = EmptyDateStyleIndexes;
                 } else if (idx < cache._dateStyleIndexes.Length) {
                     Array.Resize(ref cache._dateStyleIndexes, idx);
+                    if (idx < cache._dateSystemShiftStyleIndexes.Length) {
+                        Array.Resize(ref cache._dateSystemShiftStyleIndexes, idx);
+                    }
                 }
             }
 
@@ -88,6 +101,8 @@ namespace OfficeIMO.Excel {
         }
 
         public bool IsDateLike(uint styleIndex) => styleIndex < (uint)_dateStyleIndexes.Length && _dateStyleIndexes[styleIndex];
+
+        public bool IsDateSystemShiftStyle(uint styleIndex) => styleIndex < (uint)_dateSystemShiftStyleIndexes.Length && _dateSystemShiftStyleIndexes[styleIndex];
 
         private static bool TryBuildXmlFast(WorkbookStylesPart sp, StylesCache cache) {
             try {
@@ -157,7 +172,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (index == cache._dateStyleIndexes.Length) {
-                    Array.Resize(ref cache._dateStyleIndexes, Math.Max(4, index * 2));
+                    int newSize = Math.Max(4, index * 2);
+                    Array.Resize(ref cache._dateStyleIndexes, newSize);
+                    Array.Resize(ref cache._dateSystemShiftStyleIndexes, newSize);
                 }
 
                 if (TryParseUIntAttribute(reader.GetAttribute("numFmtId"), out uint numberFormatId)
@@ -166,13 +183,22 @@ namespace OfficeIMO.Excel {
                     cache.HasDateStyles = true;
                 }
 
+                if (TryParseUIntAttribute(reader.GetAttribute("numFmtId"), out uint shiftNumberFormatId)
+                    && IsDateSystemShiftNumberFormat(shiftNumberFormatId, numberingFormats)) {
+                    cache._dateSystemShiftStyleIndexes[index] = true;
+                }
+
                 index++;
             }
 
             if (index == 0) {
                 cache._dateStyleIndexes = EmptyDateStyleIndexes;
+                cache._dateSystemShiftStyleIndexes = EmptyDateStyleIndexes;
             } else if (index < cache._dateStyleIndexes.Length) {
                 Array.Resize(ref cache._dateStyleIndexes, index);
+                if (index < cache._dateSystemShiftStyleIndexes.Length) {
+                    Array.Resize(ref cache._dateSystemShiftStyleIndexes, index);
+                }
             }
         }
 
@@ -183,9 +209,19 @@ namespace OfficeIMO.Excel {
                     && ExcelNumberFormatClassifier.LooksLikeDateFormat(code));
         }
 
+        private static bool IsDateSystemShiftNumberFormat(uint id, Dictionary<uint, string>? numberingFormats) {
+            return IsBuiltInDateSystemShiftFormat(id)
+                || (numberingFormats != null
+                    && numberingFormats.TryGetValue(id, out string? code)
+                    && ExcelNumberFormatClassifier.LooksLikeDateSystemFormat(code));
+        }
+
         private static bool IsBuiltInDate(uint id)
             => id is 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22
                 or 27 or 30 or 36 or 45 or 46 or 47;
+
+        private static bool IsBuiltInDateSystemShiftFormat(uint id)
+            => id is 14 or 15 or 16 or 17 or 22 or 27 or 30 or 36;
 
         private static XmlReaderSettings CreateStylesXmlReaderSettings() {
             return new XmlReaderSettings {

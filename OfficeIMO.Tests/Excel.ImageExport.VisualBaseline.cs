@@ -1313,7 +1313,7 @@ namespace OfficeIMO.Tests {
             canvas.DrawRectangle(1, 1, 34, 20, OfficeColor.FromRgb(22, 163, 74));
             canvas.DrawLine(8, 11, 15, 17, OfficeColor.FromRgb(22, 101, 52), 2);
             canvas.DrawLine(15, 17, 28, 5, OfficeColor.FromRgb(22, 101, 52), 2);
-            return OfficePngWriter.Encode(image);
+            return OfficePngWriter.Encode(image, OfficePngCompression.Stored);
         }
 
         private static byte[] CreateClippedBannerPng() {
@@ -1326,7 +1326,7 @@ namespace OfficeIMO.Tests {
             canvas.DrawLine(86, 10, 150, 10, OfficeColor.White, 2);
             canvas.DrawLine(86, 22, 138, 22, OfficeColor.White, 2);
             canvas.DrawLine(86, 34, 124, 34, OfficeColor.White, 2);
-            return OfficePngWriter.Encode(image);
+            return OfficePngWriter.Encode(image, OfficePngCompression.Stored);
         }
 
         private static byte[] CreateTwoCellBannerPng() {
@@ -1339,7 +1339,7 @@ namespace OfficeIMO.Tests {
             canvas.DrawLine(86, 28, 154, 28, OfficeColor.White, 4);
             canvas.DrawLine(64, 48, 176, 48, OfficeColor.White, 4);
             canvas.DrawLine(86, 68, 154, 68, OfficeColor.White, 4);
-            return OfficePngWriter.Encode(image);
+            return OfficePngWriter.Encode(image, OfficePngCompression.Stored);
         }
 
         private static byte[] CreateCroppedBandPng() {
@@ -1352,7 +1352,7 @@ namespace OfficeIMO.Tests {
             canvas.DrawLine(76, 26, 124, 26, OfficeColor.White, 4);
             canvas.DrawLine(66, 42, 134, 42, OfficeColor.White, 4);
             canvas.DrawLine(76, 58, 124, 58, OfficeColor.White, 4);
-            return OfficePngWriter.Encode(image);
+            return OfficePngWriter.Encode(image, OfficePngCompression.Stored);
         }
 
         private static byte[] CreateRotatedBannerPng() {
@@ -1365,7 +1365,7 @@ namespace OfficeIMO.Tests {
             canvas.DrawLine(82, 26, 138, 26, OfficeColor.White, 5);
             canvas.DrawLine(64, 43, 156, 43, OfficeColor.White, 5);
             canvas.DrawLine(82, 60, 138, 60, OfficeColor.White, 5);
-            return OfficePngWriter.Encode(image);
+            return OfficePngWriter.Encode(image, OfficePngCompression.Stored);
         }
 
         private static byte[] CreateTransformedBannerPng() {
@@ -1377,7 +1377,7 @@ namespace OfficeIMO.Tests {
             canvas.DrawRectangle(64, 8, 102, 74, OfficeColor.White, 4);
             canvas.DrawLine(92, 32, 142, 32, OfficeColor.White, 5);
             canvas.DrawLine(82, 52, 152, 52, OfficeColor.White, 5);
-            return OfficePngWriter.Encode(image);
+            return OfficePngWriter.Encode(image, OfficePngCompression.Stored);
         }
 
         private static void AddDrawingObjectShape(ExcelSheet sheet) {

@@ -29,18 +29,18 @@ public static class OfficePngWriter {
     /// <summary>
     /// Encodes an RGBA image as PNG bytes.
     /// </summary>
-    public static byte[] Encode(OfficeRasterImage image) {
+    public static byte[] Encode(OfficeRasterImage image, OfficePngCompression compression = OfficePngCompression.Optimal) {
         if (image == null) {
             throw new ArgumentNullException(nameof(image));
         }
 
-        return EncodeRgba(image.Width, image.Height, image.GetPixels());
+        return EncodeRgba(image.Width, image.Height, image.GetPixels(), compression);
     }
 
     /// <summary>
     /// Encodes raw RGBA pixels as PNG bytes.
     /// </summary>
-    public static byte[] EncodeRgba(int width, int height, byte[] rgba) {
+    public static byte[] EncodeRgba(int width, int height, byte[] rgba, OfficePngCompression compression = OfficePngCompression.Optimal) {
         if (width <= 0) {
             throw new ArgumentOutOfRangeException(nameof(width));
         }
@@ -67,7 +67,7 @@ public static class OfficePngWriter {
             target += width * 4;
         }
 
-        return EncodeScanlines(width, height, 8, 6, scanlines);
+        return EncodeScanlines(width, height, 8, 6, scanlines, compression);
     }
 
     /// <summary>

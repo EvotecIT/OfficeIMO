@@ -687,7 +687,7 @@ namespace OfficeIMO.Excel {
             }
 
             // 3) Add/replace image in the VML drawing part
-            ImagePart imgPart = vmlPart.AddImagePart(ResolveOpenXmlImagePartType(contentType));
+            ImagePart imgPart = vmlPart.AddImagePart(ToImagePartType(contentType));
 
             using (var ms = new MemoryStream(imageBytes)) {
                 imgPart.FeedData(ms);
