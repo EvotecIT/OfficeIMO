@@ -93,6 +93,30 @@ Warnings: 0
 | --- | --- |
 | 0x0018\|PtgArea3d | 1 |
 
+## Formula Tokens By Class
+
+| Key | Count |
+| --- | --- |
+| Value | 1 |
+
+## Formula Tokens By Name And Class
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|Value | 1 |
+
+## Formula Tokens By Operand Byte Count
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|Bytes:10 | 1 |
+
+## Formula Tokens By Sequence Index
+
+| Key | Count |
+| --- | --- |
+| Index:0 | 1 |
+
 ## Worksheet Feature States
 
 | Key | Count |

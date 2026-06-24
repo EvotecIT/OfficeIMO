@@ -3,6 +3,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
     /// Provides stable names for BIFF parsed-formula tokens.
     /// </summary>
     internal static class BiffFormulaTokenInfo {
+        internal static string GetTokenClassName(byte token) {
+            byte tokenClass = (byte)(token & 0x60);
+            return tokenClass switch {
+                0x20 => "Value",
+                0x40 => "Reference",
+                0x60 => "Array",
+                _ => "Base"
+            };
+        }
+
         internal static string GetTokenName(byte token) {
             return token switch {
                 0x01 => "PtgExp",

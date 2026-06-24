@@ -340,6 +340,12 @@ namespace OfficeIMO.Tests {
             Assert.True(report.FormulaTokenRecordCount > 0);
             Assert.Contains("PtgFunc", report.FormulaTokensByName.Keys);
             Assert.Contains("PtgFuncVar", report.FormulaTokensByName.Keys);
+            Assert.Contains("Value", report.FormulaTokensByClass.Keys);
+            Assert.Contains("Reference", report.FormulaTokensByClass.Keys);
+            Assert.Contains("PtgFunc|Value", report.FormulaTokensByNameAndClass.Keys);
+            Assert.Contains("PtgFuncVar|Reference", report.FormulaTokensByNameAndClass.Keys);
+            Assert.Contains("PtgFunc|Bytes:2", report.FormulaTokensByOperandByteCount.Keys);
+            Assert.Contains("PtgFuncVar|Bytes:3", report.FormulaTokensByOperandByteCount.Keys);
             Assert.True(report.FormulaTokensByContext["CellFormula"] >= 30);
             Assert.Equal(1, report.FormulaFunctionsByName["COUNTIF"]);
             Assert.Equal(1, report.FormulaFunctionsByName["SUMIF"]);
@@ -352,7 +358,10 @@ namespace OfficeIMO.Tests {
                 && record.SheetName == "CommonFunc"
                 && record.CellReference == "A8"
                 && record.TokenName == "PtgFunc"
-                && record.FunctionName == "COUNTIF");
+                && record.FunctionName == "COUNTIF"
+                && record.TokenClassName == "Value"
+                && record.OperandByteCount == 2
+                && record.FunctionParameterCount == 2);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
@@ -1041,13 +1050,20 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.FormulaTokensByContext["CellFormula"]);
             Assert.Equal(1, report.FormulaTokensBySheet["FormulaDiag"]);
             Assert.Equal(1, report.FormulaTokensByContextAndSheet["CellFormula|FormulaDiag"]);
+            Assert.Equal(1, report.FormulaTokensByClass["Base"]);
+            Assert.Equal(1, report.FormulaTokensByNameAndClass["PtgExp|Base"]);
+            Assert.Equal(1, report.FormulaTokensByOperandByteCount["PtgExp|Bytes:0"]);
+            Assert.Equal(1, report.FormulaTokensBySequenceIndex["Index:0"]);
             Assert.Contains(legacy.FormulaTokenRecords, record =>
                 record.Context == "CellFormula"
                 && record.SheetName == "FormulaDiag"
                 && record.CellReference == "B1"
                 && record.Token == 0x01
                 && record.TokenName == "PtgExp"
-                && record.TokenOffset == 0);
+                && record.TokenOffset == 0
+                && record.SequenceIndex == 0
+                && record.TokenClassName == "Base"
+                && record.OperandByteCount == 0);
             string markdown = report.ToMarkdown();
             Assert.Contains("Formula Token Blockers By Token", markdown);
             Assert.Contains("Formula Token Blockers By Token Name", markdown);
@@ -1058,6 +1074,10 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Formula Tokens By Context", markdown);
             Assert.Contains("Formula Tokens By Sheet", markdown);
             Assert.Contains("Formula Tokens By Context And Sheet", markdown);
+            Assert.Contains("Formula Tokens By Class", markdown);
+            Assert.Contains("Formula Tokens By Name And Class", markdown);
+            Assert.Contains("Formula Tokens By Operand Byte Count", markdown);
+            Assert.Contains("Formula Tokens By Sequence Index", markdown);
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
             Assert.True(formula.IsFormula);
@@ -1087,6 +1107,8 @@ namespace OfficeIMO.Tests {
             LegacyXlsImportReport report = legacy.CreateImportReport();
             Assert.Equal(1, report.FormulaFunctionsById["Function:0x002E"]);
             Assert.Equal(1, report.FormulaFunctionsByName["VAR"]);
+            Assert.Equal(1, report.FormulaFunctionsByParameterCount["VAR|Args:1"]);
+            Assert.Equal(1, report.FormulaFunctionsByCetabState["BuiltIn"]);
             Assert.Empty(report.FormulaTokenBlockers);
             Assert.Contains(legacy.FormulaTokenRecords, record =>
                 record.Context == "CellFormula"
@@ -1095,8 +1117,13 @@ namespace OfficeIMO.Tests {
                 && record.Token == 0x42
                 && record.TokenName == "PtgFuncVar"
                 && record.TokenOffset == 9
+                && record.SequenceIndex == 1
+                && record.TokenClassName == "Reference"
+                && record.OperandByteCount == 3
                 && record.FunctionId == 0x002e
-                && record.FunctionName == "VAR");
+                && record.FunctionName == "VAR"
+                && record.FunctionParameterCount == 1
+                && record.FunctionIsCetab == false);
 
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);

@@ -100,6 +100,49 @@ Warnings: 0
 | 0x0006\|PtgRef | 4 |
 | 0x0006\|PtgStr | 9 |
 
+## Formula Tokens By Class
+
+| Key | Count |
+| --- | --- |
+| Base | 11 |
+| Reference | 18 |
+| Value | 8 |
+
+## Formula Tokens By Name And Class
+
+| Key | Count |
+| --- | --- |
+| PtgArea\|Value | 8 |
+| PtgFuncVar\|Reference | 11 |
+| PtgFunc\|Reference | 3 |
+| PtgInt\|Base | 2 |
+| PtgRef\|Reference | 4 |
+| PtgStr\|Base | 9 |
+
+## Formula Tokens By Operand Byte Count
+
+| Key | Count |
+| --- | --- |
+| PtgArea\|Bytes:8 | 8 |
+| PtgFuncVar\|Bytes:3 | 11 |
+| PtgFunc\|Bytes:2 | 3 |
+| PtgInt\|Bytes:2 | 2 |
+| PtgRef\|Bytes:4 | 4 |
+| PtgStr\|Bytes:12 | 2 |
+| PtgStr\|Bytes:3 | 5 |
+| PtgStr\|Bytes:4 | 1 |
+| PtgStr\|Bytes:7 | 1 |
+
+## Formula Tokens By Sequence Index
+
+| Key | Count |
+| --- | --- |
+| Index:0 | 14 |
+| Index:1 | 14 |
+| Index:2 | 5 |
+| Index:3 | 3 |
+| Index:4 | 1 |
+
 ## Formula Functions By Id
 
 | Key | Count |
@@ -137,6 +180,31 @@ Warnings: 0
 | SUBSTITUTE | 1 |
 | TRIM | 1 |
 | VAR | 1 |
+
+## Formula Functions By Parameter Count
+
+| Key | Count |
+| --- | --- |
+| AVERAGE\|Args:1 | 1 |
+| CONCATENATE\|Args:3 | 1 |
+| COUNTA\|Args:1 | 1 |
+| COUNTBLANK\|Args:1 | 1 |
+| FIND\|Args:2 | 1 |
+| MAX\|Args:1 | 1 |
+| MEDIAN\|Args:1 | 1 |
+| MIN\|Args:1 | 1 |
+| PRODUCT\|Args:1 | 1 |
+| REPLACE\|Args:4 | 1 |
+| SEARCH\|Args:2 | 1 |
+| SUBSTITUTE\|Args:3 | 1 |
+| TRIM\|Args:1 | 1 |
+| VAR\|Args:1 | 1 |
+
+## Formula Functions By Cetab State
+
+| Key | Count |
+| --- | --- |
+| BuiltIn | 11 |
 
 ## Worksheets By Visibility
 

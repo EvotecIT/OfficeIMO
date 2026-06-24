@@ -95,6 +95,37 @@ Warnings: 0
 | 0x0006\|PtgMul | 1 |
 | 0x0006\|PtgRef | 1 |
 
+## Formula Tokens By Class
+
+| Key | Count |
+| --- | --- |
+| Base | 2 |
+| Reference | 1 |
+
+## Formula Tokens By Name And Class
+
+| Key | Count |
+| --- | --- |
+| PtgInt\|Base | 1 |
+| PtgMul\|Base | 1 |
+| PtgRef\|Reference | 1 |
+
+## Formula Tokens By Operand Byte Count
+
+| Key | Count |
+| --- | --- |
+| PtgInt\|Bytes:2 | 1 |
+| PtgMul\|Bytes:0 | 1 |
+| PtgRef\|Bytes:4 | 1 |
+
+## Formula Tokens By Sequence Index
+
+| Key | Count |
+| --- | --- |
+| Index:0 | 1 |
+| Index:1 | 1 |
+| Index:2 | 1 |
+
 ## Worksheets By Visibility
 
 | Key | Count |

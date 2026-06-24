@@ -115,6 +115,66 @@ Warnings: 0
 | 0x0006\|PtgStr | 4 |
 | 0x0018\|PtgErr | 2 |
 
+## Formula Tokens By Class
+
+| Key | Count |
+| --- | --- |
+| Array | 2 |
+| Base | 33 |
+| Reference | 20 |
+| Value | 9 |
+
+## Formula Tokens By Name And Class
+
+| Key | Count |
+| --- | --- |
+| PtgArea\|Array | 2 |
+| PtgArea\|Value | 6 |
+| PtgAttr\|Base | 1 |
+| PtgBool\|Base | 2 |
+| PtgConcat\|Base | 1 |
+| PtgDiv\|Base | 4 |
+| PtgErr\|Base | 2 |
+| PtgFuncVar\|Reference | 10 |
+| PtgFunc\|Reference | 5 |
+| PtgInt\|Base | 19 |
+| PtgName\|Value | 2 |
+| PtgRef\|Reference | 5 |
+| PtgRef\|Value | 1 |
+| PtgStr\|Base | 4 |
+
+## Formula Tokens By Operand Byte Count
+
+| Key | Count |
+| --- | --- |
+| PtgArea\|Bytes:8 | 8 |
+| PtgAttr\|Bytes:3 | 1 |
+| PtgBool\|Bytes:1 | 2 |
+| PtgConcat\|Bytes:0 | 1 |
+| PtgDiv\|Bytes:0 | 4 |
+| PtgErr\|Bytes:1 | 2 |
+| PtgFuncVar\|Bytes:3 | 10 |
+| PtgFunc\|Bytes:2 | 5 |
+| PtgInt\|Bytes:2 | 19 |
+| PtgName\|Bytes:4 | 2 |
+| PtgRef\|Bytes:4 | 6 |
+| PtgStr\|Bytes:12 | 1 |
+| PtgStr\|Bytes:4 | 1 |
+| PtgStr\|Bytes:6 | 1 |
+| PtgStr\|Bytes:7 | 1 |
+
+## Formula Tokens By Sequence Index
+
+| Key | Count |
+| --- | --- |
+| Index:0 | 16 |
+| Index:1 | 14 |
+| Index:2 | 13 |
+| Index:3 | 10 |
+| Index:4 | 8 |
+| Index:5 | 2 |
+| Index:6 | 1 |
+
 ## Formula Functions By Id
 
 | Key | Count |
@@ -151,6 +211,32 @@ Warnings: 0
 | ROUNDUP | 1 |
 | SUMPRODUCT | 1 |
 | VLOOKUP | 1 |
+
+## Formula Functions By Parameter Count
+
+| Key | Count |
+| --- | --- |
+| DATEVALUE\|Args:1 | 1 |
+| Function:0x00FF\|Args:3 | 1 |
+| Function:0x00FF\|Args:4 | 1 |
+| HLOOKUP\|Args:4 | 1 |
+| INDEX\|Args:2 | 1 |
+| ISERROR\|Args:1 | 1 |
+| LEFT\|Args:2 | 1 |
+| MATCH\|Args:3 | 1 |
+| OFFSET\|Args:3 | 1 |
+| POWER\|Args:2 | 1 |
+| RIGHT\|Args:2 | 1 |
+| ROUNDDOWN\|Args:2 | 1 |
+| ROUNDUP\|Args:2 | 1 |
+| SUMPRODUCT\|Args:2 | 1 |
+| VLOOKUP\|Args:4 | 1 |
+
+## Formula Functions By Cetab State
+
+| Key | Count |
+| --- | --- |
+| BuiltIn | 10 |
 
 ## Formula Attributes By Name
 

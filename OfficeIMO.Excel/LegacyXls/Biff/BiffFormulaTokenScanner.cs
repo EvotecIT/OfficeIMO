@@ -67,54 +67,67 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort recordType,
             IList<LegacyXlsFormulaTokenRecord> records) {
             int offset = expressionOffset;
+            int sequenceIndex = 0;
             while (offset < endOffset) {
                 int tokenOffset = offset - expressionOffset;
                 byte token = formulaPayload[offset++];
+                int operandOffset = offset;
                 ushort? functionId = null;
                 string? functionName = null;
+                byte? functionParameterCount = null;
+                bool? functionIsCetab = null;
                 byte? attribute = null;
                 string? attributeName = null;
 
                 if (IsFixedFunctionToken(token)) {
                     if (offset + 2 > endOffset) {
-                        AddRecord(records, context, sheetName, cellReference, recordOffset, recordType, token, tokenOffset);
+                        AddRecord(records, context, sheetName, cellReference, recordOffset, recordType, token, tokenOffset, sequenceIndex++, endOffset - operandOffset);
                         return;
                     }
 
                     functionId = BiffRecordReader.ReadUInt16(formulaPayload, offset);
-                    functionName = GetFunctionName(functionId.Value);
+                    if (BiffFormulaFunctionMetadata.TryGetFixedFunctionMetadata(functionId.Value, out string? fixedFunctionName, out int fixedParameterCount)) {
+                        functionName = fixedFunctionName;
+                        if (fixedParameterCount >= 0 && fixedParameterCount <= byte.MaxValue) {
+                            functionParameterCount = (byte)fixedParameterCount;
+                        }
+                    } else {
+                        functionName = GetFunctionName(functionId.Value);
+                    }
+
                     offset += 2;
                 } else if (IsVariableFunctionToken(token)) {
                     if (offset + 3 > endOffset) {
-                        AddRecord(records, context, sheetName, cellReference, recordOffset, recordType, token, tokenOffset);
+                        AddRecord(records, context, sheetName, cellReference, recordOffset, recordType, token, tokenOffset, sequenceIndex++, endOffset - operandOffset);
                         return;
                     }
 
-                    offset++;
+                    functionParameterCount = formulaPayload[offset++];
                     ushort functionBits = BiffRecordReader.ReadUInt16(formulaPayload, offset);
                     functionId = (ushort)(functionBits & 0x7fff);
-                    functionName = (functionBits & 0x8000) != 0
+                    functionIsCetab = (functionBits & 0x8000) != 0;
+                    functionName = functionIsCetab.Value
                         ? $"Cetab:0x{functionId.Value:X4}"
                         : GetFunctionName(functionId.Value);
                     offset += 2;
                 } else if (token == 0x19) {
                     if (offset >= endOffset) {
-                        AddRecord(records, context, sheetName, cellReference, recordOffset, recordType, token, tokenOffset);
+                        AddRecord(records, context, sheetName, cellReference, recordOffset, recordType, token, tokenOffset, sequenceIndex++, endOffset - operandOffset);
                         return;
                     }
 
                     attribute = formulaPayload[offset++];
                     attributeName = GetAttributeName(attribute.Value);
                     if (!TrySkipAttributePayload(formulaPayload, ref offset, endOffset, attribute.Value)) {
-                        AddRecord(records, context, sheetName, cellReference, recordOffset, recordType, token, tokenOffset, functionId, functionName, attribute, attributeName);
+                        AddRecord(records, context, sheetName, cellReference, recordOffset, recordType, token, tokenOffset, sequenceIndex++, endOffset - operandOffset, functionId, functionName, functionParameterCount, functionIsCetab, attribute, attributeName);
                         return;
                     }
                 } else if (!TrySkipTokenPayload(formulaPayload, ref offset, endOffset, token)) {
-                    AddRecord(records, context, sheetName, cellReference, recordOffset, recordType, token, tokenOffset);
+                    AddRecord(records, context, sheetName, cellReference, recordOffset, recordType, token, tokenOffset, sequenceIndex++, endOffset - operandOffset);
                     return;
                 }
 
-                AddRecord(records, context, sheetName, cellReference, recordOffset, recordType, token, tokenOffset, functionId, functionName, attribute, attributeName);
+                AddRecord(records, context, sheetName, cellReference, recordOffset, recordType, token, tokenOffset, sequenceIndex++, offset - operandOffset, functionId, functionName, functionParameterCount, functionIsCetab, attribute, attributeName);
             }
         }
 
@@ -127,8 +140,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort recordType,
             byte token,
             int tokenOffset,
+            int sequenceIndex,
+            int operandByteCount,
             ushort? functionId = null,
             string? functionName = null,
+            byte? functionParameterCount = null,
+            bool? functionIsCetab = null,
             byte? attribute = null,
             string? attributeName = null) {
             records.Add(new LegacyXlsFormulaTokenRecord(
@@ -140,8 +157,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 token,
                 BiffFormulaTokenInfo.GetTokenName(token),
                 tokenOffset,
+                sequenceIndex,
+                BiffFormulaTokenInfo.GetTokenClassName(token),
+                operandByteCount,
                 functionId,
                 functionName,
+                functionParameterCount,
+                functionIsCetab,
                 attribute,
                 attributeName));
         }

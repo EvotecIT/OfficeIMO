@@ -114,6 +114,62 @@ Warnings: 0
 | 0x0006\|PtgStr | 4 |
 | 0x0018\|PtgArea3d | 4 |
 
+## Formula Tokens By Class
+
+| Key | Count |
+| --- | --- |
+| Base | 17 |
+| Reference | 8 |
+| Value | 7 |
+
+## Formula Tokens By Name And Class
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|Value | 4 |
+| PtgArea\|Value | 3 |
+| PtgAttr\|Base | 3 |
+| PtgFuncVar\|Reference | 2 |
+| PtgFunc\|Reference | 1 |
+| PtgGt\|Base | 1 |
+| PtgInt\|Base | 1 |
+| PtgMul\|Base | 4 |
+| PtgNum\|Base | 4 |
+| PtgRef\|Reference | 5 |
+| PtgStr\|Base | 4 |
+
+## Formula Tokens By Operand Byte Count
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|Bytes:10 | 4 |
+| PtgArea\|Bytes:8 | 3 |
+| PtgAttr\|Bytes:3 | 3 |
+| PtgFuncVar\|Bytes:3 | 2 |
+| PtgFunc\|Bytes:2 | 1 |
+| PtgGt\|Bytes:0 | 1 |
+| PtgInt\|Bytes:2 | 1 |
+| PtgMul\|Bytes:0 | 4 |
+| PtgNum\|Bytes:8 | 4 |
+| PtgRef\|Bytes:4 | 5 |
+| PtgStr\|Bytes:4 | 1 |
+| PtgStr\|Bytes:6 | 2 |
+| PtgStr\|Bytes:8 | 1 |
+
+## Formula Tokens By Sequence Index
+
+| Key | Count |
+| --- | --- |
+| Index:0 | 11 |
+| Index:1 | 7 |
+| Index:2 | 7 |
+| Index:3 | 2 |
+| Index:4 | 1 |
+| Index:5 | 1 |
+| Index:6 | 1 |
+| Index:7 | 1 |
+| Index:8 | 1 |
+
 ## Formula Functions By Id
 
 | Key | Count |
@@ -129,6 +185,20 @@ Warnings: 0
 | COUNTIF | 1 |
 | IF | 1 |
 | SUMIF | 1 |
+
+## Formula Functions By Parameter Count
+
+| Key | Count |
+| --- | --- |
+| COUNTIF\|Args:2 | 1 |
+| IF\|Args:3 | 1 |
+| SUMIF\|Args:3 | 1 |
+
+## Formula Functions By Cetab State
+
+| Key | Count |
+| --- | --- |
+| BuiltIn | 2 |
 
 ## Formula Attributes By Name
 

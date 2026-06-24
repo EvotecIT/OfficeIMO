@@ -15,8 +15,13 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             byte token,
             string tokenName,
             int tokenOffset,
+            int? sequenceIndex = null,
+            string? tokenClassName = null,
+            int? operandByteCount = null,
             ushort? functionId = null,
             string? functionName = null,
+            byte? functionParameterCount = null,
+            bool? functionIsCetab = null,
             byte? attribute = null,
             string? attributeName = null) {
             Context = context ?? throw new ArgumentNullException(nameof(context));
@@ -27,8 +32,13 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Token = token;
             TokenName = tokenName ?? throw new ArgumentNullException(nameof(tokenName));
             TokenOffset = tokenOffset;
+            SequenceIndex = sequenceIndex;
+            TokenClassName = string.IsNullOrWhiteSpace(tokenClassName) ? null : tokenClassName;
+            OperandByteCount = operandByteCount;
             FunctionId = functionId;
             FunctionName = functionName;
+            FunctionParameterCount = functionParameterCount;
+            FunctionIsCetab = functionIsCetab;
             Attribute = attribute;
             AttributeName = attributeName;
         }
@@ -74,6 +84,21 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public int TokenOffset { get; }
 
         /// <summary>
+        /// Gets the zero-based token sequence index within the parsed-expression token stream, when captured.
+        /// </summary>
+        public int? SequenceIndex { get; }
+
+        /// <summary>
+        /// Gets the decoded BIFF token class, when applicable.
+        /// </summary>
+        public string? TokenClassName { get; }
+
+        /// <summary>
+        /// Gets the byte count of the token operand payload after the token byte, when captured.
+        /// </summary>
+        public int? OperandByteCount { get; }
+
+        /// <summary>
         /// Gets the BIFF built-in function identifier for function tokens, when available.
         /// </summary>
         public ushort? FunctionId { get; }
@@ -82,6 +107,16 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets the function name resolved from <see cref="FunctionId"/>, when known.
         /// </summary>
         public string? FunctionName { get; }
+
+        /// <summary>
+        /// Gets the argument count carried by a function token, when available.
+        /// </summary>
+        public byte? FunctionParameterCount { get; }
+
+        /// <summary>
+        /// Gets whether a variable-function token targets the CETAB extension function table.
+        /// </summary>
+        public bool? FunctionIsCetab { get; }
 
         /// <summary>
         /// Gets the PtgAttr attribute byte, when the token is an attribute token.

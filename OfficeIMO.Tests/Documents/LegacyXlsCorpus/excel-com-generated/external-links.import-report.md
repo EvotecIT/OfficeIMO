@@ -99,6 +99,42 @@ Warnings: 0
 | 0x0006\|PtgRef3d | 2 |
 | 0x0006\|PtgSub | 1 |
 
+## Formula Tokens By Class
+
+| Key | Count |
+| --- | --- |
+| Base | 2 |
+| Reference | 4 |
+| Value | 1 |
+
+## Formula Tokens By Name And Class
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|Value | 1 |
+| PtgAttr\|Base | 1 |
+| PtgRef3d\|Reference | 2 |
+| PtgRef\|Reference | 2 |
+| PtgSub\|Base | 1 |
+
+## Formula Tokens By Operand Byte Count
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|Bytes:10 | 1 |
+| PtgAttr\|Bytes:3 | 1 |
+| PtgRef3d\|Bytes:6 | 2 |
+| PtgRef\|Bytes:4 | 2 |
+| PtgSub\|Bytes:0 | 1 |
+
+## Formula Tokens By Sequence Index
+
+| Key | Count |
+| --- | --- |
+| Index:0 | 4 |
+| Index:1 | 2 |
+| Index:2 | 1 |
+
 ## Formula Attributes By Name
 
 | Key | Count |

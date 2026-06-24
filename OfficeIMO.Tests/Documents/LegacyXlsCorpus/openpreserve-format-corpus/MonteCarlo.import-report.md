@@ -130,6 +130,54 @@ Warnings: 0
 | 0x04BC\|PtgRefN | 38 |
 | 0x04BC\|PtgSub | 5 |
 
+## Formula Tokens By Class
+
+| Key | Count |
+| --- | --- |
+| Base | 1304 |
+| Reference | 64 |
+
+## Formula Tokens By Name And Class
+
+| Key | Count |
+| --- | --- |
+| PtgAdd\|Base | 12 |
+| PtgDiv\|Base | 10 |
+| PtgExp\|Base | 1240 |
+| PtgInt\|Base | 16 |
+| PtgMul\|Base | 10 |
+| PtgParen\|Base | 10 |
+| PtgRef3d\|Reference | 8 |
+| PtgRefN\|Reference | 38 |
+| PtgRef\|Reference | 18 |
+| PtgSub\|Base | 6 |
+
+## Formula Tokens By Operand Byte Count
+
+| Key | Count |
+| --- | --- |
+| PtgAdd\|Bytes:0 | 12 |
+| PtgDiv\|Bytes:0 | 10 |
+| PtgExp\|Bytes:4 | 1240 |
+| PtgInt\|Bytes:2 | 16 |
+| PtgMul\|Bytes:0 | 10 |
+| PtgParen\|Bytes:0 | 10 |
+| PtgRef3d\|Bytes:6 | 8 |
+| PtgRefN\|Bytes:4 | 38 |
+| PtgRef\|Bytes:4 | 18 |
+| PtgSub\|Bytes:0 | 6 |
+
+## Formula Tokens By Sequence Index
+
+| Key | Count |
+| --- | --- |
+| Index:0 | 1282 |
+| Index:1 | 28 |
+| Index:2 | 28 |
+| Index:3 | 10 |
+| Index:4 | 10 |
+| Index:5 | 10 |
+
 ## Worksheets By Visibility
 
 | Key | Count |

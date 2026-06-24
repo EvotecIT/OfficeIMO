@@ -100,6 +100,38 @@ Warnings: 0
 | 0x0006\|PtgRef | 24 |
 | 0x0018\|PtgArea3d | 2 |
 
+## Formula Tokens By Class
+
+| Key | Count |
+| --- | --- |
+| Base | 12 |
+| Reference | 24 |
+| Value | 2 |
+
+## Formula Tokens By Name And Class
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|Value | 2 |
+| PtgMul\|Base | 12 |
+| PtgRef\|Reference | 24 |
+
+## Formula Tokens By Operand Byte Count
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|Bytes:10 | 2 |
+| PtgMul\|Bytes:0 | 12 |
+| PtgRef\|Bytes:4 | 24 |
+
+## Formula Tokens By Sequence Index
+
+| Key | Count |
+| --- | --- |
+| Index:0 | 14 |
+| Index:1 | 12 |
+| Index:2 | 12 |
+
 ## Worksheet Feature States
 
 | Key | Count |

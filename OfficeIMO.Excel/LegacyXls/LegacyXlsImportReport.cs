@@ -249,12 +249,30 @@ namespace OfficeIMO.Excel.LegacyXls {
             FormulaTokensBySheet = CountByCode(workbook.FormulaTokenRecords.Select(GetFormulaTokenSheetKey));
             FormulaTokensByContextAndSheet = CountByCode(workbook.FormulaTokenRecords.Select(record => record.Context + "|" + GetFormulaTokenSheetKey(record)));
             FormulaTokensByRecordType = CountByCode(workbook.FormulaTokenRecords.Select(record => $"0x{record.RecordType:X4}|{record.TokenName}"));
+            FormulaTokensByClass = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.TokenClassName))
+                .Select(record => record.TokenClassName!));
+            FormulaTokensByNameAndClass = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.TokenClassName))
+                .Select(record => $"{record.TokenName}|{record.TokenClassName}"));
+            FormulaTokensByOperandByteCount = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => record.OperandByteCount.HasValue)
+                .Select(record => $"{record.TokenName}|Bytes:{record.OperandByteCount!.Value}"));
+            FormulaTokensBySequenceIndex = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => record.SequenceIndex.HasValue)
+                .Select(record => $"Index:{record.SequenceIndex!.Value}"));
             FormulaFunctionsById = CountByCode(workbook.FormulaTokenRecords
                 .Where(record => record.FunctionId.HasValue)
                 .Select(record => $"Function:0x{record.FunctionId!.Value:X4}"));
             FormulaFunctionsByName = CountByCode(workbook.FormulaTokenRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.FunctionName))
                 .Select(record => record.FunctionName!));
+            FormulaFunctionsByParameterCount = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => record.FunctionParameterCount.HasValue)
+                .Select(record => $"{record.FunctionName ?? $"Function:0x{record.FunctionId!.GetValueOrDefault():X4}"}|Args:{record.FunctionParameterCount!.Value}"));
+            FormulaFunctionsByCetabState = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => record.FunctionIsCetab.HasValue)
+                .Select(record => record.FunctionIsCetab!.Value ? "Cetab" : "BuiltIn"));
             FormulaAttributesByName = CountByCode(workbook.FormulaTokenRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.AttributeName))
                 .Select(record => record.AttributeName!));
@@ -1384,11 +1402,29 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets observed parsed-formula tokens grouped by BIFF record type and token name.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokensByRecordType { get; }
 
+        /// <summary>Gets observed parsed-formula tokens grouped by BIFF token class.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensByClass { get; }
+
+        /// <summary>Gets observed parsed-formula tokens grouped by token name and BIFF token class.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensByNameAndClass { get; }
+
+        /// <summary>Gets observed parsed-formula tokens grouped by token name and operand byte count.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensByOperandByteCount { get; }
+
+        /// <summary>Gets observed parsed-formula tokens grouped by sequence index within each expression.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensBySequenceIndex { get; }
+
         /// <summary>Gets observed built-in formula function tokens grouped by raw function id.</summary>
         public IReadOnlyDictionary<string, int> FormulaFunctionsById { get; }
 
         /// <summary>Gets observed built-in formula function tokens grouped by function name when known.</summary>
         public IReadOnlyDictionary<string, int> FormulaFunctionsByName { get; }
+
+        /// <summary>Gets observed formula function tokens grouped by function name and argument count.</summary>
+        public IReadOnlyDictionary<string, int> FormulaFunctionsByParameterCount { get; }
+
+        /// <summary>Gets observed variable formula function tokens grouped by built-in versus CETAB state.</summary>
+        public IReadOnlyDictionary<string, int> FormulaFunctionsByCetabState { get; }
 
         /// <summary>Gets observed PtgAttr formula tokens grouped by attribute name.</summary>
         public IReadOnlyDictionary<string, int> FormulaAttributesByName { get; }
@@ -2274,8 +2310,14 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Formula Tokens By Sheet", FormulaTokensBySheet);
             AppendDictionary(builder, "Formula Tokens By Context And Sheet", FormulaTokensByContextAndSheet);
             AppendDictionary(builder, "Formula Tokens By Record Type", FormulaTokensByRecordType);
+            AppendDictionary(builder, "Formula Tokens By Class", FormulaTokensByClass);
+            AppendDictionary(builder, "Formula Tokens By Name And Class", FormulaTokensByNameAndClass);
+            AppendDictionary(builder, "Formula Tokens By Operand Byte Count", FormulaTokensByOperandByteCount);
+            AppendDictionary(builder, "Formula Tokens By Sequence Index", FormulaTokensBySequenceIndex);
             AppendDictionary(builder, "Formula Functions By Id", FormulaFunctionsById);
             AppendDictionary(builder, "Formula Functions By Name", FormulaFunctionsByName);
+            AppendDictionary(builder, "Formula Functions By Parameter Count", FormulaFunctionsByParameterCount);
+            AppendDictionary(builder, "Formula Functions By Cetab State", FormulaFunctionsByCetabState);
             AppendDictionary(builder, "Formula Attributes By Name", FormulaAttributesByName);
             AppendDictionary(builder, "Array Formulas By Sheet", ArrayFormulasBySheet);
             AppendDictionary(builder, "Array Formulas By Range", ArrayFormulasByRange);

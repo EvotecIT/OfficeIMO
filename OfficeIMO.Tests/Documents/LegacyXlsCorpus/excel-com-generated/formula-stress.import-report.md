@@ -136,6 +136,82 @@ Warnings: 0
 | 0x0221\|PtgAttr | 1 |
 | 0x0221\|PtgMul | 1 |
 
+## Formula Tokens By Class
+
+| Key | Count |
+| --- | --- |
+| Array | 3 |
+| Base | 25 |
+| Reference | 20 |
+| Value | 1 |
+
+## Formula Tokens By Name And Class
+
+| Key | Count |
+| --- | --- |
+| PtgAdd\|Base | 1 |
+| PtgArea\|Array | 1 |
+| PtgArea\|Value | 1 |
+| PtgArray\|Array | 2 |
+| PtgAttr\|Base | 6 |
+| PtgConcat\|Base | 2 |
+| PtgDiv\|Base | 1 |
+| PtgExp\|Base | 1 |
+| PtgFuncVar\|Reference | 1 |
+| PtgFunc\|Reference | 1 |
+| PtgGt\|Base | 2 |
+| PtgInt\|Base | 2 |
+| PtgLe\|Base | 1 |
+| PtgMul\|Base | 1 |
+| PtgNe\|Base | 1 |
+| PtgPercent\|Base | 1 |
+| PtgPower\|Base | 1 |
+| PtgRef\|Reference | 18 |
+| PtgStr\|Base | 3 |
+| PtgUminus\|Base | 1 |
+| PtgUplus\|Base | 1 |
+
+## Formula Tokens By Operand Byte Count
+
+| Key | Count |
+| --- | --- |
+| PtgAdd\|Bytes:0 | 1 |
+| PtgArea\|Bytes:8 | 2 |
+| PtgArray\|Bytes:7 | 2 |
+| PtgAttr\|Bytes:3 | 6 |
+| PtgConcat\|Bytes:0 | 2 |
+| PtgDiv\|Bytes:0 | 1 |
+| PtgExp\|Bytes:4 | 1 |
+| PtgFuncVar\|Bytes:3 | 1 |
+| PtgFunc\|Bytes:2 | 1 |
+| PtgGt\|Bytes:0 | 2 |
+| PtgInt\|Bytes:2 | 2 |
+| PtgLe\|Bytes:0 | 1 |
+| PtgMul\|Bytes:0 | 1 |
+| PtgNe\|Bytes:0 | 1 |
+| PtgPercent\|Bytes:0 | 1 |
+| PtgPower\|Bytes:0 | 1 |
+| PtgRef\|Bytes:4 | 18 |
+| PtgStr\|Bytes:3 | 1 |
+| PtgStr\|Bytes:4 | 1 |
+| PtgStr\|Bytes:5 | 1 |
+| PtgUminus\|Bytes:0 | 1 |
+| PtgUplus\|Bytes:0 | 1 |
+
+## Formula Tokens By Sequence Index
+
+| Key | Count |
+| --- | --- |
+| Index:0 | 15 |
+| Index:1 | 14 |
+| Index:2 | 9 |
+| Index:3 | 4 |
+| Index:4 | 3 |
+| Index:5 | 1 |
+| Index:6 | 1 |
+| Index:7 | 1 |
+| Index:8 | 1 |
+
 ## Formula Functions By Id
 
 | Key | Count |
@@ -149,6 +225,19 @@ Warnings: 0
 | --- | --- |
 | IF | 1 |
 | ROUND | 1 |
+
+## Formula Functions By Parameter Count
+
+| Key | Count |
+| --- | --- |
+| IF\|Args:3 | 1 |
+| ROUND\|Args:2 | 1 |
+
+## Formula Functions By Cetab State
+
+| Key | Count |
+| --- | --- |
+| BuiltIn | 1 |
 
 ## Formula Attributes By Name
 
