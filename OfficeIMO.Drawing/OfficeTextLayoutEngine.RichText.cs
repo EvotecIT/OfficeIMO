@@ -25,7 +25,41 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, double> measure,
         bool wrap,
         bool shrinkToFit = false,
-        double minimumFontSize = 1D) {
+        double minimumFontSize = 1D) =>
+        LayoutRichTextBlock(
+            runs,
+            maxWidth,
+            maxHeight,
+            lineHeightFactor,
+            measure,
+            wrap,
+            shrinkToFit,
+            minimumFontSize,
+            OfficeTextOverflowBehavior.Ellipsis);
+
+    /// <summary>
+    /// Lays out styled rich text runs into a bounded text block with optional wrapping, overflow policy, and height clipping.
+    /// </summary>
+    /// <param name="runs">Styled text runs.</param>
+    /// <param name="maxWidth">Maximum block width.</param>
+    /// <param name="maxHeight">Maximum block height.</param>
+    /// <param name="lineHeightFactor">Multiplier used with the largest run font size to derive line height.</param>
+    /// <param name="measure">Measurement delegate matching <see cref="OfficeRasterCanvas.MeasureText(string?, double)"/>.</param>
+    /// <param name="wrap">Whether soft wrapping is enabled. Hard line breaks are always honored.</param>
+    /// <param name="shrinkToFit">Whether non-wrapped rich text should proportionally shrink run font sizes to fit the requested width.</param>
+    /// <param name="minimumFontSize">Minimum font size for any run when <paramref name="shrinkToFit"/> is enabled.</param>
+    /// <param name="overflowBehavior">How overflowing rich text should be represented in the returned layout.</param>
+    /// <returns>Measured rich text block with visible lines and clipping state.</returns>
+    public static OfficeRichTextBlockLayout LayoutRichTextBlock(
+        IReadOnlyList<OfficeRichTextRun> runs,
+        double maxWidth,
+        double maxHeight,
+        double lineHeightFactor,
+        Func<string?, double, double> measure,
+        bool wrap,
+        bool shrinkToFit,
+        double minimumFontSize,
+        OfficeTextOverflowBehavior overflowBehavior) {
         if (measure == null) {
             throw new ArgumentNullException(nameof(measure));
         }
@@ -38,7 +72,8 @@ public static partial class OfficeTextLayoutEngine {
             (text, fontSize, _) => measure(text, fontSize),
             wrap,
             shrinkToFit,
-            minimumFontSize);
+            minimumFontSize,
+            overflowBehavior);
     }
 
     /// <summary>
@@ -61,7 +96,41 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, string?, double> measure,
         bool wrap,
         bool shrinkToFit = false,
-        double minimumFontSize = 1D) {
+        double minimumFontSize = 1D) =>
+        LayoutRichTextBlock(
+            runs,
+            maxWidth,
+            maxHeight,
+            lineHeightFactor,
+            measure,
+            wrap,
+            shrinkToFit,
+            minimumFontSize,
+            OfficeTextOverflowBehavior.Ellipsis);
+
+    /// <summary>
+    /// Lays out styled rich text runs into a bounded text block with optional wrapping, overflow policy, and height clipping.
+    /// </summary>
+    /// <param name="runs">Styled text runs.</param>
+    /// <param name="maxWidth">Maximum block width.</param>
+    /// <param name="maxHeight">Maximum block height.</param>
+    /// <param name="lineHeightFactor">Multiplier used with the largest run font size to derive line height.</param>
+    /// <param name="measure">Measurement delegate matching <see cref="OfficeRasterCanvas.MeasureText(string?, double, string?)"/>.</param>
+    /// <param name="wrap">Whether soft wrapping is enabled. Hard line breaks are always honored.</param>
+    /// <param name="shrinkToFit">Whether non-wrapped rich text should proportionally shrink run font sizes to fit the requested width.</param>
+    /// <param name="minimumFontSize">Minimum font size for any run when <paramref name="shrinkToFit"/> is enabled.</param>
+    /// <param name="overflowBehavior">How overflowing rich text should be represented in the returned layout.</param>
+    /// <returns>Measured rich text block with visible lines and clipping state.</returns>
+    public static OfficeRichTextBlockLayout LayoutRichTextBlock(
+        IReadOnlyList<OfficeRichTextRun> runs,
+        double maxWidth,
+        double maxHeight,
+        double lineHeightFactor,
+        Func<string?, double, string?, double> measure,
+        bool wrap,
+        bool shrinkToFit,
+        double minimumFontSize,
+        OfficeTextOverflowBehavior overflowBehavior) {
         if (runs == null) {
             throw new ArgumentNullException(nameof(runs));
         }
@@ -82,7 +151,7 @@ public static partial class OfficeTextLayoutEngine {
             }
         }
 
-        return LayoutRichTextBlockCore(normalizedRuns, width, maxHeight, lineHeightFactor, measure, wrap);
+        return LayoutRichTextBlockCore(normalizedRuns, width, maxHeight, lineHeightFactor, measure, wrap, overflowBehavior);
     }
 
     private static OfficeRichTextBlockLayout LayoutRichTextBlockCore(
@@ -91,7 +160,8 @@ public static partial class OfficeTextLayoutEngine {
         double maxHeight,
         double lineHeightFactor,
         Func<string?, double, string?, double> measure,
-        bool wrap) {
+        bool wrap,
+        OfficeTextOverflowBehavior overflowBehavior) {
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
         double maxFontSize = ResolveMaxRichTextFontSize(runs);
@@ -132,7 +202,10 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         if (!wrap && lines.Count > 0 && lines[0].Width > width + 0.01D) {
-            lines[0] = TrimRichTextLineToWidthWithEllipsis(lines[0], width, measure);
+            if (overflowBehavior == OfficeTextOverflowBehavior.Ellipsis) {
+                lines[0] = TrimRichTextLineToWidthWithEllipsis(lines[0], width, measure);
+            }
+
             clipped = true;
         }
 
@@ -140,7 +213,7 @@ public static partial class OfficeTextLayoutEngine {
         if (lines.Count > maxLines) {
             clipped = true;
             lines.RemoveRange(maxLines, lines.Count - maxLines);
-            if (lines.Count > 0) {
+            if (lines.Count > 0 && overflowBehavior == OfficeTextOverflowBehavior.Ellipsis) {
                 lines[lines.Count - 1] = TrimRichTextLineToWidthWithEllipsis(lines[lines.Count - 1], width, measure);
             }
         }

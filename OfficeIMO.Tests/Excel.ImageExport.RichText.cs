@@ -112,6 +112,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportClipsOverflowingRichTextWithoutInventingEllipsis() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("RichClip");
+            sheet.SetColumnWidth(1, 8);
+            sheet.SetRowHeight(1, 24);
+            sheet.CellAt(1, 1).SetRichText(
+                new ExcelRichTextRun("Overflowing") { Bold = true, FontColor = "DC2626", FontSize = 12D },
+                new ExcelRichTextRun(" rich text should clip") { Italic = true, FontColor = "2563EB", FontSize = 12D });
+
+            ExcelRange range = sheet.Range("A1:A1");
+            ExcelImageExportOptions options = new() { ShowGridlines = false };
+            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            string svg = Encoding.UTF8.GetString(svgResult.Bytes);
+
+            Assert.Contains(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "RichClip!A1");
+            Assert.Contains(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "RichClip!A1");
+            Assert.DoesNotContain(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
+            Assert.DoesNotContain(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
+            Assert.Contains("Overflowing", svg, StringComparison.Ordinal);
+            Assert.Contains(" rich text should clip", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("...", svg, StringComparison.Ordinal);
+            Assert.Contains("clip-path=\"url(#xl-text-1-1)\"", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportPreservesRotatedRichTextRunsWithApproximationDiagnostic() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

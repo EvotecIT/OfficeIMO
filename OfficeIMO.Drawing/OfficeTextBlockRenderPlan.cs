@@ -132,6 +132,20 @@ public sealed class OfficeTextBlockRenderPlan {
     /// <summary>
     /// Measures a text block and creates a placement plan for a left/top-based rectangle.
     /// </summary>
+    /// <param name="text">Text to lay out.</param>
+    /// <param name="fontSize">Initial font size passed to <paramref name="measure"/>.</param>
+    /// <param name="left">Left edge of the available text rectangle.</param>
+    /// <param name="top">Top edge of the available text rectangle.</param>
+    /// <param name="width">Available text rectangle width.</param>
+    /// <param name="height">Available text rectangle height.</param>
+    /// <param name="measure">Measurement delegate matching <see cref="OfficeRasterCanvas.MeasureText(string?, double)"/>.</param>
+    /// <param name="horizontalAlignment">Horizontal alignment inside the rectangle.</param>
+    /// <param name="verticalAlignment">Vertical alignment inside the rectangle.</param>
+    /// <param name="lineHeightFactor">Multiplier used to derive line height from font size.</param>
+    /// <param name="minimumFontSize">Minimum font size when shrink-to-fit is enabled.</param>
+    /// <param name="wrap">Whether soft wrapping is enabled.</param>
+    /// <param name="forceSingleLine">Whether line breaks should be normalized to spaces and wrapping disabled.</param>
+    /// <param name="shrinkToFit">Whether single-line text should reduce font size to fit the requested width.</param>
     public static OfficeTextBlockRenderPlan CreateTextBlockFromRectangle(
         string? text,
         double fontSize,
@@ -146,7 +160,58 @@ public sealed class OfficeTextBlockRenderPlan {
         double minimumFontSize = 5D,
         bool wrap = false,
         bool forceSingleLine = false,
-        bool shrinkToFit = false) {
+        bool shrinkToFit = false) =>
+        CreateTextBlockFromRectangle(
+            text,
+            fontSize,
+            left,
+            top,
+            width,
+            height,
+            measure,
+            horizontalAlignment,
+            verticalAlignment,
+            lineHeightFactor,
+            minimumFontSize,
+            wrap,
+            forceSingleLine,
+            shrinkToFit,
+            OfficeTextOverflowBehavior.Ellipsis);
+
+    /// <summary>
+    /// Measures a text block and creates a placement plan for a left/top-based rectangle.
+    /// </summary>
+    /// <param name="text">Text to lay out.</param>
+    /// <param name="fontSize">Initial font size passed to <paramref name="measure"/>.</param>
+    /// <param name="left">Left edge of the available text rectangle.</param>
+    /// <param name="top">Top edge of the available text rectangle.</param>
+    /// <param name="width">Available text rectangle width.</param>
+    /// <param name="height">Available text rectangle height.</param>
+    /// <param name="measure">Measurement delegate matching <see cref="OfficeRasterCanvas.MeasureText(string?, double)"/>.</param>
+    /// <param name="horizontalAlignment">Horizontal alignment inside the rectangle.</param>
+    /// <param name="verticalAlignment">Vertical alignment inside the rectangle.</param>
+    /// <param name="lineHeightFactor">Multiplier used to derive line height from font size.</param>
+    /// <param name="minimumFontSize">Minimum font size when shrink-to-fit is enabled.</param>
+    /// <param name="wrap">Whether soft wrapping is enabled.</param>
+    /// <param name="forceSingleLine">Whether line breaks should be normalized to spaces and wrapping disabled.</param>
+    /// <param name="shrinkToFit">Whether single-line text should reduce font size to fit the requested width.</param>
+    /// <param name="overflowBehavior">How overflowing text should be represented in the returned layout.</param>
+    public static OfficeTextBlockRenderPlan CreateTextBlockFromRectangle(
+        string? text,
+        double fontSize,
+        double left,
+        double top,
+        double width,
+        double height,
+        Func<string?, double, double> measure,
+        OfficeTextAlignment horizontalAlignment,
+        OfficeTextVerticalAlignment verticalAlignment,
+        double lineHeightFactor,
+        double minimumFontSize,
+        bool wrap,
+        bool forceSingleLine,
+        bool shrinkToFit,
+        OfficeTextOverflowBehavior overflowBehavior) {
         if (measure == null) {
             throw new ArgumentNullException(nameof(measure));
         }
@@ -163,7 +228,8 @@ public sealed class OfficeTextBlockRenderPlan {
             measure,
             wrap,
             forceSingleLine,
-            shrinkToFit);
+            shrinkToFit,
+            overflowBehavior);
         return CreateFromRectangle(layout, left, top, resolvedWidth, resolvedHeight, horizontalAlignment, verticalAlignment);
     }
 

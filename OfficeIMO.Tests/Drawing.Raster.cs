@@ -186,6 +186,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_CanKeepOverflowingTextForCallerClipping() {
+            double Measure(string? value, double size) => (value?.Length ?? 0) * size;
+
+            OfficeTextBlockLayout ellipsis = OfficeTextLayoutEngine.LayoutTextBlock(
+                "ABCDEFG",
+                1D,
+                6D,
+                10D,
+                lineHeightFactor: 1.2D,
+                minimumFontSize: 1D,
+                Measure,
+                wrap: false);
+            OfficeTextBlockLayout clipped = OfficeTextLayoutEngine.LayoutTextBlock(
+                "ABCDEFG",
+                1D,
+                6D,
+                10D,
+                lineHeightFactor: 1.2D,
+                minimumFontSize: 1D,
+                Measure,
+                wrap: false,
+                forceSingleLine: false,
+                shrinkToFit: false,
+                overflowBehavior: OfficeTextOverflowBehavior.Clip);
+
+            Assert.True(ellipsis.Clipped);
+            Assert.Equal("ABC...", ellipsis.Lines[0].Text);
+            Assert.Equal(6D, ellipsis.Width);
+            Assert.True(clipped.Clipped);
+            Assert.Equal("ABCDEFG", clipped.Lines[0].Text);
+            Assert.Equal(7D, clipped.Width);
+        }
+
+        [Fact]
         public void OfficeTextZoneLayout_CreatesNonOverlappingThreeColumnZones() {
             OfficeTextZoneLayout zones = OfficeTextZoneLayout.CreateThreeColumn(144D, 12D, 6D);
 

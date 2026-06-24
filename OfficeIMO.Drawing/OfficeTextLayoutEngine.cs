@@ -252,7 +252,47 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, double> measure,
         bool wrap,
         bool forceSingleLine = false,
-        bool shrinkToFit = false) {
+        bool shrinkToFit = false) =>
+        LayoutTextBlock(
+            text,
+            fontSize,
+            maxWidth,
+            maxHeight,
+            lineHeightFactor,
+            minimumFontSize,
+            measure,
+            wrap,
+            forceSingleLine,
+            shrinkToFit,
+            OfficeTextOverflowBehavior.Ellipsis);
+
+    /// <summary>
+    /// Lays out a bounded text block with optional wrapping, single-line normalization, shrink-to-fit, overflow policy, and height clipping.
+    /// </summary>
+    /// <param name="text">Text to lay out.</param>
+    /// <param name="fontSize">Initial font size passed to <paramref name="measure"/>.</param>
+    /// <param name="maxWidth">Maximum block width.</param>
+    /// <param name="maxHeight">Maximum block height.</param>
+    /// <param name="lineHeightFactor">Multiplier used to derive line height from font size.</param>
+    /// <param name="minimumFontSize">Minimum font size when single-line shrink-to-fit is enabled.</param>
+    /// <param name="measure">Measurement delegate matching <see cref="OfficeRasterCanvas.MeasureText(string?, double)"/>.</param>
+    /// <param name="wrap">Whether soft wrapping is enabled.</param>
+    /// <param name="forceSingleLine">Whether line breaks should be normalized to spaces and wrapping disabled.</param>
+    /// <param name="shrinkToFit">Whether single-line text should reduce font size to fit the requested width.</param>
+    /// <param name="overflowBehavior">How overflowing text should be represented in the returned layout.</param>
+    /// <returns>Measured text block with the resolved font size, line height, width, height, lines, and clipping state.</returns>
+    public static OfficeTextBlockLayout LayoutTextBlock(
+        string? text,
+        double fontSize,
+        double maxWidth,
+        double maxHeight,
+        double lineHeightFactor,
+        double minimumFontSize,
+        Func<string?, double, double> measure,
+        bool wrap,
+        bool forceSingleLine,
+        bool shrinkToFit,
+        OfficeTextOverflowBehavior overflowBehavior) {
         if (measure == null) {
             throw new ArgumentNullException(nameof(measure));
         }
@@ -277,12 +317,12 @@ public static partial class OfficeTextLayoutEngine {
         } else {
             string normalized = layoutText.Replace("\r\n", "\n").Replace('\r', '\n');
             string firstLine = normalized.Split('\n')[0];
-            OfficeTextLine line = TrimLineToWidth(firstLine, layoutFontSize, width, measure, out bool lineClipped);
+            OfficeTextLine line = ResolveOverflowLine(firstLine, layoutFontSize, width, measure, overflowBehavior, out bool lineClipped);
             clipped = lineClipped;
             lines = new[] { line };
         }
 
-        return ClipTextBlockToHeight(lines, layoutFontSize, lineHeight, width, height, measure, clipped);
+        return ClipTextBlockToHeight(lines, layoutFontSize, lineHeight, width, height, measure, clipped, overflowBehavior);
     }
 
     /// <summary>
@@ -341,7 +381,38 @@ public static partial class OfficeTextLayoutEngine {
         double maxWidth,
         double maxHeight,
         Func<string?, double, double> measure,
-        bool alreadyClipped = false) {
+        bool alreadyClipped = false) =>
+        ClipTextBlockToHeight(
+            lines,
+            fontSize,
+            lineHeight,
+            maxWidth,
+            maxHeight,
+            measure,
+            alreadyClipped,
+            OfficeTextOverflowBehavior.Ellipsis);
+
+    /// <summary>
+    /// Clips measured text lines to the requested block height and applies the requested overflow policy to omitted lines.
+    /// </summary>
+    /// <param name="lines">Measured text lines to clip.</param>
+    /// <param name="fontSize">Resolved font size used for measurement.</param>
+    /// <param name="lineHeight">Resolved line height.</param>
+    /// <param name="maxWidth">Maximum line width used for ellipsis trimming.</param>
+    /// <param name="maxHeight">Maximum block height.</param>
+    /// <param name="measure">Measurement delegate matching <see cref="OfficeRasterCanvas.MeasureText(string?, double)"/>.</param>
+    /// <param name="alreadyClipped">Whether an earlier layout stage already clipped or ellipsized the text.</param>
+    /// <param name="overflowBehavior">How omitted or oversized text should be represented in the returned layout.</param>
+    /// <returns>A measured text block whose visible lines fit the requested height.</returns>
+    public static OfficeTextBlockLayout ClipTextBlockToHeight(
+        IReadOnlyList<OfficeTextLine> lines,
+        double fontSize,
+        double lineHeight,
+        double maxWidth,
+        double maxHeight,
+        Func<string?, double, double> measure,
+        bool alreadyClipped,
+        OfficeTextOverflowBehavior overflowBehavior) {
         if (lines == null) {
             throw new ArgumentNullException(nameof(lines));
         }
@@ -366,7 +437,9 @@ public static partial class OfficeTextLayoutEngine {
             clipped = true;
             if (visible.Count > 0) {
                 OfficeTextLine last = visible[visible.Count - 1];
-                visible[visible.Count - 1] = TrimLineToWidth(last.Text + "...", resolvedFontSize, width, measure, out _);
+                if (overflowBehavior == OfficeTextOverflowBehavior.Ellipsis) {
+                    visible[visible.Count - 1] = TrimLineToWidth(last.Text + "...", resolvedFontSize, width, measure, out _);
+                }
             }
         }
 
@@ -394,6 +467,24 @@ public static partial class OfficeTextLayoutEngine {
         if (part.Length > 0) {
             yield return new OfficeTextLine(part, Measure(part, fontSize, measure));
         }
+    }
+
+    private static OfficeTextLine ResolveOverflowLine(
+        string? text,
+        double fontSize,
+        double maxWidth,
+        Func<string?, double, double> measure,
+        OfficeTextOverflowBehavior overflowBehavior,
+        out bool clipped) {
+        string value = text ?? string.Empty;
+        double width = Math.Max(0D, maxWidth);
+        double measured = Measure(value, fontSize, measure);
+        if (measured <= width || overflowBehavior != OfficeTextOverflowBehavior.Clip) {
+            return TrimLineToWidth(value, fontSize, width, measure, out clipped);
+        }
+
+        clipped = true;
+        return new OfficeTextLine(value, measured);
     }
 
     private static double Measure(string? text, double fontSize, Func<string?, double, double> measure) =>

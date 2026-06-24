@@ -300,7 +300,8 @@ namespace OfficeIMO.Excel {
                 minimumFontSize,
                 wrap: cell.Style.WrapText,
                 forceSingleLine: rotated,
-                shrinkToFit: cell.Style.ShrinkToFit);
+                shrinkToFit: cell.Style.ShrinkToFit,
+                overflowBehavior: OfficeTextOverflowBehavior.Clip);
         }
 
         private static bool TryDrawRasterRichText(
@@ -454,7 +455,8 @@ namespace OfficeIMO.Excel {
                 measure,
                 wrap: cell.Style.WrapText && !rotated,
                 shrinkToFit: cell.Style.ShrinkToFit || rotated,
-                minimumFontSize: Math.Max(1D, scale));
+                minimumFontSize: Math.Max(1D, scale),
+                overflowBehavior: OfficeTextOverflowBehavior.Clip);
             return layout.Lines.Count > 0;
         }
 

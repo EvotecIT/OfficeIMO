@@ -117,6 +117,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportClipsOverflowingPlainTextWithoutInventingEllipsis() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Clip");
+            sheet.SetColumnWidth(1, 8);
+            sheet.SetRowHeight(1, 22);
+            sheet.CellValue(1, 1, "Overflowing cell text should clip");
+
+            ExcelRange range = sheet.Range("A1:A1");
+            ExcelImageExportOptions options = new() { ShowGridlines = false };
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            string svg = System.Text.Encoding.UTF8.GetString(svgResult.Bytes);
+
+            Assert.Contains(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "Clip!A1");
+            Assert.Contains(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "Clip!A1");
+            Assert.Contains("Overflowing cell text should clip", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("...", svg, StringComparison.Ordinal);
+            Assert.Contains("clip-path=\"url(#xl-text-1-1)\"", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportResolvesThemeTintColorsAcrossSnapshotsAndRenderers() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
