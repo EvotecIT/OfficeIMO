@@ -298,7 +298,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportReportsUnsupportedChartCategoryAxisNumberFormat() {
+        public void ExcelRange_ImageExportCarriesSimpleChartCategoryAxisNumberFormatIntoSharedRenderer() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("ChartCategoryFormat");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "1");
+            sheet.CellValue(2, 2, 1200);
+            sheet.CellValue(3, 1, "2");
+            sheet.CellValue(3, 2, 1800);
+            sheet.CellValue(4, 1, "3");
+            sheet.CellValue(4, 2, 1600);
+            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 265, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Category Axis Format");
+            chart.SetCategoryAxisNumberFormat("0.0");
+
+            ExcelRange range = sheet.Range("A1:H9");
+            var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+            string svg = range.ToSvg(options);
+
+            Assert.Equal("0.0", visualChart.Snapshot.Layout!.CategoryAxisNumberFormat);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartCategoryAxisNumberFormatUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.Contains("1.0", svg, StringComparison.Ordinal);
+            Assert.Contains("2.0", svg, StringComparison.Ordinal);
+            Assert.Contains("3.0", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportReportsUnsupportedChartCategoryAxisDateNumberFormat() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorkSheet("ChartCategoryFormatDiag");
@@ -311,7 +343,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 1, "3");
             sheet.CellValue(4, 2, 1600);
             ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 265, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Category Axis Format Diagnostic");
-            chart.SetCategoryAxisNumberFormat("0");
+            chart.SetCategoryAxisNumberFormat("yyyy-mm-dd");
 
             OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
 

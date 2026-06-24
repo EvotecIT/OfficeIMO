@@ -167,6 +167,7 @@ namespace OfficeIMO.Excel {
             string? valueAxisTitle = GetAxisTitleText(valueAxis?.GetFirstChild<C.Title>());
             string? horizontalAxisNumberFormat = GetImageExportHorizontalAxisNumberFormat(plotArea, categoryAxis, valueAxis);
             string? verticalAxisNumberFormat = GetImageExportVerticalAxisNumberFormat(plotArea, categoryAxis, valueAxis);
+            string? categoryAxisNumberFormat = GetImageExportCategoryAxisNumberFormat(categoryAxis);
             (double? Divisor, string? Label) horizontalAxisDisplayUnit = GetImageExportHorizontalAxisDisplayUnit(plotArea, categoryAxis, valueAxis);
             (double? Divisor, string? Label) verticalAxisDisplayUnit = GetImageExportVerticalAxisDisplayUnit(plotArea, categoryAxis, valueAxis);
             (double? Minimum, double? Maximum, double? MajorUnit, double? MinorUnit) horizontalAxisScale = GetImageExportHorizontalAxisScale(plotArea, categoryAxis, valueAxis);
@@ -197,7 +198,7 @@ namespace OfficeIMO.Excel {
             bool showCategoryAxisLabels = IsImageExportAxisLabelsVisible(categoryAxis);
             bool showValueAxisLabels = IsImageExportAxisLabelsVisible(valueAxis);
             bool hasAxisLineVisibility = !showCategoryAxisLine || !showValueAxisLine;
-            bool hasAxisNumberFormat = horizontalAxisNumberFormat != null || verticalAxisNumberFormat != null;
+            bool hasAxisNumberFormat = horizontalAxisNumberFormat != null || verticalAxisNumberFormat != null || categoryAxisNumberFormat != null;
             bool hasAxisDisplayUnit = horizontalAxisDisplayUnit.Divisor != null || verticalAxisDisplayUnit.Divisor != null;
             bool hasAxisScale = horizontalAxisScale.Minimum != null ||
                 horizontalAxisScale.Maximum != null ||
@@ -279,6 +280,7 @@ namespace OfficeIMO.Excel {
                 valueAxisTitle: valueAxisTitle,
                 horizontalAxisNumberFormat: horizontalAxisNumberFormat,
                 verticalAxisNumberFormat: verticalAxisNumberFormat,
+                categoryAxisNumberFormat: categoryAxisNumberFormat,
                 horizontalAxisDisplayUnitDivisor: horizontalAxisDisplayUnit.Divisor,
                 horizontalAxisDisplayUnitLabel: horizontalAxisDisplayUnit.Label,
                 verticalAxisDisplayUnitDivisor: verticalAxisDisplayUnit.Divisor,

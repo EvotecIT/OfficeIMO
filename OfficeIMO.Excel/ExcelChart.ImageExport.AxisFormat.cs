@@ -25,6 +25,15 @@ namespace OfficeIMO.Excel {
             return categoryAxis is C.ValueAxis ? GetImageExportAxisNumberFormat(categoryAxis) : null;
         }
 
+        private static string? GetImageExportCategoryAxisNumberFormat(OpenXmlCompositeElement? categoryAxis) {
+            if (categoryAxis is not C.CategoryAxis && categoryAxis is not C.DateAxis) {
+                return null;
+            }
+
+            string? formatCode = GetImageExportAxisNumberFormat(categoryAxis);
+            return formatCode != null && IsSimpleSupportedImageExportAxisNumberFormat(formatCode) ? formatCode : null;
+        }
+
         private static (double? Divisor, string? Label) GetImageExportHorizontalAxisDisplayUnit(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
             (double? Divisor, string? Label) valueAxisDisplayUnit = GetImageExportAxisDisplayUnit(valueAxis);
             if (HasHorizontalBarChart(plotArea)) {
@@ -301,7 +310,7 @@ namespace OfficeIMO.Excel {
 
         private static bool HasUnsupportedImageExportCategoryAxisNumberFormat(OpenXmlCompositeElement axis) {
             string? formatCode = GetImageExportAxisNumberFormat(axis);
-            return formatCode != null && !string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase);
+            return formatCode != null && !IsSimpleSupportedImageExportAxisNumberFormat(formatCode);
         }
 
         private static bool IsSimpleSupportedImageExportAxisNumberFormat(string formatCode) {

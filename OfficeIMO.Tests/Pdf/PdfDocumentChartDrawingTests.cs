@@ -634,12 +634,14 @@ public class PdfDocumentChartDrawingTests {
             dataLabelNumberFormat: oversized,
             axisNumberFormat: oversized,
             horizontalAxisNumberFormat: oversized,
-            verticalAxisNumberFormat: oversized);
+            verticalAxisNumberFormat: oversized,
+            categoryAxisNumberFormat: oversized);
 
         Assert.Null(layout.DataLabelNumberFormat);
         Assert.Null(layout.AxisNumberFormat);
         Assert.Null(layout.HorizontalAxisNumberFormat);
         Assert.Null(layout.VerticalAxisNumberFormat);
+        Assert.Null(layout.CategoryAxisNumberFormat);
     }
 
     [Fact]

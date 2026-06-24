@@ -85,6 +85,7 @@ public sealed class OfficeChartLayout {
     /// <param name="verticalAxisMajorTickMark">Optional major tick mark placement for the vertical axis.</param>
     /// <param name="horizontalAxisMinorTickMark">Optional minor tick mark placement for the horizontal axis.</param>
     /// <param name="verticalAxisMinorTickMark">Optional minor tick mark placement for the vertical axis.</param>
+    /// <param name="categoryAxisNumberFormat">Optional numeric format for numeric category-axis labels.</param>
     public OfficeChartLayout(
         double? seriesLegendWidthRatio = null,
         double? categoryLegendWidthRatio = null,
@@ -155,7 +156,8 @@ public sealed class OfficeChartLayout {
         OfficeChartAxisTickMark horizontalAxisMajorTickMark = OfficeChartAxisTickMark.None,
         OfficeChartAxisTickMark verticalAxisMajorTickMark = OfficeChartAxisTickMark.None,
         OfficeChartAxisTickMark horizontalAxisMinorTickMark = OfficeChartAxisTickMark.None,
-        OfficeChartAxisTickMark verticalAxisMinorTickMark = OfficeChartAxisTickMark.None)
+        OfficeChartAxisTickMark verticalAxisMinorTickMark = OfficeChartAxisTickMark.None,
+        string? categoryAxisNumberFormat = null)
         : this(
             overlayLegend: false,
             seriesLegendWidthRatio: seriesLegendWidthRatio,
@@ -227,7 +229,8 @@ public sealed class OfficeChartLayout {
             horizontalAxisMajorTickMark: horizontalAxisMajorTickMark,
             verticalAxisMajorTickMark: verticalAxisMajorTickMark,
             horizontalAxisMinorTickMark: horizontalAxisMinorTickMark,
-            verticalAxisMinorTickMark: verticalAxisMinorTickMark) {
+            verticalAxisMinorTickMark: verticalAxisMinorTickMark,
+            categoryAxisNumberFormat: categoryAxisNumberFormat) {
     }
 
     /// <summary>
@@ -304,6 +307,7 @@ public sealed class OfficeChartLayout {
     /// <param name="verticalAxisMajorTickMark">Optional major tick mark placement for the vertical axis.</param>
     /// <param name="horizontalAxisMinorTickMark">Optional minor tick mark placement for the horizontal axis.</param>
     /// <param name="verticalAxisMinorTickMark">Optional minor tick mark placement for the vertical axis.</param>
+    /// <param name="categoryAxisNumberFormat">Optional numeric format for numeric category-axis labels.</param>
     public OfficeChartLayout(
         bool overlayLegend,
         double? seriesLegendWidthRatio = null,
@@ -375,7 +379,8 @@ public sealed class OfficeChartLayout {
         OfficeChartAxisTickMark horizontalAxisMajorTickMark = OfficeChartAxisTickMark.None,
         OfficeChartAxisTickMark verticalAxisMajorTickMark = OfficeChartAxisTickMark.None,
         OfficeChartAxisTickMark horizontalAxisMinorTickMark = OfficeChartAxisTickMark.None,
-        OfficeChartAxisTickMark verticalAxisMinorTickMark = OfficeChartAxisTickMark.None) {
+        OfficeChartAxisTickMark verticalAxisMinorTickMark = OfficeChartAxisTickMark.None,
+        string? categoryAxisNumberFormat = null) {
         SeriesLegendWidthRatio = ValidateRatio(seriesLegendWidthRatio ?? 0.34D, nameof(seriesLegendWidthRatio));
         CategoryLegendWidthRatio = ValidateRatio(categoryLegendWidthRatio ?? 0.38D, nameof(categoryLegendWidthRatio));
         LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
@@ -414,6 +419,7 @@ public sealed class OfficeChartLayout {
         AxisNumberFormat = NormalizeNumberFormat(axisNumberFormat);
         HorizontalAxisNumberFormat = string.IsNullOrWhiteSpace(horizontalAxisNumberFormat) ? AxisNumberFormat : NormalizeNumberFormat(horizontalAxisNumberFormat);
         VerticalAxisNumberFormat = string.IsNullOrWhiteSpace(verticalAxisNumberFormat) ? AxisNumberFormat : NormalizeNumberFormat(verticalAxisNumberFormat);
+        CategoryAxisNumberFormat = NormalizeNumberFormat(categoryAxisNumberFormat);
         HorizontalAxisDisplayUnitDivisor = horizontalAxisDisplayUnitDivisor.HasValue ? ValidatePositiveFinite(horizontalAxisDisplayUnitDivisor.Value, nameof(horizontalAxisDisplayUnitDivisor)) : null;
         HorizontalAxisDisplayUnitLabel = string.IsNullOrWhiteSpace(horizontalAxisDisplayUnitLabel) ? null : horizontalAxisDisplayUnitLabel;
         VerticalAxisDisplayUnitDivisor = verticalAxisDisplayUnitDivisor.HasValue ? ValidatePositiveFinite(verticalAxisDisplayUnitDivisor.Value, nameof(verticalAxisDisplayUnitDivisor)) : null;
@@ -577,6 +583,9 @@ public sealed class OfficeChartLayout {
 
     /// <summary>Optional numeric format for vertical value-axis labels.</summary>
     public string? VerticalAxisNumberFormat { get; }
+
+    /// <summary>Optional numeric format for numeric category-axis labels.</summary>
+    public string? CategoryAxisNumberFormat { get; }
 
     /// <summary>Optional divisor applied to horizontal value-axis labels.</summary>
     public double? HorizontalAxisDisplayUnitDivisor { get; }

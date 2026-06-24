@@ -324,7 +324,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         for (int i = 0; i < categories.Count; i += stride) {
-            string label = categories[i];
+            string label = FormatCategoryAxisLabel(categories[i], layout);
             if (string.IsNullOrWhiteSpace(label)) {
                 continue;
             }
@@ -347,7 +347,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         for (int i = 0; i < categories.Count; i += stride) {
-            string label = categories[i];
+            string label = FormatCategoryAxisLabel(categories[i], layout);
             if (string.IsNullOrWhiteSpace(label)) {
                 continue;
             }
@@ -520,6 +520,17 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         return displayValue.ToString("0.##", CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatCategoryAxisLabel(string label, OfficeChartLayout layout) {
+        if (string.IsNullOrWhiteSpace(layout.CategoryAxisNumberFormat)) {
+            return label;
+        }
+
+        return double.TryParse(label, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double value) &&
+            TryFormatDataLabelValue(value, layout.CategoryAxisNumberFormat, out string? formatted)
+            ? formatted!
+            : label;
     }
 
     private static string FormatDataLabel(OfficeChartLayout layout, string category, OfficeChartSeries series, double value, double total) {

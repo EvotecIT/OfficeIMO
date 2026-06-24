@@ -51,4 +51,28 @@ public class DrawingChartAxisLayoutTests {
         Assert.True(valueAxisLabel.X >= 0D);
         Assert.True(valueAxisLabel.X + valueAxisLabel.Width <= drawing.Width);
     }
+
+    [Fact]
+    public void OfficeChartDrawingRenderer_AppliesCategoryAxisNumberFormatToNumericLabels() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Formatted categories",
+            "Formatted Categories",
+            OfficeChartKind.BarClustered,
+            new OfficeChartData(
+                new[] { "1", "2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 12D, 18D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(categoryAxisNumberFormat: "0.0")));
+
+        string[] labels = drawing.Elements
+            .OfType<OfficeDrawingText>()
+            .Select(label => label.Text)
+            .ToArray();
+
+        Assert.Contains("1.0", labels);
+        Assert.Contains("2.0", labels);
+    }
 }
