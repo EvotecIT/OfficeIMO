@@ -8,6 +8,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             string topLeftModeName,
             ushort bottomRightMode,
             string bottomRightModeName,
+            string semanticTypeName,
+            string x1Y1MeaningName,
+            string x2Y2MeaningName,
+            string ignoredCoordinateStateName,
+            bool hasKnownSemanticCombination,
             short x1,
             short y1,
             short x2,
@@ -16,6 +21,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             TopLeftModeName = topLeftModeName ?? throw new ArgumentNullException(nameof(topLeftModeName));
             BottomRightMode = bottomRightMode;
             BottomRightModeName = bottomRightModeName ?? throw new ArgumentNullException(nameof(bottomRightModeName));
+            SemanticTypeName = semanticTypeName ?? throw new ArgumentNullException(nameof(semanticTypeName));
+            X1Y1MeaningName = x1Y1MeaningName ?? throw new ArgumentNullException(nameof(x1Y1MeaningName));
+            X2Y2MeaningName = x2Y2MeaningName ?? throw new ArgumentNullException(nameof(x2Y2MeaningName));
+            IgnoredCoordinateStateName = ignoredCoordinateStateName ?? throw new ArgumentNullException(nameof(ignoredCoordinateStateName));
+            HasKnownSemanticCombination = hasKnownSemanticCombination;
             X1 = x1;
             Y1 = y1;
             X2 = x2;
@@ -33,6 +43,21 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the decoded lower-right position mode name.</summary>
         public string BottomRightModeName { get; }
+
+        /// <summary>Gets the semantic object type implied by the position mode pair.</summary>
+        public string SemanticTypeName { get; }
+
+        /// <summary>Gets the semantic meaning of the first X and Y coordinates.</summary>
+        public string X1Y1MeaningName { get; }
+
+        /// <summary>Gets the semantic meaning of the second X and Y coordinates.</summary>
+        public string X2Y2MeaningName { get; }
+
+        /// <summary>Gets which coordinate group is ignored or context-dependent.</summary>
+        public string IgnoredCoordinateStateName { get; }
+
+        /// <summary>Gets a value indicating whether the mode pair is a known Pos semantic combination.</summary>
+        public bool HasKnownSemanticCombination { get; }
 
         /// <summary>Gets the first X coordinate or offset.</summary>
         public short X1 { get; }

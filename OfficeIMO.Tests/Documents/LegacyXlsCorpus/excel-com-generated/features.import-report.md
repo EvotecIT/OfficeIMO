@@ -974,6 +974,60 @@ Warnings: 0
 | Units | 2 |
 | ValueRange | 1 |
 
+## Chart Records By Name And Payload Length
+
+| Key | Count |
+| --- | --- |
+| AreaFormat\|Bytes:16 | 5 |
+| AttachedLabel\|Bytes:16 | 1 |
+| AxcExt\|Bytes:18 | 1 |
+| AxesUsed\|Bytes:2 | 1 |
+| AxisLineFormat\|Bytes:2 | 3 |
+| Axis\|Bytes:18 | 2 |
+| Bar\|Bytes:6 | 1 |
+| Begin\|Bytes:0 | 16 |
+| CatLab\|Bytes:12 | 1 |
+| CatSerRange\|Bytes:8 | 1 |
+| Chart3DBarShape\|Bytes:2 | 1 |
+| ChartFormatLink\|Bytes:10 | 1 |
+| ChartFormat\|Bytes:20 | 1 |
+| ChartFrtInfo\|Bytes:24 | 1 |
+| Chart\|Bytes:16 | 1 |
+| CrtLayout12\|Bytes:60 | 2 |
+| CrtMlFrt\|Bytes:24 | 1 |
+| CrtMlFrt\|Bytes:30 | 4 |
+| CrtMlFrt\|Bytes:40 | 1 |
+| CrtMlFrt\|Bytes:42 | 1 |
+| DataFormat\|Bytes:8 | 1 |
+| DefaultText\|Bytes:2 | 2 |
+| EndBlock\|Bytes:12 | 14 |
+| End\|Bytes:0 | 16 |
+| FontX\|Bytes:2 | 6 |
+| Frame\|Bytes:4 | 4 |
+| GelFrame\|Bytes:262 | 1 |
+| Ifmt\|Bytes:20 | 6 |
+| Legend\|Bytes:20 | 1 |
+| LineFormat\|Bytes:12 | 8 |
+| MarkerFormat\|Bytes:20 | 1 |
+| ObjectLink\|Bytes:6 | 1 |
+| PieFormat\|Bytes:2 | 1 |
+| PlotArea\|Bytes:0 | 1 |
+| PlotGrowth\|Bytes:8 | 1 |
+| Pos\|Bytes:15 | 1 |
+| Pos\|Bytes:19 | 2 |
+| Pos\|Bytes:8 | 5 |
+| SBaseRef\|Bytes:2 | 1 |
+| Series\|Bytes:12 | 1 |
+| SerToCrt\|Bytes:4 | 1 |
+| ShtProps\|Bytes:18 | 1 |
+| SIIndex\|Bytes:2 | 3 |
+| StartBlock\|Bytes:12 | 14 |
+| Text\|Bytes:32 | 4 |
+| Tick\|Bytes:30 | 2 |
+| Units\|Bytes:2 | 1 |
+| Units\|Bytes:68 | 1 |
+| ValueRange\|Bytes:42 | 1 |
+
 ## Chart Workbook States
 
 | Key | Count |

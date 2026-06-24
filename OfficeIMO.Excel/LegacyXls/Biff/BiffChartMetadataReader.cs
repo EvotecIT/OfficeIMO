@@ -354,6 +354,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 GetPositionModeName(topLeftMode),
                 bottomRightMode,
                 GetPositionModeName(bottomRightMode),
+                GetPositionSemanticTypeName(topLeftMode, bottomRightMode),
+                GetPositionX1Y1MeaningName(topLeftMode, bottomRightMode),
+                GetPositionX2Y2MeaningName(topLeftMode, bottomRightMode),
+                GetPositionIgnoredCoordinateStateName(topLeftMode, bottomRightMode),
+                IsKnownPositionSemanticCombination(topLeftMode, bottomRightMode),
                 BiffRecordReader.ReadInt16(record.Payload, 4),
                 BiffRecordReader.ReadInt16(record.Payload, 8),
                 BiffRecordReader.ReadInt16(record.Payload, 12),
@@ -622,6 +627,86 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 default:
                     return $"Unknown:0x{mode:X4}";
             }
+        }
+
+        private static string GetPositionSemanticTypeName(ushort topLeftMode, ushort bottomRightMode) {
+            if (topLeftMode == 0x0002 && bottomRightMode == 0x0002) {
+                return "PlotAreaOrAttachedLabel";
+            }
+
+            if (topLeftMode == 0x0005 && bottomRightMode == 0x0001) {
+                return "LegendManualSize";
+            }
+
+            if (topLeftMode == 0x0005 && bottomRightMode == 0x0002) {
+                return "LegendApplicationSize";
+            }
+
+            if (topLeftMode == 0x0003 && bottomRightMode == 0x0002) {
+                return "LegendInDataTable";
+            }
+
+            return "Unknown";
+        }
+
+        private static string GetPositionX1Y1MeaningName(ushort topLeftMode, ushort bottomRightMode) {
+            if (topLeftMode == 0x0002 && bottomRightMode == 0x0002) {
+                return "ChartAreaSprcOffsetOrAttachedLabelOffset";
+            }
+
+            if (topLeftMode == 0x0005 && (bottomRightMode == 0x0001 || bottomRightMode == 0x0002)) {
+                return "ChartAreaSprcOffset";
+            }
+
+            if (topLeftMode == 0x0003 && bottomRightMode == 0x0002) {
+                return "Ignored";
+            }
+
+            return "Unknown";
+        }
+
+        private static string GetPositionX2Y2MeaningName(ushort topLeftMode, ushort bottomRightMode) {
+            if (topLeftMode == 0x0002 && bottomRightMode == 0x0002) {
+                return "SprcSizeOrIgnored";
+            }
+
+            if (topLeftMode == 0x0005 && bottomRightMode == 0x0001) {
+                return "PointSize";
+            }
+
+            if ((topLeftMode == 0x0005 && bottomRightMode == 0x0002)
+                || (topLeftMode == 0x0003 && bottomRightMode == 0x0002)) {
+                return "Ignored";
+            }
+
+            return "Unknown";
+        }
+
+        private static string GetPositionIgnoredCoordinateStateName(ushort topLeftMode, ushort bottomRightMode) {
+            if (topLeftMode == 0x0002 && bottomRightMode == 0x0002) {
+                return "ContextDependentX2Y2";
+            }
+
+            if (topLeftMode == 0x0005 && bottomRightMode == 0x0001) {
+                return "None";
+            }
+
+            if (topLeftMode == 0x0005 && bottomRightMode == 0x0002) {
+                return "X2Y2";
+            }
+
+            if (topLeftMode == 0x0003 && bottomRightMode == 0x0002) {
+                return "All";
+            }
+
+            return "Unknown";
+        }
+
+        private static bool IsKnownPositionSemanticCombination(ushort topLeftMode, ushort bottomRightMode) {
+            return (topLeftMode == 0x0002 && bottomRightMode == 0x0002)
+                || (topLeftMode == 0x0005 && bottomRightMode == 0x0001)
+                || (topLeftMode == 0x0005 && bottomRightMode == 0x0002)
+                || (topLeftMode == 0x0003 && bottomRightMode == 0x0002);
         }
 
         private static string GetFrameTypeName(ushort frameType) {

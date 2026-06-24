@@ -984,6 +984,53 @@ Warnings: 0
 | Units | 8 |
 | ValueRange | 16 |
 
+## Chart Records By Name And Payload Length
+
+| Key | Count |
+| --- | --- |
+| AreaFormat\|Bytes:16 | 66 |
+| AttachedLabel\|Bytes:14 | 6 |
+| AttachedLabel\|Bytes:16 | 6 |
+| AttachedLabel\|Bytes:20 | 22 |
+| AttachedLabel\|Bytes:24 | 6 |
+| AttachedLabel\|Bytes:74 | 8 |
+| AttachedLabel\|Bytes:76 | 8 |
+| AxesUsed\|Bytes:2 | 40 |
+| Axis\|Bytes:18 | 16 |
+| Begin\|Bytes:0 | 194 |
+| Chart3DBarShape\|Bytes:2 | 56 |
+| ChartFormatLink\|Bytes:10 | 8 |
+| ChartFormat\|Bytes:20 | 8 |
+| Chart\|Bytes:16 | 8 |
+| ClrtClient\|Bytes:14 | 1 |
+| DataFormat\|Bytes:8 | 56 |
+| DefaultText\|Bytes:2 | 16 |
+| End\|Bytes:0 | 194 |
+| Fbi\|Bytes:10 | 22 |
+| FontX\|Bytes:2 | 18 |
+| Frame\|Bytes:4 | 10 |
+| Ifmt\|Bytes:20 | 56 |
+| Legend\|Bytes:20 | 8 |
+| LineFormat\|Bytes:12 | 66 |
+| MarkerFormat\|Bytes:20 | 56 |
+| ObjectLink\|Bytes:6 | 16 |
+| PieFormat\|Bytes:2 | 56 |
+| PlotArea\|Bytes:0 | 8 |
+| PlotGrowth\|Bytes:8 | 8 |
+| Pos\|Bytes:15 | 40 |
+| Pos\|Bytes:19 | 80 |
+| Pos\|Bytes:8 | 80 |
+| SBaseRef\|Bytes:2 | 8 |
+| Scatter\|Bytes:6 | 8 |
+| Series\|Bytes:12 | 40 |
+| SerToCrt\|Bytes:4 | 8 |
+| ShtProps\|Bytes:18 | 8 |
+| SIIndex\|Bytes:2 | 24 |
+| Text\|Bytes:32 | 40 |
+| Tick\|Bytes:30 | 16 |
+| Units\|Bytes:2 | 8 |
+| ValueRange\|Bytes:42 | 16 |
+
 ## Chart Workbook States
 
 | Key | Count |

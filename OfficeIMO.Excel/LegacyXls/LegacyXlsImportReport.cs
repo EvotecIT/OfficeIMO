@@ -511,6 +511,8 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(record => $"{GetPivotTableAdditionalClassTypeKey(record)}|{record.AdditionalClassTransition}"));
             ChartRecordsByKind = CountChartRecordsByKind(workbook.ChartRecords);
             ChartRecordsByName = CountByCode(workbook.ChartRecords.Select(record => record.RecordName));
+            ChartRecordsByNameAndPayloadLength = CountByCode(workbook.ChartRecords
+                .Select(record => $"{record.RecordName}|Bytes:{record.PayloadLength}"));
             ChartWorkbookStates = CountByCode(GetChartWorkbookStateKeys(workbook.ChartRecords, workbook.UnsupportedSheets));
             ChartRecordsByContainerDepthBefore = CountByCode(workbook.ChartRecords
                 .Where(record => record.ContainerDepthBefore.HasValue)
@@ -669,6 +671,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartPositionRectangles = CountByCode(workbook.ChartRecords
                 .Where(record => record.Position != null)
                 .Select(record => $"X1:{record.Position!.X1};Y1:{record.Position.Y1};X2:{record.Position.X2};Y2:{record.Position.Y2}"));
+            ChartPositionSemanticTypes = CountByCode(workbook.ChartRecords
+                .Where(record => record.Position != null)
+                .Select(record => record.Position!.SemanticTypeName));
+            ChartPositionCoordinateMeanings = CountByCode(workbook.ChartRecords
+                .Where(record => record.Position != null)
+                .Select(record => $"X1Y1:{record.Position!.X1Y1MeaningName};X2Y2:{record.Position.X2Y2MeaningName}"));
+            ChartPositionIgnoredCoordinateStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.Position != null)
+                .Select(record => record.Position!.IgnoredCoordinateStateName));
+            ChartPositionKnownSemanticStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.Position != null)
+                .Select(record => $"Known:{record.Position!.HasKnownSemanticCombination}"));
             ChartFrameTypes = CountByCode(workbook.ChartRecords
                 .Where(record => record.Frame != null)
                 .Select(record => record.Frame!.FrameTypeName));
@@ -1774,6 +1788,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets preserve-only chart BIFF records grouped by record name.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByName { get; }
 
+        /// <summary>Gets preserve-only chart BIFF records grouped by record name and payload length.</summary>
+        public IReadOnlyDictionary<string, int> ChartRecordsByNameAndPayloadLength { get; }
+
         /// <summary>Gets workbook-level chart model-shape states derived from preserve-only chart BIFF records.</summary>
         public IReadOnlyDictionary<string, int> ChartWorkbookStates { get; }
 
@@ -1932,6 +1949,18 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets Pos records grouped by decoded coordinate and size fields.</summary>
         public IReadOnlyDictionary<string, int> ChartPositionRectangles { get; }
+
+        /// <summary>Gets Pos records grouped by semantic object type inferred from position modes.</summary>
+        public IReadOnlyDictionary<string, int> ChartPositionSemanticTypes { get; }
+
+        /// <summary>Gets Pos records grouped by decoded coordinate meaning.</summary>
+        public IReadOnlyDictionary<string, int> ChartPositionCoordinateMeanings { get; }
+
+        /// <summary>Gets Pos records grouped by ignored coordinate state.</summary>
+        public IReadOnlyDictionary<string, int> ChartPositionIgnoredCoordinateStates { get; }
+
+        /// <summary>Gets Pos records grouped by whether the position mode pair is a known semantic combination.</summary>
+        public IReadOnlyDictionary<string, int> ChartPositionKnownSemanticStates { get; }
 
         /// <summary>Gets Frame records grouped by decoded frame type.</summary>
         public IReadOnlyDictionary<string, int> ChartFrameTypes { get; }
@@ -2557,6 +2586,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Chart Records By Name", ChartRecordsByName);
+            AppendDictionary(builder, "Chart Records By Name And Payload Length", ChartRecordsByNameAndPayloadLength);
             AppendDictionary(builder, "Chart Workbook States", ChartWorkbookStates);
             AppendDictionary(builder, "Chart Records By Container Depth Before", ChartRecordsByContainerDepthBefore);
             AppendDictionary(builder, "Chart Records By Container Depth After", ChartRecordsByContainerDepthAfter);
@@ -2610,6 +2640,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart ValueRange States", ChartValueRangeStates);
             AppendDictionary(builder, "Chart Position Mode Pairs", ChartPositionModePairs);
             AppendDictionary(builder, "Chart Position Rectangles", ChartPositionRectangles);
+            AppendDictionary(builder, "Chart Position Semantic Types", ChartPositionSemanticTypes);
+            AppendDictionary(builder, "Chart Position Coordinate Meanings", ChartPositionCoordinateMeanings);
+            AppendDictionary(builder, "Chart Position Ignored Coordinate States", ChartPositionIgnoredCoordinateStates);
+            AppendDictionary(builder, "Chart Position Known Semantic States", ChartPositionKnownSemanticStates);
             AppendDictionary(builder, "Chart Frame Types", ChartFrameTypes);
             AppendDictionary(builder, "Chart Frame Auto States", ChartFrameAutoStates);
             AppendDictionary(builder, "Chart PlotGrowth Factors", ChartPlotGrowthFactors);

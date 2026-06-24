@@ -347,9 +347,8 @@ namespace OfficeIMO.Tests {
             Assert.True(report.FormulaTokenRecordCount > 0);
             Assert.Contains("PtgFunc", report.FormulaTokensByName.Keys);
             Assert.Contains("PtgFuncVar", report.FormulaTokensByName.Keys);
-            Assert.Contains("Value", report.FormulaTokensByClass.Keys);
             Assert.Contains("Reference", report.FormulaTokensByClass.Keys);
-            Assert.Contains("PtgFunc|Value", report.FormulaTokensByNameAndClass.Keys);
+            Assert.Contains("PtgFunc|Reference", report.FormulaTokensByNameAndClass.Keys);
             Assert.Contains("PtgFuncVar|Reference", report.FormulaTokensByNameAndClass.Keys);
             Assert.Contains("PtgFunc|Bytes:2", report.FormulaTokensByOperandByteCount.Keys);
             Assert.Contains("PtgFuncVar|Bytes:3", report.FormulaTokensByOperandByteCount.Keys);
@@ -366,7 +365,7 @@ namespace OfficeIMO.Tests {
                 && record.CellReference == "A8"
                 && record.TokenName == "PtgFunc"
                 && record.FunctionName == "COUNTIF"
-                && record.TokenClassName == "Value"
+                && record.TokenClassName == "Reference"
                 && record.OperandByteCount == 2
                 && record.FunctionParameterCount == 2);
 
