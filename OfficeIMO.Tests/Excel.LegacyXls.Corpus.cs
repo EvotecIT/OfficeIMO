@@ -9,45 +9,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_Corpus_Fixtures_MatchApprovedImportReports() {
             string corpusDirectory = Path.Combine(GetTestsProjectRoot(), "Documents", "LegacyXlsCorpus");
-            if (!Directory.Exists(corpusDirectory)) {
-                return;
-            }
+            AssertLegacyXlsCorpusBaselines(corpusDirectory);
+        }
 
-            string[] workbookPaths = Directory.GetFiles(corpusDirectory, "*.xls", SearchOption.AllDirectories)
-                .Where(path => !Path.GetFileName(path).StartsWith("~$", StringComparison.Ordinal))
-                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-            if (workbookPaths.Length == 0) {
-                return;
-            }
-
-            bool updateBaselines = IsLegacyXlsCorpusBaselineUpdateRequested();
-            var missingBaselines = new List<string>();
-            foreach (string workbookPath in workbookPaths) {
-                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                    ReportUnsupportedRecords = true
-                });
-                string actual = NormalizeBaselineText(result.ImportReport.ToMarkdown());
-                string baselinePath = Path.ChangeExtension(workbookPath, ".import-report.md");
-
-                if (updateBaselines) {
-                    File.WriteAllText(baselinePath, actual, Encoding.UTF8);
-                    continue;
-                }
-
-                if (!File.Exists(baselinePath)) {
-                    missingBaselines.Add(GetRelativePath(corpusDirectory, baselinePath));
-                    continue;
-                }
-
-                string expected = NormalizeBaselineText(File.ReadAllText(baselinePath, Encoding.UTF8));
-                Assert.Equal(expected, actual);
-            }
-
-            Assert.True(
-                missingBaselines.Count == 0,
-                "Missing legacy XLS corpus baselines. Run with OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES=1 to create: "
-                    + string.Join(", ", missingBaselines));
+        [Fact]
+        public void LegacyXls_DiagnosticCorpus_Fixtures_MatchApprovedImportReports() {
+            string corpusDirectory = Path.Combine(GetTestsProjectRoot(), "Documents", "LegacyXlsDiagnosticCorpus");
+            AssertLegacyXlsCorpusBaselines(corpusDirectory);
         }
 
         [Fact]
@@ -225,10 +193,80 @@ namespace OfficeIMO.Tests {
             Assert.True(formulaFormat.FormulaHidden);
         }
 
+        [Fact]
+        public void LegacyXls_DiagnosticCorpus_EncryptedWorkbook_ReportsFilePassBlocker() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsDiagnosticCorpus",
+                "excel-com-generated",
+                "encrypted-password.xls");
+
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Empty(workbook.Worksheets);
+            Assert.Contains(workbook.Diagnostics, diagnostic =>
+                diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
+                && diagnostic.Code == "XLS-BIFF-FILEPASS-UNSUPPORTED"
+                && diagnostic.DetailCode == "Encryption:FilePass:Rc4");
+            LegacyXlsUnsupportedFeature feature = Assert.Single(workbook.UnsupportedFeatures);
+            Assert.Equal(LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook, feature.Kind);
+            Assert.Equal("XLS-BIFF-FILEPASS-UNSUPPORTED", feature.Code);
+            Assert.True(report.HasImportErrors);
+            Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook]);
+            Assert.Equal(1, report.EncryptedWorkbooksByMethod["Rc4"]);
+            Assert.Equal(1, report.FileFormatBlockers["EncryptedWorkbook|Encryption:FilePass:Rc4"]);
+        }
+
         private static bool IsLegacyXlsCorpusBaselineUpdateRequested() {
             string? value = Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES");
             return string.Equals(value, "1", StringComparison.Ordinal)
                 || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void AssertLegacyXlsCorpusBaselines(string corpusDirectory) {
+            if (!Directory.Exists(corpusDirectory)) {
+                return;
+            }
+
+            string[] workbookPaths = Directory.GetFiles(corpusDirectory, "*.xls", SearchOption.AllDirectories)
+                .Where(path => !Path.GetFileName(path).StartsWith("~$", StringComparison.Ordinal))
+                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (workbookPaths.Length == 0) {
+                return;
+            }
+
+            bool updateBaselines = IsLegacyXlsCorpusBaselineUpdateRequested();
+            var missingBaselines = new List<string>();
+            foreach (string workbookPath in workbookPaths) {
+                LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookPath, new LegacyXlsImportOptions {
+                    ReportUnsupportedRecords = true
+                });
+                string actual = NormalizeBaselineText(workbook.CreateImportReport().ToMarkdown());
+                string baselinePath = Path.ChangeExtension(workbookPath, ".import-report.md");
+
+                if (updateBaselines) {
+                    File.WriteAllText(baselinePath, actual, Encoding.UTF8);
+                    continue;
+                }
+
+                if (!File.Exists(baselinePath)) {
+                    missingBaselines.Add(GetRelativePath(corpusDirectory, baselinePath));
+                    continue;
+                }
+
+                string expected = NormalizeBaselineText(File.ReadAllText(baselinePath, Encoding.UTF8));
+                Assert.Equal(expected, actual);
+            }
+
+            Assert.True(
+                missingBaselines.Count == 0,
+                "Missing legacy XLS corpus baselines. Run with OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES=1 to create: "
+                    + string.Join(", ", missingBaselines));
         }
 
         private static string NormalizeBaselineText(string text) {

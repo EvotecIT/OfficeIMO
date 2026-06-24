@@ -244,7 +244,10 @@ features, PivotTables, chart sheets, embedded charts, drawing objects, embedded
 pictures, form controls, supported formula token combinations, protection
 metadata, and same-folder external workbook references with cached external cell
 values, with approved import-report baselines and optional desktop Excel
-open/import/open validation.
+open/import/open validation. A separate `LegacyXlsDiagnosticCorpus` now keeps
+expected-error fixtures, starting with an Excel-authored password-to-open BIFF8
+workbook that proves `FilePass` encryption is reported as an explicit hard
+file-format blocker without mixing those files into the normal import corpus.
 
 ## Non-Goals For The Initial Work
 

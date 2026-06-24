@@ -19,6 +19,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES
 Keep fixtures focused and document their source or generator in a short note next
 to the workbook when possible. Do not include sensitive customer data.
 
+Fixtures that are expected to produce import errors or hard file-format blockers
+belong in the sibling `LegacyXlsDiagnosticCorpus` folder instead of this normal
+open/import/open corpus.
+
 ## Optional Desktop Excel Validation
 
 When Microsoft Excel is installed on Windows, run the opt-in COM lane to generate
