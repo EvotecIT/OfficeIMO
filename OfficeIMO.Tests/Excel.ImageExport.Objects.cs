@@ -516,12 +516,57 @@ namespace OfficeIMO.Tests {
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.True(drawingObject.TextWrap);
+                Assert.Equal(10D, drawingObject.TextInsetLeft);
+                Assert.Equal(5D, drawingObject.TextInsetTop);
+                Assert.Equal(10D, drawingObject.TextInsetRight);
+                Assert.Equal(5D, drawingObject.TextInsetBottom);
                 Assert.Contains("Alpha", svgText, StringComparison.Ordinal);
                 Assert.Contains("epsilon", svgText, StringComparison.Ordinal);
                 Assert.True(CountOccurrences(svgText, "<text") >= 2);
                 Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
                 Assert.NotNull(rendered);
                 Assert.True(CountDarkPixels(rendered!) > 0);
+            }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportHonorsDrawingShapeTextInsetsThroughSharedDrawing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("TextInsets");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Inset label",
+                "Inset label",
+                fillHex: "F8FAFC",
+                strokeHex: "475569",
+                paragraphAlignment: A.TextAlignmentTypeValues.Left,
+                verticalAlignment: A.TextAnchoringTypeValues.Top,
+                textColorHex: "111827",
+                textFontSize: 12D,
+                textInsetLeftEmu: 0,
+                textInsetTopEmu: 0,
+                textInsetRightEmu: 0,
+                textInsetBottomEmu: 0);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:D4");
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+                string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.Equal(0D, drawingObject.TextInsetLeft);
+                Assert.Equal(0D, drawingObject.TextInsetTop);
+                Assert.Equal(0D, drawingObject.TextInsetRight);
+                Assert.Equal(0D, drawingObject.TextInsetBottom);
+                Assert.Contains("Inset label", svgText, StringComparison.Ordinal);
+                Assert.Contains("x=\"0\"", svgText, StringComparison.Ordinal);
             }
         }
 
@@ -621,7 +666,11 @@ namespace OfficeIMO.Tests {
             bool textBold = false,
             bool textItalic = false,
             bool textUnderline = false,
-            bool textWrap = false) {
+            bool textWrap = false,
+            int? textInsetLeftEmu = null,
+            int? textInsetTopEmu = null,
+            int? textInsetRightEmu = null,
+            int? textInsetBottomEmu = null) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
             WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
@@ -631,7 +680,7 @@ namespace OfficeIMO.Tests {
 
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
-                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap));
+                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
@@ -682,7 +731,11 @@ namespace OfficeIMO.Tests {
             bool textBold = false,
             bool textItalic = false,
             bool textUnderline = false,
-            bool textWrap = false) {
+            bool textWrap = false,
+            int? textInsetLeftEmu = null,
+            int? textInsetTopEmu = null,
+            int? textInsetRightEmu = null,
+            int? textInsetBottomEmu = null) {
             var transform = new A.Transform2D {
                 HorizontalFlip = horizontalFlip,
                 VerticalFlip = verticalFlip
@@ -698,6 +751,22 @@ namespace OfficeIMO.Tests {
 
             if (textWrap) {
                 bodyProperties.Wrap = A.TextWrappingValues.Square;
+            }
+
+            if (textInsetLeftEmu.HasValue) {
+                bodyProperties.LeftInset = textInsetLeftEmu.Value;
+            }
+
+            if (textInsetTopEmu.HasValue) {
+                bodyProperties.TopInset = textInsetTopEmu.Value;
+            }
+
+            if (textInsetRightEmu.HasValue) {
+                bodyProperties.RightInset = textInsetRightEmu.Value;
+            }
+
+            if (textInsetBottomEmu.HasValue) {
+                bodyProperties.BottomInset = textInsetBottomEmu.Value;
             }
 
             var paragraph = new A.Paragraph();

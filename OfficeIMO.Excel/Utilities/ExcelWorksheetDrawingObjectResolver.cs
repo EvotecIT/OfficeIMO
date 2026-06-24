@@ -8,6 +8,8 @@ using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 namespace OfficeIMO.Excel.Utilities {
     internal static class ExcelWorksheetDrawingObjectResolver {
         private const double EmusPerPixel = 9525D;
+        private const long DefaultLeftRightTextInsetEmu = 91440L;
+        private const long DefaultTopBottomTextInsetEmu = 45720L;
 
         internal static IReadOnlyList<ExcelWorksheetDrawingObjectInfo> FindDrawingObjects(WorksheetPart worksheetPart) {
             if (worksheetPart == null) {
@@ -65,6 +67,7 @@ namespace OfficeIMO.Excel.Utilities {
             A.BodyProperties? bodyProperties = shape.TextBody?.GetFirstChild<A.BodyProperties>();
             OfficeTextVerticalAlignment textVerticalAlignment = ResolveTextVerticalAlignment(bodyProperties);
             bool textWrap = ResolveTextWrap(bodyProperties);
+            DrawingTextInsets textInsets = ResolveTextInsets(bodyProperties);
             DrawingTextStyle textStyle = ResolveTextStyle(shape.TextBody);
 
             return new ExcelWorksheetDrawingObjectInfo(
@@ -97,6 +100,10 @@ namespace OfficeIMO.Excel.Utilities {
                 textStyle.FontSize,
                 textStyle.FontStyle,
                 textWrap,
+                textInsets.Left,
+                textInsets.Top,
+                textInsets.Right,
+                textInsets.Bottom,
                 unsupportedReason: null);
         }
 
@@ -133,6 +140,10 @@ namespace OfficeIMO.Excel.Utilities {
                 textFontSize: null,
                 textFontStyle: OfficeFontStyle.Regular,
                 textWrap: false,
+                textInsetLeft: 0D,
+                textInsetTop: 0D,
+                textInsetRight: 0D,
+                textInsetBottom: 0D,
                 unsupportedReason: unsupportedReason);
         }
 
@@ -172,6 +183,18 @@ namespace OfficeIMO.Excel.Utilities {
 
             A.TextWrappingValues? wrap = bodyProperties.Wrap?.Value;
             return wrap != A.TextWrappingValues.None;
+        }
+
+        private static DrawingTextInsets ResolveTextInsets(A.BodyProperties? bodyProperties) {
+            if (bodyProperties == null) {
+                return DrawingTextInsets.None;
+            }
+
+            return new DrawingTextInsets(
+                ParseEmuPixels(bodyProperties.LeftInset?.Value ?? DefaultLeftRightTextInsetEmu),
+                ParseEmuPixels(bodyProperties.TopInset?.Value ?? DefaultTopBottomTextInsetEmu),
+                ParseEmuPixels(bodyProperties.RightInset?.Value ?? DefaultLeftRightTextInsetEmu),
+                ParseEmuPixels(bodyProperties.BottomInset?.Value ?? DefaultTopBottomTextInsetEmu));
         }
 
         private static DrawingTextStyle ResolveTextStyle(Xdr.TextBody? textBody) {
@@ -439,6 +462,25 @@ namespace OfficeIMO.Excel.Utilities {
 
             internal OfficeFontStyle FontStyle { get; }
         }
+
+        private readonly struct DrawingTextInsets {
+            internal static DrawingTextInsets None { get; } = new DrawingTextInsets(0D, 0D, 0D, 0D);
+
+            internal DrawingTextInsets(double left, double top, double right, double bottom) {
+                Left = left;
+                Top = top;
+                Right = right;
+                Bottom = bottom;
+            }
+
+            internal double Left { get; }
+
+            internal double Top { get; }
+
+            internal double Right { get; }
+
+            internal double Bottom { get; }
+        }
     }
 
     internal sealed class ExcelWorksheetDrawingObjectInfo {
@@ -472,6 +514,10 @@ namespace OfficeIMO.Excel.Utilities {
             double? textFontSize,
             OfficeFontStyle textFontStyle,
             bool textWrap,
+            double textInsetLeft,
+            double textInsetTop,
+            double textInsetRight,
+            double textInsetBottom,
             string? unsupportedReason) {
             Name = name ?? string.Empty;
             Kind = kind ?? string.Empty;
@@ -502,6 +548,10 @@ namespace OfficeIMO.Excel.Utilities {
             TextFontSize = textFontSize;
             TextFontStyle = textFontStyle;
             TextWrap = textWrap;
+            TextInsetLeft = textInsetLeft;
+            TextInsetTop = textInsetTop;
+            TextInsetRight = textInsetRight;
+            TextInsetBottom = textInsetBottom;
             UnsupportedReason = unsupportedReason;
         }
 
@@ -562,6 +612,14 @@ namespace OfficeIMO.Excel.Utilities {
         internal OfficeFontStyle TextFontStyle { get; }
 
         internal bool TextWrap { get; }
+
+        internal double TextInsetLeft { get; }
+
+        internal double TextInsetTop { get; }
+
+        internal double TextInsetRight { get; }
+
+        internal double TextInsetBottom { get; }
 
         internal string? UnsupportedReason { get; }
 

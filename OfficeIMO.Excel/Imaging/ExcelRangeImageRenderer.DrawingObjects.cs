@@ -62,14 +62,17 @@ namespace OfficeIMO.Excel {
             drawing.AddShape(shape, offsetX, offsetY);
 
             if (!string.IsNullOrWhiteSpace(drawingObject.Text)) {
-                double padding = Math.Min(8D * scale, Math.Max(2D, Math.Min(width, height) / 8D));
-                double textWidth = Math.Max(1D, width - (padding * 2D));
-                double textHeight = Math.Max(1D, height - (padding * 2D));
+                double insetLeft = Math.Max(0D, drawingObject.TextInsetLeft * scale);
+                double insetTop = Math.Max(0D, drawingObject.TextInsetTop * scale);
+                double insetRight = Math.Max(0D, drawingObject.TextInsetRight * scale);
+                double insetBottom = Math.Max(0D, drawingObject.TextInsetBottom * scale);
+                double textWidth = Math.Max(1D, width - insetLeft - insetRight);
+                double textHeight = Math.Max(1D, height - insetTop - insetBottom);
                 OfficeFontInfo font = ResolveDrawingTextFont(drawingObject, scale, textHeight);
                 drawing.AddText(
                     drawingObject.Text,
-                    offsetX + padding,
-                    offsetY + padding,
+                    offsetX + insetLeft,
+                    offsetY + insetTop,
                     textWidth,
                     textHeight,
                     font,

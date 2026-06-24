@@ -316,6 +316,10 @@ namespace OfficeIMO.Excel {
                     drawing.TextFontSize,
                     drawing.TextFontStyle,
                     drawing.TextWrap,
+                    drawing.TextInsetLeft,
+                    drawing.TextInsetTop,
+                    drawing.TextInsetRight,
+                    drawing.TextInsetBottom,
                     GetDrawingDiagnosticSource(sheet, drawing)));
             }
 

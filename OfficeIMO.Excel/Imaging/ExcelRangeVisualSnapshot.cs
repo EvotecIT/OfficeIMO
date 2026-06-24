@@ -552,6 +552,10 @@ namespace OfficeIMO.Excel {
             double? textFontSize,
             OfficeFontStyle textFontStyle,
             bool textWrap,
+            double textInsetLeft,
+            double textInsetTop,
+            double textInsetRight,
+            double textInsetBottom,
             string source) {
             Name = name ?? string.Empty;
             Order = order;
@@ -575,6 +579,10 @@ namespace OfficeIMO.Excel {
             TextFontSize = textFontSize;
             TextFontStyle = textFontStyle;
             TextWrap = textWrap;
+            TextInsetLeft = textInsetLeft;
+            TextInsetTop = textInsetTop;
+            TextInsetRight = textInsetRight;
+            TextInsetBottom = textInsetBottom;
             Source = source ?? string.Empty;
         }
 
@@ -646,6 +654,18 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Whether text should wrap inside the drawing object's text box.</summary>
         public bool TextWrap { get; }
+
+        /// <summary>Left text inset in CSS pixels after DrawingML EMU conversion.</summary>
+        public double TextInsetLeft { get; }
+
+        /// <summary>Top text inset in CSS pixels after DrawingML EMU conversion.</summary>
+        public double TextInsetTop { get; }
+
+        /// <summary>Right text inset in CSS pixels after DrawingML EMU conversion.</summary>
+        public double TextInsetRight { get; }
+
+        /// <summary>Bottom text inset in CSS pixels after DrawingML EMU conversion.</summary>
+        public double TextInsetBottom { get; }
 
         /// <summary>Source reference used by export diagnostics.</summary>
         public string Source { get; }
