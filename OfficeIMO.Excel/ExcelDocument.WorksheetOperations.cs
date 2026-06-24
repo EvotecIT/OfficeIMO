@@ -90,11 +90,11 @@ namespace OfficeIMO.Excel {
         public ExcelSheet CopyWorkSheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode, ExcelWorksheetCopyOptions? options) {
             if (sourceDocument == null) throw new ArgumentNullException(nameof(sourceDocument));
             if (string.IsNullOrWhiteSpace(sourceSheetName)) throw new ArgumentNullException(nameof(sourceSheetName));
-            if (ReferenceEquals(sourceDocument, this)) {
+            options ??= new ExcelWorksheetCopyOptions();
+            if (ReferenceEquals(sourceDocument, this) && options.CopyMode != ExcelWorksheetCopyMode.Values) {
                 return CopyWorkSheet(sourceSheetName, newSheetName, validationMode);
             }
 
-            options ??= new ExcelWorksheetCopyOptions();
             return options.CopyMode == ExcelWorksheetCopyMode.Values
                 ? CopyWorkSheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode)
                 : CopyWorkSheetFromPackage(sourceDocument, sourceSheetName, newSheetName, validationMode);

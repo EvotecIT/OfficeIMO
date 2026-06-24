@@ -989,6 +989,69 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeConvertsMonthTimeDateSerialsAcrossDateSystems() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageMonthTimeDateSystemSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageMonthTimeDateSystemTarget.xlsx");
+            var date = new DateTime(2026, 6, 23, 14, 30, 0);
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                sourceDocument.DateSystem = ExcelDateSystem.NineteenFour;
+                ExcelSheet source = sourceDocument.AddWorkSheet("Dates");
+                source.CellValue(1, 1, "Created");
+                source.CellValue(2, 1, date);
+                source.CellAt(2, 1).SetNumberFormat("mmm h:mm");
+                sourceDocument.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Dates", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false);
+            WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+            Cell dateCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
+            Assert.Equal(date.ToOADate(), double.Parse(dateCell.CellValue!.Text, CultureInfo.InvariantCulture), 6);
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeDoesNotShiftBracketedElapsedMinuteSerialsAcrossDateSystems() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageElapsedMinuteSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageElapsedMinuteTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                sourceDocument.DateSystem = ExcelDateSystem.NineteenFour;
+                ExcelSheet source = sourceDocument.AddWorkSheet("Elapsed");
+                source.CellValue(1, 1, "Duration");
+                source.CellValue(2, 1, 1.25D);
+                source.CellAt(2, 1).SetNumberFormat("[m]:ss");
+                sourceDocument.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Elapsed", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false);
+            WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+            Cell durationCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
+            Assert.Equal(1.25D, double.Parse(durationCell.CellValue!.Text, CultureInfo.InvariantCulture), 6);
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
         public void Test_CopyWorkSheetFrom_PackageModeCopiesExternalWorkbookReferences() {
             string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageExternalLinkSource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageExternalLinkTarget.xlsx");
@@ -1260,6 +1323,38 @@ namespace OfficeIMO.Tests {
 
             File.Delete(sourcePath);
             File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_ValuesModeHonorsSameWorkbookSource() {
+            string filePath = Path.Combine(_directoryWithFiles, "WorksheetCopyValuesModeSameWorkbook.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                ExcelSheet source = document.AddWorkSheet("Source");
+                source.CellValue(1, 1, "Name");
+                source.CellValue(2, 1, "Ada");
+                source.CellBold(1, 1, true);
+                ExcelSheet copied = document.CopyWorkSheetFrom(document, "Source", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Values
+                });
+
+                Assert.Equal("Imported", copied.Name);
+                Assert.Equal("A1:A2", copied.GetUsedRangeA1());
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.True(document["Imported"].TryGetCellText(2, 1, out var value));
+                Assert.Equal("Ada", value);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Cell headerCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
+                Assert.True(headerCell.StyleIndex == null || headerCell.StyleIndex.Value == 0U);
+            }
+
+            File.Delete(filePath);
         }
 
         [Fact]
