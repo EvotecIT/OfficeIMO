@@ -245,6 +245,12 @@ Warnings: 0
 | ExternalWorkbook\|Sheets:1\|Names:0\|Caches:1\|CachedCells:3 | 1 |
 | Self\|Sheets:0\|Names:0\|Caches:0\|CachedCells:0 | 1 |
 
+## External Reference Workbook States
+
+| Key | Count |
+| --- | --- |
+| ExternalWorkbooks:Present\|Self:Present\|AddIns:Missing\|DdeOle:Missing\|SheetTables:Present\|ExternalNames:Missing\|CellCaches:Present\|CachedCells:Present\|CacheLinks:AllValid | 1 |
+
 ## External References By Declared Sheet Count
 
 | Key | Count |

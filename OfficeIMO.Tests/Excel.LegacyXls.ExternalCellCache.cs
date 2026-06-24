@@ -81,6 +81,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ExternalReferencesByKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
             Assert.Equal(1, report.ExternalReferencesByTarget["C:\\Data\\Budget.xls"]);
             Assert.Equal(1, report.ExternalReferencesByShape["ExternalWorkbook|Sheets:2|Names:0|Caches:1|CachedCells:5"]);
+            Assert.Equal(1, report.ExternalReferenceWorkbookStates["ExternalWorkbooks:Present|Self:Missing|AddIns:Missing|DdeOle:Missing|SheetTables:Present|ExternalNames:Missing|CellCaches:Present|CachedCells:Present|CacheLinks:AllValid"]);
             Assert.Equal(1, report.ExternalReferencesByDeclaredSheetCount["DeclaredSheets:2"]);
             Assert.Equal(1, report.ExternalReferencesBySheetNameCount["Sheets:2"]);
             Assert.Equal(1, report.ExternalReferencesBySheetTableState["Matched:2"]);
@@ -102,6 +103,7 @@ namespace OfficeIMO.Tests {
             string markdown = report.ToMarkdown();
             Assert.Contains("External References By Kind", markdown);
             Assert.Contains("External References By Shape", markdown);
+            Assert.Contains("External Reference Workbook States", markdown);
             Assert.Contains("External References By Declared Sheet Count", markdown);
             Assert.Contains("External References By Sheet Table State", markdown);
             Assert.Contains("External Cell Caches By Cell Range", markdown);

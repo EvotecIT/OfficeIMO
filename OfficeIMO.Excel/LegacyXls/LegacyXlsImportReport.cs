@@ -282,6 +282,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalReferencesByKind = CountExternalReferencesByKind(workbook.ExternalReferences);
             ExternalReferencesByTarget = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceTargetKey));
             ExternalReferencesByShape = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceShapeKey));
+            ExternalReferenceWorkbookStates = CountByCode(GetExternalReferenceWorkbookStateKeys(workbook.ExternalReferences));
             ExternalReferencesByDeclaredSheetCount = CountByCode(workbook.ExternalReferences.Select(reference => $"DeclaredSheets:{reference.SheetCount}"));
             ExternalReferencesBySheetNameCount = CountByCode(workbook.ExternalReferences.Select(reference => $"Sheets:{reference.SheetNameCount}"));
             ExternalReferencesBySheetTableState = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceSheetTableStateKey));
@@ -1237,6 +1238,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets preserved external references grouped by their sheet/name/cache/cached-cell shape.</summary>
         public IReadOnlyDictionary<string, int> ExternalReferencesByShape { get; }
 
+        /// <summary>Gets workbook-level external-reference model-shape states derived from supporting-link metadata.</summary>
+        public IReadOnlyDictionary<string, int> ExternalReferenceWorkbookStates { get; }
+
         /// <summary>Gets preserved external references grouped by declared SupBook sheet count.</summary>
         public IReadOnlyDictionary<string, int> ExternalReferencesByDeclaredSheetCount { get; }
 
@@ -2001,6 +2005,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "External References By Target", ExternalReferencesByTarget);
             AppendDictionary(builder, "External References By Shape", ExternalReferencesByShape);
+            AppendDictionary(builder, "External Reference Workbook States", ExternalReferenceWorkbookStates);
             AppendDictionary(builder, "External References By Declared Sheet Count", ExternalReferencesByDeclaredSheetCount);
             AppendDictionary(builder, "External References By Sheet Name Count", ExternalReferencesBySheetNameCount);
             AppendDictionary(builder, "External References By Sheet Table State", ExternalReferencesBySheetTableState);
@@ -2775,6 +2780,39 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetExternalReferenceShapeKey(LegacyXlsExternalReference reference) {
             return $"{reference.Kind}|Sheets:{reference.SheetNameCount}|Names:{reference.ExternalNameCount}|Caches:{reference.CachedCellCacheCount}|CachedCells:{reference.CachedCellCount}";
+        }
+
+        private static IEnumerable<string> GetExternalReferenceWorkbookStateKeys(IReadOnlyCollection<LegacyXlsExternalReference> references) {
+            if (references.Count == 0) {
+                yield break;
+            }
+
+            yield return $"ExternalWorkbooks:{GetPresenceKey(references.Any(reference => reference.Kind == LegacyXlsExternalReferenceKind.ExternalWorkbook))}"
+                + $"|Self:{GetPresenceKey(references.Any(reference => reference.Kind == LegacyXlsExternalReferenceKind.Self))}"
+                + $"|AddIns:{GetPresenceKey(references.Any(reference => reference.Kind == LegacyXlsExternalReferenceKind.AddIn))}"
+                + $"|DdeOle:{GetPresenceKey(references.Any(reference => reference.Kind == LegacyXlsExternalReferenceKind.DdeOrOle))}"
+                + $"|SheetTables:{GetPresenceKey(references.Any(reference => reference.SheetNameCount > 0))}"
+                + $"|ExternalNames:{GetPresenceKey(references.Any(reference => reference.ExternalNameCount > 0))}"
+                + $"|CellCaches:{GetPresenceKey(references.Any(reference => reference.CachedCellCacheCount > 0))}"
+                + $"|CachedCells:{GetPresenceKey(references.Any(reference => reference.CachedCellCount > 0))}"
+                + $"|CacheLinks:{GetExternalReferenceCacheLinkStateKey(references)}";
+        }
+
+        private static string GetExternalReferenceCacheLinkStateKey(IEnumerable<LegacyXlsExternalReference> references) {
+            LegacyXlsExternalCellCache[] caches = references
+                .SelectMany(reference => reference.CachedCellCaches)
+                .ToArray();
+            if (caches.Length == 0) {
+                return "None";
+            }
+
+            bool hasValid = caches.Any(cache => cache.LinkValid);
+            bool hasInvalid = caches.Any(cache => !cache.LinkValid);
+            if (hasValid && hasInvalid) {
+                return "Mixed";
+            }
+
+            return hasValid ? "AllValid" : "AllInvalid";
         }
 
         private static string GetExternalReferenceSheetTableStateKey(LegacyXlsExternalReference reference) {

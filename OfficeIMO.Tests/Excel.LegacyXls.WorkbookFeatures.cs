@@ -1007,6 +1007,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ExternalReferencesByKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
             Assert.Equal(1, report.ExternalReferencesByTarget["C:\\Data\\Budget.xls"]);
             Assert.Equal(1, report.ExternalReferencesByShape["ExternalWorkbook|Sheets:2|Names:3|Caches:0|CachedCells:0"]);
+            Assert.Equal(1, report.ExternalReferenceWorkbookStates["ExternalWorkbooks:Present|Self:Missing|AddIns:Missing|DdeOle:Missing|SheetTables:Present|ExternalNames:Present|CellCaches:Missing|CachedCells:Missing|CacheLinks:None"]);
             Assert.Equal(1, report.ExternalReferencesBySheetNameCount["Sheets:2"]);
             Assert.Equal(1, report.ExternalReferencesByExternalNameCount["Names:3"]);
             Assert.Equal(1, report.ExternalReferencesByCacheCount["Caches:0"]);
