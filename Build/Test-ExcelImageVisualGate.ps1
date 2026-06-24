@@ -1,6 +1,8 @@
 param(
     [string] $Configuration = "Debug",
     [string] $Framework = "net8.0",
+    [ValidateSet("Full", "Smoke", "Architecture")]
+    [string] $Suite = "Full",
     [switch] $NoRestore,
     [switch] $NoBuild,
     [switch] $UpdateBaselines,
@@ -14,6 +16,10 @@ $testProject = Join-Path $repoRoot 'OfficeIMO.Tests/OfficeIMO.Tests.csproj'
 
 if (-not (Test-Path -LiteralPath $testProject)) {
     throw "OfficeIMO test project was not found: $testProject"
+}
+
+if ($Suite -eq "Architecture" -and $SkipArchitecture) {
+    throw "-Suite Architecture cannot be combined with -SkipArchitecture because it would run no checks."
 }
 
 function Invoke-VisualGateStep {
@@ -61,6 +67,46 @@ function Invoke-VisualGateStep {
     Write-Host ("Completed {0} in {1:mm\:ss}." -f $Name, $elapsed) -ForegroundColor Green
 }
 
+function New-TestNameFilter {
+    param(
+        [Parameter(Mandatory)]
+        [string] $ClassName,
+
+        [Parameter(Mandatory)]
+        [string[]] $Names
+    )
+
+    ($Names | ForEach-Object { "FullyQualifiedName=$ClassName.$_" }) -join "|"
+}
+
+$fullGeneratedFilter = 'FullyQualifiedName~ExcelImageExportVisualBaselineTests&FullyQualifiedName~MatchesApprovedBaselines'
+$fullApprovedFilter = 'FullyQualifiedName~ExcelImageExportVisualBaselineTests&FullyQualifiedName~AreRenderableAndNonBlank'
+$architectureFilter = 'FullyQualifiedName~DrawingArchitectureTests'
+
+$visualBaselineTestClass = 'OfficeIMO.Tests.ExcelImageExportVisualBaselineTests'
+
+$smokeGeneratedFilter = New-TestNameFilter -ClassName $visualBaselineTestClass -Names @(
+    'PremiumRangeImageExportMatchesApprovedBaselines',
+    'RichTextImageExportMatchesApprovedBaselines',
+    'HeaderFooterImageExportMatchesApprovedBaselines',
+    'ChartAxisLabelsImageExportMatchesApprovedBaselines',
+    'PageLayoutImageExportMatchesApprovedBaselines',
+    'ConditionalFormattingImageExportMatchesApprovedBaselines',
+    'DrawingObjectImageExportMatchesApprovedBaselines',
+    'TransformedImageExportMatchesApprovedBaselines'
+)
+
+$smokeApprovedFilter = New-TestNameFilter -ClassName $visualBaselineTestClass -Names @(
+    'ApprovedPremiumRangeBaselinesAreRenderableAndNonBlank',
+    'ApprovedRichTextBaselinesAreRenderableAndNonBlank',
+    'ApprovedHeaderFooterImageBaselinesAreRenderableAndNonBlank',
+    'ApprovedChartAxisLabelsBaselinesAreRenderableAndNonBlank',
+    'ApprovedPageLayoutBaselinesAreRenderableAndNonBlank',
+    'ApprovedConditionalFormattingBaselinesAreRenderableAndNonBlank',
+    'ApprovedDrawingObjectBaselinesAreRenderableAndNonBlank',
+    'ApprovedTransformedImageBaselinesAreRenderableAndNonBlank'
+)
+
 $previousUpdateBaselines = $env:OFFICEIMO_UPDATE_EXCEL_IMAGE_BASELINES
 try {
     if ($UpdateBaselines) {
@@ -70,22 +116,34 @@ try {
         $env:OFFICEIMO_UPDATE_EXCEL_IMAGE_BASELINES = $null
     }
 
-    Invoke-VisualGateStep `
-        -Name 'Excel image generated output matches approved baselines' `
-        -Filter 'FullyQualifiedName~ExcelImageExportVisualBaselineTests&FullyQualifiedName~MatchesApprovedBaselines'
+    Write-Host "Excel image visual gate suite: $Suite" -ForegroundColor Yellow
 
-    Invoke-VisualGateStep `
-        -Name 'Approved Excel image baselines are renderable and nonblank' `
-        -Filter 'FullyQualifiedName~ExcelImageExportVisualBaselineTests&FullyQualifiedName~AreRenderableAndNonBlank'
+    if ($Suite -eq "Full") {
+        Invoke-VisualGateStep `
+            -Name 'Excel image generated output matches approved baselines' `
+            -Filter $fullGeneratedFilter
+
+        Invoke-VisualGateStep `
+            -Name 'Approved Excel image baselines are renderable and nonblank' `
+            -Filter $fullApprovedFilter
+    } elseif ($Suite -eq "Smoke") {
+        Invoke-VisualGateStep `
+            -Name 'Excel image smoke output matches approved baselines' `
+            -Filter $smokeGeneratedFilter
+
+        Invoke-VisualGateStep `
+            -Name 'Approved Excel image smoke baselines are renderable and nonblank' `
+            -Filter $smokeApprovedFilter
+    }
 
     if (-not $SkipArchitecture) {
         Invoke-VisualGateStep `
             -Name 'Shared Drawing image-rendering architecture guard' `
-            -Filter 'FullyQualifiedName~DrawingArchitectureTests'
+            -Filter $architectureFilter
     }
 } finally {
     $env:OFFICEIMO_UPDATE_EXCEL_IMAGE_BASELINES = $previousUpdateBaselines
 }
 
 Write-Host ""
-Write-Host "Excel image visual gate completed." -ForegroundColor Green
+Write-Host "Excel image visual gate completed for suite: $Suite." -ForegroundColor Green

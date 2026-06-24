@@ -205,19 +205,25 @@ Sparkline status: authored sparklines are no longer a hidden omission for image 
 
 ### Excel Image Visual QA Gate
 
-Use `Build/Test-ExcelImageVisualGate.ps1` as the local review gate for Excel image PNG/SVG work. It intentionally splits the visual checks instead of using one silent mega-filter:
+Use `Build/Test-ExcelImageVisualGate.ps1` as the local review gate for Excel image PNG/SVG work. It intentionally splits the visual checks instead of using one silent mega-filter. The default `Full` suite remains the release/review gate:
 
 ```powershell
 Build/Test-ExcelImageVisualGate.ps1 -NoRestore -NoBuild
 ```
 
-The script runs:
+The full suite runs:
 
 - generated Excel image output vs approved PNG/SVG baselines
 - approved baseline renderability/nonblank checks
 - `DrawingArchitectureTests` to keep Excel/Visio/PDF image paths routed through the shared dependency-free `OfficeIMO.Drawing` brain
 
-Use `-UpdateBaselines` only after inspecting the generated artifacts and deciding the visual change is intentional. The generated-output half is the expensive lane; on the current branch it has taken about 8.5 minutes with normal console progress, while the renderability and architecture lanes are fast.
+Use the smoke suite for local iteration when a change needs fast visual evidence before the full gate:
+
+```powershell
+Build/Test-ExcelImageVisualGate.ps1 -Suite Smoke -NoRestore -NoBuild
+```
+
+The smoke suite covers representative premium range, rich text, header/footer image, chart-axis, page-layout, conditional-formatting, drawing-object, and transformed-image baselines plus the same shared Drawing architecture guard. Use `-Suite Architecture` when only the shared dependency-free rendering-owner guard needs to run. Use `-UpdateBaselines` only after inspecting the generated artifacts and deciding the visual change is intentional. The generated-output half of the full suite is the expensive lane; on the current branch it has taken roughly 8-10 minutes with normal console progress, while the smoke suite takes roughly 3-4 minutes and the architecture suite stays near a few seconds.
 
 ## What Was Missing At Assessment Start
 
