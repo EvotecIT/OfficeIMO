@@ -27,6 +27,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             string? axisTypeName = null,
             ushort? axesUsedCount = null,
             LegacyXlsChartCategorySeriesRange? categorySeriesRange = null,
+            LegacyXlsChartCategoryLabelOptions? categoryLabelOptions = null,
             LegacyXlsChartAxisLineFormat? axisLineFormat = null,
             ushort? seriesCategoryDataType = null,
             string? seriesCategoryDataTypeName = null,
@@ -93,6 +94,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             AxisTypeName = string.IsNullOrWhiteSpace(axisTypeName) ? null : axisTypeName;
             AxesUsedCount = axesUsedCount;
             CategorySeriesRange = categorySeriesRange;
+            CategoryLabelOptions = categoryLabelOptions;
             AxisLineFormat = axisLineFormat;
             SeriesCategoryDataType = seriesCategoryDataType;
             SeriesCategoryDataTypeName = string.IsNullOrWhiteSpace(seriesCategoryDataTypeName) ? null : seriesCategoryDataTypeName;
@@ -196,6 +198,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded category, date, or series axis range metadata from CatSerRange records, when present.</summary>
         public LegacyXlsChartCategorySeriesRange? CategorySeriesRange { get; }
+
+        /// <summary>Gets decoded axis-label metadata from CatLab records, when present.</summary>
+        public LegacyXlsChartCategoryLabelOptions? CategoryLabelOptions { get; }
 
         /// <summary>Gets decoded axis-line formatting target metadata from AxisLineFormat records, when present.</summary>
         public LegacyXlsChartAxisLineFormat? AxisLineFormat { get; }

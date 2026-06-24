@@ -1388,6 +1388,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsChartCategoryLabelOptions() {
+            byte[] payload = {
+                0x56, 0x08,
+                0x00, 0x00,
+                0x96, 0x00,
+                0x02, 0x00,
+                0x01, 0x00,
+                0x00, 0x00
+            };
+            var chartRecord = new BiffRecord(0x0856, offset: 160, payload);
+            var chartRecords = new List<LegacyXlsChartRecord>();
+
+            Assert.True(BiffChartMetadataReader.TryRead(chartRecord, "CategoryLabels", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            LegacyXlsChartCategoryLabelOptions? options = record.CategoryLabelOptions;
+            Assert.NotNull(options);
+            Assert.Equal(150, options!.OffsetPercentage);
+            Assert.Equal(0x0002, options.Alignment);
+            Assert.Equal("Center", options.AlignmentName);
+            Assert.True(options.UseAutomaticLabelCount);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(1, report.ChartCategoryLabelAlignments["Center"]);
+            Assert.Equal(1, report.ChartCategoryLabelOffsets["Offset:150%"]);
+            Assert.Equal(1, report.ChartCategoryLabelCountStates["AutomaticLabelCount"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart CatLab Alignments", markdown);
+            Assert.Contains("Offset:150%", markdown);
+            Assert.Contains("AutomaticLabelCount", markdown);
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_CountsImportedWorkbookFeatures() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4DefinedNamesWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

@@ -21,6 +21,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadAxisType(record, out ushort? axisType, out string? axisTypeName);
             TryReadAxesUsedCount(record, out ushort? axesUsedCount);
             TryReadCategorySeriesRange(record, out LegacyXlsChartCategorySeriesRange? categorySeriesRange);
+            TryReadCategoryLabelOptions(record, out LegacyXlsChartCategoryLabelOptions? categoryLabelOptions);
             TryReadAxisLineFormat(record, out LegacyXlsChartAxisLineFormat? axisLineFormat);
             TryReadSeries(record, out ushort? seriesCategoryDataType, out string? seriesCategoryDataTypeName, out ushort? seriesValueDataType, out string? seriesValueDataTypeName, out ushort? seriesCategoryCount, out ushort? seriesValueCount, out ushort? seriesBubbleSizeDataType, out string? seriesBubbleSizeDataTypeName, out ushort? seriesBubbleSizeCount);
             TryReadSeriesChartGroupReference(record, out LegacyXlsChartSeriesChartGroupReference? seriesChartGroupReference);
@@ -71,6 +72,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 axisTypeName,
                 axesUsedCount,
                 categorySeriesRange,
+                categoryLabelOptions,
                 axisLineFormat,
                 seriesCategoryDataType,
                 seriesCategoryDataTypeName,
@@ -261,6 +263,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 BiffRecordReader.ReadInt16(record.Payload, 2),
                 BiffRecordReader.ReadInt16(record.Payload, 4),
                 BiffRecordReader.ReadUInt16(record.Payload, 6));
+            return true;
+        }
+
+        private static bool TryReadCategoryLabelOptions(BiffRecord record, out LegacyXlsChartCategoryLabelOptions? options) {
+            options = null;
+            if (record.Type != 0x0856 || record.Payload.Length < 10) {
+                return false;
+            }
+
+            ushort offsetPercentage = BiffRecordReader.ReadUInt16(record.Payload, 4);
+            ushort alignment = BiffRecordReader.ReadUInt16(record.Payload, 6);
+            ushort flags = BiffRecordReader.ReadUInt16(record.Payload, 8);
+            options = new LegacyXlsChartCategoryLabelOptions(offsetPercentage, alignment, (flags & 0x0001) != 0);
             return true;
         }
 

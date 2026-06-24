@@ -1244,6 +1244,24 @@ Warnings: 0
 | --- | --- |
 | Between:True;MaxCross:False;Reversed:False | 2 |
 
+## Chart CatLab Alignments
+
+| Key | Count |
+| --- | --- |
+| Center | 2 |
+
+## Chart CatLab Offsets
+
+| Key | Count |
+| --- | --- |
+| Offset:100% | 2 |
+
+## Chart CatLab Count States
+
+| Key | Count |
+| --- | --- |
+| CatSerRangeLabelCount | 2 |
+
 ## Chart AxisLineFormat Targets
 
 | Key | Count |

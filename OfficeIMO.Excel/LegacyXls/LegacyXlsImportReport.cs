@@ -562,6 +562,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartCategorySeriesRangeStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.CategorySeriesRange != null)
                 .Select(GetChartCategorySeriesRangeStateKey));
+            ChartCategoryLabelAlignments = CountByCode(workbook.ChartRecords
+                .Where(record => record.CategoryLabelOptions != null)
+                .Select(record => record.CategoryLabelOptions!.AlignmentName));
+            ChartCategoryLabelOffsets = CountByCode(workbook.ChartRecords
+                .Where(record => record.CategoryLabelOptions != null)
+                .Select(record => $"Offset:{record.CategoryLabelOptions!.OffsetPercentage}%"));
+            ChartCategoryLabelCountStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.CategoryLabelOptions != null)
+                .Select(record => record.CategoryLabelOptions!.UseAutomaticLabelCount ? "AutomaticLabelCount" : "CatSerRangeLabelCount"));
             ChartAxisLineFormatTargets = CountByCode(workbook.ChartRecords
                 .Where(record => record.AxisLineFormat != null)
                 .Select(record => record.AxisLineFormat!.TargetName));
@@ -1920,6 +1929,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets CatSerRange records grouped by decoded axis state flags.</summary>
         public IReadOnlyDictionary<string, int> ChartCategorySeriesRangeStates { get; }
 
+        /// <summary>Gets CatLab records grouped by decoded axis-label alignment.</summary>
+        public IReadOnlyDictionary<string, int> ChartCategoryLabelAlignments { get; }
+
+        /// <summary>Gets CatLab records grouped by axis-label offset percentage.</summary>
+        public IReadOnlyDictionary<string, int> ChartCategoryLabelOffsets { get; }
+
+        /// <summary>Gets CatLab records grouped by automatic category-label count state.</summary>
+        public IReadOnlyDictionary<string, int> ChartCategoryLabelCountStates { get; }
+
         /// <summary>Gets AxisLineFormat records grouped by decoded formatted axis component.</summary>
         public IReadOnlyDictionary<string, int> ChartAxisLineFormatTargets { get; }
 
@@ -2756,6 +2774,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Records By Axes Used Count", ChartRecordsByAxesUsedCount);
             AppendDictionary(builder, "Chart CatSerRange Intervals", ChartCategorySeriesRangeIntervals);
             AppendDictionary(builder, "Chart CatSerRange States", ChartCategorySeriesRangeStates);
+            AppendDictionary(builder, "Chart CatLab Alignments", ChartCategoryLabelAlignments);
+            AppendDictionary(builder, "Chart CatLab Offsets", ChartCategoryLabelOffsets);
+            AppendDictionary(builder, "Chart CatLab Count States", ChartCategoryLabelCountStates);
             AppendDictionary(builder, "Chart AxisLineFormat Targets", ChartAxisLineFormatTargets);
             AppendDictionary(builder, "Chart Series Category Data Types", ChartSeriesCategoryDataTypes);
             AppendDictionary(builder, "Chart Series Value Data Types", ChartSeriesValueDataTypes);
