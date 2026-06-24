@@ -36,7 +36,7 @@ Compound VBA module bytes: 0
 Calculation setting records: 13
 Cell style records: 47
 Cell style extension records: 115
-Formula token records: 1
+Formula token records: 4
 Array formula records: 0
 Future function aliases: 0
 Workbook metadata records: 18
@@ -67,12 +67,14 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| PtgArea3d | 1 |
+| PtgArea3d | 3 |
+| PtgRef3d | 1 |
 
 ## Formula Tokens By Context
 
 | Key | Count |
 | --- | --- |
+| ChartDataSource | 3 |
 | DefinedName | 1 |
 
 ## Formula Tokens By Sheet
@@ -80,11 +82,13 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | (workbook) | 1 |
+| Objects | 3 |
 
 ## Formula Tokens By Context And Sheet
 
 | Key | Count |
 | --- | --- |
+| ChartDataSource\|Objects | 3 |
 | DefinedName\|(workbook) | 1 |
 
 ## Formula Tokens By Record Type
@@ -92,30 +96,34 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | 0x0018\|PtgArea3d | 1 |
+| 0x1051\|PtgArea3d | 2 |
+| 0x1051\|PtgRef3d | 1 |
 
 ## Formula Tokens By Class
 
 | Key | Count |
 | --- | --- |
-| Value | 1 |
+| Value | 4 |
 
 ## Formula Tokens By Name And Class
 
 | Key | Count |
 | --- | --- |
-| PtgArea3d\|Value | 1 |
+| PtgArea3d\|Value | 3 |
+| PtgRef3d\|Value | 1 |
 
 ## Formula Tokens By Operand Byte Count
 
 | Key | Count |
 | --- | --- |
-| PtgArea3d\|Bytes:10 | 1 |
+| PtgArea3d\|Bytes:10 | 3 |
+| PtgRef3d\|Bytes:6 | 1 |
 
 ## Formula Tokens By Sequence Index
 
 | Key | Count |
 | --- | --- |
-| Index:0 | 1 |
+| Index:0 | 4 |
 
 ## Worksheet Feature States
 

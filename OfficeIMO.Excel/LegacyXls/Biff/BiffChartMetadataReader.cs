@@ -102,6 +102,25 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
+        internal static void ScanFormulaTokens(
+            BiffRecord record,
+            string? sheetName,
+            IList<LegacyXlsFormulaTokenRecord> formulaTokenRecords) {
+            if (record.Type != 0x1051) {
+                return;
+            }
+
+            BiffFormulaTokenScanner.ScanLengthPrefixed(
+                record.Payload,
+                6,
+                "ChartDataSource",
+                sheetName,
+                cellReference: null,
+                record.Offset,
+                record.Type,
+                formulaTokenRecords);
+        }
+
         private static bool TryReadSeriesDataCacheIndex(
             BiffRecord record,
             out ushort? seriesDataCacheIndex,

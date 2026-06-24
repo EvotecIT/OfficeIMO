@@ -36,7 +36,7 @@ Compound VBA module bytes: 0
 Calculation setting records: 7
 Cell style records: 47
 Cell style extension records: 112
-Formula token records: 32
+Formula token records: 35
 Array formula records: 0
 Future function aliases: 0
 Workbook metadata records: 18
@@ -66,7 +66,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | PtgArea | 3 |
-| PtgArea3d | 4 |
+| PtgArea3d | 6 |
 | PtgAttr | 3 |
 | PtgFunc | 1 |
 | PtgFuncVar | 2 |
@@ -75,6 +75,7 @@ Warnings: 0
 | PtgMul | 4 |
 | PtgNum | 4 |
 | PtgRef | 5 |
+| PtgRef3d | 1 |
 | PtgStr | 4 |
 
 ## Formula Tokens By Context
@@ -82,6 +83,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | CellFormula | 28 |
+| ChartDataSource | 3 |
 | DefinedName | 4 |
 
 ## Formula Tokens By Sheet
@@ -89,13 +91,14 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | (workbook) | 4 |
-| Data | 28 |
+| Data | 31 |
 
 ## Formula Tokens By Context And Sheet
 
 | Key | Count |
 | --- | --- |
 | CellFormula\|Data | 28 |
+| ChartDataSource\|Data | 3 |
 | DefinedName\|(workbook) | 4 |
 
 ## Formula Tokens By Record Type
@@ -113,6 +116,8 @@ Warnings: 0
 | 0x0006\|PtgRef | 5 |
 | 0x0006\|PtgStr | 4 |
 | 0x0018\|PtgArea3d | 4 |
+| 0x1051\|PtgArea3d | 2 |
+| 0x1051\|PtgRef3d | 1 |
 
 ## Formula Tokens By Class
 
@@ -120,13 +125,13 @@ Warnings: 0
 | --- | --- |
 | Base | 17 |
 | Reference | 8 |
-| Value | 7 |
+| Value | 10 |
 
 ## Formula Tokens By Name And Class
 
 | Key | Count |
 | --- | --- |
-| PtgArea3d\|Value | 4 |
+| PtgArea3d\|Value | 6 |
 | PtgArea\|Value | 3 |
 | PtgAttr\|Base | 3 |
 | PtgFuncVar\|Reference | 2 |
@@ -135,6 +140,7 @@ Warnings: 0
 | PtgInt\|Base | 1 |
 | PtgMul\|Base | 4 |
 | PtgNum\|Base | 4 |
+| PtgRef3d\|Value | 1 |
 | PtgRef\|Reference | 5 |
 | PtgStr\|Base | 4 |
 
@@ -142,7 +148,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| PtgArea3d\|Bytes:10 | 4 |
+| PtgArea3d\|Bytes:10 | 6 |
 | PtgArea\|Bytes:8 | 3 |
 | PtgAttr\|Bytes:3 | 3 |
 | PtgFuncVar\|Bytes:3 | 2 |
@@ -151,6 +157,7 @@ Warnings: 0
 | PtgInt\|Bytes:2 | 1 |
 | PtgMul\|Bytes:0 | 4 |
 | PtgNum\|Bytes:8 | 4 |
+| PtgRef3d\|Bytes:6 | 1 |
 | PtgRef\|Bytes:4 | 5 |
 | PtgStr\|Bytes:4 | 1 |
 | PtgStr\|Bytes:6 | 2 |
@@ -160,7 +167,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Index:0 | 11 |
+| Index:0 | 14 |
 | Index:1 | 7 |
 | Index:2 | 7 |
 | Index:3 | 2 |

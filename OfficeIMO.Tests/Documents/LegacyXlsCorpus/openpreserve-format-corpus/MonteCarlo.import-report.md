@@ -36,7 +36,7 @@ Compound VBA module bytes: 0
 Calculation setting records: 43
 Cell style records: 6
 Cell style extension records: 0
-Formula token records: 1368
+Formula token records: 1404
 Array formula records: 0
 Future function aliases: 0
 Workbook metadata records: 17
@@ -63,13 +63,14 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | PtgAdd | 12 |
+| PtgArea3d | 24 |
 | PtgDiv | 10 |
 | PtgExp | 1240 |
 | PtgInt | 16 |
 | PtgMul | 10 |
 | PtgParen | 10 |
 | PtgRef | 18 |
-| PtgRef3d | 8 |
+| PtgRef3d | 20 |
 | PtgRefN | 38 |
 | PtgSub | 6 |
 
@@ -78,6 +79,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | CellFormula | 30 |
+| ChartDataSource | 36 |
 | SharedFormula | 98 |
 | SharedFormulaReference | 1240 |
 
@@ -85,6 +87,8 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| graphs1 | 30 |
+| graphs2 | 6 |
 | LB_MAQU_PF | 394 |
 | LB_MAQU_RAIN | 398 |
 | RangeTable | 8 |
@@ -99,6 +103,8 @@ Warnings: 0
 | CellFormula\|RangeTable | 8 |
 | CellFormula\|ZPFCUM | 6 |
 | CellFormula\|ZRAINCUM | 6 |
+| ChartDataSource\|graphs1 | 30 |
+| ChartDataSource\|graphs2 | 6 |
 | SharedFormulaReference\|LB_MAQU_PF | 364 |
 | SharedFormulaReference\|LB_MAQU_RAIN | 368 |
 | SharedFormulaReference\|ZPFCUM | 254 |
@@ -129,6 +135,8 @@ Warnings: 0
 | 0x04BC\|PtgRef | 8 |
 | 0x04BC\|PtgRefN | 38 |
 | 0x04BC\|PtgSub | 5 |
+| 0x1051\|PtgArea3d | 24 |
+| 0x1051\|PtgRef3d | 12 |
 
 ## Formula Tokens By Class
 
@@ -136,18 +144,21 @@ Warnings: 0
 | --- | --- |
 | Base | 1304 |
 | Reference | 64 |
+| Value | 36 |
 
 ## Formula Tokens By Name And Class
 
 | Key | Count |
 | --- | --- |
 | PtgAdd\|Base | 12 |
+| PtgArea3d\|Value | 24 |
 | PtgDiv\|Base | 10 |
 | PtgExp\|Base | 1240 |
 | PtgInt\|Base | 16 |
 | PtgMul\|Base | 10 |
 | PtgParen\|Base | 10 |
 | PtgRef3d\|Reference | 8 |
+| PtgRef3d\|Value | 12 |
 | PtgRefN\|Reference | 38 |
 | PtgRef\|Reference | 18 |
 | PtgSub\|Base | 6 |
@@ -157,12 +168,13 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | PtgAdd\|Bytes:0 | 12 |
+| PtgArea3d\|Bytes:10 | 24 |
 | PtgDiv\|Bytes:0 | 10 |
 | PtgExp\|Bytes:4 | 1240 |
 | PtgInt\|Bytes:2 | 16 |
 | PtgMul\|Bytes:0 | 10 |
 | PtgParen\|Bytes:0 | 10 |
-| PtgRef3d\|Bytes:6 | 8 |
+| PtgRef3d\|Bytes:6 | 20 |
 | PtgRefN\|Bytes:4 | 38 |
 | PtgRef\|Bytes:4 | 18 |
 | PtgSub\|Bytes:0 | 6 |
@@ -171,7 +183,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Index:0 | 1282 |
+| Index:0 | 1318 |
 | Index:1 | 28 |
 | Index:2 | 28 |
 | Index:3 | 10 |

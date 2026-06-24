@@ -111,6 +111,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                     }
                 } else if (BiffChartMetadataReader.TryRead(record, sheetName: null, workbook.MutableChartRecords, chartMetadataState)) {
+                    BiffChartMetadataReader.ScanFormulaTokens(record, sheetName: null, workbook.MutableFormulaTokenRecords);
                     AddUnsupportedRecordFeature(workbook, record, sheetName: null);
                     if (options.ReportUnsupportedRecords) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
