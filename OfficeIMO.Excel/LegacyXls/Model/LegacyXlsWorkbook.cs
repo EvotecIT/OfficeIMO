@@ -27,6 +27,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsUnsupportedFeature> _unsupportedFeatures = new();
         private readonly List<LegacyXlsPreservedFeatureRecord> _preservedFeatureRecords = new();
         private readonly List<LegacyXlsWorkbookMetadataRecord> _metadataRecords = new();
+        private readonly List<LegacyXlsFormulaTokenRecord> _formulaTokenRecords = new();
         private readonly List<LegacyXlsWorkbookWindow> _windows = new();
         private readonly List<LegacyXlsImportDiagnostic> _diagnostics = new();
         private readonly LegacyXlsCalculationSettings _calculationSettings = new();
@@ -133,6 +134,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets workbook-level BIFF metadata records decoded during import.
         /// </summary>
         public IReadOnlyList<LegacyXlsWorkbookMetadataRecord> MetadataRecords => _metadataRecords;
+
+        /// <summary>
+        /// Gets BIFF parsed-formula token observations captured during import for corpus diagnostics.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsFormulaTokenRecord> FormulaTokenRecords => _formulaTokenRecords;
 
         /// <summary>
         /// Gets workbook sheet tab identifiers decoded from a TabId record.
@@ -302,6 +308,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         internal List<LegacyXlsUnsupportedFeature> MutableUnsupportedFeatures => _unsupportedFeatures;
 
         internal List<LegacyXlsPreservedFeatureRecord> MutablePreservedFeatureRecords => _preservedFeatureRecords;
+
+        internal List<LegacyXlsFormulaTokenRecord> MutableFormulaTokenRecords => _formulaTokenRecords;
 
         internal List<LegacyXlsImportDiagnostic> MutableDiagnostics => _diagnostics;
 

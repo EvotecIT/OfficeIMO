@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } else if (record.Type == (ushort)BiffRecordType.Format) {
                     ReadFormat(record, workbook, numberFormatsById, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Lbl) {
-                    ReadDefinedName(record, workbook, externSheets, workbook.ExternalReferences, boundSheetNames, boundSheetProjectedWorksheetIndexes, definedNameTable, workbook.MutableDiagnostics);
+                    ReadDefinedName(record, workbook, externSheets, workbook.ExternalReferences, boundSheetNames, boundSheetProjectedWorksheetIndexes, definedNameTable, workbook.MutableFormulaTokenRecords, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Palette) {
                     ReadPalette(record, workbook, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Password) {
@@ -148,7 +148,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 ? workbook.Worksheets.Select(sheet => sheet.Name).ToArray()
                 : boundSheetNames.ToArray();
             foreach (LegacyXlsWorksheet sheet in workbook.Worksheets) {
-                LegacyBiffWorksheetParser.Parse(workbookStream, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutablePivotTableRecords, workbook.MutableChartRecords, workbook.MutableDrawingRecords, workbook.DifferentialFormats, workbook.MutableCalculationSettings, workbook.MutableDiagnostics, options);
+                LegacyBiffWorksheetParser.Parse(workbookStream, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutablePivotTableRecords, workbook.MutableChartRecords, workbook.MutableDrawingRecords, workbook.DifferentialFormats, workbook.MutableCalculationSettings, workbook.MutableFormulaTokenRecords, workbook.MutableDiagnostics, options);
             }
 
             return workbook;
@@ -378,6 +378,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<int?> boundSheetProjectedWorksheetIndexes,
             List<string?> definedNameTable,
+            List<LegacyXlsFormulaTokenRecord> formulaTokenRecords,
             List<LegacyXlsImportDiagnostic> diagnostics) {
             string? formulaName = null;
             try {
@@ -411,6 +412,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                 byte[] formulaBytes = new byte[formulaLength];
                 Buffer.BlockCopy(record.Payload, offset, formulaBytes, 0, formulaLength);
+                BiffFormulaTokenScanner.ScanTokens(
+                    formulaBytes,
+                    "DefinedName",
+                    sheetName: null,
+                    cellReference: name,
+                    record.Offset,
+                    record.Type,
+                    formulaTokenRecords);
                 string? reference;
                 BiffFormulaReadFailure? formulaFailure;
                 bool formulaRead = string.Equals(name, "_xlnm.Print_Titles", StringComparison.OrdinalIgnoreCase)

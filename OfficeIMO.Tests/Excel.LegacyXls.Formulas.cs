@@ -315,6 +315,22 @@ namespace OfficeIMO.Tests {
             AssertFormula(sheet, 27, 1, "COLUMNS(D1:E1)", 2d);
             AssertFormula(sheet, 28, 1, "LARGE(E1:E3,2)", 20d);
 
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.True(report.FormulaTokenRecordCount > 0);
+            Assert.Contains("PtgFunc", report.FormulaTokensByName.Keys);
+            Assert.Contains("PtgFuncVar", report.FormulaTokensByName.Keys);
+            Assert.True(report.FormulaTokensByContext["CellFormula"] >= 28);
+            Assert.Equal(1, report.FormulaFunctionsByName["COUNTIF"]);
+            Assert.Equal(1, report.FormulaFunctionsByName["SUMIF"]);
+            Assert.Equal(1, report.FormulaFunctionsByName["SUBTOTAL"]);
+            Assert.Equal(1, report.FormulaFunctionsByName["LARGE"]);
+            Assert.Contains(legacy.FormulaTokenRecords, record =>
+                record.Context == "CellFormula"
+                && record.SheetName == "CommonFunc"
+                && record.CellReference == "A8"
+                && record.TokenName == "PtgFunc"
+                && record.FunctionName == "COUNTIF");
+
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
             });
@@ -953,11 +969,22 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.FormulaTokenBlockersByToken["Token:0x01"]);
             Assert.Equal(1, report.FormulaTokenBlockersByTokenName["PtgExp"]);
             Assert.Equal(1, report.FormulaTokenBlockersByOffset["Offset:0"]);
+            Assert.Equal(1, report.FormulaTokensByName["PtgExp"]);
+            Assert.Equal(1, report.FormulaTokensByContext["CellFormula"]);
+            Assert.Contains(legacy.FormulaTokenRecords, record =>
+                record.Context == "CellFormula"
+                && record.SheetName == "FormulaDiag"
+                && record.CellReference == "B1"
+                && record.Token == 0x01
+                && record.TokenName == "PtgExp"
+                && record.TokenOffset == 0);
             string markdown = report.ToMarkdown();
             Assert.Contains("Formula Token Blockers By Token", markdown);
             Assert.Contains("Formula Token Blockers By Token Name", markdown);
             Assert.Contains("PtgExp", markdown);
             Assert.Contains("Formula Token Blockers By Offset", markdown);
+            Assert.Contains("Formula Tokens By Name", markdown);
+            Assert.Contains("Formula Tokens By Context", markdown);
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
             Assert.True(formula.IsFormula);

@@ -28,6 +28,7 @@ Compound VBA modules: 0
 Calculation setting records: 13
 Cell style records: 47
 Cell style extension records: 114
+Formula token records: 38
 Workbook metadata records: 18
 Worksheet metadata records: 10
 Unsupported sheet metadata records: 1
@@ -51,6 +52,29 @@ Warnings: 0
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 10 |
+
+## Formula Tokens By Name
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d | 2 |
+| PtgMul | 12 |
+| PtgRef | 24 |
+
+## Formula Tokens By Context
+
+| Key | Count |
+| --- | --- |
+| CellFormula | 36 |
+| DefinedName | 2 |
+
+## Formula Tokens By Record Type
+
+| Key | Count |
+| --- | --- |
+| 0x0006\|PtgMul | 12 |
+| 0x0006\|PtgRef | 24 |
+| 0x0018\|PtgArea3d | 2 |
 
 ## Conditional Formatting By Type
 

@@ -28,6 +28,7 @@ Compound VBA modules: 8
 Calculation setting records: 61
 Cell style records: 6
 Cell style extension records: 0
+Formula token records: 8019
 Workbook metadata records: 20
 Worksheet metadata records: 65
 Unsupported sheet metadata records: 8
@@ -48,6 +49,85 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
 | XLS-BIFF-SORT-RESERVED-BYTES | 1 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
+
+## Formula Tokens By Name
+
+| Key | Count |
+| --- | --- |
+| PtgArea | 28 |
+| PtgArea3d | 1494 |
+| PtgAttr | 63 |
+| PtgBool | 1170 |
+| PtgEq | 21 |
+| PtgExp | 617 |
+| PtgFunc | 28 |
+| PtgFuncVar | 1519 |
+| PtgInt | 1491 |
+| PtgNameX | 7 |
+| PtgRef | 1507 |
+| PtgRef3d | 14 |
+| PtgRefN | 39 |
+| PtgStr | 21 |
+
+## Formula Tokens By Context
+
+| Key | Count |
+| --- | --- |
+| CellFormula | 7248 |
+| DefinedName | 3 |
+| SharedFormula | 151 |
+| SharedFormulaReference | 617 |
+
+## Formula Tokens By Record Type
+
+| Key | Count |
+| --- | --- |
+| 0x0006\|PtgArea | 28 |
+| 0x0006\|PtgArea3d | 1491 |
+| 0x0006\|PtgAttr | 15 |
+| 0x0006\|PtgBool | 1170 |
+| 0x0006\|PtgEq | 5 |
+| 0x0006\|PtgExp | 617 |
+| 0x0006\|PtgFunc | 12 |
+| 0x0006\|PtgFuncVar | 1503 |
+| 0x0006\|PtgInt | 1491 |
+| 0x0006\|PtgNameX | 7 |
+| 0x0006\|PtgRef | 1507 |
+| 0x0006\|PtgRef3d | 14 |
+| 0x0006\|PtgStr | 5 |
+| 0x0018\|PtgArea3d | 3 |
+| 0x04BC\|PtgAttr | 48 |
+| 0x04BC\|PtgEq | 16 |
+| 0x04BC\|PtgFunc | 16 |
+| 0x04BC\|PtgFuncVar | 16 |
+| 0x04BC\|PtgRefN | 39 |
+| 0x04BC\|PtgStr | 16 |
+
+## Formula Functions By Id
+
+| Key | Count |
+| --- | --- |
+| Function:0x0001 | 21 |
+| Function:0x000A | 21 |
+| Function:0x0066 | 1491 |
+| Function:0x00FF | 7 |
+| Function:0x0139 | 7 |
+
+## Formula Functions By Name
+
+| Key | Count |
+| --- | --- |
+| IF | 21 |
+| NA | 21 |
+| RSQ | 7 |
+| VLOOKUP | 1491 |
+
+## Formula Attributes By Name
+
+| Key | Count |
+| --- | --- |
+| Goto | 42 |
+| If | 21 |
 
 ## Worksheets By Visibility
 

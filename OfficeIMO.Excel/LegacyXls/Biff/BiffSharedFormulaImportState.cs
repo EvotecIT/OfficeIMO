@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private readonly IReadOnlyList<LegacyXlsExternalReference> _externalReferences;
         private readonly IReadOnlyList<string> _sheetNames;
         private readonly IReadOnlyList<string?> _definedNames;
+        private readonly List<LegacyXlsFormulaTokenRecord> _formulaTokenRecords;
         private readonly List<LegacyXlsImportDiagnostic> _diagnostics;
         private readonly LegacyXlsImportOptions _options;
         private readonly Dictionary<SharedFormulaAnchor, SharedFormulaDefinition> _definitions = new();
@@ -20,6 +21,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
+            List<LegacyXlsFormulaTokenRecord> formulaTokenRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             _sheet = sheet;
@@ -27,6 +29,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             _externalReferences = externalReferences;
             _sheetNames = sheetNames;
             _definedNames = definedNames;
+            _formulaTokenRecords = formulaTokenRecords;
             _diagnostics = diagnostics;
             _options = options;
         }
@@ -90,6 +93,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             byte[] formulaPayload = new byte[checked(2 + expressionLength)];
             Buffer.BlockCopy(payload, 8, formulaPayload, 0, formulaPayload.Length);
+            BiffFormulaTokenScanner.ScanLengthPrefixed(
+                formulaPayload,
+                0,
+                "SharedFormula",
+                _sheet.Name,
+                A1.ColumnIndexToLetters(anchorCell.Column) + anchorCell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                recordOffset,
+                (ushort)BiffRecordType.ShrFmla,
+                _formulaTokenRecords);
             var definition = new SharedFormulaDefinition(
                 anchorCell.Anchor,
                 firstRow,

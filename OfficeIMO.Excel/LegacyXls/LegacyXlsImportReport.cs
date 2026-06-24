@@ -101,6 +101,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             CalculationSettingRecordCount = workbook.CalculationSettings.Records.Count;
             CellStyleRecordCount = workbook.CellStyles.Count;
             CellStyleExtensionRecordCount = workbook.CellStyleExtensions.Count;
+            FormulaTokenRecordCount = workbook.FormulaTokenRecords.Count;
             WorkbookMetadataRecordCount = workbook.MetadataRecords.Count;
             WorksheetMetadataRecordCount = workbook.Worksheets.Sum(sheet => sheet.MetadataRecords.Count);
             UnsupportedSheetMetadataRecordCount = workbook.UnsupportedSheets.Sum(sheet => sheet.MetadataRecords.Count);
@@ -124,6 +125,18 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
                 .Where(diagnostic => diagnostic.FormulaTokenOffset.HasValue)
                 .Select(diagnostic => $"Offset:{diagnostic.FormulaTokenOffset!.Value}"));
+            FormulaTokensByName = CountByCode(workbook.FormulaTokenRecords.Select(record => record.TokenName));
+            FormulaTokensByContext = CountByCode(workbook.FormulaTokenRecords.Select(record => record.Context));
+            FormulaTokensByRecordType = CountByCode(workbook.FormulaTokenRecords.Select(record => $"0x{record.RecordType:X4}|{record.TokenName}"));
+            FormulaFunctionsById = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => record.FunctionId.HasValue)
+                .Select(record => $"Function:0x{record.FunctionId!.Value:X4}"));
+            FormulaFunctionsByName = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.FunctionName))
+                .Select(record => record.FunctionName!));
+            FormulaAttributesByName = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.AttributeName))
+                .Select(record => record.AttributeName!));
             UnsupportedFeaturesByCode = CountByCode(workbook.UnsupportedFeatures.Select(feature => feature.Code));
             UnsupportedFeaturesByKind = CountByKind(workbook.UnsupportedFeatures);
             UnsupportedFeaturesByRecordType = CountByCode(workbook.UnsupportedFeatures
@@ -685,6 +698,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of preserve-only style extension records parsed from XFExt records.</summary>
         public int CellStyleExtensionRecordCount { get; }
 
+        /// <summary>Gets the number of parsed-formula token observations captured during import.</summary>
+        public int FormulaTokenRecordCount { get; }
+
         /// <summary>Gets the number of workbook metadata records parsed from BIFF records.</summary>
         public int WorkbookMetadataRecordCount { get; }
 
@@ -720,6 +736,24 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets unsupported formula token blockers grouped by zero-based parsed-expression token offset.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokenBlockersByOffset { get; }
+
+        /// <summary>Gets observed parsed-formula tokens grouped by BIFF token name.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensByName { get; }
+
+        /// <summary>Gets observed parsed-formula tokens grouped by formula source context.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensByContext { get; }
+
+        /// <summary>Gets observed parsed-formula tokens grouped by BIFF record type and token name.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensByRecordType { get; }
+
+        /// <summary>Gets observed built-in formula function tokens grouped by raw function id.</summary>
+        public IReadOnlyDictionary<string, int> FormulaFunctionsById { get; }
+
+        /// <summary>Gets observed built-in formula function tokens grouped by function name when known.</summary>
+        public IReadOnlyDictionary<string, int> FormulaFunctionsByName { get; }
+
+        /// <summary>Gets observed PtgAttr formula tokens grouped by attribute name.</summary>
+        public IReadOnlyDictionary<string, int> FormulaAttributesByName { get; }
 
         /// <summary>Gets unsupported/preserve-only feature counts grouped by stable feature code.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedFeaturesByCode { get; }
@@ -1236,6 +1270,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Calculation setting records: {CalculationSettingRecordCount}");
             builder.AppendLine($"Cell style records: {CellStyleRecordCount}");
             builder.AppendLine($"Cell style extension records: {CellStyleExtensionRecordCount}");
+            builder.AppendLine($"Formula token records: {FormulaTokenRecordCount}");
             builder.AppendLine($"Workbook metadata records: {WorkbookMetadataRecordCount}");
             builder.AppendLine($"Worksheet metadata records: {WorksheetMetadataRecordCount}");
             builder.AppendLine($"Unsupported sheet metadata records: {UnsupportedSheetMetadataRecordCount}");
@@ -1248,6 +1283,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Formula Token Blockers By Token", FormulaTokenBlockersByToken);
             AppendDictionary(builder, "Formula Token Blockers By Token Name", FormulaTokenBlockersByTokenName);
             AppendDictionary(builder, "Formula Token Blockers By Offset", FormulaTokenBlockersByOffset);
+            AppendDictionary(builder, "Formula Tokens By Name", FormulaTokensByName);
+            AppendDictionary(builder, "Formula Tokens By Context", FormulaTokensByContext);
+            AppendDictionary(builder, "Formula Tokens By Record Type", FormulaTokensByRecordType);
+            AppendDictionary(builder, "Formula Functions By Id", FormulaFunctionsById);
+            AppendDictionary(builder, "Formula Functions By Name", FormulaFunctionsByName);
+            AppendDictionary(builder, "Formula Attributes By Name", FormulaAttributesByName);
             AppendDictionary(builder, "Data Validations By Type", DataValidationsByType);
             AppendDictionary(builder, "Data Validations By Operator", DataValidationsByOperator);
             AppendDictionary(builder, "Data Validations By Error Style", DataValidationsByErrorStyle);

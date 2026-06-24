@@ -28,6 +28,7 @@ Compound VBA modules: 0
 Calculation setting records: 43
 Cell style records: 6
 Cell style extension records: 0
+Formula token records: 1368
 Workbook metadata records: 17
 Worksheet metadata records: 39
 Unsupported sheet metadata records: 8
@@ -46,6 +47,51 @@ Warnings: 0
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
+
+## Formula Tokens By Name
+
+| Key | Count |
+| --- | --- |
+| PtgAdd | 12 |
+| PtgDiv | 10 |
+| PtgExp | 1240 |
+| PtgInt | 16 |
+| PtgMul | 10 |
+| PtgParen | 10 |
+| PtgRef | 18 |
+| PtgRef3d | 8 |
+| PtgRefN | 38 |
+| PtgSub | 6 |
+
+## Formula Tokens By Context
+
+| Key | Count |
+| --- | --- |
+| CellFormula | 30 |
+| SharedFormula | 98 |
+| SharedFormulaReference | 1240 |
+
+## Formula Tokens By Record Type
+
+| Key | Count |
+| --- | --- |
+| 0x0006\|PtgAdd | 2 |
+| 0x0006\|PtgDiv | 2 |
+| 0x0006\|PtgExp | 1240 |
+| 0x0006\|PtgInt | 3 |
+| 0x0006\|PtgMul | 2 |
+| 0x0006\|PtgParen | 2 |
+| 0x0006\|PtgRef | 10 |
+| 0x0006\|PtgRef3d | 8 |
+| 0x0006\|PtgSub | 1 |
+| 0x04BC\|PtgAdd | 10 |
+| 0x04BC\|PtgDiv | 8 |
+| 0x04BC\|PtgInt | 13 |
+| 0x04BC\|PtgMul | 8 |
+| 0x04BC\|PtgParen | 8 |
+| 0x04BC\|PtgRef | 8 |
+| 0x04BC\|PtgRefN | 38 |
+| 0x04BC\|PtgSub | 5 |
 
 ## Worksheets By Visibility
 

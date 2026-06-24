@@ -18,6 +18,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsDrawingRecord> drawingRecords,
             IReadOnlyList<LegacyXlsDifferentialFormat> differentialFormats,
             LegacyXlsCalculationSettings calculationSettings,
+            List<LegacyXlsFormulaTokenRecord> formulaTokenRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             if (sheet.StreamOffset < 0 || sheet.StreamOffset >= workbookStream.Length) {
@@ -36,7 +37,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             PendingFormulaString? pendingFormulaString = null;
             var commentState = new BiffCommentImportState(sheet);
             var conditionalFormattingState = new BiffConditionalFormattingImportState(sheet, externSheets, externalReferences, sheetNames, definedNames, differentialFormats);
-            var sharedFormulaState = new BiffSharedFormulaImportState(sheet, externSheets, externalReferences, sheetNames, definedNames, diagnostics, options);
+            var sharedFormulaState = new BiffSharedFormulaImportState(sheet, externSheets, externalReferences, sheetNames, definedNames, formulaTokenRecords, diagnostics, options);
             var pivotTableMetadataState = new BiffPivotTableMetadataReaderState();
             while (offset < workbookStream.Length) {
                 if (offset + 4 > workbookStream.Length) {
@@ -98,7 +99,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return;
                 }
 
-                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, calculationSettings, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, pivotTableMetadataState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
+                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, calculationSettings, formulaTokenRecords, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, pivotTableMetadataState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
                 offset = payloadOffset + length;
             }
 
@@ -121,6 +122,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsChartRecord> chartRecords,
             List<LegacyXlsDrawingRecord> drawingRecords,
             LegacyXlsCalculationSettings calculationSettings,
+            List<LegacyXlsFormulaTokenRecord> formulaTokenRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options,
             BiffCommentImportState commentState,
@@ -248,7 +250,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         BiffCalculationSettingsReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, calculationSettings, diagnostics);
                         break;
                     case BiffRecordType.Formula:
-                        ParseFormula(sheet, payload, externSheets, externalReferences, sheetNames, definedNames, diagnostics, options, sharedFormulaState, offset, ref pendingFormulaString);
+                        ParseFormula(sheet, payload, externSheets, externalReferences, sheetNames, definedNames, formulaTokenRecords, diagnostics, options, sharedFormulaState, offset, ref pendingFormulaString);
                         break;
                     case BiffRecordType.Footer:
                         ParseHeaderFooter(sheet, payload, isHeader: false);
@@ -718,6 +720,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
+            List<LegacyXlsFormulaTokenRecord> formulaTokenRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options,
             BiffSharedFormulaImportState sharedFormulaState,
@@ -735,6 +738,18 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             bool isSharedFormulaReference = BiffSharedFormulaImportState.TryReadFormulaReference(payload, 20, out BiffSharedFormulaReference formulaReference);
             if (isSharedFormulaReference) {
                 sharedFormulaReference = formulaReference;
+            }
+
+            if (HasFormulaTokenPayload(payload)) {
+                BiffFormulaTokenScanner.ScanLengthPrefixed(
+                    payload,
+                    20,
+                    isSharedFormulaReference ? "SharedFormulaReference" : "CellFormula",
+                    sheet.Name,
+                    A1.ColumnIndexToLetters(column) + row.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    recordOffset,
+                    (ushort)BiffRecordType.Formula,
+                    formulaTokenRecords);
             }
 
             string? formulaText = null;

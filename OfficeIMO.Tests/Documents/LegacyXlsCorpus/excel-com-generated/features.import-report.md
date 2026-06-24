@@ -28,6 +28,7 @@ Compound VBA modules: 0
 Calculation setting records: 7
 Cell style records: 47
 Cell style extension records: 112
+Formula token records: 32
 Workbook metadata records: 18
 Worksheet metadata records: 7
 Unsupported sheet metadata records: 0
@@ -49,6 +50,68 @@ Warnings: 0
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 7 |
+
+## Formula Tokens By Name
+
+| Key | Count |
+| --- | --- |
+| PtgArea | 3 |
+| PtgArea3d | 4 |
+| PtgAttr | 3 |
+| PtgFunc | 1 |
+| PtgFuncVar | 2 |
+| PtgGt | 1 |
+| PtgInt | 1 |
+| PtgMul | 4 |
+| PtgNum | 4 |
+| PtgRef | 5 |
+| PtgStr | 4 |
+
+## Formula Tokens By Context
+
+| Key | Count |
+| --- | --- |
+| CellFormula | 28 |
+| DefinedName | 4 |
+
+## Formula Tokens By Record Type
+
+| Key | Count |
+| --- | --- |
+| 0x0006\|PtgArea | 3 |
+| 0x0006\|PtgAttr | 3 |
+| 0x0006\|PtgFunc | 1 |
+| 0x0006\|PtgFuncVar | 2 |
+| 0x0006\|PtgGt | 1 |
+| 0x0006\|PtgInt | 1 |
+| 0x0006\|PtgMul | 4 |
+| 0x0006\|PtgNum | 4 |
+| 0x0006\|PtgRef | 5 |
+| 0x0006\|PtgStr | 4 |
+| 0x0018\|PtgArea3d | 4 |
+
+## Formula Functions By Id
+
+| Key | Count |
+| --- | --- |
+| Function:0x0001 | 1 |
+| Function:0x0159 | 1 |
+| Function:0x015A | 1 |
+
+## Formula Functions By Name
+
+| Key | Count |
+| --- | --- |
+| COUNTIF | 1 |
+| IF | 1 |
+| SUMIF | 1 |
+
+## Formula Attributes By Name
+
+| Key | Count |
+| --- | --- |
+| Goto | 2 |
+| If | 1 |
 
 ## Data Validations By Type
 
