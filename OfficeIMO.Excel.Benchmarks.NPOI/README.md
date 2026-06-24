@@ -6,6 +6,9 @@ This project is intentionally not included in `OfficeIMO.sln`. Normal solution
 restore and build should not pull NPOI. Run it explicitly when NPOI comparison
 evidence is wanted. The project sets NPOI's OSMF EULA acceptance property for
 this benchmark-only runner; OfficeIMO runtime projects must not reference NPOI.
+SkiaSharp is referenced explicitly here because NPOI HSSF comment/drawing reads
+load it at runtime while NPOI's package metadata excludes those runtime assets
+from the transitive reference.
 
 ```powershell
 dotnet run -c Release --project .\OfficeIMO.Excel.Benchmarks.NPOI\OfficeIMO.Excel.Benchmarks.NPOI.csproj -- --rows 2500 --warmup 1 --iterations 3 --out .\Docs\benchmarks\npoi-comparison.json
@@ -20,6 +23,9 @@ The first lanes are deliberately natural to NPOI:
 - `xls-read-formulas`: read formula text and cached values from an
   HSSF-generated `.xls` workbook through NPOI and OfficeIMO's legacy XLS
   importer.
+- `xls-read-metadata`: read comments, hyperlinks, merged ranges, and list data
+  validations from an HSSF-generated `.xls` workbook through NPOI and
+  OfficeIMO's legacy XLS importer.
 
 Do not add OfficeIMO-specific template, preflight, PDF, package-copy,
 direct-package, or report-workflow scenarios here unless NPOI has an equivalent

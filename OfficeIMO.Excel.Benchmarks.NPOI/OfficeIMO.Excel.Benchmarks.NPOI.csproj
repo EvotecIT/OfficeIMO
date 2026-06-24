@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="NPOI" Version="2.8.0" />
+    <PackageReference Include="SkiaSharp" Version="3.119.2" />
   </ItemGroup>
 
   <ItemGroup>

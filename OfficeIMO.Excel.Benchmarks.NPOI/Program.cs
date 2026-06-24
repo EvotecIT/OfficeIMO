@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text.Json;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
+using NPOI.SS.Util;
 using NPOI.XSSF.UserModel;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
@@ -39,8 +40,9 @@ var records = SalesRecord.Create(rowCount);
 var npoiXlsx = new Lazy<byte[]>(() => WriteNpoiXlsx(records));
 var npoiXls = new Lazy<byte[]>(() => WriteNpoiXls(records));
 var npoiFormulaXls = new Lazy<byte[]>(() => WriteNpoiFormulaXls(records));
+var npoiMetadataXls = new Lazy<byte[]>(() => WriteNpoiMetadataXls(records));
 
-if ((IncludeScenario("xls-read-cellvalues") || IncludeScenario("xls-read-formulas")) && rowCount + 1 > 65_536) {
+if ((IncludeScenario("xls-read-cellvalues") || IncludeScenario("xls-read-formulas") || IncludeScenario("xls-read-metadata")) && rowCount + 1 > 65_536) {
     throw new ArgumentOutOfRangeException(nameof(rowCount), "The xls scenarios cannot exceed the BIFF8 worksheet row limit.");
 }
 
@@ -64,6 +66,11 @@ if (IncludeScenario("xls-read-cellvalues")) {
 if (IncludeScenario("xls-read-formulas")) {
     AddScenario(measurements, "xls-read-formulas", "OfficeIMO.Excel Legacy XLS", "Read BIFF8 formula text and cached values from an HSSF-generated .xls workbook.", () => ReadOfficeImoXlsFormulas(npoiFormulaXls.Value, rowCount), warmupIterations, measuredIterations);
     AddScenario(measurements, "xls-read-formulas", "NPOI HSSF", "Read formula text and cached values from the same HSSF-generated .xls workbook.", () => ReadNpoiWorkbookFormulas(npoiFormulaXls.Value, rowCount), warmupIterations, measuredIterations);
+}
+
+if (IncludeScenario("xls-read-metadata")) {
+    AddScenario(measurements, "xls-read-metadata", "OfficeIMO.Excel Legacy XLS", "Read BIFF8 comments, hyperlinks, merged ranges, and list validations from an HSSF-generated .xls workbook.", () => ReadOfficeImoXlsMetadata(npoiMetadataXls.Value, rowCount), warmupIterations, measuredIterations);
+    AddScenario(measurements, "xls-read-metadata", "NPOI HSSF", "Read comments, hyperlinks, merged ranges, and list validations from the same HSSF-generated .xls workbook.", () => ReadNpoiWorkbookMetadata(npoiMetadataXls.Value, rowCount), warmupIterations, measuredIterations);
 }
 
 if (measurements.Count == 0) {
@@ -171,6 +178,51 @@ static byte[] WriteNpoiFormulaXls(IReadOnlyList<SalesRecord> records) {
     return stream.ToArray();
 }
 
+static byte[] WriteNpoiMetadataXls(IReadOnlyList<SalesRecord> records) {
+    using var stream = new MemoryStream();
+    using var workbook = new HSSFWorkbook();
+    ISheet sheet = workbook.CreateSheet("Data");
+    WriteNpoiRows(sheet, records);
+
+    HSSFPatriarch drawing = (HSSFPatriarch)sheet.CreateDrawingPatriarch();
+    int metadataRows = GetMetadataRowCount(records.Count);
+    for (int i = 0; i < metadataRows; i++) {
+        int rowIndex = i + 1;
+        IRow row = sheet.GetRow(rowIndex) ?? throw new InvalidOperationException($"Missing row {rowIndex + 1}.");
+        ICell ownerCell = row.GetCell(2) ?? throw new InvalidOperationException($"Missing owner cell {rowIndex + 1},3.");
+        var anchor = new HSSFClientAnchor(0, 0, 0, 0, 3, rowIndex, 5, rowIndex + 3);
+        IComment comment = drawing.CreateCellComment(anchor);
+        comment.Author = "OfficeIMO";
+        comment.String = new HSSFRichTextString($"Owner note {i + 1}");
+        ownerCell.CellComment = comment;
+
+        ICell regionCell = row.GetCell(1) ?? throw new InvalidOperationException($"Missing region cell {rowIndex + 1},2.");
+        IHyperlink hyperlink = workbook.GetCreationHelper().CreateHyperlink(HyperlinkType.Url);
+        hyperlink.Address = $"https://example.com/region/{records[i].Region.ToLowerInvariant()}";
+        regionCell.Hyperlink = hyperlink;
+    }
+
+    int mergedRegionCount = GetMetadataMergedRegionCount(records.Count);
+    for (int i = 0; i < mergedRegionCount; i++) {
+        int rowIndex = (i * 2) + 1;
+        sheet.AddMergedRegion(new CellRangeAddress(rowIndex, rowIndex, 5, 6));
+        IRow row = sheet.GetRow(rowIndex) ?? throw new InvalidOperationException($"Missing merged row {rowIndex + 1}.");
+        row.CreateCell(5).SetCellValue($"Merged {i + 1}");
+    }
+
+    var validationRange = new CellRangeAddressList(1, records.Count, 4, 4);
+    IDataValidationConstraint validationConstraint = DVConstraint.CreateExplicitListConstraint(["TRUE", "FALSE"]);
+    var validation = new HSSFDataValidation(validationRange, validationConstraint) {
+        SuppressDropDownArrow = false,
+        EmptyCellAllowed = true,
+        ShowErrorBox = true
+    };
+    sheet.AddValidationData(validation);
+
+    workbook.Write(stream, leaveOpen: true);
+    return stream.ToArray();
+}
+
 static void WriteOfficeImoRows(ExcelSheet sheet, IReadOnlyList<SalesRecord> records) {
     sheet.CellValue(1, 1, "Id");
     sheet.CellValue(1, 2, "Region");
@@ -258,6 +310,39 @@ static int ReadOfficeImoXlsFormulas(byte[] workbookBytes, int rowCount) {
     return metric;
 }
 
+static int ReadOfficeImoXlsMetadata(byte[] workbookBytes, int rowCount) {
+    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedRecords = true });
+    LegacyXlsWorksheet worksheet = workbook.Worksheets.Single(sheet => sheet.Name == "Data");
+    int expectedCommentCount = GetMetadataRowCount(rowCount);
+    int expectedHyperlinkCount = GetMetadataRowCount(rowCount);
+    int expectedMergedRangeCount = GetMetadataMergedRegionCount(rowCount);
+    int expectedValidationCount = 1;
+    ValidateMetadataCounts(
+        worksheet.Comments.Count,
+        worksheet.Hyperlinks.Count,
+        worksheet.MergedRanges.Count,
+        worksheet.DataValidations.Count,
+        expectedCommentCount,
+        expectedHyperlinkCount,
+        expectedMergedRangeCount,
+        expectedValidationCount,
+        "OfficeIMO legacy XLS");
+
+    int metric = 0;
+    foreach (LegacyXlsComment comment in worksheet.Comments.OrderBy(comment => comment.Row).ThenBy(comment => comment.Column)) {
+        metric = AddValueMetric(metric, comment.Text);
+        metric = AddValueMetric(metric, comment.Author);
+    }
+
+    foreach (LegacyXlsHyperlink hyperlink in worksheet.Hyperlinks.OrderBy(hyperlink => hyperlink.StartRow).ThenBy(hyperlink => hyperlink.StartColumn)) {
+        metric = AddValueMetric(metric, hyperlink.Target);
+    }
+
+    metric = AddValueMetric(metric, worksheet.MergedRanges.Count);
+    metric = AddValueMetric(metric, worksheet.DataValidations.Count);
+    return metric;
+}
+
 static int ReadNpoiWorkbook(byte[] workbookBytes, int rowCount) {
     using var stream = new MemoryStream(workbookBytes, writable: false);
     using IWorkbook workbook = WorkbookFactory.Create(stream);
@@ -286,6 +371,51 @@ static int ReadNpoiWorkbookFormulas(byte[] workbookBytes, int rowCount) {
         metric = AddValueMetric(metric, ReadNpoiFormulaCachedValue(formulaCell));
     }
 
+    return metric;
+}
+
+static int ReadNpoiWorkbookMetadata(byte[] workbookBytes, int rowCount) {
+    using var stream = new MemoryStream(workbookBytes, writable: false);
+    using IWorkbook workbook = WorkbookFactory.Create(stream);
+    ISheet sheet = workbook.GetSheet("Data");
+    int commentCount = 0;
+    int hyperlinkCount = 0;
+    int metric = 0;
+    for (int rowIndex = 1; rowIndex <= rowCount; rowIndex++) {
+        IRow? row = sheet.GetRow(rowIndex);
+        if (row == null) {
+            continue;
+        }
+
+        foreach (ICell cell in row.Cells) {
+            if (cell.CellComment != null) {
+                commentCount++;
+                metric = AddValueMetric(metric, cell.CellComment.String.String);
+                metric = AddValueMetric(metric, cell.CellComment.Author);
+            }
+
+            if (cell.Hyperlink != null) {
+                hyperlinkCount++;
+                metric = AddValueMetric(metric, cell.Hyperlink.Address);
+            }
+        }
+    }
+
+    int mergedRangeCount = sheet.NumMergedRegions;
+    int validationCount = sheet.GetDataValidations().Count;
+    ValidateMetadataCounts(
+        commentCount,
+        hyperlinkCount,
+        mergedRangeCount,
+        validationCount,
+        GetMetadataRowCount(rowCount),
+        GetMetadataRowCount(rowCount),
+        GetMetadataMergedRegionCount(rowCount),
+        1,
+        "NPOI HSSF");
+
+    metric = AddValueMetric(metric, mergedRangeCount);
+    metric = AddValueMetric(metric, validationCount);
     return metric;
 }
 
@@ -341,6 +471,33 @@ static int AddStringMetric(int metric, string value) {
         }
 
         return hash;
+    }
+}
+
+static int GetMetadataRowCount(int rowCount) => Math.Min(rowCount, 64);
+
+static int GetMetadataMergedRegionCount(int rowCount) => Math.Min(Math.Max(rowCount / 2, 1), 16);
+
+static void ValidateMetadataCounts(
+    int commentCount,
+    int hyperlinkCount,
+    int mergedRangeCount,
+    int validationCount,
+    int expectedCommentCount,
+    int expectedHyperlinkCount,
+    int expectedMergedRangeCount,
+    int expectedValidationCount,
+    string libraryName) {
+    if (commentCount != expectedCommentCount
+        || hyperlinkCount != expectedHyperlinkCount
+        || mergedRangeCount != expectedMergedRangeCount
+        || validationCount != expectedValidationCount) {
+        throw new InvalidOperationException(
+            $"{libraryName} metadata counts did not match. "
+            + $"Comments {commentCount}/{expectedCommentCount}, "
+            + $"Hyperlinks {hyperlinkCount}/{expectedHyperlinkCount}, "
+            + $"MergedRanges {mergedRangeCount}/{expectedMergedRangeCount}, "
+            + $"DataValidations {validationCount}/{expectedValidationCount}.");
     }
 }
 
@@ -413,6 +570,13 @@ static void WriteUsage() {
     Console.WriteLine("  --iterations N");
     Console.WriteLine("  --scenario name");
     Console.WriteLine("  --out path");
+    Console.WriteLine();
+    Console.WriteLine("Scenarios:");
+    Console.WriteLine("  xlsx-write-cellvalues");
+    Console.WriteLine("  xlsx-read-cellvalues");
+    Console.WriteLine("  xls-read-cellvalues");
+    Console.WriteLine("  xls-read-formulas");
+    Console.WriteLine("  xls-read-metadata");
 }
 
 internal sealed record SalesRecord(int Id, string Region, string Owner, double Amount, bool Active) {
