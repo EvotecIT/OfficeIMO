@@ -649,6 +649,45 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void ExcelRange_ImageExportReportsDrawingShapeVerticalTextUnsupported() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("VerticalText");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Vertical label",
+                "Vertical label",
+                fillHex: "F8FAFC",
+                strokeHex: "475569",
+                paragraphAlignment: A.TextAlignmentTypeValues.Left,
+                verticalAlignment: A.TextAnchoringTypeValues.Top,
+                textColorHex: "111827",
+                textFontSize: 14D,
+                textOrientation: A.TextVerticalValues.Vertical);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:D4");
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+                OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+                string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.Equal(ExcelDrawingTextOrientation.Vertical, drawingObject.TextOrientation);
+                Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported);
+                Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported && diagnostic.Source == "VerticalText!B2");
+                Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported && diagnostic.Source == "VerticalText!B2");
+                Assert.Equal("Vertical label", drawingObject.Text);
+                Assert.Contains("Vertical", svgText, StringComparison.Ordinal);
+            }
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -748,6 +787,7 @@ namespace OfficeIMO.Tests {
             bool textWrap = false,
             bool textShrinkToFit = false,
             bool textResizeShapeToFit = false,
+            A.TextVerticalValues? textOrientation = null,
             int? textInsetLeftEmu = null,
             int? textInsetTopEmu = null,
             int? textInsetRightEmu = null,
@@ -761,7 +801,7 @@ namespace OfficeIMO.Tests {
 
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
-                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textShrinkToFit, textResizeShapeToFit, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu));
+                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textShrinkToFit, textResizeShapeToFit, textOrientation, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
@@ -815,6 +855,7 @@ namespace OfficeIMO.Tests {
             bool textWrap = false,
             bool textShrinkToFit = false,
             bool textResizeShapeToFit = false,
+            A.TextVerticalValues? textOrientation = null,
             int? textInsetLeftEmu = null,
             int? textInsetTopEmu = null,
             int? textInsetRightEmu = null,
@@ -830,6 +871,10 @@ namespace OfficeIMO.Tests {
             var bodyProperties = new A.BodyProperties();
             if (verticalAlignment.HasValue) {
                 bodyProperties.Anchor = verticalAlignment.Value;
+            }
+
+            if (textOrientation.HasValue) {
+                bodyProperties.Vertical = textOrientation.Value;
             }
 
             if (textWrap) {

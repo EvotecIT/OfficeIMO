@@ -318,6 +318,7 @@ namespace OfficeIMO.Excel {
                     drawing.TextWrap,
                     drawing.TextShrinkToFit,
                     drawing.TextResizeShapeToFit,
+                    drawing.TextOrientation,
                     drawing.TextInsetLeft,
                     drawing.TextInsetTop,
                     drawing.TextInsetRight,

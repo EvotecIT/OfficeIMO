@@ -69,6 +69,7 @@ namespace OfficeIMO.Excel.Utilities {
             bool textWrap = ResolveTextWrap(bodyProperties);
             bool textShrinkToFit = ResolveTextShrinkToFit(bodyProperties);
             bool textResizeShapeToFit = ResolveTextResizeShapeToFit(bodyProperties);
+            ExcelDrawingTextOrientation textOrientation = ResolveTextOrientation(bodyProperties);
             DrawingTextInsets textInsets = ResolveTextInsets(bodyProperties);
             DrawingTextStyle textStyle = ResolveTextStyle(shape.TextBody);
 
@@ -104,6 +105,7 @@ namespace OfficeIMO.Excel.Utilities {
                 textWrap,
                 textShrinkToFit,
                 textResizeShapeToFit,
+                textOrientation,
                 textInsets.Left,
                 textInsets.Top,
                 textInsets.Right,
@@ -146,6 +148,7 @@ namespace OfficeIMO.Excel.Utilities {
                 textWrap: false,
                 textShrinkToFit: false,
                 textResizeShapeToFit: false,
+                textOrientation: ExcelDrawingTextOrientation.Horizontal,
                 textInsetLeft: 0D,
                 textInsetTop: 0D,
                 textInsetRight: 0D,
@@ -196,6 +199,39 @@ namespace OfficeIMO.Excel.Utilities {
 
         private static bool ResolveTextResizeShapeToFit(A.BodyProperties? bodyProperties) =>
             bodyProperties?.GetFirstChild<A.ShapeAutoFit>() != null;
+
+        private static ExcelDrawingTextOrientation ResolveTextOrientation(A.BodyProperties? bodyProperties) {
+            A.TextVerticalValues? vertical = bodyProperties?.Vertical?.Value;
+            if (!vertical.HasValue || vertical == A.TextVerticalValues.Horizontal) {
+                return ExcelDrawingTextOrientation.Horizontal;
+            }
+
+            if (vertical == A.TextVerticalValues.Vertical) {
+                return ExcelDrawingTextOrientation.Vertical;
+            }
+
+            if (vertical == A.TextVerticalValues.Vertical270) {
+                return ExcelDrawingTextOrientation.Vertical270;
+            }
+
+            if (vertical == A.TextVerticalValues.EastAsianVetical) {
+                return ExcelDrawingTextOrientation.EastAsianVertical;
+            }
+
+            if (vertical == A.TextVerticalValues.MongolianVertical) {
+                return ExcelDrawingTextOrientation.MongolianVertical;
+            }
+
+            if (vertical == A.TextVerticalValues.WordArtVertical) {
+                return ExcelDrawingTextOrientation.WordArtVertical;
+            }
+
+            if (vertical == A.TextVerticalValues.WordArtLeftToRight) {
+                return ExcelDrawingTextOrientation.WordArtLeftToRight;
+            }
+
+            return ExcelDrawingTextOrientation.Unknown;
+        }
 
         private static DrawingTextInsets ResolveTextInsets(A.BodyProperties? bodyProperties) {
             if (bodyProperties == null) {
@@ -528,6 +564,7 @@ namespace OfficeIMO.Excel.Utilities {
             bool textWrap,
             bool textShrinkToFit,
             bool textResizeShapeToFit,
+            ExcelDrawingTextOrientation textOrientation,
             double textInsetLeft,
             double textInsetTop,
             double textInsetRight,
@@ -564,6 +601,7 @@ namespace OfficeIMO.Excel.Utilities {
             TextWrap = textWrap;
             TextShrinkToFit = textShrinkToFit;
             TextResizeShapeToFit = textResizeShapeToFit;
+            TextOrientation = textOrientation;
             TextInsetLeft = textInsetLeft;
             TextInsetTop = textInsetTop;
             TextInsetRight = textInsetRight;
@@ -632,6 +670,8 @@ namespace OfficeIMO.Excel.Utilities {
         internal bool TextShrinkToFit { get; }
 
         internal bool TextResizeShapeToFit { get; }
+
+        internal ExcelDrawingTextOrientation TextOrientation { get; }
 
         internal double TextInsetLeft { get; }
 

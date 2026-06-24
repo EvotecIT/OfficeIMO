@@ -114,6 +114,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Worksheet drawing shape text requested resizing the shape to fit text, which image export does not support yet.</summary>
     public const string DrawingShapeTextAutoFitUnsupported = "ExcelDrawingShapeTextAutoFitUnsupported";
 
+    /// <summary>Worksheet drawing shape text requested a non-horizontal orientation, which image export does not support yet.</summary>
+    public const string DrawingShapeTextVerticalOrientationUnsupported = "ExcelDrawingShapeTextVerticalOrientationUnsupported";
+
     /// <summary>Worksheet chart could not be converted to a renderable snapshot.</summary>
     public const string ChartSnapshotUnavailable = "ExcelChartSnapshotUnavailable";
 

@@ -554,6 +554,7 @@ namespace OfficeIMO.Excel {
             bool textWrap,
             bool textShrinkToFit,
             bool textResizeShapeToFit,
+            ExcelDrawingTextOrientation textOrientation,
             double textInsetLeft,
             double textInsetTop,
             double textInsetRight,
@@ -583,6 +584,7 @@ namespace OfficeIMO.Excel {
             TextWrap = textWrap;
             TextShrinkToFit = textShrinkToFit;
             TextResizeShapeToFit = textResizeShapeToFit;
+            TextOrientation = textOrientation;
             TextInsetLeft = textInsetLeft;
             TextInsetTop = textInsetTop;
             TextInsetRight = textInsetRight;
@@ -664,6 +666,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Whether DrawingML shapeAutoFit requested resizing the shape to fit text.</summary>
         public bool TextResizeShapeToFit { get; }
+
+        /// <summary>Text orientation requested by DrawingML body properties.</summary>
+        public ExcelDrawingTextOrientation TextOrientation { get; }
 
         /// <summary>Left text inset in CSS pixels after DrawingML EMU conversion.</summary>
         public double TextInsetLeft { get; }
