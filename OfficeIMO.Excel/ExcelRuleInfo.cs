@@ -33,6 +33,8 @@ namespace OfficeIMO.Excel {
         public bool IconSetShowValue { get; set; } = true;
         /// <summary>Gets or sets whether the icon-set rule reverses icon order.</summary>
         public bool IconSetReverse { get; set; }
+        /// <summary>Gets or sets icon-set thresholds in rule order.</summary>
+        public IReadOnlyList<ExcelConditionalIconSetThreshold> IconSetThresholds { get; set; } = Array.Empty<ExcelConditionalIconSetThreshold>();
         /// <summary>Gets or sets the top/bottom rule rank, when present.</summary>
         public uint? TopBottomRank { get; set; }
         /// <summary>Gets or sets whether the top/bottom rule selects bottom values.</summary>
@@ -45,6 +47,16 @@ namespace OfficeIMO.Excel {
         public bool AboveAverageEqual { get; set; }
         /// <summary>Gets or sets the standard-deviation threshold for above-average rules, when present.</summary>
         public int? AboveAverageStdDev { get; set; }
+    }
+
+    /// <summary>
+    /// Threshold metadata for a conditional-formatting icon-set rule.
+    /// </summary>
+    public sealed class ExcelConditionalIconSetThreshold {
+        /// <summary>Gets or sets the threshold type, such as Percent, Number, Minimum, or Maximum.</summary>
+        public string Type { get; set; } = string.Empty;
+        /// <summary>Gets or sets the raw threshold value, when present.</summary>
+        public string? Value { get; set; }
     }
 
     /// <summary>

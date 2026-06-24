@@ -395,11 +395,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal("FF0000FF", finalBar.ColorArgb);
             Assert.Equal(0D, finalBar.StartRatio);
             Assert.Equal(1D, finalBar.Ratio);
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetUnsupported);
-            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal(3, snapshot.ConditionalIcons.Count);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.RedCross);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.YellowExclamation);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.GreenCheck);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Info, diagnostic.Severity);
             Assert.Equal("Conditional!C1:C3", diagnostic.Source);
             Assert.Contains("#FF0000", svg, StringComparison.Ordinal);
             Assert.Contains("#0000FF", svg, StringComparison.Ordinal);
+            Assert.Contains("#16A34A", svg, StringComparison.Ordinal);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
             Assert.NotNull(rendered);
             ExcelVisualCell firstScaleCell = snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1);
@@ -409,12 +414,10 @@ namespace OfficeIMO.Tests {
                 (int)(firstScaleCell.Y + firstScaleCell.Height - 8),
                 OfficeColor.Red,
                 tolerance: 3);
-            AssertPixelNear(
-                rendered!,
-                (int)(finalBar.X + finalBar.Width - 8),
-                (int)(finalBar.Y + (finalBar.Height / 2D)),
-                OfficeColor.Blue,
-                tolerance: 3);
+            OfficeColor barPixel = rendered!.GetPixel((int)(finalBar.X + finalBar.Width - 8), (int)(finalBar.Y + (finalBar.Height / 2D)));
+            Assert.True(barPixel.B > 120 && barPixel.R < 40 && barPixel.G < 40, "Expected a blue data-bar pixel.");
+            ExcelVisualConditionalIcon finalIcon = snapshot.ConditionalIcons.Single(icon => icon.Row == 3 && icon.Column == 3);
+            Assert.True(CountGreenIconPixels(rendered!, finalIcon) > 4, "Expected visible green conditional-formatting icon pixels.");
         }
 
         [Fact]
@@ -2966,6 +2969,24 @@ namespace OfficeIMO.Tests {
                 && Math.Abs(actual.G - expected.G) <= tolerance
                 && Math.Abs(actual.B - expected.B) <= tolerance,
                 $"Expected pixel {x},{y} near {expected}, got {actual}.");
+        }
+
+        private static int CountGreenIconPixels(OfficeRasterImage image, ExcelVisualConditionalIcon icon) {
+            int left = Math.Max(0, (int)Math.Floor(icon.X));
+            int top = Math.Max(0, (int)Math.Floor(icon.Y));
+            int right = Math.Min(image.Width, (int)Math.Ceiling(icon.X + icon.Width));
+            int bottom = Math.Min(image.Height, (int)Math.Ceiling(icon.Y + icon.Height));
+            int count = 0;
+            for (int y = top; y < bottom; y++) {
+                for (int x = left; x < right; x++) {
+                    OfficeColor pixel = image.GetPixel(x, y);
+                    if (pixel.G > 120 && pixel.R < 80 && pixel.B < 120) {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
         }
 
         private static byte[] CreateMinimalJpegHeader() {

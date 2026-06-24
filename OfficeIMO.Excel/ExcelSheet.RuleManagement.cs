@@ -41,6 +41,7 @@ namespace OfficeIMO.Excel {
                         IconSet = ReadIconSetName(rule),
                         IconSetShowValue = ReadIconSetShowValue(rule),
                         IconSetReverse = ReadIconSetReverse(rule),
+                        IconSetThresholds = ReadIconSetThresholds(rule),
                         TopBottomRank = rule.Rank?.Value,
                         TopBottomBottom = rule.Bottom?.Value ?? false,
                         TopBottomPercent = rule.Percent?.Value ?? false,
@@ -165,6 +166,20 @@ namespace OfficeIMO.Excel {
         private static bool ReadIconSetReverse(ConditionalFormattingRule rule) {
             IconSet? iconSet = rule.GetFirstChild<IconSet>();
             return iconSet?.Reverse?.Value ?? false;
+        }
+
+        private static IReadOnlyList<ExcelConditionalIconSetThreshold> ReadIconSetThresholds(ConditionalFormattingRule rule) {
+            IconSet? iconSet = rule.GetFirstChild<IconSet>();
+            if (iconSet == null) {
+                return Array.Empty<ExcelConditionalIconSetThreshold>();
+            }
+
+            return iconSet.Elements<ConditionalFormatValueObject>()
+                .Select(threshold => new ExcelConditionalIconSetThreshold {
+                    Type = threshold.Type?.InnerText ?? string.Empty,
+                    Value = threshold.Val?.Value
+                })
+                .ToArray();
         }
 
         /// <summary>

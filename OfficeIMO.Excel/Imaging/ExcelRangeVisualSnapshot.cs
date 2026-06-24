@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<ExcelVisualRow> rows,
             IReadOnlyList<ExcelVisualCell> cells,
             IReadOnlyList<ExcelVisualConditionalDataBar> conditionalDataBars,
+            IReadOnlyList<ExcelVisualConditionalIcon> conditionalIcons,
             IReadOnlyList<ExcelVisualCommentIndicator> commentIndicators,
             IReadOnlyList<ExcelVisualCommentBody> commentBodies,
             IReadOnlyList<ExcelVisualSparkline> sparklines,
@@ -35,6 +36,7 @@ namespace OfficeIMO.Excel {
             Rows = rows;
             Cells = cells;
             ConditionalDataBars = conditionalDataBars;
+            ConditionalIcons = conditionalIcons;
             CommentIndicators = commentIndicators;
             CommentBodies = commentBodies;
             Sparklines = sparklines;
@@ -74,6 +76,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Conditional-formatting data bars included in the snapshot.</summary>
         public IReadOnlyList<ExcelVisualConditionalDataBar> ConditionalDataBars { get; }
+
+        /// <summary>Conditional-formatting icons included in the snapshot.</summary>
+        public IReadOnlyList<ExcelVisualConditionalIcon> ConditionalIcons { get; }
 
         /// <summary>Cell comment indicators included in the snapshot.</summary>
         public IReadOnlyList<ExcelVisualCommentIndicator> CommentIndicators { get; }
@@ -310,6 +315,66 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Bar width ratio inside the cell.</summary>
         public double Ratio { get; }
+    }
+
+    /// <summary>
+    /// Conditional-formatting icon overlay in an Excel range snapshot.
+    /// </summary>
+    public sealed class ExcelVisualConditionalIcon {
+        internal ExcelVisualConditionalIcon(int row, int column, double x, double y, double width, double height, ExcelConditionalIconKind kind) {
+            Row = row;
+            Column = column;
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+            Kind = kind;
+        }
+
+        /// <summary>One-based source row.</summary>
+        public int Row { get; }
+
+        /// <summary>One-based source column.</summary>
+        public int Column { get; }
+
+        /// <summary>X position in CSS pixels.</summary>
+        public double X { get; }
+
+        /// <summary>Y position in CSS pixels.</summary>
+        public double Y { get; }
+
+        /// <summary>Cell width in CSS pixels.</summary>
+        public double Width { get; }
+
+        /// <summary>Cell height in CSS pixels.</summary>
+        public double Height { get; }
+
+        /// <summary>Rendered icon kind.</summary>
+        public ExcelConditionalIconKind Kind { get; }
+    }
+
+    /// <summary>
+    /// Dependency-free icon shapes used for conditional-formatting icon sets.
+    /// </summary>
+    public enum ExcelConditionalIconKind {
+        /// <summary>Green upward arrow.</summary>
+        GreenUpArrow,
+        /// <summary>Yellow sideways arrow.</summary>
+        YellowSideArrow,
+        /// <summary>Red downward arrow.</summary>
+        RedDownArrow,
+        /// <summary>Green check mark.</summary>
+        GreenCheck,
+        /// <summary>Yellow exclamation mark.</summary>
+        YellowExclamation,
+        /// <summary>Red cross.</summary>
+        RedCross,
+        /// <summary>Green circle.</summary>
+        GreenCircle,
+        /// <summary>Yellow circle.</summary>
+        YellowCircle,
+        /// <summary>Red circle.</summary>
+        RedCircle
     }
 
     /// <summary>

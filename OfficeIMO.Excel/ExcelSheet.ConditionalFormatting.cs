@@ -199,8 +199,8 @@ namespace OfficeIMO.Excel {
                 // Schema requires cfvo count to match icon count.
                 int count;
                 var setName = iconSet.ToString();
-                if (setName.StartsWith("Three", System.StringComparison.Ordinal)) count = 3;
-                else if (setName.StartsWith("Four", System.StringComparison.Ordinal)) count = 4;
+                if (setName.StartsWith("Three", System.StringComparison.OrdinalIgnoreCase)) count = 3;
+                else if (setName.StartsWith("Four", System.StringComparison.OrdinalIgnoreCase)) count = 4;
                 else count = 5;
 
                 if (numberThresholds != null && numberThresholds.Length == count) {

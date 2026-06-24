@@ -49,13 +49,14 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetUnsupported);
-            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Info, diagnostic.Severity);
             Assert.Equal("Signals!F3:F7", diagnostic.Source);
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.DoesNotContain(svg.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.Contains("#63B3ED", System.Text.Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
             Assert.Contains("#7C3AED", System.Text.Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
+            Assert.Contains("#16A34A", System.Text.Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
             AssertDiagnosticsBaseline(ConditionalBaselineName + ".diagnostics.txt", png.Diagnostics);
             AssertRasterBaseline(ConditionalBaselineName + ".png", png.Bytes);
             AssertTextBaseline(ConditionalBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(svg.Bytes));

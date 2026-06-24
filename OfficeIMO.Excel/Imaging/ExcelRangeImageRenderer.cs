@@ -53,6 +53,7 @@ namespace OfficeIMO.Excel {
                 DrawRasterCellText(canvas, cell, snapshot, options, scale, cellsByAddress, diagnostics);
             }
 
+            RenderRasterConditionalIcons(canvas, snapshot, options);
             RenderRasterSparklines(canvas, snapshot, options);
             RenderRasterCommentIndicators(canvas, snapshot, options);
             RenderRasterDrawingLayers(canvas, snapshot, options, diagnostics);
@@ -111,6 +112,7 @@ namespace OfficeIMO.Excel {
                 AppendSvgCellText(builder, cell, snapshot, options, textMeasureCanvas, cellsByAddress, diagnostics);
             }
 
+            AppendSvgConditionalIcons(builder, snapshot, options);
             AppendSvgSparklines(builder, snapshot, options);
             AppendSvgCommentIndicators(builder, snapshot, options);
             AppendSvgDrawingLayers(builder, snapshot, options, diagnostics, textMeasureCanvas);

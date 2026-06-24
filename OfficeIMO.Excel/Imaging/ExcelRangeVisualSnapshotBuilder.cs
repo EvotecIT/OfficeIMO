@@ -168,6 +168,7 @@ namespace OfficeIMO.Excel {
                 rows.AsReadOnly(),
                 cells.AsReadOnly(),
                 conditionalVisuals.DataBars,
+                conditionalVisuals.Icons,
                 commentVisuals.Indicators,
                 commentVisuals.Bodies,
                 sparklines.AsReadOnly(),

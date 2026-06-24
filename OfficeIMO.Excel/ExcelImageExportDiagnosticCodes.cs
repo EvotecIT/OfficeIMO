@@ -42,6 +42,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Unsupported conditional formatting icon set.</summary>
     public const string ConditionalIconSetUnsupported = "ExcelConditionalIconSetUnsupported";
 
+    /// <summary>Conditional formatting icon sets are rendered as deterministic dependency-free approximations.</summary>
+    public const string ConditionalIconSetApproximation = "ExcelConditionalIconSetApproximation";
+
     /// <summary>Unsupported conditional formatting color scale variant.</summary>
     public const string ConditionalColorScaleUnsupported = "ExcelConditionalColorScaleUnsupported";
 
