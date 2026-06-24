@@ -221,6 +221,35 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.FileFormatBlockers["EncryptedWorkbook|Encryption:FilePass:Rc4"]);
         }
 
+        [Fact]
+        public void LegacyXls_DiagnosticCorpus_Biff5Workbook_ReportsUnsupportedVersionBlocker() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsDiagnosticCorpus",
+                "excel-com-generated",
+                "biff5-workbook.xls");
+
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Empty(workbook.Worksheets);
+            Assert.Contains(workbook.Diagnostics, diagnostic =>
+                diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
+                && diagnostic.Code == "XLS-BIFF-VERSION-UNSUPPORTED"
+                && diagnostic.DetailCode == "BiffVersion:BIFF5:WorkbookGlobals");
+            LegacyXlsUnsupportedFeature feature = Assert.Single(workbook.UnsupportedFeatures);
+            Assert.Equal(LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion, feature.Kind);
+            Assert.Equal("XLS-BIFF-VERSION-UNSUPPORTED", feature.Code);
+            Assert.True(report.HasImportErrors);
+            Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion]);
+            Assert.Equal(1, report.UnsupportedBiffVersionsByVersion["BIFF5"]);
+            Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["WorkbookGlobals"]);
+            Assert.Equal(1, report.FileFormatBlockers["UnsupportedBiffVersion|BiffVersion:BIFF5:WorkbookGlobals"]);
+        }
+
         private static bool IsLegacyXlsCorpusBaselineUpdateRequested() {
             string? value = Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES");
             return string.Equals(value, "1", StringComparison.Ordinal)
