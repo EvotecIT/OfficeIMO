@@ -443,6 +443,12 @@ Warnings: 0
 | --- | --- |
 | ChartRecords:148 | 1 |
 
+## Unsupported Chart Sheet Chart Record Counts By Sheet
+
+| Key | Count |
+| --- | --- |
+| Sheet:ChartOnly;ChartRecords:148 | 1 |
+
 ## Unsupported Chart Sheet Chart Record Kinds
 
 | Key | Count |
@@ -457,12 +463,33 @@ Warnings: 0
 | Series | 7 |
 | Text | 14 |
 
+## Unsupported Chart Sheet Chart Record Kinds By Sheet
+
+| Key | Count |
+| --- | --- |
+| Sheet:ChartOnly;Kind:Axis | 12 |
+| Sheet:ChartOnly;Kind:ChartType | 3 |
+| Sheet:ChartOnly;Kind:Container | 35 |
+| Sheet:ChartOnly;Kind:Formatting | 24 |
+| Sheet:ChartOnly;Kind:FutureMetadata | 29 |
+| Sheet:ChartOnly;Kind:Layout | 14 |
+| Sheet:ChartOnly;Kind:PreserveOnly | 10 |
+| Sheet:ChartOnly;Kind:Series | 7 |
+| Sheet:ChartOnly;Kind:Text | 14 |
+
 ## Unsupported Chart Sheet Chart Types
 
 | Key | Count |
 | --- | --- |
 | Bar | 1 |
 | ThreeDimensionalBarShape | 1 |
+
+## Unsupported Chart Sheet Chart Types By Sheet
+
+| Key | Count |
+| --- | --- |
+| Sheet:ChartOnly;ChartType:Bar | 1 |
+| Sheet:ChartOnly;ChartType:ThreeDimensionalBarShape | 1 |
 
 ## External References By Kind
 

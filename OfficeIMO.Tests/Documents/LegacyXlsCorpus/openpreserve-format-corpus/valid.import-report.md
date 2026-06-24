@@ -450,6 +450,15 @@ Warnings: 0
 | ChartRecords:184 | 1 |
 | ChartRecords:185 | 2 |
 
+## Unsupported Chart Sheet Chart Record Counts By Sheet
+
+| Key | Count |
+| --- | --- |
+| Sheet:b_chart;ChartRecords:185 | 1 |
+| Sheet:cl_chart;ChartRecords:184 | 1 |
+| Sheet:c_chart;ChartRecords:155 | 1 |
+| Sheet:lb_chart;ChartRecords:185 | 1 |
+
 ## Unsupported Chart Sheet Chart Record Kinds
 
 | Key | Count |
@@ -462,12 +471,58 @@ Warnings: 0
 | Series | 44 |
 | Text | 84 |
 
+## Unsupported Chart Sheet Chart Record Kinds By Sheet
+
+| Key | Count |
+| --- | --- |
+| Sheet:b_chart;Kind:Axis | 12 |
+| Sheet:b_chart;Kind:ChartType | 9 |
+| Sheet:b_chart;Kind:Container | 53 |
+| Sheet:b_chart;Kind:Formatting | 45 |
+| Sheet:b_chart;Kind:Layout | 32 |
+| Sheet:b_chart;Kind:Series | 12 |
+| Sheet:b_chart;Kind:Text | 22 |
+| Sheet:cl_chart;Kind:Axis | 12 |
+| Sheet:cl_chart;Kind:ChartType | 9 |
+| Sheet:cl_chart;Kind:Container | 53 |
+| Sheet:cl_chart;Kind:Formatting | 45 |
+| Sheet:cl_chart;Kind:Layout | 32 |
+| Sheet:cl_chart;Kind:Series | 12 |
+| Sheet:cl_chart;Kind:Text | 21 |
+| Sheet:c_chart;Kind:Axis | 8 |
+| Sheet:c_chart;Kind:ChartType | 9 |
+| Sheet:c_chart;Kind:Container | 47 |
+| Sheet:c_chart;Kind:Formatting | 47 |
+| Sheet:c_chart;Kind:Layout | 17 |
+| Sheet:c_chart;Kind:Series | 8 |
+| Sheet:c_chart;Kind:Text | 19 |
+| Sheet:lb_chart;Kind:Axis | 12 |
+| Sheet:lb_chart;Kind:ChartType | 9 |
+| Sheet:lb_chart;Kind:Container | 53 |
+| Sheet:lb_chart;Kind:Formatting | 45 |
+| Sheet:lb_chart;Kind:Layout | 32 |
+| Sheet:lb_chart;Kind:Series | 12 |
+| Sheet:lb_chart;Kind:Text | 22 |
+
 ## Unsupported Chart Sheet Chart Types
 
 | Key | Count |
 | --- | --- |
 | Scatter | 4 |
 | ThreeDimensionalBarShape | 28 |
+
+## Unsupported Chart Sheet Chart Types By Sheet
+
+| Key | Count |
+| --- | --- |
+| Sheet:b_chart;ChartType:Scatter | 1 |
+| Sheet:b_chart;ChartType:ThreeDimensionalBarShape | 7 |
+| Sheet:cl_chart;ChartType:Scatter | 1 |
+| Sheet:cl_chart;ChartType:ThreeDimensionalBarShape | 7 |
+| Sheet:c_chart;ChartType:Scatter | 1 |
+| Sheet:c_chart;ChartType:ThreeDimensionalBarShape | 7 |
+| Sheet:lb_chart;ChartType:Scatter | 1 |
+| Sheet:lb_chart;ChartType:ThreeDimensionalBarShape | 7 |
 
 ## External References By Kind
 

@@ -787,6 +787,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject]);
             Assert.Equal(1, report.UnsupportedChartSheetTextObjectCounts["TextObjects:1"]);
             Assert.Equal(1, report.UnsupportedChartSheetChartRecordCounts["ChartRecords:37"]);
+            Assert.Equal(1, report.UnsupportedChartSheetChartRecordCountsBySheet["Sheet:ChartOnly;ChartRecords:37"]);
             Assert.Equal(2, report.UnsupportedChartSheetChartRecordKinds["Container"]);
             Assert.Equal(10, report.UnsupportedChartSheetChartRecordKinds["Axis"]);
             Assert.Equal(1, report.UnsupportedChartSheetChartRecordKinds["Series"]);
@@ -796,6 +797,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(6, report.UnsupportedChartSheetChartRecordKinds["Text"]);
             Assert.Equal(3, report.UnsupportedChartSheetChartRecordKinds["FutureMetadata"]);
             Assert.Equal(1, report.UnsupportedChartSheetChartTypes["Scatter"]);
+            Assert.Equal(10, report.UnsupportedChartSheetChartRecordKindsBySheet["Sheet:ChartOnly;Kind:Axis"]);
+            Assert.Equal(3, report.UnsupportedChartSheetChartRecordKindsBySheet["Sheet:ChartOnly;Kind:ChartType"]);
+            Assert.Equal(1, report.UnsupportedChartSheetChartTypesBySheet["Sheet:ChartOnly;ChartType:Scatter"]);
             Assert.Empty(report.UnsupportedChartSheetPrintSizes);
             Assert.Empty(report.UnsupportedChartSheetPrintSizeKinds);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);

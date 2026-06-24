@@ -521,6 +521,12 @@ Warnings: 0
 | --- | --- |
 | ChartRecords:149 | 1 |
 
+## Unsupported Chart Sheet Chart Record Counts By Sheet
+
+| Key | Count |
+| --- | --- |
+| Sheet:RevenueChart;ChartRecords:149 | 1 |
+
 ## Unsupported Chart Sheet Chart Record Kinds
 
 | Key | Count |
@@ -535,12 +541,33 @@ Warnings: 0
 | Series | 7 |
 | Text | 15 |
 
+## Unsupported Chart Sheet Chart Record Kinds By Sheet
+
+| Key | Count |
+| --- | --- |
+| Sheet:RevenueChart;Kind:Axis | 12 |
+| Sheet:RevenueChart;Kind:ChartType | 3 |
+| Sheet:RevenueChart;Kind:Container | 35 |
+| Sheet:RevenueChart;Kind:Formatting | 24 |
+| Sheet:RevenueChart;Kind:FutureMetadata | 29 |
+| Sheet:RevenueChart;Kind:Layout | 14 |
+| Sheet:RevenueChart;Kind:PreserveOnly | 10 |
+| Sheet:RevenueChart;Kind:Series | 7 |
+| Sheet:RevenueChart;Kind:Text | 15 |
+
 ## Unsupported Chart Sheet Chart Types
 
 | Key | Count |
 | --- | --- |
 | Bar | 1 |
 | ThreeDimensionalBarShape | 1 |
+
+## Unsupported Chart Sheet Chart Types By Sheet
+
+| Key | Count |
+| --- | --- |
+| Sheet:RevenueChart;ChartType:Bar | 1 |
+| Sheet:RevenueChart;ChartType:ThreeDimensionalBarShape | 1 |
 
 ## External References By Kind
 

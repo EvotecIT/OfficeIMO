@@ -373,6 +373,15 @@ Warnings: 0
 | ChartRecords:178 | 1 |
 | ChartRecords:97 | 1 |
 
+## Unsupported Chart Sheet Chart Record Counts By Sheet
+
+| Key | Count |
+| --- | --- |
+| Sheet:LBMAQ_PF_CHART;ChartRecords:178 | 1 |
+| Sheet:LBMAQ_RAIN_CHART;ChartRecords:177 | 1 |
+| Sheet:ZPFCUM_CHART;ChartRecords:115 | 1 |
+| Sheet:ZRAINCUM_CHART;ChartRecords:97 | 1 |
+
 ## Unsupported Chart Sheet Chart Record Kinds
 
 | Key | Count |
@@ -385,12 +394,58 @@ Warnings: 0
 | Series | 36 |
 | Text | 77 |
 
+## Unsupported Chart Sheet Chart Record Kinds By Sheet
+
+| Key | Count |
+| --- | --- |
+| Sheet:LBMAQ_PF_CHART;Kind:Axis | 11 |
+| Sheet:LBMAQ_PF_CHART;Kind:ChartType | 9 |
+| Sheet:LBMAQ_PF_CHART;Kind:Container | 51 |
+| Sheet:LBMAQ_PF_CHART;Kind:Formatting | 47 |
+| Sheet:LBMAQ_PF_CHART;Kind:Layout | 28 |
+| Sheet:LBMAQ_PF_CHART;Kind:Series | 11 |
+| Sheet:LBMAQ_PF_CHART;Kind:Text | 21 |
+| Sheet:LBMAQ_RAIN_CHART;Kind:Axis | 11 |
+| Sheet:LBMAQ_RAIN_CHART;Kind:ChartType | 9 |
+| Sheet:LBMAQ_RAIN_CHART;Kind:Container | 51 |
+| Sheet:LBMAQ_RAIN_CHART;Kind:Formatting | 47 |
+| Sheet:LBMAQ_RAIN_CHART;Kind:Layout | 28 |
+| Sheet:LBMAQ_RAIN_CHART;Kind:Series | 11 |
+| Sheet:LBMAQ_RAIN_CHART;Kind:Text | 20 |
+| Sheet:ZPFCUM_CHART;Kind:Axis | 7 |
+| Sheet:ZPFCUM_CHART;Kind:ChartType | 5 |
+| Sheet:ZPFCUM_CHART;Kind:Container | 35 |
+| Sheet:ZPFCUM_CHART;Kind:Formatting | 31 |
+| Sheet:ZPFCUM_CHART;Kind:Layout | 12 |
+| Sheet:ZPFCUM_CHART;Kind:Series | 7 |
+| Sheet:ZPFCUM_CHART;Kind:Text | 18 |
+| Sheet:ZRAINCUM_CHART;Kind:Axis | 7 |
+| Sheet:ZRAINCUM_CHART;Kind:ChartType | 3 |
+| Sheet:ZRAINCUM_CHART;Kind:Container | 31 |
+| Sheet:ZRAINCUM_CHART;Kind:Formatting | 19 |
+| Sheet:ZRAINCUM_CHART;Kind:Layout | 12 |
+| Sheet:ZRAINCUM_CHART;Kind:Series | 7 |
+| Sheet:ZRAINCUM_CHART;Kind:Text | 18 |
+
 ## Unsupported Chart Sheet Chart Types
 
 | Key | Count |
 | --- | --- |
 | Scatter | 4 |
 | ThreeDimensionalBarShape | 20 |
+
+## Unsupported Chart Sheet Chart Types By Sheet
+
+| Key | Count |
+| --- | --- |
+| Sheet:LBMAQ_PF_CHART;ChartType:Scatter | 1 |
+| Sheet:LBMAQ_PF_CHART;ChartType:ThreeDimensionalBarShape | 7 |
+| Sheet:LBMAQ_RAIN_CHART;ChartType:Scatter | 1 |
+| Sheet:LBMAQ_RAIN_CHART;ChartType:ThreeDimensionalBarShape | 7 |
+| Sheet:ZPFCUM_CHART;ChartType:Scatter | 1 |
+| Sheet:ZPFCUM_CHART;ChartType:ThreeDimensionalBarShape | 4 |
+| Sheet:ZRAINCUM_CHART;ChartType:Scatter | 1 |
+| Sheet:ZRAINCUM_CHART;ChartType:ThreeDimensionalBarShape | 2 |
 
 ## External References By Kind
 
