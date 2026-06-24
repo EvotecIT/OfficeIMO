@@ -151,6 +151,21 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the date grouping interval attached to an SXRng record, when decoded from the following SXInt record.</summary>
         public short? GroupingDateInterval { get; private set; }
 
+        /// <summary>Gets the reserved SXFormula field, when decoded for a calculated-item formula scope.</summary>
+        public ushort? CalculatedItemFormulaReserved { get; private set; }
+
+        /// <summary>Gets the cache field index targeted by an SXFormula calculated-item formula scope.</summary>
+        public short? CalculatedItemFormulaCacheFieldIndex { get; private set; }
+
+        /// <summary>Gets whether SXFormula calculated-item formula scope metadata was decoded.</summary>
+        public bool HasCalculatedItemFormulaScope => CalculatedItemFormulaCacheFieldIndex.HasValue;
+
+        /// <summary>Gets whether SXFormula applies the calculated-item formula to all cache fields.</summary>
+        public bool CalculatedItemFormulaAppliesToAllCacheFields => CalculatedItemFormulaCacheFieldIndex == -1;
+
+        /// <summary>Gets a stable calculated-item formula scope name derived from SXFormula.</summary>
+        public string? CalculatedItemFormulaScopeName { get; private set; }
+
         /// <summary>Gets whether an SXVDEx record requests showing all items.</summary>
         public bool? ShowAllItems { get; private set; }
 
@@ -288,6 +303,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             AutoStart = autoStart;
             AutoEnd = autoEnd;
             GroupingKind = groupingKind;
+        }
+
+        internal void SetCalculatedItemFormula(ushort reserved, short cacheFieldIndex) {
+            CalculatedItemFormulaReserved = reserved;
+            CalculatedItemFormulaCacheFieldIndex = cacheFieldIndex;
+            CalculatedItemFormulaScopeName = cacheFieldIndex == -1
+                ? "AllCacheFields"
+                : $"CacheField:{cacheFieldIndex}";
         }
 
         internal void SetGroupingNumericValue(int valueIndex, double value) {

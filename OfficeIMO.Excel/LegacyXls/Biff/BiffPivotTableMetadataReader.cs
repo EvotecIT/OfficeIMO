@@ -52,6 +52,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         ReadGroupingRange(record, pivotRecord);
                         state?.TrackGroupingRange(record, pivotRecord);
                         break;
+                    case 0x0100:
+                        ReadCalculatedItemFormula(record, pivotRecord);
+                        break;
                     case 0x00E3:
                         ReadCacheSourceType(record, pivotRecord);
                         break;
@@ -334,6 +337,17 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             bool autoEnd = (flags & 0x0002) != 0;
             int groupingValue = (flags >> 2) & 0x0007;
             pivotRecord.SetGroupingRange(autoStart, autoEnd, (LegacyXlsPivotGroupingKind)groupingValue);
+        }
+
+        private static void ReadCalculatedItemFormula(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            byte[] payload = record.Payload;
+            if (payload.Length != 4) {
+                throw new InvalidDataException("The SXFormula payload length does not match the cache-field index structure.");
+            }
+
+            pivotRecord.SetCalculatedItemFormula(
+                BiffRecordReader.ReadUInt16(payload, 0),
+                BiffRecordReader.ReadInt16(payload, 2));
         }
 
         private static void ReadExtendedPivotField(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {

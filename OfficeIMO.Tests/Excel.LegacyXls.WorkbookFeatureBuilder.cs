@@ -608,6 +608,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x00d5, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x00e3, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x00c5, BuildSxdbPayload());
+                WriteRecord(stream, 0x0100, BuildSxFormulaPayload(cacheFieldIndex: -1));
                 WriteRecord(stream, 0x00c8, BuildSxNumPayload(42.5));
                 WriteRecord(stream, 0x00c9, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x00ca, BuildUInt16Payload(0x0007));
@@ -2290,6 +2291,13 @@ namespace OfficeIMO.Tests {
             private static byte[] BuildSxIntPayload(short value) {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, unchecked((ushort)value));
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxFormulaPayload(short cacheFieldIndex) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, unchecked((ushort)cacheFieldIndex));
                 return stream.ToArray();
             }
 

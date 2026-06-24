@@ -360,6 +360,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableRecordsByNameAndLocation = CountByCode(workbook.PivotTableRecords
                 .Select(record => $"{record.RecordName}|{GetPivotTableRecordLocationKey(record)}"));
             PivotTableWorkbookStates = CountByCode(GetPivotTableWorkbookStateKeys(workbook.PivotTableRecords));
+            PivotTableFormulaPayloadLengths = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.Kind == LegacyXlsPivotTableRecordKind.Formula)
+                .Select(record => $"{record.RecordName}|Bytes:{record.PayloadLength}"));
             PivotTableCacheItemKinds = CountByCode(workbook.PivotTableRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.CacheItemKindName))
                 .Select(record => record.CacheItemKindName!));
@@ -430,6 +433,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableGroupingDateRanges = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.GroupingDateStart != null && record.GroupingDateEnd != null && record.GroupingDateInterval.HasValue)
                 .Select(GetPivotTableGroupingDateRangeKey));
+            PivotTableFormulaScopes = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.CalculatedItemFormulaScopeName))
+                .Select(record => record.CalculatedItemFormulaScopeName!));
+            PivotTableFormulaCacheFieldIndexes = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.CalculatedItemFormulaCacheFieldIndex.HasValue)
+                .Select(record => $"CacheField:{record.CalculatedItemFormulaCacheFieldIndex!.Value}"));
+            PivotTableFormulaReservedValues = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.CalculatedItemFormulaReserved.HasValue)
+                .Select(record => $"Reserved:0x{record.CalculatedItemFormulaReserved!.Value:X4}"));
             PivotTableExtendedFieldStates = CountByCode(workbook.PivotTableRecords.SelectMany(GetPivotTableExtendedFieldStateKeys));
             PivotTableAdditionalClasses = CountByCode(workbook.PivotTableRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.AdditionalClassName))
@@ -1484,6 +1496,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets workbook-level PivotTable model-shape states derived from preserve-only PivotTable BIFF records.</summary>
         public IReadOnlyDictionary<string, int> PivotTableWorkbookStates { get; }
 
+        /// <summary>Gets PivotTable formula records grouped by BIFF record name and payload length.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFormulaPayloadLengths { get; }
+
         /// <summary>Gets decoded PivotCache item records grouped by value kind.</summary>
         public IReadOnlyDictionary<string, int> PivotTableCacheItemKinds { get; }
 
@@ -1555,6 +1570,15 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets decoded SXRng date grouping records grouped by start, end, and interval values.</summary>
         public IReadOnlyDictionary<string, int> PivotTableGroupingDateRanges { get; }
+
+        /// <summary>Gets decoded SXFormula calculated-item formula records grouped by cache-field scope.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFormulaScopes { get; }
+
+        /// <summary>Gets decoded SXFormula calculated-item formula records grouped by raw cache field index.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFormulaCacheFieldIndexes { get; }
+
+        /// <summary>Gets decoded SXFormula calculated-item formula records grouped by reserved value.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFormulaReservedValues { get; }
 
         /// <summary>Gets decoded SXVDEx PivotTable field flags grouped by flag state.</summary>
         public IReadOnlyDictionary<string, int> PivotTableExtendedFieldStates { get; }
@@ -2254,6 +2278,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Records By Kind And Location", PivotTableRecordsByKindAndLocation);
             AppendDictionary(builder, "Pivot Table Records By Name And Location", PivotTableRecordsByNameAndLocation);
             AppendDictionary(builder, "Pivot Table Workbook States", PivotTableWorkbookStates);
+            AppendDictionary(builder, "Pivot Table Formula Payload Lengths", PivotTableFormulaPayloadLengths);
             AppendDictionary(builder, "Pivot Table Cache Item Kinds", PivotTableCacheItemKinds);
             AppendDictionary(builder, "Pivot Table Cache Item Value States", PivotTableCacheItemValueStates);
             AppendDictionary(builder, "Pivot Table Cache Item String Lengths", PivotTableCacheItemStringLengths);
@@ -2278,6 +2303,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Grouping Boundary States", PivotTableGroupingBoundaryStates);
             AppendDictionary(builder, "Pivot Table Grouping Numeric Ranges", PivotTableGroupingNumericRanges);
             AppendDictionary(builder, "Pivot Table Grouping Date Ranges", PivotTableGroupingDateRanges);
+            AppendDictionary(builder, "Pivot Table Formula Scopes", PivotTableFormulaScopes);
+            AppendDictionary(builder, "Pivot Table Formula Cache Field Indexes", PivotTableFormulaCacheFieldIndexes);
+            AppendDictionary(builder, "Pivot Table Formula Reserved Values", PivotTableFormulaReservedValues);
             AppendDictionary(builder, "Pivot Table Extended Field States", PivotTableExtendedFieldStates);
             AppendDictionary(builder, "Pivot Table Additional Classes", PivotTableAdditionalClasses);
             AppendDictionary(builder, "Pivot Table Additional Types", PivotTableAdditionalTypes);

@@ -729,6 +729,12 @@ Warnings: 0
 | --- | --- |
 | View:Present\|Cache:Present\|CacheSource:Present\|CacheItems:Missing\|Fields:Present\|Items:Present\|DataItems:Present\|Grouping:Present\|Formulas:Present\|Additional:Present\|Locations:WorkbookAndSheets | 1 |
 
+## Pivot Table Formula Payload Lengths
+
+| Key | Count |
+| --- | --- |
+| SxFormula\|Bytes:20 | 4 |
+
 ## Pivot Table Cache Stream Names
 
 | Key | Count |
