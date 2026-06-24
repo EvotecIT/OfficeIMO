@@ -64,7 +64,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartValueRange? valueRange = null,
             LegacyXlsChartBarOptions? barOptions = null,
             LegacyXlsChart3DBarShapeOptions? threeDimensionalBarShapeOptions = null,
-            LegacyXlsChartScatterOptions? scatterOptions = null) {
+            LegacyXlsChartScatterOptions? scatterOptions = null,
+            LegacyXlsChartFontBasisOptions? fontBasisOptions = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -127,6 +128,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             BarOptions = barOptions;
             ThreeDimensionalBarShapeOptions = threeDimensionalBarShapeOptions;
             ScatterOptions = scatterOptions;
+            FontBasisOptions = fontBasisOptions;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -302,5 +304,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded scatter or bubble chart group options from Scatter records, when present.</summary>
         public LegacyXlsChartScatterOptions? ScatterOptions { get; }
+
+        /// <summary>Gets decoded chart font-scaling metadata from Fbi records, when present.</summary>
+        public LegacyXlsChartFontBasisOptions? FontBasisOptions { get; }
     }
 }

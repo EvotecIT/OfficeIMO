@@ -1395,6 +1395,67 @@ Warnings: 0
 | --- | --- |
 | Bubble:False;NegativeBubbles:False;Shadow:False;Size:Area | 8 |
 
+## Chart FontBasis Scale Basis
+
+| Key | Count |
+| --- | --- |
+| ChartArea | 14 |
+| PlotArea | 8 |
+
+## Chart FontBasis Font Indexes
+
+| Key | Count |
+| --- | --- |
+| FontIndex:10 | 1 |
+| FontIndex:11 | 1 |
+| FontIndex:12 | 1 |
+| FontIndex:13 | 1 |
+| FontIndex:14 | 1 |
+| FontIndex:15 | 1 |
+| FontIndex:16 | 1 |
+| FontIndex:17 | 1 |
+| FontIndex:20 | 1 |
+| FontIndex:21 | 1 |
+| FontIndex:22 | 1 |
+| FontIndex:23 | 1 |
+| FontIndex:24 | 1 |
+| FontIndex:25 | 1 |
+| FontIndex:26 | 1 |
+| FontIndex:27 | 1 |
+| FontIndex:28 | 1 |
+| FontIndex:29 | 1 |
+| FontIndex:30 | 1 |
+| FontIndex:6 | 1 |
+| FontIndex:7 | 1 |
+| FontIndex:9 | 1 |
+
+## Chart FontBasis States
+
+| Key | Count |
+| --- | --- |
+| Basis:9578x5609;HeightTwips:200;Scale:ChartArea;FontIndex:20 | 1 |
+| Basis:9578x5609;HeightTwips:200;Scale:ChartArea;FontIndex:6 | 1 |
+| Basis:9578x5609;HeightTwips:200;Scale:PlotArea;FontIndex:21 | 1 |
+| Basis:9578x5609;HeightTwips:200;Scale:PlotArea;FontIndex:7 | 1 |
+| Basis:9585x5610;HeightTwips:200;Scale:ChartArea;FontIndex:10 | 1 |
+| Basis:9585x5610;HeightTwips:200;Scale:ChartArea;FontIndex:14 | 1 |
+| Basis:9585x5610;HeightTwips:200;Scale:ChartArea;FontIndex:16 | 1 |
+| Basis:9585x5610;HeightTwips:200;Scale:ChartArea;FontIndex:22 | 1 |
+| Basis:9585x5610;HeightTwips:200;Scale:ChartArea;FontIndex:25 | 1 |
+| Basis:9585x5610;HeightTwips:200;Scale:ChartArea;FontIndex:28 | 1 |
+| Basis:9585x5610;HeightTwips:200;Scale:PlotArea;FontIndex:11 | 1 |
+| Basis:9585x5610;HeightTwips:200;Scale:PlotArea;FontIndex:15 | 1 |
+| Basis:9585x5610;HeightTwips:200;Scale:PlotArea;FontIndex:17 | 1 |
+| Basis:9585x5610;HeightTwips:200;Scale:PlotArea;FontIndex:23 | 1 |
+| Basis:9585x5610;HeightTwips:200;Scale:PlotArea;FontIndex:26 | 1 |
+| Basis:9585x5610;HeightTwips:200;Scale:PlotArea;FontIndex:29 | 1 |
+| Basis:9597x5621;HeightTwips:200;Scale:ChartArea;FontIndex:12 | 1 |
+| Basis:9597x5621;HeightTwips:200;Scale:ChartArea;FontIndex:13 | 1 |
+| Basis:9597x5621;HeightTwips:200;Scale:ChartArea;FontIndex:24 | 1 |
+| Basis:9597x5621;HeightTwips:200;Scale:ChartArea;FontIndex:27 | 1 |
+| Basis:9597x5621;HeightTwips:200;Scale:ChartArea;FontIndex:30 | 1 |
+| Basis:9597x5621;HeightTwips:200;Scale:ChartArea;FontIndex:9 | 1 |
+
 ## Chart Sheet Property States
 
 | Key | Count |

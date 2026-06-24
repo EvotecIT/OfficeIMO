@@ -653,6 +653,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartScatterStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.ScatterOptions != null)
                 .Select(GetChartScatterStateKey));
+            ChartFontBasisScaleBasis = CountByCode(workbook.ChartRecords
+                .Where(record => record.FontBasisOptions != null)
+                .Select(record => record.FontBasisOptions!.ScaleBasisName));
+            ChartFontBasisFontIndexes = CountByCode(workbook.ChartRecords
+                .Where(record => record.FontBasisOptions != null)
+                .Select(record => $"FontIndex:{record.FontBasisOptions!.FontIndex}"));
+            ChartFontBasisStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.FontBasisOptions != null)
+                .Select(GetChartFontBasisStateKey));
             ChartSheetPropertyEmptyCellModes = CountByCode(workbook.ChartRecords
                 .Where(record => record.SheetProperties != null && record.SheetProperties.HasKnownEmptyCellPlottingMode)
                 .Select(record => record.SheetProperties!.EmptyCellPlottingModeName));
@@ -1989,6 +1998,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Scatter records grouped by decoded bubble, negative-bubble, shadow, and size-representation state.</summary>
         public IReadOnlyDictionary<string, int> ChartScatterStates { get; }
 
+        /// <summary>Gets Fbi records grouped by decoded chart font scale basis.</summary>
+        public IReadOnlyDictionary<string, int> ChartFontBasisScaleBasis { get; }
+
+        /// <summary>Gets Fbi records grouped by referenced chart font index.</summary>
+        public IReadOnlyDictionary<string, int> ChartFontBasisFontIndexes { get; }
+
+        /// <summary>Gets Fbi records grouped by decoded basis, default font height, scale basis, and font index.</summary>
+        public IReadOnlyDictionary<string, int> ChartFontBasisStates { get; }
+
         /// <summary>Gets ShtProps records grouped by decoded empty-cell plotting mode.</summary>
         public IReadOnlyDictionary<string, int> ChartSheetPropertyEmptyCellModes { get; }
 
@@ -2744,6 +2762,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Scatter Bubble Size Representations", ChartScatterBubbleSizeRepresentations);
             AppendDictionary(builder, "Chart Scatter Bubble Size Ratio States", ChartScatterBubbleSizeRatioStates);
             AppendDictionary(builder, "Chart Scatter States", ChartScatterStates);
+            AppendDictionary(builder, "Chart FontBasis Scale Basis", ChartFontBasisScaleBasis);
+            AppendDictionary(builder, "Chart FontBasis Font Indexes", ChartFontBasisFontIndexes);
+            AppendDictionary(builder, "Chart FontBasis States", ChartFontBasisStates);
             AppendDictionary(builder, "Chart Sheet Property Empty Cell Modes", ChartSheetPropertyEmptyCellModes);
             AppendDictionary(builder, "Chart Sheet Property States", ChartSheetPropertyStates);
             AppendDictionary(builder, "Chart LineFormat Styles", ChartLineFormatStyles);
@@ -3392,6 +3413,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartScatterStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartScatterOptions options = record.ScatterOptions!;
             return $"Bubble:{options.IsBubbleChart};NegativeBubbles:{options.ShowNegativeBubbles};Shadow:{options.HasShadow};Size:{options.BubbleSizeRepresentationName}";
+        }
+
+        private static string GetChartFontBasisStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartFontBasisOptions options = record.FontBasisOptions!;
+            return $"Basis:{options.WidthTwipsBasis}x{options.HeightTwipsBasis};HeightTwips:{options.FontHeightTwips};Scale:{options.ScaleBasisName};FontIndex:{options.FontIndex}";
         }
 
         private static string GetChartAttachedLabelStateKey(LegacyXlsChartRecord record) {

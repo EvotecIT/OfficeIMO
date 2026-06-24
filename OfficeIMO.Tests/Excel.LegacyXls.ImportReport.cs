@@ -1294,6 +1294,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsChartFontBasisMetadata() {
+            byte[] payload = {
+                0xc0, 0x12,
+                0x80, 0x0c,
+                0xdc, 0x00,
+                0x01, 0x00,
+                0x07, 0x00
+            };
+            var chartRecord = new BiffRecord(0x1060, offset: 456, payload);
+            var chartRecords = new List<LegacyXlsChartRecord>();
+
+            Assert.True(BiffChartMetadataReader.TryRead(chartRecord, "FontChart", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            LegacyXlsChartFontBasisOptions? fontBasis = record.FontBasisOptions;
+            Assert.NotNull(fontBasis);
+            Assert.Equal(4800, fontBasis!.WidthTwipsBasis);
+            Assert.Equal(3200, fontBasis.HeightTwipsBasis);
+            Assert.Equal(220, fontBasis.FontHeightTwips);
+            Assert.Equal(0x0001, fontBasis.ScaleBasis);
+            Assert.Equal("PlotArea", fontBasis.ScaleBasisName);
+            Assert.True(fontBasis.HasKnownScaleBasis);
+            Assert.Equal(7, fontBasis.FontIndex);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(1, report.ChartFontBasisScaleBasis["PlotArea"]);
+            Assert.Equal(1, report.ChartFontBasisFontIndexes["FontIndex:7"]);
+            Assert.Equal(1, report.ChartFontBasisStates["Basis:4800x3200;HeightTwips:220;Scale:PlotArea;FontIndex:7"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart FontBasis Scale Basis", markdown);
+            Assert.Contains("Basis:4800x3200;HeightTwips:220;Scale:PlotArea;FontIndex:7", markdown);
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_CountsImportedWorkbookFeatures() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4DefinedNamesWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
