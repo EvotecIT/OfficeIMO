@@ -1275,6 +1275,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextBlockRenderer_AppendsSvgRichTextBlockWithSharedPlacement() {
+            var builder = new System.Text.StringBuilder();
+            var firstLine = new OfficeRichTextLine(new[] {
+                new OfficeRichTextSegment("Red", width: 20D, fontSize: 10D, color: OfficeColor.Red, bold: true, italic: false, underline: true, fontFamily: "Aptos"),
+                new OfficeRichTextSegment("Blue", width: 30D, fontSize: 10D, color: OfficeColor.Blue, bold: false, italic: true, underline: false, fontFamily: "Aptos", strikethrough: true)
+            });
+            var secondLine = new OfficeRichTextLine(new[] {
+                new OfficeRichTextSegment("Tail", width: 12D, fontSize: 8D, color: OfficeColor.FromRgb(1, 2, 3), bold: false, italic: false, underline: false, fontFamily: "Aptos")
+            });
+            var layout = new OfficeRichTextBlockLayout(
+                new[] { firstLine, secondLine },
+                lineHeight: 14D,
+                width: firstLine.Width,
+                height: 28D);
+
+            builder.AppendSvgRichTextBlock(
+                layout,
+                left: 0D,
+                top: 0D,
+                width: 100D,
+                height: 50D,
+                OfficeTextAlignment.Center,
+                OfficeTextVerticalAlignment.Bottom,
+                rotationDegrees: 15D,
+                rotationCenterX: 50D,
+                rotationCenterY: 25D);
+
+            string svg = builder.ToString();
+            Assert.Contains("x=\"25\" y=\"32.4\"", svg);
+            Assert.Contains("x=\"45\" y=\"32.4\"", svg);
+            Assert.Contains("x=\"44\" y=\"45.72\"", svg);
+            Assert.Contains("font-weight=\"700\"", svg);
+            Assert.Contains("font-style=\"italic\"", svg);
+            Assert.Contains("text-decoration=\"line-through\"", svg);
+            Assert.Contains("transform=\"rotate(15 50 25)\"", svg);
+            Assert.Contains(">Red</text>", svg);
+            Assert.Contains(">Blue</text>", svg);
+            Assert.Contains(">Tail</text>", svg);
+        }
+
+        [Fact]
         public void OfficeTextBlockRenderer_WritesSvgTextBlockWithTspansAndAdapterAttributes() {
             var layout = new OfficeTextBlockLayout(
                 new[] {

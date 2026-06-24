@@ -370,9 +370,7 @@ namespace OfficeIMO.Excel {
             OfficeTextAlignment alignment = (rotated || stacked) ? OfficeTextAlignment.Center : ResolveTextAlignment(cell.Style.HorizontalAlignment);
             double layoutWidth = rotated ? Math.Max(availableWidth, availableHeight) : availableWidth;
             double left = rotated ? centerX - (layoutWidth / 2D) : x + paddingX;
-            double top = rotated
-                ? centerY - (layout.Height / 2D)
-                : OfficeTextPlacement.ResolveTop(y + paddingY, availableHeight, layout.Height, ResolveTextVerticalAlignment(cell.Style.VerticalAlignment));
+            double top = rotated ? centerY - (layout.Height / 2D) : y + paddingY;
             string clipId = "xl-text-" + cell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-" + cell.Column.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
             builder.AppendRectClipPathDefinition(clipId, x, y, w, h);
@@ -382,23 +380,14 @@ namespace OfficeIMO.Excel {
             }
 
             builder.Append(">");
-            for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {
-                OfficeRichTextLine line = layout.Lines[lineIndex];
-                if (line.Segments.Count == 0) {
-                    continue;
-                }
-
-                double lineTop = top + (lineIndex * layout.LineHeight);
-                double lineFontSize = Math.Max(1D, line.FontSize);
-                double textTop = lineTop + Math.Max(0D, (layout.LineHeight - lineFontSize) / 2D);
-                double baseline = textTop + (lineFontSize * 0.84D);
-                double cursor = OfficeTextPlacement.ResolveLineLeft(left, layoutWidth, line.Width, alignment);
-                for (int segmentIndex = 0; segmentIndex < line.Segments.Count; segmentIndex++) {
-                    OfficeRichTextSegment segment = line.Segments[segmentIndex];
-                    builder.AppendSvgRichTextSegment(segment, cursor, baseline);
-                    cursor += segment.Width;
-                }
-            }
+            builder.AppendSvgRichTextBlock(
+                layout,
+                left,
+                top,
+                layoutWidth,
+                rotated ? layout.Height : availableHeight,
+                alignment,
+                rotated ? OfficeTextVerticalAlignment.Top : ResolveTextVerticalAlignment(cell.Style.VerticalAlignment));
 
             builder.Append("</g>");
             return true;

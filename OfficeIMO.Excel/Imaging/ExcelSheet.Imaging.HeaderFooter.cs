@@ -437,12 +437,14 @@ namespace OfficeIMO.Excel {
             }
 
             OfficeRichTextLine line = layout.Lines[0];
-            double cursor = OfficeTextPlacement.ResolveLineLeft(zone.X, zone.Width, line.Width, alignment);
-            for (int index = 0; index < line.Segments.Count; index++) {
-                OfficeRichTextSegment segment = line.Segments[index];
-                builder.AppendSvgRichTextSegment(segment, cursor, baseline);
-                cursor += segment.Width;
-            }
+            double top = baseline - Math.Max(0D, (layout.LineHeight - Math.Max(1D, line.FontSize)) / 2D) - (Math.Max(1D, line.FontSize) * 0.84D);
+            builder.AppendSvgRichTextBlock(
+                layout,
+                zone.X,
+                top,
+                zone.Width,
+                layout.Height,
+                alignment);
         }
 
         private static string ResolveHeaderFooterZoneText(
