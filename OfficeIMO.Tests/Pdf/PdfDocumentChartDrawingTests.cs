@@ -773,6 +773,9 @@ public class PdfDocumentChartDrawingTests {
         var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(label => label.Text).ToList();
 
         Assert.Contains("0.0", labels);
+        Assert.Contains("500.0", labels);
+        Assert.Contains("1,000.0", labels);
+        Assert.Contains("1,500.0", labels);
         Assert.Contains("2,000.0", labels);
     }
 

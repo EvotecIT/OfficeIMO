@@ -322,7 +322,7 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static IReadOnlyList<double> GetValueAxisLabelTicks(ValueRange range, double? majorUnit) =>
-        majorUnit.HasValue ? GetValueAxisMajorTicks(range, majorUnit) : new[] { range.Min, range.Max };
+        GetValueAxisMajorTicks(range, majorUnit);
 
     private static IReadOnlyList<double> GetValueAxisMinorTicks(ValueRange range, double? minorUnit, IReadOnlyList<double> majorTicks) {
         if (!minorUnit.HasValue || minorUnit.Value <= 0D) {

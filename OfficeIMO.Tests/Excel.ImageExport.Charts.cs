@@ -235,6 +235,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartCategoryAxisNumberFormatUnsupported);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.Contains("1,800.0", svg, StringComparison.Ordinal);
+            Assert.Contains("900.0", svg, StringComparison.Ordinal);
             Assert.Contains("0.0", svg, StringComparison.Ordinal);
         }
 
