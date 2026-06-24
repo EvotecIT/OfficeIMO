@@ -27,17 +27,7 @@ public static class OfficeDrawingRasterRenderer {
             if (element is OfficeDrawingShape shape) {
                 RenderShape(canvas, shape, scale);
             } else if (element is OfficeDrawingText text) {
-                canvas.DrawText(
-                    text.Text,
-                    text.X * scale,
-                    text.Y * scale,
-                    text.Width * scale,
-                    text.Height * scale,
-                    text.Color ?? OfficeColor.Black,
-                    text.Font.Size * scale,
-                    text.Alignment,
-                    text.Font.Style,
-                    text.Font.FamilyName);
+                RenderText(canvas, text, scale);
             }
         }
 
@@ -90,6 +80,57 @@ public static class OfficeDrawingRasterRenderer {
                 RenderPath(canvas, shape, x, y, scale, fill, stroke, strokeWidth, shape.StrokeDashStyle);
                 break;
         }
+    }
+
+    private static void RenderText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale) {
+        if (Math.Abs(text.RotationDegrees) <= 0.000001D) {
+            canvas.DrawText(
+                text.Text,
+                text.X * scale,
+                text.Y * scale,
+                text.Width * scale,
+                text.Height * scale,
+                text.Color ?? OfficeColor.Black,
+                text.Font.Size * scale,
+                text.Alignment,
+                text.Font.Style,
+                text.Font.FamilyName);
+            return;
+        }
+
+        double fontSize = Math.Max(1D, text.Font.Size * scale);
+        double textWidth = text.Width * scale;
+        double textHeight = text.Height * scale;
+        double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
+            ? Math.Max(1D, (text.LineHeight.Value * scale) / fontSize)
+            : 1.2D;
+        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
+            text.Text,
+            fontSize,
+            textWidth,
+            textHeight,
+            lineHeightFactor,
+            minimumFontSize: Math.Min(6D, fontSize),
+            (value, size) => canvas.MeasureText(value, size, text.Font.FamilyName),
+            wrap: false);
+        OfficeTextBlockRenderer.DrawRasterTextBlock(
+            canvas,
+            layout,
+            text.X * scale,
+            text.Y * scale,
+            textWidth,
+            textHeight,
+            text.Color ?? OfficeColor.Black,
+            text.Alignment,
+            OfficeTextVerticalAlignment.Center,
+            (text.Font.Style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold,
+            (text.Font.Style & OfficeFontStyle.Italic) == OfficeFontStyle.Italic,
+            (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
+            text.RotationDegrees,
+            text.RotationCenterX * scale,
+            text.RotationCenterY * scale,
+            strikethrough: (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
+            fontFamily: text.Font.FamilyName);
     }
 
     private static void RenderTransformedShape(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale) {

@@ -64,7 +64,14 @@ public static class OfficeDrawingQualityAnalyzer {
 
     private static DrawingBounds GetBounds(OfficeDrawingElement element) {
         if (element is OfficeDrawingText text) {
-            return new DrawingBounds(text.X, text.Y, text.X + text.Width, text.Y + text.Height);
+            return GetRotatedBounds(
+                text.X,
+                text.Y,
+                text.Width,
+                text.Height,
+                text.RotationDegrees,
+                text.RotationCenterX,
+                text.RotationCenterY);
         }
 
         if (element is OfficeDrawingShape shape) {
@@ -72,6 +79,23 @@ public static class OfficeDrawingQualityAnalyzer {
         }
 
         return new DrawingBounds(0D, 0D, 0D, 0D);
+    }
+
+    private static DrawingBounds GetRotatedBounds(double x, double y, double width, double height, double rotationDegrees, double centerX, double centerY) {
+        if (Math.Abs(rotationDegrees) <= 0.000001D) {
+            return new DrawingBounds(x, y, x + width, y + height);
+        }
+
+        double radians = OfficeGeometry.DegreesToRadians(rotationDegrees);
+        OfficePoint topLeft = OfficeGeometry.RotatePoint(new OfficePoint(x, y), centerX, centerY, radians);
+        OfficePoint topRight = OfficeGeometry.RotatePoint(new OfficePoint(x + width, y), centerX, centerY, radians);
+        OfficePoint bottomRight = OfficeGeometry.RotatePoint(new OfficePoint(x + width, y + height), centerX, centerY, radians);
+        OfficePoint bottomLeft = OfficeGeometry.RotatePoint(new OfficePoint(x, y + height), centerX, centerY, radians);
+        double left = Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomRight.X, bottomLeft.X));
+        double top = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomRight.Y, bottomLeft.Y));
+        double right = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomRight.X, bottomLeft.X));
+        double bottom = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomRight.Y, bottomLeft.Y));
+        return new DrawingBounds(left, top, right, bottom);
     }
 
     private static bool IsOutsideCanvas(DrawingBounds bounds, double width, double height, double tolerance) {

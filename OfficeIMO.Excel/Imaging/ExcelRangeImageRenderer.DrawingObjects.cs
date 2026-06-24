@@ -74,7 +74,10 @@ namespace OfficeIMO.Excel {
                     textHeight,
                     new OfficeFontInfo("Calibri", fontSize),
                     OfficeColor.FromRgb(31, 41, 55),
-                    OfficeTextAlignment.Center);
+                    OfficeTextAlignment.Center,
+                    rotationDegrees: drawingObject.RotationDegrees,
+                    rotationCenterX: offsetX + width / 2D,
+                    rotationCenterY: offsetY + height / 2D);
             }
 
             return new DrawingObjectScene(drawing, offsetX, offsetY);
@@ -99,7 +102,7 @@ namespace OfficeIMO.Excel {
             diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation,
-                "Worksheet drawing object text is rendered without Excel-exact rotation metrics.",
+                "Worksheet drawing object text is rendered through shared Drawing rotation without Excel-exact text-box metrics.",
                 drawingObject.Source));
         }
 

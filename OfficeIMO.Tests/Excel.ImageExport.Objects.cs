@@ -347,6 +347,7 @@ namespace OfficeIMO.Tests {
                 ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+                string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal("RotatedText!B2", drawingObject.Source);
@@ -356,6 +357,8 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
                 Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation);
                 Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation);
+                Assert.Contains("Rotated label", svgText, StringComparison.Ordinal);
+                Assert.Contains("transform=\"rotate(25", svgText, StringComparison.Ordinal);
             }
         }
 

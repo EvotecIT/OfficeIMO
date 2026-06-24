@@ -204,7 +204,12 @@ public static class OfficeDrawingSvgExporter {
             fontSize,
             text.Alignment,
             text.Font.IsBold,
-            text.Font.IsItalic);
+            text.Font.IsItalic,
+            (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
+            text.RotationDegrees,
+            text.RotationCenterX,
+            text.RotationCenterY,
+            (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough);
     }
 
     private static void AppendClipPathDefinition(StringBuilder sb, string id, OfficeClipPath clipPath) {

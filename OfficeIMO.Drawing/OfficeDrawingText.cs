@@ -10,7 +10,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     /// <summary>
     /// Creates a positioned drawing text box.
     /// </summary>
-    public OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null) {
+    public OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null) {
         if (text == null) {
             throw new ArgumentNullException(nameof(text));
         }
@@ -19,6 +19,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         ValidateFiniteNonNegative(y, nameof(y));
         ValidatePositiveFinite(width, nameof(width));
         ValidatePositiveFinite(height, nameof(height));
+        ValidateFinite(rotationDegrees, nameof(rotationDegrees));
         if (lineHeight.HasValue) {
             ValidatePositiveFinite(lineHeight.Value, nameof(lineHeight));
         }
@@ -32,6 +33,11 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         Color = color;
         Alignment = alignment;
         LineHeight = lineHeight;
+        RotationDegrees = rotationDegrees;
+        RotationCenterX = rotationCenterX ?? x + width / 2D;
+        RotationCenterY = rotationCenterY ?? y + height / 2D;
+        ValidateFinite(RotationCenterX, nameof(rotationCenterX));
+        ValidateFinite(RotationCenterY, nameof(rotationCenterY));
     }
 
     /// <summary>Text content.</summary>
@@ -61,14 +67,29 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     /// <summary>Optional line height in drawing units. Null lets renderers use their default line height.</summary>
     public double? LineHeight { get; }
 
+    /// <summary>Clockwise text rotation in degrees.</summary>
+    public double RotationDegrees { get; }
+
+    /// <summary>X coordinate of the text rotation center in the drawing's local coordinate space.</summary>
+    public double RotationCenterX { get; }
+
+    /// <summary>Y coordinate of the text rotation center in the drawing's local coordinate space.</summary>
+    public double RotationCenterY { get; }
+
     /// <summary>Creates a detached copy of this positioned text box.</summary>
-    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight);
+    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight, RotationDegrees, RotationCenterX, RotationCenterY);
 
     internal override OfficeDrawingElement CloneElement() => Clone();
 
     private static void ValidateFiniteNonNegative(double value, string paramName) {
         if (double.IsNaN(value) || double.IsInfinity(value) || value < 0D) {
             throw new ArgumentOutOfRangeException(paramName, "Drawing text coordinates must be finite non-negative numbers.");
+        }
+    }
+
+    private static void ValidateFinite(double value, string paramName) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) {
+            throw new ArgumentOutOfRangeException(paramName, "Drawing text rotation values must be finite numbers.");
         }
     }
 

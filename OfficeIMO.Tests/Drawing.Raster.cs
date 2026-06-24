@@ -618,6 +618,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeDrawingRasterRenderer_RendersRotatedTextThroughSharedTextRenderer() {
+            OfficeDrawing drawing = new OfficeDrawing(96, 64);
+            drawing.AddText(
+                "Tilt",
+                24,
+                18,
+                48,
+                20,
+                new OfficeFontInfo("Aptos", 14D),
+                OfficeColor.Red,
+                OfficeTextAlignment.Center,
+                rotationDegrees: 35D,
+                rotationCenterX: 48D,
+                rotationCenterY: 28D);
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+
+            Assert.True(CountPixelsNear(image, OfficeColor.Red) > 20);
+            Assert.True(AnyAlpha(image, 30, 10, 66, 46));
+        }
+
+        [Fact]
         public void OfficeDrawingRasterRenderer_FlattensBezierPathCommands() {
             OfficeDrawing drawing = new OfficeDrawing(64, 48);
             OfficeShape quadratic = OfficeShape.Path(

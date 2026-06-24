@@ -10,6 +10,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class ExcelImageExportVisualBaselineTests {
         private const string RotatedPresetDrawingObjectBaselineName = "officeimo-excel-image-rotated-preset-drawing-object";
+        private const string RotatedShapeTextBaselineName = "officeimo-excel-image-rotated-shape-text";
 
         [Fact]
         public void RotatedPresetDrawingObjectImageExportMatchesApprovedBaselines() {
@@ -65,6 +66,62 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#EA580C", svg, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void RotatedShapeTextImageExportMatchesApprovedBaselines() {
+            using ExcelBaselineFixture fixture = CreateRotatedShapeTextBaselineWorkbook();
+            ExcelRange range = fixture.Sheet.Range("A1:F8");
+            ExcelImageExportOptions options = CreateBaselineOptions();
+
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+            Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation);
+            Assert.Single(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.Contains("Rotated label", svgText, StringComparison.Ordinal);
+            Assert.Contains("transform=\"rotate(24", svgText, StringComparison.Ordinal);
+            Assert.Contains("#DBEAFE", svgText, StringComparison.Ordinal);
+            Assert.Contains("#2563EB", svgText, StringComparison.Ordinal);
+            AssertRasterBaseline(RotatedShapeTextBaselineName + ".png", png.Bytes);
+            AssertTextBaseline(RotatedShapeTextBaselineName + ".svg", svgText);
+        }
+
+        [Fact]
+        public void ApprovedRotatedShapeTextBaselinesAreRenderableAndNonBlank() {
+            string baselineDirectory = BaselineDirectory;
+            string pngPath = Path.Combine(baselineDirectory, RotatedShapeTextBaselineName + ".png");
+            string svgPath = Path.Combine(baselineDirectory, RotatedShapeTextBaselineName + ".svg");
+            if (UpdateBaselines) {
+                using ExcelBaselineFixture fixture = CreateRotatedShapeTextBaselineWorkbook();
+                ExcelRange range = fixture.Sheet.Range("A1:F8");
+                ExcelImageExportOptions options = CreateBaselineOptions();
+                AssertRasterBaseline(RotatedShapeTextBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(RotatedShapeTextBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+            }
+
+            Assert.True(File.Exists(pngPath), "Missing approved rotated shape-text PNG baseline: " + pngPath);
+            Assert.True(File.Exists(svgPath), "Missing approved rotated shape-text SVG baseline: " + svgPath);
+
+            OfficeRasterImage image = VisualBaselineTestSupport.DecodePng(File.ReadAllBytes(pngPath), "Approved rotated shape-text PNG baseline is not a supported PNG file.");
+            Assert.True(image.Width >= 600, "Rotated shape-text PNG baseline width is unexpectedly small.");
+            Assert.True(image.Height >= 300, "Rotated shape-text PNG baseline height is unexpectedly small.");
+            int fillPixels = CountPixelsNear(image, OfficeColor.FromRgb(219, 234, 254));
+            int textPixels = CountPixelsNear(image, OfficeColor.FromRgb(31, 41, 55));
+            Assert.True(fillPixels > 1200, "Rotated shape-text PNG baseline does not contain enough visible shape fill pixels.");
+            Assert.True(textPixels > 30, "Rotated shape-text PNG baseline does not contain enough visible rotated text pixels.");
+
+            string svg = File.ReadAllText(svgPath);
+            Assert.Contains("<svg", svg, StringComparison.Ordinal);
+            Assert.Contains("Rotated label", svg, StringComparison.Ordinal);
+            Assert.Contains("transform=\"rotate(24", svg, StringComparison.Ordinal);
+            Assert.Contains("#DBEAFE", svg, StringComparison.Ordinal);
+            Assert.Contains("#2563EB", svg, StringComparison.Ordinal);
+        }
+
         private static ExcelBaselineFixture CreateRotatedPresetDrawingObjectBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelRotatedPresetDrawingObjectBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
@@ -100,6 +157,44 @@ namespace OfficeIMO.Tests {
             }
 
             AddRotatedPresetDrawingObjectShape(sheet);
+            return new ExcelBaselineFixture(document, sheet);
+        }
+
+        private static ExcelBaselineFixture CreateRotatedShapeTextBaselineWorkbook() {
+            string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelRotatedShapeTextBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
+            ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("RotatedText");
+
+            sheet.CellValue(1, 1, "Rotated DrawingML text");
+            sheet.Range("A1:F1").Merge();
+            sheet.Range("A1:F1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.CellAlign(1, 1, HorizontalAlignmentValues.Center);
+            sheet.CellVerticalAlign(1, 1, VerticalAlignmentValues.Center);
+            sheet.CellValue(7, 2, "Shape text rotates through OfficeIMO.Drawing and keeps an approximation diagnostic.");
+            sheet.Range("B7:E7").Merge();
+            sheet.Range("B7:E7").SetFillColor("F8FAFC").SetFontColor("334155");
+            sheet.CellAlign(7, 2, HorizontalAlignmentValues.Center);
+
+            for (int column = 1; column <= 6; column++) {
+                sheet.SetColumnWidth(column, column == 1 || column == 6 ? 9 : 15);
+            }
+
+            sheet.SetRowHeight(1, 26);
+            sheet.SetRowHeight(2, 42);
+            sheet.SetRowHeight(3, 42);
+            sheet.SetRowHeight(4, 42);
+            sheet.SetRowHeight(5, 32);
+            sheet.SetRowHeight(6, 28);
+            sheet.SetRowHeight(7, 30);
+            sheet.SetRowHeight(8, 22);
+            for (int row = 1; row <= 8; row++) {
+                for (int column = 1; column <= 6; column++) {
+                    sheet.CellAt(row, column).SetBorder(BorderStyleValues.Thin, "CBD5E1");
+                    sheet.CellVerticalAlign(row, column, VerticalAlignmentValues.Center);
+                }
+            }
+
+            AddRotatedShapeTextObject(sheet);
             return new ExcelBaselineFixture(document, sheet);
         }
 
@@ -143,6 +238,51 @@ namespace OfficeIMO.Tests {
                         new A.BodyProperties(),
                         new A.ListStyle(),
                         new A.Paragraph())),
+                new Xdr.ClientData()));
+            drawingsPart.WorksheetDrawing.Save();
+            worksheetPart.Worksheet.Save();
+        }
+
+        private static void AddRotatedShapeTextObject(ExcelSheet sheet) {
+            WorksheetPart worksheetPart = sheet.WorksheetPart;
+            DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
+            drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
+
+            if (worksheetPart.Worksheet!.Elements<X.Drawing>().FirstOrDefault() == null) {
+                worksheetPart.Worksheet.Append(new X.Drawing { Id = worksheetPart.GetIdOfPart(drawingsPart) });
+            }
+
+            var transform = new A.Transform2D {
+                Rotation = (int)Math.Round(24D * 60000D)
+            };
+
+            drawingsPart.WorksheetDrawing.Append(new Xdr.TwoCellAnchor(
+                new Xdr.FromMarker(
+                    new Xdr.ColumnId("2"),
+                    new Xdr.ColumnOffset("0"),
+                    new Xdr.RowId("2"),
+                    new Xdr.RowOffset("0")),
+                new Xdr.ToMarker(
+                    new Xdr.ColumnId("4"),
+                    new Xdr.ColumnOffset("0"),
+                    new Xdr.RowId("5"),
+                    new Xdr.RowOffset("0")),
+                new Xdr.Shape(
+                    new Xdr.NonVisualShapeProperties(
+                        new Xdr.NonVisualDrawingProperties { Id = 121U, Name = "Rotated text box" },
+                        new Xdr.NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true })),
+                    new Xdr.ShapeProperties(
+                        transform,
+                        new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.RoundRectangle },
+                        new A.SolidFill(new A.RgbColorModelHex { Val = "DBEAFE" }),
+                        new A.Outline(
+                            new A.SolidFill(new A.RgbColorModelHex { Val = "2563EB" })) {
+                            Width = 19050
+                        }),
+                    new Xdr.TextBody(
+                        new A.BodyProperties(),
+                        new A.ListStyle(),
+                        new A.Paragraph(new A.Run(new A.Text("Rotated label"))))),
                 new Xdr.ClientData()));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();

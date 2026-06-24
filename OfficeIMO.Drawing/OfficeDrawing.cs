@@ -50,8 +50,8 @@ public sealed class OfficeDrawing {
     }
 
     /// <summary>Adds text inside a local drawing rectangle and returns this drawing.</summary>
-    public OfficeDrawing AddText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null) {
-        var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight);
+    public OfficeDrawing AddText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null) {
+        var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight, rotationDegrees, rotationCenterX, rotationCenterY);
         if (item.X + item.Width > Width || item.Y + item.Height > Height) {
             throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
         }

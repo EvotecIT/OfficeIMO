@@ -773,6 +773,28 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_EmitsRotatedTextThroughSharedRenderer() {
+        var drawing = new OfficeDrawing(120, 80);
+        drawing.AddText(
+            "Tilt",
+            30,
+            24,
+            60,
+            20,
+            new OfficeFontInfo("Aptos", 10D),
+            OfficeColor.Black,
+            OfficeTextAlignment.Center,
+            rotationDegrees: 30D,
+            rotationCenterX: 60D,
+            rotationCenterY: 34D);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("transform=\"rotate(30 60 34)\"", svg, StringComparison.Ordinal);
+        Assert.Contains(">Tilt</text>", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeDrawingSvgExporter_EmitsShapeShadowBehindForegroundShape() {
         var drawing = new OfficeDrawing(120, 80);
         var shape = OfficeShape.Rectangle(80, 30);
