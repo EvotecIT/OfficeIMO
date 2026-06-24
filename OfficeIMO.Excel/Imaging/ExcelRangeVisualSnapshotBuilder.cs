@@ -300,6 +300,7 @@ namespace OfficeIMO.Excel {
                     drawing.ShapeKind.Value,
                     drawing.HorizontalFlip,
                     drawing.VerticalFlip,
+                    drawing.RotationDegrees,
                     x,
                     y,
                     width,

@@ -276,6 +276,89 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void ExcelRange_ImageExportRendersRotatedDrawingMlPresetShapesThroughSharedDrawing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("RotatedShape");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(2, 2, "Rotated heart");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Rotated heart",
+                string.Empty,
+                A.ShapeTypeValues.Heart,
+                rotationDegrees: 35D,
+                fillHex: "FDBA74",
+                strokeHex: "EA580C");
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:D4");
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+                OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
+                string svg = System.Text.Encoding.UTF8.GetString(svgResult.Bytes);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.Equal("RotatedShape!B2", drawingObject.Source);
+                Assert.Equal("heart", drawingObject.ShapePresetName);
+                Assert.Equal(OfficeShapeKind.Path, drawingObject.ShapeKind);
+                Assert.Equal(35D, drawingObject.RotationDegrees, precision: 3);
+                Assert.True(drawingObject.HasRotation);
+                Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation);
+                Assert.DoesNotContain(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation);
+                Assert.Contains("<path", svg, StringComparison.Ordinal);
+                Assert.Contains("matrix(", svg, StringComparison.Ordinal);
+                Assert.Contains("#FDBA74", svg, StringComparison.Ordinal);
+
+                Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+                Assert.NotNull(rendered);
+                Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(253, 186, 116)) > 100);
+            }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportReportsRotatedDrawingShapeTextApproximation() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("RotatedText");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(2, 2, "Rotated label");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Rotated label",
+                "Rotated label",
+                rotationDegrees: 25D);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:D4");
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+                OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.Equal("RotatedText!B2", drawingObject.Source);
+                Assert.Equal(25D, drawingObject.RotationDegrees, precision: 3);
+                Assert.True(drawingObject.HasRotation);
+                Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation);
+                Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation);
+            }
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -361,6 +444,7 @@ namespace OfficeIMO.Tests {
             A.ShapeTypeValues? preset = null,
             bool horizontalFlip = false,
             bool verticalFlip = false,
+            double rotationDegrees = 0D,
             string fillHex = "E0F2FE",
             string strokeHex = "0284C7") {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
@@ -372,7 +456,7 @@ namespace OfficeIMO.Tests {
 
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
-                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, fillHex, strokeHex));
+                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
@@ -412,12 +496,16 @@ namespace OfficeIMO.Tests {
             A.ShapeTypeValues? preset = null,
             bool horizontalFlip = false,
             bool verticalFlip = false,
+            double rotationDegrees = 0D,
             string fillHex = "E0F2FE",
             string strokeHex = "0284C7") {
             var transform = new A.Transform2D {
                 HorizontalFlip = horizontalFlip,
                 VerticalFlip = verticalFlip
             };
+            if (Math.Abs(rotationDegrees) > 0.0001D) {
+                transform.Rotation = (int)Math.Round(rotationDegrees * 60000D);
+            }
 
             return new Xdr.TwoCellAnchor(
                 new Xdr.FromMarker(

@@ -595,6 +595,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeDrawingRasterRenderer_HonorsShapeTransformsInRasterOutput() {
+            OfficeDrawing untransformedDrawing = new OfficeDrawing(40, 40);
+            OfficeShape untransformedShape = OfficeShape.Rectangle(20, 6);
+            untransformedShape.FillColor = OfficeColor.Red;
+            untransformedDrawing.AddShape(untransformedShape, 10, 17);
+
+            OfficeDrawing transformedDrawing = new OfficeDrawing(40, 40);
+            OfficeShape transformedShape = OfficeShape.Rectangle(20, 6);
+            transformedShape.FillColor = OfficeColor.Red;
+            transformedShape.Transform = OfficeTransform.RotateDegrees(90, 10, 3);
+            transformedDrawing.AddShape(transformedShape, 10, 17);
+
+            OfficeRasterImage untransformed = OfficeDrawingRasterRenderer.Render(untransformedDrawing);
+            OfficeRasterImage transformed = OfficeDrawingRasterRenderer.Render(transformedDrawing);
+
+            Assert.True(CountPixelsNear(transformed, OfficeColor.Red) > 80);
+            Assert.Equal(0, untransformed.GetPixel(20, 11).A);
+            AssertColorNear(transformed.GetPixel(20, 11), OfficeColor.Red);
+            AssertColorNear(untransformed.GetPixel(12, 20), OfficeColor.Red);
+            Assert.Equal(0, transformed.GetPixel(12, 20).A);
+        }
+
+        [Fact]
         public void OfficeDrawingRasterRenderer_FlattensBezierPathCommands() {
             OfficeDrawing drawing = new OfficeDrawing(64, 48);
             OfficeShape quadratic = OfficeShape.Path(
@@ -1171,6 +1194,15 @@ namespace OfficeIMO.Tests {
                         Math.Abs(color.B - expected.B) <= 8 &&
                         color.A > 0;
                 });
+
+        private static void AssertColorNear(OfficeColor actual, OfficeColor expected) {
+            Assert.True(
+                Math.Abs(actual.R - expected.R) <= 8 &&
+                Math.Abs(actual.G - expected.G) <= 8 &&
+                Math.Abs(actual.B - expected.B) <= 8 &&
+                actual.A > 0,
+                $"Expected ARGB near {expected.A},{expected.R},{expected.G},{expected.B} but got {actual.A},{actual.R},{actual.G},{actual.B}.");
+        }
 
     }
 }

@@ -536,6 +536,7 @@ namespace OfficeIMO.Excel {
             OfficeShapeKind shapeKind,
             bool horizontalFlip,
             bool verticalFlip,
+            double rotationDegrees,
             double x,
             double y,
             double width,
@@ -551,6 +552,7 @@ namespace OfficeIMO.Excel {
             ShapeKind = shapeKind;
             HorizontalFlip = horizontalFlip;
             VerticalFlip = verticalFlip;
+            RotationDegrees = rotationDegrees;
             X = x;
             Y = y;
             Width = width;
@@ -579,6 +581,12 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Whether the DrawingML geometry is mirrored vertically.</summary>
         public bool VerticalFlip { get; }
+
+        /// <summary>Clockwise DrawingML rotation in degrees.</summary>
+        public double RotationDegrees { get; }
+
+        /// <summary>Whether the drawing object has any authored rotation.</summary>
+        public bool HasRotation => Math.Abs(RotationDegrees) > 0.0001D;
 
         /// <summary>X position in CSS pixels.</summary>
         public double X { get; }

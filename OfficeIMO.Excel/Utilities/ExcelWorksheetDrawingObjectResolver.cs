@@ -43,9 +43,7 @@ namespace OfficeIMO.Excel.Utilities {
         private static ExcelWorksheetDrawingObjectInfo CreateShapeInfo(Xdr.Shape shape, AnchorPosition position, int order) {
             string name = GetDrawingName(shape, "shape");
             A.Transform2D? transform = shape.ShapeProperties?.GetFirstChild<A.Transform2D>();
-            if (TryGetRotationDegrees(transform, out double rotationDegrees) && Math.Abs(rotationDegrees) > 0.001D) {
-                return CreateUnsupportedInfo(shape, position, order, "rotated shapes are not rendered yet");
-            }
+            TryGetRotationDegrees(transform, out double rotationDegrees);
 
             if (!TryGetShapePreset(shape, out string shapePresetName, out OfficeShapeKind shapeKind, out string? unsupportedReason)) {
                 return CreateUnsupportedInfo(shape, position, order, unsupportedReason);
@@ -82,6 +80,7 @@ namespace OfficeIMO.Excel.Utilities {
                 shapeKind,
                 transform?.HorizontalFlip?.Value == true,
                 transform?.VerticalFlip?.Value == true,
+                rotationDegrees,
                 fillColorArgb,
                 strokeColorArgb,
                 strokeWidth,
@@ -110,6 +109,7 @@ namespace OfficeIMO.Excel.Utilities {
                 shapeKind: null,
                 horizontalFlip: false,
                 verticalFlip: false,
+                rotationDegrees: 0D,
                 fillColorArgb: null,
                 strokeColorArgb: null,
                 strokeWidth: 0D,
@@ -348,6 +348,7 @@ namespace OfficeIMO.Excel.Utilities {
             OfficeShapeKind? shapeKind,
             bool horizontalFlip,
             bool verticalFlip,
+            double rotationDegrees,
             string? fillColorArgb,
             string? strokeColorArgb,
             double strokeWidth,
@@ -370,6 +371,7 @@ namespace OfficeIMO.Excel.Utilities {
             ShapeKind = shapeKind;
             HorizontalFlip = horizontalFlip;
             VerticalFlip = verticalFlip;
+            RotationDegrees = rotationDegrees;
             FillColorArgb = fillColorArgb;
             StrokeColorArgb = strokeColorArgb;
             StrokeWidth = strokeWidth;
@@ -410,6 +412,8 @@ namespace OfficeIMO.Excel.Utilities {
         internal bool HorizontalFlip { get; }
 
         internal bool VerticalFlip { get; }
+
+        internal double RotationDegrees { get; }
 
         internal string? FillColorArgb { get; }
 

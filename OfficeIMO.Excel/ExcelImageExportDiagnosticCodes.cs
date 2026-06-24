@@ -105,6 +105,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Worksheet drawing shape is not renderable by the current image exporter.</summary>
     public const string DrawingShapeUnsupported = "ExcelDrawingShapeUnsupported";
 
+    /// <summary>Worksheet drawing shape text is rendered through an approximate rotation path.</summary>
+    public const string DrawingShapeTextRotationApproximation = "ExcelDrawingShapeTextRotationApproximation";
+
     /// <summary>Worksheet chart could not be converted to a renderable snapshot.</summary>
     public const string ChartSnapshotUnavailable = "ExcelChartSnapshotUnavailable";
 

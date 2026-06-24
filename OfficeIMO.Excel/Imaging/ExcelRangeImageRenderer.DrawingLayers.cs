@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
                 switch (layer.Kind) {
                     case ExcelVisualDrawingLayerKind.DrawingObject:
                         if (layer.DrawingObject != null) {
-                            RenderRasterDrawingObject(canvas, layer.DrawingObject, options);
+                            RenderRasterDrawingObject(canvas, layer.DrawingObject, options, diagnostics);
                         }
 
                         break;
@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
                 switch (layer.Kind) {
                     case ExcelVisualDrawingLayerKind.DrawingObject:
                         if (layer.DrawingObject != null) {
-                            AppendSvgDrawingObject(builder, layer.DrawingObject, options);
+                            AppendSvgDrawingObject(builder, layer.DrawingObject, options, diagnostics);
                         }
 
                         break;
