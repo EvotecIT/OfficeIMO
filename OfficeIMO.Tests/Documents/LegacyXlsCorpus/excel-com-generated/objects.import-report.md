@@ -2173,6 +2173,20 @@ Warnings: 0
 | Bytes:1 | 67 |
 | Bytes:16 | 125 |
 
+## Cell Style Extension Properties By Numeric Value
+
+| Key | Count |
+| --- | --- |
+| FontScheme:1 | 1 |
+| FontScheme:2 | 66 |
+
+## Cell Style Extension Properties By Numeric Value Name
+
+| Key | Count |
+| --- | --- |
+| FontScheme:Major | 1 |
+| FontScheme:Minor | 66 |
+
 ## Cell Style Extension Properties By Color Type
 
 | Key | Count |

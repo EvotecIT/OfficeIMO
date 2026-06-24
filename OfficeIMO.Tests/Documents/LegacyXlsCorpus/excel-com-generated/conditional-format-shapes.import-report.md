@@ -756,6 +756,20 @@ Warnings: 0
 | Bytes:1 | 62 |
 | Bytes:16 | 120 |
 
+## Cell Style Extension Properties By Numeric Value
+
+| Key | Count |
+| --- | --- |
+| FontScheme:1 | 1 |
+| FontScheme:2 | 61 |
+
+## Cell Style Extension Properties By Numeric Value Name
+
+| Key | Count |
+| --- | --- |
+| FontScheme:Major | 1 |
+| FontScheme:Minor | 61 |
+
 ## Cell Style Extension Properties By Color Type
 
 | Key | Count |

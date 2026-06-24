@@ -273,11 +273,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 colorTypeName = GetXfExtColorTypeName(colorType.Value);
                 colorTintShade = BiffRecordReader.ReadInt16(payload, dataOffset + 2);
                 colorValue = BiffRecordReader.ReadUInt32(payload, dataOffset + 4);
-            } else if (dataByteCount >= 2 && (propertyType == 0x000E || propertyType == 0x000F)) {
+            } else if (propertyType == 0x000E && dataByteCount >= 1) {
+                numericValue = dataByteCount >= 2
+                    ? BiffRecordReader.ReadUInt16(payload, dataOffset)
+                    : payload[dataOffset];
+                numericValueName = GetFontSchemeName(numericValue.Value);
+            } else if (propertyType == 0x000F && dataByteCount >= 2) {
                 numericValue = BiffRecordReader.ReadUInt16(payload, dataOffset);
-                numericValueName = propertyType == 0x000E
-                    ? GetFontSchemeName(numericValue.Value)
-                    : $"Indent:{numericValue.Value}";
+                numericValueName = $"Indent:{numericValue.Value}";
             }
 
             return new LegacyXlsCellStyleExtensionProperty(
