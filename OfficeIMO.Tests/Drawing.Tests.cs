@@ -1574,6 +1574,53 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeSvgImageRendererWritesXmlCroppedImageProjection() {
+        var builder = new StringBuilder();
+        using (var writer = System.Xml.XmlWriter.Create(
+            new System.IO.StringWriter(builder, System.Globalization.CultureInfo.InvariantCulture),
+            new System.Xml.XmlWriterSettings { OmitXmlDeclaration = true, ConformanceLevel = System.Xml.ConformanceLevel.Fragment })) {
+            OfficeSvgImageRenderer.WriteImage(
+                writer,
+                "http://www.w3.org/2000/svg",
+                "data:image/png;base64,AA==",
+                new OfficeImageProjection(
+                    new OfficeImagePlacement(10, 20, 80, 40),
+                    new OfficeImageSourceCrop(0.25D, 0.1D, 0.25D, 0.1D)),
+                clipPathId: "xmlClip",
+                clipRectangle: new OfficeImagePlacement(10, 20, 80, 40));
+        }
+
+        string svg = builder.ToString();
+        Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
+        Assert.Contains("id=\"xmlClip\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<rect x=\"10\" y=\"20\" width=\"80\" height=\"40\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<image x=\"-30\" y=\"15\" width=\"160\" height=\"50\" clip-path=\"url(#xmlClip)\" href=\"data:image/png;base64,AA==\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeSvgImageRendererWritesXmlImageInsideViewport() {
+        var builder = new StringBuilder();
+        using (var writer = System.Xml.XmlWriter.Create(
+            new System.IO.StringWriter(builder, System.Globalization.CultureInfo.InvariantCulture),
+            new System.Xml.XmlWriterSettings { OmitXmlDeclaration = true, ConformanceLevel = System.Xml.ConformanceLevel.Fragment })) {
+            OfficeSvgImageRenderer.WriteImageInViewport(
+                writer,
+                "http://www.w3.org/2000/svg",
+                "data:image/png;base64,AA==",
+                new OfficeImageProjection(new OfficeImagePlacement(10, 20, 80, 40)),
+                "xmlViewportClip",
+                new OfficeImagePlacement(0, 0, 120, 80),
+                preserveAspectRatio: "xMidYMid meet");
+        }
+
+        string svg = builder.ToString();
+        Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
+        Assert.Contains("id=\"xmlViewportClip\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<rect x=\"0\" y=\"0\" width=\"120\" height=\"80\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<image x=\"10\" y=\"20\" width=\"80\" height=\"40\" clip-path=\"url(#xmlViewportClip)\" preserveAspectRatio=\"xMidYMid meet\" href=\"data:image/png;base64,AA==\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeSvgPrimitiveWriterWritesSharedVectorPrimitives() {
         var builder = new StringBuilder();
         using (var writer = System.Xml.XmlWriter.Create(

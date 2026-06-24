@@ -114,57 +114,32 @@ public static class OfficeSvgImageRenderer {
             throw new ArgumentException("A clip path identifier is required when source crop is used.", nameof(clipPathId));
         }
 
-        double imageX = projection.X;
-        double imageY = projection.Y;
-        double imageWidth = projection.Width;
-        double imageHeight = projection.Height;
-        if (projection.HasCrop) {
-            imageWidth = projection.Width / projection.SourceWidth;
-            imageHeight = projection.Height / projection.SourceHeight;
-            imageX = projection.X - (projection.SourceLeft * imageWidth);
-            imageY = projection.Y - (projection.SourceTop * imageHeight);
-        }
+        SvgImageLayout layout = CreateLayout(projection, clipRectangle);
 
-        string? transform = BuildTransform(
-            projection.X,
-            projection.Y,
-            projection.Width,
-            projection.Height,
-            projection.RotationDegrees,
-            projection.FlipHorizontal,
-            projection.FlipVertical,
-            projection.RotationCenterX,
-            projection.RotationCenterY);
-        bool transformCroppedImage = projection.HasCrop && transform != null;
-        OfficeImagePlacement? effectiveClip = clipRectangle;
-        if (projection.HasCrop && effectiveClip == null) {
-            effectiveClip = projection.Placement;
-        }
-
-        if (!string.IsNullOrEmpty(clipPathId) && effectiveClip != null) {
-            OfficeImagePlacement clip = effectiveClip.Value;
+        if (!string.IsNullOrEmpty(clipPathId) && layout.EffectiveClip != null) {
+            OfficeImagePlacement clip = layout.EffectiveClip.Value;
             builder.AppendRectClipPathDefinition(clipPathId!, clip.X, clip.Y, clip.Width, clip.Height);
         }
 
-        if (transformCroppedImage) {
+        if (layout.TransformCroppedImage) {
             builder.Append("<g")
                 .AppendClipPathReference(clipPathId!)
-                .AppendAttribute("transform", transform)
+                .AppendAttribute("transform", layout.Transform)
                 .Append(">");
         }
 
         builder.Append("<image")
-            .AppendNumberAttribute("x", imageX)
-            .AppendNumberAttribute("y", imageY)
-            .AppendNumberAttribute("width", imageWidth)
-            .AppendNumberAttribute("height", imageHeight);
-        if (!transformCroppedImage) {
-            if (!string.IsNullOrEmpty(clipPathId) && effectiveClip != null) {
+            .AppendNumberAttribute("x", layout.ImagePlacement.X)
+            .AppendNumberAttribute("y", layout.ImagePlacement.Y)
+            .AppendNumberAttribute("width", layout.ImagePlacement.Width)
+            .AppendNumberAttribute("height", layout.ImagePlacement.Height);
+        if (!layout.TransformCroppedImage) {
+            if (!string.IsNullOrEmpty(clipPathId) && layout.EffectiveClip != null) {
                 builder.AppendClipPathReference(clipPathId!);
             }
 
-            if (transform != null) {
-                builder.AppendAttribute("transform", transform);
+            if (layout.Transform != null) {
+                builder.AppendAttribute("transform", layout.Transform);
             }
         }
 
@@ -173,7 +148,7 @@ public static class OfficeSvgImageRenderer {
         }
 
         builder.AppendAttribute("href", href).Append("/>");
-        if (transformCroppedImage) {
+        if (layout.TransformCroppedImage) {
             builder.Append("</g>");
         }
 
@@ -267,13 +242,17 @@ public static class OfficeSvgImageRenderer {
     /// <param name="projection">Shared image projection.</param>
     /// <param name="preserveAspectRatio">Optional SVG preserveAspectRatio value.</param>
     /// <param name="writeAdditionalAttributes">Optional callback for adapter-specific attributes.</param>
+    /// <param name="clipPathId">Optional clip-path identifier. Required when the projection has a source crop.</param>
+    /// <param name="clipRectangle">Optional clip rectangle. Defaults to the projection placement when source crop is used.</param>
     public static void WriteImage(
         XmlWriter writer,
         string svgNamespace,
         string href,
         OfficeImageProjection projection,
         string? preserveAspectRatio = null,
-        Action<XmlWriter>? writeAdditionalAttributes = null) {
+        Action<XmlWriter>? writeAdditionalAttributes = null,
+        string? clipPathId = null,
+        OfficeImagePlacement? clipRectangle = null) {
         if (writer == null) {
             throw new ArgumentNullException(nameof(writer));
         }
@@ -282,32 +261,82 @@ public static class OfficeSvgImageRenderer {
             return;
         }
 
+        if (projection.HasCrop && string.IsNullOrEmpty(clipPathId)) {
+            throw new ArgumentException("A clip path identifier is required when source crop is used.", nameof(clipPathId));
+        }
+
+        SvgImageLayout layout = CreateLayout(projection, clipRectangle);
+        if (!string.IsNullOrEmpty(clipPathId) && layout.EffectiveClip != null) {
+            WriteRectClipPathDefinition(writer, svgNamespace, clipPathId!, layout.EffectiveClip.Value);
+        }
+
+        if (layout.TransformCroppedImage) {
+            writer.WriteStartElement("g", svgNamespace);
+            writer.WriteAttributeString("clip-path", "url(#" + clipPathId + ")");
+            writer.WriteAttributeString("transform", layout.Transform);
+        }
+
         writer.WriteStartElement("image", svgNamespace);
         writeAdditionalAttributes?.Invoke(writer);
-        writer.WriteNumberAttribute("x", projection.X);
-        writer.WriteNumberAttribute("y", projection.Y);
-        writer.WriteNumberAttribute("width", projection.Width);
-        writer.WriteNumberAttribute("height", projection.Height);
+        writer.WriteNumberAttribute("x", layout.ImagePlacement.X);
+        writer.WriteNumberAttribute("y", layout.ImagePlacement.Y);
+        writer.WriteNumberAttribute("width", layout.ImagePlacement.Width);
+        writer.WriteNumberAttribute("height", layout.ImagePlacement.Height);
+        if (!layout.TransformCroppedImage) {
+            if (!string.IsNullOrEmpty(clipPathId) && layout.EffectiveClip != null) {
+                writer.WriteAttributeString("clip-path", "url(#" + clipPathId + ")");
+            }
+
+            if (layout.Transform != null) {
+                writer.WriteAttributeString("transform", layout.Transform);
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(preserveAspectRatio)) {
             writer.WriteAttributeString("preserveAspectRatio", preserveAspectRatio);
         }
 
-        string? transform = BuildTransform(
-            projection.X,
-            projection.Y,
-            projection.Width,
-            projection.Height,
-            projection.RotationDegrees,
-            projection.FlipHorizontal,
-            projection.FlipVertical,
-            projection.RotationCenterX,
-            projection.RotationCenterY);
-        if (transform != null) {
-            writer.WriteAttributeString("transform", transform);
-        }
-
         writer.WriteAttributeString("href", href);
         writer.WriteEndElement();
+        if (layout.TransformCroppedImage) {
+            writer.WriteEndElement();
+        }
+    }
+
+    /// <summary>
+    /// Writes an SVG image inside a viewport, using the projection placement as the clip for source-cropped images
+    /// and the viewport as the clip for uncropped images.
+    /// </summary>
+    /// <param name="writer">SVG writer.</param>
+    /// <param name="svgNamespace">SVG namespace URI.</param>
+    /// <param name="href">Resolved SVG image reference, such as a data URI.</param>
+    /// <param name="projection">Shared image projection.</param>
+    /// <param name="clipPathId">Clip-path identifier used for the viewport or crop clip.</param>
+    /// <param name="viewport">Viewport rectangle that clips uncropped images.</param>
+    /// <param name="preserveAspectRatio">Optional SVG preserveAspectRatio value.</param>
+    /// <param name="writeAdditionalAttributes">Optional callback for adapter-specific attributes.</param>
+    public static void WriteImageInViewport(
+        XmlWriter writer,
+        string svgNamespace,
+        string href,
+        OfficeImageProjection projection,
+        string clipPathId,
+        OfficeImagePlacement viewport,
+        string? preserveAspectRatio = null,
+        Action<XmlWriter>? writeAdditionalAttributes = null) {
+        if (string.IsNullOrEmpty(clipPathId)) {
+            throw new ArgumentException("A clip path identifier is required for viewport image rendering.", nameof(clipPathId));
+        }
+
+        WriteImage(
+            writer,
+            svgNamespace,
+            href,
+            projection,
+            preserveAspectRatio,
+            writeAdditionalAttributes,
+            clipPathId,
+            projection.HasCrop ? projection.Placement : viewport);
     }
 
     /// <summary>
@@ -439,6 +468,69 @@ public static class OfficeSvgImageRenderer {
             .Append(OfficeSvgFormatting.FormatNumber(-centerY))
             .Append(')');
         return transform.ToString();
+    }
+
+    private static SvgImageLayout CreateLayout(OfficeImageProjection projection, OfficeImagePlacement? clipRectangle) {
+        double imageX = projection.X;
+        double imageY = projection.Y;
+        double imageWidth = projection.Width;
+        double imageHeight = projection.Height;
+        if (projection.HasCrop) {
+            imageWidth = projection.Width / projection.SourceWidth;
+            imageHeight = projection.Height / projection.SourceHeight;
+            imageX = projection.X - (projection.SourceLeft * imageWidth);
+            imageY = projection.Y - (projection.SourceTop * imageHeight);
+        }
+
+        string? transform = BuildTransform(
+            projection.X,
+            projection.Y,
+            projection.Width,
+            projection.Height,
+            projection.RotationDegrees,
+            projection.FlipHorizontal,
+            projection.FlipVertical,
+            projection.RotationCenterX,
+            projection.RotationCenterY);
+        OfficeImagePlacement? effectiveClip = clipRectangle;
+        if (projection.HasCrop && effectiveClip == null) {
+            effectiveClip = projection.Placement;
+        }
+
+        return new SvgImageLayout(
+            new OfficeImagePlacement(imageX, imageY, imageWidth, imageHeight),
+            effectiveClip,
+            transform,
+            projection.HasCrop && transform != null);
+    }
+
+    private static void WriteRectClipPathDefinition(XmlWriter writer, string svgNamespace, string clipPathId, OfficeImagePlacement clip) {
+        writer.WriteStartElement("clipPath", svgNamespace);
+        writer.WriteAttributeString("id", clipPathId);
+        writer.WriteStartElement("rect", svgNamespace);
+        writer.WriteNumberAttribute("x", clip.X);
+        writer.WriteNumberAttribute("y", clip.Y);
+        writer.WriteNumberAttribute("width", clip.Width);
+        writer.WriteNumberAttribute("height", clip.Height);
+        writer.WriteEndElement();
+        writer.WriteEndElement();
+    }
+
+    private readonly struct SvgImageLayout {
+        internal SvgImageLayout(OfficeImagePlacement imagePlacement, OfficeImagePlacement? effectiveClip, string? transform, bool transformCroppedImage) {
+            ImagePlacement = imagePlacement;
+            EffectiveClip = effectiveClip;
+            Transform = transform;
+            TransformCroppedImage = transformCroppedImage;
+        }
+
+        internal OfficeImagePlacement ImagePlacement { get; }
+
+        internal OfficeImagePlacement? EffectiveClip { get; }
+
+        internal string? Transform { get; }
+
+        internal bool TransformCroppedImage { get; }
     }
 
     private static string NormalizeContentType(string? contentType) {
