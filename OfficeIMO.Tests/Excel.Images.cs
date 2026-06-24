@@ -173,6 +173,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelImage_TwoCellSizeIgnoresHiddenRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.RangeAnchor.HiddenRows.xlsx");
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Images");
+            sheet.SetRowHeight(1, 15);
+            sheet.SetRowHeight(2, 15);
+            sheet.SetRowHeight(3, 15);
+            ExcelImage image = sheet.AddImageFromFileToRange("A1:A3", imagePath, name: "HiddenRowRange");
+
+            sheet.SetRowHidden(2, true);
+
+            Assert.Equal(40, image.HeightPixels);
+        }
+
+        [Fact]
         public void Test_ExcelImage_MoveOnlyRangeKeepsStoredSizeWhenCellsResize() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.RangeAnchor.MoveOnlySize.xlsx");
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
@@ -214,6 +231,55 @@ namespace OfficeIMO.Tests {
                 .Elements<Xdr.TwoCellAnchor>()
                 .Single();
             Assert.Equal(Xdr.EditAsValues.OneCell, anchor.EditAs!.Value);
+            Assert.Equal("1", anchor.FromMarker!.RowId!.Text);
+            Assert.Equal("5", anchor.ToMarker!.RowId!.Text);
+        }
+
+        [Fact]
+        public void Test_ExcelImage_MoveAndSizeRangeKeepsImageWhenFirstRowIsRemoved() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.RangeAnchor.MoveAndSizePartialDelete.xlsx");
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Images");
+                sheet.CellAt(2, 1).SetValue("Remove");
+                sheet.AddImageFromFileToRange("A2:B5", imagePath, name: "MoveAndSizePartialDelete", placement: ExcelImagePlacement.MoveAndSize);
+
+                sheet.RemoveTemplateOptionalRows(2, 1);
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            Xdr.TwoCellAnchor anchor = spreadsheet.WorkbookPart!.WorksheetParts.First().DrawingsPart!.WorksheetDrawing!
+                .Elements<Xdr.TwoCellAnchor>()
+                .Single();
+            Assert.Equal(Xdr.EditAsValues.TwoCell, anchor.EditAs!.Value);
+            Assert.Equal("1", anchor.FromMarker!.RowId!.Text);
+            Assert.Equal("4", anchor.ToMarker!.RowId!.Text);
+        }
+
+        [Fact]
+        public void Test_ExcelImage_MoveAndSizeRangeDoesNotGrowWhenRowsAreInsertedBelowRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.RangeAnchor.MoveAndSizeInsertBelow.xlsx");
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Images");
+                sheet.CellAt(5, 1).SetValue("{{Name}}");
+                sheet.AddImageFromFileToRange("A2:B5", imagePath, name: "MoveAndSizeInsertBelow", placement: ExcelImagePlacement.MoveAndSize);
+
+                sheet.ApplyTemplateRows(5, new[] {
+                    new Dictionary<string, object?> { ["Name"] = "First" },
+                    new Dictionary<string, object?> { ["Name"] = "Second" }
+                });
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            Xdr.TwoCellAnchor anchor = spreadsheet.WorkbookPart!.WorksheetParts.First().DrawingsPart!.WorksheetDrawing!
+                .Elements<Xdr.TwoCellAnchor>()
+                .Single();
+            Assert.Equal(Xdr.EditAsValues.TwoCell, anchor.EditAs!.Value);
             Assert.Equal("1", anchor.FromMarker!.RowId!.Text);
             Assert.Equal("5", anchor.ToMarker!.RowId!.Text);
         }

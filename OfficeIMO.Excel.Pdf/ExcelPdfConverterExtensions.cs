@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static PdfCore.PdfImageStyle CreateConverterImageStyle(WorksheetImageExportData image) {
             PdfCore.PdfImageStyle style = CreateConverterImageStyle();
-            style.RotationAngle = image.RotationDegrees;
+            style.RotationAngle = -image.RotationDegrees;
             return style;
         }
 

@@ -76,6 +76,8 @@ public partial class Excel {
 
         PdfCore.PdfImagePlacement placement = Assert.Single(PdfCore.PdfImageExtractor.ExtractImagePlacements(bytes));
         Assert.False(placement.IsAxisAligned);
+        Assert.True(placement.B < 0);
+        Assert.True(placement.C > 0);
     }
 
     [Fact]

@@ -452,7 +452,7 @@ namespace OfficeIMO.Excel {
                 .Elements<DocumentFormat.OpenXml.Spreadsheet.Row>()
                 .FirstOrDefault(item => item.RowIndex != null && item.RowIndex.Value == (uint)rowIndex);
             if (row?.Hidden?.Value == true) {
-                return 1;
+                return 0;
             }
 
             double heightPoints = row?.Height?.Value > 0 && row.CustomHeight?.Value == true
