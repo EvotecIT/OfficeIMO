@@ -1356,6 +1356,24 @@ Warnings: 0
 | --- | --- |
 | Transposed:False;Stacked:False;Percent:False;Shadow:False | 1 |
 
+## Chart 3D Bar Shape Risers
+
+| Key | Count |
+| --- | --- |
+| Rectangle | 1 |
+
+## Chart 3D Bar Shape Tapers
+
+| Key | Count |
+| --- | --- |
+| None | 1 |
+
+## Chart 3D Bar Shape States
+
+| Key | Count |
+| --- | --- |
+| Riser:Rectangle;Taper:None | 1 |
+
 ## Chart Sheet Property States
 
 | Key | Count |

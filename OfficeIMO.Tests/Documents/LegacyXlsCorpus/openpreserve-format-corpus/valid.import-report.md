@@ -1151,6 +1151,24 @@ Warnings: 0
 | FontIndex:7 | 1 |
 | FontIndex:8 | 2 |
 
+## Chart 3D Bar Shape Risers
+
+| Key | Count |
+| --- | --- |
+| Rectangle | 56 |
+
+## Chart 3D Bar Shape Tapers
+
+| Key | Count |
+| --- | --- |
+| None | 56 |
+
+## Chart 3D Bar Shape States
+
+| Key | Count |
+| --- | --- |
+| Riser:Rectangle;Taper:None | 56 |
+
 ## Chart Sheet Property States
 
 | Key | Count |

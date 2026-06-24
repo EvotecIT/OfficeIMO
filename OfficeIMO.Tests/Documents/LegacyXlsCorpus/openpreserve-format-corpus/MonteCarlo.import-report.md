@@ -1049,6 +1049,24 @@ Warnings: 0
 | FontIndex:8 | 1 |
 | FontIndex:9 | 1 |
 
+## Chart 3D Bar Shape Risers
+
+| Key | Count |
+| --- | --- |
+| Rectangle | 40 |
+
+## Chart 3D Bar Shape Tapers
+
+| Key | Count |
+| --- | --- |
+| None | 40 |
+
+## Chart 3D Bar Shape States
+
+| Key | Count |
+| --- | --- |
+| Riser:Rectangle;Taper:None | 40 |
+
 ## Chart Sheet Property Empty Cell Modes
 
 | Key | Count |

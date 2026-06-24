@@ -564,6 +564,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartBarStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.BarOptions != null)
                 .Select(GetChartBarStateKey));
+            ChartThreeDimensionalBarShapeRisers = CountByCode(workbook.ChartRecords
+                .Where(record => record.ThreeDimensionalBarShapeOptions != null)
+                .Select(record => record.ThreeDimensionalBarShapeOptions!.RiserName));
+            ChartThreeDimensionalBarShapeTapers = CountByCode(workbook.ChartRecords
+                .Where(record => record.ThreeDimensionalBarShapeOptions != null)
+                .Select(record => record.ThreeDimensionalBarShapeOptions!.TaperName));
+            ChartThreeDimensionalBarShapeStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.ThreeDimensionalBarShapeOptions != null)
+                .Select(GetChartThreeDimensionalBarShapeStateKey));
             ChartSheetPropertyEmptyCellModes = CountByCode(workbook.ChartRecords
                 .Where(record => record.SheetProperties != null && record.SheetProperties.HasKnownEmptyCellPlottingMode)
                 .Select(record => record.SheetProperties!.EmptyCellPlottingModeName));
@@ -1772,6 +1781,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Bar records grouped by decoded orientation, stacking, percentage, and shadow flags.</summary>
         public IReadOnlyDictionary<string, int> ChartBarStates { get; }
 
+        /// <summary>Gets Chart3DBarShape records grouped by decoded data-point base shape.</summary>
+        public IReadOnlyDictionary<string, int> ChartThreeDimensionalBarShapeRisers { get; }
+
+        /// <summary>Gets Chart3DBarShape records grouped by decoded tapering mode.</summary>
+        public IReadOnlyDictionary<string, int> ChartThreeDimensionalBarShapeTapers { get; }
+
+        /// <summary>Gets Chart3DBarShape records grouped by decoded base-shape and tapering mode.</summary>
+        public IReadOnlyDictionary<string, int> ChartThreeDimensionalBarShapeStates { get; }
+
         /// <summary>Gets ShtProps records grouped by decoded empty-cell plotting mode.</summary>
         public IReadOnlyDictionary<string, int> ChartSheetPropertyEmptyCellModes { get; }
 
@@ -2468,6 +2486,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Bar Overlap Percentages", ChartBarOverlapPercentages);
             AppendDictionary(builder, "Chart Bar Gap Widths", ChartBarGapWidths);
             AppendDictionary(builder, "Chart Bar States", ChartBarStates);
+            AppendDictionary(builder, "Chart 3D Bar Shape Risers", ChartThreeDimensionalBarShapeRisers);
+            AppendDictionary(builder, "Chart 3D Bar Shape Tapers", ChartThreeDimensionalBarShapeTapers);
+            AppendDictionary(builder, "Chart 3D Bar Shape States", ChartThreeDimensionalBarShapeStates);
             AppendDictionary(builder, "Chart Sheet Property Empty Cell Modes", ChartSheetPropertyEmptyCellModes);
             AppendDictionary(builder, "Chart Sheet Property States", ChartSheetPropertyStates);
             AppendDictionary(builder, "Chart LineFormat Styles", ChartLineFormatStyles);
@@ -3083,6 +3104,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartBarStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartBarOptions options = record.BarOptions!;
             return $"Transposed:{options.IsTransposed};Stacked:{options.IsStacked};Percent:{options.IsPercentStacked};Shadow:{options.HasShadow}";
+        }
+
+        private static string GetChartThreeDimensionalBarShapeStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChart3DBarShapeOptions options = record.ThreeDimensionalBarShapeOptions!;
+            return $"Riser:{options.RiserName};Taper:{options.TaperName}";
         }
 
         private static string GetChartAttachedLabelStateKey(LegacyXlsChartRecord record) {

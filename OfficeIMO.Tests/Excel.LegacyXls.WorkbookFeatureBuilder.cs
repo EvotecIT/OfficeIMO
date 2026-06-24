@@ -515,6 +515,8 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1066, Array.Empty<byte>());
                 WriteRecord(stream, 0x1067, Array.Empty<byte>());
                 WriteRecord(stream, 0x1068, Array.Empty<byte>());
+                WriteRecord(stream, 0x103a, Array.Empty<byte>());
+                WriteRecord(stream, 0x105f, new byte[] { 0x01, 0x02 });
                 WriteRecord(stream, 0x101b, Array.Empty<byte>());
                 WriteRecord(stream, 0x1034, Array.Empty<byte>());
                 WriteRecord(stream, 0x01b6, new byte[18]);
