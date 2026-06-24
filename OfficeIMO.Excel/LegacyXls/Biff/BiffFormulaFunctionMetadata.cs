@@ -177,6 +177,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     functionName = "PROPER";
                     parameterCount = 1;
                     return true;
+                case 0x0076:
+                    functionName = "TRIM";
+                    parameterCount = 1;
+                    return true;
+                case 0x0077:
+                    functionName = "REPLACE";
+                    parameterCount = 4;
+                    return true;
                 case 0x00dd:
                     functionName = "TODAY";
                     parameterCount = 0;
@@ -192,6 +200,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x015a:
                     functionName = "COUNTIF";
                     parameterCount = 2;
+                    return true;
+                case 0x015b:
+                    functionName = "COUNTBLANK";
+                    parameterCount = 1;
                     return true;
                 default:
                     functionName = null;
@@ -229,11 +241,17 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x001d:
                     functionName = "INDEX";
                     return true;
+                case 0x002e:
+                    functionName = "VAR";
+                    return true;
                 case 0x0040:
                     functionName = "MATCH";
                     return true;
                 case 0x004e:
                     functionName = "OFFSET";
+                    return true;
+                case 0x0052:
+                    functionName = "SEARCH";
                     return true;
                 case 0x0064:
                     functionName = "CHOOSE";
@@ -250,6 +268,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0074:
                     functionName = "RIGHT";
                     return true;
+                case 0x0078:
+                    functionName = "SUBSTITUTE";
+                    return true;
+                case 0x007c:
+                    functionName = "FIND";
+                    return true;
                 case 0x00a9:
                     functionName = "COUNTA";
                     return true;
@@ -265,6 +289,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0159:
                     functionName = "SUMIF";
                     return true;
+                case 0x0150:
+                    functionName = "CONCATENATE";
+                    return true;
                 default:
                     functionName = null;
                     return false;
@@ -277,14 +304,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return true;
             }
 
-            switch (functionId) {
-                case 0x002e:
-                    functionName = "VAR";
-                    return true;
-                default:
-                    functionName = null;
-                    return false;
-            }
+            functionName = null;
+            return false;
         }
 
         internal static bool IsSupportedVariableFunctionArgumentCount(ushort functionId, byte parameterCount) {
@@ -311,6 +332,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0073:
                 case 0x0074:
                     return parameterCount == 1 || parameterCount == 2;
+                case 0x0052:
+                case 0x007c:
+                    return parameterCount == 2 || parameterCount == 3;
+                case 0x0078:
+                    return parameterCount == 3 || parameterCount == 4;
+                case 0x0150:
+                    return parameterCount >= 1;
                 default:
                     return parameterCount > 0;
             }

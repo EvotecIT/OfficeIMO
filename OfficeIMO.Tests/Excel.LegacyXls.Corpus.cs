@@ -436,6 +436,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Corpus_FormulaFunctions_ProjectsCommonBuiltInFunctions() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "excel-com-generated",
+                "formula-functions.xls");
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.Empty(result.ImportReport.FormulaTokenBlockers);
+
+            foreach (string functionName in new[] {
+                "AVERAGE",
+                "CONCATENATE",
+                "COUNTA",
+                "COUNTBLANK",
+                "FIND",
+                "MAX",
+                "MEDIAN",
+                "MIN",
+                "PRODUCT",
+                "REPLACE",
+                "SEARCH",
+                "SUBSTITUTE",
+                "TRIM",
+                "VAR"
+            }) {
+                Assert.Equal(1, result.ImportReport.FormulaFunctionsByName[functionName]);
+            }
+
+            LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
+            AssertCorpusFormula(sheet, 1, 2, 20d, "AVERAGE(A1:A3)");
+            AssertCorpusFormula(sheet, 2, 2, 10d, "MIN(A1:A3)");
+            AssertCorpusFormula(sheet, 3, 2, 30d, "MAX(A1:A3)");
+            AssertCorpusFormula(sheet, 4, 2, 6000d, "PRODUCT(A1:A3)");
+            AssertCorpusFormula(sheet, 5, 2, 5d, "COUNTA(A1:A5)");
+            AssertCorpusFormula(sheet, 6, 2, 20d, "MEDIAN(A1:A3)");
+            AssertCorpusFormula(sheet, 7, 2, 100d, "VAR(A1:A3)");
+            AssertCorpusFormula(sheet, 8, 2, 0d, "COUNTBLANK(B1:B3)");
+            AssertCorpusFormula(sheet, 9, 2, "north-east", "CONCATENATE(A4,\"-\",A5)");
+            AssertCorpusFormula(sheet, 10, 2, 2d, "FIND(\"o\",A4)");
+            AssertCorpusFormula(sheet, 11, 2, 2d, "SEARCH(\"A\",A5)");
+            AssertCorpusFormula(sheet, 12, 2, "padded", "TRIM(\"  padded  \")");
+            AssertCorpusFormula(sheet, 13, 2, "north/east", "SUBSTITUTE(\"north-east\",\"-\",\"/\")");
+            AssertCorpusFormula(sheet, 14, 2, "nXXth", "REPLACE(\"north\",2,2,\"XX\")");
+        }
+
+        [Fact]
         public void LegacyXls_Corpus_Protection_PreservesSheetProtectionAndCellProtection() {
             string workbookPath = Path.Combine(
                 GetTestsProjectRoot(),
