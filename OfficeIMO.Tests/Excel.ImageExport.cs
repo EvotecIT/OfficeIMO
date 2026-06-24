@@ -194,6 +194,58 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportDoesNotSpillThroughBlankCellsCoveredByDrawings() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("OverlaySpill");
+            sheet.SetColumnWidth(1, 6);
+            sheet.SetColumnWidth(2, 12);
+            sheet.SetColumnWidth(3, 12);
+            sheet.SetRowHeight(1, 28);
+            sheet.CellValue(1, 1, "Plain text stops before image overlay");
+            sheet.AddImage(1, 2, CreateSolidPng(24, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 24, heightPixels: 18, name: "Overlay");
+
+            ExcelRange range = sheet.Range("A1:C1");
+            ExcelImageExportOptions options = new() { ShowGridlines = false };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(svgResult.Bytes);
+
+            ExcelVisualCell first = snapshot.Cells.Single(cell => cell.Column == 1);
+            Assert.Single(snapshot.Images);
+            Assert.Equal(first.Width, ExtractSvgClipWidth(svg, "xl-text-1-1"), precision: 2);
+            Assert.Contains(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "OverlaySpill!A1");
+            Assert.Contains(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "OverlaySpill!A1");
+            Assert.Contains("data:image/png;base64,", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportDoesNotSpillFromCellsCoveredByDrawings() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("SourceOverlay");
+            sheet.SetColumnWidth(1, 10);
+            sheet.SetColumnWidth(2, 16);
+            sheet.SetRowHeight(1, 28);
+            sheet.CellValue(1, 1, "Text hidden by image should not spill");
+            sheet.AddImage(1, 1, CreateSolidPng(48, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 48, heightPixels: 18, name: "SourceOverlay");
+
+            ExcelRange range = sheet.Range("A1:B1");
+            ExcelImageExportOptions options = new() { ShowGridlines = false };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(svgResult.Bytes);
+
+            ExcelVisualCell first = snapshot.Cells.Single(cell => cell.Column == 1);
+            Assert.Single(snapshot.Images);
+            Assert.Equal(first.Width, ExtractSvgClipWidth(svg, "xl-text-1-1"), precision: 2);
+            Assert.Contains(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "SourceOverlay!A1");
+            Assert.Contains(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "SourceOverlay!A1");
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportDoesNotSpillGeneralNumericTextIntoBlankNeighbors() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

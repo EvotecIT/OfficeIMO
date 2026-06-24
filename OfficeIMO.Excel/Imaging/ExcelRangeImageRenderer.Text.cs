@@ -477,14 +477,14 @@ namespace OfficeIMO.Excel {
             double y = cell.Y * scale;
             double width = cell.Width * scale;
             double height = cell.Height * scale;
-            if (!CanCellTextSpillRight(cell)) {
+            if (!CanCellTextSpillRight(cell, snapshot)) {
                 return new CellTextViewport(x, y, width, height);
             }
 
             double unscaledRight = cell.X + cell.Width;
             for (int column = cell.Column + 1; column <= snapshot.LastColumn; column++) {
                 if (!cellsByAddress.TryGetValue(Key(cell.Row, column), out ExcelVisualCell? neighbor) ||
-                    !CanSpillThroughNeighbor(neighbor)) {
+                    !CanSpillThroughNeighbor(neighbor, snapshot)) {
                     break;
                 }
 
@@ -494,12 +494,13 @@ namespace OfficeIMO.Excel {
             return new CellTextViewport(x, y, Math.Max(width, (unscaledRight - cell.X) * scale), height);
         }
 
-        private static bool CanCellTextSpillRight(ExcelVisualCell cell) {
+        private static bool CanCellTextSpillRight(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot) {
             if (cell.CoveredByMerge ||
                 cell.Style.WrapText ||
                 cell.Style.ShrinkToFit ||
                 IsStackedTextRotation(cell.Style.TextRotation) ||
                 cell.Style.TextRotation.GetValueOrDefault() != 0 ||
+                IsCellCoveredByDrawingLayer(cell, snapshot) ||
                 cell.Text.IndexOf('\n') >= 0 ||
                 cell.Text.IndexOf('\r') >= 0) {
                 return false;
@@ -514,10 +515,68 @@ namespace OfficeIMO.Excel {
                 cell.ValueKind == ExcelVisualCellValueKind.Text;
         }
 
-        private static bool CanSpillThroughNeighbor(ExcelVisualCell neighbor) {
+        private static bool CanSpillThroughNeighbor(ExcelVisualCell neighbor, ExcelRangeVisualSnapshot snapshot) {
             return !neighbor.CoveredByMerge &&
                 string.IsNullOrEmpty(neighbor.Text) &&
-                neighbor.RichTextRuns.Count == 0;
+                neighbor.RichTextRuns.Count == 0 &&
+                !IsCellCoveredByDrawingLayer(neighbor, snapshot);
+        }
+
+        private static bool IsCellCoveredByDrawingLayer(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot) {
+            for (int index = 0; index < snapshot.DrawingLayers.Count; index++) {
+                if (TryGetDrawingLayerBounds(snapshot.DrawingLayers[index], out double x, out double y, out double width, out double height) &&
+                    RectanglesIntersect(cell.X, cell.Y, cell.Width, cell.Height, x, y, width, height)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGetDrawingLayerBounds(ExcelVisualDrawingLayer layer, out double x, out double y, out double width, out double height) {
+            switch (layer.Kind) {
+                case ExcelVisualDrawingLayerKind.DrawingObject when layer.DrawingObject != null:
+                    x = layer.DrawingObject.X;
+                    y = layer.DrawingObject.Y;
+                    width = layer.DrawingObject.Width;
+                    height = layer.DrawingObject.Height;
+                    return width > 0D && height > 0D;
+                case ExcelVisualDrawingLayerKind.Image when layer.Image != null:
+                    x = layer.Image.X;
+                    y = layer.Image.Y;
+                    width = layer.Image.Width;
+                    height = layer.Image.Height;
+                    return width > 0D && height > 0D;
+                case ExcelVisualDrawingLayerKind.Chart when layer.Chart != null:
+                    x = layer.Chart.X;
+                    y = layer.Chart.Y;
+                    width = layer.Chart.Width;
+                    height = layer.Chart.Height;
+                    return width > 0D && height > 0D;
+                case ExcelVisualDrawingLayerKind.CommentBody when layer.CommentBody != null:
+                    x = layer.CommentBody.X;
+                    y = layer.CommentBody.Y;
+                    width = layer.CommentBody.Width;
+                    height = layer.CommentBody.Height;
+                    return width > 0D && height > 0D;
+                default:
+                    x = 0D;
+                    y = 0D;
+                    width = 0D;
+                    height = 0D;
+                    return false;
+            }
+        }
+
+        private static bool RectanglesIntersect(double left, double top, double width, double height, double otherLeft, double otherTop, double otherWidth, double otherHeight) {
+            if (width <= 0D || height <= 0D || otherWidth <= 0D || otherHeight <= 0D) {
+                return false;
+            }
+
+            return left < otherLeft + otherWidth &&
+                left + width > otherLeft &&
+                top < otherTop + otherHeight &&
+                top + height > otherTop;
         }
 
         private static OfficeTextAlignment ResolveCellTextAlignment(ExcelVisualCell cell) {
