@@ -54,7 +54,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartPlotGrowth? plotGrowth = null,
             LegacyXlsChartDataTableOptions? dataTableOptions = null,
             LegacyXlsChartSheetProperties? sheetProperties = null,
-            LegacyXlsChartValueRange? valueRange = null) {
+            LegacyXlsChartValueRange? valueRange = null,
+            LegacyXlsChartBarOptions? barOptions = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -107,6 +108,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             DataTableOptions = dataTableOptions;
             SheetProperties = sheetProperties;
             ValueRange = valueRange;
+            BarOptions = barOptions;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -252,5 +254,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded value-axis scale metadata from ValueRange records, when present.</summary>
         public LegacyXlsChartValueRange? ValueRange { get; }
+
+        /// <summary>Gets decoded bar or column chart group options from Bar records, when present.</summary>
+        public LegacyXlsChartBarOptions? BarOptions { get; }
     }
 }

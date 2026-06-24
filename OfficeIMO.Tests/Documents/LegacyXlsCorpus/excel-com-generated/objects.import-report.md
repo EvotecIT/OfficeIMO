@@ -978,6 +978,24 @@ Warnings: 0
 | FontIndex:26 | 10 |
 | FontIndex:27 | 2 |
 
+## Chart Bar Overlap Percentages
+
+| Key | Count |
+| --- | --- |
+| Overlap:0 | 2 |
+
+## Chart Bar Gap Widths
+
+| Key | Count |
+| --- | --- |
+| Gap:150 | 2 |
+
+## Chart Bar States
+
+| Key | Count |
+| --- | --- |
+| Transposed:False;Stacked:False;Percent:False;Shadow:False | 2 |
+
 ## Chart Sheet Property States
 
 | Key | Count |

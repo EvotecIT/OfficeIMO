@@ -398,7 +398,18 @@ namespace OfficeIMO.Tests {
             Assert.False(sheetPropertiesRecord.SheetProperties.ManualPlotArea);
             Assert.False(sheetPropertiesRecord.SheetProperties.AlwaysAutoPlotArea);
             Assert.False(sheetPropertiesRecord.SheetProperties.HasKnownEmptyCellPlottingMode);
+            LegacyXlsChartRecord barRecord = Assert.Single(result.Workbook.ChartRecords, record => record.RecordName == "Bar" && record.SheetName == "RevenueChart");
+            Assert.NotNull(barRecord.BarOptions);
+            Assert.Equal(0, barRecord.BarOptions!.OverlapPercentage);
+            Assert.Equal(150, barRecord.BarOptions.GapWidthPercentage);
+            Assert.False(barRecord.BarOptions.IsTransposed);
+            Assert.False(barRecord.BarOptions.IsStacked);
+            Assert.False(barRecord.BarOptions.IsPercentStacked);
+            Assert.False(barRecord.BarOptions.HasShadow);
             Assert.Equal(1, result.ImportReport.ChartSheetPropertyStates["AutoSeries:False;VisibleOnly:False;DoNotSizeWithWindow:False;ManualPlotArea:False;AlwaysAutoPlotArea:False"]);
+            Assert.Equal(1, result.ImportReport.ChartBarOverlapPercentages["Overlap:0"]);
+            Assert.Equal(1, result.ImportReport.ChartBarGapWidths["Gap:150"]);
+            Assert.Equal(1, result.ImportReport.ChartBarStates["Transposed:False;Stacked:False;Percent:False;Shadow:False"]);
         }
 
         [Fact]

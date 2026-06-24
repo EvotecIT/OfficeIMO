@@ -492,6 +492,15 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(record => record.DataTableOptions != null)
                 .Select(record => record.DataTableOptions!)
                 .Select(options => $"HorizontalBorders:{options.HasHorizontalBorders};VerticalBorders:{options.HasVerticalBorders};Outline:{options.HasOutlineBorder};SeriesKeys:{options.ShowSeriesKeys}"));
+            ChartBarOverlapPercentages = CountByCode(workbook.ChartRecords
+                .Where(record => record.BarOptions != null)
+                .Select(record => $"Overlap:{record.BarOptions!.OverlapPercentage}"));
+            ChartBarGapWidths = CountByCode(workbook.ChartRecords
+                .Where(record => record.BarOptions != null)
+                .Select(record => $"Gap:{record.BarOptions!.GapWidthPercentage}"));
+            ChartBarStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.BarOptions != null)
+                .Select(GetChartBarStateKey));
             ChartSheetPropertyEmptyCellModes = CountByCode(workbook.ChartRecords
                 .Where(record => record.SheetProperties != null && record.SheetProperties.HasKnownEmptyCellPlottingMode)
                 .Select(record => record.SheetProperties!.EmptyCellPlottingModeName));
@@ -1566,6 +1575,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Dat records grouped by decoded data-table display options.</summary>
         public IReadOnlyDictionary<string, int> ChartDataTableOptions { get; }
 
+        /// <summary>Gets Bar records grouped by decoded overlap percentage.</summary>
+        public IReadOnlyDictionary<string, int> ChartBarOverlapPercentages { get; }
+
+        /// <summary>Gets Bar records grouped by decoded category gap width percentage.</summary>
+        public IReadOnlyDictionary<string, int> ChartBarGapWidths { get; }
+
+        /// <summary>Gets Bar records grouped by decoded orientation, stacking, percentage, and shadow flags.</summary>
+        public IReadOnlyDictionary<string, int> ChartBarStates { get; }
+
         /// <summary>Gets ShtProps records grouped by decoded empty-cell plotting mode.</summary>
         public IReadOnlyDictionary<string, int> ChartSheetPropertyEmptyCellModes { get; }
 
@@ -2192,6 +2210,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Number Format Ids", ChartNumberFormatIds);
             AppendDictionary(builder, "Chart Font Indexes", ChartFontIndexes);
             AppendDictionary(builder, "Chart DataTable Options", ChartDataTableOptions);
+            AppendDictionary(builder, "Chart Bar Overlap Percentages", ChartBarOverlapPercentages);
+            AppendDictionary(builder, "Chart Bar Gap Widths", ChartBarGapWidths);
+            AppendDictionary(builder, "Chart Bar States", ChartBarStates);
             AppendDictionary(builder, "Chart Sheet Property Empty Cell Modes", ChartSheetPropertyEmptyCellModes);
             AppendDictionary(builder, "Chart Sheet Property States", ChartSheetPropertyStates);
             AppendDictionary(builder, "Chart LineFormat Styles", ChartLineFormatStyles);
@@ -2789,6 +2810,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartSheetPropertyStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartSheetProperties properties = record.SheetProperties!;
             return $"AutoSeries:{properties.AutomaticallyAllocateSeries};VisibleOnly:{properties.PlotVisibleCellsOnly};DoNotSizeWithWindow:{properties.DoNotSizeWithWindow};ManualPlotArea:{properties.ManualPlotArea};AlwaysAutoPlotArea:{properties.AlwaysAutoPlotArea}";
+        }
+
+        private static string GetChartBarStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartBarOptions options = record.BarOptions!;
+            return $"Transposed:{options.IsTransposed};Stacked:{options.IsStacked};Percent:{options.IsPercentStacked};Shadow:{options.HasShadow}";
         }
 
         private static string GetChartAttachedLabelStateKey(LegacyXlsChartRecord record) {
