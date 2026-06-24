@@ -795,7 +795,7 @@ namespace OfficeIMO.Tests {
                     new ExcelRichTextRun(" to fit") { Italic = true, FontColor = "7C3AED", FontSize = 18D });
 
             sheet.CellAt(6, 2).SetRichText(
-                new ExcelRichTextRun("Clipped rich text should ellipsize at the cell edge") { Bold = true, FontColor = "DC2626", FontSize = 12D });
+                new ExcelRichTextRun("Rich text stays bounded     hidden overflow") { Bold = true, FontColor = "DC2626", FontSize = 12D });
 
             sheet.CellAt(7, 2)
                 .SetTextRotation(45)

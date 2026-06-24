@@ -422,6 +422,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_CanKeepOverflowingRichTextForCallerClipping() {
+            double Measure(string? value, double size) => (value?.Length ?? 0) * size;
+            OfficeRichTextRun strong = new OfficeRichTextRun("Overflowing", 1D, OfficeColor.Red, bold: true);
+            OfficeRichTextRun accent = new OfficeRichTextRun(" rich", 1D, OfficeColor.Blue, italic: true);
+
+            OfficeRichTextBlockLayout ellipsis = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                new[] { strong, accent },
+                10D,
+                10D,
+                lineHeightFactor: 1.2D,
+                Measure,
+                wrap: false);
+            OfficeRichTextBlockLayout clipped = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                new[] { strong, accent },
+                10D,
+                10D,
+                lineHeightFactor: 1.2D,
+                Measure,
+                wrap: false,
+                shrinkToFit: false,
+                minimumFontSize: 1D,
+                overflowBehavior: OfficeTextOverflowBehavior.Clip);
+
+            Assert.True(ellipsis.Clipped);
+            Assert.Equal("Overflo...", string.Concat(ellipsis.Lines[0].Segments.Select(segment => segment.Text)));
+            Assert.True(ellipsis.Width <= 10.01D);
+            Assert.True(clipped.Clipped);
+            Assert.Equal("Overflowing rich", string.Concat(clipped.Lines[0].Segments.Select(segment => segment.Text)));
+            Assert.True(clipped.Width > 10D);
+            Assert.True(clipped.Lines[0].Segments[0].Bold);
+            Assert.True(clipped.Lines[0].Segments[1].Italic);
+        }
+
+        [Fact]
         public void OfficeTextLayoutEngine_LayoutsRichTextRunsWithFontFamilyAwareMeasurement() {
             double Measure(string? value, double size, string? family) {
                 double factor = string.Equals(family, "Wide", StringComparison.Ordinal) ? 10D : 1D;
