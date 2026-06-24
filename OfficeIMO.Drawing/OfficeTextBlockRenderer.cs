@@ -75,6 +75,85 @@ public static class OfficeTextBlockRenderer {
     }
 
     /// <summary>
+    /// Draws a measured text-box plan on a raster canvas, including an optional text background.
+    /// </summary>
+    /// <param name="canvas">Raster canvas receiving the text.</param>
+    /// <param name="plan">Resolved text-box layout and placement.</param>
+    /// <param name="color">Text color.</param>
+    /// <param name="bold">Whether to render bold text.</param>
+    /// <param name="italic">Whether to render italic text.</param>
+    /// <param name="underline">Whether to render an underline for each visible line.</param>
+    /// <param name="horizontalAlignment">Horizontal alignment override. Pass <c>null</c> to use <paramref name="plan"/>.</param>
+    /// <param name="verticalAlignment">Vertical alignment override. Pass <c>null</c> to use <paramref name="plan"/>.</param>
+    /// <param name="rotationDegrees">Clockwise rotation in degrees.</param>
+    /// <param name="rotationCenterX">Rotation center X coordinate.</param>
+    /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
+    /// <param name="backgroundColor">Optional background color around the measured text block.</param>
+    /// <param name="backgroundPaddingX">Horizontal background padding.</param>
+    /// <param name="backgroundPaddingY">Vertical background padding.</param>
+    /// <param name="centerLineInLineHeight">Whether the text glyph box should be vertically centered inside each measured line height.</param>
+    /// <param name="underlineOffsetFactor">Underline baseline offset as a factor of the resolved font size.</param>
+    /// <param name="strikethrough">Whether to render a strikethrough for each visible line.</param>
+    /// <param name="fontFamily">Requested font family fallback list.</param>
+    public static void DrawRasterTextBox(
+        OfficeRasterCanvas canvas,
+        OfficeTextBlockRenderPlan plan,
+        OfficeColor color,
+        bool bold = false,
+        bool italic = false,
+        bool underline = false,
+        OfficeTextAlignment? horizontalAlignment = null,
+        OfficeTextVerticalAlignment? verticalAlignment = null,
+        double rotationDegrees = 0D,
+        double rotationCenterX = 0D,
+        double rotationCenterY = 0D,
+        OfficeColor? backgroundColor = null,
+        double backgroundPaddingX = 0D,
+        double backgroundPaddingY = 0D,
+        bool centerLineInLineHeight = true,
+        double underlineOffsetFactor = 0.86D,
+        bool strikethrough = false,
+        string? fontFamily = null) {
+        if (canvas == null) {
+            throw new ArgumentNullException(nameof(canvas));
+        }
+
+        if (plan == null) {
+            throw new ArgumentNullException(nameof(plan));
+        }
+
+        if (backgroundColor.HasValue && backgroundColor.Value.A > 0) {
+            OfficeTextBlockBackgroundBounds background = plan.CreateBackgroundBounds(backgroundPaddingX, backgroundPaddingY);
+            if (Math.Abs(rotationDegrees) <= 0.000001D) {
+                canvas.FillRectangle(background.Left, background.Top, background.Width, background.Height, backgroundColor.Value);
+            } else {
+                canvas.FillPolygon(background.GetRotatedCorners(rotationDegrees, rotationCenterX, rotationCenterY), backgroundColor.Value);
+            }
+        }
+
+        DrawRasterTextBlock(
+            canvas,
+            plan.Layout,
+            plan.Left,
+            plan.Top,
+            plan.Width,
+            plan.Height,
+            color,
+            horizontalAlignment ?? plan.HorizontalAlignment,
+            verticalAlignment ?? plan.VerticalAlignment,
+            bold,
+            italic,
+            underline,
+            rotationDegrees,
+            rotationCenterX,
+            rotationCenterY,
+            centerLineInLineHeight,
+            underlineOffsetFactor,
+            strikethrough,
+            fontFamily);
+    }
+
+    /// <summary>
     /// Draws a measured rich text block on a raster canvas.
     /// </summary>
     /// <param name="canvas">Raster canvas receiving the text.</param>
@@ -527,6 +606,90 @@ public static class OfficeTextBlockRenderer {
         }
 
         writer.WriteEndElement();
+    }
+
+    /// <summary>
+    /// Writes a measured SVG text-box plan, including an optional text background.
+    /// </summary>
+    /// <param name="writer">SVG XML writer.</param>
+    /// <param name="plan">Resolved text-box layout and placement.</param>
+    /// <param name="color">Text color.</param>
+    /// <param name="fontFamily">SVG font-family value.</param>
+    /// <param name="bold">Whether to render bold text.</param>
+    /// <param name="italic">Whether to render italic text.</param>
+    /// <param name="underline">Whether to render underlined text.</param>
+    /// <param name="rotationDegrees">Clockwise rotation in degrees.</param>
+    /// <param name="rotationCenterX">Rotation center X coordinate.</param>
+    /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
+    /// <param name="svgNamespace">SVG namespace URI. Pass <c>null</c> to write elements without a namespace.</param>
+    /// <param name="backgroundColor">Optional background color around the measured text block.</param>
+    /// <param name="backgroundPaddingX">Horizontal background padding.</param>
+    /// <param name="backgroundPaddingY">Vertical background padding.</param>
+    /// <param name="configureTextAttributes">Optional callback for adapter-specific attributes on the <c>text</c> element.</param>
+    /// <param name="configureBackgroundAttributes">Optional callback for adapter-specific attributes on the background <c>rect</c> element.</param>
+    /// <param name="strikethrough">Whether to render strikethrough text.</param>
+    public static void WriteSvgTextBox(
+        XmlWriter writer,
+        OfficeTextBlockRenderPlan plan,
+        OfficeColor color,
+        string? fontFamily,
+        bool bold = false,
+        bool italic = false,
+        bool underline = false,
+        double rotationDegrees = 0D,
+        double rotationCenterX = 0D,
+        double rotationCenterY = 0D,
+        string? svgNamespace = null,
+        OfficeColor? backgroundColor = null,
+        double backgroundPaddingX = 0D,
+        double backgroundPaddingY = 0D,
+        Action<XmlWriter>? configureTextAttributes = null,
+        Action<XmlWriter>? configureBackgroundAttributes = null,
+        bool strikethrough = false) {
+        if (writer == null) {
+            throw new ArgumentNullException(nameof(writer));
+        }
+
+        if (plan == null) {
+            throw new ArgumentNullException(nameof(plan));
+        }
+
+        if (backgroundColor.HasValue && backgroundColor.Value.A > 0) {
+            OfficeTextBlockBackgroundBounds background = plan.CreateBackgroundBounds(backgroundPaddingX, backgroundPaddingY);
+            writer.WriteStartElement("rect", svgNamespace);
+            configureBackgroundAttributes?.Invoke(writer);
+            writer.WriteNumberAttribute("x", background.Left);
+            writer.WriteNumberAttribute("y", background.Top);
+            writer.WriteNumberAttribute("width", background.Width);
+            writer.WriteNumberAttribute("height", background.Height);
+            if (Math.Abs(rotationDegrees) > 0.000001D) {
+                writer.WriteRotateTransformAttribute(rotationDegrees, rotationCenterX, rotationCenterY);
+            }
+
+            OfficeSvgFormatting.WriteColorAttribute(writer, "fill", backgroundColor.Value);
+            writer.WriteEndElement();
+        }
+
+        WriteSvgTextBlock(
+            writer,
+            plan.Layout,
+            plan.Left,
+            plan.Top,
+            plan.Width,
+            plan.Height,
+            color,
+            fontFamily,
+            plan.HorizontalAlignment,
+            plan.VerticalAlignment,
+            bold,
+            italic,
+            underline,
+            rotationDegrees,
+            rotationCenterX,
+            rotationCenterY,
+            svgNamespace,
+            configureTextAttributes,
+            strikethrough);
     }
 
     private static string GetSvgTextAnchor(OfficeTextAlignment alignment) {

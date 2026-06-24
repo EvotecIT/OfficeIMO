@@ -1168,6 +1168,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextBlockRenderer_DrawsRasterTextBoxWithBackground() {
+            OfficeRasterImage image = new OfficeRasterImage(140, 80, OfficeColor.Transparent);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+            OfficeTextBlockRenderPlan plan = OfficeTextBlockRenderPlan.CreateFittedFromCenter(
+                "Shared text",
+                12D,
+                centerX: 70D,
+                centerY: 40D,
+                width: 90D,
+                height: 36D,
+                canvas.MeasureText,
+                OfficeTextAlignment.Center,
+                OfficeTextVerticalAlignment.Center,
+                lineHeightFactor: 1.2D,
+                minimumFontSize: 8D);
+
+            OfficeTextBlockRenderer.DrawRasterTextBox(
+                canvas,
+                plan,
+                OfficeColor.Black,
+                bold: true,
+                backgroundColor: OfficeColor.FromRgb(255, 230, 128),
+                backgroundPaddingX: 4D,
+                backgroundPaddingY: 3D);
+
+            Assert.True(CountPixelsNear(image, OfficeColor.FromRgb(255, 230, 128)) > 100, "Expected the shared text-box helper to paint the background.");
+            Assert.True(CountPixelsNear(image, OfficeColor.Black) > 40, "Expected the shared text-box helper to paint text.");
+        }
+
+        [Fact]
         public void OfficeTextBlockRenderer_DrawsRasterRichTextBlockWithRunStyles() {
             OfficeRasterImage image = new OfficeRasterImage(140, 72, OfficeColor.Transparent);
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
@@ -1383,6 +1413,61 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<tspan", svg);
             Assert.Contains(">A&amp;B</tspan>", svg);
             Assert.Contains(">Beta</tspan>", svg);
+        }
+
+        [Fact]
+        public void OfficeTextBlockRenderer_WritesSvgTextBoxWithBackgroundAndAdapterAttributes() {
+            var layout = new OfficeTextBlockLayout(
+                new[] {
+                    new OfficeTextLine("Shared", 36D)
+                },
+                fontSize: 10D,
+                lineHeight: 12D,
+                width: 36D,
+                height: 12D);
+            OfficeTextBlockRenderPlan plan = OfficeTextBlockRenderPlan.CreateFromCenter(
+                layout,
+                centerX: 50D,
+                centerY: 25D,
+                width: 80D,
+                height: 30D,
+                OfficeTextAlignment.Center,
+                OfficeTextVerticalAlignment.Center);
+            var builder = new System.Text.StringBuilder();
+            using (var writer = System.Xml.XmlWriter.Create(
+                builder,
+                new System.Xml.XmlWriterSettings {
+                    ConformanceLevel = System.Xml.ConformanceLevel.Fragment,
+                    OmitXmlDeclaration = true
+                })) {
+                OfficeTextBlockRenderer.WriteSvgTextBox(
+                    writer,
+                    plan,
+                    OfficeColor.FromRgb(1, 2, 3),
+                    "Aptos",
+                    bold: true,
+                    rotationDegrees: 12D,
+                    rotationCenterX: 50D,
+                    rotationCenterY: 25D,
+                    svgNamespace: "http://www.w3.org/2000/svg",
+                    backgroundColor: OfficeColor.FromRgba(255, 230, 128, 200),
+                    backgroundPaddingX: 4D,
+                    backgroundPaddingY: 3D,
+                    configureTextAttributes: textWriter => textWriter.WriteAttributeString("data-officeimo-text", "true"),
+                    configureBackgroundAttributes: backgroundWriter => backgroundWriter.WriteAttributeString("data-officeimo-background", "true"));
+            }
+
+            string svg = builder.ToString();
+            Assert.Contains("<rect", svg);
+            Assert.Contains("data-officeimo-background=\"true\"", svg);
+            Assert.Contains("fill=\"#FFE680\"", svg);
+            Assert.Contains("fill-opacity=\"0.784\"", svg);
+            Assert.Contains("transform=\"rotate(12 50 25)\"", svg);
+            Assert.Contains("<text", svg);
+            Assert.Contains("data-officeimo-text=\"true\"", svg);
+            Assert.Contains("font-family=\"Aptos\"", svg);
+            Assert.Contains("font-weight=\"700\"", svg);
+            Assert.Contains(">Shared</tspan>", svg);
         }
 
         private static int CountPaintedPixels(OfficeRasterImage image) =>

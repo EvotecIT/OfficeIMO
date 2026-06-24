@@ -36,36 +36,22 @@ namespace OfficeIMO.Visio {
             pixelHeight = plan.Layout.FontSize;
 
             Color? backgroundColor = ResolveTextBackground(style, drawLabelBackground);
-            if (backgroundColor.HasValue) {
-                double padX = Math.Max(canvas.Supersampling * 3D, pixelHeight * 0.22D);
-                double padY = Math.Max(canvas.Supersampling * 2D, pixelHeight * 0.16D);
-                OfficeTextBlockBackgroundBounds background = plan.CreateBackgroundBounds(padX, padY);
-                if (Math.Abs(rotateRadians) < TextRotationEpsilon) {
-                    canvas.FillRectangle(background.Left, background.Top, background.Width, background.Height, backgroundColor.Value);
-                } else {
-                    OfficePoint[] corners = background.GetRotatedCorners(OfficeGeometry.RadiansToDegrees(-rotateRadians), centerX, centerY);
-                    canvas.FillPolygon(ToTuples(corners), backgroundColor.Value);
-                }
-            }
+            double padX = Math.Max(canvas.Supersampling * 3D, pixelHeight * 0.22D);
+            double padY = Math.Max(canvas.Supersampling * 2D, pixelHeight * 0.16D);
 
-            canvas.DrawTextBlock(
-                plan.Layout,
-                plan.Left,
-                plan.Top,
-                plan.Width,
-                plan.Height,
+            canvas.DrawTextBox(
+                plan,
                 color,
                 style?.Bold == true,
                 style?.Italic == true,
                 style?.Underline == true,
-                plan.HorizontalAlignment,
-                plan.VerticalAlignment,
                 rotateRadians,
                 centerX,
-                centerY);
+                centerY,
+                backgroundColor,
+                padX,
+                padY);
         }
-
-        private const double TextRotationEpsilon = 1e-9;
 
         private static Color? ResolveTextBackground(VisioTextStyle? style, bool drawLabelBackground) {
             if (style?.BackgroundColor.HasValue == true) {

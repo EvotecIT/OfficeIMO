@@ -66,37 +66,31 @@ namespace OfficeIMO.Visio {
                 _canvas.DrawTextLine(text, anchorX, top, height, color, bold, italic, alignment, RadiansToCanvasDegrees(rotationRadians), rotationCenterX, rotationCenterY);
             }
 
-            internal void DrawTextBlock(
-                OfficeTextBlockLayout layout,
-                double left,
-                double top,
-                double width,
-                double height,
+            internal void DrawTextBox(
+                OfficeTextBlockRenderPlan plan,
                 Color color,
                 bool bold,
                 bool italic,
                 bool underline,
-                OfficeTextAlignment horizontalAlignment,
-                OfficeTextVerticalAlignment verticalAlignment,
                 double rotationRadians,
                 double rotationCenterX,
-                double rotationCenterY) {
-                OfficeTextBlockRenderer.DrawRasterTextBlock(
+                double rotationCenterY,
+                Color? backgroundColor,
+                double backgroundPaddingX,
+                double backgroundPaddingY) {
+                OfficeTextBlockRenderer.DrawRasterTextBox(
                     _canvas,
-                    layout,
-                    left,
-                    top,
-                    width,
-                    height,
+                    plan,
                     color,
-                    horizontalAlignment,
-                    verticalAlignment,
                     bold,
                     italic,
                     underline,
-                    RadiansToCanvasDegrees(rotationRadians),
-                    rotationCenterX,
-                    rotationCenterY,
+                    rotationDegrees: RadiansToCanvasDegrees(rotationRadians),
+                    rotationCenterX: rotationCenterX,
+                    rotationCenterY: rotationCenterY,
+                    backgroundColor: backgroundColor,
+                    backgroundPaddingX: backgroundPaddingX,
+                    backgroundPaddingY: backgroundPaddingY,
                     centerLineInLineHeight: false,
                     underlineOffsetFactor: 0.92D);
             }
