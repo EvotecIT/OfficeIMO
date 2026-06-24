@@ -221,6 +221,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportDoesNotSpillThroughBlankCellsCoveredByCharts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("ChartSpill");
+            sheet.SetColumnWidth(1, 6);
+            sheet.SetColumnWidth(2, 14);
+            sheet.SetColumnWidth(3, 14);
+            sheet.SetRowHeight(1, 30);
+            sheet.SetRowHeight(2, 30);
+            sheet.CellValue(1, 1, "Plain text stops before chart overlay");
+            sheet.CellValue(3, 1, "Label");
+            sheet.CellValue(3, 2, "Value");
+            sheet.CellValue(4, 1, "North");
+            sheet.CellValue(4, 2, 12);
+            sheet.CellValue(5, 1, "South");
+            sheet.CellValue(5, 2, 18);
+            sheet.AddChartFromRange("A3:B5", row: 1, column: 2, widthPixels: 140, heightPixels: 70, type: ExcelChartType.ColumnClustered, title: "Overlay");
+
+            ExcelRange range = sheet.Range("A1:C2");
+            ExcelImageExportOptions options = new() { ShowGridlines = false };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(svgResult.Bytes);
+
+            ExcelVisualCell first = snapshot.Cells.Single(cell => cell.Column == 1 && cell.Row == 1);
+            Assert.Single(snapshot.Charts);
+            Assert.Equal(first.Width, ExtractSvgClipWidth(svg, "xl-text-1-1"), precision: 2);
+            Assert.Contains(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "ChartSpill!A1");
+            Assert.Contains(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "ChartSpill!A1");
+            Assert.Contains("Overlay", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportDoesNotSpillFromCellsCoveredByDrawings() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

@@ -711,8 +711,10 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(4, 2).Percent(0);
             sheet.CellValue(4, 3, "Watch");
             sheet.CellAt(4, 3).Warning();
-            sheet.CellValue(4, 4, "Long text intentionally clips with a diagnostic when the cell is too small");
+            sheet.CellValue(4, 4, "Narrative stays bounded beside the chart");
             sheet.CellAt(4, 4).MutedText();
+            sheet.WrapCells(4, 4, 4);
+            sheet.CellVerticalAlign(4, 4, VerticalAlignmentValues.Center);
 
             sheet.CellValue(5, 1, "South");
             sheet.CellValue(5, 2, 0.82);
@@ -737,7 +739,7 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(7, 16);
             sheet.SetColumnWidth(8, 16);
             sheet.SetRowHeight(3, 54);
-            sheet.SetRowHeight(4, 24);
+            sheet.SetRowHeight(4, 36);
             sheet.SetRowHeight(5, 40);
             sheet.SetRowHeight(6, 32);
 
