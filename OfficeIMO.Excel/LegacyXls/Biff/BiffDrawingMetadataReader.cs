@@ -460,6 +460,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return LegacyXlsDrawingRecordKind.RichTextStream;
             }
 
+            if (type == (ushort)BiffRecordType.HfPicture) {
+                return LegacyXlsDrawingRecordKind.HeaderFooterPicture;
+            }
+
             return LegacyXlsDrawingRecordKind.PreserveOnly;
         }
     }

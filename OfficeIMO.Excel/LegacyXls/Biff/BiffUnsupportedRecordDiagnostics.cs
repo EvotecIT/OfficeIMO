@@ -164,6 +164,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 code = "XLS-BIFF-FEATURE-AUTOFILTER-CRITERIA-UNSUPPORTED";
                 message = "AutoFilter criteria records are present but this criteria shape is not supported by the current legacy XLS import phase.";
                 detailCode = "AutoFilter:" + GetBiffRecordName(type);
+            } else if (IsFormulaFeatureRecord(type)) {
+                kind = LegacyXlsUnsupportedFeatureKind.Formula;
+                code = "XLS-BIFF-FEATURE-FORMULA-UNSUPPORTED";
+                message = "Formula support records are present but this formula shape is not supported by the current legacy XLS import phase.";
+                detailCode = "Formula:" + GetBiffRecordName(type);
             } else if (IsDataValidationRecord(type)) {
                 kind = LegacyXlsUnsupportedFeatureKind.DataValidation;
                 code = "XLS-BIFF-FEATURE-DATA-VALIDATION-UNSUPPORTED";
@@ -209,6 +214,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 code = "XLS-BIFF-FEATURE-CHART-UNSUPPORTED";
                 message = "Chart records are present but chart import is not implemented in this phase.";
                 detailCode = "Chart:" + GetBiffRecordName(type);
+            } else if (IsWorksheetProtectionRecord(type)) {
+                kind = LegacyXlsUnsupportedFeatureKind.WorksheetProtection;
+                code = "XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED";
+                message = "Worksheet protection records are present but this protection shape is not supported by the current legacy XLS import phase.";
+                detailCode = "WorksheetProtection:" + GetBiffRecordName(type);
             }
         }
 
@@ -267,6 +277,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x005C: return "WriteAccess";
                 case 0x005D: return "Obj";
                 case 0x005F: return "SaveRecalc";
+                case 0x0063: return "ObjProtect";
                 case 0x0080: return "Guts";
                 case 0x0081: return "WsBool";
                 case 0x0082: return "GridSet";
@@ -305,6 +316,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x00D7: return "SxRng";
                 case 0x00D8: return "SxIsxoper";
                 case 0x00DA: return "BookBool";
+                case 0x00DD: return "ScenarioProtect";
                 case 0x00E1: return "InterfaceHdr";
                 case 0x00E2: return "InterfaceEnd";
                 case 0x00E3: return "Sxvs";
@@ -341,6 +353,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x01BE: return "Dv";
                 case 0x01C0: return "RecalcId";
                 case 0x01C1: return "EntExU2";
+                case 0x0221: return "Array";
                 case 0x080B: return "SxViewEx";
                 case 0x080C: return "Sxth";
                 case 0x0810: return "ContinueFrt";
@@ -359,6 +372,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0858: return "PivotChartBits";
                 case 0x0863: return "BookExt";
                 case 0x0864: return "SxAddl";
+                case 0x0866: return "HFPicture";
                 case 0x0867: return "Feat";
                 case 0x0875: return "DConn";
                 case 0x087A: return "Cf12";
@@ -461,6 +475,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || type == (ushort)BiffRecordType.AutoFilter;
         }
 
+        private static bool IsFormulaFeatureRecord(ushort type) {
+            return type == (ushort)BiffRecordType.Array;
+        }
+
         private static bool IsDataValidationRecord(ushort type) {
             return type == (ushort)BiffRecordType.DVal
                 || type == (ushort)BiffRecordType.Dv;
@@ -514,6 +532,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return type == (ushort)BiffRecordType.PhoneticInfo;
         }
 
+        private static bool IsWorksheetProtectionRecord(ushort type) {
+            return type == (ushort)BiffRecordType.ObjProtect
+                || type == (ushort)BiffRecordType.ScenarioProtect;
+        }
+
         internal static bool IsChartRecord(ushort type) {
             return type >= 0x1000 && type <= 0x1068
                 || type == 0x0850
@@ -531,6 +554,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || type == (ushort)BiffRecordType.DrawingGroup
                 || type == (ushort)BiffRecordType.Drawing
                 || type == (ushort)BiffRecordType.Txo
+                || type == (ushort)BiffRecordType.HfPicture
                 || type == (ushort)BiffRecordType.ShapePropsStream
                 || type == (ushort)BiffRecordType.TextPropsStream
                 || type == (ushort)BiffRecordType.RichTextStream;

@@ -36,7 +36,7 @@ Workbook metadata records: 18
 Worksheet metadata records: 5
 Unsupported sheet metadata records: 0
 Unsupported features: 129
-Preserved feature records: 127
+Preserved feature records: 129
 Errors: 0
 Warnings: 0
 
@@ -52,7 +52,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 6 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 2 |
+| XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED | 2 |
 
 ## Formula Tokens By Name
 
@@ -136,7 +136,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 6 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 2 |
+| XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED | 2 |
 
 ## Unsupported Features By Kind
 
@@ -149,8 +149,8 @@ Warnings: 0
 | StyleExtension | 113 |
 | TableStyle | 1 |
 | Theme | 1 |
-| UnsupportedRecord | 2 |
 | WorkbookMetadata | 6 |
+| WorksheetProtection | 2 |
 
 ## Unsupported Feature Record Types
 
@@ -167,14 +167,14 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x0892 | 47 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|0x088E | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|0x0896 | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0063 | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x00DD | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x01C0 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x01C1 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x088B | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x089A | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x089B | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x089C | 1 |
+| WorksheetProtection\|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|0x0063 | 1 |
+| WorksheetProtection\|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|0x00DD | 1 |
 
 ## Unsupported Feature Details
 
@@ -191,14 +191,14 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 65 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x0063 | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x00DD | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:Compat12 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:CompressPictures | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:EntExU2 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:HeaderFooter | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:MTRSettings | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:RecalcId | 1 |
+| WorksheetProtection\|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|WorksheetProtection:ObjProtect | 1 |
+| WorksheetProtection\|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|WorksheetProtection:ScenarioProtect | 1 |
 
 ## Unsupported Feature Locations
 
@@ -214,7 +214,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|(workbook) | 4 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|Protected | 2 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|Protected | 2 |
+| XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|Protected | 2 |
 
 ## Theme Records By Version
 
@@ -553,6 +553,7 @@ Warnings: 0
 | TableStyle | 1 |
 | Theme | 1 |
 | WorkbookMetadata | 6 |
+| WorksheetProtection | 2 |
 
 ## Preserved Feature Record Details
 
@@ -575,3 +576,5 @@ Warnings: 0
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:HeaderFooter | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:MTRSettings | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:RecalcId | 1 |
+| WorksheetProtection\|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|WorksheetProtection:ObjProtect | 1 |
+| WorksheetProtection\|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|WorksheetProtection:ScenarioProtect | 1 |

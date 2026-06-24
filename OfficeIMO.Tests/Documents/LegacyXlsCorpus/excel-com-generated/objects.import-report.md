@@ -18,7 +18,7 @@ External cached cells: 0
 Data consolidation references: 1
 Pivot table records: 59
 Chart records: 296
-Drawing records: 60
+Drawing records: 61
 Theme records: 1
 Drawing OfficeArt records: 52
 Drawing shape properties: 33
@@ -36,7 +36,7 @@ Workbook metadata records: 18
 Worksheet metadata records: 11
 Unsupported sheet metadata records: 1
 Unsupported features: 550
-Preserved feature records: 548
+Preserved feature records: 549
 Errors: 0
 Warnings: 0
 
@@ -47,7 +47,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 296 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 60 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 61 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 59 |
@@ -55,7 +55,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 11 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 1 |
 
 ## Formula Tokens By Name
 
@@ -166,7 +165,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 296 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 60 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 61 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 59 |
@@ -174,7 +173,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 11 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 1 |
 
 ## Unsupported Features By Kind
 
@@ -183,14 +181,13 @@ Warnings: 0
 | Chart | 296 |
 | ChartSheet | 1 |
 | ConditionalFormatting | 1 |
-| DrawingObject | 60 |
+| DrawingObject | 61 |
 | ExternalReference | 2 |
 | FeatureExtension | 2 |
 | PivotTable | 59 |
 | StyleExtension | 115 |
 | TableStyle | 1 |
 | Theme | 1 |
-| UnsupportedRecord | 1 |
 | WorkbookMetadata | 11 |
 
 ## Unsupported Feature Record Types
@@ -247,6 +244,7 @@ Warnings: 0
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EB | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 16 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x01B6 | 4 |
+| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x0866 | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x08A3 | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x08A4 | 16 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x08A5 | 12 |
@@ -272,7 +270,6 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x0892 | 47 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|0x088E | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|0x0896 | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0866 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x01C0 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x01C1 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x0810 | 1 |
@@ -330,6 +327,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 4 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ValueRange | 2 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 1 |
+| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:HFPicture | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 16 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 10 |
@@ -359,7 +357,6 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 67 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x0866 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:Compat12 | 2 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:CompressPictures | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:ContinueFrt | 1 |
@@ -376,7 +373,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|ChartOnly | 148 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Objects | 148 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|(workbook) | 1 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 2 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 3 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|ChartOnly | 15 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Objects | 43 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|Objects | 1 |
@@ -393,7 +390,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|ChartOnly | 1 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|Objects | 3 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|Pivot | 3 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 1 |
 
 ## Unsupported Sheets By Kind
 
@@ -1025,6 +1021,7 @@ Warnings: 0
 | --- | --- |
 | Drawing | 16 |
 | DrawingGroup | 1 |
+| HeaderFooterPicture | 1 |
 | Object | 10 |
 | RichTextStream | 12 |
 | ShapePropertiesStream | 1 |
@@ -1035,6 +1032,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| HFPicture | 1 |
 | MsoDrawing | 16 |
 | MsoDrawingGroup | 1 |
 | Obj | 10 |
@@ -1440,7 +1438,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| (workbook) | 2 |
+| (workbook) | 3 |
 | ChartOnly | 15 |
 | Objects | 43 |
 
@@ -1678,7 +1676,7 @@ Warnings: 0
 | --- | --- |
 | Chart | 296 |
 | ConditionalFormatting | 1 |
-| DrawingObject | 60 |
+| DrawingObject | 61 |
 | ExternalReference | 2 |
 | FeatureExtension | 2 |
 | PivotTable | 59 |
@@ -1735,6 +1733,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 4 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ValueRange | 2 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 1 |
+| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:HFPicture | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 16 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 10 |

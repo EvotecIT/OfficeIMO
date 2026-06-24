@@ -380,6 +380,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ClassifiesObservedCorpusPreserveOnlyRecords() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateObservedCorpusPreserveOnlyRecordWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedRecord);
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Formula && feature.DetailCode == "Formula:Array");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.WorksheetProtection && feature.DetailCode == "WorksheetProtection:ObjProtect");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.WorksheetProtection && feature.DetailCode == "WorksheetProtection:ScenarioProtect");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject && feature.DetailCode == "Drawing:HFPicture");
+            Assert.Equal(legacy.UnsupportedFeatures.Count, legacy.PreservedFeatureRecords.Count);
+
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Formula]);
+            Assert.Equal(2, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.WorksheetProtection]);
+            Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
+            Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Formula]);
+            Assert.Equal(2, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.WorksheetProtection]);
+            Assert.Equal(1, report.DrawingRecordsByKind[LegacyXlsDrawingRecordKind.HeaderFooterPicture]);
+            Assert.Equal(1, report.DrawingRecordsByName["HFPicture"]);
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Formula|XLS-BIFF-FEATURE-FORMULA-UNSUPPORTED|Formula:Array"]);
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["WorksheetProtection|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED|WorksheetProtection:ObjProtect"]);
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["WorksheetProtection|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED|WorksheetProtection:ScenarioProtect"]);
+        }
+
+        [Fact]
         public void LegacyXls_Load_PreservesUnsupportedFeatureMetadataWhenDiagnosticsAreDisabled() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedFeatureWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -1132,6 +1162,27 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x08a4, new byte[12]);
                 WriteRecord(stream, 0x08a5, new byte[12]);
                 WriteRecord(stream, 0x08a7, new byte[12]);
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateObservedCorpusPreserveOnlyRecordWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "CorpusGaps"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Preserve"));
+                WriteRecord(stream, 0x0221, new byte[16]);
+                WriteRecord(stream, 0x0063, new byte[] { 0x01, 0x00 });
+                WriteRecord(stream, 0x00dd, new byte[] { 0x01, 0x00 });
+                WriteRecord(stream, 0x0866, new byte[14]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();

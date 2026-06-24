@@ -25,6 +25,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         TextPropertiesStream,
 
         /// <summary>Drawing rich-text future-record stream.</summary>
-        RichTextStream
+        RichTextStream,
+
+        /// <summary>Header or footer picture drawing record.</summary>
+        HeaderFooterPicture
     }
 }

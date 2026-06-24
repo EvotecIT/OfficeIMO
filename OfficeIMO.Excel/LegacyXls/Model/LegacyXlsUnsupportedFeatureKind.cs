@@ -79,6 +79,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         AutoFilterCriteria,
 
         /// <summary>
+        /// Formula-related records were present but not fully projected.
+        /// </summary>
+        Formula,
+
+        /// <summary>
         /// Data validation records were present but not imported.
         /// </summary>
         DataValidation,
@@ -92,6 +97,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Chart records were present but not imported.
         /// </summary>
         Chart,
+
+        /// <summary>
+        /// Worksheet protection records were present but not fully projected.
+        /// </summary>
+        WorksheetProtection,
 
         /// <summary>
         /// Extended style formatting records were present but not projected.
