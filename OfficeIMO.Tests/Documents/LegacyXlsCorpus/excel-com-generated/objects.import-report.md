@@ -8,6 +8,7 @@ Comments: 0
 Hyperlinks: 0
 Data validations: 0
 Conditional formatting rules: 0
+Conditional formatting extension records: 0
 AutoFilter criteria columns: 1
 Defined names: 1
 External references: 1

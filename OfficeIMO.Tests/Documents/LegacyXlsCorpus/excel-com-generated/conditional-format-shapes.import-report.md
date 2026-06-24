@@ -8,6 +8,7 @@ Comments: 0
 Hyperlinks: 0
 Data validations: 0
 Conditional formatting rules: 8
+Conditional formatting extension records: 8
 AutoFilter criteria columns: 0
 Defined names: 0
 External references: 1
@@ -164,6 +165,45 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Missing | 8 |
+
+## Conditional Formatting Extensions By Sheet
+
+| Key | Count |
+| --- | --- |
+| Conditions | 8 |
+
+## Conditional Formatting Extensions By Record Type
+
+| Key | Count |
+| --- | --- |
+| 0x087B | 8 |
+
+## Conditional Formatting Extension States
+
+| Key | Count |
+| --- | --- |
+| Cf12:Missing\|UnprojectedFormatting:Missing\|MatchedRule:Missing\|Priority:Present\|StopIfTrue:StopIfTrue | 1 |
+| Cf12:Missing\|UnprojectedFormatting:Present\|MatchedRule:Missing\|Priority:Present\|StopIfTrue:StopIfTrue | 3 |
+| Cf12:Missing\|UnprojectedFormatting:Present\|MatchedRule:Present\|Priority:Present\|StopIfTrue:StopIfTrue | 4 |
+
+## Conditional Formatting Extension Priorities
+
+| Key | Count |
+| --- | --- |
+| Priority:1 | 1 |
+| Priority:2 | 1 |
+| Priority:3 | 1 |
+| Priority:4 | 1 |
+| Priority:5 | 1 |
+| Priority:6 | 1 |
+| Priority:7 | 1 |
+| Priority:8 | 1 |
+
+## Conditional Formatting Extension Stop If True States
+
+| Key | Count |
+| --- | --- |
+| StopIfTrue | 8 |
 
 ## Worksheets By Visibility
 

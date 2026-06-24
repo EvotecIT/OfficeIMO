@@ -319,10 +319,27 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4, result.ImportReport.ConditionalFormattingsByPriorityState["Missing"]);
             Assert.Equal(4, result.ImportReport.ConditionalFormattingsByStopIfTrueState["StopIfTrue"]);
             Assert.Equal(4, result.ImportReport.ConditionalFormattingsByStopIfTrueState["Continue"]);
+            Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionRecordCount);
+            Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionsBySheet["Conditions"]);
+            Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionsByRecordType["0x087B"]);
+            Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionStopIfTrueStates["StopIfTrue"]);
+            Assert.Equal(4, result.ImportReport.ConditionalFormattingExtensionStates["Cf12:Missing|UnprojectedFormatting:Present|MatchedRule:Present|Priority:Present|StopIfTrue:StopIfTrue"]);
+            Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionStates.Values.Sum());
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:Dxf"]);
             Assert.Equal(1, result.ImportReport.WorksheetFeatureStates["DataValidations:0|ConditionalFormatting:8|AutoFilterCriteria:0|AutoFilterDropDowns:Missing"]);
 
             LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
+            Assert.Equal(8, sheet.ConditionalFormattingExtensions.Count);
+            Assert.All(sheet.ConditionalFormattingExtensions, extension => {
+                Assert.Equal("Conditions", extension.SheetName);
+                Assert.Equal(0x087B, extension.RecordType);
+                Assert.False(extension.IsCf12);
+                Assert.True(extension.Priority.HasValue);
+            });
+            Assert.Equal(4, sheet.ConditionalFormattingExtensions.Count(extension => extension.MatchedRule));
+            Assert.Equal(4, sheet.ConditionalFormattingExtensions.Count(extension => !extension.MatchedRule));
+            Assert.Equal(7, sheet.ConditionalFormattingExtensions.Count(extension => extension.HasUnprojectedFormatting));
+            Assert.Single(sheet.ConditionalFormattingExtensions, extension => !extension.HasUnprojectedFormatting);
             AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.GreaterThan, "A2:A6", "50", null);
             AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.Between, "B2:B6", "10", "20");
             AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.NotBetween, "C2:C6", "5", "15");

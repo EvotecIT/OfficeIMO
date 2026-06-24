@@ -31,32 +31,106 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         internal static bool TryReadExtension(
             byte[] payload,
+            int recordOffset,
+            string sheetName,
+            bool matchedRule,
+            out LegacyXlsConditionalFormattingExtensionRecord? extensionRecord,
             out ushort headerId,
             out ushort ruleIndex,
             out int? priority,
             out bool stopIfTrue,
             out bool hasUnprojectedFormatting) {
+            extensionRecord = null;
             headerId = 0;
             ruleIndex = 0;
             priority = null;
             stopIfTrue = false;
             hasUnprojectedFormatting = false;
-            if (payload.Length < 43 || BiffRecordReader.ReadUInt16(payload, 0) != (ushort)BiffRecordType.CfEx) {
+            if (!TryReadExtensionMetadata(
+                payload,
+                recordOffset,
+                sheetName,
+                matchedRule,
+                out extensionRecord,
+                out bool isCf12,
+                out headerId,
+                out ruleIndex,
+                out priority,
+                out stopIfTrue,
+                out hasUnprojectedFormatting)) {
                 return false;
             }
 
-            uint isCf12 = BiffRecordReader.ReadUInt32(payload, 12);
-            if (isCf12 != 0) {
+            if (isCf12) {
                 return false;
             }
 
-            headerId = BiffRecordReader.ReadUInt16(payload, 16);
-            int contentOffset = 18;
-            ruleIndex = BiffRecordReader.ReadUInt16(payload, contentOffset);
-            priority = BiffRecordReader.ReadUInt16(payload, contentOffset + 4);
-            byte flags = payload[contentOffset + 6];
-            stopIfTrue = (flags & 0x02) != 0;
-            hasUnprojectedFormatting = payload[contentOffset + 7] != 0;
+            if (!extensionRecord!.HeaderId.HasValue
+                || !extensionRecord.RuleIndex.HasValue
+                || !extensionRecord.StopIfTrue.HasValue) {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryReadExtensionMetadata(
+            byte[] payload,
+            int recordOffset,
+            string sheetName,
+            bool matchedRule,
+            out LegacyXlsConditionalFormattingExtensionRecord? extensionRecord,
+            out bool isCf12,
+            out ushort headerId,
+            out ushort ruleIndex,
+            out int? priority,
+            out bool stopIfTrue,
+            out bool hasUnprojectedFormatting) {
+            extensionRecord = null;
+            isCf12 = false;
+            headerId = 0;
+            ruleIndex = 0;
+            priority = null;
+            stopIfTrue = false;
+            hasUnprojectedFormatting = false;
+            if (payload.Length < 14 || BiffRecordReader.ReadUInt16(payload, 0) != (ushort)BiffRecordType.CfEx) {
+                return false;
+            }
+
+            isCf12 = BiffRecordReader.ReadUInt32(payload, 12) != 0;
+            ushort? parsedHeaderId = null;
+            ushort? parsedRuleIndex = null;
+            bool? parsedStopIfTrue = null;
+            if (!isCf12 && payload.Length >= 43) {
+                parsedHeaderId = BiffRecordReader.ReadUInt16(payload, 16);
+                int contentOffset = 18;
+                parsedRuleIndex = BiffRecordReader.ReadUInt16(payload, contentOffset);
+                priority = BiffRecordReader.ReadUInt16(payload, contentOffset + 4);
+                byte flags = payload[contentOffset + 6];
+                parsedStopIfTrue = (flags & 0x02) != 0;
+                hasUnprojectedFormatting = payload[contentOffset + 7] != 0;
+            }
+
+            extensionRecord = new LegacyXlsConditionalFormattingExtensionRecord(
+                sheetName,
+                recordOffset,
+                (ushort)BiffRecordType.CfEx,
+                payload.Length,
+                isCf12,
+                parsedHeaderId,
+                parsedRuleIndex,
+                priority,
+                parsedStopIfTrue,
+                hasUnprojectedFormatting,
+                matchedRule);
+
+            if (isCf12 || !parsedHeaderId.HasValue || !parsedRuleIndex.HasValue || !parsedStopIfTrue.HasValue) {
+                return true;
+            }
+
+            headerId = parsedHeaderId.Value;
+            ruleIndex = parsedRuleIndex.Value;
+            stopIfTrue = parsedStopIfTrue.Value;
             return true;
         }
 

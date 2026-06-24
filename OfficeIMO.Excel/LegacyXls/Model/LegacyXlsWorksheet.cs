@@ -6,6 +6,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsCell> _cells = new();
         private readonly List<LegacyXlsColumnLayout> _columns = new();
         private readonly List<LegacyXlsComment> _comments = new();
+        private readonly List<LegacyXlsConditionalFormattingExtensionRecord> _conditionalFormattingExtensions = new();
         private readonly List<LegacyXlsConditionalFormatting> _conditionalFormattings = new();
         private readonly List<LegacyXlsDataValidation> _dataValidations = new();
         private readonly List<LegacyXlsAutoFilterCriteria> _autoFilterCriteria = new();
@@ -85,6 +86,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets parsed conditional formatting rules for this worksheet.
         /// </summary>
         public IReadOnlyList<LegacyXlsConditionalFormatting> ConditionalFormattings => _conditionalFormattings;
+
+        /// <summary>
+        /// Gets preserve-only conditional-formatting extension records for this worksheet.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsConditionalFormattingExtensionRecord> ConditionalFormattingExtensions => _conditionalFormattingExtensions;
 
         /// <summary>
         /// Gets parsed data validation rules for this worksheet.
@@ -294,6 +300,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void AddConditionalFormatting(LegacyXlsConditionalFormatting conditionalFormatting) {
             _conditionalFormattings.Add(conditionalFormatting);
+        }
+
+        internal void AddConditionalFormattingExtension(LegacyXlsConditionalFormattingExtensionRecord extensionRecord) {
+            _conditionalFormattingExtensions.Add(extensionRecord);
         }
 
         internal void AddDataValidation(LegacyXlsDataValidation validation) {

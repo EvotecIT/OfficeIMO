@@ -88,20 +88,32 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return parsed;
         }
 
-        internal bool TryReadExtension(byte[] payload, out bool hasUnprojectedFormatting) {
+        internal bool TryReadExtension(byte[] payload, int recordOffset, out bool hasUnprojectedFormatting) {
             hasUnprojectedFormatting = false;
             if (!BiffConditionalFormattingReader.TryReadExtension(
                 payload,
+                recordOffset,
+                _sheet.Name,
+                matchedRule: false,
+                out LegacyXlsConditionalFormattingExtensionRecord? extensionRecord,
                 out ushort headerId,
                 out ushort ruleIndex,
                 out int? priority,
                 out bool stopIfTrue,
                 out hasUnprojectedFormatting)) {
+                if (extensionRecord != null) {
+                    _sheet.AddConditionalFormattingExtension(extensionRecord);
+                }
+
                 return false;
             }
 
             if (!_rulesByHeaderId.TryGetValue(headerId, out List<LegacyXlsConditionalFormatting>? rules)) {
                 if (_rulesByHeaderId.Count != 1) {
+                    if (extensionRecord != null) {
+                        _sheet.AddConditionalFormattingExtension(extensionRecord);
+                    }
+
                     return false;
                 }
 
@@ -112,7 +124,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             if (rules == null || ruleIndex >= rules.Count) {
+                if (extensionRecord != null) {
+                    _sheet.AddConditionalFormattingExtension(extensionRecord);
+                }
+
                 return false;
+            }
+
+            extensionRecord?.MarkMatchedRule();
+            if (extensionRecord != null) {
+                _sheet.AddConditionalFormattingExtension(extensionRecord);
             }
 
             LegacyXlsDifferentialFormat? differentialFormat = hasUnprojectedFormatting && _differentialFormats.Count == 1

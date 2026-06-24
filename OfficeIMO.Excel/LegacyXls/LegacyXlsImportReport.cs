@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             LegacyXlsComment[] comments = workbook.Worksheets.SelectMany(sheet => sheet.Comments).ToArray();
             LegacyXlsDataValidation[] dataValidations = workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).ToArray();
             LegacyXlsConditionalFormatting[] conditionalFormattings = workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattings).ToArray();
+            LegacyXlsConditionalFormattingExtensionRecord[] conditionalFormattingExtensions = workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattingExtensions).ToArray();
             WorksheetCount = workbook.Worksheets.Count;
             UnsupportedSheetCount = workbook.UnsupportedSheets.Count;
             CellCount = workbook.Worksheets.Sum(sheet => sheet.Cells.Count);
@@ -99,6 +100,14 @@ namespace OfficeIMO.Excel.LegacyXls {
             ConditionalFormattingsByDifferentialFormatState = CountByCode(conditionalFormattings.Select(formatting => formatting.DifferentialFormat == null ? "Missing" : "Present"));
             ConditionalFormattingsByDifferentialFill = CountByCode(conditionalFormattings.SelectMany(GetConditionalFormattingDifferentialFillKeys));
             ConditionalFormattingsByDifferentialFont = CountByCode(conditionalFormattings.SelectMany(GetConditionalFormattingDifferentialFontKeys));
+            ConditionalFormattingExtensionRecordCount = conditionalFormattingExtensions.Length;
+            ConditionalFormattingExtensionsBySheet = CountByCode(conditionalFormattingExtensions.Select(record => record.SheetName));
+            ConditionalFormattingExtensionsByRecordType = CountByCode(conditionalFormattingExtensions.Select(record => $"0x{record.RecordType:X4}"));
+            ConditionalFormattingExtensionStates = CountByCode(conditionalFormattingExtensions.Select(GetConditionalFormattingExtensionStateKey));
+            ConditionalFormattingExtensionPriorities = CountByCode(conditionalFormattingExtensions
+                .Where(record => record.Priority.HasValue)
+                .Select(record => $"Priority:{record.Priority!.Value}"));
+            ConditionalFormattingExtensionStopIfTrueStates = CountByCode(conditionalFormattingExtensions.Select(GetConditionalFormattingExtensionStopIfTrueStateKey));
             AutoFilterCriteriaBySheet = CountByCode(workbook.Worksheets
                 .SelectMany(sheet => sheet.AutoFilterCriteria.Select(_ => sheet.Name)));
             AutoFilterCriteriaByOperator = CountByCode(workbook.Worksheets
@@ -945,6 +954,24 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets imported conditional formatting differential formats grouped by decoded font shape.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialFont { get; }
+
+        /// <summary>Gets the number of preserve-only conditional-formatting extension records discovered during import.</summary>
+        public int ConditionalFormattingExtensionRecordCount { get; }
+
+        /// <summary>Gets preserve-only conditional-formatting extension records grouped by worksheet name.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionsBySheet { get; }
+
+        /// <summary>Gets preserve-only conditional-formatting extension records grouped by BIFF record type.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionsByRecordType { get; }
+
+        /// <summary>Gets preserve-only conditional-formatting extension records grouped by decoded state.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionStates { get; }
+
+        /// <summary>Gets preserve-only conditional-formatting extension records grouped by decoded priority.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionPriorities { get; }
+
+        /// <summary>Gets preserve-only conditional-formatting extension records grouped by decoded stop-if-true state.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionStopIfTrueStates { get; }
 
         /// <summary>Gets imported AutoFilter criteria grouped by worksheet name.</summary>
         public IReadOnlyDictionary<string, int> AutoFilterCriteriaBySheet { get; }
@@ -1861,6 +1888,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Hyperlinks: {HyperlinkCount}");
             builder.AppendLine($"Data validations: {DataValidationCount}");
             builder.AppendLine($"Conditional formatting rules: {ConditionalFormattingCount}");
+            builder.AppendLine($"Conditional formatting extension records: {ConditionalFormattingExtensionRecordCount}");
             builder.AppendLine($"AutoFilter criteria columns: {AutoFilterCriteriaCount}");
             builder.AppendLine($"Defined names: {DefinedNameCount}");
             builder.AppendLine($"External references: {ExternalReferenceCount}");
@@ -1954,6 +1982,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Conditional Formatting By Differential Format State", ConditionalFormattingsByDifferentialFormatState);
             AppendDictionary(builder, "Conditional Formatting By Differential Fill", ConditionalFormattingsByDifferentialFill);
             AppendDictionary(builder, "Conditional Formatting By Differential Font", ConditionalFormattingsByDifferentialFont);
+            AppendDictionary(builder, "Conditional Formatting Extensions By Sheet", ConditionalFormattingExtensionsBySheet);
+            AppendDictionary(builder, "Conditional Formatting Extensions By Record Type", ConditionalFormattingExtensionsByRecordType);
+            AppendDictionary(builder, "Conditional Formatting Extension States", ConditionalFormattingExtensionStates);
+            AppendDictionary(builder, "Conditional Formatting Extension Priorities", ConditionalFormattingExtensionPriorities);
+            AppendDictionary(builder, "Conditional Formatting Extension Stop If True States", ConditionalFormattingExtensionStopIfTrueStates);
             AppendDictionary(builder, "Differential Formats By Record Type", DifferentialFormatsByRecordType);
             AppendDictionary(builder, "Differential Formats By Content State", DifferentialFormatsByContentState);
             AppendDictionary(builder, "Differential Formats By Fill", DifferentialFormatsByFill);
@@ -3013,6 +3046,22 @@ namespace OfficeIMO.Excel.LegacyXls {
             if (format.FontItalic.HasValue) {
                 yield return format.FontItalic.Value ? "Italic" : "NotItalic";
             }
+        }
+
+        private static string GetConditionalFormattingExtensionStateKey(LegacyXlsConditionalFormattingExtensionRecord record) {
+            return $"Cf12:{GetPresenceKey(record.IsCf12)}"
+                + $"|UnprojectedFormatting:{GetPresenceKey(record.HasUnprojectedFormatting)}"
+                + $"|MatchedRule:{GetPresenceKey(record.MatchedRule)}"
+                + $"|Priority:{GetPresenceKey(record.Priority.HasValue)}"
+                + $"|StopIfTrue:{GetConditionalFormattingExtensionStopIfTrueStateKey(record)}";
+        }
+
+        private static string GetConditionalFormattingExtensionStopIfTrueStateKey(LegacyXlsConditionalFormattingExtensionRecord record) {
+            if (!record.StopIfTrue.HasValue) {
+                return "Missing";
+            }
+
+            return record.StopIfTrue.Value ? "StopIfTrue" : "Continue";
         }
 
         private static string GetDifferentialFormatContentStateKey(LegacyXlsDifferentialFormat format) {

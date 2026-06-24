@@ -8,6 +8,7 @@ Comments: 1
 Hyperlinks: 0
 Data validations: 1
 Conditional formatting rules: 1
+Conditional formatting extension records: 1
 AutoFilter criteria columns: 1
 Defined names: 4
 External references: 1
@@ -346,6 +347,36 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Missing | 1 |
+
+## Conditional Formatting Extensions By Sheet
+
+| Key | Count |
+| --- | --- |
+| Data | 1 |
+
+## Conditional Formatting Extensions By Record Type
+
+| Key | Count |
+| --- | --- |
+| 0x087B | 1 |
+
+## Conditional Formatting Extension States
+
+| Key | Count |
+| --- | --- |
+| Cf12:Missing\|UnprojectedFormatting:Present\|MatchedRule:Present\|Priority:Present\|StopIfTrue:StopIfTrue | 1 |
+
+## Conditional Formatting Extension Priorities
+
+| Key | Count |
+| --- | --- |
+| Priority:1 | 1 |
+
+## Conditional Formatting Extension Stop If True States
+
+| Key | Count |
+| --- | --- |
+| StopIfTrue | 1 |
 
 ## AutoFilter Criteria By Sheet
 
