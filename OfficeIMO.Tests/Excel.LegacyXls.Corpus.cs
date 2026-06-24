@@ -186,6 +186,45 @@ namespace OfficeIMO.Tests {
             AssertCorpusFormula(sheet, 1, 3, 103.33d, "B1+B10");
         }
 
+        [Fact]
+        public void LegacyXls_Corpus_Protection_PreservesSheetProtectionAndCellProtection() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "excel-com-generated",
+                "protection.xls");
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FILEPASS-UNSUPPORTED");
+            Assert.Contains("PtgMul", result.ImportReport.FormulaTokensByName.Keys);
+
+            Assert.NotNull(result.Workbook.Protection);
+            Assert.True(result.Workbook.Protection!.IsProtected);
+            Assert.Null(result.Workbook.Protection.LegacyPasswordHash);
+
+            LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
+            Assert.NotNull(sheet.Protection);
+            Assert.True(sheet.Protection!.IsProtected);
+            Assert.Matches("^[0-9A-F]{4}$", sheet.Protection.LegacyPasswordHash ?? string.Empty);
+            AssertCorpusFormula(sheet, 2, 2, 14d, "A2*2");
+
+            LegacyXlsCell inputCell = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 1);
+            LegacyXlsCell formulaCell = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
+            LegacyXlsCellFormat inputFormat = Assert.Single(result.Workbook.CellFormats, format => format.StyleIndex == inputCell.StyleIndex);
+            LegacyXlsCellFormat formulaFormat = Assert.Single(result.Workbook.CellFormats, format => format.StyleIndex == formulaCell.StyleIndex);
+            Assert.True(inputFormat.ApplyProtection);
+            Assert.False(inputFormat.Locked);
+            Assert.False(inputFormat.FormulaHidden);
+            Assert.True(formulaFormat.ApplyProtection);
+            Assert.True(formulaFormat.Locked);
+            Assert.True(formulaFormat.FormulaHidden);
+        }
+
         private static bool IsLegacyXlsCorpusBaselineUpdateRequested() {
             string? value = Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES");
             return string.Equals(value, "1", StringComparison.Ordinal)
