@@ -165,15 +165,14 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AxesUsed | 24 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Axis | 16 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Begin | 156 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:BookExt | 12 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart | 8 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart3DBarShape | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormat | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormatLink | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrErr | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Dat | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DataFormat | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DefaultText | 16 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:End | 156 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Fbi | 22 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:FontX | 16 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Frame | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Ifmt | 52 |
@@ -183,14 +182,15 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ObjectLink | 20 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PieFormat | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotArea | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotGrowth | 22 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotGrowth | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Pos | 136 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SBaseRef | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Scatter | 8 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SerFmt | 12 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Series | 24 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SeriesFormat | 24 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SerToCrt | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ShtProps | 8 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SIIndex | 24 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Text | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Tick | 16 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 8 |
@@ -302,19 +302,19 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Axis | 36 |
-| ChartType | 6 |
+| ChartType | 26 |
 | Container | 168 |
-| Extension | 6 |
-| Formatting | 158 |
-| Layout | 87 |
-| Series | 40 |
-| Text | 66 |
+| Formatting | 144 |
+| Layout | 80 |
+| Series | 36 |
+| Text | 77 |
 
 ## Unsupported Chart Sheet Chart Types
 
 | Key | Count |
 | --- | --- |
 | Scatter | 4 |
+| ThreeDimensionalBarShape | 20 |
 
 ## External References By Kind
 
@@ -492,13 +492,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Axis | 72 |
-| ChartType | 12 |
+| ChartType | 52 |
 | Container | 336 |
-| Extension | 12 |
-| Formatting | 316 |
-| Layout | 174 |
-| Series | 80 |
-| Text | 132 |
+| Formatting | 288 |
+| Layout | 160 |
+| Series | 72 |
+| Text | 154 |
 
 ## Chart Records By Name
 
@@ -509,15 +508,14 @@ Warnings: 0
 | AxesUsed | 24 |
 | Axis | 16 |
 | Begin | 156 |
-| BookExt | 12 |
 | Chart | 8 |
+| Chart3DBarShape | 40 |
 | ChartFormat | 8 |
 | ChartFormatLink | 8 |
-| CrErr | 8 |
-| Dat | 40 |
 | DataFormat | 40 |
 | DefaultText | 16 |
 | End | 156 |
+| Fbi | 22 |
 | FontX | 16 |
 | Frame | 8 |
 | Ifmt | 52 |
@@ -527,14 +525,15 @@ Warnings: 0
 | ObjectLink | 20 |
 | PieFormat | 40 |
 | PlotArea | 8 |
-| PlotGrowth | 22 |
+| PlotGrowth | 8 |
 | Pos | 136 |
 | SBaseRef | 8 |
 | Scatter | 8 |
+| SerFmt | 12 |
 | Series | 24 |
-| SeriesFormat | 24 |
 | SerToCrt | 8 |
 | ShtProps | 8 |
+| SIIndex | 24 |
 | Text | 40 |
 | Tick | 16 |
 | Units | 8 |
@@ -545,6 +544,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Scatter | 8 |
+| ThreeDimensionalBarShape | 40 |
 
 ## Chart Records By Rectangle
 
@@ -637,12 +637,6 @@ Warnings: 0
 | FontIndex:7 | 1 |
 | FontIndex:8 | 1 |
 | FontIndex:9 | 1 |
-
-## Chart DataTable Options
-
-| Key | Count |
-| --- | --- |
-| HorizontalBorders:False;VerticalBorders:False;Outline:False;SeriesKeys:False | 40 |
 
 ## Chart LineFormat Styles
 
@@ -779,13 +773,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Horizontal:8629.08135986328;Vertical:223 | 2 |
-| Horizontal:8629.08135986328;Vertical:240 | 4 |
-| Horizontal:8629.08135986328;Vertical:240.000015258789 | 4 |
-| Horizontal:8629.08135986328;Vertical:242 | 2 |
-| Horizontal:9806.0950012207;Vertical:240 | 4 |
-| Horizontal:9806.0950012207;Vertical:240.000015258789 | 4 |
-| Horizontal:9806.0950012207;Vertical:242 | 2 |
+| Horizontal:1.52587890625E-05;Vertical:1.52587890625E-05 | 8 |
 
 ## Chart Records By Location
 
@@ -1136,15 +1124,14 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AxesUsed | 24 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Axis | 16 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Begin | 156 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:BookExt | 12 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart | 8 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart3DBarShape | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormat | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormatLink | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrErr | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Dat | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DataFormat | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DefaultText | 16 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:End | 156 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Fbi | 22 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:FontX | 16 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Frame | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Ifmt | 52 |
@@ -1154,14 +1141,15 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ObjectLink | 20 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PieFormat | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotArea | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotGrowth | 22 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotGrowth | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Pos | 136 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SBaseRef | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Scatter | 8 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SerFmt | 12 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Series | 24 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SeriesFormat | 24 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SerToCrt | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ShtProps | 8 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SIIndex | 24 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Text | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Tick | 16 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 8 |

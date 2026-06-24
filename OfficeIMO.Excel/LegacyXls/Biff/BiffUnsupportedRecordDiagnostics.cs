@@ -426,12 +426,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x1046: return "SBaseRef";
                 case 0x104F: return "Ifmt";
                 case 0x1051: return "Pos";
-                case 0x105C: return "SheetExt";
-                case 0x105D: return "BookExt";
-                case 0x105F: return "Dat";
-                case 0x1060: return "PlotGrowth";
-                case 0x1064: return "CrErr";
-                case 0x1065: return "SeriesFormat";
+                case 0x105B: return "SerAuxErrBar";
+                case 0x105C: return "ClrtClient";
+                case 0x105D: return "SerFmt";
+                case 0x105F: return "Chart3DBarShape";
+                case 0x1060: return "Fbi";
+                case 0x1061: return "BopPop";
+                case 0x1062: return "AxcExt";
+                case 0x1063: return "Dat";
+                case 0x1064: return "PlotGrowth";
+                case 0x1065: return "SIIndex";
+                case 0x1066: return "GelFrame";
+                case 0x1067: return "BopPopCustom";
+                case 0x1068: return "Fbi2";
                 default:
                     return $"Record0x{type:X4}";
             }
@@ -508,7 +515,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         internal static bool IsChartRecord(ushort type) {
-            return type >= 0x1000 && type <= 0x1066
+            return type >= 0x1000 && type <= 0x1068
                 || type == 0x0850
                 || type == 0x0852
                 || type == 0x0853

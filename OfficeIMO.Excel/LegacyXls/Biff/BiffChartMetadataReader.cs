@@ -313,7 +313,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static bool TryReadPlotGrowth(BiffRecord record, out LegacyXlsChartPlotGrowth? plotGrowth) {
             plotGrowth = null;
-            if (record.Type != 0x1060 || record.Payload.Length < 8) {
+            if (record.Type != 0x1064 || record.Payload.Length < 8) {
                 return false;
             }
 
@@ -327,7 +327,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static bool TryReadDataTableOptions(BiffRecord record, out LegacyXlsChartDataTableOptions? dataTableOptions) {
             dataTableOptions = null;
-            if (record.Type != 0x105f || record.Payload.Length < 2) {
+            if (record.Type != 0x1063 || record.Payload.Length < 2) {
                 return false;
             }
 
@@ -518,6 +518,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return "Scatter";
                 case 0x103A:
                     return "ThreeDimensional";
+                case 0x105F:
+                    return "ThreeDimensionalBarShape";
+                case 0x1061:
+                    return "BarOfPieOrPieOfPie";
+                case 0x1067:
+                    return "CustomBarOfPieOrPieOfPie";
                 default:
                     return null;
             }
@@ -542,8 +548,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x1022: // ChartFormatLink
                 case 0x1044: // SerToCrt
                 case 0x1046: // SBaseRef
-                case 0x1064: // CrErr
-                case 0x1065: // SeriesFormat
+                case 0x1065: // SIIndex
                     return LegacyXlsChartRecordKind.Series;
                 case 0x101D: // Axis
                 case 0x101E: // Tick
@@ -551,6 +556,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x1020: // CatSerRange
                 case 0x1021: // AxisLineFormat
                 case 0x1045: // AxesUsed
+                case 0x1062: // AxcExt
                     return LegacyXlsChartRecordKind.Axis;
                 case 0x100D: // AttachedLabel
                 case 0x1024: // DefaultText
@@ -566,12 +572,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x1014: // ChartFormat
                 case 0x101C: // ChartLine
                 case 0x104F: // Ifmt
-                case 0x105F: // Dat
+                case 0x105B: // SerAuxErrBar
+                case 0x105C: // ClrtClient
+                case 0x105D: // SerFmt
+                case 0x1063: // Dat
+                case 0x1066: // GelFrame
                     return LegacyXlsChartRecordKind.Formatting;
                 case 0x1032: // Frame
                 case 0x1035: // PlotArea
                 case 0x1051: // Pos
-                case 0x1060: // PlotGrowth
+                case 0x1064: // PlotGrowth
                     return LegacyXlsChartRecordKind.Layout;
                 case 0x1015: // Legend
                 case 0x1017: // Bar
@@ -580,10 +590,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x101A: // Area
                 case 0x101B: // Scatter
                 case 0x103A: // Chart3d
+                case 0x105F: // Chart3DBarShape
+                case 0x1061: // BopPop
+                case 0x1067: // BopPopCustom
                     return LegacyXlsChartRecordKind.ChartType;
-                case 0x105C: // SheetExt
-                case 0x105D: // BookExt
-                    return LegacyXlsChartRecordKind.Extension;
+                case 0x1060: // Fbi
+                case 0x1068: // Fbi2
+                    return LegacyXlsChartRecordKind.Text;
                 default:
                     return LegacyXlsChartRecordKind.PreserveOnly;
             }
