@@ -1147,6 +1147,84 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeSavesTableFormulaExternalReferenceRemaps() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageTableExternalFormulaSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageTableExternalFormulaTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("TableFormula");
+                source.CellValue(1, 1, "Name");
+                source.CellValue(1, 2, "External");
+                source.CellValue(2, 1, "Ada");
+                source.CellValue(2, 2, 0);
+                source.AddTable("A1:B2", hasHeader: true, name: "ExternalTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                sourceDocument.Save();
+            }
+
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.AddWorkSheet("Existing").CellFormula(1, 1, "[1]Sheet1!B1");
+                targetDocument.Save();
+            }
+
+            AddExternalWorkbookReference(sourcePath);
+            AddTableCalculatedColumnFormula(sourcePath, "TableFormula", "External", "[1]Sheet1!A1");
+            AddExternalWorkbookReference(targetPath);
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "TableFormula", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Table table = Assert.Single(copiedPart.TableDefinitionParts).Table!;
+                CalculatedColumnFormula formula = Assert.Single(table.Descendants<CalculatedColumnFormula>());
+                Assert.Equal("[2]Sheet1!A1", formula.Text);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeMaterializesTargetDeferredImportsBeforeCopy() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDeferredTargetSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDeferredTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                sourceDocument.AddWorkSheet("Source").CellValue(1, 1, "Copied");
+                sourceDocument.Save();
+            }
+
+            var dataSet = new DataSet("Deferred");
+            DataTable table = dataSet.Tables.Add("Pending");
+            table.Columns.Add("Name", typeof(string));
+            table.Rows.Add("Ada");
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.InsertDataSet(dataSet, createTables: true, autoFit: false);
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Source", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (var reloaded = ExcelDocument.Load(targetPath, readOnly: true)) {
+                Assert.True(reloaded["Pending"].TryGetCellText(2, 1, out var pendingValue));
+                Assert.Equal("Ada", pendingValue);
+                Assert.True(reloaded["Imported"].TryGetCellText(1, 1, out var copiedValue));
+                Assert.Equal("Copied", copiedValue);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
         public void Test_CopyWorkSheetFrom_PackageModeStripsCellMetadataIndexes() {
             string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageMetadataSource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageMetadataTarget.xlsx");
@@ -1457,6 +1535,17 @@ namespace OfficeIMO.Tests {
             queryTableFields.Append(queryTableField);
             extension.Append(queryTableFields);
             extensionList.Append(extension);
+            table.Save();
+        }
+
+        private static void AddTableCalculatedColumnFormula(string path, string sheetName, string columnName, string formula) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
+            WorksheetPart worksheetPart = GetWorksheetPartByNameForOperations(spreadsheet, sheetName);
+            Table table = worksheetPart.TableDefinitionParts.Single().Table!;
+            TableColumn column = table.Descendants<TableColumn>()
+                .Single(item => string.Equals(item.Name?.Value, columnName, StringComparison.OrdinalIgnoreCase));
+            column.RemoveAllChildren<CalculatedColumnFormula>();
+            column.Append(new CalculatedColumnFormula(formula));
             table.Save();
         }
 

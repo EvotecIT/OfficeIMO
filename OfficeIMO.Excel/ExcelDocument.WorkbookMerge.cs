@@ -26,6 +26,7 @@ namespace OfficeIMO.Excel {
             var createdTargetNames = new List<string>(sourceSheets.Count);
             var sheetNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var tableNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var externalReferenceMaps = new Dictionary<string, IReadOnlyDictionary<int, int>>(StringComparer.OrdinalIgnoreCase);
 
             foreach (ExcelSheet sourceSheet in sourceSheets) {
                 string requestedName = (options.SheetNamePrefix ?? string.Empty) + sourceSheet.Name;
@@ -50,6 +51,10 @@ namespace OfficeIMO.Excel {
                     foreach (var tableName in copyResult.TableNameMap) {
                         tableNameMap[tableName.Key] = tableName.Value;
                     }
+
+                    if (copyResult.ExternalReferenceMap.Count > 0) {
+                        externalReferenceMaps[targetSheet.Name] = copyResult.ExternalReferenceMap;
+                    }
                 }
 
                 importedSourceNames.Add(sourceSheet.Name);
@@ -59,7 +64,9 @@ namespace OfficeIMO.Excel {
 
             RewriteMergedWorksheetReferences(createdTargetNames, sheetNameMap, tableNameMap);
             for (int index = 0; index < importedSourceNames.Count; index++) {
-                CopyReferencedDefinedNamesFromSource(sourceDocument, GetSheet(createdTargetNames[index]), sheetNameMap, tableNameMap);
+                ExcelSheet targetSheet = GetSheet(createdTargetNames[index]);
+                externalReferenceMaps.TryGetValue(targetSheet.Name, out IReadOnlyDictionary<int, int>? externalReferenceMap);
+                CopyReferencedDefinedNamesFromSource(sourceDocument, targetSheet, sheetNameMap, tableNameMap, externalReferenceMap);
             }
 
             MarkPackageDirty();

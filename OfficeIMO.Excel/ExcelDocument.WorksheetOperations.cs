@@ -633,14 +633,30 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                bool tableChanged = false;
                 foreach (CalculatedColumnFormula formula in tablePart.Table.Descendants<CalculatedColumnFormula>()) {
-                    formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
+                    tableChanged |= RewriteExternalWorkbookReferenceIndexFormula(formula, externalReferenceMap);
                 }
 
                 foreach (TotalsRowFormula formula in tablePart.Table.Descendants<TotalsRowFormula>()) {
-                    formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
+                    tableChanged |= RewriteExternalWorkbookReferenceIndexFormula(formula, externalReferenceMap);
+                }
+
+                if (tableChanged) {
+                    tablePart.Table.Save();
                 }
             }
+        }
+
+        private static bool RewriteExternalWorkbookReferenceIndexFormula(OpenXmlLeafTextElement formula, IReadOnlyDictionary<int, int> externalReferenceMap) {
+            string text = formula.Text;
+            string rewritten = RewriteExternalWorkbookReferenceIndexes(text, externalReferenceMap);
+            if (string.Equals(rewritten, text, StringComparison.Ordinal)) {
+                return false;
+            }
+
+            formula.Text = rewritten;
+            return true;
         }
 
         private static string RewriteExternalWorkbookReferenceIndexes(string? formula, IReadOnlyDictionary<int, int> externalReferenceMap) {

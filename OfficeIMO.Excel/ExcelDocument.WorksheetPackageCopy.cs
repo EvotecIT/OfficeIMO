@@ -43,6 +43,7 @@ namespace OfficeIMO.Excel {
             SheetNameValidationMode validationMode,
             bool rewriteCopiedReferences,
             bool copyReferencedDefinedNames) {
+            MaterializeDeferredDataSetImport();
             sourceDocument.MaterializeDeferredDataSetImport();
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
 
@@ -87,7 +88,7 @@ namespace OfficeIMO.Excel {
                     MarkPackageDirty();
                 }
                 WorkbookRoot.Save();
-                return new WorksheetPackageCopyResult(targetSheet, tableNameMap);
+                return new WorksheetPackageCopyResult(targetSheet, tableNameMap, externalReferenceMap);
             });
         }
 
@@ -565,14 +566,20 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class WorksheetPackageCopyResult {
-            internal WorksheetPackageCopyResult(ExcelSheet sheet, IReadOnlyDictionary<string, string> tableNameMap) {
+            internal WorksheetPackageCopyResult(
+                ExcelSheet sheet,
+                IReadOnlyDictionary<string, string> tableNameMap,
+                IReadOnlyDictionary<int, int>? externalReferenceMap = null) {
                 Sheet = sheet;
                 TableNameMap = tableNameMap;
+                ExternalReferenceMap = externalReferenceMap ?? new Dictionary<int, int>();
             }
 
             internal ExcelSheet Sheet { get; }
 
             internal IReadOnlyDictionary<string, string> TableNameMap { get; }
+
+            internal IReadOnlyDictionary<int, int> ExternalReferenceMap { get; }
         }
 
         private sealed class WorkbookStyleColorResolver {

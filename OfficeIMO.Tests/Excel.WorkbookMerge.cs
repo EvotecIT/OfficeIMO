@@ -155,6 +155,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelWorkbookMerge_RemapsExternalReferencesInCopiedDefinedNames() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookMerge.ExternalNameSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookMerge.ExternalNameTarget.xlsx");
+
+            using (var source = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet data = source.AddWorkSheet("Data");
+                data.CellFormula(1, 1, "ExternalValue");
+                source.Save();
+            }
+
+            using (var target = ExcelDocument.Create(targetPath)) {
+                target.AddWorkSheet("Existing").CellFormula(1, 1, "[1]Sheet1!B1");
+                target.Save();
+            }
+
+            AddExternalWorkbookReference(sourcePath);
+            AddWorkbookDefinedName(sourcePath, "ExternalValue", "[1]Sheet1!A1");
+            AddExternalWorkbookReference(targetPath);
+
+            using (var target = ExcelDocument.Load(targetPath))
+            using (var source = ExcelDocument.Load(sourcePath, readOnly: true)) {
+                target.MergeWorkbookFrom(source, new ExcelWorkbookMergeOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                target.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                DefinedName copiedName = Assert.Single(spreadsheet.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>(),
+                    name => string.Equals(name.Name?.Value, "ExternalValue", System.StringComparison.OrdinalIgnoreCase));
+                Assert.Equal("[2]Sheet1!A1", copiedName.Text);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
         public void Test_ExcelWorkbookMerge_SameWorkbookPackageModeUsesWorksheetCopyPath() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookMerge.SameWorkbookPackageMode.xlsx");
 
