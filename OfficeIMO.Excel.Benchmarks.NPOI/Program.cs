@@ -41,8 +41,12 @@ var npoiXlsx = new Lazy<byte[]>(() => WriteNpoiXlsx(records));
 var npoiXls = new Lazy<byte[]>(() => WriteNpoiXls(records));
 var npoiFormulaXls = new Lazy<byte[]>(() => WriteNpoiFormulaXls(records));
 var npoiMetadataXls = new Lazy<byte[]>(() => WriteNpoiMetadataXls(records));
+var npoiConditionalFormattingXls = new Lazy<byte[]>(() => WriteNpoiConditionalFormattingXls(records));
 
-if ((IncludeScenario("xls-read-cellvalues") || IncludeScenario("xls-read-formulas") || IncludeScenario("xls-read-metadata")) && rowCount + 1 > 65_536) {
+if ((IncludeScenario("xls-read-cellvalues")
+        || IncludeScenario("xls-read-formulas")
+        || IncludeScenario("xls-read-metadata")
+        || IncludeScenario("xls-read-conditional-formatting")) && rowCount + 1 > 65_536) {
     throw new ArgumentOutOfRangeException(nameof(rowCount), "The xls scenarios cannot exceed the BIFF8 worksheet row limit.");
 }
 
@@ -71,6 +75,11 @@ if (IncludeScenario("xls-read-formulas")) {
 if (IncludeScenario("xls-read-metadata")) {
     AddScenario(measurements, "xls-read-metadata", "OfficeIMO.Excel Legacy XLS", "Read BIFF8 comments, hyperlinks, merged ranges, and list validations from an HSSF-generated .xls workbook.", () => ReadOfficeImoXlsMetadata(npoiMetadataXls.Value, rowCount), warmupIterations, measuredIterations);
     AddScenario(measurements, "xls-read-metadata", "NPOI HSSF", "Read comments, hyperlinks, merged ranges, and list validations from the same HSSF-generated .xls workbook.", () => ReadNpoiWorkbookMetadata(npoiMetadataXls.Value, rowCount), warmupIterations, measuredIterations);
+}
+
+if (IncludeScenario("xls-read-conditional-formatting")) {
+    AddScenario(measurements, "xls-read-conditional-formatting", "OfficeIMO.Excel Legacy XLS", "Read BIFF8 cell-is and formula conditional-formatting rules from an HSSF-generated .xls workbook.", () => ReadOfficeImoXlsConditionalFormatting(npoiConditionalFormattingXls.Value, rowCount), warmupIterations, measuredIterations);
+    AddScenario(measurements, "xls-read-conditional-formatting", "NPOI HSSF", "Read cell-is and formula conditional-formatting rules from the same HSSF-generated .xls workbook.", () => ReadNpoiWorkbookConditionalFormatting(npoiConditionalFormattingXls.Value), warmupIterations, measuredIterations);
 }
 
 if (measurements.Count == 0) {
@@ -223,6 +232,33 @@ static byte[] WriteNpoiMetadataXls(IReadOnlyList<SalesRecord> records) {
     return stream.ToArray();
 }
 
+static byte[] WriteNpoiConditionalFormattingXls(IReadOnlyList<SalesRecord> records) {
+    using var stream = new MemoryStream();
+    using var workbook = new HSSFWorkbook();
+    ISheet sheet = workbook.CreateSheet("Data");
+    WriteNpoiRows(sheet, records);
+
+    ISheetConditionalFormatting conditionalFormatting = sheet.SheetConditionalFormatting;
+    IConditionalFormattingRule highAmountRule = conditionalFormatting.CreateConditionalFormattingRule(ComparisonOperator.GreaterThan, "1000");
+    IPatternFormatting highAmountPattern = highAmountRule.CreatePatternFormatting();
+    highAmountPattern.FillPattern = FillPattern.SolidForeground;
+    highAmountPattern.FillForegroundColor = IndexedColors.Yellow.Index;
+    conditionalFormatting.AddConditionalFormatting(
+        [new CellRangeAddress(1, records.Count, 3, 3)],
+        highAmountRule);
+
+    IConditionalFormattingRule inactiveRule = conditionalFormatting.CreateConditionalFormattingRule("$E2=FALSE");
+    IPatternFormatting inactivePattern = inactiveRule.CreatePatternFormatting();
+    inactivePattern.FillPattern = FillPattern.SolidForeground;
+    inactivePattern.FillForegroundColor = IndexedColors.Rose.Index;
+    conditionalFormatting.AddConditionalFormatting(
+        [new CellRangeAddress(1, records.Count, 4, 4)],
+        inactiveRule);
+
+    workbook.Write(stream, leaveOpen: true);
+    return stream.ToArray();
+}
+
 static void WriteOfficeImoRows(ExcelSheet sheet, IReadOnlyList<SalesRecord> records) {
     sheet.CellValue(1, 1, "Id");
     sheet.CellValue(1, 2, "Region");
@@ -343,6 +379,24 @@ static int ReadOfficeImoXlsMetadata(byte[] workbookBytes, int rowCount) {
     return metric;
 }
 
+static int ReadOfficeImoXlsConditionalFormatting(byte[] workbookBytes, int rowCount) {
+    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedRecords = true });
+    LegacyXlsWorksheet worksheet = workbook.Worksheets.Single(sheet => sheet.Name == "Data");
+    ValidateConditionalFormattingCounts(worksheet.ConditionalFormattings.Count, "OfficeIMO legacy XLS");
+
+    int metric = 0;
+    foreach (LegacyXlsConditionalFormatting formatting in worksheet.ConditionalFormattings.OrderBy(formatting => formatting.Ranges.FirstOrDefault(), StringComparer.Ordinal)) {
+        metric = AddValueMetric(metric, formatting.Type.ToString());
+        metric = AddValueMetric(metric, formatting.Operator?.ToString());
+        metric = AddValueMetric(metric, formatting.Formula1);
+        metric = AddValueMetric(metric, formatting.Formula2);
+        metric = AddValueMetric(metric, string.Join(";", formatting.Ranges));
+    }
+
+    metric = AddValueMetric(metric, rowCount);
+    return metric;
+}
+
 static int ReadNpoiWorkbook(byte[] workbookBytes, int rowCount) {
     using var stream = new MemoryStream(workbookBytes, writable: false);
     using IWorkbook workbook = WorkbookFactory.Create(stream);
@@ -416,6 +470,32 @@ static int ReadNpoiWorkbookMetadata(byte[] workbookBytes, int rowCount) {
 
     metric = AddValueMetric(metric, mergedRangeCount);
     metric = AddValueMetric(metric, validationCount);
+    return metric;
+}
+
+static int ReadNpoiWorkbookConditionalFormatting(byte[] workbookBytes) {
+    using var stream = new MemoryStream(workbookBytes, writable: false);
+    using IWorkbook workbook = WorkbookFactory.Create(stream);
+    ISheet sheet = workbook.GetSheet("Data");
+    ISheetConditionalFormatting conditionalFormatting = sheet.SheetConditionalFormatting;
+    ValidateConditionalFormattingCounts(conditionalFormatting.NumConditionalFormattings, "NPOI HSSF");
+
+    int metric = 0;
+    for (int formattingIndex = 0; formattingIndex < conditionalFormatting.NumConditionalFormattings; formattingIndex++) {
+        IConditionalFormatting formatting = conditionalFormatting.GetConditionalFormattingAt(formattingIndex);
+        foreach (CellRangeAddress range in formatting.GetFormattingRanges()) {
+            metric = AddValueMetric(metric, range.FormatAsString());
+        }
+
+        for (int ruleIndex = 0; ruleIndex < formatting.NumberOfRules; ruleIndex++) {
+            IConditionalFormattingRule rule = formatting.GetRule(ruleIndex);
+            metric = AddValueMetric(metric, rule.ConditionType.ToString());
+            metric = AddValueMetric(metric, rule.ComparisonOperation.ToString());
+            metric = AddValueMetric(metric, rule.Formula1);
+            metric = AddValueMetric(metric, rule.Formula2);
+        }
+    }
+
     return metric;
 }
 
@@ -501,6 +581,15 @@ static void ValidateMetadataCounts(
     }
 }
 
+static void ValidateConditionalFormattingCounts(int conditionalFormattingCount, string libraryName) {
+    const int ExpectedConditionalFormattingCount = 2;
+    if (conditionalFormattingCount != ExpectedConditionalFormattingCount) {
+        throw new InvalidOperationException(
+            $"{libraryName} conditional formatting count did not match. "
+            + $"ConditionalFormatting {conditionalFormattingCount}/{ExpectedConditionalFormattingCount}.");
+    }
+}
+
 static int? ParsePositiveOption(string[] args, params string[] optionNames) {
     for (int i = 0; i < args.Length; i++) {
         if (!optionNames.Any(name => string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase))) {
@@ -577,6 +666,7 @@ static void WriteUsage() {
     Console.WriteLine("  xls-read-cellvalues");
     Console.WriteLine("  xls-read-formulas");
     Console.WriteLine("  xls-read-metadata");
+    Console.WriteLine("  xls-read-conditional-formatting");
 }
 
 internal sealed record SalesRecord(int Id, string Region, string Owner, double Amount, bool Active) {
