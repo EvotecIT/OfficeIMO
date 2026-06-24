@@ -1655,7 +1655,7 @@ public static partial class OfficeChartDrawingRenderer {
             y += zeroLabelIndex.Value * (labelHeight + 1D);
         }
 
-        AddChartText(drawing, label, x, y, labelWidth, labelHeight, layout.DataLabelFontSize, GetDataLabelTextColor(style, labelColor), OfficeTextAlignment.Center, style, layout.DataLabelFontFamily, layout.DataLabelFontStyle);
+        AddDataLabel(drawing, layout, style, label, x, y, labelWidth, labelHeight, OfficeTextAlignment.Center, labelColor);
     }
 
     private static OfficeColor GetReadableDataLabelColor(OfficeColor fillColor) {

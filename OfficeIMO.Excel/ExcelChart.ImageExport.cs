@@ -54,6 +54,10 @@ namespace OfficeIMO.Excel {
             OfficeFontStyle? titleFontStyle = TryGetImageExportTitleFontStyle(chart, out OfficeFontStyle resolvedTitleFontStyle) ? resolvedTitleFontStyle : null;
             OfficeColor? legendTextColor = TryGetImageExportLegendTextColor(chart, out OfficeColor resolvedLegendTextColor) ? resolvedLegendTextColor : null;
             OfficeColor? dataLabelTextColor = TryGetImageExportDataLabelTextColor(plotArea, out OfficeColor resolvedDataLabelTextColor) ? resolvedDataLabelTextColor : null;
+            OfficeColor? dataLabelFill = TryGetImageExportDataLabelFillColor(plotArea, out OfficeColor resolvedDataLabelFill) ? resolvedDataLabelFill : null;
+            OfficeColor? dataLabelLine = TryGetImageExportDataLabelLineColor(plotArea, out OfficeColor resolvedDataLabelLine) ? resolvedDataLabelLine : null;
+            double? dataLabelLineWidth = TryGetImageExportDataLabelLineWidth(plotArea, out double resolvedDataLabelLineWidth) ? resolvedDataLabelLineWidth : null;
+            OfficeStrokeDashStyle? dataLabelLineDashStyle = TryGetImageExportDataLabelLineDashStyle(plotArea, out OfficeStrokeDashStyle resolvedDataLabelLineDashStyle) ? resolvedDataLabelLineDashStyle : null;
             OfficeColor? mutedTextColor = TryGetImageExportAxisTextColor(plotArea, out OfficeColor resolvedMutedTextColor) ? resolvedMutedTextColor : null;
             OfficeColor? axisTitleColor = TryGetImageExportAxisTitleTextColor(plotArea, out OfficeColor resolvedAxisTitleColor) ? resolvedAxisTitleColor : null;
             bool hasNoChartFill = HasNoFill(chartAreaProperties);
@@ -95,6 +99,10 @@ namespace OfficeIMO.Excel {
                 titleFontStyle == null &&
                 legendTextColor == null &&
                 dataLabelTextColor == null &&
+                dataLabelFill == null &&
+                dataLabelLine == null &&
+                dataLabelLineWidth == null &&
+                dataLabelLineDashStyle == null &&
                 mutedTextColor == null &&
                 axisTitleColor == null &&
                 !hasNoChartFill &&
@@ -109,6 +117,10 @@ namespace OfficeIMO.Excel {
                 borderColor: chartLine,
                 legendTextColor: legendTextColor,
                 dataLabelTextColor: dataLabelTextColor,
+                dataLabelFillColor: dataLabelFill,
+                dataLabelBorderColor: dataLabelLine,
+                dataLabelBorderWidth: dataLabelLineWidth,
+                dataLabelBorderDashStyle: dataLabelLineDashStyle,
                 mutedTextColor: mutedTextColor,
                 axisTitleColor: axisTitleColor,
                 titleColor: titleColor,
@@ -1200,7 +1212,11 @@ namespace OfficeIMO.Excel {
                 return !IsSimpleSupportedDataPoint(point);
             }
 
-            if (parent is C.DataLabels || parent is C.DataLabel || parent is C.Trendline) {
+            if (parent is C.DataLabels) {
+                return !IsSimpleSupportedSeriesShapeProperties(properties);
+            }
+
+            if (parent is C.DataLabel || parent is C.Trendline) {
                 return true;
             }
 

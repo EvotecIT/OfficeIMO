@@ -50,6 +50,18 @@ namespace OfficeIMO.Excel {
         private static bool TryGetImageExportDataLabelTextColor(C.PlotArea? plotArea, out OfficeColor color) =>
             TryGetFirstImageExportTextColor(GetImageExportDataLabelTextOwners(plotArea), out color);
 
+        private static bool TryGetImageExportDataLabelFillColor(C.PlotArea? plotArea, out OfficeColor color) =>
+            TryGetFirstImageExportShapeFill(GetImageExportDataLabelTextOwners(plotArea), out color);
+
+        private static bool TryGetImageExportDataLabelLineColor(C.PlotArea? plotArea, out OfficeColor color) =>
+            TryGetFirstImageExportShapeLine(GetImageExportDataLabelTextOwners(plotArea), out color);
+
+        private static bool TryGetImageExportDataLabelLineWidth(C.PlotArea? plotArea, out double width) =>
+            TryGetFirstImageExportShapeLineWidth(GetImageExportDataLabelTextOwners(plotArea), out width);
+
+        private static bool TryGetImageExportDataLabelLineDashStyle(C.PlotArea? plotArea, out OfficeStrokeDashStyle dashStyle) =>
+            TryGetFirstImageExportShapeLineDashStyle(GetImageExportDataLabelTextOwners(plotArea), out dashStyle);
+
         private static bool TryGetImageExportAxisTextColor(C.PlotArea? plotArea, out OfficeColor color) =>
             TryGetFirstImageExportAxisLabelTextColor(plotArea, out color);
 
@@ -168,6 +180,50 @@ namespace OfficeIMO.Excel {
             foreach (OpenXmlCompositeElement labels in GetImageExportDataLabelTextOwners(plotArea)) {
                 yield return labels;
             }
+        }
+
+        private static bool TryGetFirstImageExportShapeFill(IEnumerable<OpenXmlCompositeElement> owners, out OfficeColor color) {
+            foreach (OpenXmlCompositeElement owner in owners) {
+                if (TryGetSolidFill(owner.GetFirstChild<C.ChartShapeProperties>(), out color)) {
+                    return true;
+                }
+            }
+
+            color = default;
+            return false;
+        }
+
+        private static bool TryGetFirstImageExportShapeLine(IEnumerable<OpenXmlCompositeElement> owners, out OfficeColor color) {
+            foreach (OpenXmlCompositeElement owner in owners) {
+                if (TryGetSolidLine(owner.GetFirstChild<C.ChartShapeProperties>(), out color)) {
+                    return true;
+                }
+            }
+
+            color = default;
+            return false;
+        }
+
+        private static bool TryGetFirstImageExportShapeLineWidth(IEnumerable<OpenXmlCompositeElement> owners, out double width) {
+            foreach (OpenXmlCompositeElement owner in owners) {
+                if (TryGetLineWidth(owner.GetFirstChild<C.ChartShapeProperties>(), out width)) {
+                    return true;
+                }
+            }
+
+            width = default;
+            return false;
+        }
+
+        private static bool TryGetFirstImageExportShapeLineDashStyle(IEnumerable<OpenXmlCompositeElement> owners, out OfficeStrokeDashStyle dashStyle) {
+            foreach (OpenXmlCompositeElement owner in owners) {
+                if (TryGetLineDashStyle(owner.GetFirstChild<C.ChartShapeProperties>(), out dashStyle)) {
+                    return true;
+                }
+            }
+
+            dashStyle = default;
+            return false;
         }
 
         private static IEnumerable<OpenXmlCompositeElement> GetImageExportAxisTextOwners(C.PlotArea? plotArea) {

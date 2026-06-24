@@ -70,6 +70,10 @@ public sealed class OfficeChartStyle {
     /// <param name="valueMinorGridLineDashStyle">Optional value axis minor-gridline dash style.</param>
     /// <param name="showCategoryMinorGridLines">Optional category axis minor-gridline visibility.</param>
     /// <param name="showValueMinorGridLines">Optional value axis minor-gridline visibility.</param>
+    /// <param name="dataLabelFillColor">Optional data label box fill color.</param>
+    /// <param name="dataLabelBorderColor">Optional data label box border color.</param>
+    /// <param name="dataLabelBorderWidth">Optional data label box border width.</param>
+    /// <param name="dataLabelBorderDashStyle">Optional data label box border dash style.</param>
     public OfficeChartStyle(
         IEnumerable<OfficeColor>? palette = null,
         string? fontFamily = null,
@@ -118,7 +122,11 @@ public sealed class OfficeChartStyle {
         OfficeStrokeDashStyle? categoryMinorGridLineDashStyle = null,
         OfficeStrokeDashStyle? valueMinorGridLineDashStyle = null,
         bool? showCategoryMinorGridLines = null,
-        bool? showValueMinorGridLines = null)
+        bool? showValueMinorGridLines = null,
+        OfficeColor? dataLabelFillColor = null,
+        OfficeColor? dataLabelBorderColor = null,
+        double? dataLabelBorderWidth = null,
+        OfficeStrokeDashStyle? dataLabelBorderDashStyle = null)
         : this(
             showBackground: true,
             palette: palette,
@@ -168,7 +176,11 @@ public sealed class OfficeChartStyle {
             categoryMinorGridLineDashStyle: categoryMinorGridLineDashStyle,
             valueMinorGridLineDashStyle: valueMinorGridLineDashStyle,
             showCategoryMinorGridLines: showCategoryMinorGridLines,
-            showValueMinorGridLines: showValueMinorGridLines) {
+            showValueMinorGridLines: showValueMinorGridLines,
+            dataLabelFillColor: dataLabelFillColor,
+            dataLabelBorderColor: dataLabelBorderColor,
+            dataLabelBorderWidth: dataLabelBorderWidth,
+            dataLabelBorderDashStyle: dataLabelBorderDashStyle) {
     }
 
     /// <summary>
@@ -223,6 +235,10 @@ public sealed class OfficeChartStyle {
     /// <param name="valueMinorGridLineDashStyle">Optional value axis minor-gridline dash style.</param>
     /// <param name="showCategoryMinorGridLines">Optional category axis minor-gridline visibility.</param>
     /// <param name="showValueMinorGridLines">Optional value axis minor-gridline visibility.</param>
+    /// <param name="dataLabelFillColor">Optional data label box fill color.</param>
+    /// <param name="dataLabelBorderColor">Optional data label box border color.</param>
+    /// <param name="dataLabelBorderWidth">Optional data label box border width.</param>
+    /// <param name="dataLabelBorderDashStyle">Optional data label box border dash style.</param>
     public OfficeChartStyle(
         bool showBackground,
         IEnumerable<OfficeColor>? palette = null,
@@ -272,7 +288,11 @@ public sealed class OfficeChartStyle {
         OfficeStrokeDashStyle? categoryMinorGridLineDashStyle = null,
         OfficeStrokeDashStyle? valueMinorGridLineDashStyle = null,
         bool? showCategoryMinorGridLines = null,
-        bool? showValueMinorGridLines = null) {
+        bool? showValueMinorGridLines = null,
+        OfficeColor? dataLabelFillColor = null,
+        OfficeColor? dataLabelBorderColor = null,
+        double? dataLabelBorderWidth = null,
+        OfficeStrokeDashStyle? dataLabelBorderDashStyle = null) {
         if (chartBorderWidth is <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(chartBorderWidth), "Chart border width must be greater than zero.");
         }
@@ -305,6 +325,9 @@ public sealed class OfficeChartStyle {
         }
         if (titleFontSize is <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(titleFontSize), "Chart title font size must be greater than zero.");
+        }
+        if (dataLabelBorderWidth is <= 0D) {
+            throw new ArgumentOutOfRangeException(nameof(dataLabelBorderWidth), "Data label border width must be greater than zero.");
         }
 
         var colors = palette == null ? new List<OfficeColor>() : new List<OfficeColor>(palette);
@@ -362,6 +385,10 @@ public sealed class OfficeChartStyle {
         ShowBorder = true;
         LegendTextColor = legendTextColor;
         DataLabelTextColor = dataLabelTextColor;
+        DataLabelFillColor = dataLabelFillColor;
+        DataLabelBorderColor = dataLabelBorderColor;
+        DataLabelBorderWidth = dataLabelBorderWidth;
+        DataLabelBorderDashStyle = dataLabelBorderDashStyle;
     }
 
     /// <summary>Default premium OfficeIMO chart style.</summary>
@@ -411,6 +438,18 @@ public sealed class OfficeChartStyle {
 
     /// <summary>Optional data label text color.</summary>
     public OfficeColor? DataLabelTextColor { get; }
+
+    /// <summary>Optional data label box fill color.</summary>
+    public OfficeColor? DataLabelFillColor { get; }
+
+    /// <summary>Optional data label box border color.</summary>
+    public OfficeColor? DataLabelBorderColor { get; }
+
+    /// <summary>Optional data label box border width.</summary>
+    public double? DataLabelBorderWidth { get; }
+
+    /// <summary>Optional data label box border dash style.</summary>
+    public OfficeStrokeDashStyle? DataLabelBorderDashStyle { get; }
 
     /// <summary>Secondary chart text color for axis and category labels.</summary>
     public OfficeColor MutedTextColor { get; }

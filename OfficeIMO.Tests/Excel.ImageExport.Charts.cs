@@ -69,6 +69,73 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportCarriesChartDataLabelShapeStyleIntoSharedRenderer() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("ChartLabelBox");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(2, 2, 120);
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(3, 2, 180);
+            sheet.CellValue(4, 1, "Mar");
+            sheet.CellValue(4, 2, 160);
+            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 265, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Label Boxes");
+            chart.SetDataLabels(
+                showLegendKey: false,
+                showValue: true,
+                showCategoryName: false,
+                showSeriesName: false,
+                showPercent: false,
+                position: DataLabelPositionValues.OutsideEnd,
+                numberFormat: "0");
+            chart.SetDataLabelShapeStyle(fillColor: "FDE68A", lineColor: "B45309", lineWidthPoints: 1.5D);
+            chart.SetDataLabelTextStyle(color: "7C2D12", bold: true);
+
+            ExcelRange range = sheet.Range("A1:H9");
+            var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+            string svg = range.ToSvg(options);
+
+            Assert.NotNull(visualChart.Snapshot.Style);
+            Assert.Equal(OfficeColor.FromRgb(253, 230, 138), visualChart.Snapshot.Style!.DataLabelFillColor);
+            Assert.Equal(OfficeColor.FromRgb(180, 83, 9), visualChart.Snapshot.Style.DataLabelBorderColor);
+            Assert.Equal(1.5D, visualChart.Snapshot.Style.DataLabelBorderWidth!.Value, 3);
+            Assert.Equal(OfficeColor.FromRgb(124, 45, 18), visualChart.Snapshot.Style.DataLabelTextColor);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartSeriesStyleApproximation);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartTextStyleApproximation);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.Contains("#FDE68A", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#B45309", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#7C2D12", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+            Assert.True(
+                ContainsPixelNear(
+                    rendered!,
+                    visualChart.X * options.Scale,
+                    visualChart.Y * options.Scale,
+                    (visualChart.X + visualChart.Width) * options.Scale,
+                    (visualChart.Y + visualChart.Height) * options.Scale,
+                    OfficeColor.FromRgb(253, 230, 138),
+                    tolerance: 28),
+                "Expected the exported chart to include the authored data-label fill color.");
+            Assert.True(
+                ContainsPixelNear(
+                    rendered!,
+                    visualChart.X * options.Scale,
+                    visualChart.Y * options.Scale,
+                    (visualChart.X + visualChart.Width) * options.Scale,
+                    (visualChart.Y + visualChart.Height) * options.Scale,
+                    OfficeColor.FromRgb(180, 83, 9),
+                    tolerance: 42),
+                "Expected the exported chart to include the authored data-label border color.");
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportCarriesChartAxisTextColorIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

@@ -1000,7 +1000,7 @@ public static partial class OfficeChartDrawingRenderer {
             x = centerX + 4D;
         }
 
-        AddChartText(drawing, label, FitDataLabelX(drawing, x, labelWidth), FitDataLabelY(drawing, y, labelHeight), labelWidth, labelHeight, layout.DataLabelFontSize, GetDataLabelTextColor(style, style.TextColor), OfficeTextAlignment.Center, style, layout.DataLabelFontFamily, layout.DataLabelFontStyle);
+        AddDataLabel(drawing, layout, style, label, x, y, labelWidth, labelHeight, OfficeTextAlignment.Center);
     }
 
     private static void AddHorizontalDataLabel(
@@ -1044,7 +1044,7 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeTextAlignment alignment = layout.DataLabelPosition == OfficeChartDataLabelPosition.Center
             ? OfficeTextAlignment.Center
             : value >= 0D ? OfficeTextAlignment.Left : OfficeTextAlignment.Right;
-        AddChartText(drawing, label, FitDataLabelX(drawing, x, labelWidth), FitDataLabelY(drawing, y, labelHeight), labelWidth, labelHeight, layout.DataLabelFontSize, GetDataLabelTextColor(style, style.TextColor), alignment, style, layout.DataLabelFontFamily, layout.DataLabelFontStyle);
+        AddDataLabel(drawing, layout, style, label, x, y, labelWidth, labelHeight, alignment);
     }
 
     private static void AddPointDataLabel(
@@ -1080,13 +1080,47 @@ public static partial class OfficeChartDrawingRenderer {
             OfficeChartDataLabelPosition.Left or OfficeChartDataLabelPosition.Right => y - labelHeight / 2D,
             _ => value >= 0D ? y - labelHeight - 4D : y + 4D
         };
-        AddChartText(drawing, label, FitDataLabelX(drawing, labelX, labelWidth), FitDataLabelY(drawing, labelY, labelHeight), labelWidth, labelHeight, layout.DataLabelFontSize, GetDataLabelTextColor(style, style.TextColor), OfficeTextAlignment.Center, style, layout.DataLabelFontFamily, layout.DataLabelFontStyle);
+        AddDataLabel(drawing, layout, style, label, labelX, labelY, labelWidth, labelHeight, OfficeTextAlignment.Center);
     }
 
     private static (double Width, double Height) GetDataLabelSize(string label, OfficeChartLayout layout) {
         double labelWidth = Math.Min(78D, Math.Max(18D, label.Length * layout.DataLabelFontSize * 0.52D + 6D));
         double labelHeight = Math.Max(9D, layout.DataLabelFontSize + 3D);
         return (labelWidth, labelHeight);
+    }
+
+    private static void AddDataLabel(
+        OfficeDrawing drawing,
+        OfficeChartLayout layout,
+        OfficeChartStyle style,
+        string label,
+        double x,
+        double y,
+        double width,
+        double height,
+        OfficeTextAlignment alignment,
+        OfficeColor? fallbackTextColor = null) {
+        double fittedX = FitDataLabelX(drawing, x, width);
+        double fittedY = FitDataLabelY(drawing, y, height);
+        AddDataLabelBox(drawing, style, fittedX, fittedY, width, height);
+        AddChartText(drawing, label, fittedX, fittedY, width, height, layout.DataLabelFontSize, GetDataLabelTextColor(style, fallbackTextColor ?? style.TextColor), alignment, style, layout.DataLabelFontFamily, layout.DataLabelFontStyle);
+    }
+
+    private static void AddDataLabelBox(OfficeDrawing drawing, OfficeChartStyle style, double x, double y, double width, double height) {
+        if (style.DataLabelFillColor == null && style.DataLabelBorderColor == null) {
+            return;
+        }
+
+        double strokeWidth = style.DataLabelBorderColor.HasValue ? style.DataLabelBorderWidth ?? 0.75D : 0D;
+        AddShape(
+            drawing,
+            OfficeShape.Rectangle(width, height),
+            x,
+            y,
+            style.DataLabelFillColor,
+            style.DataLabelBorderColor,
+            strokeWidth,
+            style.DataLabelBorderDashStyle ?? OfficeStrokeDashStyle.Solid);
     }
 
     private static double FitDataLabelX(OfficeDrawing drawing, double x, double width) {
