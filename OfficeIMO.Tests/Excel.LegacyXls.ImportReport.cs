@@ -964,7 +964,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartRecordsByName["Chart3DBarShape"]);
             Assert.Equal(1, report.ChartRecordsByName["End"]);
             Assert.Equal(1, report.ChartRecordsByNameAndPayloadLength["Pos|Bytes:20"]);
-            Assert.Equal(1, report.ChartRecordsByNameAndPayloadLength["BRAI|Bytes:8"]);
+            Assert.Equal(1, report.ChartRecordsByNameAndPayloadLength["BRAI|Bytes:17"]);
             Assert.Equal(1, report.ChartWorkbookStates["Containers:Present|ChartTypes:Present|Series:Present|Axes:Present|Text:Present|Formatting:Present|Layout:Present|Future:Present|PreserveOnly:Missing|Scopes:ChartSheetsOnly"]);
             Assert.Equal(1, report.ChartRecordsByContainerDepthBefore["Depth:0"]);
             Assert.Equal(42, report.ChartRecordsByContainerDepthBefore["Depth:1"]);
@@ -999,8 +999,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartDataSourceIds["ValuesOrHorizontalValues"]);
             Assert.Equal(1, report.ChartDataSourceReferenceTypes["WorksheetRange"]);
             Assert.Equal(1, report.ChartDataSourceNumberFormatIds["NumberFormatId:14"]);
-            Assert.Equal(1, report.ChartDataSourceFormulaByteCounts["FormulaBytes:0"]);
-            Assert.Equal(1, report.ChartDataSourceStates["Source:ValuesOrHorizontalValues;Reference:WorksheetRange;CustomNumberFormat:True;FormulaBytes:0;FormulaComplete:True"]);
+            Assert.Equal(1, report.ChartDataSourceFormulaByteCounts["FormulaBytes:9"]);
+            Assert.Equal(1, report.ChartDataSourceStates["Source:ValuesOrHorizontalValues;Reference:WorksheetRange;CustomNumberFormat:True;FormulaBytes:9;FormulaComplete:True"]);
+            Assert.Equal(1, report.FormulaTokensByContext["ChartDataSource"]);
+            Assert.Equal(1, report.FormulaTokensByContextAndSheet["ChartDataSource|ChartOnly"]);
+            Assert.Equal(1, report.FormulaTokensByName["PtgArea"]);
             Assert.Equal(1, report.ChartDataFormatTargets["Series"]);
             Assert.Equal(1, report.ChartDataFormatSeriesIndexes["SeriesIndex:2"]);
             Assert.Equal(1, report.ChartNumberFormatIds["NumberFormatId:14"]);
@@ -1164,7 +1167,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Dat" && record.DataTableOptions != null && record.DataTableOptions.Flags == 0x000d && record.DataTableOptions.HasHorizontalBorders && !record.DataTableOptions.HasVerticalBorders && record.DataTableOptions.HasOutlineBorder && record.DataTableOptions.ShowSeriesKeys);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Tick" && record.Tick != null && record.Tick.MajorTickLocationName == "Outside" && record.Tick.MinorTickLocationName == "Inside" && record.Tick.LabelLocationName == "NextToAxis" && record.Tick.BackgroundModeName == "Transparent" && record.Tick.RgbHex == "#998877" && record.Tick.Flags == 0x402d && record.Tick.RotationModeName == "RotatedClockwise" && record.Tick.AutoColor && !record.Tick.AutoBackground && record.Tick.AutoRotation && record.Tick.ReadingOrderName == "LeftToRight" && record.Tick.ColorIndex == 0x004d && record.Tick.Rotation == 30);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Pos" && record.Position != null && record.Position.TopLeftMode == 0x0005 && record.Position.TopLeftModeName == "MDCHART" && record.Position.BottomRightMode == 0x0001 && record.Position.BottomRightModeName == "MDABS" && record.Position.SemanticTypeName == "LegendManualSize" && record.Position.X1Y1MeaningName == "ChartAreaSprcOffset" && record.Position.X2Y2MeaningName == "PointSize" && record.Position.IgnoredCoordinateStateName == "None" && record.Position.HasKnownSemanticCombination && record.Position.X1 == 15 && record.Position.Y1 == 25 && record.Position.X2 == 300 && record.Position.Y2 == 120);
-            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "BRAI" && record.DataSource != null && record.DataSource.SourceId == 0x01 && record.DataSource.SourceIdName == "ValuesOrHorizontalValues" && record.DataSource.ReferenceType == 0x02 && record.DataSource.ReferenceTypeName == "WorksheetRange" && record.DataSource.Flags == 0x0001 && record.DataSource.UsesCustomNumberFormat && record.DataSource.NumberFormatId == 14 && record.DataSource.FormulaByteCount == 0 && record.DataSource.FormulaBytesAvailable == 0 && record.DataSource.FormulaByteCountFitsPayload);
+            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "BRAI" && record.DataSource != null && record.DataSource.SourceId == 0x01 && record.DataSource.SourceIdName == "ValuesOrHorizontalValues" && record.DataSource.ReferenceType == 0x02 && record.DataSource.ReferenceTypeName == "WorksheetRange" && record.DataSource.Flags == 0x0001 && record.DataSource.UsesCustomNumberFormat && record.DataSource.NumberFormatId == 14 && record.DataSource.FormulaByteCount == 9 && record.DataSource.FormulaBytesAvailable == 9 && record.DataSource.FormulaByteCountFitsPayload);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "PlotGrowth" && record.PlotGrowth != null && record.PlotGrowth.HorizontalIntegral == 1 && record.PlotGrowth.HorizontalFractional == 0x4000 && record.PlotGrowth.HorizontalGrowthPoints == 1.25 && record.PlotGrowth.VerticalIntegral == 2 && record.PlotGrowth.VerticalFractional == 0x8000 && record.PlotGrowth.VerticalGrowthPoints == 2.5);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "GelFrame" && record.Kind == LegacyXlsChartRecordKind.Formatting);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "BopPopCustom" && record.Kind == LegacyXlsChartRecordKind.ChartType && record.ChartTypeName == "CustomBarOfPieOrPieOfPie");

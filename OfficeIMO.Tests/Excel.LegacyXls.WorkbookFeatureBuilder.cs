@@ -1703,12 +1703,14 @@ namespace OfficeIMO.Tests {
             }
 
             private static byte[] BuildChartDataSourcePayload() {
+                byte[] formula = BuildPtgAreaFormula(firstRow: 0, firstColumn: 1, lastRow: 3, lastColumn: 1);
                 using var stream = new MemoryStream();
                 stream.WriteByte(0x01);
                 stream.WriteByte(0x02);
                 WriteUInt16(stream, 0x0001);
                 WriteUInt16(stream, 14);
-                WriteUInt16(stream, 0);
+                WriteUInt16(stream, checked((ushort)formula.Length));
+                stream.Write(formula, 0, formula.Length);
                 return stream.ToArray();
             }
 

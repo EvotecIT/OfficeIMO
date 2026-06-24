@@ -149,6 +149,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 workbook.MutablePivotTableRecords,
                 workbook.MutableChartRecords,
                 workbook.MutableDrawingRecords,
+                workbook.MutableFormulaTokenRecords,
                 workbook.MutableDiagnostics,
                 options);
 

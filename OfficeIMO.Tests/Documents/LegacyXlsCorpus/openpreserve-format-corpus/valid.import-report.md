@@ -36,7 +36,7 @@ Compound VBA module bytes: 7664
 Calculation setting records: 61
 Cell style records: 6
 Cell style extension records: 0
-Formula token records: 8079
+Formula token records: 8139
 Array formula records: 0
 Future function aliases: 0
 Workbook metadata records: 20
@@ -65,7 +65,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | PtgArea | 28 |
-| PtgArea3d | 1534 |
+| PtgArea3d | 1574 |
 | PtgAttr | 63 |
 | PtgBool | 1170 |
 | PtgEq | 21 |
@@ -75,7 +75,7 @@ Warnings: 0
 | PtgInt | 1491 |
 | PtgNameX | 7 |
 | PtgRef | 1507 |
-| PtgRef3d | 34 |
+| PtgRef3d | 54 |
 | PtgRefN | 39 |
 | PtgStr | 21 |
 
@@ -84,7 +84,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | CellFormula | 7248 |
-| ChartDataSource | 60 |
+| ChartDataSource | 120 |
 | DefinedName | 3 |
 | SharedFormula | 151 |
 | SharedFormulaReference | 617 |
@@ -96,12 +96,16 @@ Warnings: 0
 | (workbook) | 3 |
 | All | 1291 |
 | b | 917 |
+| b_chart | 18 |
 | c | 753 |
 | cl | 1425 |
+| cl_chart | 18 |
+| c_chart | 6 |
 | graphs1 | 36 |
 | graphs2 | 24 |
 | Info | 14 |
 | lb | 809 |
+| lb_chart | 18 |
 | maquis | 566 |
 | wijn | 2241 |
 
@@ -117,8 +121,12 @@ Warnings: 0
 | CellFormula\|lb | 638 |
 | CellFormula\|maquis | 548 |
 | CellFormula\|wijn | 2168 |
+| ChartDataSource\|b_chart | 18 |
+| ChartDataSource\|cl_chart | 18 |
+| ChartDataSource\|c_chart | 6 |
 | ChartDataSource\|graphs1 | 36 |
 | ChartDataSource\|graphs2 | 24 |
+| ChartDataSource\|lb_chart | 18 |
 | DefinedName\|(workbook) | 3 |
 | SharedFormulaReference\|b | 143 |
 | SharedFormulaReference\|c | 45 |
@@ -157,8 +165,8 @@ Warnings: 0
 | 0x04BC\|PtgFuncVar | 16 |
 | 0x04BC\|PtgRefN | 39 |
 | 0x04BC\|PtgStr | 16 |
-| 0x1051\|PtgArea3d | 40 |
-| 0x1051\|PtgRef3d | 20 |
+| 0x1051\|PtgArea3d | 80 |
+| 0x1051\|PtgRef3d | 40 |
 
 ## Formula Tokens By Class
 
@@ -167,13 +175,13 @@ Warnings: 0
 | Array | 14 |
 | Base | 3383 |
 | Reference | 3086 |
-| Value | 1596 |
+| Value | 1656 |
 
 ## Formula Tokens By Name And Class
 
 | Key | Count |
 | --- | --- |
-| PtgArea3d\|Value | 1534 |
+| PtgArea3d\|Value | 1574 |
 | PtgArea\|Array | 14 |
 | PtgArea\|Value | 14 |
 | PtgAttr\|Base | 63 |
@@ -185,7 +193,7 @@ Warnings: 0
 | PtgInt\|Base | 1491 |
 | PtgNameX\|Value | 7 |
 | PtgRef3d\|Reference | 14 |
-| PtgRef3d\|Value | 20 |
+| PtgRef3d\|Value | 40 |
 | PtgRefN\|Reference | 23 |
 | PtgRefN\|Value | 16 |
 | PtgRef\|Reference | 1502 |
@@ -196,7 +204,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| PtgArea3d\|Bytes:10 | 1534 |
+| PtgArea3d\|Bytes:10 | 1574 |
 | PtgArea\|Bytes:8 | 28 |
 | PtgAttr\|Bytes:3 | 63 |
 | PtgBool\|Bytes:1 | 1170 |
@@ -206,7 +214,7 @@ Warnings: 0
 | PtgFunc\|Bytes:2 | 28 |
 | PtgInt\|Bytes:2 | 1491 |
 | PtgNameX\|Bytes:6 | 7 |
-| PtgRef3d\|Bytes:6 | 34 |
+| PtgRef3d\|Bytes:6 | 54 |
 | PtgRefN\|Bytes:4 | 39 |
 | PtgRef\|Bytes:4 | 1507 |
 | PtgStr\|Bytes:6 | 21 |
@@ -215,7 +223,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Index:0 | 2233 |
+| Index:0 | 2293 |
 | Index:1 | 1526 |
 | Index:2 | 1526 |
 | Index:3 | 1519 |
