@@ -33,14 +33,15 @@ namespace OfficeIMO.Excel {
                     headerFooterSource));
             }
 
+            AddHeaderFooterImageDiagnostics(format, chrome, headerFooterSource, combinedDiagnostics);
             AddHeaderFooterFontFamilyFallbackDiagnostics(chrome, headerFooterSource, combinedDiagnostics);
             IReadOnlyList<OfficeImageExportDiagnostic> diagnostics = combinedDiagnostics.Count == content.Diagnostics.Count
                 ? content.Diagnostics
                 : combinedDiagnostics.AsReadOnly();
 
             double scale = options.Scale;
-            int headerHeight = chrome.HasHeader ? Math.Max(1, (int)Math.Ceiling(HeaderFooterBandHeight * scale)) : 0;
-            int footerHeight = chrome.HasFooter ? Math.Max(1, (int)Math.Ceiling(HeaderFooterBandHeight * scale)) : 0;
+            int headerHeight = chrome.HasHeader ? ResolveHeaderFooterBandHeight(chrome.HeaderImageHeightPoints, scale) : 0;
+            int footerHeight = chrome.HasFooter ? ResolveHeaderFooterBandHeight(chrome.FooterImageHeightPoints, scale) : 0;
             int width = Math.Max(1, content.Width);
             int height = Math.Max(1, content.Height + headerHeight + footerHeight);
 
@@ -92,9 +93,6 @@ namespace OfficeIMO.Excel {
             }
 
             HeaderFooterSnapshot snapshot = GetHeaderFooter();
-            if (HasUnsupportedHeaderFooterImages(snapshot)) {
-                return false;
-            }
 
             if (!TryCreateResolvedHeaderFooterTextChrome(
                 snapshot.HeaderLeft,
@@ -175,12 +173,9 @@ namespace OfficeIMO.Excel {
         private bool TryCreateHeaderFooterTextChrome(int pageNumber, int pageCount, DateTime headerFooterDateTime, out HeaderFooterTextChrome chrome) {
             chrome = default;
             HeaderFooterSnapshot snapshot = GetHeaderFooter();
-            if (HasUnsupportedHeaderFooterImages(snapshot)) {
-                return false;
-            }
 
             HeaderFooterVariantText selected = SelectHeaderFooterVariantText(snapshot, pageNumber);
-            return TryCreateResolvedHeaderFooterTextChrome(
+            if (!TryCreateResolvedHeaderFooterTextChrome(
                 selected.HeaderLeft,
                 selected.HeaderCenter,
                 selected.HeaderRight,
@@ -190,7 +185,18 @@ namespace OfficeIMO.Excel {
                 pageNumber,
                 pageCount,
                 headerFooterDateTime,
-                out chrome) && chrome.HasAnyText;
+                out HeaderFooterTextChrome textChrome)) {
+                return false;
+            }
+
+            chrome = textChrome.WithImages(
+                SelectHeaderFooterImage(snapshot.HeaderLeftImage, selected.HeaderLeft),
+                SelectHeaderFooterImage(snapshot.HeaderCenterImage, selected.HeaderCenter),
+                SelectHeaderFooterImage(snapshot.HeaderRightImage, selected.HeaderRight),
+                SelectHeaderFooterImage(snapshot.FooterLeftImage, selected.FooterLeft),
+                SelectHeaderFooterImage(snapshot.FooterCenterImage, selected.FooterCenter),
+                SelectHeaderFooterImage(snapshot.FooterRightImage, selected.FooterRight));
+            return chrome.HasAnyContent;
         }
 
         private bool TryCreateResolvedHeaderFooterTextChrome(
@@ -231,16 +237,6 @@ namespace OfficeIMO.Excel {
                 ? HeaderFooterFallbackFontFamily
                 : familyName + ", " + HeaderFooterFallbackFontFamily;
         }
-
-        private static bool HasUnsupportedHeaderFooterImages(HeaderFooterSnapshot snapshot) =>
-            snapshot.HeaderHasPicturePlaceholder ||
-            snapshot.FooterHasPicturePlaceholder ||
-            snapshot.HeaderLeftImage != null ||
-            snapshot.HeaderCenterImage != null ||
-            snapshot.HeaderRightImage != null ||
-            snapshot.FooterLeftImage != null ||
-            snapshot.FooterCenterImage != null ||
-            snapshot.FooterRightImage != null;
 
         private static HeaderFooterVariantText SelectHeaderFooterVariantText(HeaderFooterSnapshot snapshot, int pageNumber) {
             if (pageNumber == 1 && snapshot.DifferentFirstPage) {
@@ -285,13 +281,16 @@ namespace OfficeIMO.Excel {
             OfficeTextZoneLayout zones = OfficeTextZoneLayout.CreateThreeColumn(width, padding, HeaderFooterZoneGap * scale);
             if (chrome.HasHeader) {
                 double y = Math.Max(0D, (headerHeight - fontSize) / 2D);
+                DrawHeaderFooterRasterImages(canvas, chrome, isHeader: true, 0D, headerHeight, zones, scale);
                 DrawHeaderFooterRasterLine(canvas, chrome.HeaderLeft, zones.Left, y, fontSize, chrome.FontFamily, OfficeTextAlignment.Left);
                 DrawHeaderFooterRasterLine(canvas, chrome.HeaderCenter, zones.Center, y, fontSize, chrome.FontFamily, OfficeTextAlignment.Center);
                 DrawHeaderFooterRasterLine(canvas, chrome.HeaderRight, zones.Right, y, fontSize, chrome.FontFamily, OfficeTextAlignment.Right);
             }
 
             if (chrome.HasFooter) {
-                double y = height - footerHeight + Math.Max(0D, (footerHeight - fontSize) / 2D);
+                double footerTop = height - footerHeight;
+                double y = footerTop + Math.Max(0D, (footerHeight - fontSize) / 2D);
+                DrawHeaderFooterRasterImages(canvas, chrome, isHeader: false, footerTop, footerHeight, zones, scale);
                 DrawHeaderFooterRasterLine(canvas, chrome.FooterLeft, zones.Left, y, fontSize, chrome.FontFamily, OfficeTextAlignment.Left);
                 DrawHeaderFooterRasterLine(canvas, chrome.FooterCenter, zones.Center, y, fontSize, chrome.FontFamily, OfficeTextAlignment.Center);
                 DrawHeaderFooterRasterLine(canvas, chrome.FooterRight, zones.Right, y, fontSize, chrome.FontFamily, OfficeTextAlignment.Right);
@@ -361,14 +360,17 @@ namespace OfficeIMO.Excel {
             var textMeasureCanvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1, OfficeColor.Transparent));
             if (chrome.HasHeader) {
                 double baseline = Math.Max(fontSize, (headerHeight + fontSize) / 2D);
+                AppendHeaderFooterSvgImages(builder, chrome, isHeader: true, 0D, headerHeight, zones, scale);
                 AppendHeaderFooterSvgLine(builder, chrome.HeaderLeft, zones.Left, 0D, headerHeight, baseline, lineHeight, fontSize, chrome.FontFamily, OfficeTextAlignment.Left, "header-left", (text, size, family) => textMeasureCanvas.MeasureText(text, size, family));
                 AppendHeaderFooterSvgLine(builder, chrome.HeaderCenter, zones.Center, 0D, headerHeight, baseline, lineHeight, fontSize, chrome.FontFamily, OfficeTextAlignment.Center, "header-center", (text, size, family) => textMeasureCanvas.MeasureText(text, size, family));
                 AppendHeaderFooterSvgLine(builder, chrome.HeaderRight, zones.Right, 0D, headerHeight, baseline, lineHeight, fontSize, chrome.FontFamily, OfficeTextAlignment.Right, "header-right", (text, size, family) => textMeasureCanvas.MeasureText(text, size, family));
             }
 
             if (chrome.HasFooter) {
-                double footerTop = height - (chrome.HasFooter ? Math.Max(1, (int)Math.Ceiling(HeaderFooterBandHeight * scale)) : 0);
-                double baseline = footerTop + Math.Max(fontSize, ((HeaderFooterBandHeight * scale) + fontSize) / 2D);
+                int footerHeight = ResolveHeaderFooterBandHeight(chrome.FooterImageHeightPoints, scale);
+                double footerTop = height - footerHeight;
+                double baseline = footerTop + Math.Max(fontSize, (footerHeight + fontSize) / 2D);
+                AppendHeaderFooterSvgImages(builder, chrome, isHeader: false, footerTop, footerHeight, zones, scale);
                 AppendHeaderFooterSvgLine(builder, chrome.FooterLeft, zones.Left, footerTop, height - footerTop, baseline, lineHeight, fontSize, chrome.FontFamily, OfficeTextAlignment.Left, "footer-left", (text, size, family) => textMeasureCanvas.MeasureText(text, size, family));
                 AppendHeaderFooterSvgLine(builder, chrome.FooterCenter, zones.Center, footerTop, height - footerTop, baseline, lineHeight, fontSize, chrome.FontFamily, OfficeTextAlignment.Center, "footer-center", (text, size, family) => textMeasureCanvas.MeasureText(text, size, family));
                 AppendHeaderFooterSvgLine(builder, chrome.FooterRight, zones.Right, footerTop, height - footerTop, baseline, lineHeight, fontSize, chrome.FontFamily, OfficeTextAlignment.Right, "footer-right", (text, size, family) => textMeasureCanvas.MeasureText(text, size, family));
@@ -478,6 +480,29 @@ namespace OfficeIMO.Excel {
                 FooterRight = footerRight;
             }
 
+            private HeaderFooterTextChrome(
+                string fontFamily,
+                HeaderFooterTextSection headerLeft,
+                HeaderFooterTextSection headerCenter,
+                HeaderFooterTextSection headerRight,
+                HeaderFooterTextSection footerLeft,
+                HeaderFooterTextSection footerCenter,
+                HeaderFooterTextSection footerRight,
+                HeaderFooterImageSnapshot? headerLeftImage,
+                HeaderFooterImageSnapshot? headerCenterImage,
+                HeaderFooterImageSnapshot? headerRightImage,
+                HeaderFooterImageSnapshot? footerLeftImage,
+                HeaderFooterImageSnapshot? footerCenterImage,
+                HeaderFooterImageSnapshot? footerRightImage)
+                : this(fontFamily, headerLeft, headerCenter, headerRight, footerLeft, footerCenter, footerRight) {
+                HeaderLeftImage = headerLeftImage;
+                HeaderCenterImage = headerCenterImage;
+                HeaderRightImage = headerRightImage;
+                FooterLeftImage = footerLeftImage;
+                FooterCenterImage = footerCenterImage;
+                FooterRightImage = footerRightImage;
+            }
+
             internal string FontFamily { get; }
             internal HeaderFooterTextSection HeaderLeft { get; }
             internal HeaderFooterTextSection HeaderCenter { get; }
@@ -485,9 +510,17 @@ namespace OfficeIMO.Excel {
             internal HeaderFooterTextSection FooterLeft { get; }
             internal HeaderFooterTextSection FooterCenter { get; }
             internal HeaderFooterTextSection FooterRight { get; }
-            internal bool HasHeader => HeaderLeft.HasText || HeaderCenter.HasText || HeaderRight.HasText;
-            internal bool HasFooter => FooterLeft.HasText || FooterCenter.HasText || FooterRight.HasText;
-            internal bool HasAnyText => HasHeader || HasFooter;
+            internal HeaderFooterImageSnapshot? HeaderLeftImage { get; }
+            internal HeaderFooterImageSnapshot? HeaderCenterImage { get; }
+            internal HeaderFooterImageSnapshot? HeaderRightImage { get; }
+            internal HeaderFooterImageSnapshot? FooterLeftImage { get; }
+            internal HeaderFooterImageSnapshot? FooterCenterImage { get; }
+            internal HeaderFooterImageSnapshot? FooterRightImage { get; }
+            internal bool HasHeader => HeaderLeft.HasText || HeaderCenter.HasText || HeaderRight.HasText || HeaderLeftImage != null || HeaderCenterImage != null || HeaderRightImage != null;
+            internal bool HasFooter => FooterLeft.HasText || FooterCenter.HasText || FooterRight.HasText || FooterLeftImage != null || FooterCenterImage != null || FooterRightImage != null;
+            internal bool HasAnyContent => HasHeader || HasFooter;
+            internal double HeaderImageHeightPoints => MaxImageHeight(HeaderLeftImage, HeaderCenterImage, HeaderRightImage);
+            internal double FooterImageHeightPoints => MaxImageHeight(FooterLeftImage, FooterCenterImage, FooterRightImage);
             internal bool HasFormatting =>
                 HeaderLeft.HasFormatting ||
                 HeaderCenter.HasFormatting ||
@@ -495,6 +528,39 @@ namespace OfficeIMO.Excel {
                 FooterLeft.HasFormatting ||
                 FooterCenter.HasFormatting ||
                 FooterRight.HasFormatting;
+
+            internal HeaderFooterTextChrome WithImages(
+                HeaderFooterImageSnapshot? headerLeft,
+                HeaderFooterImageSnapshot? headerCenter,
+                HeaderFooterImageSnapshot? headerRight,
+                HeaderFooterImageSnapshot? footerLeft,
+                HeaderFooterImageSnapshot? footerCenter,
+                HeaderFooterImageSnapshot? footerRight) =>
+                new HeaderFooterTextChrome(
+                    FontFamily,
+                    HeaderLeft,
+                    HeaderCenter,
+                    HeaderRight,
+                    FooterLeft,
+                    FooterCenter,
+                    FooterRight,
+                    headerLeft,
+                    headerCenter,
+                    headerRight,
+                    footerLeft,
+                    footerCenter,
+                    footerRight);
+
+            private static double MaxImageHeight(params HeaderFooterImageSnapshot?[] images) {
+                double height = 0D;
+                for (int index = 0; index < images.Length; index++) {
+                    if (images[index] != null) {
+                        height = Math.Max(height, images[index]!.HeightPoints);
+                    }
+                }
+
+                return height;
+            }
         }
 
         private readonly struct HeaderFooterVariantText {

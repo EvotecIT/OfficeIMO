@@ -213,6 +213,12 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Requested worksheet header/footer font family could not be loaded exactly by the dependency-free exporter.</summary>
     public const string HeaderFooterFontFamilyFallback = "ExcelHeaderFooterFontFamilyFallback";
 
+    /// <summary>Worksheet header/footer image was rendered through an approximate image-export path.</summary>
+    public const string HeaderFooterImageApproximation = "ExcelHeaderFooterImageApproximation";
+
+    /// <summary>Worksheet header/footer image could not be rendered by the requested image export format.</summary>
+    public const string HeaderFooterImageUnsupported = "ExcelHeaderFooterImageUnsupported";
+
     /// <summary>Sparkline kind is not rendered by the image exporter yet.</summary>
     public const string SparklineKindUnsupported = "ExcelSparklineKindUnsupported";
 

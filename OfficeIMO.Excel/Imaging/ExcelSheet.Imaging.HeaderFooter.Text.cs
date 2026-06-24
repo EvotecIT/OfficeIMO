@@ -112,6 +112,8 @@ namespace OfficeIMO.Excel {
                     }
 
                     builder.Append(fileName);
+                } else if (token == 'G') {
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize, fontFamily);
                 } else if (token == 'Z') {
                     if (!TryGetWorkbookPathPrefix(out string pathPrefix)) {
                         return false;

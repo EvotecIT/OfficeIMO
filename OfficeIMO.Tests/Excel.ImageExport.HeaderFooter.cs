@@ -341,12 +341,95 @@ namespace OfficeIMO.Tests {
             Assert.True(composedInfo.Height > bodyInfo.Height);
         }
 
+        [Fact]
+        public void ExcelWorksheet_PageSlicedImageExportRendersSupportedHeaderFooterPngImages() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            byte[] logo = CreateHeaderFooterLogoPng();
+            sheet.SetHeaderImage(HeaderFooterPosition.Center, logo, "image/png", widthPoints: 36D, heightPoints: 16D);
+            sheet.SetFooterImage(HeaderFooterPosition.Right, logo, "image/png", widthPoints: 24D, heightPoints: 12D);
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            var options = new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            };
+            OfficeImageExportResult png = sheet.ExportImages(OfficeImageExportFormat.Png, options)[1];
+            OfficeImageExportResult svg = sheet.ExportImages(OfficeImageExportFormat.Svg, options)[1];
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageUnsupported);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageUnsupported);
+            Assert.Contains(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation);
+            Assert.Contains(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation);
+            Assert.Contains("<image", svgText);
+            Assert.Contains("data:image/png;base64,", svgText);
+            Assert.DoesNotContain("&G", svgText);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.NotNull(image);
+            Assert.True(CountRedHeaderPixels(image!) >= 30);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageSlicedPngExportDiagnosesUnsupportedHeaderFooterImageFormat() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetHeaderImage(HeaderFooterPosition.Center, new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }, "image/gif", widthPoints: 36D, heightPoints: 16D);
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            })[1];
+
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageUnsupported);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal("Report!headerFooter", diagnostic.Source);
+            Assert.DoesNotContain(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
+            Assert.True(OfficeImageReader.Identify(result.Bytes).Width > 0);
+        }
+
         private static void FillPageBreakGrid(ExcelSheet sheet, int rows = 4) {
             for (int row = 1; row <= rows; row++) {
                 for (int column = 1; column <= 4; column++) {
                     sheet.CellValue(row, column, A1.CellReference(row, column));
                 }
             }
+        }
+
+        private static byte[] CreateHeaderFooterLogoPng() {
+            OfficeRasterImage image = new OfficeRasterImage(24, 12, OfficeColor.Transparent);
+            var canvas = new OfficeRasterCanvas(image);
+            canvas.FillRectangle(0, 0, 24, 12, OfficeColor.FromRgb(220, 38, 38));
+            canvas.FillRectangle(4, 3, 16, 6, OfficeColor.FromRgb(255, 255, 255));
+            return OfficePngWriter.Encode(image, OfficePngCompression.Stored);
+        }
+
+        private static int CountRedHeaderPixels(OfficeRasterImage image) {
+            int count = 0;
+            int maxY = Math.Min(image.Height, 60);
+            for (int y = 0; y < maxY; y++) {
+                for (int x = 0; x < image.Width; x++) {
+                    OfficeColor actual = image.GetPixel(x, y);
+                    if (actual.R >= 170 &&
+                        actual.G <= 120 &&
+                        actual.B <= 120 &&
+                        actual.A > 200) {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
         }
     }
 }
