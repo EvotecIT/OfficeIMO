@@ -412,14 +412,14 @@ namespace OfficeIMO.Tests {
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
             Assert.DoesNotContain(workbook.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.Equal(16, workbook.PivotTableRecords.Count);
-            Assert.Equal(16, report.PivotTableRecordCount);
+            Assert.Equal(20, workbook.PivotTableRecords.Count);
+            Assert.Equal(20, report.PivotTableRecordCount);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.View]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Field]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Item]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.DataItem]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Cache]);
-            Assert.Equal(4, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.CacheItem]);
+            Assert.Equal(8, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.CacheItem]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Table]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.GroupingRange]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Filter]);
@@ -434,8 +434,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByName["Sxdi"]);
             Assert.Equal(1, report.PivotTableRecordsByName["Sxdb"]);
             Assert.Equal(1, report.PivotTableRecordsByName["Sxnum"]);
+            Assert.Equal(1, report.PivotTableRecordsByName["Sxbool"]);
+            Assert.Equal(1, report.PivotTableRecordsByName["Sxerr"]);
+            Assert.Equal(1, report.PivotTableRecordsByName["Sxstring"]);
             Assert.Equal(1, report.PivotTableRecordsByName["Sxint"]);
             Assert.Equal(2, report.PivotTableRecordsByName["Sxdtr"]);
+            Assert.Equal(1, report.PivotTableRecordsByName["Sxnil"]);
             Assert.Equal(1, report.PivotTableRecordsByName["Sxtbl"]);
             Assert.Equal(1, report.PivotTableRecordsByName["SxRng"]);
             Assert.Equal(1, report.PivotTableRecordsByName["SxFilt"]);
@@ -443,6 +447,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByName["SxVdEx"]);
             Assert.Equal(1, report.PivotTableRecordsByName["PivotChartBits"]);
             Assert.Equal(1, report.PivotTableRecordsByName["SxAddl"]);
+            Assert.Equal(1, report.PivotTableCacheItemKinds["Number"]);
+            Assert.Equal(1, report.PivotTableCacheItemKinds["Integer"]);
+            Assert.Equal(1, report.PivotTableCacheItemKinds["Boolean"]);
+            Assert.Equal(1, report.PivotTableCacheItemKinds["Error"]);
+            Assert.Equal(1, report.PivotTableCacheItemKinds["String"]);
+            Assert.Equal(2, report.PivotTableCacheItemKinds["DateTime"]);
+            Assert.Equal(1, report.PivotTableCacheItemKinds["Empty"]);
+            Assert.Equal(7, report.PivotTableCacheItemValueStates["HasValue"]);
+            Assert.Equal(1, report.PivotTableCacheItemValueStates["Empty"]);
+            Assert.Equal(1, report.PivotTableCacheItemStringLengths["Characters:4"]);
+            Assert.Equal(1, report.PivotTableCacheItemErrorCodes["ErrorCode:0x07"]);
+            Assert.Equal(1, report.PivotTableCacheItemBooleanValues["True"]);
             Assert.Equal(1, report.PivotTableDataItemAggregations["AggregationFunction:0"]);
             Assert.Equal(1, report.PivotTableDataItemAggregationKinds["Sum"]);
             Assert.Equal(1, report.PivotTableDataItemFieldIndexes["FieldIndex:2"]);
@@ -476,6 +492,37 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Format && record.RecordName == "SxFormat" && record.SheetName == "PivotMeta");
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.PivotChart && record.RecordName == "PivotChartBits" && record.SheetName == "PivotMeta");
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Additional && record.RecordName == "SxAddl" && record.SheetName == "PivotMeta");
+
+            LegacyXlsPivotTableRecord numberItem = Assert.Single(workbook.PivotTableRecords, record => record.RecordName == "Sxnum");
+            Assert.Equal(LegacyXlsPivotCacheItemKind.Number, numberItem.CacheItemKind);
+            Assert.Equal("Number", numberItem.CacheItemKindName);
+            Assert.Equal(42.5d, numberItem.CacheItemNumericValue);
+
+            LegacyXlsPivotTableRecord booleanItem = Assert.Single(workbook.PivotTableRecords, record => record.RecordName == "Sxbool");
+            Assert.Equal(LegacyXlsPivotCacheItemKind.Boolean, booleanItem.CacheItemKind);
+            Assert.True(booleanItem.CacheItemBooleanValue);
+
+            LegacyXlsPivotTableRecord errorItem = Assert.Single(workbook.PivotTableRecords, record => record.RecordName == "Sxerr");
+            Assert.Equal(LegacyXlsPivotCacheItemKind.Error, errorItem.CacheItemKind);
+            Assert.Equal((ushort)0x0007, errorItem.CacheItemErrorCode);
+            Assert.Equal("#DIV/0!", errorItem.CacheItemErrorText);
+
+            LegacyXlsPivotTableRecord stringItem = Assert.Single(workbook.PivotTableRecords, record => record.RecordName == "Sxstring");
+            Assert.Equal(LegacyXlsPivotCacheItemKind.String, stringItem.CacheItemKind);
+            Assert.Equal("East", stringItem.CacheItemStringValue);
+
+            LegacyXlsPivotTableRecord integerItem = Assert.Single(workbook.PivotTableRecords, record => record.RecordName == "Sxint");
+            Assert.Equal(LegacyXlsPivotCacheItemKind.Integer, integerItem.CacheItemKind);
+            Assert.Equal((short)1, integerItem.CacheItemIntegerValue);
+
+            LegacyXlsPivotTableRecord[] dateItems = workbook.PivotTableRecords.Where(record => record.RecordName == "Sxdtr").ToArray();
+            Assert.All(dateItems, record => Assert.Equal(LegacyXlsPivotCacheItemKind.DateTime, record.CacheItemKind));
+            Assert.Equal("2024-01-01 00:00:00", dateItems[0].CacheItemDateTimeValue?.ToString());
+            Assert.Equal("2024-12-31 00:00:00", dateItems[1].CacheItemDateTimeValue?.ToString());
+
+            LegacyXlsPivotTableRecord emptyItem = Assert.Single(workbook.PivotTableRecords, record => record.RecordName == "Sxnil");
+            Assert.Equal(LegacyXlsPivotCacheItemKind.Empty, emptyItem.CacheItemKind);
+            Assert.True(emptyItem.IsEmptyCacheItem);
 
             LegacyXlsPivotTableRecord dataItem = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.DataItem);
             Assert.Null(dataItem.SheetName);
@@ -523,12 +570,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal((byte)0x00, additional.AdditionalType);
             Assert.Equal("SXDId", additional.AdditionalTypeName);
             Assert.Equal(1U, additional.AdditionalCacheId);
-            Assert.Equal(16, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
-            Assert.Equal(16, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
+            Assert.Equal(20, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
+            Assert.Equal(20, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
 
             string markdown = report.ToMarkdown();
-            Assert.Contains("Pivot table records: 16", markdown);
+            Assert.Contains("Pivot table records: 20", markdown);
             Assert.Contains("Pivot Table Records By Kind", markdown);
+            Assert.Contains("Pivot Table Cache Item Kinds", markdown);
             Assert.Contains("Pivot Table Data Item Aggregations", markdown);
             Assert.Contains("Pivot Table Data Item Aggregation Kinds", markdown);
             Assert.Contains("Pivot Table Data Item Field Indexes", markdown);

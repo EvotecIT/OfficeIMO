@@ -21,6 +21,27 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x00C1:
                         ReadDataItem(record, pivotRecord);
                         break;
+                    case 0x00C8:
+                        ReadCacheItemNumber(record, pivotRecord);
+                        break;
+                    case 0x00C9:
+                        ReadCacheItemBoolean(record, pivotRecord);
+                        break;
+                    case 0x00CA:
+                        ReadCacheItemError(record, pivotRecord);
+                        break;
+                    case 0x00CB:
+                        ReadCacheItemInteger(record, pivotRecord);
+                        break;
+                    case 0x00CC:
+                        ReadCacheItemString(record, pivotRecord);
+                        break;
+                    case 0x00CD:
+                        ReadCacheItemDateTime(record, pivotRecord);
+                        break;
+                    case 0x00CE:
+                        pivotRecord.SetCacheItemEmpty();
+                        break;
                     case 0x00D7:
                         ReadGroupingRange(record, pivotRecord);
                         state?.TrackGroupingRange(record, pivotRecord);
@@ -182,6 +203,62 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 name);
         }
 
+        private static void ReadCacheItemNumber(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            if (record.Payload.Length < 8) {
+                throw new InvalidDataException("The SXNum payload is shorter than the numeric value.");
+            }
+
+            pivotRecord.SetCacheItemNumber(BiffRecordReader.ReadDouble(record.Payload, 0));
+        }
+
+        private static void ReadCacheItemBoolean(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            if (record.Payload.Length < 2) {
+                throw new InvalidDataException("The SxBool payload is shorter than the Boolean value.");
+            }
+
+            pivotRecord.SetCacheItemBoolean(BiffRecordReader.ReadUInt16(record.Payload, 0) != 0);
+        }
+
+        private static void ReadCacheItemError(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            if (record.Payload.Length < 2) {
+                throw new InvalidDataException("The SxErr payload is shorter than the error value.");
+            }
+
+            ushort errorCode = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            string errorText = errorCode <= byte.MaxValue
+                ? BiffErrorValue.ToText((byte)errorCode)
+                : $"#ERR({errorCode})";
+            pivotRecord.SetCacheItemError(errorCode, errorText);
+        }
+
+        private static void ReadCacheItemInteger(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            if (record.Payload.Length < 2) {
+                throw new InvalidDataException("The SXInt payload is shorter than the integer value.");
+            }
+
+            pivotRecord.SetCacheItemInteger(BiffRecordReader.ReadInt16(record.Payload, 0));
+        }
+
+        private static void ReadCacheItemString(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            byte[] payload = record.Payload;
+            if (payload.Length < 2) {
+                throw new InvalidDataException("The SXString payload is shorter than the character count.");
+            }
+
+            ushort characterCount = BiffRecordReader.ReadUInt16(payload, 0);
+            string? value = null;
+            if (characterCount != 0xFFFF) {
+                int offset = 2;
+                value = BiffStringReader.ReadUnicodeStringNoCch(payload, ref offset, characterCount);
+            }
+
+            pivotRecord.SetCacheItemString(value);
+        }
+
+        private static void ReadCacheItemDateTime(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            pivotRecord.SetCacheItemDateTime(ReadDateTimeValue(record.Payload));
+        }
+
         private static void ReadGroupingRange(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
             byte[] payload = record.Payload;
             if (payload.Length < 2) {
@@ -233,6 +310,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 additionalClass,
                 additionalType,
                 cacheId);
+        }
+
+        private static LegacyXlsPivotDateTimeValue ReadDateTimeValue(byte[] payload) {
+            if (payload.Length < 8) {
+                throw new InvalidDataException("The SXDtr payload is shorter than the date/time value.");
+            }
+
+            return new LegacyXlsPivotDateTimeValue(
+                BiffRecordReader.ReadUInt16(payload, 0),
+                BiffRecordReader.ReadUInt16(payload, 2),
+                payload[4],
+                payload[5],
+                payload[6],
+                payload[7]);
         }
     }
 

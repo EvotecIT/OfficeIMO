@@ -597,7 +597,11 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x00b0, Array.Empty<byte>());
                 WriteRecord(stream, 0x00c1, BuildSxdiPayload());
                 WriteRecord(stream, 0x00c5, Array.Empty<byte>());
-                WriteRecord(stream, 0x00c8, Array.Empty<byte>());
+                WriteRecord(stream, 0x00c8, BuildSxNumPayload(42.5));
+                WriteRecord(stream, 0x00c9, BuildUInt16Payload(1));
+                WriteRecord(stream, 0x00ca, BuildUInt16Payload(0x0007));
+                WriteRecord(stream, 0x00cc, BuildSxStringPayload("East"));
+                WriteRecord(stream, 0x00ce, Array.Empty<byte>());
                 WriteRecord(stream, 0x00cf, Array.Empty<byte>());
                 WriteRecord(stream, 0x00f1, Array.Empty<byte>());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
@@ -2144,6 +2148,17 @@ namespace OfficeIMO.Tests {
             private static byte[] BuildSxRngPayload() {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, 0x0017);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxNumPayload(double value) {
+                return BitConverter.GetBytes(value);
+            }
+
+            private static byte[] BuildSxStringPayload(string value) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, checked((ushort)value.Length));
+                WriteCompressedUnicodeStringNoCch(stream, value);
                 return stream.ToArray();
             }
 

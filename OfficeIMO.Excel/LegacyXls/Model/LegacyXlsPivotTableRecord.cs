@@ -145,6 +145,36 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the PivotCache identifier carried by an SXAddl SxcCache/SXDId record, when decoded.</summary>
         public uint? AdditionalCacheId { get; private set; }
 
+        /// <summary>Gets the value kind for a PivotCache cache item record, when decoded.</summary>
+        public LegacyXlsPivotCacheItemKind? CacheItemKind { get; private set; }
+
+        /// <summary>Gets the value kind name for a PivotCache cache item record, when decoded.</summary>
+        public string? CacheItemKindName { get; private set; }
+
+        /// <summary>Gets the numeric value for an SXNum PivotCache item, when decoded.</summary>
+        public double? CacheItemNumericValue { get; private set; }
+
+        /// <summary>Gets the signed integer value for an SXInt PivotCache item, when decoded.</summary>
+        public short? CacheItemIntegerValue { get; private set; }
+
+        /// <summary>Gets the Boolean value for an SxBool PivotCache item, when decoded.</summary>
+        public bool? CacheItemBooleanValue { get; private set; }
+
+        /// <summary>Gets the error code for an SxErr PivotCache item, when decoded.</summary>
+        public ushort? CacheItemErrorCode { get; private set; }
+
+        /// <summary>Gets the error text for an SxErr PivotCache item, when decoded.</summary>
+        public string? CacheItemErrorText { get; private set; }
+
+        /// <summary>Gets the string value for an SXString PivotCache item, when decoded.</summary>
+        public string? CacheItemStringValue { get; private set; }
+
+        /// <summary>Gets the date/time value for an SXDtr PivotCache item, when decoded.</summary>
+        public LegacyXlsPivotDateTimeValue? CacheItemDateTimeValue { get; private set; }
+
+        /// <summary>Gets whether this record is an empty SxNil PivotCache item.</summary>
+        public bool IsEmptyCacheItem => CacheItemKind == LegacyXlsPivotCacheItemKind.Empty;
+
         internal void SetDataItem(
             short dataItemFieldIndex,
             short aggregationFunction,
@@ -228,6 +258,48 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             AdditionalType = additionalType;
             AdditionalTypeName = GetAdditionalTypeName(additionalClass, additionalType);
             AdditionalCacheId = cacheId;
+        }
+
+        internal void SetCacheItemEmpty() {
+            CacheItemKind = LegacyXlsPivotCacheItemKind.Empty;
+            CacheItemKindName = LegacyXlsPivotCacheItemKind.Empty.ToString();
+        }
+
+        internal void SetCacheItemNumber(double value) {
+            CacheItemKind = LegacyXlsPivotCacheItemKind.Number;
+            CacheItemKindName = LegacyXlsPivotCacheItemKind.Number.ToString();
+            CacheItemNumericValue = value;
+        }
+
+        internal void SetCacheItemBoolean(bool value) {
+            CacheItemKind = LegacyXlsPivotCacheItemKind.Boolean;
+            CacheItemKindName = LegacyXlsPivotCacheItemKind.Boolean.ToString();
+            CacheItemBooleanValue = value;
+        }
+
+        internal void SetCacheItemError(ushort errorCode, string errorText) {
+            CacheItemKind = LegacyXlsPivotCacheItemKind.Error;
+            CacheItemKindName = LegacyXlsPivotCacheItemKind.Error.ToString();
+            CacheItemErrorCode = errorCode;
+            CacheItemErrorText = errorText;
+        }
+
+        internal void SetCacheItemInteger(short value) {
+            CacheItemKind = LegacyXlsPivotCacheItemKind.Integer;
+            CacheItemKindName = LegacyXlsPivotCacheItemKind.Integer.ToString();
+            CacheItemIntegerValue = value;
+        }
+
+        internal void SetCacheItemString(string? value) {
+            CacheItemKind = LegacyXlsPivotCacheItemKind.String;
+            CacheItemKindName = LegacyXlsPivotCacheItemKind.String.ToString();
+            CacheItemStringValue = value;
+        }
+
+        internal void SetCacheItemDateTime(LegacyXlsPivotDateTimeValue value) {
+            CacheItemKind = LegacyXlsPivotCacheItemKind.DateTime;
+            CacheItemKindName = LegacyXlsPivotCacheItemKind.DateTime.ToString();
+            CacheItemDateTimeValue = value;
         }
 
         private static LegacyXlsPivotAggregationFunction? TryGetAggregationFunctionKind(short value) {

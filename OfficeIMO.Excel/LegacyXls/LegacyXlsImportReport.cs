@@ -249,6 +249,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             ThemeRecordsByContentLength = CountByCode(workbook.ThemeRecords.Select(record => $"Bytes:{record.ThemeByteCount}"));
             PivotTableRecordsByKind = CountPivotTableRecordsByKind(workbook.PivotTableRecords);
             PivotTableRecordsByName = CountByCode(workbook.PivotTableRecords.Select(record => record.RecordName));
+            PivotTableCacheItemKinds = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.CacheItemKindName))
+                .Select(record => record.CacheItemKindName!));
+            PivotTableCacheItemValueStates = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.CacheItemKind.HasValue)
+                .Select(record => record.IsEmptyCacheItem ? "Empty" : "HasValue"));
+            PivotTableCacheItemStringLengths = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.CacheItemKind == LegacyXlsPivotCacheItemKind.String)
+                .Select(record => record.CacheItemStringValue == null ? "NoStringSegment" : $"Characters:{record.CacheItemStringValue.Length}"));
+            PivotTableCacheItemErrorCodes = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.CacheItemErrorCode.HasValue)
+                .Select(record => $"ErrorCode:0x{record.CacheItemErrorCode!.Value:X2}"));
+            PivotTableCacheItemBooleanValues = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.CacheItemBooleanValue.HasValue)
+                .Select(record => record.CacheItemBooleanValue!.Value ? "True" : "False"));
             PivotTableDataItemAggregations = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.AggregationFunction.HasValue)
                 .Select(record => $"AggregationFunction:{record.AggregationFunction!.Value}"));
@@ -1029,6 +1044,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets preserve-only PivotTable BIFF records grouped by record name.</summary>
         public IReadOnlyDictionary<string, int> PivotTableRecordsByName { get; }
 
+        /// <summary>Gets decoded PivotCache item records grouped by value kind.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableCacheItemKinds { get; }
+
+        /// <summary>Gets decoded PivotCache item records grouped by empty or value-bearing state.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableCacheItemValueStates { get; }
+
+        /// <summary>Gets decoded PivotCache string item records grouped by character count.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableCacheItemStringLengths { get; }
+
+        /// <summary>Gets decoded PivotCache error item records grouped by error code.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableCacheItemErrorCodes { get; }
+
+        /// <summary>Gets decoded PivotCache Boolean item records grouped by value.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableCacheItemBooleanValues { get; }
+
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by raw aggregation function identifier.</summary>
         public IReadOnlyDictionary<string, int> PivotTableDataItemAggregations { get; }
 
@@ -1575,6 +1605,11 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Pivot Table Records By Name", PivotTableRecordsByName);
+            AppendDictionary(builder, "Pivot Table Cache Item Kinds", PivotTableCacheItemKinds);
+            AppendDictionary(builder, "Pivot Table Cache Item Value States", PivotTableCacheItemValueStates);
+            AppendDictionary(builder, "Pivot Table Cache Item String Lengths", PivotTableCacheItemStringLengths);
+            AppendDictionary(builder, "Pivot Table Cache Item Error Codes", PivotTableCacheItemErrorCodes);
+            AppendDictionary(builder, "Pivot Table Cache Item Boolean Values", PivotTableCacheItemBooleanValues);
             AppendDictionary(builder, "Pivot Table Data Item Aggregations", PivotTableDataItemAggregations);
             AppendDictionary(builder, "Pivot Table Data Item Aggregation Kinds", PivotTableDataItemAggregationKinds);
             AppendDictionary(builder, "Pivot Table Data Item Field Indexes", PivotTableDataItemFieldIndexes);
