@@ -84,6 +84,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelDelimitedImport_StreamsDelimitedFileIntoTable() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "ExcelDelimitedImport.Source.csv");
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelDelimitedImport.File.xlsx");
+            File.WriteAllText(sourcePath, "Name,Amount\r\nAlpha,10.5\r\nBeta,11.75");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                ExcelDelimitedImportResult result = document.ImportDelimitedFile(
+                    sourcePath,
+                    new ExcelDelimitedImportOptions { SheetName = "Import", TableName = "ImportData" });
+
+                Assert.Equal(',', result.Delimiter);
+                Assert.Equal("A1:B3", result.ImportResult.Range);
+                Assert.Equal("ImportData", result.ImportResult.TableName);
+                Assert.Equal(2, result.ImportResult.RowCount);
+                Assert.Equal(2, result.ImportResult.ColumnCount);
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.True(document["Import"].TryGetCellText(3, 1, out string name));
+                Assert.Equal("Beta", name);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelDelimitedImport_PreservesFieldsBeyondHeader() {
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+
+            ExcelDelimitedImportResult result = document.ImportDelimitedText(
+                "Name\r\nAlpha,10.5\r\nBeta,11.75",
+                new ExcelDelimitedImportOptions { SheetName = "Import" });
+
+            Assert.Equal("A1:B3", result.ImportResult.Range);
+            Assert.Equal(2, result.ImportResult.ColumnCount);
+            ExcelSheet sheet = document["Import"];
+            Assert.True(sheet.TryGetCellText(1, 2, out string header));
+            Assert.Equal("Column2", header);
+            Assert.True(sheet.TryGetCellText(2, 2, out string amount));
+            Assert.Equal("10.5", amount);
+        }
+
+        [Fact]
         public void Test_ExcelWorkbookIntelligence_AdvancedReportsRepairAndDiffDepth() {
             string leftPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookIntelligence.Advanced.Left.xlsx");
             string rightPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookIntelligence.Advanced.Right.xlsx");

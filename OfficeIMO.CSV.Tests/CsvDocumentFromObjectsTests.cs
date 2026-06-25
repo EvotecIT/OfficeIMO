@@ -160,6 +160,38 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void ReadRecordsReusable_StreamsRawHeaderAndRows()
+    {
+        using var reader = new StringReader("Name,Value\nA,1\nB,2\n");
+        var records = new List<string>();
+
+        CsvDocument.ReadRecordsReusable(reader, values =>
+        {
+            records.Add(values[0] + ":" + values[1]);
+        });
+
+        Assert.Equal(new[] { "Name:Value", "A:1", "B:2" }, records);
+    }
+
+    [Fact]
+    public void ReadRecordsReusable_PreservesExtraFields()
+    {
+        using var reader = new StringReader("Name\nA,1\n");
+        IReadOnlyList<string>? row = null;
+
+        CsvDocument.ReadRecordsReusable(reader, values =>
+        {
+            if (values.Count > 1)
+            {
+                row = values.ToArray();
+            }
+        });
+
+        Assert.NotNull(row);
+        Assert.Equal(new[] { "A", "1" }, row);
+    }
+
+    [Fact]
     public void SaveObjects_WritesFile()
     {
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.SaveObjects." + Guid.NewGuid().ToString("N") + ".csv");

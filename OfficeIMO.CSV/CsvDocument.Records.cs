@@ -1,0 +1,65 @@
+#nullable enable
+
+using System.Text;
+
+namespace OfficeIMO.CSV;
+
+public sealed partial class CsvDocument
+{
+    /// <summary>
+    /// Reads raw CSV records from a file in a single pass while reusing the record value buffer for unquoted records.
+    /// </summary>
+    /// <param name="path">Source CSV path.</param>
+    /// <param name="recordAction">Action receiving the current record values. Record values must not be captured after the callback returns.</param>
+    /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
+    public static void ReadRecordsReusable(string path, Action<IReadOnlyList<string>> recordAction, CsvLoadOptions? options = null)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new ArgumentException("File path cannot be empty.", nameof(path));
+        }
+
+        if (recordAction == null)
+        {
+            throw new ArgumentNullException(nameof(recordAction));
+        }
+
+        options ??= new CsvLoadOptions();
+        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        var readerFactory = () => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: FileBufferSize);
+        var resolvedOptions = ResolveLoadOptions(readerFactory, options);
+        using var reader = readerFactory();
+        ReadRecordsReusable(reader, recordAction, resolvedOptions);
+    }
+
+    /// <summary>
+    /// Reads raw CSV records from a reader in a single pass while reusing the record value buffer for unquoted records.
+    /// </summary>
+    /// <param name="reader">Source text reader.</param>
+    /// <param name="recordAction">Action receiving the current record values. Record values must not be captured after the callback returns.</param>
+    /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
+    public static void ReadRecordsReusable(TextReader reader, Action<IReadOnlyList<string>> recordAction, CsvLoadOptions? options = null)
+    {
+        if (reader == null)
+        {
+            throw new ArgumentNullException(nameof(reader));
+        }
+
+        if (recordAction == null)
+        {
+            throw new ArgumentNullException(nameof(recordAction));
+        }
+
+        options ??= new CsvLoadOptions();
+        if (options.DetectDelimiter)
+        {
+            var text = reader.ReadToEnd();
+            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options);
+            using var bufferedReader = new StringReader(text);
+            ReadRecordsReusable(bufferedReader, recordAction, resolvedOptions);
+            return;
+        }
+
+        CsvParser.ReadRecordsReusable(reader, options, recordAction);
+    }
+}
