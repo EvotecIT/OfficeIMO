@@ -15,6 +15,7 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             var sparklines = new List<ExcelWorksheetSparklineInfo>();
+            int groupIndex = 0;
             foreach (SparklineGroup group in worksheetPart.Worksheet.Descendants<SparklineGroup>()) {
                 string kind = group.Type?.InnerText ?? string.Empty;
                 foreach (Sparkline sparkline in group.Descendants<Sparkline>()) {
@@ -22,6 +23,7 @@ namespace OfficeIMO.Excel.Utilities {
                     string formula = sparkline.GetFirstChild<OfficeFormula>()?.Text ?? string.Empty;
                     foreach (string cellReference in ExpandLocation(location)) {
                         sparklines.Add(new ExcelWorksheetSparklineInfo(
+                            groupIndex,
                             cellReference,
                             formula,
                             kind,
@@ -42,6 +44,8 @@ namespace OfficeIMO.Excel.Utilities {
                             NormalizeColor(group.LastMarkerColor?.Rgb?.Value)));
                     }
                 }
+
+                groupIndex++;
             }
 
             return sparklines;
@@ -91,6 +95,7 @@ namespace OfficeIMO.Excel.Utilities {
 
     internal sealed class ExcelWorksheetSparklineInfo {
         internal ExcelWorksheetSparklineInfo(
+            int groupIndex,
             string cellReference,
             string formula,
             string kind,
@@ -109,6 +114,7 @@ namespace OfficeIMO.Excel.Utilities {
             string? lowColorArgb,
             string? firstColorArgb,
             string? lastColorArgb) {
+            GroupIndex = groupIndex;
             CellReference = cellReference ?? string.Empty;
             Formula = formula ?? string.Empty;
             Kind = kind ?? string.Empty;
@@ -128,6 +134,8 @@ namespace OfficeIMO.Excel.Utilities {
             FirstColorArgb = firstColorArgb;
             LastColorArgb = lastColorArgb;
         }
+
+        internal int GroupIndex { get; }
 
         internal string CellReference { get; }
 

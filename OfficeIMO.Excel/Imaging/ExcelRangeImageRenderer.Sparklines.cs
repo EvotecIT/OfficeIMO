@@ -74,6 +74,8 @@ namespace OfficeIMO.Excel {
                 SeriesColor = ResolveArgb(sparkline.SeriesColorArgb) ?? OfficeColor.FromRgb(37, 99, 235),
                 AxisColor = ResolveArgb(sparkline.AxisColorArgb) ?? OfficeColor.FromRgb(128, 128, 128),
                 DisplayAxis = sparkline.DisplayAxis,
+                MinimumValue = sparkline.ScaleMinimum,
+                MaximumValue = sparkline.ScaleMaximum,
                 Padding = 3D * scale,
                 LineStrokeWidth = Math.Max(1D, scale * 1.35D),
                 AxisStrokeWidth = Math.Max(1D, scale),

@@ -34,7 +34,7 @@ public static class OfficeSparklineRenderer {
 
         OfficeSparklineStyle resolvedStyle = style ?? new OfficeSparklineStyle();
         SparklineBounds bounds = ResolveBounds(x, y, width, height, resolvedStyle);
-        ValueRange range = ResolveRange(values);
+        ValueRange range = ResolveRange(values, resolvedStyle);
 
         if (kind == OfficeSparklineKind.Column || kind == OfficeSparklineKind.WinLoss) {
             DrawRasterColumns(canvas, bounds, values, range, kind == OfficeSparklineKind.WinLoss, resolvedStyle);
@@ -70,7 +70,7 @@ public static class OfficeSparklineRenderer {
 
         OfficeSparklineStyle resolvedStyle = style ?? new OfficeSparklineStyle();
         SparklineBounds bounds = ResolveBounds(x, y, width, height, resolvedStyle);
-        ValueRange range = ResolveRange(values);
+        ValueRange range = ResolveRange(values, resolvedStyle);
 
         if (kind == OfficeSparklineKind.Column || kind == OfficeSparklineKind.WinLoss) {
             AppendSvgColumns(builder, bounds, values, range, kind == OfficeSparklineKind.WinLoss, resolvedStyle);
@@ -202,7 +202,7 @@ public static class OfficeSparklineRenderer {
         return points;
     }
 
-    private static ValueRange ResolveRange(IReadOnlyList<double> values) {
+    private static ValueRange ResolveRange(IReadOnlyList<double> values, OfficeSparklineStyle style) {
         double min = values[0];
         double max = values[0];
         for (int i = 1; i < values.Count; i++) {
@@ -210,8 +210,23 @@ public static class OfficeSparklineRenderer {
             max = Math.Max(max, values[i]);
         }
 
+        if (IsFinite(style.MinimumValue)) {
+            min = style.MinimumValue!.Value;
+        }
+
+        if (IsFinite(style.MaximumValue)) {
+            max = style.MaximumValue!.Value;
+        }
+
+        if (max < min) {
+            (min, max) = (max, min);
+        }
+
         return new ValueRange(min, max);
     }
+
+    private static bool IsFinite(double? value) =>
+        value.HasValue && !double.IsNaN(value.Value) && !double.IsInfinity(value.Value);
 
     private static SparklineBounds ResolveBounds(double x, double y, double width, double height, OfficeSparklineStyle style) {
         double padding = Math.Max(0D, style.Padding);

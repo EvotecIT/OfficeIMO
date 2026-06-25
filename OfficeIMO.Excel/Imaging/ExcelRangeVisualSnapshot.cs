@@ -525,6 +525,8 @@ namespace OfficeIMO.Excel {
             string? lowColorArgb,
             string? firstColorArgb,
             string? lastColorArgb,
+            double? scaleMinimum,
+            double? scaleMaximum,
             string source) {
             Row = row;
             Column = column;
@@ -549,6 +551,8 @@ namespace OfficeIMO.Excel {
             LowColorArgb = lowColorArgb;
             FirstColorArgb = firstColorArgb;
             LastColorArgb = lastColorArgb;
+            ScaleMinimum = scaleMinimum;
+            ScaleMaximum = scaleMaximum;
             Source = source ?? string.Empty;
         }
 
@@ -620,6 +624,12 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Last point color in ARGB hexadecimal form, when specified.</summary>
         public string? LastColorArgb { get; }
+
+        /// <summary>Minimum value used to scale the rendered sparkline, usually resolved from its Excel group.</summary>
+        public double? ScaleMinimum { get; }
+
+        /// <summary>Maximum value used to scale the rendered sparkline, usually resolved from its Excel group.</summary>
+        public double? ScaleMaximum { get; }
 
         /// <summary>Source reference used by export diagnostics.</summary>
         public string Source { get; }

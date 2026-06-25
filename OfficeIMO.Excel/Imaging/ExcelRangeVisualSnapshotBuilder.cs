@@ -871,7 +871,10 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<int, ExcelVisualRow> rowsByIndex,
             List<OfficeImageExportDiagnostic> diagnostics) {
             var visuals = new List<ExcelVisualSparkline>();
-            foreach (ExcelWorksheetSparklineInfo sparkline in ExcelWorksheetSparklineResolver.FindSparklines(sheet.WorksheetPart)) {
+            IReadOnlyList<ResolvedSparkline> resolvedSparklines = ResolveSparklines(sheet);
+            IReadOnlyDictionary<int, SparklineScaleRange> scaleRanges = ResolveSparklineScaleRanges(resolvedSparklines);
+            foreach (ResolvedSparkline resolvedSparkline in resolvedSparklines) {
+                ExcelWorksheetSparklineInfo sparkline = resolvedSparkline.Info;
                 if (!TryResolveVisibleExportCell(sparkline.CellReference, firstRow, firstColumn, lastRow, lastColumn, columnsByIndex, rowsByIndex, out string sourceCell)
                     || !A1.TryParseCellReferenceFast(sourceCell, out int row, out int column)
                     || !rowsByIndex.TryGetValue(row, out ExcelVisualRow? visualRow)
@@ -889,19 +892,18 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (!TryResolveSparklineDataRange(sheet.Name, sparkline.Formula, out string? dataRange, out bool externalRange) || dataRange == null) {
+                if (!resolvedSparkline.HasResolvedRange) {
                     diagnostics.Add(new OfficeImageExportDiagnostic(
                         OfficeImageExportDiagnosticSeverity.Warning,
-                        externalRange ? ExcelImageExportDiagnosticCodes.SparklineExternalRangeUnsupported : ExcelImageExportDiagnosticCodes.SparklineRangeUnsupported,
-                        externalRange
+                        resolvedSparkline.ExternalRange ? ExcelImageExportDiagnosticCodes.SparklineExternalRangeUnsupported : ExcelImageExportDiagnosticCodes.SparklineRangeUnsupported,
+                        resolvedSparkline.ExternalRange
                             ? "Worksheet sparkline references data on another sheet; cross-sheet sparkline image rendering is not supported yet."
                             : "Worksheet sparkline data range could not be resolved by the dependency-free image exporter.",
                         source));
                     continue;
                 }
 
-                IReadOnlyList<double> values = ReadSparklineValues(sheet, dataRange);
-                if (values.Count == 0) {
+                if (resolvedSparkline.Values.Count == 0) {
                     diagnostics.Add(new OfficeImageExportDiagnostic(
                         OfficeImageExportDiagnosticSeverity.Warning,
                         ExcelImageExportDiagnosticCodes.SparklineDataMissing,
@@ -913,8 +915,9 @@ namespace OfficeIMO.Excel {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.SparklineRenderingApproximation,
-                    "Worksheet sparkline is rendered as a dependency-free approximation; Excel-specific group scaling, date axis, hidden-data, and empty-cell behavior may differ.",
+                    "Worksheet sparkline is rendered as a dependency-free approximation; Excel-specific date axis, hidden-data, and empty-cell behavior may differ.",
                     source));
+                scaleRanges.TryGetValue(sparkline.GroupIndex, out SparklineScaleRange scaleRange);
 
                 visuals.Add(new ExcelVisualSparkline(
                     row,
@@ -924,7 +927,7 @@ namespace OfficeIMO.Excel {
                     visualColumn.Width,
                     visualRow.Height,
                     sparkline.Kind,
-                    values,
+                    resolvedSparkline.Values,
                     sparkline.DisplayMarkers,
                     sparkline.DisplayHigh,
                     sparkline.DisplayLow,
@@ -940,10 +943,68 @@ namespace OfficeIMO.Excel {
                     sparkline.LowColorArgb,
                     sparkline.FirstColorArgb,
                     sparkline.LastColorArgb,
+                    scaleRange.Minimum,
+                    scaleRange.Maximum,
                     source));
             }
 
             return visuals;
+        }
+
+        private static IReadOnlyList<ResolvedSparkline> ResolveSparklines(ExcelSheet sheet) {
+            IReadOnlyList<ExcelWorksheetSparklineInfo> sparklines = ExcelWorksheetSparklineResolver.FindSparklines(sheet.WorksheetPart);
+            var resolved = new List<ResolvedSparkline>(sparklines.Count);
+            foreach (ExcelWorksheetSparklineInfo sparkline in sparklines) {
+                if (!TryResolveSparklineDataRange(sheet.Name, sparkline.Formula, out string? dataRange, out bool externalRange) || dataRange == null) {
+                    resolved.Add(new ResolvedSparkline(sparkline, Array.Empty<double>(), hasResolvedRange: false, externalRange));
+                    continue;
+                }
+
+                resolved.Add(new ResolvedSparkline(sparkline, ReadSparklineValues(sheet, dataRange), hasResolvedRange: true, externalRange: false));
+            }
+
+            return resolved.AsReadOnly();
+        }
+
+        private static IReadOnlyDictionary<int, SparklineScaleRange> ResolveSparklineScaleRanges(IReadOnlyList<ResolvedSparkline> sparklines) {
+            var ranges = new Dictionary<int, SparklineScaleRange>();
+            foreach (IGrouping<int, ResolvedSparkline> group in sparklines
+                .Where(sparkline => sparkline.HasResolvedRange && sparkline.Values.Count > 0)
+                .GroupBy(sparkline => sparkline.Info.GroupIndex)) {
+                double minimum = group.SelectMany(sparkline => sparkline.Values).Min();
+                double maximum = group.SelectMany(sparkline => sparkline.Values).Max();
+                ranges[group.Key] = new SparklineScaleRange(minimum, maximum);
+            }
+
+            return ranges;
+        }
+
+        private readonly struct ResolvedSparkline {
+            internal ResolvedSparkline(ExcelWorksheetSparklineInfo info, IReadOnlyList<double> values, bool hasResolvedRange, bool externalRange) {
+                Info = info;
+                Values = values;
+                HasResolvedRange = hasResolvedRange;
+                ExternalRange = externalRange;
+            }
+
+            internal ExcelWorksheetSparklineInfo Info { get; }
+
+            internal IReadOnlyList<double> Values { get; }
+
+            internal bool HasResolvedRange { get; }
+
+            internal bool ExternalRange { get; }
+        }
+
+        private readonly struct SparklineScaleRange {
+            internal SparklineScaleRange(double minimum, double maximum) {
+                Minimum = minimum;
+                Maximum = maximum;
+            }
+
+            internal double Minimum { get; }
+
+            internal double Maximum { get; }
         }
 
         private static bool IsSupportedSparklineKind(string kind) {

@@ -112,6 +112,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeSparklineRenderer_UsesExplicitScaleDomainForColumnHeights() {
+            var autoBuilder = new System.Text.StringBuilder();
+            OfficeSparklineRenderer.AppendSvg(
+                autoBuilder,
+                0,
+                0,
+                80,
+                28,
+                new[] { 5D },
+                OfficeSparklineKind.Column,
+                new OfficeSparklineStyle { Padding = 0D });
+
+            var scaledBuilder = new System.Text.StringBuilder();
+            OfficeSparklineRenderer.AppendSvg(
+                scaledBuilder,
+                0,
+                0,
+                80,
+                28,
+                new[] { 5D },
+                OfficeSparklineKind.Column,
+                new OfficeSparklineStyle {
+                    Padding = 0D,
+                    MinimumValue = 0D,
+                    MaximumValue = 10D
+                });
+
+            double autoHeight = ExtractSvgRectHeight(autoBuilder.ToString());
+            double scaledHeight = ExtractSvgRectHeight(scaledBuilder.ToString());
+            Assert.True(autoHeight > scaledHeight * 1.8D, $"Expected explicit scale domain to reduce bar height. Auto={autoHeight}; Scaled={scaledHeight}.");
+        }
+
+        [Fact]
         public void OfficeDataBarRenderer_DrawsResolvedRasterDataBar() {
             OfficeRasterImage image = new OfficeRasterImage(40, 16, OfficeColor.Transparent);
 
@@ -1616,6 +1649,16 @@ namespace OfficeIMO.Tests {
                         Math.Abs(color.B - expected.B) <= 8 &&
                         color.A > 0;
                 });
+
+        private static double ExtractSvgRectHeight(string svg) {
+            const string attribute = "height=\"";
+            int start = svg.IndexOf(attribute, StringComparison.Ordinal);
+            Assert.True(start >= 0, "Expected SVG output to contain a rectangle height.");
+            start += attribute.Length;
+            int end = svg.IndexOf('"', start);
+            Assert.True(end > start, "Expected SVG rectangle height to be a valid number.");
+            return double.Parse(svg.Substring(start, end - start), System.Globalization.CultureInfo.InvariantCulture);
+        }
 
         private static int CountOccurrences(string value, string pattern) {
             int count = 0;

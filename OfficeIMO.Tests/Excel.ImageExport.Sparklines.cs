@@ -71,6 +71,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportScalesSparklinesAcrossTheirExcelGroup() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("GroupScale");
+            sheet.CellValue(1, 1, 1);
+            sheet.CellValue(1, 2, 2);
+            sheet.CellValue(1, 3, 3);
+            sheet.CellValue(2, 1, 0);
+            sheet.CellValue(2, 2, 50);
+            sheet.CellValue(2, 3, 100);
+            sheet.AddSparklines("A1:C2", "D1:D2", SparklineTypeValues.Column, seriesColor: "#2563EB");
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:D2").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+
+            Assert.Equal(2, snapshot.Sparklines.Count);
+            Assert.All(snapshot.Sparklines, sparkline => {
+                Assert.Equal(0D, sparkline.ScaleMinimum);
+                Assert.Equal(100D, sparkline.ScaleMaximum);
+            });
+            ExcelVisualSparkline small = snapshot.Sparklines.Single(sparkline => sparkline.Source == "GroupScale!D1");
+            ExcelVisualSparkline large = snapshot.Sparklines.Single(sparkline => sparkline.Source == "GroupScale!D2");
+            Assert.Equal(new[] { 1D, 2D, 3D }, small.Values);
+            Assert.Equal(new[] { 0D, 50D, 100D }, large.Values);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReportsExternalSparklineRanges() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

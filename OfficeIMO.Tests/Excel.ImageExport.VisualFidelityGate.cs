@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             Clean("officeimo-excel-image-rotated-image"),
             Clean("officeimo-excel-image-rotated-preset-drawing-object"),
             Tracked("officeimo-excel-image-rotated-shape-text", "Rotated shape text routes through Drawing but text-box metrics are not Excel-exact.", ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation),
-            Tracked("officeimo-excel-image-sparklines", "Sparkline group scaling and hidden/empty/date-axis behavior remain approximate.", ExcelImageExportDiagnosticCodes.SparklineRenderingApproximation, ExcelImageExportDiagnosticCodes.SparklineRenderingApproximation, ExcelImageExportDiagnosticCodes.SparklineRenderingApproximation),
+            Tracked("officeimo-excel-image-sparklines", "Sparkline hidden/empty/date-axis behavior remains approximate.", ExcelImageExportDiagnosticCodes.SparklineRenderingApproximation, ExcelImageExportDiagnosticCodes.SparklineRenderingApproximation, ExcelImageExportDiagnosticCodes.SparklineRenderingApproximation),
             Tracked("officeimo-excel-image-stacked-text", "Stacked text is readable but baseline metrics remain approximate.", ExcelImageExportDiagnosticCodes.CellTextRotationApproximation, ExcelImageExportDiagnosticCodes.CellTextRotationApproximation, ExcelImageExportDiagnosticCodes.CellTextRotationApproximation),
             Clean("officeimo-excel-image-text-spill"),
             Clean("officeimo-excel-image-transformed-image"),

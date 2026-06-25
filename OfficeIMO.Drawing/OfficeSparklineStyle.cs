@@ -15,6 +15,12 @@ public sealed class OfficeSparklineStyle {
     /// <summary>Whether to draw a zero axis when the data range crosses zero.</summary>
     public bool DisplayAxis { get; set; }
 
+    /// <summary>Optional minimum value for scaling the sparkline plot area across related sparklines.</summary>
+    public double? MinimumValue { get; set; }
+
+    /// <summary>Optional maximum value for scaling the sparkline plot area across related sparklines.</summary>
+    public double? MaximumValue { get; set; }
+
     /// <summary>Padding inside the sparkline rectangle, in rendered units.</summary>
     public double Padding { get; set; } = 3D;
 
