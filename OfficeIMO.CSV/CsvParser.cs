@@ -79,7 +79,7 @@ internal static class CsvParser
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
 
-        while (reader.ReadLine() is { } line)
+        while (ReadLineWithSeparator(reader, out _) is { } line)
         {
             if (ShouldSkipCommentLine(line, options))
             {
@@ -104,13 +104,13 @@ internal static class CsvParser
                 var logicalRecord = new StringBuilder(line);
                 while (true)
                 {
-                    var next = reader.ReadLine();
+                    var next = ReadLineWithSeparator(reader, out var separator);
                     if (next == null)
                     {
                         throw new CsvParseException("Unterminated quoted field.", lineNumber);
                     }
 
-                    logicalRecord.Append('\n');
+                    logicalRecord.Append(separator);
                     logicalRecord.Append(next);
                     lineNumber++;
 
@@ -148,7 +148,7 @@ internal static class CsvParser
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
 
-        while (reader.ReadLine() is { } line)
+        while (ReadLineWithSeparator(reader, out _) is { } line)
         {
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
             if (ShouldSkipCommentLine(line, options))
@@ -174,13 +174,13 @@ internal static class CsvParser
                 var logicalRecord = new StringBuilder(line);
                 while (true)
                 {
-                    var next = reader.ReadLine();
+                    var next = ReadLineWithSeparator(reader, out var separator);
                     if (next == null)
                     {
                         throw new CsvParseException("Unterminated quoted field.", lineNumber);
                     }
 
-                    logicalRecord.Append('\n');
+                    logicalRecord.Append(separator);
                     logicalRecord.Append(next);
                     lineNumber++;
 
@@ -213,7 +213,7 @@ internal static class CsvParser
         var lineNumber = 1;
         var reusableRecord = new List<string>(16);
 
-        while (reader.ReadLine() is { } line)
+        while (ReadLineWithSeparator(reader, out _) is { } line)
         {
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
             if (ShouldSkipCommentLine(line, options))
@@ -239,13 +239,13 @@ internal static class CsvParser
                 var logicalRecord = new StringBuilder(line);
                 while (true)
                 {
-                    var next = reader.ReadLine();
+                    var next = ReadLineWithSeparator(reader, out var separator);
                     if (next == null)
                     {
                         throw new CsvParseException("Unterminated quoted field.", lineNumber);
                     }
 
-                    logicalRecord.Append('\n');
+                    logicalRecord.Append(separator);
                     logicalRecord.Append(next);
                     lineNumber++;
 
@@ -507,7 +507,7 @@ internal static class CsvParser
             }
 
             var value = text.Substring(start, index - start);
-            fields[fieldIndex++] = trim ? value.Trim() : value;
+            fields[fieldIndex++] = value;
             index++;
 
             if (index == text.Length)
@@ -547,6 +547,44 @@ internal static class CsvParser
 
     private static bool IsW3CFieldsLine(string line, CsvLoadOptions options) =>
         options.RecognizeW3CFieldsHeader && line.StartsWith("#Fields:", StringComparison.OrdinalIgnoreCase);
+
+    private static string? ReadLineWithSeparator(TextReader reader, out string separator)
+    {
+        separator = string.Empty;
+        var builder = new StringBuilder();
+        while (true)
+        {
+            var value = reader.Read();
+            if (value < 0)
+            {
+                return builder.Length == 0 ? null : builder.ToString();
+            }
+
+            var ch = (char)value;
+            if (ch == '\r')
+            {
+                if (reader.Peek() == '\n')
+                {
+                    reader.Read();
+                    separator = "\r\n";
+                }
+                else
+                {
+                    separator = "\r";
+                }
+
+                return builder.ToString();
+            }
+
+            if (ch == '\n')
+            {
+                separator = "\n";
+                return builder.ToString();
+            }
+
+            builder.Append(ch);
+        }
+    }
 
     private static void AddField(List<string> fields, StringBuilder buffer, bool trim, ref bool fieldWasQuoted)
     {

@@ -183,7 +183,11 @@ public sealed class CsvObjectWriter : IDisposable
         }
 
         _disposed = true;
-        if (!_leaveOpen)
+        if (_leaveOpen)
+        {
+            _writer.Flush();
+        }
+        else
         {
             _writer.Dispose();
         }
@@ -201,6 +205,7 @@ public sealed class CsvObjectWriter : IDisposable
     {
         if (_columns != null)
         {
+            ValidateColumns(columns);
             return;
         }
 
@@ -209,10 +214,26 @@ public sealed class CsvObjectWriter : IDisposable
             throw new InvalidOperationException("Unable to infer column names. Use objects with properties or dictionaries.");
         }
 
-        _columns = columns;
+        _columns = columns.ToArray();
         if (_options.IncludeHeader)
         {
             WriteHeader();
+        }
+    }
+
+    private void ValidateColumns(IReadOnlyList<string> columns)
+    {
+        if (columns.Count != _columns!.Count)
+        {
+            throw new CsvException($"Row defines {columns.Count} columns but header defines {_columns.Count} columns.");
+        }
+
+        for (var i = 0; i < columns.Count; i++)
+        {
+            if (!string.Equals(columns[i], _columns[i], StringComparison.Ordinal))
+            {
+                throw new CsvException($"Row column '{columns[i]}' at index {i} does not match header column '{_columns[i]}'.");
+            }
         }
     }
 

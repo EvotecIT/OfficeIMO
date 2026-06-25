@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -88,6 +89,16 @@ public class CsvDocumentBasicsTests
             new CsvLoadOptions { TrimWhitespace = true });
 
         Assert.Equal("spaced", parsed.AsEnumerable().Single().AsString("Value"));
+    }
+
+    [Fact]
+    public void TrimWhitespace_Preserves_Quoted_Whitespace()
+    {
+        var parsed = CsvDocument.Parse(
+            "\"Name\",\"Value\"\n\"Alpha\",\"  spaced  \"\n",
+            new CsvLoadOptions { TrimWhitespace = true });
+
+        Assert.Equal("  spaced  ", parsed.AsEnumerable().Single().AsString("Value"));
     }
 
     [Theory]
@@ -441,5 +452,51 @@ public class CsvDocumentBasicsTests
         }
 
         Assert.Equal("Value\n'-1\n", writer.ToString());
+    }
+
+    [Fact]
+    public void Quoted_Multiline_Fields_Preserve_Physical_Newlines()
+    {
+        var parsed = CsvDocument.Parse("Name,Note\r\nAlpha,\"one\r\ntwo\"\r\n");
+
+        Assert.Equal("one\r\ntwo", parsed.AsEnumerable().Single().AsString("Note"));
+    }
+
+    [Fact]
+    public void Default_Writer_Quotes_Custom_Span_Formatted_Values_When_Needed()
+    {
+        using var writer = new StringWriter();
+        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }))
+        {
+            csv.WriteRow(new[] { "Value" }, new object?[] { new CommaSpanValue("A,B") });
+        }
+
+        Assert.Equal("Value\n\"A,B\"\n", writer.ToString());
+    }
+
+    private readonly struct CommaSpanValue : ISpanFormattable
+    {
+        private readonly string _value;
+
+        public CommaSpanValue(string value)
+        {
+            _value = value;
+        }
+
+        public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+        {
+            if (_value.AsSpan().TryCopyTo(destination))
+            {
+                charsWritten = _value.Length;
+                return true;
+            }
+
+            charsWritten = 0;
+            return false;
+        }
+
+        public string ToString(string? format, IFormatProvider? formatProvider) => _value;
+
+        public override string ToString() => _value;
     }
 }

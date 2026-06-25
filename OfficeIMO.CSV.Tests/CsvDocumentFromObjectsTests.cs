@@ -80,6 +80,20 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void CsvObjectWriter_FlushesWhenLeavingWriterOpen()
+    {
+        using var writer = new FlushTrackingWriter();
+        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        {
+            csvWriter.WriteObject(new { Name = "A", Value = 1 });
+        }
+
+        Assert.True(writer.WasFlushed);
+        writer.Write("#");
+        Assert.Equal("Name,Value\nA,1\n#", writer.ToString());
+    }
+
+    [Fact]
     public void CsvObjectWriter_WritesProjectedRows()
     {
         using var writer = new StringWriter();
@@ -90,6 +104,27 @@ public class CsvDocumentFromObjectsTests
         }
 
         Assert.Equal("Name,Value\nA,1\nB,2\n", writer.ToString());
+    }
+
+    [Fact]
+    public void CsvObjectWriter_RejectsProjectedRowsWithDifferentColumns()
+    {
+        using var writer = new StringWriter();
+        using var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        csvWriter.WriteRow(new[] { "Name", "Value" }, new object?[] { "A", 1 });
+
+        Assert.Throws<CsvException>(() => csvWriter.WriteRow(new[] { "Value", "Name" }, new object?[] { 2, "B" }));
+    }
+
+    private sealed class FlushTrackingWriter : StringWriter
+    {
+        public bool WasFlushed { get; private set; }
+
+        public override void Flush()
+        {
+            WasFlushed = true;
+            base.Flush();
+        }
     }
 
     [Fact]

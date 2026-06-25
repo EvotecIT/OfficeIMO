@@ -24,6 +24,7 @@ public static class DocumentReaderCsvExtensions {
         var csv = CsvDocument.Load(path, new CsvLoadOptions {
             Delimiter = delimiter,
             HasHeaderRow = options.HeadersInFirstRow,
+            GenerateMissingHeaderNames = false,
             Mode = CsvLoadMode.Stream
         });
 
@@ -56,6 +57,7 @@ public static class DocumentReaderCsvExtensions {
             var csv = CsvDocument.Load(parseStream, new CsvLoadOptions {
                 Delimiter = delimiter,
                 HasHeaderRow = options.HeadersInFirstRow,
+                GenerateMissingHeaderNames = false,
                 Mode = CsvLoadMode.Stream
             }, leaveOpen: true);
 

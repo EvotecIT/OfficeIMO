@@ -353,6 +353,25 @@ internal static class CsvWriter
         return value.ToString() ?? string.Empty;
     }
 
+    private static bool IsKnownCsvSafeSpanFormattedValue(object value)
+    {
+        return value is byte
+            or sbyte
+            or short
+            or ushort
+            or int
+            or uint
+            or long
+            or ulong
+            or float
+            or double
+            or decimal
+            or DateTime
+            or DateTimeOffset
+            or TimeSpan
+            or Guid;
+    }
+
     private static void WriteBufferedRecordLine(TextWriter writer, StringBuilder buffer, string newLine)
     {
 #if NET6_0_OR_GREATER
@@ -456,7 +475,7 @@ internal static class CsvWriter
             if (spanFormattable.TryFormat(destination, out var charsWritten, default, culture))
             {
                 var formatted = destination[..charsWritten];
-                if (delimiter == ',' && ReferenceEquals(culture, CultureInfo.InvariantCulture))
+                if (delimiter == ',' && ReferenceEquals(culture, CultureInfo.InvariantCulture) && IsKnownCsvSafeSpanFormattedValue(value))
                 {
                     buffer.Append(formatted);
                 }

@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
         public ExcelDelimitedImportResult ImportDelimitedText(string text, ExcelDelimitedImportOptions? options = null) {
             if (text == null) throw new ArgumentNullException(nameof(text));
             options ??= new ExcelDelimitedImportOptions();
-            char delimiter = options.Delimiter ?? DetectDelimitedImportDelimiter(text);
+            char delimiter = options.Delimiter ?? DetectDelimitedImportDelimiter(text, GetDelimitedRecordsToSkip(options));
             var warnings = new List<string>();
             using var reader = new StringReader(text);
             DataTable table = ParseDelimitedText(reader, delimiter, options, warnings);
@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
         public ExcelDelimitedImportResult ImportDelimitedFile(string path, ExcelDelimitedImportOptions? options = null) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
             options ??= new ExcelDelimitedImportOptions();
-            char delimiter = options.Delimiter ?? DetectDelimitedImportDelimiterFromFile(path);
+            char delimiter = options.Delimiter ?? DetectDelimitedImportDelimiterFromFile(path, GetDelimitedRecordsToSkip(options));
             var warnings = new List<string>();
             DataTable table = ParseDelimitedFile(path, delimiter, options, warnings);
             return ImportDelimitedTable(table, delimiter, "UTF-8 file", options, warnings);
@@ -177,14 +177,19 @@ namespace OfficeIMO.Excel {
             return value;
         }
 
-        private static char DetectDelimitedImportDelimiterFromFile(string path) {
+        private static char DetectDelimitedImportDelimiterFromFile(string path, int recordsToSkip) {
             using var reader = new StreamReader(path);
-            string firstLine = reader.ReadLine() ?? string.Empty;
+            string firstLine = ReadFirstDelimitedImportLine(reader, recordsToSkip);
             return DetectDelimitedImportDelimiter(firstLine);
         }
 
-        private static char DetectDelimitedImportDelimiter(string text) {
-            string firstLine = ReadFirstDelimitedImportLine(text);
+        private static char DetectDelimitedImportDelimiter(string text, int recordsToSkip) {
+            using var reader = new StringReader(text);
+            string firstLine = ReadFirstDelimitedImportLine(reader, recordsToSkip);
+            return DetectDelimitedImportDelimiter(firstLine);
+        }
+
+        private static char DetectDelimitedImportDelimiter(string firstLine) {
             var candidates = new[] { ',', ';', '\t', '|' };
             return candidates
                 .Select(candidate => new { Delimiter = candidate, Count = CountUnquoted(firstLine, candidate) })
@@ -192,17 +197,16 @@ namespace OfficeIMO.Excel {
                 .First().Delimiter;
         }
 
-        private static string ReadFirstDelimitedImportLine(string text) {
-            var lineEnd = text.IndexOf('\n');
-            if (lineEnd < 0) {
-                return text;
+        private static string ReadFirstDelimitedImportLine(TextReader reader, int recordsToSkip) {
+            while (recordsToSkip > 0) {
+                if (reader.ReadLine() == null) {
+                    return string.Empty;
+                }
+
+                recordsToSkip--;
             }
 
-            if (lineEnd > 0 && text[lineEnd - 1] == '\r') {
-                lineEnd--;
-            }
-
-            return text.Substring(0, lineEnd);
+            return reader.ReadLine() ?? string.Empty;
         }
 
         private static int CountUnquoted(string text, char delimiter) {
