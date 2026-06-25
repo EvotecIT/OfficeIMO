@@ -1183,6 +1183,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             CompoundFeatureEntriesByRoleAndObjectType = CountByCode(workbook.CompoundFeatureRecords
                 .SelectMany(record => record.EntryDetails)
                 .Select(entry => $"{entry.Role}|{entry.ObjectType}"));
+            CompoundFeatureEntriesByContentKind = CountByCode(workbook.CompoundFeatureRecords
+                .SelectMany(record => record.EntryDetails)
+                .Select(entry => entry.ContentKind.ToString()));
+            CompoundFeatureEntriesByRoleAndContentKind = CountByCode(workbook.CompoundFeatureRecords
+                .SelectMany(record => record.EntryDetails)
+                .Select(entry => $"{entry.Role}|{entry.ContentKind}"));
             CompoundFeatureEntriesBySize = CountByCode(workbook.CompoundFeatureRecords
                 .SelectMany(record => record.EntryDetails)
                 .Select(GetCompoundFeatureEntrySizeKey));
@@ -1202,6 +1208,14 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(record => record.EntryDetails)
                 .Where(entry => entry.Role == LegacyXlsCompoundFeatureEntryRole.VbaModuleStream)
                 .Select(entry => $"{GetCompoundFeatureEntryLeafName(entry.Path)}|{GetCompoundFeatureEntrySizeKey(entry)}"));
+            CompoundVbaModulesByContentKind = CountByCode(workbook.CompoundFeatureRecords
+                .SelectMany(record => record.EntryDetails)
+                .Where(entry => entry.Role == LegacyXlsCompoundFeatureEntryRole.VbaModuleStream)
+                .Select(entry => entry.ContentKind.ToString()));
+            CompoundVbaModulesByNameAndContentKind = CountByCode(workbook.CompoundFeatureRecords
+                .SelectMany(record => record.EntryDetails)
+                .Where(entry => entry.Role == LegacyXlsCompoundFeatureEntryRole.VbaModuleStream)
+                .Select(entry => $"{GetCompoundFeatureEntryLeafName(entry.Path)}|{entry.ContentKind}"));
             CompoundVbaModulesByCodeNameMatch = CountByCode(GetCompoundVbaModuleCodeNameMatchKeys(workbook));
             CompoundVbaModulesByCodeNameMatchAndName = CountByCode(GetCompoundVbaModuleCodeNameMatchAndNameKeys(workbook));
             CompoundVbaProjectsByModuleCount = CountByCode(workbook.CompoundFeatureRecords
@@ -2785,6 +2799,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets matching compound feature entries grouped by role and OLE compound object type.</summary>
         public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByRoleAndObjectType { get; }
 
+        /// <summary>Gets matching compound feature entries grouped by preserve-only content shape.</summary>
+        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByContentKind { get; }
+
+        /// <summary>Gets matching compound feature entries grouped by role and preserve-only content shape.</summary>
+        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByRoleAndContentKind { get; }
+
         /// <summary>Gets matching compound feature entries grouped by declared byte size.</summary>
         public IReadOnlyDictionary<string, int> CompoundFeatureEntriesBySize { get; }
 
@@ -2802,6 +2822,12 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets VBA module streams grouped by module name and declared byte size.</summary>
         public IReadOnlyDictionary<string, int> CompoundVbaModulesByNameAndSize { get; }
+
+        /// <summary>Gets VBA module streams grouped by preserve-only content shape.</summary>
+        public IReadOnlyDictionary<string, int> CompoundVbaModulesByContentKind { get; }
+
+        /// <summary>Gets VBA module streams grouped by module name and preserve-only content shape.</summary>
+        public IReadOnlyDictionary<string, int> CompoundVbaModulesByNameAndContentKind { get; }
 
         /// <summary>Gets VBA module streams grouped by whether they match workbook or worksheet CodeName records.</summary>
         public IReadOnlyDictionary<string, int> CompoundVbaModulesByCodeNameMatch { get; }
@@ -3439,12 +3465,16 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Compound Feature Entries By Kind And Role", CompoundFeatureEntriesByKindAndRole);
             AppendDictionary(builder, "Compound Feature Entries By Object Type", CompoundFeatureEntriesByObjectType);
             AppendDictionary(builder, "Compound Feature Entries By Role And Object Type", CompoundFeatureEntriesByRoleAndObjectType);
+            AppendDictionary(builder, "Compound Feature Entries By Content Kind", CompoundFeatureEntriesByContentKind);
+            AppendDictionary(builder, "Compound Feature Entries By Role And Content Kind", CompoundFeatureEntriesByRoleAndContentKind);
             AppendDictionary(builder, "Compound Feature Entries By Size", CompoundFeatureEntriesBySize);
             AppendDictionary(builder, "Compound Feature Entries By Role And Size", CompoundFeatureEntriesByRoleAndSize);
             AppendDictionary(builder, "Compound VBA Modules By Name", CompoundVbaModulesByName);
             AppendDictionary(builder, "Compound VBA Modules By Path", CompoundVbaModulesByPath);
             AppendDictionary(builder, "Compound VBA Modules By Size", CompoundVbaModulesBySize);
             AppendDictionary(builder, "Compound VBA Modules By Name And Size", CompoundVbaModulesByNameAndSize);
+            AppendDictionary(builder, "Compound VBA Modules By Content Kind", CompoundVbaModulesByContentKind);
+            AppendDictionary(builder, "Compound VBA Modules By Name And Content Kind", CompoundVbaModulesByNameAndContentKind);
             AppendDictionary(builder, "Compound VBA Modules By CodeName Match", CompoundVbaModulesByCodeNameMatch);
             AppendDictionary(builder, "Compound VBA Modules By CodeName Match And Name", CompoundVbaModulesByCodeNameMatchAndName);
             AppendDictionary(builder, "Compound VBA Projects By Module Count", CompoundVbaProjectsByModuleCount);

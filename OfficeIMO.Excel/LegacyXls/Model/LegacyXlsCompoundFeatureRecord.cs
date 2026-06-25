@@ -11,7 +11,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             IReadOnlyList<string> entries,
             IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryRole>? entryRoles = null,
             IReadOnlyDictionary<string, long>? entrySizes = null,
-            IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryObjectType>? entryObjectTypes = null) {
+            IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryObjectType>? entryObjectTypes = null,
+            IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryContentKind>? entryContentKinds = null) {
             Kind = kind;
             Entries = entries?.ToArray() ?? throw new ArgumentNullException(nameof(entries));
             var roles = new Dictionary<string, LegacyXlsCompoundFeatureEntryRole>(StringComparer.OrdinalIgnoreCase);
@@ -38,12 +39,21 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             }
 
             EntryObjectTypes = objectTypes;
+            var contentKinds = new Dictionary<string, LegacyXlsCompoundFeatureEntryContentKind>(StringComparer.OrdinalIgnoreCase);
+            if (entryContentKinds != null) {
+                foreach (KeyValuePair<string, LegacyXlsCompoundFeatureEntryContentKind> contentKind in entryContentKinds) {
+                    contentKinds[contentKind.Key] = contentKind.Value;
+                }
+            }
+
+            EntryContentKinds = contentKinds;
             EntryDetails = Entries
                 .Select(entry => new LegacyXlsCompoundFeatureEntryInfo(
                     entry,
                     EntryRoles.TryGetValue(entry, out LegacyXlsCompoundFeatureEntryRole role) ? role : LegacyXlsCompoundFeatureEntryRole.Unknown,
                     EntryObjectTypes.TryGetValue(entry, out LegacyXlsCompoundFeatureEntryObjectType objectType) ? objectType : LegacyXlsCompoundFeatureEntryObjectType.Unknown,
-                    EntrySizes.TryGetValue(entry, out long size) ? size : null))
+                    EntrySizes.TryGetValue(entry, out long size) ? size : null,
+                    EntryContentKinds.TryGetValue(entry, out LegacyXlsCompoundFeatureEntryContentKind contentKind) ? contentKind : LegacyXlsCompoundFeatureEntryContentKind.Unknown))
                 .ToArray();
         }
 
@@ -61,6 +71,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets matching compound directory entry object types keyed by entry path or name.</summary>
         public IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryObjectType> EntryObjectTypes { get; }
+
+        /// <summary>Gets matching compound directory entry content shapes keyed by entry path or name.</summary>
+        public IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryContentKind> EntryContentKinds { get; }
 
         /// <summary>Gets typed metadata for matching compound directory entries.</summary>
         public IReadOnlyList<LegacyXlsCompoundFeatureEntryInfo> EntryDetails { get; }

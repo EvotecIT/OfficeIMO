@@ -40,6 +40,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.CompoundVbaModulesByPath["_VBA_PROJECT_CUR/VBA/ThisWorkbook"]);
             Assert.Equal(1, result.ImportReport.CompoundVbaModulesByNameAndSize["ThisWorkbook|Bytes:965"]);
             Assert.Equal(1, result.ImportReport.CompoundVbaModulesByNameAndSize["Sheet8|Bytes:957"]);
+            Assert.Equal(8, result.ImportReport.CompoundVbaModulesByContentKind["VbaCompressedContainer"]);
+            Assert.Equal(1, result.ImportReport.CompoundVbaModulesByNameAndContentKind["ThisWorkbook|VbaCompressedContainer"]);
+            Assert.Equal(1, result.ImportReport.CompoundVbaModulesByNameAndContentKind["Sheet8|VbaCompressedContainer"]);
             Assert.Equal(1, result.ImportReport.CompoundVbaModulesByCodeNameMatchAndName["WorkbookCodeName|ThisWorkbook"]);
             Assert.Equal(1, result.ImportReport.CompoundVbaModulesByCodeNameMatchAndName["WorksheetCodeName|Sheet1"]);
             Assert.Equal(1, result.ImportReport.CompoundVbaProjectsByStructure["Modules:8|DirStreams:1|ProjectStreams:2|Storages:2"]);

@@ -2219,6 +2219,24 @@ Warnings: 0
 | VbaProjectStream\|Stream | 2 |
 | VbaStorage\|Storage | 1 |
 
+## Compound Feature Entries By Content Kind
+
+| Key | Count |
+| --- | --- |
+| Storage | 2 |
+| VbaCompressedContainer | 9 |
+| VbaProjectMetadataStream | 2 |
+
+## Compound Feature Entries By Role And Content Kind
+
+| Key | Count |
+| --- | --- |
+| VbaDirStream\|VbaCompressedContainer | 1 |
+| VbaModuleStream\|VbaCompressedContainer | 8 |
+| VbaProjectStorage\|Storage | 1 |
+| VbaProjectStream\|VbaProjectMetadataStream | 2 |
+| VbaStorage\|Storage | 1 |
+
 ## Compound Feature Entries By Size
 
 | Key | Count |
@@ -2285,6 +2303,25 @@ Warnings: 0
 | Sheet6\|Bytes:957 | 1 |
 | Sheet8\|Bytes:957 | 1 |
 | ThisWorkbook\|Bytes:965 | 1 |
+
+## Compound VBA Modules By Content Kind
+
+| Key | Count |
+| --- | --- |
+| VbaCompressedContainer | 8 |
+
+## Compound VBA Modules By Name And Content Kind
+
+| Key | Count |
+| --- | --- |
+| Sheet1\|VbaCompressedContainer | 1 |
+| Sheet2\|VbaCompressedContainer | 1 |
+| Sheet3\|VbaCompressedContainer | 1 |
+| Sheet4\|VbaCompressedContainer | 1 |
+| Sheet5\|VbaCompressedContainer | 1 |
+| Sheet6\|VbaCompressedContainer | 1 |
+| Sheet8\|VbaCompressedContainer | 1 |
+| ThisWorkbook\|VbaCompressedContainer | 1 |
 
 ## Compound VBA Modules By CodeName Match
 

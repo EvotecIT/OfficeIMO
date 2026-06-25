@@ -10,11 +10,13 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             string path,
             LegacyXlsCompoundFeatureEntryRole role,
             LegacyXlsCompoundFeatureEntryObjectType objectType = LegacyXlsCompoundFeatureEntryObjectType.Unknown,
-            long? sizeBytes = null) {
+            long? sizeBytes = null,
+            LegacyXlsCompoundFeatureEntryContentKind contentKind = LegacyXlsCompoundFeatureEntryContentKind.Unknown) {
             Path = string.IsNullOrWhiteSpace(path) ? throw new ArgumentException("Entry path must not be empty.", nameof(path)) : path;
             Role = role;
             ObjectType = objectType;
             SizeBytes = sizeBytes;
+            ContentKind = contentKind;
         }
 
         /// <summary>Gets the compound directory entry path or name.</summary>
@@ -28,6 +30,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the stream or storage size declared by the OLE compound directory, when known.</summary>
         public long? SizeBytes { get; }
+
+        /// <summary>Gets the preserve-only content shape of this compound entry.</summary>
+        public LegacyXlsCompoundFeatureEntryContentKind ContentKind { get; }
 
         /// <summary>Gets whether this entry is an OLE compound storage.</summary>
         public bool IsStorage => ObjectType == LegacyXlsCompoundFeatureEntryObjectType.Storage
