@@ -239,6 +239,25 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Skip_Initial_Records_Keeps_W3C_Header_Recognition_When_Comments_Are_Skipped()
+    {
+        var parsed = CsvDocument.Parse(
+            "metadata\n#Fields: date time\n2026-06-25 12:00\n",
+            new CsvLoadOptions
+            {
+                Delimiter = ' ',
+                SkipInitialRecords = 1,
+                SkipCommentRows = true
+            });
+
+        var row = Assert.Single(parsed.AsEnumerable());
+
+        Assert.Equal(new[] { "date", "time" }, parsed.Header);
+        Assert.Equal("2026-06-25", row.AsString("date"));
+        Assert.Equal("12:00", row.AsString("time"));
+    }
+
+    [Fact]
     public void Delimiter_Detection_Keeps_Comment_Looking_Data_When_No_Header_Is_Discovered()
     {
         var parsed = CsvDocument.Parse(
@@ -440,6 +459,22 @@ public class CsvDocumentBasicsTests
         Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
         Assert.Equal("Alpha", row.AsString("Name"));
         Assert.Equal("1", row.AsString("Value"));
+    }
+
+    [Fact]
+    public void Delimiter_Detection_Skips_W3C_Markers_Only_When_Header_Can_Consume_Them()
+    {
+        var parsed = CsvDocument.Parse(
+            "#Fields: old,value\n1;2\n3;4\n",
+            new CsvLoadOptions
+            {
+                DetectDelimiter = true,
+                HasHeaderRow = false,
+                SkipCommentRows = true
+            });
+
+        Assert.Equal(';', parsed.Delimiter);
+        Assert.Equal(2, parsed.AsEnumerable().Count());
     }
 
     [Fact]

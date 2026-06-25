@@ -156,10 +156,47 @@ public sealed partial class CsvDocument
             throw new ArgumentException("File path cannot be empty.", nameof(path));
         }
 
+        if (items == null)
+        {
+            throw new ArgumentNullException(nameof(items));
+        }
+
         options ??= new CsvSaveOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        using var writer = new StreamWriter(path, append: false, encoding, bufferSize: 256 * 1024);
-        WriteObjects(writer, items, options);
+        var fullPath = Path.GetFullPath(path);
+        var directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var temporaryPath = Path.Combine(
+            string.IsNullOrEmpty(directory) ? Environment.CurrentDirectory : directory,
+            "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+
+        try
+        {
+            using (var writer = new StreamWriter(temporaryPath, append: false, encoding, bufferSize: 256 * 1024))
+            {
+                WriteObjects(writer, items, options);
+            }
+
+            if (File.Exists(fullPath))
+            {
+                File.Delete(fullPath);
+            }
+
+            File.Move(temporaryPath, fullPath);
+        }
+        catch
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+
+            throw;
+        }
     }
 
     /// <summary>

@@ -94,11 +94,8 @@ public sealed class CsvObjectWriter : IDisposable
             throw new ArgumentNullException(nameof(values));
         }
 
+        ValidateProjectedValueCount(columns, values.Count);
         EnsureColumns(columns);
-        if (values.Count != _columns!.Count)
-        {
-            throw new CsvException($"Row contains {values.Count} values but header defines {_columns.Count} columns.");
-        }
 
         if (_useDefaultWritePath && values is object?[] arrayValues)
         {
@@ -132,11 +129,8 @@ public sealed class CsvObjectWriter : IDisposable
             throw new ArgumentNullException(nameof(values));
         }
 
+        ValidateProjectedValueCount(columns, values.Length);
         EnsureColumns(columns);
-        if (values.Length != _columns!.Count)
-        {
-            throw new CsvException($"Row contains {values.Length} values but header defines {_columns.Count} columns.");
-        }
 
         WriteBuffered(values);
     }
@@ -166,11 +160,8 @@ public sealed class CsvObjectWriter : IDisposable
             throw new ArgumentNullException(nameof(valueAccessor));
         }
 
+        ValidateProjectedValueCount(columns, valueCount);
         EnsureColumns(columns);
-        if (valueCount != _columns!.Count)
-        {
-            throw new CsvException($"Row contains {valueCount} values but header defines {_columns.Count} columns.");
-        }
 
         CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
     }
@@ -219,6 +210,15 @@ public sealed class CsvObjectWriter : IDisposable
         if (_options.IncludeHeader)
         {
             WriteHeader();
+        }
+    }
+
+    private void ValidateProjectedValueCount(IReadOnlyList<string> columns, int valueCount)
+    {
+        var expectedCount = _columns?.Count ?? columns.Count;
+        if (valueCount != expectedCount)
+        {
+            throw new CsvException($"Row contains {valueCount} values but header defines {expectedCount} columns.");
         }
     }
 

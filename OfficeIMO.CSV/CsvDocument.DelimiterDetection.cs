@@ -8,7 +8,7 @@ public sealed partial class CsvDocument
 
     private static readonly char[] DefaultDelimiterCandidates = { ',', ';', '|', '\t' };
 
-    private static CsvLoadOptions ResolveLoadOptions(Func<TextReader> readerFactory, CsvLoadOptions options)
+    private static CsvLoadOptions ResolveLoadOptions(Func<TextReader> readerFactory, CsvLoadOptions options, bool useHeaderDiscoveryForDelimiterDetection = true)
     {
         if (!options.DetectDelimiter)
         {
@@ -16,19 +16,19 @@ public sealed partial class CsvDocument
         }
 
         var resolved = options.Clone();
-        resolved.Delimiter = DetectDelimiter(readerFactory, options);
+        resolved.Delimiter = DetectDelimiter(readerFactory, options, useHeaderDiscoveryForDelimiterDetection);
         resolved.DetectDelimiter = false;
         return resolved;
     }
 
-    private static char DetectDelimiter(Func<TextReader> readerFactory, CsvLoadOptions options)
+    private static char DetectDelimiter(Func<TextReader> readerFactory, CsvLoadOptions options, bool useHeaderDiscovery)
     {
         var candidates = options.DelimiterCandidates is { Length: > 0 }
             ? options.DelimiterCandidates
             : DefaultDelimiterCandidates;
 
         using var reader = readerFactory();
-        var samples = ReadDelimiterDetectionSamples(reader, options).ToArray();
+        var samples = ReadDelimiterDetectionSamples(reader, options, useHeaderDiscovery).ToArray();
         if (samples.Length == 0)
         {
             return options.Delimiter;
@@ -50,7 +50,7 @@ public sealed partial class CsvDocument
         return bestScore.FirstLineFieldCount > 1 ? bestDelimiter : options.Delimiter;
     }
 
-    private static IEnumerable<string> ReadDelimiterDetectionSamples(TextReader reader, CsvLoadOptions options)
+    private static IEnumerable<string> ReadDelimiterDetectionSamples(TextReader reader, CsvLoadOptions options, bool useHeaderDiscovery)
     {
         var recordsToSkip = GetInitialRecordsToSkip(options);
         using var records = ReadLogicalDelimiterDetectionRecords(reader).GetEnumerator();
@@ -68,7 +68,7 @@ public sealed partial class CsvDocument
                 continue;
             }
 
-            if (ShouldSkipCommentDuringDelimiterDetection(record, options))
+            if (ShouldSkipCommentDuringDelimiterDetection(record, options, useHeaderDiscovery))
             {
                 continue;
             }
@@ -92,7 +92,7 @@ public sealed partial class CsvDocument
                 continue;
             }
 
-            if (ShouldSkipCommentDuringDelimiterDetection(record, options))
+            if (ShouldSkipCommentDuringDelimiterDetection(record, options, useHeaderDiscovery))
             {
                 continue;
             }
@@ -150,11 +150,30 @@ public sealed partial class CsvDocument
         return !inQuotes;
     }
 
-    private static bool ShouldSkipCommentDuringDelimiterDetection(string line, CsvLoadOptions options) =>
-        (options.SkipCommentRows || (options.HasHeaderRow && options.Header is null && options.SkipCommentRowsBeforeHeader)) &&
-        line.Length > 0 &&
-        line[0] == options.CommentCharacter &&
-        !IsW3CFieldsLine(line, options);
+    private static bool ShouldSkipCommentDuringDelimiterDetection(string line, CsvLoadOptions options, bool useHeaderDiscovery)
+    {
+        if (line.Length == 0 || line[0] != options.CommentCharacter)
+        {
+            return false;
+        }
+
+        var canReadW3CFieldsHeader = useHeaderDiscovery &&
+            options.HasHeaderRow &&
+            options.Header is null &&
+            options.RecognizeW3CFieldsHeader;
+
+        var skipPreHeaderComment = useHeaderDiscovery &&
+            options.HasHeaderRow &&
+            options.Header is null &&
+            options.SkipCommentRowsBeforeHeader;
+
+        if (!options.SkipCommentRows && !skipPreHeaderComment)
+        {
+            return false;
+        }
+
+        return !canReadW3CFieldsHeader || !IsW3CFieldsLine(line, options);
+    }
 
     private static bool IsW3CFieldsLine(string line, CsvLoadOptions options) =>
         options.RecognizeW3CFieldsHeader && line.StartsWith("#Fields:", StringComparison.OrdinalIgnoreCase);

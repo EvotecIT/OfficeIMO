@@ -18,10 +18,10 @@ public sealed partial class CsvDocument
             throw new ArgumentException("File path cannot be empty.", nameof(path));
         }
 
-        options ??= new CsvLoadOptions();
+        options = CreateRawRecordOptions(options);
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var readerFactory = () => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: FileBufferSize);
-        var resolvedOptions = ResolveLoadOptions(readerFactory, options);
+        var resolvedOptions = ResolveLoadOptions(readerFactory, options, useHeaderDiscoveryForDelimiterDetection: false);
 
         return ReadRecordsIterator(readerFactory, resolvedOptions, disposeReader: true);
     }
@@ -38,11 +38,11 @@ public sealed partial class CsvDocument
             throw new ArgumentNullException(nameof(reader));
         }
 
-        options ??= new CsvLoadOptions();
+        options = CreateRawRecordOptions(options);
         if (options.DetectDelimiter)
         {
             var text = reader.ReadToEnd();
-            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options);
+            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options, useHeaderDiscoveryForDelimiterDetection: false);
             return ReadRecordsIterator(() => new StringReader(text), resolvedOptions, disposeReader: true);
         }
 
@@ -67,10 +67,10 @@ public sealed partial class CsvDocument
             throw new ArgumentNullException(nameof(recordAction));
         }
 
-        options ??= new CsvLoadOptions();
+        options = CreateRawRecordOptions(options);
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var readerFactory = () => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: FileBufferSize);
-        var resolvedOptions = ResolveLoadOptions(readerFactory, options);
+        var resolvedOptions = ResolveLoadOptions(readerFactory, options, useHeaderDiscoveryForDelimiterDetection: false);
         using var reader = readerFactory();
         ReadRecordsReusable(reader, recordAction, resolvedOptions);
     }
@@ -93,11 +93,11 @@ public sealed partial class CsvDocument
             throw new ArgumentNullException(nameof(recordAction));
         }
 
-        options ??= new CsvLoadOptions();
+        options = CreateRawRecordOptions(options);
         if (options.DetectDelimiter)
         {
             var text = reader.ReadToEnd();
-            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options);
+            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options, useHeaderDiscoveryForDelimiterDetection: false);
             using var bufferedReader = new StringReader(text);
             ReadRecordsReusable(bufferedReader, recordAction, resolvedOptions);
             return;
@@ -130,5 +130,14 @@ public sealed partial class CsvDocument
                 reader.Dispose();
             }
         }
+    }
+
+    private static CsvLoadOptions CreateRawRecordOptions(CsvLoadOptions? options)
+    {
+        var rawOptions = options?.Clone() ?? new CsvLoadOptions();
+        rawOptions.HasHeaderRow = false;
+        rawOptions.Header = null;
+        rawOptions.SkipCommentRowsBeforeHeader = false;
+        return rawOptions;
     }
 }

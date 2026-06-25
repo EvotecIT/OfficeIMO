@@ -131,6 +131,16 @@ public class CsvDocumentFromObjectsTests
         Assert.Throws<CsvException>(() => csvWriter.WriteRow(new[] { "Value", "Name" }, new object?[] { 2, "B" }));
     }
 
+    [Fact]
+    public void CsvObjectWriter_ValidatesProjectedRowWidthBeforeWritingHeader()
+    {
+        using var writer = new StringWriter();
+        using var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+
+        Assert.Throws<CsvException>(() => csvWriter.WriteRow(new[] { "Name", "Value" }, new object?[] { "A" }));
+        Assert.Equal(string.Empty, writer.ToString());
+    }
+
     private sealed class FlushTrackingWriter : StringWriter
     {
         public bool WasFlushed { get; private set; }
@@ -242,6 +252,17 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void ReadRecords_DetectDelimiter_UsesRawRecordCommentSemantics()
+    {
+        using var reader = new StringReader("#a,b,c\n1;2;3\n");
+
+        var records = CsvDocument.ReadRecords(reader, new CsvLoadOptions { DetectDelimiter = true }).ToArray();
+
+        Assert.Equal(new[] { "#a", "b", "c" }, records[0]);
+        Assert.Equal(new[] { "1;2;3" }, records[1]);
+    }
+
+    [Fact]
     public void SaveObjects_WritesFile()
     {
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.SaveObjects." + Guid.NewGuid().ToString("N") + ".csv");
@@ -250,6 +271,27 @@ public class CsvDocumentFromObjectsTests
             CsvDocument.SaveObjects(path, new object?[] { new { Name = "A", Value = 1 } }, new CsvSaveOptions { NewLine = "\n" });
 
             Assert.Equal("Name,Value\nA,1\n", File.ReadAllText(path));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void SaveObjects_DoesNotReplaceExistingFileWhenInputIsEmpty()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.SaveObjects.Preserve." + Guid.NewGuid().ToString("N") + ".csv");
+        File.WriteAllText(path, "existing");
+
+        try
+        {
+            Assert.Throws<ArgumentException>(() => CsvDocument.SaveObjects(path, Array.Empty<object?>(), new CsvSaveOptions { NewLine = "\n" }));
+
+            Assert.Equal("existing", File.ReadAllText(path));
         }
         finally
         {
