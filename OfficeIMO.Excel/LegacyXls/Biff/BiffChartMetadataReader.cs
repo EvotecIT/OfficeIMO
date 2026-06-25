@@ -53,6 +53,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadSheetProperties(record, out LegacyXlsChartSheetProperties? sheetProperties);
             TryReadBarOptions(record, out LegacyXlsChartBarOptions? barOptions);
             TryReadLineOptions(record, out LegacyXlsChartLineOptions? lineOptions);
+            TryReadAreaOptions(record, out LegacyXlsChartAreaOptions? areaOptions);
             TryReadBopPopOptions(record, out LegacyXlsChartBopPopOptions? bopPopOptions);
             TryReadBopPopCustomSplit(record, out LegacyXlsChartBopPopCustomSplit? bopPopCustomSplit);
             TryReadThreeDimensionalOptions(record, out LegacyXlsChart3DOptions? threeDimensionalOptions);
@@ -130,6 +131,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 valueRange,
                 barOptions,
                 lineOptions,
+                areaOptions,
                 bopPopOptions,
                 bopPopCustomSplit,
                 threeDimensionalOptions,
@@ -732,6 +734,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             lineOptions = new LegacyXlsChartLineOptions(BiffRecordReader.ReadUInt16(record.Payload, 0));
+            return true;
+        }
+
+        private static bool TryReadAreaOptions(BiffRecord record, out LegacyXlsChartAreaOptions? areaOptions) {
+            areaOptions = null;
+            if (record.Type != 0x101A || record.Payload.Length < 2) {
+                return false;
+            }
+
+            areaOptions = new LegacyXlsChartAreaOptions(BiffRecordReader.ReadUInt16(record.Payload, 0));
             return true;
         }
 
