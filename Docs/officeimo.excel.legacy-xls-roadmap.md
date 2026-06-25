@@ -267,7 +267,9 @@ formula text in import reports, so chart category/title/value ranges are visible
 in corpus baselines without projecting legacy charts into `.xlsx` chart parts.
 Chart `LineFormat`, `AreaFormat`, and `MarkerFormat` reports now also expose
 decoded color, color-index, and flag-state buckets for preserve-only chart
-formatting evidence.
+formatting evidence. Chart `SerAuxErrBar` records now decode preserve-only
+error-bar direction, value source, tee-top, fixed/custom values, and reserved-byte
+state for corpus evidence before native chart projection exists.
 BIFF `TableStyles`, `TableStyle`, and `TableStyleElement` records now decode into
 preserve-only workbook table-style metadata and import-report buckets for default
 table/PivotTable styles, applicability, declared/parsed element counts, element

@@ -64,6 +64,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartFrame? frame = null,
             LegacyXlsChartPlotGrowth? plotGrowth = null,
             LegacyXlsChartDataTableOptions? dataTableOptions = null,
+            LegacyXlsChartErrorBarOptions? errorBarOptions = null,
             LegacyXlsChartSheetProperties? sheetProperties = null,
             LegacyXlsChartValueRange? valueRange = null,
             LegacyXlsChartBarOptions? barOptions = null,
@@ -145,6 +146,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Frame = frame;
             PlotGrowth = plotGrowth;
             DataTableOptions = dataTableOptions;
+            ErrorBarOptions = errorBarOptions;
             SheetProperties = sheetProperties;
             ValueRange = valueRange;
             BarOptions = barOptions;
@@ -349,6 +351,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded chart data-table display options from Dat records, when present.</summary>
         public LegacyXlsChartDataTableOptions? DataTableOptions { get; }
+
+        /// <summary>Gets decoded chart error-bar options from SerAuxErrBar records, when present.</summary>
+        public LegacyXlsChartErrorBarOptions? ErrorBarOptions { get; }
 
         /// <summary>Gets decoded chart sheet properties from ShtProps records, when present.</summary>
         public LegacyXlsChartSheetProperties? SheetProperties { get; }

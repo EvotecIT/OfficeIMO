@@ -1749,6 +1749,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsChartErrorBarMetadata() {
+            byte[] payload = new byte[14];
+            payload[0] = 0x03;
+            payload[1] = 0x02;
+            payload[2] = 0x01;
+            payload[3] = 0x01;
+            WriteDouble(payload, 4, 12.5d);
+            WriteUInt16(payload, 12, 4);
+
+            var chartRecords = new List<LegacyXlsChartRecord>();
+            Assert.True(BiffChartMetadataReader.TryRead(new BiffRecord(0x105B, offset: 560, payload), "ErrorBars", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            LegacyXlsChartErrorBarOptions? errorBars = record.ErrorBarOptions;
+            Assert.NotNull(errorBars);
+            Assert.Equal(0x03, errorBars!.Direction);
+            Assert.Equal("VerticalPlus", errorBars.DirectionName);
+            Assert.True(errorBars.HasKnownDirection);
+            Assert.Equal(0x02, errorBars.ValueSource);
+            Assert.Equal("FixedValue", errorBars.ValueSourceName);
+            Assert.True(errorBars.HasKnownValueSource);
+            Assert.True(errorBars.HasTeeTop);
+            Assert.Equal(0x01, errorBars.Reserved);
+            Assert.True(errorBars.HasExpectedReservedValue);
+            Assert.Equal(12.5d, errorBars.Value);
+            Assert.Equal(4, errorBars.CustomValueCount);
+            Assert.True(errorBars.UsesValue);
+            Assert.False(errorBars.UsesCustomValueCount);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+            Assert.Equal(1, report.ChartErrorBarDirections["VerticalPlus"]);
+            Assert.Equal(1, report.ChartErrorBarValueSources["FixedValue"]);
+            Assert.Equal(1, report.ChartErrorBarValues["Value:12.5;CustomCount:4"]);
+            Assert.Equal(1, report.ChartErrorBarStates["Direction:VerticalPlus;Source:FixedValue;Tee:True;UsesValue:True;UsesCustomCount:False"]);
+            Assert.Equal(1, report.ChartErrorBarReservedStates["ReservedExpected"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart Error Bar Directions", markdown);
+            Assert.Contains("Chart Error Bar Value Sources", markdown);
+            Assert.Contains("Direction:VerticalPlus;Source:FixedValue", markdown);
+
+            static void WriteUInt16(byte[] buffer, int offset, ushort value) {
+                buffer[offset] = (byte)(value & 0xff);
+                buffer[offset + 1] = (byte)(value >> 8);
+            }
+
+            static void WriteDouble(byte[] buffer, int offset, double value) {
+                Buffer.BlockCopy(BitConverter.GetBytes(value), 0, buffer, offset, 8);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_GroupsChartGroupAndPivotViewReferences() {
             var chartRecords = new List<LegacyXlsChartRecord>();
             byte[] chartFormatPayload = {

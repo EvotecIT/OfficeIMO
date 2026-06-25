@@ -961,6 +961,21 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(record => record.DataTableOptions != null)
                 .Select(record => record.DataTableOptions!)
                 .Select(options => $"HorizontalBorders:{options.HasHorizontalBorders};VerticalBorders:{options.HasVerticalBorders};Outline:{options.HasOutlineBorder};SeriesKeys:{options.ShowSeriesKeys}"));
+            ChartErrorBarDirections = CountByCode(workbook.ChartRecords
+                .Where(record => record.ErrorBarOptions != null)
+                .Select(record => record.ErrorBarOptions!.DirectionName));
+            ChartErrorBarValueSources = CountByCode(workbook.ChartRecords
+                .Where(record => record.ErrorBarOptions != null)
+                .Select(record => record.ErrorBarOptions!.ValueSourceName));
+            ChartErrorBarValues = CountByCode(workbook.ChartRecords
+                .Where(record => record.ErrorBarOptions != null)
+                .Select(record => $"Value:{FormatDouble(record.ErrorBarOptions!.Value)};CustomCount:{record.ErrorBarOptions.CustomValueCount}"));
+            ChartErrorBarStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.ErrorBarOptions != null)
+                .Select(GetChartErrorBarStateKey));
+            ChartErrorBarReservedStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.ErrorBarOptions != null)
+                .Select(record => record.ErrorBarOptions!.HasExpectedReservedValue ? "ReservedExpected" : "ReservedUnexpected"));
             ChartBarOverlapPercentages = CountByCode(workbook.ChartRecords
                 .Where(record => record.BarOptions != null)
                 .Select(record => $"Overlap:{record.BarOptions!.OverlapPercentage}"));
@@ -2848,6 +2863,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Dat records grouped by decoded data-table display options.</summary>
         public IReadOnlyDictionary<string, int> ChartDataTableOptions { get; }
 
+        /// <summary>Gets SerAuxErrBar records grouped by decoded error-bar direction.</summary>
+        public IReadOnlyDictionary<string, int> ChartErrorBarDirections { get; }
+
+        /// <summary>Gets SerAuxErrBar records grouped by decoded error-bar value source.</summary>
+        public IReadOnlyDictionary<string, int> ChartErrorBarValueSources { get; }
+
+        /// <summary>Gets SerAuxErrBar records grouped by fixed value and custom value count.</summary>
+        public IReadOnlyDictionary<string, int> ChartErrorBarValues { get; }
+
+        /// <summary>Gets SerAuxErrBar records grouped by direction, value source, tee-top, and meaningful-field states.</summary>
+        public IReadOnlyDictionary<string, int> ChartErrorBarStates { get; }
+
+        /// <summary>Gets SerAuxErrBar records grouped by reserved-byte state.</summary>
+        public IReadOnlyDictionary<string, int> ChartErrorBarReservedStates { get; }
+
         /// <summary>Gets Bar records grouped by decoded overlap percentage.</summary>
         public IReadOnlyDictionary<string, int> ChartBarOverlapPercentages { get; }
 
@@ -4044,6 +4074,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Number Format Ids", ChartNumberFormatIds);
             AppendDictionary(builder, "Chart Font Indexes", ChartFontIndexes);
             AppendDictionary(builder, "Chart DataTable Options", ChartDataTableOptions);
+            AppendDictionary(builder, "Chart Error Bar Directions", ChartErrorBarDirections);
+            AppendDictionary(builder, "Chart Error Bar Value Sources", ChartErrorBarValueSources);
+            AppendDictionary(builder, "Chart Error Bar Values", ChartErrorBarValues);
+            AppendDictionary(builder, "Chart Error Bar States", ChartErrorBarStates);
+            AppendDictionary(builder, "Chart Error Bar Reserved States", ChartErrorBarReservedStates);
             AppendDictionary(builder, "Chart Bar Overlap Percentages", ChartBarOverlapPercentages);
             AppendDictionary(builder, "Chart Bar Gap Widths", ChartBarGapWidths);
             AppendDictionary(builder, "Chart Bar States", ChartBarStates);
@@ -4909,6 +4944,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartBarStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartBarOptions options = record.BarOptions!;
             return $"Transposed:{options.IsTransposed};Stacked:{options.IsStacked};Percent:{options.IsPercentStacked};Shadow:{options.HasShadow}";
+        }
+
+        private static string GetChartErrorBarStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartErrorBarOptions options = record.ErrorBarOptions!;
+            return $"Direction:{options.DirectionName};Source:{options.ValueSourceName};Tee:{options.HasTeeTop};UsesValue:{options.UsesValue};UsesCustomCount:{options.UsesCustomValueCount}";
         }
 
         private static string GetChartBopPopStateKey(LegacyXlsChartRecord record) {
