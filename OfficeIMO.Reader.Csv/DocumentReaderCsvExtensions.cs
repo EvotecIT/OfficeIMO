@@ -21,14 +21,9 @@ public static class DocumentReaderCsvExtensions {
         var extension = GetNormalizedExtension(path);
         var delimiter = extension == ".tsv" ? '\t' : ',';
 
-        var csv = CsvDocument.Load(path, new CsvLoadOptions {
-            Delimiter = delimiter,
-            HasHeaderRow = options.HeadersInFirstRow,
-            GenerateMissingHeaderNames = false,
-            Mode = CsvLoadMode.Stream
-        });
+        var records = CsvDocument.ReadRecords(path, CreateCsvLoadOptions(delimiter));
 
-        foreach (var chunk in ReadCsvDocument(csv, source, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
+        foreach (var chunk in ReadCsvRecords(records, source, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
             yield return chunk;
         }
     }
@@ -54,14 +49,10 @@ public static class DocumentReaderCsvExtensions {
             var delimiter = extension == ".tsv" ? '\t' : ',';
             var sourcePath = BuildLogicalSourcePath(sourceName, extension == ".tsv" ? "document.tsv" : "document.csv");
             var source = BuildSourceMetadataFromStream(parseStream, sourcePath, effectiveReaderOptions.ComputeHashes);
-            var csv = CsvDocument.Load(parseStream, new CsvLoadOptions {
-                Delimiter = delimiter,
-                HasHeaderRow = options.HeadersInFirstRow,
-                GenerateMissingHeaderNames = false,
-                Mode = CsvLoadMode.Stream
-            }, leaveOpen: true);
+            using var textReader = new StreamReader(parseStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
+            var records = CsvDocument.ReadRecords(textReader, CreateCsvLoadOptions(delimiter));
 
-            foreach (var chunk in ReadCsvDocument(csv, source, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
+            foreach (var chunk in ReadCsvRecords(records, source, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
                 yield return chunk;
             }
         } finally {
@@ -71,30 +62,38 @@ public static class DocumentReaderCsvExtensions {
         }
     }
 
-    private static IEnumerable<ReaderChunk> ReadCsvDocument(CsvDocument csv, SourceMetadata source, CsvReadOptions options, bool computeHashes, CancellationToken cancellationToken) {
+    private static CsvLoadOptions CreateCsvLoadOptions(char delimiter) =>
+        new CsvLoadOptions {
+            Delimiter = delimiter,
+            HasHeaderRow = false,
+            SkipCommentRowsBeforeHeader = false,
+            SkipCommentRows = false,
+            RecognizeW3CFieldsHeader = false,
+            GenerateMissingHeaderNames = false
+        };
+
+    private static IEnumerable<ReaderChunk> ReadCsvRecords(IEnumerable<IReadOnlyList<string>> records, SourceMetadata source, CsvReadOptions options, bool computeHashes, CancellationToken cancellationToken) {
         var sourcePath = source.Path;
-        var headers = csv.Header.Count > 0
-            ? csv.Header.ToArray()
-            : new[] { "Column1" };
+        string[]? headers = null;
 
         var rows = new List<IReadOnlyList<string>>(capacity: options.ChunkRows);
         int chunkIndex = 0;
         int rowIndex = 0;
 
-        foreach (var row in csv.AsEnumerable()) {
+        foreach (var record in records) {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var values = new string[Math.Max(headers.Length, row.FieldCount)];
-            for (int i = 0; i < values.Length; i++) {
-                values[i] = i < row.FieldCount
-                    ? Convert.ToString(row[i], CultureInfo.InvariantCulture) ?? string.Empty
-                    : string.Empty;
+            var values = record.Select(static value => value ?? string.Empty).ToArray();
+            if (headers == null && options.HeadersInFirstRow) {
+                headers = values;
+                continue;
             }
 
             rows.Add(values);
             rowIndex++;
 
             if (rows.Count >= options.ChunkRows) {
+                headers ??= GenerateDefaultHeaders(rows);
                 yield return EnrichChunk(BuildCsvChunk(sourcePath, headers, rows, chunkIndex, rowIndex - rows.Count, options.IncludeMarkdown), source, computeHashes);
                 rows = new List<IReadOnlyList<string>>(capacity: options.ChunkRows);
                 chunkIndex++;
@@ -102,12 +101,13 @@ public static class DocumentReaderCsvExtensions {
         }
 
         if (rows.Count > 0) {
+            headers ??= GenerateDefaultHeaders(rows);
             yield return EnrichChunk(BuildCsvChunk(sourcePath, headers, rows, chunkIndex, rowIndex - rows.Count, options.IncludeMarkdown), source, computeHashes);
             yield break;
         }
 
         if (rowIndex == 0) {
-            if (csv.Header.Count > 0) {
+            if (headers != null) {
                 yield return EnrichChunk(
                     BuildCsvChunk(
                         sourcePath,
@@ -122,6 +122,16 @@ public static class DocumentReaderCsvExtensions {
                 yield return EnrichChunk(BuildWarningChunk(sourcePath, "csv-warning-0000", "CSV content produced no rows."), source, computeHashes);
             }
         }
+    }
+
+    private static string[] GenerateDefaultHeaders(IReadOnlyList<IReadOnlyList<string>> rows) {
+        var maxColumns = rows.Count == 0 ? 1 : rows.Max(static row => row.Count);
+        var headers = new string[maxColumns];
+        for (int i = 0; i < headers.Length; i++) {
+            headers[i] = "Column" + (i + 1).ToString(CultureInfo.InvariantCulture);
+        }
+
+        return headers;
     }
 
     private static ReaderChunk BuildCsvChunk(

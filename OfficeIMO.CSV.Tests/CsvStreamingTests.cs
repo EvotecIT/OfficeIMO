@@ -96,6 +96,47 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadRowsReusable_DetectDelimiterSkipsQuotedMultilineInitialRecord()
+    {
+        var headers = new List<string[]>();
+        var rows = new List<string[]>();
+        using var reader = new StringReader("\"metadata\nstill,has,commas\"\nName;Value\nAlpha;1\n");
+
+        CsvDocument.ReadRowsReusable(
+            reader,
+            (header, values) =>
+            {
+                headers.Add(header.ToArray());
+                rows.Add(values.ToArray());
+            },
+            new CsvLoadOptions {
+                DetectDelimiter = true,
+                SkipInitialRecords = 1
+            });
+
+        var parsedHeader = Assert.Single(headers);
+        var row = Assert.Single(rows);
+        Assert.Equal(new[] { "Name", "Value" }, parsedHeader);
+        Assert.Equal(new[] { "Alpha", "1" }, row);
+    }
+
+    [Fact]
+    public void ReadRecordsReusable_CanSkipInitialRecords()
+    {
+        var records = new List<string[]>();
+        using var reader = new StringReader("metadata\nName,Value\nAlpha,1\n");
+
+        CsvDocument.ReadRecordsReusable(
+            reader,
+            values => records.Add(values.ToArray()),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(2, records.Count);
+        Assert.Equal(new[] { "Name", "Value" }, records[0]);
+        Assert.Equal(new[] { "Alpha", "1" }, records[1]);
+    }
+
+    [Fact]
     public void LoadFromStream_InMemoryMode_ParsesRows()
     {
         var bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n2,Bob\n");

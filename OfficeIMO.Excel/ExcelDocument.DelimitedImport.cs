@@ -179,14 +179,14 @@ namespace OfficeIMO.Excel {
 
         private static char DetectDelimitedImportDelimiterFromFile(string path, int recordsToSkip) {
             using var reader = new StreamReader(path);
-            string firstLine = ReadFirstDelimitedImportLine(reader, recordsToSkip);
-            return DetectDelimitedImportDelimiter(firstLine);
+            string firstRecord = ReadFirstDelimitedImportRecord(reader, recordsToSkip);
+            return DetectDelimitedImportDelimiter(firstRecord);
         }
 
         private static char DetectDelimitedImportDelimiter(string text, int recordsToSkip) {
             using var reader = new StringReader(text);
-            string firstLine = ReadFirstDelimitedImportLine(reader, recordsToSkip);
-            return DetectDelimitedImportDelimiter(firstLine);
+            string firstRecord = ReadFirstDelimitedImportRecord(reader, recordsToSkip);
+            return DetectDelimitedImportDelimiter(firstRecord);
         }
 
         private static char DetectDelimitedImportDelimiter(string firstLine) {
@@ -197,16 +197,57 @@ namespace OfficeIMO.Excel {
                 .First().Delimiter;
         }
 
-        private static string ReadFirstDelimitedImportLine(TextReader reader, int recordsToSkip) {
-            while (recordsToSkip > 0) {
-                if (reader.ReadLine() == null) {
-                    return string.Empty;
+        private static string ReadFirstDelimitedImportRecord(TextReader reader, int recordsToSkip) {
+            foreach (var record in ReadDelimitedImportLogicalRecords(reader)) {
+                if (recordsToSkip > 0) {
+                    recordsToSkip--;
+                    continue;
                 }
 
-                recordsToSkip--;
+                return record;
             }
 
-            return reader.ReadLine() ?? string.Empty;
+            return string.Empty;
+        }
+
+        private static IEnumerable<string> ReadDelimitedImportLogicalRecords(TextReader reader) {
+            string? line;
+            while ((line = reader.ReadLine()) != null) {
+                if (IsDelimitedImportLogicalRecordComplete(line)) {
+                    yield return line;
+                    continue;
+                }
+
+                var record = new StringBuilder(line);
+                while ((line = reader.ReadLine()) != null) {
+                    record.Append('\n');
+                    record.Append(line);
+                    if (IsDelimitedImportLogicalRecordComplete(record.ToString())) {
+                        break;
+                    }
+                }
+
+                yield return record.ToString();
+            }
+        }
+
+        private static bool IsDelimitedImportLogicalRecordComplete(string record) {
+            bool quoted = false;
+            for (int i = 0; i < record.Length; i++) {
+                char ch = record[i];
+                if (ch != '"') {
+                    continue;
+                }
+
+                if (quoted && i + 1 < record.Length && record[i + 1] == '"') {
+                    i++;
+                    continue;
+                }
+
+                quoted = !quoted;
+            }
+
+            return !quoted;
         }
 
         private static int CountUnquoted(string text, char delimiter) {

@@ -7,6 +7,49 @@ namespace OfficeIMO.CSV;
 public sealed partial class CsvDocument
 {
     /// <summary>
+    /// Reads raw CSV records from a file as an enumerable sequence.
+    /// </summary>
+    /// <param name="path">Source CSV path.</param>
+    /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
+    public static IEnumerable<string[]> ReadRecords(string path, CsvLoadOptions? options = null)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new ArgumentException("File path cannot be empty.", nameof(path));
+        }
+
+        options ??= new CsvLoadOptions();
+        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        var readerFactory = () => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: FileBufferSize);
+        var resolvedOptions = ResolveLoadOptions(readerFactory, options);
+
+        return ReadRecordsIterator(readerFactory, resolvedOptions, disposeReader: true);
+    }
+
+    /// <summary>
+    /// Reads raw CSV records from a reader as an enumerable sequence.
+    /// </summary>
+    /// <param name="reader">Source text reader.</param>
+    /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
+    public static IEnumerable<string[]> ReadRecords(TextReader reader, CsvLoadOptions? options = null)
+    {
+        if (reader == null)
+        {
+            throw new ArgumentNullException(nameof(reader));
+        }
+
+        options ??= new CsvLoadOptions();
+        if (options.DetectDelimiter)
+        {
+            var text = reader.ReadToEnd();
+            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options);
+            return ReadRecordsIterator(() => new StringReader(text), resolvedOptions, disposeReader: true);
+        }
+
+        return ReadRecordsIterator(() => reader, options, disposeReader: false);
+    }
+
+    /// <summary>
     /// Reads raw CSV records from a file in a single pass while reusing the record value buffer for unquoted records.
     /// </summary>
     /// <param name="path">Source CSV path.</param>
@@ -60,6 +103,32 @@ public sealed partial class CsvDocument
             return;
         }
 
-        CsvParser.ReadRecordsReusable(reader, options, recordAction);
+        ReadRecordsReusableSkippingInitial(reader, options, GetInitialRecordsToSkip(options), recordAction);
+    }
+
+    private static IEnumerable<string[]> ReadRecordsIterator(Func<TextReader> readerFactory, CsvLoadOptions options, bool disposeReader)
+    {
+        var reader = readerFactory();
+        try
+        {
+            var recordsToSkip = GetInitialRecordsToSkip(options);
+            foreach (var record in CsvParser.Parse(reader, options))
+            {
+                if (recordsToSkip > 0)
+                {
+                    recordsToSkip--;
+                    continue;
+                }
+
+                yield return record;
+            }
+        }
+        finally
+        {
+            if (disposeReader)
+            {
+                reader.Dispose();
+            }
+        }
     }
 }

@@ -53,21 +53,22 @@ public sealed partial class CsvDocument
     private static IEnumerable<string> ReadDelimiterDetectionSamples(TextReader reader, CsvLoadOptions options)
     {
         var recordsToSkip = GetInitialRecordsToSkip(options);
-        string? line;
-        while ((line = reader.ReadLine()) is not null)
+        using var records = ReadLogicalDelimiterDetectionRecords(reader).GetEnumerator();
+        while (records.MoveNext())
         {
-            if (line.Length == 0)
+            var record = records.Current;
+            if (record.Length == 0)
             {
                 if (options.AllowEmptyLines)
                 {
-                    yield return line;
+                    yield return record;
                     break;
                 }
 
                 continue;
             }
 
-            if (ShouldSkipCommentDuringDelimiterDetection(line, options))
+            if (ShouldSkipCommentDuringDelimiterDetection(record, options))
             {
                 continue;
             }
@@ -78,21 +79,75 @@ public sealed partial class CsvDocument
                 continue;
             }
 
-            yield return line;
+            yield return record;
             break;
         }
 
         var count = 1;
-        while (count < DelimiterDetectionSampleLimit && (line = reader.ReadLine()) is not null)
+        while (count < DelimiterDetectionSampleLimit && records.MoveNext())
         {
-            if (line.Length == 0 && !options.AllowEmptyLines)
+            var record = records.Current;
+            if (record.Length == 0 && !options.AllowEmptyLines)
             {
                 continue;
             }
 
-            yield return line;
+            if (ShouldSkipCommentDuringDelimiterDetection(record, options))
+            {
+                continue;
+            }
+
+            yield return record;
             count++;
         }
+    }
+
+    private static IEnumerable<string> ReadLogicalDelimiterDetectionRecords(TextReader reader)
+    {
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            if (IsLogicalDelimiterDetectionRecordComplete(line))
+            {
+                yield return line;
+                continue;
+            }
+
+            var record = new StringBuilder(line);
+            while ((line = reader.ReadLine()) is not null)
+            {
+                record.Append('\n');
+                record.Append(line);
+                if (IsLogicalDelimiterDetectionRecordComplete(record.ToString()))
+                {
+                    break;
+                }
+            }
+
+            yield return record.ToString();
+        }
+    }
+
+    private static bool IsLogicalDelimiterDetectionRecordComplete(string record)
+    {
+        var inQuotes = false;
+        for (var i = 0; i < record.Length; i++)
+        {
+            if (record[i] != '"')
+            {
+                continue;
+            }
+
+            if (inQuotes && i + 1 < record.Length && record[i + 1] == '"')
+            {
+                i++;
+                continue;
+            }
+
+            inQuotes = !inQuotes;
+        }
+
+        return !inQuotes;
     }
 
     private static bool ShouldSkipCommentDuringDelimiterDetection(string line, CsvLoadOptions options) =>

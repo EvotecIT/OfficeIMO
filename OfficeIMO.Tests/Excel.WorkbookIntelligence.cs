@@ -130,6 +130,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelDelimitedImport_DetectsDelimiterAfterQuotedMultilineInitialRecord() {
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+
+            ExcelDelimitedImportResult result = document.ImportDelimitedText(
+                "\"generated\r\nstill,has,commas\"\r\nName;Amount\r\nAlpha;10.5",
+                new ExcelDelimitedImportOptions {
+                    SheetName = "Import",
+                    SkipInitialRecords = 1
+                });
+
+            Assert.Equal(';', result.Delimiter);
+            Assert.Equal("A1:B2", result.ImportResult.Range);
+            Assert.Equal(1, result.ImportResult.RowCount);
+            ExcelSheet sheet = document["Import"];
+            Assert.True(sheet.TryGetCellText(1, 1, out string header));
+            Assert.Equal("Name", header);
+            Assert.True(sheet.TryGetCellText(2, 2, out string amount));
+            Assert.Equal("10.5", amount);
+        }
+
+        [Fact]
         public void Test_ExcelDelimitedImport_PreservesFieldsBeyondHeader() {
             using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
 
