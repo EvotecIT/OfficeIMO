@@ -969,6 +969,9 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(record => record.DataTableOptions != null)
                 .Select(record => record.DataTableOptions!)
                 .Select(options => $"HorizontalBorders:{options.HasHorizontalBorders};VerticalBorders:{options.HasVerticalBorders};Outline:{options.HasOutlineBorder};SeriesKeys:{options.ShowSeriesKeys}"));
+            ChartDataTableReservedStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataTableOptions != null)
+                .Select(record => record.DataTableOptions!.ReservedState));
             ChartErrorBarDirections = CountByCode(workbook.ChartRecords
                 .Where(record => record.ErrorBarOptions != null)
                 .Select(record => record.ErrorBarOptions!.DirectionName));
@@ -2907,6 +2910,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Dat records grouped by decoded data-table display options.</summary>
         public IReadOnlyDictionary<string, int> ChartDataTableOptions { get; }
 
+        /// <summary>Gets Dat records grouped by reserved-bit state.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataTableReservedStates { get; }
+
         /// <summary>Gets SerAuxErrBar records grouped by decoded error-bar direction.</summary>
         public IReadOnlyDictionary<string, int> ChartErrorBarDirections { get; }
 
@@ -4150,6 +4156,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Number Format Ids", ChartNumberFormatIds);
             AppendDictionary(builder, "Chart Font Indexes", ChartFontIndexes);
             AppendDictionary(builder, "Chart DataTable Options", ChartDataTableOptions);
+            AppendDictionary(builder, "Chart DataTable Reserved States", ChartDataTableReservedStates);
             AppendDictionary(builder, "Chart Error Bar Directions", ChartErrorBarDirections);
             AppendDictionary(builder, "Chart Error Bar Value Sources", ChartErrorBarValueSources);
             AppendDictionary(builder, "Chart Error Bar Values", ChartErrorBarValues);

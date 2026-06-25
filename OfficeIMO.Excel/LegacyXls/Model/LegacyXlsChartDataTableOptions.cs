@@ -21,5 +21,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets whether legend key symbols are displayed next to series names.</summary>
         public bool ShowSeriesKeys => (Flags & 0x0008) != 0;
+
+        /// <summary>Gets Dat option bits outside the currently decoded display flags.</summary>
+        public ushort ReservedFlags => (ushort)(Flags & 0xFFF0);
+
+        /// <summary>Gets whether Dat option bits outside the currently decoded display flags are set.</summary>
+        public bool HasReservedFlags => ReservedFlags != 0;
+
+        /// <summary>Gets a compact reserved-bit state for corpus diagnostics.</summary>
+        public string ReservedState => HasReservedFlags ? $"Reserved:0x{ReservedFlags:X4}" : "ReservedClear";
     }
 }
