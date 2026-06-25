@@ -1512,7 +1512,7 @@ namespace OfficeIMO.Tests {
                 rotationCenterY: 20D);
 
             string svg = builder.ToString();
-            Assert.Equal("<text x=\"50\" y=\"12\" font-family=\"Aptos\" font-size=\"10\" text-anchor=\"middle\" fill=\"#010203\" fill-opacity=\"0.502\" font-weight=\"700\" font-style=\"italic\" text-decoration=\"underline line-through\" transform=\"rotate(15 50 20)\">A&amp;B<tspan x=\"50\" dy=\"14\">Beta</tspan></text>", svg);
+            Assert.Equal("<text x=\"50\" y=\"12\" font-family=\"Aptos\" font-size=\"10\" text-anchor=\"middle\" fill=\"#010203\" fill-opacity=\"0.502\" xml:space=\"preserve\" font-weight=\"700\" font-style=\"italic\" text-decoration=\"underline line-through\" transform=\"rotate(15 50 20)\">A&amp;B<tspan x=\"50\" dy=\"14\">Beta</tspan></text>", svg);
         }
 
         [Fact]

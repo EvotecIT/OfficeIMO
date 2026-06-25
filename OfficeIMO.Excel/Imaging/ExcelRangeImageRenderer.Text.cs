@@ -110,11 +110,20 @@ namespace OfficeIMO.Excel {
                 bool underline = ShouldUnderlineText(cell, options);
                 if (rotated) {
                     AddRotatedTextApproximationDiagnostic(snapshot, cell, diagnostics);
-                    OfficeTextLine line = layout.Lines[0];
                     double centerX = x + (w / 2D);
                     double centerY = y + (h / 2D);
-                    double textTop = centerY - (layout.FontSize / 2D);
-                    canvas.DrawTextLine(line.Text, centerX, textTop, layout.FontSize, color, bold, italic, OfficeTextAlignment.Center, rotationDegrees, centerX, centerY, fontFamily: fontFamily);
+                    OfficeTextBlockRenderPlan rotatedPlan = CreateCenteredRotatedCellTextPlan(layout, centerX, centerY, plan.Width);
+                    OfficeTextBlockRenderer.DrawRasterTextBox(
+                        canvas,
+                        rotatedPlan,
+                        color,
+                        bold,
+                        italic,
+                        underline,
+                        rotationDegrees: rotationDegrees,
+                        rotationCenterX: centerX,
+                        rotationCenterY: centerY,
+                        fontFamily: fontFamily);
                     return;
                 }
 
@@ -236,20 +245,19 @@ namespace OfficeIMO.Excel {
 
             if (rotated) {
                 AddRotatedTextApproximationDiagnostic(snapshot, cell, diagnostics);
-                OfficeTextLine line = layout.Lines[0];
                 double centerX = x + (w / 2D);
                 double centerY = y + (h / 2D);
-                double textTop = centerY - (layout.FontSize / 2D);
-                double baseline = textTop + (layout.FontSize * 0.84D);
-                builder.AppendSvgTextElement(
-                    line.Text,
-                    centerX,
-                    baseline,
-                    layout.LineHeight,
+                OfficeTextBlockRenderPlan rotatedPlan = CreateCenteredRotatedCellTextPlan(layout, centerX, centerY, plan.Width);
+                builder.AppendSvgTextBlock(
+                    rotatedPlan.Layout,
+                    rotatedPlan.Left,
+                    rotatedPlan.Top,
+                    rotatedPlan.Width,
+                    rotatedPlan.Height,
                     color,
                     fontFamily,
-                    layout.FontSize,
-                    OfficeTextAlignment.Center,
+                    rotatedPlan.HorizontalAlignment,
+                    rotatedPlan.VerticalAlignment,
                     cell.Style.Bold,
                     cell.Style.Italic,
                     ShouldUnderlineText(cell, options),
@@ -489,6 +497,20 @@ namespace OfficeIMO.Excel {
                 overflowBehavior: OfficeTextOverflowBehavior.Clip);
             return layout.Lines.Count > 0;
         }
+
+        private static OfficeTextBlockRenderPlan CreateCenteredRotatedCellTextPlan(
+            OfficeTextBlockLayout layout,
+            double centerX,
+            double centerY,
+            double width) =>
+            OfficeTextBlockRenderPlan.CreateFromCenter(
+                layout,
+                centerX,
+                centerY,
+                Math.Max(1D, width),
+                Math.Max(1D, layout.Height),
+                OfficeTextAlignment.Center,
+                OfficeTextVerticalAlignment.Top);
 
         private static bool IsRichTextRenderingSupported(ExcelVisualCell cell, bool rotated) {
             return true;
