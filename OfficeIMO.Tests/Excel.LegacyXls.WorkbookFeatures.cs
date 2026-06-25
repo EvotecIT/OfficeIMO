@@ -1146,6 +1146,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ExternalNamesByBuiltInState["BuiltIn"]);
             Assert.Equal(3, report.ExternalNamesByBodyKind["ExternalDefinedName"]);
             Assert.Equal(3, report.ExternalNamesByCachedClipboardFormat["TextOrExternalName:0"]);
+            Assert.Equal(3, report.ExternalNamesByAdviseState["Missing"]);
+            Assert.Equal(3, report.ExternalNamesByPictureState["Missing"]);
+            Assert.Equal(3, report.ExternalNamesByOleState["Missing"]);
+            Assert.Equal(3, report.ExternalNamesByOleLinkState["Missing"]);
+            Assert.Equal(3, report.ExternalNamesByIconState["Missing"]);
             Assert.Equal(2, report.ExternalNamesByFlagShape["Body:ExternalDefinedName|BuiltIn:Missing|Advise:Missing|Picture:Missing|Ole:Missing|OleLink:Missing|Icon:Missing"]);
             Assert.Equal(1, report.ExternalNamesByFlagShape["Body:ExternalDefinedName|BuiltIn:Present|Advise:Missing|Picture:Missing|Ole:Missing|OleLink:Missing|Icon:Missing"]);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x01ae && feature.Description.Contains("C:\\Data\\Budget.xls", StringComparison.Ordinal));
@@ -1158,6 +1163,64 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x01b7);
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x0023);
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x01b7);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ReportsExternalNameFlagStates() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5DdeOleExternalNameFlagsWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            LegacyXlsExternalReference reference = Assert.Single(legacy.ExternalReferences);
+            Assert.Equal(LegacyXlsExternalReferenceKind.DdeOrOle, reference.Kind);
+            Assert.Equal("Excel|Topic", reference.Target);
+            Assert.Equal(3, reference.ExternalNameCount);
+
+            LegacyXlsExternalName ddePicture = Assert.Single(reference.ExternalNames, name => name.Name == "DdePicture");
+            Assert.True(ddePicture.WantsAdvise);
+            Assert.True(ddePicture.WantsPicture);
+            Assert.False(ddePicture.Ole);
+            Assert.False(ddePicture.OleLink);
+            Assert.Equal(9, ddePicture.CachedClipboardFormat);
+            Assert.Equal("Bitmap", ddePicture.CachedClipboardFormatName);
+            Assert.True(ddePicture.Icon);
+            Assert.Equal(LegacyXlsExternalNameBodyKind.OleDdeLink, ddePicture.BodyKind);
+
+            LegacyXlsExternalName oleNoOper = Assert.Single(reference.ExternalNames, name => name.Name == "OleNoOper");
+            Assert.True(oleNoOper.Ole);
+            Assert.False(oleNoOper.OleLink);
+            Assert.Equal(LegacyXlsExternalNameBodyKind.DdeLinkNoOper, oleNoOper.BodyKind);
+
+            LegacyXlsExternalName oleData = Assert.Single(reference.ExternalNames, name => name.Name == "OleData");
+            Assert.False(oleData.Ole);
+            Assert.True(oleData.OleLink);
+            Assert.Equal(LegacyXlsExternalNameBodyKind.OleDataItem, oleData.BodyKind);
+
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.ExternalReferencesByKind[LegacyXlsExternalReferenceKind.DdeOrOle]);
+            Assert.Equal(1, report.ExternalReferenceWorkbookStates["ExternalWorkbooks:Missing|Self:Missing|AddIns:Missing|DdeOle:Present|SheetTables:Missing|ExternalNames:Present|CellCaches:Missing|CachedCells:Missing|CacheLinks:None"]);
+            Assert.Equal(1, report.ExternalNamesByBodyKind["OleDdeLink"]);
+            Assert.Equal(1, report.ExternalNamesByBodyKind["DdeLinkNoOper"]);
+            Assert.Equal(1, report.ExternalNamesByBodyKind["OleDataItem"]);
+            Assert.Equal(1, report.ExternalNamesByCachedClipboardFormat["Bitmap:9"]);
+            Assert.Equal(2, report.ExternalNamesByCachedClipboardFormat["TextOrExternalName:0"]);
+            Assert.Equal(1, report.ExternalNamesByAdviseState["Present"]);
+            Assert.Equal(2, report.ExternalNamesByAdviseState["Missing"]);
+            Assert.Equal(1, report.ExternalNamesByPictureState["Present"]);
+            Assert.Equal(2, report.ExternalNamesByPictureState["Missing"]);
+            Assert.Equal(1, report.ExternalNamesByOleState["Present"]);
+            Assert.Equal(2, report.ExternalNamesByOleState["Missing"]);
+            Assert.Equal(1, report.ExternalNamesByOleLinkState["Present"]);
+            Assert.Equal(2, report.ExternalNamesByOleLinkState["Missing"]);
+            Assert.Equal(1, report.ExternalNamesByIconState["Present"]);
+            Assert.Equal(2, report.ExternalNamesByIconState["Missing"]);
+            Assert.Equal(1, report.ExternalNamesByFlagShape["Body:OleDdeLink|BuiltIn:Missing|Advise:Present|Picture:Present|Ole:Missing|OleLink:Missing|Icon:Present"]);
+            Assert.Equal(1, report.ExternalNamesByFlagShape["Body:DdeLinkNoOper|BuiltIn:Missing|Advise:Missing|Picture:Missing|Ole:Present|OleLink:Missing|Icon:Missing"]);
+            Assert.Equal(1, report.ExternalNamesByFlagShape["Body:OleDataItem|BuiltIn:Missing|Advise:Missing|Picture:Missing|Ole:Missing|OleLink:Present|Icon:Missing"]);
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DdeOrOle");
         }
 
         [Fact]

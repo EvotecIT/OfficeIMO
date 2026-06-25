@@ -509,6 +509,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalNamesByCachedClipboardFormat = CountByCode(workbook.ExternalReferences
                 .SelectMany(reference => reference.ExternalNames)
                 .Select(name => $"{name.CachedClipboardFormatName}:{name.CachedClipboardFormat}"));
+            ExternalNamesByAdviseState = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.ExternalNames)
+                .Select(name => name.WantsAdvise ? "Present" : "Missing"));
+            ExternalNamesByPictureState = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.ExternalNames)
+                .Select(name => name.WantsPicture ? "Present" : "Missing"));
+            ExternalNamesByOleState = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.ExternalNames)
+                .Select(name => name.Ole ? "Present" : "Missing"));
+            ExternalNamesByOleLinkState = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.ExternalNames)
+                .Select(name => name.OleLink ? "Present" : "Missing"));
+            ExternalNamesByIconState = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.ExternalNames)
+                .Select(name => name.Icon ? "Present" : "Missing"));
             ExternalNamesByFlagShape = CountByCode(workbook.ExternalReferences
                 .SelectMany(reference => reference.ExternalNames)
                 .Select(GetExternalNameFlagShapeKey));
@@ -2390,6 +2405,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets external defined names grouped by decoded cached clipboard format.</summary>
         public IReadOnlyDictionary<string, int> ExternalNamesByCachedClipboardFormat { get; }
 
+        /// <summary>Gets external defined names grouped by ExternName advise-update flag state.</summary>
+        public IReadOnlyDictionary<string, int> ExternalNamesByAdviseState { get; }
+
+        /// <summary>Gets external defined names grouped by ExternName picture-format flag state.</summary>
+        public IReadOnlyDictionary<string, int> ExternalNamesByPictureState { get; }
+
+        /// <summary>Gets external defined names grouped by ExternName OLE flag state.</summary>
+        public IReadOnlyDictionary<string, int> ExternalNamesByOleState { get; }
+
+        /// <summary>Gets external defined names grouped by ExternName OLE-link flag state.</summary>
+        public IReadOnlyDictionary<string, int> ExternalNamesByOleLinkState { get; }
+
+        /// <summary>Gets external defined names grouped by ExternName icon-display flag state.</summary>
+        public IReadOnlyDictionary<string, int> ExternalNamesByIconState { get; }
+
         /// <summary>Gets external defined names grouped by decoded ExternName flag shape.</summary>
         public IReadOnlyDictionary<string, int> ExternalNamesByFlagShape { get; }
 
@@ -4003,6 +4033,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "External Names By Built-In State", ExternalNamesByBuiltInState);
             AppendDictionary(builder, "External Names By Body Kind", ExternalNamesByBodyKind);
             AppendDictionary(builder, "External Names By Cached Clipboard Format", ExternalNamesByCachedClipboardFormat);
+            AppendDictionary(builder, "External Names By Advise State", ExternalNamesByAdviseState);
+            AppendDictionary(builder, "External Names By Picture State", ExternalNamesByPictureState);
+            AppendDictionary(builder, "External Names By OLE State", ExternalNamesByOleState);
+            AppendDictionary(builder, "External Names By OLE Link State", ExternalNamesByOleLinkState);
+            AppendDictionary(builder, "External Names By Icon State", ExternalNamesByIconState);
             AppendDictionary(builder, "External Names By Flag Shape", ExternalNamesByFlagShape);
             AppendDictionary(builder, "External Cell Caches By Target", ExternalCellCachesByTarget);
             AppendDictionary(builder, "External Cell Caches By Sheet Name", ExternalCellCachesBySheetName);

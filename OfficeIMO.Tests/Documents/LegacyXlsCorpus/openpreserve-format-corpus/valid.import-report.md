@@ -838,6 +838,36 @@ Warnings: 0
 | --- | --- |
 | TextOrExternalName:0 | 1 |
 
+## External Names By Advise State
+
+| Key | Count |
+| --- | --- |
+| Missing | 1 |
+
+## External Names By Picture State
+
+| Key | Count |
+| --- | --- |
+| Missing | 1 |
+
+## External Names By OLE State
+
+| Key | Count |
+| --- | --- |
+| Missing | 1 |
+
+## External Names By OLE Link State
+
+| Key | Count |
+| --- | --- |
+| Missing | 1 |
+
+## External Names By Icon State
+
+| Key | Count |
+| --- | --- |
+| Missing | 1 |
+
 ## External Names By Flag Shape
 
 | Key | Count |

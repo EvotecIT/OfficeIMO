@@ -237,7 +237,8 @@ storage are likewise reported as preserve-only embedded OLE object content.
 `SupBook` supporting links are preserved as external-reference
 metadata for external workbook, add-in, DDE/OLE, same-sheet, self, and unused links,
 including parsed external/add-in name tables from supported `ExternName` records,
-with external-link diagnostics for unsupported external-reference records. External
+with per-flag report buckets for advise, picture, OLE, OLE-link, and icon states,
+and with external-link diagnostics for unsupported external-reference records. External
 cell cache sections from `XCT` and typed cached values from `CRN` records are now
 preserved under the supporting-link model and counted in import reports. Supported
 external workbook links now project into Open XML external-link workbook parts with

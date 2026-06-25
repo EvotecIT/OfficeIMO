@@ -2521,15 +2521,54 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            private static byte[] BuildExternalNamePayload(string name, ushort oneBasedSheetIndex = 0, bool builtIn = false) {
+            private static byte[] BuildExternalNamePayload(
+                string name,
+                ushort oneBasedSheetIndex = 0,
+                bool builtIn = false,
+                bool wantsAdvise = false,
+                bool wantsPicture = false,
+                bool ole = false,
+                bool oleLink = false,
+                int cachedClipboardFormat = 0,
+                bool icon = false) {
                 using var stream = new MemoryStream();
-                WriteUInt16(stream, builtIn ? (ushort)0x0001 : (ushort)0);
+                WriteUInt16(stream, BuildExternalNameFlags(
+                    builtIn,
+                    wantsAdvise,
+                    wantsPicture,
+                    ole,
+                    oleLink,
+                    cachedClipboardFormat,
+                    icon));
                 WriteUInt16(stream, oneBasedSheetIndex);
                 WriteUInt16(stream, 0);
                 stream.WriteByte(checked((byte)name.Length));
                 WriteCompressedUnicodeStringNoCch(stream, name);
                 WriteUInt16(stream, 0);
                 return stream.ToArray();
+            }
+
+            private static ushort BuildExternalNameFlags(
+                bool builtIn,
+                bool wantsAdvise,
+                bool wantsPicture,
+                bool ole,
+                bool oleLink,
+                int cachedClipboardFormat,
+                bool icon) {
+                if (cachedClipboardFormat < -512 || cachedClipboardFormat > 511) {
+                    throw new ArgumentOutOfRangeException(nameof(cachedClipboardFormat));
+                }
+
+                ushort flags = 0;
+                if (builtIn) flags |= 0x0001;
+                if (wantsAdvise) flags |= 0x0002;
+                if (wantsPicture) flags |= 0x0004;
+                if (ole) flags |= 0x0008;
+                if (oleLink) flags |= 0x0010;
+                flags |= checked((ushort)((cachedClipboardFormat & 0x03ff) << 5));
+                if (icon) flags |= 0x8000;
+                return flags;
             }
 
             private static byte[] BuildAddInExternalNamePayload(string name) {
