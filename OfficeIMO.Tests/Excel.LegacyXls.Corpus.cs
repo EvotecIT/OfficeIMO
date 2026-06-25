@@ -738,6 +738,10 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(sheet.Protection);
             Assert.True(sheet.Protection!.IsProtected);
             Assert.Matches("^[0-9A-F]{4}$", sheet.Protection.LegacyPasswordHash ?? string.Empty);
+            Assert.True(sheet.Protection.ProtectObjects);
+            Assert.True(sheet.Protection.ProtectScenarios);
+            Assert.Equal(1, result.ImportReport.WorksheetProtectionObjectStates["Protected"]);
+            Assert.Equal(1, result.ImportReport.WorksheetProtectionScenarioStates["Protected"]);
             AssertCorpusFormula(sheet, 2, 2, 14d, "A2*2");
 
             LegacyXlsCell inputCell = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 1);
@@ -750,6 +754,19 @@ namespace OfficeIMO.Tests {
             Assert.True(formulaFormat.ApplyProtection);
             Assert.True(formulaFormat.Locked);
             Assert.True(formulaFormat.FormulaHidden);
+
+            string projectedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            try {
+                result.Document.Save(projectedPath, openExcel: false);
+                using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(projectedPath, false);
+                SheetProtection protection = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Elements<SheetProtection>().Single();
+                Assert.True(protection.Objects!.Value);
+                Assert.True(protection.Scenarios!.Value);
+            } finally {
+                if (File.Exists(projectedPath)) {
+                    File.Delete(projectedPath);
+                }
+            }
         }
 
         [Fact]

@@ -452,22 +452,25 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedRecord);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Formula && feature.DetailCode == "Formula:Array");
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.WorksheetProtection && feature.DetailCode == "WorksheetProtection:ObjProtect");
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.WorksheetProtection && feature.DetailCode == "WorksheetProtection:ScenarioProtect");
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.WorksheetProtection);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject && feature.DetailCode == "Drawing:HFPicture");
             Assert.Equal(legacy.UnsupportedFeatures.Count, legacy.PreservedFeatureRecords.Count);
+            LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
+            Assert.NotNull(sheet.Protection);
+            Assert.True(sheet.Protection!.ProtectObjects);
+            Assert.True(sheet.Protection.ProtectScenarios);
 
             LegacyXlsImportReport report = legacy.CreateImportReport();
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Formula]);
-            Assert.Equal(2, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.WorksheetProtection]);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.WorksheetProtection, report.UnsupportedFeaturesByKind.Keys);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
             Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Formula]);
-            Assert.Equal(2, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.WorksheetProtection]);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.WorksheetProtection, report.PreservedFeatureRecordsByKind.Keys);
             Assert.Equal(1, report.DrawingRecordsByKind[LegacyXlsDrawingRecordKind.HeaderFooterPicture]);
             Assert.Equal(1, report.DrawingRecordsByName["HFPicture"]);
+            Assert.Equal(1, report.WorksheetProtectionObjectStates["Protected"]);
+            Assert.Equal(1, report.WorksheetProtectionScenarioStates["Protected"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Formula|XLS-BIFF-FEATURE-FORMULA-UNSUPPORTED|Formula:Array"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["WorksheetProtection|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED|WorksheetProtection:ObjProtect"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["WorksheetProtection|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED|WorksheetProtection:ScenarioProtect"]);
         }
 
         [Fact]

@@ -452,11 +452,23 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         }
 
         internal void SetProtection(bool isProtected) {
-            Protection = new LegacyXlsWorksheetProtection(isProtected, Protection?.LegacyPasswordHash);
+            Protection = new LegacyXlsWorksheetProtection(
+                isProtected,
+                Protection?.LegacyPasswordHash,
+                Protection?.ProtectObjects,
+                Protection?.ProtectScenarios);
         }
 
         internal void SetProtectionPasswordHash(ushort passwordHash) {
             Protection = (Protection ?? new LegacyXlsWorksheetProtection(isProtected: false)).WithLegacyPasswordHash(passwordHash);
+        }
+
+        internal void SetObjectProtection(bool isProtected) {
+            Protection = (Protection ?? new LegacyXlsWorksheetProtection(isProtected: false)).WithObjectProtection(isProtected);
+        }
+
+        internal void SetScenarioProtection(bool isProtected) {
+            Protection = (Protection ?? new LegacyXlsWorksheetProtection(isProtected: false)).WithScenarioProtection(isProtected);
         }
     }
 }

@@ -181,7 +181,9 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             if (legacySheet.Protection?.IsProtected == true) {
                 sheet.Protect(new ExcelSheetProtectionOptions {
-                    LegacyPasswordHash = legacySheet.Protection.LegacyPasswordHash
+                    LegacyPasswordHash = legacySheet.Protection.LegacyPasswordHash,
+                    ProtectObjects = legacySheet.Protection.ProtectObjects,
+                    ProtectScenarios = legacySheet.Protection.ProtectScenarios
                 });
             }
 

@@ -356,6 +356,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         }
 
                         break;
+                    case BiffRecordType.ObjProtect:
+                        ParseObjectProtection(sheet, payload);
+                        break;
                     case BiffRecordType.Obj:
                         if (!commentState.TryReadObject(payload)) {
                             BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, drawingRecords);
@@ -391,6 +394,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     case BiffRecordType.Scl:
                         ParseZoomScale(sheet, payload);
+                        break;
+                    case BiffRecordType.ScenarioProtect:
+                        ParseScenarioProtection(sheet, payload);
                         break;
                     case BiffRecordType.Selection:
                         sheet.AddSelection(BiffWorksheetMetadataReader.ReadSelection(payload));
@@ -941,6 +947,22 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             sheet.SetProtection(BiffRecordReader.ReadUInt16(payload, 0) != 0);
+        }
+
+        private static void ParseObjectProtection(LegacyXlsWorksheet sheet, byte[] payload) {
+            if (payload.Length < 2) {
+                return;
+            }
+
+            sheet.SetObjectProtection(BiffRecordReader.ReadUInt16(payload, 0) != 0);
+        }
+
+        private static void ParseScenarioProtection(LegacyXlsWorksheet sheet, byte[] payload) {
+            if (payload.Length < 2) {
+                return;
+            }
+
+            sheet.SetScenarioProtection(BiffRecordReader.ReadUInt16(payload, 0) != 0);
         }
 
         private static void ParseSortSettings(LegacyXlsWorksheet sheet, byte[] payload, List<LegacyXlsImportDiagnostic> diagnostics, int recordOffset) {

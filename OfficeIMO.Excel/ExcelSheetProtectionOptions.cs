@@ -43,6 +43,10 @@ namespace OfficeIMO.Excel {
         public bool AllowAutoFilter { get; set; }
         /// <summary>Allow PivotTables.</summary>
         public bool AllowPivotTables { get; set; }
+        /// <summary>Protect worksheet drawing objects when set. When null, the objects attribute is omitted.</summary>
+        public bool? ProtectObjects { get; set; }
+        /// <summary>Protect worksheet scenarios when set. When null, the scenarios attribute is omitted.</summary>
+        public bool? ProtectScenarios { get; set; }
         /// <summary>Optional worksheet protection password. This is Excel UI protection, not package encryption.</summary>
         public string? Password { get; set; }
         /// <summary>Optional precomputed legacy worksheet protection hash. When set, this value is written as-is.</summary>

@@ -46,9 +46,9 @@ Worksheet metadata records: 7
 Worksheet future metadata records: 2
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 123
+Unsupported features: 121
 Unsupported projection gaps: 0
-Preserved feature records: 123
+Preserved feature records: 121
 Errors: 0
 Warnings: 0
 
@@ -63,7 +63,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 113 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED | 2 |
 
 ## Formula Tokens By Name
 
@@ -144,6 +143,18 @@ Warnings: 0
 | Index:1 | 1 |
 | Index:2 | 1 |
 
+## Worksheet Protection Object States
+
+| Key | Count |
+| --- | --- |
+| Protected | 1 |
+
+## Worksheet Protection Scenario States
+
+| Key | Count |
+| --- | --- |
+| Protected | 1 |
+
 ## Worksheets By Visibility
 
 | Key | Count |
@@ -191,7 +202,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 113 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED | 2 |
 
 ## Unsupported Features By Kind
 
@@ -204,7 +214,6 @@ Warnings: 0
 | StyleExtension | 113 |
 | TableStyle | 1 |
 | Theme | 1 |
-| WorksheetProtection | 2 |
 
 ## Unsupported Feature Record Types
 
@@ -221,8 +230,6 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x0892 | 47 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|0x088E | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|0x0896 | 1 |
-| WorksheetProtection\|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|0x0063 | 1 |
-| WorksheetProtection\|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|0x00DD | 1 |
 
 ## Unsupported Feature Details
 
@@ -239,8 +246,6 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 65 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
-| WorksheetProtection\|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|WorksheetProtection:ObjProtect | 1 |
-| WorksheetProtection\|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|WorksheetProtection:ScenarioProtect | 1 |
 
 ## Unsupported Feature Locations
 
@@ -254,7 +259,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|(workbook) | 113 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|(workbook) | 1 |
-| XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|Protected | 2 |
 
 ## File Format States
 
@@ -890,7 +894,6 @@ Warnings: 0
 | StyleExtension | 113 |
 | TableStyle | 1 |
 | Theme | 1 |
-| WorksheetProtection | 2 |
 
 ## Preserved Feature Record Details
 
@@ -907,5 +910,3 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 65 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
-| WorksheetProtection\|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|WorksheetProtection:ObjProtect | 1 |
-| WorksheetProtection\|XLS-BIFF-FEATURE-WORKSHEET-PROTECTION-UNSUPPORTED\|WorksheetProtection:ScenarioProtect | 1 |

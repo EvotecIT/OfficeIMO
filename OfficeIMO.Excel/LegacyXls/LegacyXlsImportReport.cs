@@ -51,6 +51,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             ConditionalFormattingCount = conditionalFormattings.Length;
             AutoFilterCriteriaCount = workbook.Worksheets.Sum(sheet => sheet.AutoFilterCriteria.Count);
             WorksheetFeatureStates = CountByCode(workbook.Worksheets.SelectMany(GetWorksheetFeatureStateKeys));
+            WorksheetProtectionObjectStates = CountByCode(workbook.Worksheets
+                .Where(sheet => sheet.Protection?.ProtectObjects.HasValue == true)
+                .Select(sheet => sheet.Protection!.ProtectObjects!.Value ? "Protected" : "Unprotected"));
+            WorksheetProtectionScenarioStates = CountByCode(workbook.Worksheets
+                .Where(sheet => sheet.Protection?.ProtectScenarios.HasValue == true)
+                .Select(sheet => sheet.Protection!.ProtectScenarios!.Value ? "Protected" : "Unprotected"));
             DataValidationCollectionsBySheet = CountByCode(dataValidationCollections.Select(record => record.SheetName));
             DataValidationCollectionsByDeclaredCount = CountByCode(dataValidationCollections.Select(record => $"Declared:{record.DeclaredValidationCount.ToString(CultureInfo.InvariantCulture)}"));
             DataValidationCollectionStates = CountByCode(workbook.Worksheets.SelectMany(GetDataValidationCollectionStateKeys));
@@ -1578,6 +1584,12 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets non-empty worksheet feature bundles grouped by data-validation, conditional-formatting, and AutoFilter state.</summary>
         public IReadOnlyDictionary<string, int> WorksheetFeatureStates { get; }
+
+        /// <summary>Gets worksheet object protection states declared by ObjProtect records.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetProtectionObjectStates { get; }
+
+        /// <summary>Gets worksheet scenario protection states declared by ScenarioProtect records.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetProtectionScenarioStates { get; }
 
         /// <summary>Gets parsed DVal collection headers grouped by worksheet name.</summary>
         public IReadOnlyDictionary<string, int> DataValidationCollectionsBySheet { get; }
@@ -3509,6 +3521,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Future Function Aliases By Function", FutureFunctionAliasesByFunction);
             AppendDictionary(builder, "Future Function Aliases By Token Name", FutureFunctionAliasesByTokenName);
             AppendDictionary(builder, "Worksheet Feature States", WorksheetFeatureStates);
+            AppendDictionary(builder, "Worksheet Protection Object States", WorksheetProtectionObjectStates);
+            AppendDictionary(builder, "Worksheet Protection Scenario States", WorksheetProtectionScenarioStates);
             AppendDictionary(builder, "Data Validations By Type", DataValidationsByType);
             AppendDictionary(builder, "Data Validations By Operator", DataValidationsByOperator);
             AppendDictionary(builder, "Data Validations By Error Style", DataValidationsByErrorStyle);

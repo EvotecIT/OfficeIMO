@@ -125,8 +125,9 @@ hyperlink locations without creating external relationships. Absolute local, UNC
 and relative file `HLink` records saved with Office shared `FileMoniker` data now
 project as normal external file hyperlink relationships. Composite/item monikers
 and other hyperlink target shapes remain diagnostic-only. Workbook- and worksheet-level
-`Protect` and `Password` records now project as Open XML protection metadata,
-preserving the legacy 16-bit password verifier when present. This is workbook/sheet
+`Protect`, `Password`, `ObjProtect`, and `ScenarioProtect` records now project as
+Open XML protection metadata, preserving the legacy 16-bit password verifier and
+worksheet object/scenario protection flags when present. This is workbook/sheet
 UI protection metadata only, not password-to-open file encryption. Basic print page
 setup now imports margin records plus `Setup` scale, fit width/height, orientation,
 and header/footer margins through the normal OfficeIMO page setup APIs. Print
