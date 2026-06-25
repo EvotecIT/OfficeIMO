@@ -473,6 +473,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableFieldNames = CountByCode(workbook.PivotTableRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.FieldName))
                 .Select(record => record.FieldName!));
+            PivotTableFieldIndexListLengths = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.FieldIndexReferences.Count > 0)
+                .Select(record => $"Indexes:{record.FieldIndexReferences.Count}"));
+            PivotTableFieldIndexReferences = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.FieldIndexReferences)
+                .Select(index => $"FieldIndex:{index}"));
+            PivotTableFieldIndexSequences = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.FieldIndexReferences.Count > 0)
+                .Select(record => "FieldIndexes:" + string.Join(",", record.FieldIndexReferences)));
             PivotTableItemTypes = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.ItemType.HasValue)
                 .Select(record => $"ItemType:{record.ItemType!.Value}"));
@@ -2094,6 +2103,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded Sxvd PivotTable fields grouped by explicit caption.</summary>
         public IReadOnlyDictionary<string, int> PivotTableFieldNames { get; }
 
+        /// <summary>Gets decoded SxIvd PivotTable field-index lists grouped by list length.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFieldIndexListLengths { get; }
+
+        /// <summary>Gets decoded SxIvd PivotTable field-index lists grouped by referenced pivot field index.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFieldIndexReferences { get; }
+
+        /// <summary>Gets decoded SxIvd PivotTable field-index lists grouped by full index sequence.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFieldIndexSequences { get; }
+
         /// <summary>Gets decoded SXVI PivotTable items grouped by raw item type.</summary>
         public IReadOnlyDictionary<string, int> PivotTableItemTypes { get; }
 
@@ -3243,6 +3261,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Field Subtotal Counts", PivotTableFieldSubtotalCounts);
             AppendDictionary(builder, "Pivot Table Field Subtotal Functions", PivotTableFieldSubtotalFunctions);
             AppendDictionary(builder, "Pivot Table Field Names", PivotTableFieldNames);
+            AppendDictionary(builder, "Pivot Table Field Index List Lengths", PivotTableFieldIndexListLengths);
+            AppendDictionary(builder, "Pivot Table Field Index References", PivotTableFieldIndexReferences);
+            AppendDictionary(builder, "Pivot Table Field Index Sequences", PivotTableFieldIndexSequences);
             AppendDictionary(builder, "Pivot Table Item Types", PivotTableItemTypes);
             AppendDictionary(builder, "Pivot Table Item Type Kinds", PivotTableItemTypeKinds);
             AppendDictionary(builder, "Pivot Table Item Cache Indexes", PivotTableItemCacheIndexes);

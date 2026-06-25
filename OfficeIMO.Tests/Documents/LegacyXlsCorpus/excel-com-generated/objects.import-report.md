@@ -876,6 +876,24 @@ Warnings: 0
 | --- | --- |
 | Default | 4 |
 
+## Pivot Table Field Index List Lengths
+
+| Key | Count |
+| --- | --- |
+| Indexes:1 | 1 |
+
+## Pivot Table Field Index References
+
+| Key | Count |
+| --- | --- |
+| FieldIndex:0 | 1 |
+
+## Pivot Table Field Index Sequences
+
+| Key | Count |
+| --- | --- |
+| FieldIndexes:0 | 1 |
+
 ## Pivot Table Item Types
 
 | Key | Count |

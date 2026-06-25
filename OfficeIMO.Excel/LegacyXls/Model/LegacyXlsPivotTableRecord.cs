@@ -166,6 +166,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the optional pivot field caption carried by an Sxvd record.</summary>
         public string? FieldName { get; private set; }
 
+        /// <summary>Gets the pivot field indexes referenced by an SxIvd row or column field-index list.</summary>
+        public IReadOnlyList<short> FieldIndexReferences { get; private set; } = Array.Empty<short>();
+
         /// <summary>Gets the raw item type stored in an SXVI PivotTable item record.</summary>
         public short? ItemType { get; private set; }
 
@@ -553,6 +556,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             FieldSubtotalFunctionNames = GetSubtotalFunctionNames(subtotalFlags);
             FieldItemCount = itemCount;
             FieldName = fieldName;
+        }
+
+        internal void SetFieldIndexList(IReadOnlyList<short> fieldIndexes) {
+            FieldIndexReferences = fieldIndexes ?? throw new ArgumentNullException(nameof(fieldIndexes));
         }
 
         internal void SetItem(short itemType, ushort flags, short cacheIndex, string? itemName) {

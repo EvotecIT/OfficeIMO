@@ -27,6 +27,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x00B2:
                         ReadItem(record, pivotRecord);
                         break;
+                    case 0x00B4:
+                        ReadFieldIndexList(record, pivotRecord);
+                        break;
                     case 0x00C1:
                         ReadDataItem(record, pivotRecord);
                         break;
@@ -182,6 +185,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             pivotRecord.SetItem(itemType, flags, cacheIndex, name);
+        }
+
+        private static void ReadFieldIndexList(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            byte[] payload = record.Payload;
+            if ((payload.Length % 2) != 0) {
+                throw new InvalidDataException("The SxIvd payload contains a partial field-index reference.");
+            }
+
+            var fieldIndexes = new short[payload.Length / 2];
+            for (int i = 0; i < fieldIndexes.Length; i++) {
+                fieldIndexes[i] = BiffRecordReader.ReadInt16(payload, i * 2);
+            }
+
+            pivotRecord.SetFieldIndexList(fieldIndexes);
         }
 
         private static LegacyXlsPivotTableRecord CreateRecord(BiffRecord record, string? sheetName) {
