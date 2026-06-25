@@ -70,6 +70,45 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         Window,
 
         /// <summary>Last write user name from a WriteAccess record.</summary>
-        WriteAccess
+        WriteAccess,
+
+        /// <summary>Recalculation identifier metadata from a RecalcId record.</summary>
+        RecalculationIdentifier,
+
+        /// <summary>Extended encryption metadata from an EntExU2 record.</summary>
+        ExtendedEncryption,
+
+        /// <summary>Future-record continuation metadata from a ContinueFrt record.</summary>
+        FutureRecordContinuation,
+
+        /// <summary>Compatibility metadata from a Compat12 record.</summary>
+        Compatibility12,
+
+        /// <summary>Name publishing metadata from a NamePublish record.</summary>
+        NamePublish,
+
+        /// <summary>Name comment metadata from a NameCmt record.</summary>
+        NameComment,
+
+        /// <summary>Sort extension metadata from a SortData record.</summary>
+        SortData,
+
+        /// <summary>VBA type library identifier metadata from a GUIDTypeLib record.</summary>
+        TypeLibraryGuid,
+
+        /// <summary>Function-group metadata from an FnGrp12 record.</summary>
+        FunctionGroup12,
+
+        /// <summary>Name function-group metadata from a NameFnGrp12 record.</summary>
+        NameFunctionGroup12,
+
+        /// <summary>Multi-threaded recalculation settings from an MTRSettings record.</summary>
+        MultiThreadedRecalculationSettings,
+
+        /// <summary>Picture compression settings from a CompressPictures record.</summary>
+        CompressPictures,
+
+        /// <summary>Header/footer extension metadata from a HeaderFooter record.</summary>
+        HeaderFooter
     }
 }

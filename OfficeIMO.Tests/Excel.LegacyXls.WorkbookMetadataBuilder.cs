@@ -17,6 +17,11 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x003d, BuildWindow1Payload());
                 WriteRecord(stream, 0x0040, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x0863, BuildBookExtPayload());
+                WriteRecord(stream, 0x01c0, new byte[] { 0x01, 0x00, 0x00, 0x00 });
+                WriteRecord(stream, 0x088b, BuildFutureMetadataPayload(0x088b, 0x0001, 0x01, 0x00));
+                WriteRecord(stream, 0x089a, BuildFutureMetadataPayload(0x089a, 0x0002, 0x02, 0x00, 0x04, 0x00));
+                WriteRecord(stream, 0x089b, BuildFutureMetadataPayload(0x089b, 0x0000, 0x01, 0x00));
+                WriteRecord(stream, 0x089c, BuildFutureMetadataPayload(0x089c, 0x0004));
                 WriteRecord(stream, 0x008d, BuildUInt16Payload(2));
                 WriteRecord(stream, 0x00da, BuildUInt16Payload(0x015d));
                 WriteRecord(stream, 0x004d, BuildPrinterSettingsPayload());
@@ -74,6 +79,16 @@ namespace OfficeIMO.Tests {
                 WriteUInt32(stream, 0);
                 WriteUInt32(stream, 0);
                 WriteUInt32(stream, 0);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildFutureMetadataPayload(ushort recordType, ushort flags, params byte[] body) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, recordType);
+                WriteUInt16(stream, flags);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                stream.Write(body, 0, body.Length);
                 return stream.ToArray();
             }
 

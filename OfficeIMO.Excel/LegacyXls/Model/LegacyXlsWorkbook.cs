@@ -29,6 +29,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsUnsupportedFeature> _unsupportedFeatures = new();
         private readonly List<LegacyXlsPreservedFeatureRecord> _preservedFeatureRecords = new();
         private readonly List<LegacyXlsWorkbookMetadataRecord> _metadataRecords = new();
+        private readonly List<LegacyXlsWorkbookFutureMetadataRecord> _futureMetadataRecords = new();
         private readonly List<LegacyXlsFormulaTokenRecord> _formulaTokenRecords = new();
         private readonly List<LegacyXlsFutureFunctionAlias> _futureFunctionAliases = new();
         private readonly List<LegacyXlsWorkbookWindow> _windows = new();
@@ -147,6 +148,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets workbook-level BIFF metadata records decoded during import.
         /// </summary>
         public IReadOnlyList<LegacyXlsWorkbookMetadataRecord> MetadataRecords => _metadataRecords;
+
+        /// <summary>
+        /// Gets preserve-only extended workbook metadata records decoded during import.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsWorkbookFutureMetadataRecord> FutureMetadataRecords => _futureMetadataRecords;
 
         /// <summary>
         /// Gets BIFF parsed-formula token observations captured during import for corpus diagnostics.
@@ -448,6 +454,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void AddMetadataRecord(LegacyXlsWorkbookMetadataKind kind, int recordOffset, ushort recordType) {
             _metadataRecords.Add(new LegacyXlsWorkbookMetadataRecord(kind, recordOffset, recordType));
+        }
+
+        internal void AddFutureMetadataRecord(LegacyXlsWorkbookFutureMetadataRecord record) {
+            _futureMetadataRecords.Add(record);
+            AddMetadataRecord(record.Kind, record.RecordOffset, record.RecordType);
         }
 
         internal void SetSheetTabIds(LegacyXlsSheetTabIdCollection sheetTabIds) {

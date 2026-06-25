@@ -361,7 +361,13 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedRecord);
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.WorkbookMetadata && feature.DetailCode == "WorkbookMetadata:RecalcId");
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.WorkbookMetadata);
+            Assert.Equal(9, legacy.FutureMetadataRecords.Count);
+            Assert.Contains(legacy.FutureMetadataRecords, record => record.Kind == LegacyXlsWorkbookMetadataKind.RecalculationIdentifier && record.RecordType == 0x01c0);
+            Assert.Contains(legacy.FutureMetadataRecords, record => record.Kind == LegacyXlsWorkbookMetadataKind.ExtendedEncryption && record.RecordType == 0x01c1);
+            Assert.Contains(legacy.FutureMetadataRecords, record => record.Kind == LegacyXlsWorkbookMetadataKind.Compatibility12 && record.RecordType == 0x088b);
+            Assert.Contains(legacy.FutureMetadataRecords, record => record.Kind == LegacyXlsWorkbookMetadataKind.TypeLibraryGuid && record.HasMatchingFutureRecordHeader);
+            Assert.Contains(legacy.FutureMetadataRecords, record => record.Kind == LegacyXlsWorkbookMetadataKind.HeaderFooter && record.HasMatchingFutureRecordHeader);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DConRef");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DbQueryExt");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PivotTable && feature.DetailCode == "PivotTable:Sxvs");
@@ -397,7 +403,12 @@ namespace OfficeIMO.Tests {
             LegacyXlsImportReport report = legacy.CreateImportReport();
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:Dxf"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["TableStyle|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED|TableStyle:TableStyles"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["WorkbookMetadata|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED|WorkbookMetadata:Compat12"]);
+            Assert.Equal(9, report.WorkbookFutureMetadataRecordCount);
+            Assert.Equal(1, report.WorkbookFutureMetadataRecordsByKind["Compatibility12"]);
+            Assert.Equal(1, report.WorkbookFutureMetadataRecordsByKind["ExtendedEncryption"]);
+            Assert.Equal(1, report.WorkbookFutureMetadataRecordsByRecordName["Compat12"]);
+            Assert.Equal(3, report.WorkbookFutureMetadataRecordsByHeaderState["MatchingFutureHeader"]);
+            Assert.Equal(6, report.WorkbookFutureMetadataRecordsByHeaderState["RawPayload"]);
             Assert.Equal(1, report.ExternalQueryConnectionCount);
             Assert.Equal(1, report.ExternalQueryConnectionsBySourceType["OleDb"]);
             Assert.Equal(1, report.ExternalQueryConnectionsByConnectionFlag["MaintainConnection"]);

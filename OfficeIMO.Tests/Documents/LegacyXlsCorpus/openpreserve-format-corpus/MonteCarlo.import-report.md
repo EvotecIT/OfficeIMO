@@ -41,6 +41,7 @@ Formula token records: 1440
 Array formula records: 0
 Future function aliases: 0
 Workbook metadata records: 17
+Workbook future metadata records: 0
 Worksheet metadata records: 39
 Unsupported sheet metadata records: 8
 Unsupported features: 1210

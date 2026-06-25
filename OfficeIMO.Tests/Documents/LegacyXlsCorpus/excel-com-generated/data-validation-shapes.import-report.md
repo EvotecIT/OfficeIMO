@@ -40,11 +40,12 @@ Cell style extension records: 110
 Formula token records: 1
 Array formula records: 0
 Future function aliases: 0
-Workbook metadata records: 18
+Workbook metadata records: 22
+Workbook future metadata records: 4
 Worksheet metadata records: 10
 Unsupported sheet metadata records: 0
-Unsupported features: 128
-Preserved feature records: 128
+Unsupported features: 124
+Preserved feature records: 124
 Errors: 0
 Warnings: 0
 
@@ -59,7 +60,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 110 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 8 |
+| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 4 |
 
 ## Formula Tokens By Name
 
@@ -350,7 +351,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 110 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 8 |
+| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 4 |
 
 ## Unsupported Features By Kind
 
@@ -363,7 +364,7 @@ Warnings: 0
 | StyleExtension | 110 |
 | TableStyle | 1 |
 | Theme | 1 |
-| WorkbookMetadata | 8 |
+| WorkbookMetadata | 4 |
 
 ## Unsupported Feature Record Types
 
@@ -380,11 +381,7 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x0892 | 47 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|0x088E | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|0x0896 | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x01C0 | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x01C1 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x088B | 2 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x089A | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x089B | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x089C | 2 |
 
 ## Unsupported Feature Details
@@ -403,11 +400,7 @@ Warnings: 0
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:Compat12 | 2 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:CompressPictures | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:EntExU2 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:HeaderFooter | 2 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:MTRSettings | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:RecalcId | 1 |
 
 ## Unsupported Feature Locations
 
@@ -423,7 +416,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|(workbook) | 110 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|(workbook) | 1 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|(workbook) | 4 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|Lookup | 2 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|Validation | 2 |
 
@@ -949,11 +941,15 @@ Warnings: 0
 | BookOptions | 1 |
 | BuiltInFunctionGroupCount | 1 |
 | CodePage | 1 |
+| CompressPictures | 1 |
 | Country | 1 |
+| ExtendedEncryption | 1 |
 | HiddenObjects | 1 |
 | InterfaceCodePage | 1 |
 | InterfaceEnd | 1 |
+| MultiThreadedRecalculationSettings | 1 |
 | NaturalLanguageFormulas | 1 |
+| RecalculationIdentifier | 1 |
 | RefreshAll | 1 |
 | ReservedDsf | 1 |
 | RevisionProtection | 1 |
@@ -962,6 +958,73 @@ Warnings: 0
 | Window | 1 |
 | WindowProtection | 1 |
 | WriteAccess | 1 |
+
+## Workbook Future Metadata Records By Kind
+
+| Key | Count |
+| --- | --- |
+| CompressPictures | 1 |
+| ExtendedEncryption | 1 |
+| MultiThreadedRecalculationSettings | 1 |
+| RecalculationIdentifier | 1 |
+
+## Workbook Future Metadata Records By Record Type
+
+| Key | Count |
+| --- | --- |
+| 0x01C0 | 1 |
+| 0x01C1 | 1 |
+| 0x089A | 1 |
+| 0x089B | 1 |
+
+## Workbook Future Metadata Records By Record Name
+
+| Key | Count |
+| --- | --- |
+| CompressPictures | 1 |
+| EntExU2 | 1 |
+| MTRSettings | 1 |
+| RecalcId | 1 |
+
+## Workbook Future Metadata Records By Header State
+
+| Key | Count |
+| --- | --- |
+| MatchingFutureHeader | 2 |
+| MissingHeader | 1 |
+| ShortFutureHeader | 1 |
+
+## Workbook Future Metadata Records By Header Record Type
+
+| Key | Count |
+| --- | --- |
+| 0x01C1 | 1 |
+| 0x089A | 1 |
+| 0x089B | 1 |
+
+## Workbook Future Metadata Records By Header Flags
+
+| Key | Count |
+| --- | --- |
+| Flags:0x0000 | 3 |
+
+## Workbook Future Metadata Records By Payload Length
+
+| Key | Count |
+| --- | --- |
+| Bytes:0 | 1 |
+| Bytes:16 | 1 |
+| Bytes:24 | 1 |
+| Bytes:8 | 1 |
+
+## Workbook Future Metadata Records By Body Byte Count
+
+| Key | Count |
+| --- | --- |
+| Bytes:0 | 1 |
+| Bytes:12 | 1 |
+| Bytes:4 | 1 |
+| Bytes:8 | 1 |
 
 ## Worksheet Metadata Records By Kind
 
@@ -984,7 +1047,7 @@ Warnings: 0
 | StyleExtension | 110 |
 | TableStyle | 1 |
 | Theme | 1 |
-| WorkbookMetadata | 8 |
+| WorkbookMetadata | 4 |
 
 ## Preserved Feature Record Details
 
@@ -1002,8 +1065,4 @@ Warnings: 0
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:Compat12 | 2 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:CompressPictures | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:EntExU2 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:HeaderFooter | 2 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:MTRSettings | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:RecalcId | 1 |

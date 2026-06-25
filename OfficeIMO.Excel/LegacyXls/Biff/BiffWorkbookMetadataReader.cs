@@ -166,9 +166,81 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.WriteAccess, record.Offset, record.Type);
                     return true;
 
+                case BiffRecordType.RecalcId:
+                    AddFutureMetadataRecord(workbook, record, LegacyXlsWorkbookMetadataKind.RecalculationIdentifier);
+                    return true;
+
+                case BiffRecordType.EntExU2:
+                    AddFutureMetadataRecord(workbook, record, LegacyXlsWorkbookMetadataKind.ExtendedEncryption);
+                    return true;
+
+                case BiffRecordType.ContinueFrt:
+                    AddFutureMetadataRecord(workbook, record, LegacyXlsWorkbookMetadataKind.FutureRecordContinuation);
+                    return true;
+
+                case BiffRecordType.Compat12:
+                    AddFutureMetadataRecord(workbook, record, LegacyXlsWorkbookMetadataKind.Compatibility12);
+                    return true;
+
+                case BiffRecordType.NamePublish:
+                    AddFutureMetadataRecord(workbook, record, LegacyXlsWorkbookMetadataKind.NamePublish);
+                    return true;
+
+                case BiffRecordType.NameCmt:
+                    AddFutureMetadataRecord(workbook, record, LegacyXlsWorkbookMetadataKind.NameComment);
+                    return true;
+
+                case BiffRecordType.SortData:
+                    AddFutureMetadataRecord(workbook, record, LegacyXlsWorkbookMetadataKind.SortData);
+                    return true;
+
+                case BiffRecordType.GuidTypeLib:
+                    AddFutureMetadataRecord(workbook, record, LegacyXlsWorkbookMetadataKind.TypeLibraryGuid);
+                    return true;
+
+                case BiffRecordType.FnGrp12:
+                    AddFutureMetadataRecord(workbook, record, LegacyXlsWorkbookMetadataKind.FunctionGroup12);
+                    return true;
+
+                case BiffRecordType.NameFnGrp12:
+                    AddFutureMetadataRecord(workbook, record, LegacyXlsWorkbookMetadataKind.NameFunctionGroup12);
+                    return true;
+
+                case BiffRecordType.MtrSettings:
+                    AddFutureMetadataRecord(workbook, record, LegacyXlsWorkbookMetadataKind.MultiThreadedRecalculationSettings);
+                    return true;
+
+                case BiffRecordType.CompressPictures:
+                    AddFutureMetadataRecord(workbook, record, LegacyXlsWorkbookMetadataKind.CompressPictures);
+                    return true;
+
+                case BiffRecordType.HeaderFooter:
+                    AddFutureMetadataRecord(workbook, record, LegacyXlsWorkbookMetadataKind.HeaderFooter);
+                    return true;
+
                 default:
                     return false;
             }
+        }
+
+        private static void AddFutureMetadataRecord(
+            LegacyXlsWorkbook workbook,
+            BiffRecord record,
+            LegacyXlsWorkbookMetadataKind kind) {
+            ushort? headerRecordType = record.Payload.Length >= 2
+                ? BiffRecordReader.ReadUInt16(record.Payload, 0)
+                : null;
+            ushort? headerFlags = record.Payload.Length >= 4
+                ? BiffRecordReader.ReadUInt16(record.Payload, 2)
+                : null;
+
+            workbook.AddFutureMetadataRecord(new LegacyXlsWorkbookFutureMetadataRecord(
+                kind,
+                record.Offset,
+                record.Type,
+                record.Payload.Length,
+                headerRecordType,
+                headerFlags));
         }
 
         private static bool TryReadBoolean(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out bool value) {
