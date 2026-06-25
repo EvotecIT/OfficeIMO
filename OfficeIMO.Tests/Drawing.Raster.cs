@@ -187,6 +187,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeCalloutRenderer_DrawsSharedRasterAndSvgCallouts() {
+            var callout = new OfficeCallout(
+                x: 36D,
+                y: 18D,
+                width: 132D,
+                height: 74D,
+                anchorX: 20D,
+                anchorY: 34D,
+                title: "Reviewer",
+                text: "Ready for leadership review");
+            var style = new OfficeCalloutStyle {
+                AccentColor = OfficeColor.FromRgb(124, 58, 237)
+            };
+            OfficeRasterImage image = new OfficeRasterImage(220, 120, OfficeColor.Transparent);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+
+            OfficeCalloutRenderer.DrawRaster(canvas, callout, style);
+
+            Assert.True(CountPixelsNear(image, style.FillColor) > 1000);
+            Assert.True(CountPixelsNear(image, style.HeaderFillColor) > 400);
+            Assert.True(CountPixelsNear(image, style.AccentColor) > 120);
+            Assert.True(CountPaintedPixels(image) > 3000);
+
+            var builder = new System.Text.StringBuilder();
+            OfficeCalloutRenderer.AppendSvg(
+                builder,
+                callout,
+                style,
+                canvas.MeasureText,
+                idPrefix: "review-callout");
+            string svg = builder.ToString();
+
+            Assert.Contains("review-callout-body", svg, StringComparison.Ordinal);
+            Assert.Contains("review-callout-text", svg, StringComparison.Ordinal);
+            Assert.Contains("fill=\"#FFFBE6\"", svg, StringComparison.Ordinal);
+            Assert.Contains("fill=\"#7C3AED\"", svg, StringComparison.Ordinal);
+            Assert.Contains(">Reviewer</text>", svg, StringComparison.Ordinal);
+            Assert.Contains("Ready", svg, StringComparison.Ordinal);
+            Assert.Contains("leadership", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_MeasuresEmptyTextAsZero() {
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(new OfficeRasterImage(16, 16, OfficeColor.Transparent));
 
