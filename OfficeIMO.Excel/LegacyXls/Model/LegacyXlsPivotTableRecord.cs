@@ -67,8 +67,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the pivot field index used by an SXDI display calculation, when decoded.</summary>
         public short? DisplayCalculationFieldIndex { get; private set; }
 
+        /// <summary>Gets a stable field-reference name for an SXDI display calculation.</summary>
+        public string? DisplayCalculationFieldReferenceName { get; private set; }
+
         /// <summary>Gets the pivot item index used by an SXDI display calculation, when decoded.</summary>
         public short? DisplayCalculationItemIndex { get; private set; }
+
+        /// <summary>Gets a stable item-reference name for an SXDI display calculation.</summary>
+        public string? DisplayCalculationItemReferenceName { get; private set; }
 
         /// <summary>Gets the number format identifier stored in an SXDI data item, when decoded.</summary>
         public ushort? NumberFormatId { get; private set; }
@@ -434,7 +440,13 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             DisplayCalculationKind = TryGetDisplayCalculationKind(displayCalculation);
             DisplayCalculationName = DisplayCalculationKind?.ToString() ?? $"DisplayCalculation:{displayCalculation}";
             DisplayCalculationFieldIndex = displayCalculationFieldIndex;
+            DisplayCalculationFieldReferenceName = displayCalculationFieldIndex == -1
+                ? "NoFieldReference"
+                : $"FieldIndex:{displayCalculationFieldIndex}";
             DisplayCalculationItemIndex = displayCalculationItemIndex;
+            DisplayCalculationItemReferenceName = displayCalculationItemIndex == -1
+                ? "NoItemReference"
+                : $"ItemIndex:{displayCalculationItemIndex}";
             NumberFormatId = numberFormatId;
             Name = name;
         }

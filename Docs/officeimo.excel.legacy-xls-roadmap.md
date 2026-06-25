@@ -247,6 +247,8 @@ source values. PivotCache stream identifiers, source-data type records, and the 
 `SXDB` cache-property header now decode into preserve-only PivotTable metadata,
 including compact report buckets for cache stream names, source types, cache record
 and field counts, property flags, and last-refresh-user presence. PivotTable
+`SXDI` data items now carry stable display-calculation reference names and report
+raw display-calculation ids alongside semantic field/item reference states. PivotTable
 `SxAddl` future records now also report future-record type, future flags, class
 sequence indexes, and class/type payload-length buckets.
 Chart `CatSerRange` records now decode preserve-only category/series axis

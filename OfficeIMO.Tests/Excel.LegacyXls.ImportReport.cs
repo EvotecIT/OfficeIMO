@@ -729,7 +729,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableDataItemAggregations["AggregationFunction:0"]);
             Assert.Equal(1, report.PivotTableDataItemAggregationKinds["Sum"]);
             Assert.Equal(1, report.PivotTableDataItemFieldIndexes["FieldIndex:2"]);
+            Assert.Equal(1, report.PivotTableDataItemDisplayCalculationIds["DisplayCalculation:7"]);
             Assert.Equal(1, report.PivotTableDataItemDisplayCalculations["PercentOfGrandTotal"]);
+            Assert.Equal(1, report.PivotTableDataItemDisplayCalculationReferenceStates["PercentOfGrandTotal|Field:NoFieldReference|Item:NoItemReference"]);
             Assert.Equal(1, report.PivotTableDataItemDisplayCalculationFieldIndexes["FieldIndex:-1"]);
             Assert.Equal(1, report.PivotTableDataItemDisplayCalculationItemIndexes["ItemIndex:-1"]);
             Assert.Equal(1, report.PivotTableDataItemNumberFormats["NumberFormatId:14"]);
@@ -904,7 +906,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyXlsPivotDisplayCalculation.PercentOfGrandTotal, dataItem.DisplayCalculationKind);
             Assert.Equal("PercentOfGrandTotal", dataItem.DisplayCalculationName);
             Assert.Equal((short)-1, dataItem.DisplayCalculationFieldIndex);
+            Assert.Equal("NoFieldReference", dataItem.DisplayCalculationFieldReferenceName);
             Assert.Equal((short)-1, dataItem.DisplayCalculationItemIndex);
+            Assert.Equal("NoItemReference", dataItem.DisplayCalculationItemReferenceName);
             Assert.Equal((ushort)14, dataItem.NumberFormatId);
             Assert.Equal("Sales", dataItem.Name);
 

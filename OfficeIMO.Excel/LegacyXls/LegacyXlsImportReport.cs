@@ -721,9 +721,17 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableDataItemFieldIndexes = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.DataItemFieldIndex.HasValue)
                 .Select(record => $"FieldIndex:{record.DataItemFieldIndex!.Value}"));
+            PivotTableDataItemDisplayCalculationIds = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.DisplayCalculation.HasValue)
+                .Select(record => $"DisplayCalculation:{record.DisplayCalculation!.Value}"));
             PivotTableDataItemDisplayCalculations = CountByCode(workbook.PivotTableRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.DisplayCalculationName))
                 .Select(record => record.DisplayCalculationName!));
+            PivotTableDataItemDisplayCalculationReferenceStates = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.DisplayCalculationName)
+                    && !string.IsNullOrWhiteSpace(record.DisplayCalculationFieldReferenceName)
+                    && !string.IsNullOrWhiteSpace(record.DisplayCalculationItemReferenceName))
+                .Select(GetPivotTableDataItemDisplayCalculationReferenceStateKey));
             PivotTableDataItemDisplayCalculationFieldIndexes = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.DisplayCalculationFieldIndex.HasValue)
                 .Select(record => $"FieldIndex:{record.DisplayCalculationFieldIndex!.Value}"));
@@ -2650,8 +2658,14 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by pivot field index.</summary>
         public IReadOnlyDictionary<string, int> PivotTableDataItemFieldIndexes { get; }
 
+        /// <summary>Gets decoded SXDI PivotTable data item records grouped by raw display calculation identifier.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculationIds { get; }
+
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by display calculation name.</summary>
         public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculations { get; }
+
+        /// <summary>Gets decoded SXDI PivotTable data item records grouped by display calculation and reference state.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculationReferenceStates { get; }
 
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by display-calculation field index.</summary>
         public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculationFieldIndexes { get; }
@@ -4050,7 +4064,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Data Item Aggregations", PivotTableDataItemAggregations);
             AppendDictionary(builder, "Pivot Table Data Item Aggregation Kinds", PivotTableDataItemAggregationKinds);
             AppendDictionary(builder, "Pivot Table Data Item Field Indexes", PivotTableDataItemFieldIndexes);
+            AppendDictionary(builder, "Pivot Table Data Item Display Calculation Ids", PivotTableDataItemDisplayCalculationIds);
             AppendDictionary(builder, "Pivot Table Data Item Display Calculations", PivotTableDataItemDisplayCalculations);
+            AppendDictionary(builder, "Pivot Table Data Item Display Calculation Reference States", PivotTableDataItemDisplayCalculationReferenceStates);
             AppendDictionary(builder, "Pivot Table Data Item Display Calculation Field Indexes", PivotTableDataItemDisplayCalculationFieldIndexes);
             AppendDictionary(builder, "Pivot Table Data Item Display Calculation Item Indexes", PivotTableDataItemDisplayCalculationItemIndexes);
             AppendDictionary(builder, "Pivot Table Data Item Number Formats", PivotTableDataItemNumberFormats);
@@ -5313,6 +5329,10 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetExternalCellCacheRangeKey(LegacyXlsExternalCellCache cache) {
             return string.IsNullOrWhiteSpace(cache.CellRange) ? "(empty)" : cache.CellRange!;
+        }
+
+        private static string GetPivotTableDataItemDisplayCalculationReferenceStateKey(LegacyXlsPivotTableRecord record) {
+            return $"{record.DisplayCalculationName}|Field:{record.DisplayCalculationFieldReferenceName}|Item:{record.DisplayCalculationItemReferenceName}";
         }
 
         private static string GetPivotTableGroupingNumericRangeKey(LegacyXlsPivotTableRecord record) {
