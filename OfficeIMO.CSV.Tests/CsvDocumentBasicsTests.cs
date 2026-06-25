@@ -108,6 +108,17 @@ public class CsvDocumentBasicsTests
         Assert.Equal($"hello{delimiter}world", value);
     }
 
+    [Theory]
+    [InlineData("Alpha, \"Beta\" ", "Beta")]
+    [InlineData("Alpha, \"Be,ta\" ", "Be,ta")]
+    [InlineData("Alpha,\"Be\"  ", "Be")]
+    public void Ignores_Padding_Around_Quoted_Fields(string row, string expected)
+    {
+        var parsed = CsvDocument.Parse($"Name,Value\n{row}\n");
+
+        Assert.Equal(expected, parsed.AsEnumerable().Single().AsString("Value"));
+    }
+
     [Fact]
     public void Empty_File_Produces_Empty_Document()
     {

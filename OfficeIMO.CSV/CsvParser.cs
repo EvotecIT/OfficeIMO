@@ -312,6 +312,7 @@ internal static class CsvParser
         var parsedFields = new List<string>(16);
         var inQuotes = false;
         var fieldWasQuoted = false;
+        var afterClosingQuote = false;
 
         for (var i = 0; i < text.Length; i++)
         {
@@ -329,6 +330,7 @@ internal static class CsvParser
                     else
                     {
                         inQuotes = false;
+                        afterClosingQuote = true;
                     }
                 }
                 else
@@ -341,6 +343,18 @@ internal static class CsvParser
 
             if (c == '"')
             {
+                if (afterClosingQuote)
+                {
+                    buffer.Append(c);
+                    afterClosingQuote = false;
+                    continue;
+                }
+
+                if (IsWhitespaceOnly(buffer))
+                {
+                    buffer.Clear();
+                }
+
                 inQuotes = true;
                 fieldWasQuoted = true;
                 continue;
@@ -349,9 +363,16 @@ internal static class CsvParser
             if (c == delimiter)
             {
                 AddField(parsedFields, buffer, trim, ref fieldWasQuoted);
+                afterClosingQuote = false;
                 continue;
             }
 
+            if (afterClosingQuote && char.IsWhiteSpace(c))
+            {
+                continue;
+            }
+
+            afterClosingQuote = false;
             buffer.Append(c);
         }
 
@@ -362,6 +383,19 @@ internal static class CsvParser
 
         AddField(parsedFields, buffer, trim, ref fieldWasQuoted);
         fields = parsedFields.ToArray();
+        return true;
+    }
+
+    private static bool IsWhitespaceOnly(StringBuilder buffer)
+    {
+        for (var i = 0; i < buffer.Length; i++)
+        {
+            if (!char.IsWhiteSpace(buffer[i]))
+            {
+                return false;
+            }
+        }
+
         return true;
     }
 
