@@ -352,6 +352,13 @@ namespace OfficeIMO.Tests {
             Assert.Contains("PtgFuncVar|Reference", report.FormulaTokensByNameAndClass.Keys);
             Assert.Contains("PtgFunc|Bytes:2", report.FormulaTokensByOperandByteCount.Keys);
             Assert.Contains("PtgFuncVar|Bytes:3", report.FormulaTokensByOperandByteCount.Keys);
+            Assert.Contains("CellReference", report.FormulaTokensByOperandKind.Keys);
+            Assert.Contains("AreaReference", report.FormulaTokensByOperandKind.Keys);
+            Assert.Contains("FixedFunction", report.FormulaTokensByOperandKind.Keys);
+            Assert.Contains("VariableFunction", report.FormulaTokensByOperandKind.Keys);
+            Assert.Contains("StringLiteral", report.FormulaTokensByOperandKind.Keys);
+            Assert.Contains("PtgFunc|FixedFunction", report.FormulaTokensByNameAndOperandKind.Keys);
+            Assert.Contains("PtgFuncVar|VariableFunction", report.FormulaTokensByNameAndOperandKind.Keys);
             Assert.True(report.FormulaTokensByContext["CellFormula"] >= 30);
             Assert.Equal(1, report.FormulaFunctionsByName["COUNTIF"]);
             Assert.Equal(1, report.FormulaFunctionsByName["SUMIF"]);
@@ -367,7 +374,19 @@ namespace OfficeIMO.Tests {
                 && record.FunctionName == "COUNTIF"
                 && record.TokenClassName == "Reference"
                 && record.OperandByteCount == 2
+                && record.OperandKind == "FixedFunction"
+                && record.OperandText == "COUNTIF"
                 && record.FunctionParameterCount == 2);
+            Assert.Contains(legacy.FormulaTokenRecords, record =>
+                record.Context == "CellFormula"
+                && record.SheetName == "CommonFunc"
+                && record.OperandKind == "CellReference"
+                && record.OperandText == "A1");
+            Assert.Contains(legacy.FormulaTokenRecords, record =>
+                record.Context == "CellFormula"
+                && record.SheetName == "CommonFunc"
+                && record.OperandKind == "AreaReference"
+                && record.OperandText == "A1:A3");
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
@@ -1059,6 +1078,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.FormulaTokensByClass["Base"]);
             Assert.Equal(1, report.FormulaTokensByNameAndClass["PtgExp|Base"]);
             Assert.Equal(1, report.FormulaTokensByOperandByteCount["PtgExp|Bytes:0"]);
+            Assert.Empty(report.FormulaTokensByOperandKind);
+            Assert.Empty(report.FormulaTokensByNameAndOperandKind);
             Assert.Equal(1, report.FormulaTokensBySequenceIndex["Index:0"]);
             Assert.Contains(legacy.FormulaTokenRecords, record =>
                 record.Context == "CellFormula"
@@ -1069,7 +1090,9 @@ namespace OfficeIMO.Tests {
                 && record.TokenOffset == 0
                 && record.SequenceIndex == 0
                 && record.TokenClassName == "Base"
-                && record.OperandByteCount == 0);
+                && record.OperandByteCount == 0
+                && record.OperandKind == null
+                && record.OperandText == null);
             string markdown = report.ToMarkdown();
             Assert.Contains("Formula Token Blockers By Token", markdown);
             Assert.Contains("Formula Token Blockers By Token Name", markdown);

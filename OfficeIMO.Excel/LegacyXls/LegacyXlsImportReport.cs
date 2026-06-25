@@ -268,6 +268,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             FormulaTokensByOperandByteCount = CountByCode(workbook.FormulaTokenRecords
                 .Where(record => record.OperandByteCount.HasValue)
                 .Select(record => $"{record.TokenName}|Bytes:{record.OperandByteCount!.Value}"));
+            FormulaTokensByOperandKind = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.OperandKind))
+                .Select(record => record.OperandKind!));
+            FormulaTokensByNameAndOperandKind = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.OperandKind))
+                .Select(record => $"{record.TokenName}|{record.OperandKind!}"));
             FormulaTokensBySequenceIndex = CountByCode(workbook.FormulaTokenRecords
                 .Where(record => record.SequenceIndex.HasValue)
                 .Select(record => $"Index:{record.SequenceIndex!.Value}"));
@@ -1688,6 +1694,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets observed parsed-formula tokens grouped by token name and operand byte count.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokensByOperandByteCount { get; }
 
+        /// <summary>Gets observed parsed-formula tokens grouped by decoded operand category.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensByOperandKind { get; }
+
+        /// <summary>Gets observed parsed-formula tokens grouped by token name and decoded operand category.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensByNameAndOperandKind { get; }
+
         /// <summary>Gets observed parsed-formula tokens grouped by sequence index within each expression.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokensBySequenceIndex { get; }
 
@@ -2867,6 +2879,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Formula Tokens By Class", FormulaTokensByClass);
             AppendDictionary(builder, "Formula Tokens By Name And Class", FormulaTokensByNameAndClass);
             AppendDictionary(builder, "Formula Tokens By Operand Byte Count", FormulaTokensByOperandByteCount);
+            AppendDictionary(builder, "Formula Tokens By Operand Kind", FormulaTokensByOperandKind);
+            AppendDictionary(builder, "Formula Tokens By Name And Operand Kind", FormulaTokensByNameAndOperandKind);
             AppendDictionary(builder, "Formula Tokens By Sequence Index", FormulaTokensBySequenceIndex);
             AppendDictionary(builder, "Formula Functions By Id", FormulaFunctionsById);
             AppendDictionary(builder, "Formula Functions By Name", FormulaFunctionsByName);

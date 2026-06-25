@@ -23,7 +23,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             byte? functionParameterCount = null,
             bool? functionIsCetab = null,
             byte? attribute = null,
-            string? attributeName = null) {
+            string? attributeName = null,
+            string? operandKind = null,
+            string? operandText = null) {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             SheetName = sheetName;
             CellReference = cellReference;
@@ -41,6 +43,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             FunctionIsCetab = functionIsCetab;
             Attribute = attribute;
             AttributeName = attributeName;
+            OperandKind = string.IsNullOrWhiteSpace(operandKind) ? null : operandKind;
+            OperandText = string.IsNullOrWhiteSpace(operandText) ? null : operandText;
         }
 
         /// <summary>
@@ -127,5 +131,15 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets the stable attribute name for PtgAttr records, when available.
         /// </summary>
         public string? AttributeName { get; }
+
+        /// <summary>
+        /// Gets the decoded operand category for tokens with structured payloads, such as literals, references, functions, and attributes.
+        /// </summary>
+        public string? OperandKind { get; }
+
+        /// <summary>
+        /// Gets a compact decoded operand value for diagnostics, when it can be represented without resolving workbook context.
+        /// </summary>
+        public string? OperandText { get; }
     }
 }

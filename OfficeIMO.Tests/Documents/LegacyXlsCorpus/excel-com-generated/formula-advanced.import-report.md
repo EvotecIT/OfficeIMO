@@ -164,6 +164,36 @@ Warnings: 0
 | PtgStr\|Bytes:6 | 1 |
 | PtgStr\|Bytes:7 | 1 |
 
+## Formula Tokens By Operand Kind
+
+| Key | Count |
+| --- | --- |
+| AreaReference | 8 |
+| Attribute | 1 |
+| BooleanLiteral | 2 |
+| CellReference | 6 |
+| DefinedName | 2 |
+| ErrorLiteral | 2 |
+| FixedFunction | 5 |
+| IntegerLiteral | 19 |
+| StringLiteral | 4 |
+| VariableFunction | 10 |
+
+## Formula Tokens By Name And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| PtgArea\|AreaReference | 8 |
+| PtgAttr\|Attribute | 1 |
+| PtgBool\|BooleanLiteral | 2 |
+| PtgErr\|ErrorLiteral | 2 |
+| PtgFuncVar\|VariableFunction | 10 |
+| PtgFunc\|FixedFunction | 5 |
+| PtgInt\|IntegerLiteral | 19 |
+| PtgName\|DefinedName | 2 |
+| PtgRef\|CellReference | 6 |
+| PtgStr\|StringLiteral | 4 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

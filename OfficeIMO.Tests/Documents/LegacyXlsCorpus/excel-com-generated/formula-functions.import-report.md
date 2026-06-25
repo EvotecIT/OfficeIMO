@@ -134,6 +134,28 @@ Warnings: 0
 | PtgStr\|Bytes:4 | 1 |
 | PtgStr\|Bytes:7 | 1 |
 
+## Formula Tokens By Operand Kind
+
+| Key | Count |
+| --- | --- |
+| AreaReference | 8 |
+| CellReference | 4 |
+| FixedFunction | 3 |
+| IntegerLiteral | 2 |
+| StringLiteral | 9 |
+| VariableFunction | 11 |
+
+## Formula Tokens By Name And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| PtgArea\|AreaReference | 8 |
+| PtgFuncVar\|VariableFunction | 11 |
+| PtgFunc\|FixedFunction | 3 |
+| PtgInt\|IntegerLiteral | 2 |
+| PtgRef\|CellReference | 4 |
+| PtgStr\|StringLiteral | 9 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

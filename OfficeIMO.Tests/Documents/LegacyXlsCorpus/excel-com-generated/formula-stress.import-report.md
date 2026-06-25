@@ -199,6 +199,34 @@ Warnings: 0
 | PtgUminus\|Bytes:0 | 1 |
 | PtgUplus\|Bytes:0 | 1 |
 
+## Formula Tokens By Operand Kind
+
+| Key | Count |
+| --- | --- |
+| AreaReference | 2 |
+| ArrayLiteral | 2 |
+| Attribute | 6 |
+| CellReference | 18 |
+| FixedFunction | 1 |
+| IntegerLiteral | 2 |
+| SharedOrArrayFormulaAnchor | 1 |
+| StringLiteral | 3 |
+| VariableFunction | 1 |
+
+## Formula Tokens By Name And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| PtgArea\|AreaReference | 2 |
+| PtgArray\|ArrayLiteral | 2 |
+| PtgAttr\|Attribute | 6 |
+| PtgExp\|SharedOrArrayFormulaAnchor | 1 |
+| PtgFuncVar\|VariableFunction | 1 |
+| PtgFunc\|FixedFunction | 1 |
+| PtgInt\|IntegerLiteral | 2 |
+| PtgRef\|CellReference | 18 |
+| PtgStr\|StringLiteral | 3 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

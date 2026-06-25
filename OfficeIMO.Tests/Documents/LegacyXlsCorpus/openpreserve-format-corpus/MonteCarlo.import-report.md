@@ -188,6 +188,28 @@ Warnings: 0
 | PtgRef\|Bytes:4 | 18 |
 | PtgSub\|Bytes:0 | 6 |
 
+## Formula Tokens By Operand Kind
+
+| Key | Count |
+| --- | --- |
+| CellReference | 18 |
+| ExternalAreaReference | 48 |
+| ExternalCellReference | 32 |
+| IntegerLiteral | 16 |
+| RelativeCellReference | 38 |
+| SharedOrArrayFormulaAnchor | 1240 |
+
+## Formula Tokens By Name And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|ExternalAreaReference | 48 |
+| PtgExp\|SharedOrArrayFormulaAnchor | 1240 |
+| PtgInt\|IntegerLiteral | 16 |
+| PtgRef3d\|ExternalCellReference | 32 |
+| PtgRefN\|RelativeCellReference | 38 |
+| PtgRef\|CellReference | 18 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

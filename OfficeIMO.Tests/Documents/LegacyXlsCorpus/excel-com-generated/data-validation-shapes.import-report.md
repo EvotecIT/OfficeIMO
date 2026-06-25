@@ -109,6 +109,18 @@ Warnings: 0
 | --- | --- |
 | PtgArea3d\|Bytes:10 | 1 |
 
+## Formula Tokens By Operand Kind
+
+| Key | Count |
+| --- | --- |
+| ExternalAreaReference | 1 |
+
+## Formula Tokens By Name And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|ExternalAreaReference | 1 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

@@ -122,6 +122,20 @@ Warnings: 0
 | PtgArea3d\|Bytes:10 | 5 |
 | PtgRef3d\|Bytes:6 | 2 |
 
+## Formula Tokens By Operand Kind
+
+| Key | Count |
+| --- | --- |
+| ExternalAreaReference | 5 |
+| ExternalCellReference | 2 |
+
+## Formula Tokens By Name And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|ExternalAreaReference | 5 |
+| PtgRef3d\|ExternalCellReference | 2 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

@@ -119,6 +119,20 @@ Warnings: 0
 | PtgMul\|Bytes:0 | 1 |
 | PtgRef\|Bytes:4 | 1 |
 
+## Formula Tokens By Operand Kind
+
+| Key | Count |
+| --- | --- |
+| CellReference | 1 |
+| IntegerLiteral | 1 |
+
+## Formula Tokens By Name And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| PtgInt\|IntegerLiteral | 1 |
+| PtgRef\|CellReference | 1 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

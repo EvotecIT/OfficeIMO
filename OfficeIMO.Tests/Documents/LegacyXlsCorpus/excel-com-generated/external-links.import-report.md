@@ -128,6 +128,24 @@ Warnings: 0
 | PtgRef\|Bytes:4 | 2 |
 | PtgSub\|Bytes:0 | 1 |
 
+## Formula Tokens By Operand Kind
+
+| Key | Count |
+| --- | --- |
+| Attribute | 1 |
+| CellReference | 2 |
+| ExternalAreaReference | 1 |
+| ExternalCellReference | 2 |
+
+## Formula Tokens By Name And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|ExternalAreaReference | 1 |
+| PtgAttr\|Attribute | 1 |
+| PtgRef3d\|ExternalCellReference | 2 |
+| PtgRef\|CellReference | 2 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

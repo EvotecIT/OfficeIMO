@@ -220,6 +220,42 @@ Warnings: 0
 | PtgRef\|Bytes:4 | 1507 |
 | PtgStr\|Bytes:6 | 21 |
 
+## Formula Tokens By Operand Kind
+
+| Key | Count |
+| --- | --- |
+| AreaReference | 28 |
+| Attribute | 63 |
+| BooleanLiteral | 1170 |
+| CellReference | 1507 |
+| ExternalAreaReference | 1574 |
+| ExternalCellReference | 54 |
+| ExternalName | 7 |
+| FixedFunction | 28 |
+| IntegerLiteral | 1491 |
+| RelativeCellReference | 39 |
+| SharedOrArrayFormulaAnchor | 617 |
+| StringLiteral | 21 |
+| VariableFunction | 1519 |
+
+## Formula Tokens By Name And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|ExternalAreaReference | 1574 |
+| PtgArea\|AreaReference | 28 |
+| PtgAttr\|Attribute | 63 |
+| PtgBool\|BooleanLiteral | 1170 |
+| PtgExp\|SharedOrArrayFormulaAnchor | 617 |
+| PtgFuncVar\|VariableFunction | 1519 |
+| PtgFunc\|FixedFunction | 28 |
+| PtgInt\|IntegerLiteral | 1491 |
+| PtgNameX\|ExternalName | 7 |
+| PtgRef3d\|ExternalCellReference | 54 |
+| PtgRefN\|RelativeCellReference | 39 |
+| PtgRef\|CellReference | 1507 |
+| PtgStr\|StringLiteral | 21 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |
