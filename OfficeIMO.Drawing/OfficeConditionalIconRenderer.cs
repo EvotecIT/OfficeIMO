@@ -44,6 +44,20 @@ public static class OfficeConditionalIconRenderer {
             case OfficeConditionalIconKind.RedCircle:
                 DrawRasterCircle(canvas, x, y, size, fill, stroke, strokeWidth);
                 break;
+            case OfficeConditionalIconKind.RatingOne:
+            case OfficeConditionalIconKind.RatingTwo:
+            case OfficeConditionalIconKind.RatingThree:
+            case OfficeConditionalIconKind.RatingFour:
+            case OfficeConditionalIconKind.RatingFive:
+                DrawRasterRatingBars(canvas, x, y, size, GetRatingBarCount(kind), fill, stroke, strokeWidth);
+                break;
+            case OfficeConditionalIconKind.QuarterEmpty:
+            case OfficeConditionalIconKind.QuarterOne:
+            case OfficeConditionalIconKind.QuarterTwo:
+            case OfficeConditionalIconKind.QuarterThree:
+            case OfficeConditionalIconKind.QuarterFull:
+                DrawRasterQuarterPie(canvas, x, y, size, GetQuarterFillCount(kind), fill, stroke, strokeWidth);
+                break;
             default:
                 IReadOnlyList<OfficePoint> points = CreateArrowPoints(x, y, size, kind);
                 canvas.FillPolygon(points, fill);
@@ -88,6 +102,20 @@ public static class OfficeConditionalIconRenderer {
             case OfficeConditionalIconKind.RedCircle:
                 AppendSvgCircle(builder, x, y, size, fill, stroke, Math.Max(1D, size / 14D));
                 break;
+            case OfficeConditionalIconKind.RatingOne:
+            case OfficeConditionalIconKind.RatingTwo:
+            case OfficeConditionalIconKind.RatingThree:
+            case OfficeConditionalIconKind.RatingFour:
+            case OfficeConditionalIconKind.RatingFive:
+                AppendSvgRatingBars(builder, x, y, size, GetRatingBarCount(kind), fill, stroke, strokeWidth);
+                break;
+            case OfficeConditionalIconKind.QuarterEmpty:
+            case OfficeConditionalIconKind.QuarterOne:
+            case OfficeConditionalIconKind.QuarterTwo:
+            case OfficeConditionalIconKind.QuarterThree:
+            case OfficeConditionalIconKind.QuarterFull:
+                AppendSvgQuarterPie(builder, x, y, size, GetQuarterFillCount(kind), fill, stroke, strokeWidth);
+                break;
             default:
                 IReadOnlyList<OfficePoint> points = CreateArrowPoints(x, y, size, kind);
                 var attributes = new StringBuilder()
@@ -107,6 +135,35 @@ public static class OfficeConditionalIconRenderer {
         canvas.DrawEllipse(x, y, size, size, stroke, strokeWidth);
     }
 
+    private static void DrawRasterRatingBars(OfficeRasterCanvas canvas, double x, double y, double size, int filledBars, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
+        double gap = Math.Max(1D, size * 0.055D);
+        double barWidth = Math.Max(1D, (size - (gap * 4D)) / 5D);
+        double baseY = y + size * 0.86D;
+        OfficeColor emptyFill = OfficeColor.FromRgb(226, 232, 240);
+        OfficeColor emptyStroke = OfficeColor.FromRgb(148, 163, 184);
+
+        for (int i = 0; i < 5; i++) {
+            double height = size * (0.28D + (i * 0.13D));
+            double barX = x + (i * (barWidth + gap));
+            double barY = baseY - height;
+            bool filled = i < filledBars;
+            canvas.FillRectangle(barX, barY, barWidth, height, filled ? fill : emptyFill);
+            canvas.DrawRectangle(barX, barY, barWidth, height, filled ? stroke : emptyStroke, Math.Max(1D, strokeWidth * 0.75D));
+        }
+    }
+
+    private static void DrawRasterQuarterPie(OfficeRasterCanvas canvas, double x, double y, double size, int quarters, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
+        OfficeColor emptyFill = OfficeColor.FromRgb(241, 245, 249);
+        canvas.FillEllipse(x, y, size, size, emptyFill);
+        if (quarters >= 4) {
+            canvas.FillEllipse(x, y, size, size, fill);
+        } else if (quarters > 0) {
+            canvas.FillPolygon(CreateQuarterPiePoints(x, y, size, quarters), fill);
+        }
+
+        canvas.DrawEllipse(x, y, size, size, stroke, strokeWidth);
+    }
+
     private static void AppendSvgCircle(StringBuilder builder, double x, double y, double size, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
         var attributes = new StringBuilder()
             .AppendPaintAttribute("fill", fill)
@@ -116,9 +173,87 @@ public static class OfficeConditionalIconRenderer {
         builder.AppendCircleElement(x + size / 2D, y + size / 2D, size / 2D, attributes);
     }
 
+    private static void AppendSvgRatingBars(StringBuilder builder, double x, double y, double size, int filledBars, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
+        double gap = Math.Max(1D, size * 0.055D);
+        double barWidth = Math.Max(1D, (size - (gap * 4D)) / 5D);
+        double baseY = y + size * 0.86D;
+        OfficeColor emptyFill = OfficeColor.FromRgb(226, 232, 240);
+        OfficeColor emptyStroke = OfficeColor.FromRgb(148, 163, 184);
+
+        for (int i = 0; i < 5; i++) {
+            double height = size * (0.28D + (i * 0.13D));
+            double barX = x + (i * (barWidth + gap));
+            double barY = baseY - height;
+            bool filled = i < filledBars;
+            var attributes = new StringBuilder()
+                .AppendPaintAttribute("fill", filled ? fill : emptyFill)
+                .AppendPaintAttribute("stroke", filled ? stroke : emptyStroke)
+                .AppendNumberAttribute("stroke-width", Math.Max(1D, strokeWidth * 0.75D))
+                .ToString();
+            builder.AppendRectElement(barX, barY, barWidth, height, Math.Max(0.5D, barWidth * 0.18D), Math.Max(0.5D, barWidth * 0.18D), attributes);
+        }
+    }
+
+    private static void AppendSvgQuarterPie(StringBuilder builder, double x, double y, double size, int quarters, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
+        OfficeColor emptyFill = OfficeColor.FromRgb(241, 245, 249);
+        builder.AppendCircleElement(
+            x + size / 2D,
+            y + size / 2D,
+            size / 2D,
+            new StringBuilder()
+                .AppendPaintAttribute("fill", emptyFill)
+                .AppendPaintAttribute("stroke", stroke)
+                .AppendNumberAttribute("stroke-width", strokeWidth)
+                .ToString());
+
+        if (quarters >= 4) {
+            builder.AppendCircleElement(x + size / 2D, y + size / 2D, size / 2D - (strokeWidth * 0.5D), fill);
+        } else if (quarters > 0) {
+            var attributes = new StringBuilder()
+                .AppendPaintAttribute("fill", fill)
+                .ToString();
+            double inset = strokeWidth * 0.5D;
+            builder.AppendPolygonElement(CreateQuarterPiePoints(x + inset, y + inset, size - strokeWidth, quarters), attributes);
+        }
+    }
+
     private static void AppendSvgLine(StringBuilder builder, double x1, double y1, double x2, double y2, OfficeColor color, double width) {
         builder.AppendLineElement(x1, y1, x2, y2, color, Math.Max(1D, width), OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap.Round);
     }
+
+    private static IReadOnlyList<OfficePoint> CreateQuarterPiePoints(double x, double y, double size, int quarters) {
+        double inset = Math.Max(0D, size * 0.04D);
+        double radius = Math.Max(1D, (size / 2D) - inset);
+        double centerX = x + size / 2D;
+        double centerY = y + size / 2D;
+        double start = -Math.PI / 2D;
+        double sweep = Math.PI * 0.5D * Math.Max(0, Math.Min(4, quarters));
+        var points = new List<OfficePoint> {
+            new OfficePoint(centerX, centerY),
+            new OfficePoint(centerX + Math.Cos(start) * radius, centerY + Math.Sin(start) * radius)
+        };
+        points.AddRange(OfficeGeometry.CreateEllipticalArcPoints(centerX, centerY, radius, radius, start, sweep, Math.Max(3, quarters * 4)));
+        return points;
+    }
+
+    private static int GetRatingBarCount(OfficeConditionalIconKind kind) =>
+        kind switch {
+            OfficeConditionalIconKind.RatingOne => 1,
+            OfficeConditionalIconKind.RatingTwo => 2,
+            OfficeConditionalIconKind.RatingThree => 3,
+            OfficeConditionalIconKind.RatingFour => 4,
+            OfficeConditionalIconKind.RatingFive => 5,
+            _ => 0
+        };
+
+    private static int GetQuarterFillCount(OfficeConditionalIconKind kind) =>
+        kind switch {
+            OfficeConditionalIconKind.QuarterOne => 1,
+            OfficeConditionalIconKind.QuarterTwo => 2,
+            OfficeConditionalIconKind.QuarterThree => 3,
+            OfficeConditionalIconKind.QuarterFull => 4,
+            _ => 0
+        };
 
     private static IReadOnlyList<OfficePoint> CreateArrowPoints(double x, double y, double size, OfficeConditionalIconKind kind) {
         double s = size;
@@ -159,19 +294,21 @@ public static class OfficeConditionalIconRenderer {
 
     private static OfficeColor GetFillColor(OfficeConditionalIconKind kind) =>
         kind switch {
-            OfficeConditionalIconKind.GreenUpArrow or OfficeConditionalIconKind.GreenCheck or OfficeConditionalIconKind.GreenCircle => OfficeColor.FromRgb(22, 163, 74),
-            OfficeConditionalIconKind.LightGreenCircle => OfficeColor.FromRgb(132, 204, 22),
-            OfficeConditionalIconKind.YellowUpArrow or OfficeConditionalIconKind.YellowSideArrow or OfficeConditionalIconKind.YellowDownArrow or OfficeConditionalIconKind.YellowExclamation or OfficeConditionalIconKind.YellowCircle => OfficeColor.FromRgb(245, 158, 11),
-            OfficeConditionalIconKind.OrangeCircle => OfficeColor.FromRgb(249, 115, 22),
+            OfficeConditionalIconKind.GreenUpArrow or OfficeConditionalIconKind.GreenCheck or OfficeConditionalIconKind.GreenCircle or OfficeConditionalIconKind.RatingFive or OfficeConditionalIconKind.QuarterFull => OfficeColor.FromRgb(22, 163, 74),
+            OfficeConditionalIconKind.LightGreenCircle or OfficeConditionalIconKind.RatingFour or OfficeConditionalIconKind.QuarterThree => OfficeColor.FromRgb(132, 204, 22),
+            OfficeConditionalIconKind.YellowUpArrow or OfficeConditionalIconKind.YellowSideArrow or OfficeConditionalIconKind.YellowDownArrow or OfficeConditionalIconKind.YellowExclamation or OfficeConditionalIconKind.YellowCircle or OfficeConditionalIconKind.RatingThree or OfficeConditionalIconKind.QuarterTwo => OfficeColor.FromRgb(245, 158, 11),
+            OfficeConditionalIconKind.OrangeCircle or OfficeConditionalIconKind.RatingTwo or OfficeConditionalIconKind.QuarterOne => OfficeColor.FromRgb(249, 115, 22),
+            OfficeConditionalIconKind.QuarterEmpty => OfficeColor.FromRgb(148, 163, 184),
             _ => OfficeColor.FromRgb(220, 38, 38)
         };
 
     private static OfficeColor GetStrokeColor(OfficeConditionalIconKind kind) =>
         kind switch {
-            OfficeConditionalIconKind.GreenUpArrow or OfficeConditionalIconKind.GreenCheck or OfficeConditionalIconKind.GreenCircle => OfficeColor.FromRgb(21, 128, 61),
-            OfficeConditionalIconKind.LightGreenCircle => OfficeColor.FromRgb(77, 124, 15),
-            OfficeConditionalIconKind.YellowUpArrow or OfficeConditionalIconKind.YellowSideArrow or OfficeConditionalIconKind.YellowDownArrow or OfficeConditionalIconKind.YellowExclamation or OfficeConditionalIconKind.YellowCircle => OfficeColor.FromRgb(180, 83, 9),
-            OfficeConditionalIconKind.OrangeCircle => OfficeColor.FromRgb(194, 65, 12),
+            OfficeConditionalIconKind.GreenUpArrow or OfficeConditionalIconKind.GreenCheck or OfficeConditionalIconKind.GreenCircle or OfficeConditionalIconKind.RatingFive or OfficeConditionalIconKind.QuarterFull => OfficeColor.FromRgb(21, 128, 61),
+            OfficeConditionalIconKind.LightGreenCircle or OfficeConditionalIconKind.RatingFour or OfficeConditionalIconKind.QuarterThree => OfficeColor.FromRgb(77, 124, 15),
+            OfficeConditionalIconKind.YellowUpArrow or OfficeConditionalIconKind.YellowSideArrow or OfficeConditionalIconKind.YellowDownArrow or OfficeConditionalIconKind.YellowExclamation or OfficeConditionalIconKind.YellowCircle or OfficeConditionalIconKind.RatingThree or OfficeConditionalIconKind.QuarterTwo => OfficeColor.FromRgb(180, 83, 9),
+            OfficeConditionalIconKind.OrangeCircle or OfficeConditionalIconKind.RatingTwo or OfficeConditionalIconKind.QuarterOne => OfficeColor.FromRgb(194, 65, 12),
+            OfficeConditionalIconKind.QuarterEmpty => OfficeColor.FromRgb(100, 116, 139),
             _ => OfficeColor.FromRgb(185, 28, 28)
         };
 }

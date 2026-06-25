@@ -41,5 +41,35 @@ public enum OfficeConditionalIconKind {
     OrangeCircle,
 
     /// <summary>Red traffic-light circle.</summary>
-    RedCircle
+    RedCircle,
+
+    /// <summary>One filled rating bar.</summary>
+    RatingOne,
+
+    /// <summary>Two filled rating bars.</summary>
+    RatingTwo,
+
+    /// <summary>Three filled rating bars.</summary>
+    RatingThree,
+
+    /// <summary>Four filled rating bars.</summary>
+    RatingFour,
+
+    /// <summary>Five filled rating bars.</summary>
+    RatingFive,
+
+    /// <summary>Empty quarter-pie indicator.</summary>
+    QuarterEmpty,
+
+    /// <summary>One-quarter filled pie indicator.</summary>
+    QuarterOne,
+
+    /// <summary>Half-filled pie indicator.</summary>
+    QuarterTwo,
+
+    /// <summary>Three-quarter filled pie indicator.</summary>
+    QuarterThree,
+
+    /// <summary>Fully filled pie indicator.</summary>
+    QuarterFull
 }

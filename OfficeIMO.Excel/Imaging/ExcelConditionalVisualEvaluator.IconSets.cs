@@ -59,9 +59,17 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (name.IndexOf("Rating", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                name.IndexOf("Quarters", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                name.IndexOf("Traffic", StringComparison.OrdinalIgnoreCase) >= 0) {
+            if (name.IndexOf("Rating", StringComparison.OrdinalIgnoreCase) >= 0) {
+                family = ExcelConditionalIconFamily.Ratings;
+                return true;
+            }
+
+            if (name.IndexOf("Quarters", StringComparison.OrdinalIgnoreCase) >= 0) {
+                family = ExcelConditionalIconFamily.Quarters;
+                return true;
+            }
+
+            if (name.IndexOf("Traffic", StringComparison.OrdinalIgnoreCase) >= 0) {
                 family = ExcelConditionalIconFamily.Circles;
                 return true;
             }
@@ -191,6 +199,40 @@ namespace OfficeIMO.Excel {
                         : ExcelConditionalIconKind.GreenCircle;
             }
 
+            if (family == ExcelConditionalIconFamily.Ratings) {
+                if (iconCount >= 5) {
+                    return normalized == 0
+                        ? ExcelConditionalIconKind.RatingOne
+                        : normalized == 1
+                            ? ExcelConditionalIconKind.RatingTwo
+                            : normalized == 2
+                                ? ExcelConditionalIconKind.RatingThree
+                                : normalized == 3
+                                    ? ExcelConditionalIconKind.RatingFour
+                                    : ExcelConditionalIconKind.RatingFive;
+                }
+
+                return normalized == 0
+                    ? ExcelConditionalIconKind.RatingOne
+                    : normalized == 1
+                        ? ExcelConditionalIconKind.RatingTwo
+                        : normalized == 2
+                            ? ExcelConditionalIconKind.RatingThree
+                            : ExcelConditionalIconKind.RatingFour;
+            }
+
+            if (family == ExcelConditionalIconFamily.Quarters) {
+                return normalized == 0
+                    ? ExcelConditionalIconKind.QuarterEmpty
+                    : normalized == 1
+                        ? ExcelConditionalIconKind.QuarterOne
+                        : normalized == 2
+                            ? ExcelConditionalIconKind.QuarterTwo
+                            : normalized == 3
+                                ? ExcelConditionalIconKind.QuarterThree
+                                : ExcelConditionalIconKind.QuarterFull;
+            }
+
             return normalized == 0
                 ? ExcelConditionalIconKind.RedCross
                 : normalized == 1
@@ -201,7 +243,9 @@ namespace OfficeIMO.Excel {
         private enum ExcelConditionalIconFamily {
             Symbols,
             Arrows,
-            Circles
+            Circles,
+            Ratings,
+            Quarters
         }
     }
 }

@@ -12,7 +12,13 @@ namespace OfficeIMO.Tests {
             Tracked("officeimo-excel-image-conditional-formatting", "Icon artwork and threshold parity remain approximate.", ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation),
             Clean("officeimo-excel-image-cropped-image"),
             Clean("officeimo-excel-image-drawing-object"),
-            Tracked("officeimo-excel-image-expanded-icon-sets", "Expanded icon-set visuals remain deterministic approximations.", ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation, ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation),
+            Tracked(
+                "officeimo-excel-image-expanded-icon-sets",
+                "Expanded icon-set visuals remain deterministic approximations.",
+                ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation,
+                ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation,
+                ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation,
+                ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation),
             Clean("officeimo-excel-image-header-footer-images"),
             Clean("officeimo-excel-image-page-layout"),
             Tracked(

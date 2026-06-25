@@ -53,6 +53,16 @@ namespace OfficeIMO.Excel {
                 ExcelConditionalIconKind.YellowCircle => OfficeConditionalIconKind.YellowCircle,
                 ExcelConditionalIconKind.OrangeCircle => OfficeConditionalIconKind.OrangeCircle,
                 ExcelConditionalIconKind.RedCircle => OfficeConditionalIconKind.RedCircle,
+                ExcelConditionalIconKind.RatingOne => OfficeConditionalIconKind.RatingOne,
+                ExcelConditionalIconKind.RatingTwo => OfficeConditionalIconKind.RatingTwo,
+                ExcelConditionalIconKind.RatingThree => OfficeConditionalIconKind.RatingThree,
+                ExcelConditionalIconKind.RatingFour => OfficeConditionalIconKind.RatingFour,
+                ExcelConditionalIconKind.RatingFive => OfficeConditionalIconKind.RatingFive,
+                ExcelConditionalIconKind.QuarterEmpty => OfficeConditionalIconKind.QuarterEmpty,
+                ExcelConditionalIconKind.QuarterOne => OfficeConditionalIconKind.QuarterOne,
+                ExcelConditionalIconKind.QuarterTwo => OfficeConditionalIconKind.QuarterTwo,
+                ExcelConditionalIconKind.QuarterThree => OfficeConditionalIconKind.QuarterThree,
+                ExcelConditionalIconKind.QuarterFull => OfficeConditionalIconKind.QuarterFull,
                 _ => OfficeConditionalIconKind.RedCross
             };
 

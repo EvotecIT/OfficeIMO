@@ -176,14 +176,35 @@ namespace OfficeIMO.Tests {
         public void OfficeConditionalIconRenderer_DrawsReusableRasterIcons() {
             OfficeRasterImage circle = new OfficeRasterImage(24, 24, OfficeColor.Transparent);
             OfficeRasterImage arrow = new OfficeRasterImage(24, 24, OfficeColor.Transparent);
+            OfficeRasterImage rating = new OfficeRasterImage(24, 24, OfficeColor.Transparent);
+            OfficeRasterImage quarter = new OfficeRasterImage(24, 24, OfficeColor.Transparent);
 
             OfficeConditionalIconRenderer.DrawRaster(new OfficeRasterCanvas(circle), 3, 3, 18, OfficeConditionalIconKind.RedCircle, scale: 1D);
             OfficeConditionalIconRenderer.DrawRaster(new OfficeRasterCanvas(arrow), 3, 3, 18, OfficeConditionalIconKind.GreenUpArrow, scale: 1D);
+            OfficeConditionalIconRenderer.DrawRaster(new OfficeRasterCanvas(rating), 3, 3, 18, OfficeConditionalIconKind.RatingFive, scale: 1D);
+            OfficeConditionalIconRenderer.DrawRaster(new OfficeRasterCanvas(quarter), 3, 3, 18, OfficeConditionalIconKind.QuarterOne, scale: 1D);
 
             Assert.True(CountPixelsNear(circle, OfficeColor.FromRgb(220, 38, 38)) > 40);
             Assert.True(CountPixelsNear(arrow, OfficeColor.FromRgb(22, 163, 74)) > 30);
+            Assert.True(CountPixelsNear(rating, OfficeColor.FromRgb(22, 163, 74)) > 45);
+            Assert.True(CountPixelsNear(quarter, OfficeColor.FromRgb(249, 115, 22)) > 20);
             Assert.Equal(0, circle.GetPixel(0, 0).A);
             Assert.Equal(0, arrow.GetPixel(0, 0).A);
+            Assert.Equal(0, rating.GetPixel(0, 0).A);
+            Assert.Equal(0, quarter.GetPixel(0, 0).A);
+        }
+
+        [Fact]
+        public void OfficeConditionalIconRenderer_AppendsReusableRatingAndQuarterSvgIcons() {
+            var builder = new System.Text.StringBuilder();
+
+            OfficeConditionalIconRenderer.AppendSvg(builder, 2, 3, 18, OfficeConditionalIconKind.RatingThree, scale: 1D);
+            OfficeConditionalIconRenderer.AppendSvg(builder, 24, 3, 18, OfficeConditionalIconKind.QuarterTwo, scale: 1D);
+            string svg = builder.ToString();
+
+            Assert.Contains("<rect", svg, StringComparison.Ordinal);
+            Assert.Contains("<polygon", svg, StringComparison.Ordinal);
+            Assert.Contains("#F59E0B", svg, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

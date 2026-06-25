@@ -70,14 +70,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExpandedIconSetImageExportMatchesApprovedBaselines() {
             using ExcelBaselineFixture fixture = CreateExpandedIconSetBaselineWorkbook();
-            ExcelRange range = fixture.Sheet.Range("A1:E7");
+            ExcelRange range = fixture.Sheet.Range("A1:G7");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
-            Assert.Equal(2, png.Diagnostics.Count(item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation));
+            Assert.Equal(4, png.Diagnostics.Count(item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation));
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetUnsupported);
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.DoesNotContain(svg.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
@@ -536,7 +536,7 @@ namespace OfficeIMO.Tests {
             string svgPath = Path.Combine(baselineDirectory, ExpandedIconSetBaselineName + ".svg");
             if (UpdateBaselines) {
                 using ExcelBaselineFixture fixture = CreateExpandedIconSetBaselineWorkbook();
-                ExcelRange range = fixture.Sheet.Range("A1:E7");
+                ExcelRange range = fixture.Sheet.Range("A1:G7");
                 ExcelImageExportOptions options = CreateBaselineOptions();
                 AssertRasterBaseline(ExpandedIconSetBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
                 AssertTextBaseline(ExpandedIconSetBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
@@ -1226,13 +1226,13 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorkSheet("IconSets");
 
             sheet.CellValue(1, 1, "Expanded Icon Sets");
-            sheet.Range("A1:E1").Merge();
+            sheet.Range("A1:G1").Merge();
             sheet.Range("A1:E1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
             sheet.CellAlign(1, 1, HorizontalAlignmentValues.Center);
             sheet.CellVerticalAlign(1, 1, VerticalAlignmentValues.Center);
             sheet.SetRowHeight(1, 26);
 
-            string[] headers = { "Tier", "Five arrows", "Arrow value", "Four traffic", "Traffic value" };
+            string[] headers = { "Tier", "Five arrows", "Arrow value", "Four traffic", "Traffic value", "Five rating", "Five quarters" };
             for (int column = 1; column <= headers.Length; column++) {
                 sheet.CellValue(2, column, headers[column - 1]);
                 sheet.CellAt(2, column).SetFillColor("E2E8F0").SetFontColor("1F2937").SetBold();
@@ -1247,16 +1247,17 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(row, 3, i + 1);
                 sheet.CellValue(row, 4, Math.Min(i + 1, 4));
                 sheet.CellValue(row, 5, Math.Min(i + 1, 4));
+                sheet.CellValue(row, 6, i + 1);
+                sheet.CellValue(row, 7, i + 1);
             }
 
-            sheet.SetColumnWidth(1, 13);
-            sheet.SetColumnWidth(2, 13);
-            sheet.SetColumnWidth(3, 13);
-            sheet.SetColumnWidth(4, 13);
-            sheet.SetColumnWidth(5, 13);
+            for (int column = 1; column <= 7; column++) {
+                sheet.SetColumnWidth(column, column == 1 ? 13 : 12);
+            }
+
             for (int row = 2; row <= 7; row++) {
                 sheet.SetRowHeight(row, 24);
-                for (int column = 1; column <= 5; column++) {
+                for (int column = 1; column <= 7; column++) {
                     sheet.CellAt(row, column).SetBorder(BorderStyleValues.Thin, "CBD5E1");
                     sheet.CellVerticalAlign(row, column, VerticalAlignmentValues.Center);
                     sheet.CellAlign(row, column, column == 1 ? HorizontalAlignmentValues.Left : HorizontalAlignmentValues.Center);
@@ -1265,6 +1266,8 @@ namespace OfficeIMO.Tests {
 
             sheet.AddConditionalIconSet("B3:B7", IconSetValues.FiveArrows, showValue: true, reverseIconOrder: false);
             sheet.AddConditionalIconSet("D3:D7", IconSetValues.FourTrafficLights, showValue: true, reverseIconOrder: false);
+            sheet.AddConditionalIconSet("F3:F7", IconSetValues.FiveRating, showValue: true, reverseIconOrder: false);
+            sheet.AddConditionalIconSet("G3:G7", IconSetValues.FiveQuarters, showValue: true, reverseIconOrder: false);
             return new ExcelBaselineFixture(document, sheet);
         }
 
