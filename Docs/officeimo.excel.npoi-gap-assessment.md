@@ -115,8 +115,10 @@ It also covers a conditional-formatting rule read bucket for HSSF-generated
 cell-is and formula rules. Because NPOI's shared AutoFilter API is basic
 range-setting rather than full criteria editing, the filter comparison lane is
 named `xls-read-autofilter-range` and measures the hidden `_FilterDatabase`
-range/drop-down signal only. Later lanes can add DataTable/DataSet-style
-import/export, styles, richer conditional-formatting style reads, and preserved
+range/drop-down signal only. The `xls-read-styles` lane now validates HSSF
+font, fill, border, number-format, and alignment style signals against
+OfficeIMO's legacy XLS style model. Later lanes can add DataTable/DataSet-style
+import/export, richer conditional-formatting style reads, and preserved
 unsupported feature counts, then merge the opt-in JSON output into the existing
 comparison summary format.
 
@@ -125,9 +127,11 @@ The current checked-in benchmark evidence is
 opt-in runner with 2,500 rows, one warmup, and three measured iterations. Equal
 metrics in the scalar `.xlsx` read, `.xls` cell-value, `.xls` formula, and
 AutoFilter-range lanes prove the two libraries read the same benchmark signals.
-The richer metadata and conditional-formatting lanes intentionally validate
-counts/ranges but do not require equal metrics because the two object models
-surface rule and metadata text differently.
+The `.xls` style lane also produces equal metrics after validating the same
+header, owner, amount, and inactive-row style signals. The richer metadata and
+conditional-formatting lanes intentionally validate counts/ranges but do not
+require equal metrics because the two object models surface rule and metadata
+text differently.
 
 One implementation detail matters for repeatable local evidence: HSSF
 comment/drawing reads load SkiaSharp at runtime, while NPOI's package metadata

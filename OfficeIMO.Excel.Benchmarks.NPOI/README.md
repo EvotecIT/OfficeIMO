@@ -14,7 +14,7 @@ from the transitive reference.
 
 The JSON `Metric` field is a lightweight anti-elision checksum for each measured
 read/write path. Equal metrics are a useful parity signal for the scalar
-cell-value, formula, and AutoFilter-range lanes; different metrics in richer
+cell-value, formula, AutoFilter-range, and style-signal lanes; different metrics in richer
 metadata lanes should be read as "the benchmark exercised the path and validated
 its counts/ranges", not as a full feature-diff verdict.
 
@@ -40,6 +40,9 @@ The first lanes are deliberately natural to NPOI:
 - `xls-read-autofilter-range`: read basic AutoFilter range/drop-down metadata
   from an HSSF-generated `.xls` workbook through NPOI and OfficeIMO's legacy
   XLS importer.
+- `xls-read-styles`: read font, fill, border, number-format, and alignment
+  style signals from an HSSF-generated `.xls` workbook through NPOI and
+  OfficeIMO's legacy XLS importer.
 
 Do not add OfficeIMO-specific template, preflight, PDF, package-copy,
 direct-package, or report-workflow scenarios here unless NPOI has an equivalent

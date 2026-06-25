@@ -43,12 +43,14 @@ var npoiFormulaXls = new Lazy<byte[]>(() => WriteNpoiFormulaXls(records));
 var npoiMetadataXls = new Lazy<byte[]>(() => WriteNpoiMetadataXls(records));
 var npoiConditionalFormattingXls = new Lazy<byte[]>(() => WriteNpoiConditionalFormattingXls(records));
 var npoiAutoFilterXls = new Lazy<byte[]>(() => WriteNpoiAutoFilterXls(records));
+var npoiStylesXls = new Lazy<byte[]>(() => WriteNpoiStylesXls(records));
 
 if ((IncludeScenario("xls-read-cellvalues")
         || IncludeScenario("xls-read-formulas")
         || IncludeScenario("xls-read-metadata")
         || IncludeScenario("xls-read-conditional-formatting")
-        || IncludeScenario("xls-read-autofilter-range")) && rowCount + 1 > 65_536) {
+        || IncludeScenario("xls-read-autofilter-range")
+        || IncludeScenario("xls-read-styles")) && rowCount + 1 > 65_536) {
     throw new ArgumentOutOfRangeException(nameof(rowCount), "The xls scenarios cannot exceed the BIFF8 worksheet row limit.");
 }
 
@@ -87,6 +89,11 @@ if (IncludeScenario("xls-read-conditional-formatting")) {
 if (IncludeScenario("xls-read-autofilter-range")) {
     AddScenario(measurements, "xls-read-autofilter-range", "OfficeIMO.Excel Legacy XLS", "Read BIFF8 AutoFilter range/drop-down metadata from an HSSF-generated .xls workbook.", () => ReadOfficeImoXlsAutoFilterRange(npoiAutoFilterXls.Value, rowCount), warmupIterations, measuredIterations);
     AddScenario(measurements, "xls-read-autofilter-range", "NPOI HSSF", "Read the hidden AutoFilter range name from the same HSSF-generated .xls workbook.", () => ReadNpoiWorkbookAutoFilterRange(npoiAutoFilterXls.Value, rowCount), warmupIterations, measuredIterations);
+}
+
+if (IncludeScenario("xls-read-styles")) {
+    AddScenario(measurements, "xls-read-styles", "OfficeIMO.Excel Legacy XLS", "Read BIFF8 font, fill, border, number-format, and alignment style signals from an HSSF-generated .xls workbook.", () => ReadOfficeImoXlsStyles(npoiStylesXls.Value, rowCount), warmupIterations, measuredIterations);
+    AddScenario(measurements, "xls-read-styles", "NPOI HSSF", "Read font, fill, border, number-format, and alignment style signals from the same HSSF-generated .xls workbook.", () => ReadNpoiWorkbookStyles(npoiStylesXls.Value, rowCount), warmupIterations, measuredIterations);
 }
 
 if (measurements.Count == 0) {
@@ -276,6 +283,67 @@ static byte[] WriteNpoiAutoFilterXls(IReadOnlyList<SalesRecord> records) {
     return stream.ToArray();
 }
 
+static byte[] WriteNpoiStylesXls(IReadOnlyList<SalesRecord> records) {
+    using var stream = new MemoryStream();
+    using var workbook = new HSSFWorkbook();
+    ISheet sheet = workbook.CreateSheet("Data");
+    IDataFormat dataFormat = workbook.CreateDataFormat();
+
+    IFont headerFont = workbook.CreateFont();
+    headerFont.IsBold = true;
+    headerFont.Color = IndexedColors.White.Index;
+
+    ICellStyle headerStyle = workbook.CreateCellStyle();
+    headerStyle.SetFont(headerFont);
+    headerStyle.FillForegroundColor = IndexedColors.DarkBlue.Index;
+    headerStyle.FillPattern = FillPattern.SolidForeground;
+    headerStyle.BorderBottom = BorderStyle.Medium;
+
+    ICellStyle amountStyle = workbook.CreateCellStyle();
+    amountStyle.DataFormat = dataFormat.GetFormat("$#,##0.00");
+    amountStyle.Alignment = HorizontalAlignment.Right;
+
+    ICellStyle ownerStyle = workbook.CreateCellStyle();
+    ownerStyle.Alignment = HorizontalAlignment.Center;
+    ownerStyle.WrapText = true;
+
+    ICellStyle inactiveStyle = workbook.CreateCellStyle();
+    inactiveStyle.FillForegroundColor = IndexedColors.Rose.Index;
+    inactiveStyle.FillPattern = FillPattern.SolidForeground;
+
+    IRow header = sheet.CreateRow(0);
+    string[] headings = ["Id", "Region", "Owner", "Amount", "Active"];
+    for (int columnIndex = 0; columnIndex < headings.Length; columnIndex++) {
+        ICell cell = header.CreateCell(columnIndex);
+        cell.SetCellValue(headings[columnIndex]);
+        cell.CellStyle = headerStyle;
+    }
+
+    for (int i = 0; i < records.Count; i++) {
+        IRow row = sheet.CreateRow(i + 1);
+        SalesRecord record = records[i];
+        row.CreateCell(0).SetCellValue(record.Id);
+        row.CreateCell(1).SetCellValue(record.Region);
+
+        ICell ownerCell = row.CreateCell(2);
+        ownerCell.SetCellValue(record.Owner);
+        ownerCell.CellStyle = ownerStyle;
+
+        ICell amountCell = row.CreateCell(3);
+        amountCell.SetCellValue(record.Amount);
+        amountCell.CellStyle = amountStyle;
+
+        ICell activeCell = row.CreateCell(4);
+        activeCell.SetCellValue(record.Active);
+        if (!record.Active) {
+            activeCell.CellStyle = inactiveStyle;
+        }
+    }
+
+    workbook.Write(stream, leaveOpen: true);
+    return stream.ToArray();
+}
+
 static void WriteOfficeImoRows(ExcelSheet sheet, IReadOnlyList<SalesRecord> records) {
     sheet.CellValue(1, 1, "Id");
     sheet.CellValue(1, 2, "Region");
@@ -427,6 +495,35 @@ static int ReadOfficeImoXlsAutoFilterRange(byte[] workbookBytes, int rowCount) {
     return metric;
 }
 
+static int ReadOfficeImoXlsStyles(byte[] workbookBytes, int rowCount) {
+    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedRecords = true });
+    LegacyXlsWorksheet worksheet = workbook.Worksheets.Single(sheet => sheet.Name == "Data");
+    ValidateStyleCellCount(worksheet.Cells.Count, rowCount, "OfficeIMO legacy XLS");
+
+    LegacyXlsCellFormat headerFormat = GetOfficeImoCellFormat(workbook, worksheet, 1, 1);
+    LegacyXlsFont headerFont = GetOfficeImoFont(workbook, headerFormat.FontIndex);
+    if (!headerFont.Bold || headerFormat.FillPattern == 0 || headerFormat.Border?.BottomStyle != 2) {
+        throw new InvalidOperationException("OfficeIMO legacy XLS did not preserve the expected header font/fill/border style signals.");
+    }
+
+    LegacyXlsCellFormat ownerFormat = GetOfficeImoCellFormat(workbook, worksheet, 2, 3);
+    LegacyXlsCellFormat amountFormat = GetOfficeImoCellFormat(workbook, worksheet, 2, 4);
+    LegacyXlsCellFormat inactiveFormat = GetOfficeImoCellFormat(workbook, worksheet, 2, 5);
+    if (ownerFormat.HorizontalAlignment != 2 || !ownerFormat.WrapText) {
+        throw new InvalidOperationException("OfficeIMO legacy XLS did not preserve the expected owner alignment style signals.");
+    }
+
+    if (amountFormat.NumberFormatCode == null || amountFormat.NumberFormatCode.IndexOf('$', StringComparison.Ordinal) < 0) {
+        throw new InvalidOperationException("OfficeIMO legacy XLS did not preserve the expected currency number format signal.");
+    }
+
+    if (inactiveFormat.FillPattern == 0) {
+        throw new InvalidOperationException("OfficeIMO legacy XLS did not preserve the expected inactive-row fill style signal.");
+    }
+
+    return BuildStyleMetric(rowCount);
+}
+
 static int ReadNpoiWorkbook(byte[] workbookBytes, int rowCount) {
     using var stream = new MemoryStream(workbookBytes, writable: false);
     using IWorkbook workbook = WorkbookFactory.Create(stream);
@@ -544,6 +641,36 @@ static int ReadNpoiWorkbookAutoFilterRange(byte[] workbookBytes, int rowCount) {
     return metric;
 }
 
+static int ReadNpoiWorkbookStyles(byte[] workbookBytes, int rowCount) {
+    using var stream = new MemoryStream(workbookBytes, writable: false);
+    using IWorkbook workbook = WorkbookFactory.Create(stream);
+    ISheet sheet = workbook.GetSheet("Data");
+    ValidateStyleCellCount(CountNpoiCells(sheet, rowCount), rowCount, "NPOI HSSF");
+
+    ICellStyle headerStyle = GetNpoiCell(sheet, 0, 0).CellStyle;
+    IFont headerFont = workbook.GetFontAt(headerStyle.FontIndex);
+    if (!headerFont.IsBold || headerStyle.FillPattern != FillPattern.SolidForeground || headerStyle.BorderBottom != BorderStyle.Medium) {
+        throw new InvalidOperationException("NPOI HSSF did not preserve the expected header font/fill/border style signals.");
+    }
+
+    ICellStyle ownerStyle = GetNpoiCell(sheet, 1, 2).CellStyle;
+    ICellStyle amountStyle = GetNpoiCell(sheet, 1, 3).CellStyle;
+    ICellStyle inactiveStyle = GetNpoiCell(sheet, 1, 4).CellStyle;
+    if (ownerStyle.Alignment != HorizontalAlignment.Center || !ownerStyle.WrapText) {
+        throw new InvalidOperationException("NPOI HSSF did not preserve the expected owner alignment style signals.");
+    }
+
+    if (amountStyle.GetDataFormatString().IndexOf('$', StringComparison.Ordinal) < 0) {
+        throw new InvalidOperationException("NPOI HSSF did not preserve the expected currency number format signal.");
+    }
+
+    if (inactiveStyle.FillPattern != FillPattern.SolidForeground) {
+        throw new InvalidOperationException("NPOI HSSF did not preserve the expected inactive-row fill style signal.");
+    }
+
+    return BuildStyleMetric(rowCount);
+}
+
 static object? ReadNpoiCellValue(ICell cell) {
     return cell.CellType switch {
         CellType.String => cell.StringCellValue,
@@ -645,6 +772,55 @@ static void ValidateAutoFilterRange(string? reference, int rowCount, string libr
     }
 }
 
+static void ValidateStyleCellCount(int actualCellCount, int rowCount, string libraryName) {
+    int expectedCellCount = checked((rowCount + 1) * 5);
+    if (actualCellCount != expectedCellCount) {
+        throw new InvalidOperationException($"{libraryName} style workbook cell count did not match. Cells {actualCellCount}/{expectedCellCount}.");
+    }
+}
+
+static LegacyXlsCellFormat GetOfficeImoCellFormat(LegacyXlsWorkbook workbook, LegacyXlsWorksheet worksheet, int row, int column) {
+    LegacyXlsCell cell = worksheet.Cells.Single(cell => cell.Row == row && cell.Column == column);
+    if (cell.StyleIndex >= workbook.CellFormats.Count) {
+        throw new InvalidOperationException($"OfficeIMO legacy XLS style index {cell.StyleIndex} is outside the parsed XF table.");
+    }
+
+    return workbook.CellFormats[cell.StyleIndex];
+}
+
+static LegacyXlsFont GetOfficeImoFont(LegacyXlsWorkbook workbook, ushort fontIndex) {
+    int index = fontIndex < 4 ? fontIndex : fontIndex > 4 ? fontIndex - 1 : -1;
+    if (index < 0 || index >= workbook.Fonts.Count) {
+        throw new InvalidOperationException($"OfficeIMO legacy XLS font index {fontIndex} is outside the parsed font table.");
+    }
+
+    return workbook.Fonts[index];
+}
+
+static int CountNpoiCells(ISheet sheet, int rowCount) {
+    int cellCount = 0;
+    for (int rowIndex = 0; rowIndex <= rowCount; rowIndex++) {
+        IRow row = sheet.GetRow(rowIndex) ?? throw new InvalidOperationException($"Missing row {rowIndex + 1}.");
+        cellCount += row.Cells.Count;
+    }
+
+    return cellCount;
+}
+
+static ICell GetNpoiCell(ISheet sheet, int rowIndex, int columnIndex) {
+    IRow row = sheet.GetRow(rowIndex) ?? throw new InvalidOperationException($"Missing row {rowIndex + 1}.");
+    return row.GetCell(columnIndex) ?? throw new InvalidOperationException($"Missing cell {rowIndex + 1},{columnIndex + 1}.");
+}
+
+static int BuildStyleMetric(int rowCount) {
+    int metric = AddValueMetric(0, rowCount);
+    metric = AddValueMetric(metric, "Header:BoldFillBottomBorder");
+    metric = AddValueMetric(metric, "Owner:CenteredWrapped");
+    metric = AddValueMetric(metric, "Amount:Currency");
+    metric = AddValueMetric(metric, "Inactive:Fill");
+    return metric;
+}
+
 static string NormalizeSheetQuote(string? reference) {
     return (reference ?? string.Empty).Replace("'Data'!", "Data!", StringComparison.OrdinalIgnoreCase);
 }
@@ -743,6 +919,7 @@ static void WriteUsage() {
     Console.WriteLine("  xls-read-metadata");
     Console.WriteLine("  xls-read-conditional-formatting");
     Console.WriteLine("  xls-read-autofilter-range");
+    Console.WriteLine("  xls-read-styles");
 }
 
 internal sealed record SalesRecord(int Id, string Region, string Owner, double Amount, bool Active) {
