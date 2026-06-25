@@ -216,6 +216,62 @@ Warnings: 0
 | PtgRef\|CellReference | 5 |
 | PtgStr\|StringLiteral | 4 |
 
+## Formula Tokens By Operand Kind And Text
+
+| Key | Count |
+| --- | --- |
+| AreaReference\|A2:A5 | 2 |
+| AreaReference\|B2:B5 | 1 |
+| Attribute\|Goto | 2 |
+| Attribute\|If | 1 |
+| CellReference\|B2 | 1 |
+| CellReference\|B3 | 1 |
+| CellReference\|B4 | 1 |
+| CellReference\|B5 | 1 |
+| CellReference\|B7 | 1 |
+| ExternalAreaReference\|ExternSheet:0;Reference:$A$1:$E$10 | 1 |
+| ExternalAreaReference\|ExternSheet:0;Reference:$A$1:$E$5 | 1 |
+| ExternalAreaReference\|ExternSheet:0;Reference:$A$1:$IV$1 | 1 |
+| ExternalAreaReference\|ExternSheet:0;Reference:$A$2:$A$5 | 1 |
+| ExternalAreaReference\|ExternSheet:0;Reference:$B$2:$B$5 | 2 |
+| ExternalCellReference\|ExternSheet:0;Reference:$B$1 | 1 |
+| FixedFunction\|COUNTIF | 1 |
+| IntegerLiteral\|200 | 1 |
+| NumberLiteral\|1.1 | 4 |
+| StringLiteral\|OK | 1 |
+| StringLiteral\|Open | 2 |
+| StringLiteral\|Review | 1 |
+| VariableFunction\|IF | 1 |
+| VariableFunction\|SUMIF | 1 |
+
+## Formula Tokens By Name And Operand Text
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|ExternSheet:0;Reference:$A$1:$E$10 | 1 |
+| PtgArea3d\|ExternSheet:0;Reference:$A$1:$E$5 | 1 |
+| PtgArea3d\|ExternSheet:0;Reference:$A$1:$IV$1 | 1 |
+| PtgArea3d\|ExternSheet:0;Reference:$A$2:$A$5 | 1 |
+| PtgArea3d\|ExternSheet:0;Reference:$B$2:$B$5 | 2 |
+| PtgArea\|A2:A5 | 2 |
+| PtgArea\|B2:B5 | 1 |
+| PtgAttr\|Goto | 2 |
+| PtgAttr\|If | 1 |
+| PtgFuncVar\|IF | 1 |
+| PtgFuncVar\|SUMIF | 1 |
+| PtgFunc\|COUNTIF | 1 |
+| PtgInt\|200 | 1 |
+| PtgNum\|1.1 | 4 |
+| PtgRef3d\|ExternSheet:0;Reference:$B$1 | 1 |
+| PtgRef\|B2 | 1 |
+| PtgRef\|B3 | 1 |
+| PtgRef\|B4 | 1 |
+| PtgRef\|B5 | 1 |
+| PtgRef\|B7 | 1 |
+| PtgStr\|OK | 1 |
+| PtgStr\|Open | 2 |
+| PtgStr\|Review | 1 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

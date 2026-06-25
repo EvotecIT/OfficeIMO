@@ -369,6 +369,12 @@ namespace OfficeIMO.Tests {
             Assert.Contains("StringLiteral", report.FormulaTokensByOperandKind.Keys);
             Assert.Contains("PtgFunc|FixedFunction", report.FormulaTokensByNameAndOperandKind.Keys);
             Assert.Contains("PtgFuncVar|VariableFunction", report.FormulaTokensByNameAndOperandKind.Keys);
+            Assert.Contains("FixedFunction|COUNTIF", report.FormulaTokensByOperandKindAndText.Keys);
+            Assert.Contains("CellReference|A1", report.FormulaTokensByOperandKindAndText.Keys);
+            Assert.Contains("AreaReference|A1:A3", report.FormulaTokensByOperandKindAndText.Keys);
+            Assert.Contains("PtgFunc|COUNTIF", report.FormulaTokensByNameAndOperandText.Keys);
+            Assert.Contains("PtgRef|A1", report.FormulaTokensByNameAndOperandText.Keys);
+            Assert.Contains("PtgArea|A1:A3", report.FormulaTokensByNameAndOperandText.Keys);
             Assert.True(report.FormulaTokensByContext["CellFormula"] >= 30);
             Assert.Equal(1, report.FormulaFunctionsByName["COUNTIF"]);
             Assert.Equal(1, report.FormulaFunctionsByName["SUMIF"]);
@@ -1090,6 +1096,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.FormulaTokensByOperandByteCount["PtgExp|Bytes:0"]);
             Assert.Empty(report.FormulaTokensByOperandKind);
             Assert.Empty(report.FormulaTokensByNameAndOperandKind);
+            Assert.Empty(report.FormulaTokensByOperandKindAndText);
+            Assert.Empty(report.FormulaTokensByNameAndOperandText);
             Assert.Equal(1, report.FormulaTokensBySequenceIndex["Index:0"]);
             Assert.Contains(legacy.FormulaTokenRecords, record =>
                 record.Context == "CellFormula"
@@ -1148,6 +1156,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.FormulaFunctionsByName["VAR"]);
             Assert.Equal(1, report.FormulaFunctionsByParameterCount["VAR|Args:1"]);
             Assert.Equal(1, report.FormulaFunctionsByCetabState["BuiltIn"]);
+            Assert.Equal(1, report.FormulaTokensByOperandKindAndText["VariableFunction|VAR"]);
+            Assert.Equal(1, report.FormulaTokensByNameAndOperandText["PtgFuncVar|VAR"]);
             Assert.Empty(report.FormulaTokenBlockers);
             Assert.Contains(legacy.FormulaTokenRecords, record =>
                 record.Context == "CellFormula"

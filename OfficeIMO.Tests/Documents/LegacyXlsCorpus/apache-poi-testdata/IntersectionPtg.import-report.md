@@ -146,6 +146,22 @@ Warnings: 0
 | PtgAttr\|Attribute | 1 |
 | PtgMemArea\|MemoryArea | 1 |
 
+## Formula Tokens By Operand Kind And Text
+
+| Key | Count |
+| --- | --- |
+| AreaReference\|A1:B2 | 1 |
+| AreaReference\|B2:C3 | 1 |
+| Attribute\|Sum | 1 |
+
+## Formula Tokens By Name And Operand Text
+
+| Key | Count |
+| --- | --- |
+| PtgArea\|A1:B2 | 1 |
+| PtgArea\|B2:C3 | 1 |
+| PtgAttr\|Sum | 1 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

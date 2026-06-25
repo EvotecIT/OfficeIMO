@@ -164,6 +164,72 @@ Warnings: 0
 | PtgRef3d\|ExternalCellReference | 1 |
 | PtgRef\|CellReference | 24 |
 
+## Formula Tokens By Operand Kind And Text
+
+| Key | Count |
+| --- | --- |
+| CellReference\|D10 | 1 |
+| CellReference\|D11 | 1 |
+| CellReference\|D12 | 1 |
+| CellReference\|D13 | 1 |
+| CellReference\|D2 | 1 |
+| CellReference\|D3 | 1 |
+| CellReference\|D4 | 1 |
+| CellReference\|D5 | 1 |
+| CellReference\|D6 | 1 |
+| CellReference\|D7 | 1 |
+| CellReference\|D8 | 1 |
+| CellReference\|D9 | 1 |
+| CellReference\|E10 | 1 |
+| CellReference\|E11 | 1 |
+| CellReference\|E12 | 1 |
+| CellReference\|E13 | 1 |
+| CellReference\|E2 | 1 |
+| CellReference\|E3 | 1 |
+| CellReference\|E4 | 1 |
+| CellReference\|E5 | 1 |
+| CellReference\|E6 | 1 |
+| CellReference\|E7 | 1 |
+| CellReference\|E8 | 1 |
+| CellReference\|E9 | 1 |
+| ExternalAreaReference\|ExternSheet:0;Reference:$A$1:$G$13 | 1 |
+| ExternalAreaReference\|ExternSheet:0;Reference:$C$2:$C$13 | 1 |
+| ExternalAreaReference\|ExternSheet:0;Reference:$D$2:$D$13 | 2 |
+| ExternalCellReference\|ExternSheet:0;Reference:$D$1 | 1 |
+
+## Formula Tokens By Name And Operand Text
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|ExternSheet:0;Reference:$A$1:$G$13 | 1 |
+| PtgArea3d\|ExternSheet:0;Reference:$C$2:$C$13 | 1 |
+| PtgArea3d\|ExternSheet:0;Reference:$D$2:$D$13 | 2 |
+| PtgRef3d\|ExternSheet:0;Reference:$D$1 | 1 |
+| PtgRef\|D10 | 1 |
+| PtgRef\|D11 | 1 |
+| PtgRef\|D12 | 1 |
+| PtgRef\|D13 | 1 |
+| PtgRef\|D2 | 1 |
+| PtgRef\|D3 | 1 |
+| PtgRef\|D4 | 1 |
+| PtgRef\|D5 | 1 |
+| PtgRef\|D6 | 1 |
+| PtgRef\|D7 | 1 |
+| PtgRef\|D8 | 1 |
+| PtgRef\|D9 | 1 |
+| PtgRef\|E10 | 1 |
+| PtgRef\|E11 | 1 |
+| PtgRef\|E12 | 1 |
+| PtgRef\|E13 | 1 |
+| PtgRef\|E2 | 1 |
+| PtgRef\|E3 | 1 |
+| PtgRef\|E4 | 1 |
+| PtgRef\|E5 | 1 |
+| PtgRef\|E6 | 1 |
+| PtgRef\|E7 | 1 |
+| PtgRef\|E8 | 1 |
+| PtgRef\|E9 | 1 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

@@ -144,6 +144,20 @@ Warnings: 0
 | PtgInt\|IntegerLiteral | 1 |
 | PtgRef\|CellReference | 1 |
 
+## Formula Tokens By Operand Kind And Text
+
+| Key | Count |
+| --- | --- |
+| CellReference\|A2 | 1 |
+| IntegerLiteral\|2 | 1 |
+
+## Formula Tokens By Name And Operand Text
+
+| Key | Count |
+| --- | --- |
+| PtgInt\|2 | 1 |
+| PtgRef\|A2 | 1 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

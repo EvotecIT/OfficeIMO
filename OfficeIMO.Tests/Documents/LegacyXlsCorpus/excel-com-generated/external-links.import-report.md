@@ -160,6 +160,28 @@ Warnings: 0
 | PtgRef3d\|ExternalCellReference | 2 |
 | PtgRef\|CellReference | 2 |
 
+## Formula Tokens By Operand Kind And Text
+
+| Key | Count |
+| --- | --- |
+| Attribute\|Sum | 1 |
+| CellReference\|B1 | 1 |
+| CellReference\|B2 | 1 |
+| ExternalAreaReference\|ExternSheet:0;Reference:$B$2:$B$4 | 1 |
+| ExternalCellReference\|ExternSheet:0;Reference:$B$2 | 1 |
+| ExternalCellReference\|ExternSheet:0;Reference:$B$3 | 1 |
+
+## Formula Tokens By Name And Operand Text
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|ExternSheet:0;Reference:$B$2:$B$4 | 1 |
+| PtgAttr\|Sum | 1 |
+| PtgRef3d\|ExternSheet:0;Reference:$B$2 | 1 |
+| PtgRef3d\|ExternSheet:0;Reference:$B$3 | 1 |
+| PtgRef\|B1 | 1 |
+| PtgRef\|B2 | 1 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

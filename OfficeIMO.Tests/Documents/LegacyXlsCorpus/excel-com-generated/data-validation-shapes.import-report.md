@@ -132,6 +132,18 @@ Warnings: 0
 | --- | --- |
 | PtgArea3d\|ExternalAreaReference | 1 |
 
+## Formula Tokens By Operand Kind And Text
+
+| Key | Count |
+| --- | --- |
+| ExternalAreaReference\|ExternSheet:0;Reference:$L$2:$L$4 | 1 |
+
+## Formula Tokens By Name And Operand Text
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|ExternSheet:0;Reference:$L$2:$L$4 | 1 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

@@ -149,6 +149,24 @@ Warnings: 0
 | PtgArea3d\|ExternalAreaReference | 5 |
 | PtgRef3d\|ExternalCellReference | 2 |
 
+## Formula Tokens By Operand Kind And Text
+
+| Key | Count |
+| --- | --- |
+| ExternalAreaReference\|ExternSheet:0;Reference:$A$1:$D$6 | 1 |
+| ExternalAreaReference\|ExternSheet:0;Reference:$A$2:$A$6 | 2 |
+| ExternalAreaReference\|ExternSheet:0;Reference:$B$2:$B$6 | 2 |
+| ExternalCellReference\|ExternSheet:0;Reference:$B$1 | 2 |
+
+## Formula Tokens By Name And Operand Text
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|ExternSheet:0;Reference:$A$1:$D$6 | 1 |
+| PtgArea3d\|ExternSheet:0;Reference:$A$2:$A$6 | 2 |
+| PtgArea3d\|ExternSheet:0;Reference:$B$2:$B$6 | 2 |
+| PtgRef3d\|ExternSheet:0;Reference:$B$1 | 2 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

@@ -148,6 +148,36 @@ Warnings: 0
 | PtgFuncVar\|VariableFunction | 1 |
 | PtgRef3d\|ExternalCellReference | 5 |
 
+## Formula Tokens By Operand Kind And Text
+
+| Key | Count |
+| --- | --- |
+| ExternalAreaReference\|ExternSheet:0;Reference:$A$1:$IV$65536 | 1 |
+| ExternalAreaReference\|ExternSheet:0;Reference:A1:A4 | 1 |
+| ExternalAreaReference\|ExternSheet:1;Reference:$A$1:$IV$65536 | 1 |
+| ExternalAreaReference\|ExternSheet:2;Reference:$A$1:$IV$65536 | 1 |
+| ExternalCellReference\|ExternSheet:1;Reference:A1 | 1 |
+| ExternalCellReference\|ExternSheet:1;Reference:B1 | 1 |
+| ExternalCellReference\|ExternSheet:1;Reference:C1 | 1 |
+| ExternalCellReference\|ExternSheet:2;Reference:A1 | 1 |
+| ExternalCellReference\|ExternSheet:2;Reference:B1 | 1 |
+| VariableFunction\|SUM | 1 |
+
+## Formula Tokens By Name And Operand Text
+
+| Key | Count |
+| --- | --- |
+| PtgArea3d\|ExternSheet:0;Reference:$A$1:$IV$65536 | 1 |
+| PtgArea3d\|ExternSheet:0;Reference:A1:A4 | 1 |
+| PtgArea3d\|ExternSheet:1;Reference:$A$1:$IV$65536 | 1 |
+| PtgArea3d\|ExternSheet:2;Reference:$A$1:$IV$65536 | 1 |
+| PtgFuncVar\|SUM | 1 |
+| PtgRef3d\|ExternSheet:1;Reference:A1 | 1 |
+| PtgRef3d\|ExternSheet:1;Reference:B1 | 1 |
+| PtgRef3d\|ExternSheet:1;Reference:C1 | 1 |
+| PtgRef3d\|ExternSheet:2;Reference:A1 | 1 |
+| PtgRef3d\|ExternSheet:2;Reference:B1 | 1 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

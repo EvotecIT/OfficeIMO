@@ -249,6 +249,52 @@ Warnings: 0
 | PtgRef\|CellReference | 18 |
 | PtgStr\|StringLiteral | 3 |
 
+## Formula Tokens By Operand Kind And Text
+
+| Key | Count |
+| --- | --- |
+| AreaReference\|A1:A3 | 2 |
+| Attribute\|Goto | 2 |
+| Attribute\|If | 1 |
+| Attribute\|Sum | 3 |
+| CellReference\|A1 | 5 |
+| CellReference\|A2 | 5 |
+| CellReference\|A3 | 4 |
+| CellReference\|A4 | 1 |
+| CellReference\|A5 | 1 |
+| CellReference\|B1 | 1 |
+| CellReference\|B10 | 1 |
+| FixedFunction\|ROUND | 1 |
+| IntegerLiteral\|2 | 2 |
+| SharedOrArrayFormulaAnchor\|D1 | 1 |
+| StringLiteral\|- | 1 |
+| StringLiteral\|no | 1 |
+| StringLiteral\|yes | 1 |
+| VariableFunction\|IF | 1 |
+
+## Formula Tokens By Name And Operand Text
+
+| Key | Count |
+| --- | --- |
+| PtgArea\|A1:A3 | 2 |
+| PtgAttr\|Goto | 2 |
+| PtgAttr\|If | 1 |
+| PtgAttr\|Sum | 3 |
+| PtgExp\|D1 | 1 |
+| PtgFuncVar\|IF | 1 |
+| PtgFunc\|ROUND | 1 |
+| PtgInt\|2 | 2 |
+| PtgRef\|A1 | 5 |
+| PtgRef\|A2 | 5 |
+| PtgRef\|A3 | 4 |
+| PtgRef\|A4 | 1 |
+| PtgRef\|A5 | 1 |
+| PtgRef\|B1 | 1 |
+| PtgRef\|B10 | 1 |
+| PtgStr\|- | 1 |
+| PtgStr\|no | 1 |
+| PtgStr\|yes | 1 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

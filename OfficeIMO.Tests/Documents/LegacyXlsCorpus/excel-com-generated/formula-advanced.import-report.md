@@ -214,6 +214,80 @@ Warnings: 0
 | PtgRef\|CellReference | 6 |
 | PtgStr\|StringLiteral | 4 |
 
+## Formula Tokens By Operand Kind And Text
+
+| Key | Count |
+| --- | --- |
+| AreaReference\|A1:A3 | 3 |
+| AreaReference\|A1:B3 | 2 |
+| AreaReference\|B1:B3 | 3 |
+| Attribute\|Volatile | 1 |
+| BooleanLiteral\|FALSE | 2 |
+| CellReference\|A1 | 6 |
+| DefinedName\|NameIndex:1 | 1 |
+| DefinedName\|NameIndex:2 | 1 |
+| ErrorLiteral\|#NAME? | 2 |
+| FixedFunction\|DATEVALUE | 1 |
+| FixedFunction\|ISERROR | 1 |
+| FixedFunction\|POWER | 1 |
+| FixedFunction\|ROUNDDOWN | 1 |
+| FixedFunction\|ROUNDUP | 1 |
+| IntegerLiteral\|0 | 4 |
+| IntegerLiteral\|1 | 2 |
+| IntegerLiteral\|2 | 8 |
+| IntegerLiteral\|3 | 2 |
+| IntegerLiteral\|4 | 3 |
+| StringLiteral\|2026-06-24 | 1 |
+| StringLiteral\|>2 | 1 |
+| StringLiteral\|east | 1 |
+| StringLiteral\|north | 1 |
+| VariableFunction\|HLOOKUP | 1 |
+| VariableFunction\|INDEX | 1 |
+| VariableFunction\|LEFT | 1 |
+| VariableFunction\|MATCH | 1 |
+| VariableFunction\|OFFSET | 1 |
+| VariableFunction\|RIGHT | 1 |
+| VariableFunction\|SUMPRODUCT | 1 |
+| VariableFunction\|UserDefinedFunction | 2 |
+| VariableFunction\|VLOOKUP | 1 |
+
+## Formula Tokens By Name And Operand Text
+
+| Key | Count |
+| --- | --- |
+| PtgArea\|A1:A3 | 3 |
+| PtgArea\|A1:B3 | 2 |
+| PtgArea\|B1:B3 | 3 |
+| PtgAttr\|Volatile | 1 |
+| PtgBool\|FALSE | 2 |
+| PtgErr\|#NAME? | 2 |
+| PtgFuncVar\|HLOOKUP | 1 |
+| PtgFuncVar\|INDEX | 1 |
+| PtgFuncVar\|LEFT | 1 |
+| PtgFuncVar\|MATCH | 1 |
+| PtgFuncVar\|OFFSET | 1 |
+| PtgFuncVar\|RIGHT | 1 |
+| PtgFuncVar\|SUMPRODUCT | 1 |
+| PtgFuncVar\|UserDefinedFunction | 2 |
+| PtgFuncVar\|VLOOKUP | 1 |
+| PtgFunc\|DATEVALUE | 1 |
+| PtgFunc\|ISERROR | 1 |
+| PtgFunc\|POWER | 1 |
+| PtgFunc\|ROUNDDOWN | 1 |
+| PtgFunc\|ROUNDUP | 1 |
+| PtgInt\|0 | 4 |
+| PtgInt\|1 | 2 |
+| PtgInt\|2 | 8 |
+| PtgInt\|3 | 2 |
+| PtgInt\|4 | 3 |
+| PtgName\|NameIndex:1 | 1 |
+| PtgName\|NameIndex:2 | 1 |
+| PtgRef\|A1 | 6 |
+| PtgStr\|2026-06-24 | 1 |
+| PtgStr\|>2 | 1 |
+| PtgStr\|east | 1 |
+| PtgStr\|north | 1 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |

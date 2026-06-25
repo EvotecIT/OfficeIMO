@@ -388,6 +388,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             FormulaTokensByNameAndOperandKind = CountByCode(workbook.FormulaTokenRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.OperandKind))
                 .Select(record => $"{record.TokenName}|{record.OperandKind!}"));
+            FormulaTokensByOperandKindAndText = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.OperandKind) && !string.IsNullOrWhiteSpace(record.OperandText))
+                .Select(record => $"{record.OperandKind!}|{record.OperandText!}"));
+            FormulaTokensByNameAndOperandText = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.OperandText))
+                .Select(record => $"{record.TokenName}|{record.OperandText!}"));
             FormulaTokensBySequenceIndex = CountByCode(workbook.FormulaTokenRecords
                 .Where(record => record.SequenceIndex.HasValue)
                 .Select(record => $"Index:{record.SequenceIndex!.Value}"));
@@ -2237,6 +2243,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets observed parsed-formula tokens grouped by token name and decoded operand category.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokensByNameAndOperandKind { get; }
 
+        /// <summary>Gets observed parsed-formula tokens grouped by decoded operand category and operand text.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensByOperandKindAndText { get; }
+
+        /// <summary>Gets observed parsed-formula tokens grouped by token name and decoded operand text.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensByNameAndOperandText { get; }
+
         /// <summary>Gets observed parsed-formula tokens grouped by sequence index within each expression.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokensBySequenceIndex { get; }
 
@@ -3873,6 +3885,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Formula Tokens By Operand Byte Count", FormulaTokensByOperandByteCount);
             AppendDictionary(builder, "Formula Tokens By Operand Kind", FormulaTokensByOperandKind);
             AppendDictionary(builder, "Formula Tokens By Name And Operand Kind", FormulaTokensByNameAndOperandKind);
+            AppendDictionary(builder, "Formula Tokens By Operand Kind And Text", FormulaTokensByOperandKindAndText);
+            AppendDictionary(builder, "Formula Tokens By Name And Operand Text", FormulaTokensByNameAndOperandText);
             AppendDictionary(builder, "Formula Tokens By Sequence Index", FormulaTokensBySequenceIndex);
             AppendDictionary(builder, "Formula Functions By Id", FormulaFunctionsById);
             AppendDictionary(builder, "Formula Functions By Name", FormulaFunctionsByName);

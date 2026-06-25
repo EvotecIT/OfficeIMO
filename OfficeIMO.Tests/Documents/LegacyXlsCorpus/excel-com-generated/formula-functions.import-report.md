@@ -172,6 +172,72 @@ Warnings: 0
 | PtgRef\|CellReference | 4 |
 | PtgStr\|StringLiteral | 9 |
 
+## Formula Tokens By Operand Kind And Text
+
+| Key | Count |
+| --- | --- |
+| AreaReference\|A1:A3 | 6 |
+| AreaReference\|A1:A5 | 1 |
+| AreaReference\|B1:B3 | 1 |
+| CellReference\|A4 | 2 |
+| CellReference\|A5 | 2 |
+| FixedFunction\|COUNTBLANK | 1 |
+| FixedFunction\|REPLACE | 1 |
+| FixedFunction\|TRIM | 1 |
+| IntegerLiteral\|2 | 2 |
+| StringLiteral\|  padded   | 1 |
+| StringLiteral\|- | 2 |
+| StringLiteral\|/ | 1 |
+| StringLiteral\|A | 1 |
+| StringLiteral\|north | 1 |
+| StringLiteral\|north-east | 1 |
+| StringLiteral\|o | 1 |
+| StringLiteral\|XX | 1 |
+| VariableFunction\|AVERAGE | 1 |
+| VariableFunction\|CONCATENATE | 1 |
+| VariableFunction\|COUNTA | 1 |
+| VariableFunction\|FIND | 1 |
+| VariableFunction\|MAX | 1 |
+| VariableFunction\|MEDIAN | 1 |
+| VariableFunction\|MIN | 1 |
+| VariableFunction\|PRODUCT | 1 |
+| VariableFunction\|SEARCH | 1 |
+| VariableFunction\|SUBSTITUTE | 1 |
+| VariableFunction\|VAR | 1 |
+
+## Formula Tokens By Name And Operand Text
+
+| Key | Count |
+| --- | --- |
+| PtgArea\|A1:A3 | 6 |
+| PtgArea\|A1:A5 | 1 |
+| PtgArea\|B1:B3 | 1 |
+| PtgFuncVar\|AVERAGE | 1 |
+| PtgFuncVar\|CONCATENATE | 1 |
+| PtgFuncVar\|COUNTA | 1 |
+| PtgFuncVar\|FIND | 1 |
+| PtgFuncVar\|MAX | 1 |
+| PtgFuncVar\|MEDIAN | 1 |
+| PtgFuncVar\|MIN | 1 |
+| PtgFuncVar\|PRODUCT | 1 |
+| PtgFuncVar\|SEARCH | 1 |
+| PtgFuncVar\|SUBSTITUTE | 1 |
+| PtgFuncVar\|VAR | 1 |
+| PtgFunc\|COUNTBLANK | 1 |
+| PtgFunc\|REPLACE | 1 |
+| PtgFunc\|TRIM | 1 |
+| PtgInt\|2 | 2 |
+| PtgRef\|A4 | 2 |
+| PtgRef\|A5 | 2 |
+| PtgStr\|  padded   | 1 |
+| PtgStr\|- | 2 |
+| PtgStr\|/ | 1 |
+| PtgStr\|A | 1 |
+| PtgStr\|north | 1 |
+| PtgStr\|north-east | 1 |
+| PtgStr\|o | 1 |
+| PtgStr\|XX | 1 |
+
 ## Formula Tokens By Sequence Index
 
 | Key | Count |
