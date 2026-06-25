@@ -1252,9 +1252,9 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0867, new byte[16]);
                 WriteRecord(stream, 0x088b, new byte[12]);
                 WriteRecord(stream, 0x088c, new byte[16]);
-                WriteRecord(stream, 0x088d, new byte[8]);
-                WriteRecord(stream, 0x088e, new byte[8]);
-                WriteRecord(stream, 0x088f, new byte[8]);
+                WriteRecord(stream, (ushort)BiffRecordType.TableStyles, BuildTableStylesPayload(145, "TableStyleMedium2", "PivotStyleLight16"));
+                WriteRecord(stream, (ushort)BiffRecordType.TableStyle, BuildTableStylePayload("OfficeIMO Custom", appliesToTables: true, appliesToPivotTables: true, declaredElementCount: 1));
+                WriteRecord(stream, (ushort)BiffRecordType.TableStyleElement, BuildTableStyleElementPayload(0x00000001, 0, 3));
                 WriteRecord(stream, 0x0896, BuildThemePayload(124226));
                 WriteRecord(stream, 0x0897, BuildFutureRecordPayload(0x0897, 16));
                 WriteRecord(stream, 0x0899, BuildFutureRecordPayload(0x0899, 12));
@@ -1279,6 +1279,78 @@ namespace OfficeIMO.Tests {
                 byte[] bytes = stream.ToArray();
                 Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
                 return bytes;
+            }
+
+            internal static byte[] CreatePhase5TableStyleMetadataWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "TableStyles"));
+                WriteRecord(stream, (ushort)BiffRecordType.TableStyles, BuildTableStylesPayload(145, "TableStyleMedium2", "PivotStyleLight16"));
+                WriteRecord(stream, (ushort)BiffRecordType.TableStyle, BuildTableStylePayload("OfficeIMO Custom", appliesToTables: true, appliesToPivotTables: true, declaredElementCount: 2));
+                WriteRecord(stream, (ushort)BiffRecordType.TableStyleElement, BuildTableStyleElementPayload(0x00000001, 0, 3));
+                WriteRecord(stream, (ushort)BiffRecordType.TableStyleElement, BuildTableStyleElementPayload(0x00000005, 2, 4));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Styled table metadata"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            private static byte[] BuildTableStylesPayload(uint totalStyleCount, string defaultTableStyleName, string defaultPivotStyleName) {
+                using var stream = new MemoryStream();
+                WriteFutureRecordHeader(stream, (ushort)BiffRecordType.TableStyles);
+                WriteUInt32(stream, totalStyleCount);
+                WriteUInt16(stream, checked((ushort)defaultTableStyleName.Length));
+                WriteUInt16(stream, checked((ushort)defaultPivotStyleName.Length));
+                WriteUnicodeCharacters(stream, defaultTableStyleName);
+                WriteUnicodeCharacters(stream, defaultPivotStyleName);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildTableStylePayload(string name, bool appliesToTables, bool appliesToPivotTables, uint declaredElementCount) {
+                using var stream = new MemoryStream();
+                WriteFutureRecordHeader(stream, (ushort)BiffRecordType.TableStyle);
+                ushort flags = 0;
+                if (appliesToPivotTables) {
+                    flags |= 0x0002;
+                }
+
+                if (appliesToTables) {
+                    flags |= 0x0004;
+                }
+
+                WriteUInt16(stream, flags);
+                WriteUInt32(stream, declaredElementCount);
+                WriteUInt16(stream, checked((ushort)name.Length));
+                WriteUnicodeCharacters(stream, name);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildTableStyleElementPayload(uint elementType, uint stripeSize, uint differentialFormatIndex) {
+                using var stream = new MemoryStream();
+                WriteFutureRecordHeader(stream, (ushort)BiffRecordType.TableStyleElement);
+                WriteUInt32(stream, elementType);
+                WriteUInt32(stream, stripeSize);
+                WriteUInt32(stream, differentialFormatIndex);
+                return stream.ToArray();
+            }
+
+            private static void WriteFutureRecordHeader(Stream stream, ushort recordType) {
+                WriteUInt16(stream, recordType);
+                WriteUInt16(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+            }
+
+            private static void WriteUnicodeCharacters(Stream stream, string value) {
+                byte[] bytes = Encoding.Unicode.GetBytes(value);
+                stream.Write(bytes, 0, bytes.Length);
             }
 
             internal static byte[] CreateObservedCorpusPreserveOnlyRecordWorkbookStream() {

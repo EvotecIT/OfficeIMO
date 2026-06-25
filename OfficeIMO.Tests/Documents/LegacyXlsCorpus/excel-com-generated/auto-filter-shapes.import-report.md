@@ -29,6 +29,9 @@ Drawing group infos: 0
 Drawing identifier clusters: 1
 Drawing shape properties: 15
 Differential formats: 0
+Table style collection records: 1
+Table style definitions: 0
+Table style element records: 0
 Compound feature records: 0
 Compound feature entries: 0
 Compound VBA modules: 0
@@ -135,6 +138,24 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DataValidations:0\|ConditionalFormatting:0\|AutoFilterCriteria:4\|AutoFilterDropDowns:4 | 1 |
+
+## Table Style Collections By Default Table Style
+
+| Key | Count |
+| --- | --- |
+| TableStyleMedium2 | 1 |
+
+## Table Style Collections By Default Pivot Style
+
+| Key | Count |
+| --- | --- |
+| PivotStyleLight16 | 1 |
+
+## Table Style Collections By Total Style Count
+
+| Key | Count |
+| --- | --- |
+| Styles:144 | 1 |
 
 ## AutoFilter Criteria By Sheet
 
@@ -321,7 +342,7 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:StyleExt | 47 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XFCRC | 1 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 62 |
-| TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
+| TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyles | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
 
 ## Unsupported Feature Locations
@@ -1314,5 +1335,5 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:StyleExt | 47 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XFCRC | 1 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 62 |
-| TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
+| TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyles | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |

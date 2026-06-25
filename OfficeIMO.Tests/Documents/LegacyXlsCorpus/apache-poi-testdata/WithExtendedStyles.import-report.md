@@ -29,6 +29,9 @@ Drawing group infos: 3
 Drawing identifier clusters: 3
 Drawing shape properties: 3
 Differential formats: 0
+Table style collection records: 0
+Table style definitions: 0
+Table style element records: 0
 Compound feature records: 1
 Compound feature entries: 1
 Compound VBA modules: 0

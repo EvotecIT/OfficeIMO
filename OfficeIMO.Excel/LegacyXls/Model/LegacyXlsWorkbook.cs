@@ -24,6 +24,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsDrawingRecord> _drawingRecords = new();
         private readonly List<LegacyXlsThemeRecord> _themeRecords = new();
         private readonly List<LegacyXlsDifferentialFormat> _differentialFormats = new();
+        private readonly List<LegacyXlsTableStyleCollection> _tableStyleCollections = new();
+        private readonly List<LegacyXlsTableStyle> _tableStyles = new();
         private readonly List<LegacyXlsCompoundFeatureRecord> _compoundFeatureRecords = new();
         private readonly List<LegacyXlsUnsupportedSheet> _unsupportedSheets = new();
         private readonly List<LegacyXlsUnsupportedFeature> _unsupportedFeatures = new();
@@ -118,6 +120,16 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets parsed differential formats used by conditional formatting extensions.
         /// </summary>
         public IReadOnlyList<LegacyXlsDifferentialFormat> DifferentialFormats => _differentialFormats;
+
+        /// <summary>
+        /// Gets preserve-only workbook table style collection records discovered during import.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsTableStyleCollection> TableStyleCollections => _tableStyleCollections;
+
+        /// <summary>
+        /// Gets preserve-only user-defined table styles discovered during import.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsTableStyle> TableStyles => _tableStyles;
 
         /// <summary>
         /// Gets preserve-only compound container features discovered during import.
@@ -327,6 +339,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal List<LegacyXlsDifferentialFormat> MutableDifferentialFormats => _differentialFormats;
 
+        internal List<LegacyXlsTableStyleCollection> MutableTableStyleCollections => _tableStyleCollections;
+
+        internal List<LegacyXlsTableStyle> MutableTableStyles => _tableStyles;
+
         internal List<LegacyXlsCompoundFeatureRecord> MutableCompoundFeatureRecords => _compoundFeatureRecords;
 
         internal LegacyXlsCalculationSettings MutableCalculationSettings => _calculationSettings;
@@ -349,6 +365,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void AddCellStyleExtension(LegacyXlsCellStyleExtension extension) {
             _cellStyleExtensions.Add(extension);
+        }
+
+        internal void AddTableStyleElement(LegacyXlsTableStyleElement element) {
+            if (_tableStyles.Count == 0) {
+                return;
+            }
+
+            _tableStyles[_tableStyles.Count - 1].AddElement(element);
         }
 
         internal LegacyXlsCellFormat? GetCellFormat(ushort styleIndex) {

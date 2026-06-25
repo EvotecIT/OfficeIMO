@@ -291,6 +291,33 @@ namespace OfficeIMO.Excel.LegacyXls {
             DifferentialFormatsByFont = CountByCode(workbook.DifferentialFormats.SelectMany(GetDifferentialFormatFontKeys));
             DifferentialFormatsByBorder = CountByCode(workbook.DifferentialFormats.SelectMany(GetDifferentialFormatBorderKeys));
             DifferentialFormatsByNumberFormat = CountByCode(workbook.DifferentialFormats.SelectMany(GetDifferentialFormatNumberFormatKeys));
+            TableStyleCollectionRecordCount = workbook.TableStyleCollections.Count;
+            TableStyleDefinitionCount = workbook.TableStyles.Count;
+            TableStyleElementRecordCount = workbook.TableStyles.Sum(style => style.Elements.Count);
+            TableStyleCollectionsByDefaultTableStyle = CountByCode(workbook.TableStyleCollections
+                .Where(collection => !string.IsNullOrWhiteSpace(collection.DefaultTableStyleName))
+                .Select(collection => collection.DefaultTableStyleName!));
+            TableStyleCollectionsByDefaultPivotStyle = CountByCode(workbook.TableStyleCollections
+                .Where(collection => !string.IsNullOrWhiteSpace(collection.DefaultPivotStyleName))
+                .Select(collection => collection.DefaultPivotStyleName!));
+            TableStyleCollectionsByTotalStyleCount = CountByCode(workbook.TableStyleCollections.Select(collection => $"Styles:{collection.TotalStyleCount}"));
+            TableStylesByName = CountByCode(workbook.TableStyles.Select(style => style.Name));
+            TableStylesByApplicability = CountByCode(workbook.TableStyles.Select(style =>
+                style.AppliesToTables && style.AppliesToPivotTables
+                    ? "TableAndPivot"
+                    : style.AppliesToTables
+                        ? "Table"
+                        : style.AppliesToPivotTables
+                            ? "Pivot"
+                            : "None"));
+            TableStylesByDeclaredElementCount = CountByCode(workbook.TableStyles.Select(style => $"Declared:{style.DeclaredElementCount}"));
+            TableStylesByParsedElementCount = CountByCode(workbook.TableStyles.Select(style => $"Parsed:{style.Elements.Count}"));
+            TableStyleElementsByType = CountByCode(workbook.TableStyles.SelectMany(style => style.Elements).Select(element => element.ElementTypeName));
+            TableStyleElementsByDifferentialFormatIndex = CountByCode(workbook.TableStyles.SelectMany(style => style.Elements).Select(element => $"Dxf:{element.DifferentialFormatIndex}"));
+            TableStyleElementsByStripeSize = CountByCode(workbook.TableStyles
+                .SelectMany(style => style.Elements)
+                .Where(element => element.ElementTypeName.Contains("Stripe", StringComparison.Ordinal))
+                .Select(element => $"Size:{element.StripeSize}"));
             CompoundFeatureRecordCount = workbook.CompoundFeatureRecords.Count;
             CompoundFeatureEntryCount = workbook.CompoundFeatureRecords.Sum(record => record.Entries.Count);
             CompoundVbaModuleCount = workbook.CompoundFeatureRecords.Sum(record => record.VbaModuleCount);
@@ -1894,6 +1921,45 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets parsed differential formats grouped by decoded number format shape.</summary>
         public IReadOnlyDictionary<string, int> DifferentialFormatsByNumberFormat { get; }
 
+        /// <summary>Gets the number of parsed TableStyles collection records.</summary>
+        public int TableStyleCollectionRecordCount { get; }
+
+        /// <summary>Gets the number of parsed user-defined TableStyle records.</summary>
+        public int TableStyleDefinitionCount { get; }
+
+        /// <summary>Gets the number of parsed TableStyleElement records.</summary>
+        public int TableStyleElementRecordCount { get; }
+
+        /// <summary>Gets table style collection records grouped by default table style name.</summary>
+        public IReadOnlyDictionary<string, int> TableStyleCollectionsByDefaultTableStyle { get; }
+
+        /// <summary>Gets table style collection records grouped by default PivotTable style name.</summary>
+        public IReadOnlyDictionary<string, int> TableStyleCollectionsByDefaultPivotStyle { get; }
+
+        /// <summary>Gets table style collection records grouped by declared total style count.</summary>
+        public IReadOnlyDictionary<string, int> TableStyleCollectionsByTotalStyleCount { get; }
+
+        /// <summary>Gets user-defined table styles grouped by style name.</summary>
+        public IReadOnlyDictionary<string, int> TableStylesByName { get; }
+
+        /// <summary>Gets user-defined table styles grouped by table and PivotTable applicability.</summary>
+        public IReadOnlyDictionary<string, int> TableStylesByApplicability { get; }
+
+        /// <summary>Gets user-defined table styles grouped by declared element count.</summary>
+        public IReadOnlyDictionary<string, int> TableStylesByDeclaredElementCount { get; }
+
+        /// <summary>Gets user-defined table styles grouped by parsed element count.</summary>
+        public IReadOnlyDictionary<string, int> TableStylesByParsedElementCount { get; }
+
+        /// <summary>Gets table style elements grouped by element type.</summary>
+        public IReadOnlyDictionary<string, int> TableStyleElementsByType { get; }
+
+        /// <summary>Gets table style elements grouped by referenced differential format index.</summary>
+        public IReadOnlyDictionary<string, int> TableStyleElementsByDifferentialFormatIndex { get; }
+
+        /// <summary>Gets stripe table style elements grouped by stripe size.</summary>
+        public IReadOnlyDictionary<string, int> TableStyleElementsByStripeSize { get; }
+
         /// <summary>Gets the number of preserve-only compound container features discovered during import.</summary>
         public int CompoundFeatureRecordCount { get; }
 
@@ -3460,6 +3526,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Drawing identifier clusters: {DrawingIdentifierClusterCount}");
             builder.AppendLine($"Drawing shape properties: {DrawingShapePropertyCount}");
             builder.AppendLine($"Differential formats: {DifferentialFormatCount}");
+            builder.AppendLine($"Table style collection records: {TableStyleCollectionRecordCount}");
+            builder.AppendLine($"Table style definitions: {TableStyleDefinitionCount}");
+            builder.AppendLine($"Table style element records: {TableStyleElementRecordCount}");
             builder.AppendLine($"Compound feature records: {CompoundFeatureRecordCount}");
             builder.AppendLine($"Compound feature entries: {CompoundFeatureEntryCount}");
             builder.AppendLine($"Compound VBA modules: {CompoundVbaModuleCount}");
@@ -3582,6 +3651,16 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Differential Formats By Font", DifferentialFormatsByFont);
             AppendDictionary(builder, "Differential Formats By Border", DifferentialFormatsByBorder);
             AppendDictionary(builder, "Differential Formats By Number Format", DifferentialFormatsByNumberFormat);
+            AppendDictionary(builder, "Table Style Collections By Default Table Style", TableStyleCollectionsByDefaultTableStyle);
+            AppendDictionary(builder, "Table Style Collections By Default Pivot Style", TableStyleCollectionsByDefaultPivotStyle);
+            AppendDictionary(builder, "Table Style Collections By Total Style Count", TableStyleCollectionsByTotalStyleCount);
+            AppendDictionary(builder, "Table Styles By Name", TableStylesByName);
+            AppendDictionary(builder, "Table Styles By Applicability", TableStylesByApplicability);
+            AppendDictionary(builder, "Table Styles By Declared Element Count", TableStylesByDeclaredElementCount);
+            AppendDictionary(builder, "Table Styles By Parsed Element Count", TableStylesByParsedElementCount);
+            AppendDictionary(builder, "Table Style Elements By Type", TableStyleElementsByType);
+            AppendDictionary(builder, "Table Style Elements By Differential Format Index", TableStyleElementsByDifferentialFormatIndex);
+            AppendDictionary(builder, "Table Style Elements By Stripe Size", TableStyleElementsByStripeSize);
             AppendDictionary(builder, "AutoFilter Criteria By Sheet", AutoFilterCriteriaBySheet);
             AppendDictionary(builder, "AutoFilter Criteria By Kind", AutoFilterCriteriaByKind);
             AppendDictionary(builder, "AutoFilter Criteria By Operator", AutoFilterCriteriaByOperator);

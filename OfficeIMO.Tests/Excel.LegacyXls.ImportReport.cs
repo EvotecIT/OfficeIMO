@@ -408,6 +408,58 @@ namespace OfficeIMO.Tests {
             Assert.Contains("OfficeArtDggContainer", markdown);
         }
 
+        [Fact]
+        public void LegacyXls_ImportReport_TracksTableStyleMetadata() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5TableStyleMetadataWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            LegacyXlsTableStyleCollection collection = Assert.Single(workbook.TableStyleCollections);
+            Assert.Equal(145U, collection.TotalStyleCount);
+            Assert.Equal("TableStyleMedium2", collection.DefaultTableStyleName);
+            Assert.Equal("PivotStyleLight16", collection.DefaultPivotStyleName);
+
+            LegacyXlsTableStyle style = Assert.Single(workbook.TableStyles);
+            Assert.Equal("OfficeIMO Custom", style.Name);
+            Assert.True(style.AppliesToTables);
+            Assert.True(style.AppliesToPivotTables);
+            Assert.Equal(2U, style.DeclaredElementCount);
+            Assert.Collection(style.Elements,
+                element => {
+                    Assert.Equal("HeaderRow", element.ElementTypeName);
+                    Assert.Equal(0U, element.StripeSize);
+                    Assert.Equal(3U, element.DifferentialFormatIndex);
+                },
+                element => {
+                    Assert.Equal("RowStripe1", element.ElementTypeName);
+                    Assert.Equal(2U, element.StripeSize);
+                    Assert.Equal(4U, element.DifferentialFormatIndex);
+                });
+
+            Assert.Equal(1, report.TableStyleCollectionRecordCount);
+            Assert.Equal(1, report.TableStyleDefinitionCount);
+            Assert.Equal(2, report.TableStyleElementRecordCount);
+            Assert.Equal(1, report.TableStyleCollectionsByDefaultTableStyle["TableStyleMedium2"]);
+            Assert.Equal(1, report.TableStyleCollectionsByDefaultPivotStyle["PivotStyleLight16"]);
+            Assert.Equal(1, report.TableStyleCollectionsByTotalStyleCount["Styles:145"]);
+            Assert.Equal(1, report.TableStylesByName["OfficeIMO Custom"]);
+            Assert.Equal(1, report.TableStylesByApplicability["TableAndPivot"]);
+            Assert.Equal(1, report.TableStylesByDeclaredElementCount["Declared:2"]);
+            Assert.Equal(1, report.TableStylesByParsedElementCount["Parsed:2"]);
+            Assert.Equal(1, report.TableStyleElementsByType["HeaderRow"]);
+            Assert.Equal(1, report.TableStyleElementsByType["RowStripe1"]);
+            Assert.Equal(1, report.TableStyleElementsByDifferentialFormatIndex["Dxf:3"]);
+            Assert.Equal(1, report.TableStyleElementsByDifferentialFormatIndex["Dxf:4"]);
+            Assert.Equal(1, report.TableStyleElementsByStripeSize["Size:2"]);
+            Assert.Equal(4, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.TableStyle]);
+            Assert.Equal(4, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.TableStyle]);
+        }
+
         [Theory]
         [InlineData(0x0005, LegacyXlsDrawingObjectType.Chart, "Chart")]
         [InlineData(0x0008, LegacyXlsDrawingObjectType.Picture, "Picture")]

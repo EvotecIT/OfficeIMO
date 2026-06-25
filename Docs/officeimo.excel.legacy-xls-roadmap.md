@@ -262,6 +262,11 @@ in corpus baselines without projecting legacy charts into `.xlsx` chart parts.
 Chart `LineFormat`, `AreaFormat`, and `MarkerFormat` reports now also expose
 decoded color, color-index, and flag-state buckets for preserve-only chart
 formatting evidence.
+BIFF `TableStyles`, `TableStyle`, and `TableStyleElement` records now decode into
+preserve-only workbook table-style metadata and import-report buckets for default
+table/PivotTable styles, applicability, declared/parsed element counts, element
+types, differential-format indexes, and stripe sizes. Native projection or custom
+table-style recreation remains future work.
 Client color palette buckets capture declared and decoded color counts, expected-count
 state, completeness, and foreground/background/neutral colors.
 Drawing `ShapePropsStream`, `TextPropsStream`, and `RichTextStream` future-record

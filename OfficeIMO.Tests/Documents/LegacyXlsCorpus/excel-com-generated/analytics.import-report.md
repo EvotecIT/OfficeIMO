@@ -29,6 +29,9 @@ Drawing group infos: 2
 Drawing identifier clusters: 3
 Drawing shape properties: 31
 Differential formats: 0
+Table style collection records: 1
+Table style definitions: 0
+Table style element records: 0
 Compound feature records: 0
 Compound feature entries: 0
 Compound VBA modules: 0
@@ -47,8 +50,8 @@ Worksheet future metadata records: 5
 Unsupported sheet metadata records: 2
 Unsupported sheet future metadata records: 1
 Unsupported features: 399
-Unsupported projection gaps: 0
-Preserved feature records: 399
+Unsupported projection gaps: 1
+Preserved feature records: 398
 Errors: 0
 Warnings: 0
 
@@ -64,8 +67,9 @@ Warnings: 0
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 95 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 114 |
-| XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 2 |
+| XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 1 |
 
 ## Formula Tokens By Name
 
@@ -268,6 +272,24 @@ Warnings: 0
 | --- | --- |
 | Continue | 1 |
 
+## Table Style Collections By Default Table Style
+
+| Key | Count |
+| --- | --- |
+| TableStyleMedium2 | 1 |
+
+## Table Style Collections By Default Pivot Style
+
+| Key | Count |
+| --- | --- |
+| PivotStyleLight16 | 1 |
+
+## Table Style Collections By Total Style Count
+
+| Key | Count |
+| --- | --- |
+| Styles:144 | 1 |
+
 ## AutoFilter Criteria By Sheet
 
 | Key | Count |
@@ -376,8 +398,9 @@ Warnings: 0
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 95 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 114 |
-| XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 2 |
+| XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 1 |
 
 ## Unsupported Features By Kind
 
@@ -391,8 +414,9 @@ Warnings: 0
 | FeatureExtension | 2 |
 | PivotTable | 95 |
 | StyleExtension | 114 |
-| TableStyle | 2 |
+| TableStyle | 1 |
 | Theme | 1 |
+| UnsupportedRecord | 1 |
 
 ## Unsupported Feature Record Types
 
@@ -472,9 +496,9 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x087C | 1 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x087D | 66 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x0892 | 47 |
-| TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|0x088D | 1 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|0x088E | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|0x0896 | 1 |
+| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x088D | 1 |
 
 ## Unsupported Feature Details
 
@@ -554,9 +578,9 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:StyleExt | 47 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XFCRC | 1 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 66 |
-| TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyles | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
+| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x088D | 1 |
 
 ## Unsupported Feature Locations
 
@@ -577,8 +601,27 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotSummary | 82 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|SalesData | 1 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|(workbook) | 114 |
-| XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|(workbook) | 2 |
+| XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|(workbook) | 1 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 1 |
+
+## Unsupported Projection Gaps By Kind
+
+| Key | Count |
+| --- | --- |
+| UnsupportedRecord | 1 |
+
+## Unsupported Projection Gap Record Types
+
+| Key | Count |
+| --- | --- |
+| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x088D | 1 |
+
+## Unsupported Projection Gap Details
+
+| Key | Count |
+| --- | --- |
+| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x088D | 1 |
 
 ## File Format States
 
@@ -3416,7 +3459,7 @@ Warnings: 0
 | FeatureExtension | 2 |
 | PivotTable | 95 |
 | StyleExtension | 114 |
-| TableStyle | 2 |
+| TableStyle | 1 |
 | Theme | 1 |
 
 ## Preserved Feature Record Details
@@ -3497,6 +3540,5 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:StyleExt | 47 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XFCRC | 1 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 66 |
-| TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyles | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |

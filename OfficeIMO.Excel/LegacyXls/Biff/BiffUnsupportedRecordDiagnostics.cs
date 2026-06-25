@@ -383,9 +383,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x087D: return "XfExt";
                 case 0x088B: return "Compat12";
                 case 0x088C: return "Dxf";
-                case 0x088D: return "TableStyles";
-                case 0x088E: return "TableStyle";
-                case 0x088F: return "TableStyleElement";
+                case 0x088E: return "TableStyles";
+                case 0x088F: return "TableStyle";
+                case 0x0890: return "TableStyleElement";
                 case 0x0893: return "NamePublish";
                 case 0x0894: return "NameCmt";
                 case 0x0895: return "SortData";
