@@ -22,6 +22,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Corpus_ApachePoiTestData_BroadensLicensedCoverage() {
+            string corpusDirectory = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "apache-poi-testdata");
+            string[] expectedFixtures = {
+                "3dFormulas.xls",
+                "IntersectionPtg.xls",
+                "RangePtg.xls",
+                "SimpleWithComments.xls",
+                "templateExcelWithAutofilter.xls",
+                "UnionPtg.xls",
+                "WithExtendedStyles.xls",
+                "WithTwoHyperLinks.xls"
+            };
+
+            string[] actualFixtures = Directory.GetFiles(corpusDirectory, "*.xls")
+                .Select(path => Path.GetFileName(path)!)
+                .OrderBy(fileName => fileName, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            Assert.Equal(expectedFixtures.OrderBy(fileName => fileName, StringComparer.OrdinalIgnoreCase), actualFixtures);
+
+            foreach (string fixture in expectedFixtures) {
+                using LegacyXlsLoadResult result = LoadApachePoiFixture(fixture);
+                Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+                Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning);
+                Assert.Equal(0, result.ImportReport.UnsupportedProjectionGapCount);
+            }
+
+            using LegacyXlsLoadResult formulas3d = LoadApachePoiFixture("3dFormulas.xls");
+            Assert.Equal(5, formulas3d.ImportReport.FormulaTokensByName["PtgRef3d"]);
+            Assert.Equal(4, formulas3d.ImportReport.FormulaTokensByName["PtgArea3d"]);
+            Assert.Equal(1, formulas3d.ImportReport.ExternalReferenceCount);
+
+            using LegacyXlsLoadResult intersection = LoadApachePoiFixture("IntersectionPtg.xls");
+            Assert.Equal(1, intersection.ImportReport.FormulaTokensByName["PtgIsect"]);
+
+            using LegacyXlsLoadResult range = LoadApachePoiFixture("RangePtg.xls");
+            Assert.Equal(1, range.ImportReport.FormulaTokensByName["PtgRange"]);
+            Assert.Equal(1, range.ImportReport.ExternalReferenceCount);
+
+            using LegacyXlsLoadResult comments = LoadApachePoiFixture("SimpleWithComments.xls");
+            Assert.Equal(3, comments.ImportReport.CommentCount);
+
+            using LegacyXlsLoadResult hyperlinks = LoadApachePoiFixture("WithTwoHyperLinks.xls");
+            Assert.Equal(2, hyperlinks.ImportReport.HyperlinkCount);
+
+            using LegacyXlsLoadResult styles = LoadApachePoiFixture("WithExtendedStyles.xls");
+            Assert.Equal(8, styles.ImportReport.CellStyleRecordCount);
+        }
+
+        [Fact]
         public void LegacyXls_Corpus_OpenPreserveValid_PreservesVbaProjectShape() {
             string workbookPath = Path.Combine(
                 GetTestsProjectRoot(),
@@ -741,6 +794,18 @@ namespace OfficeIMO.Tests {
             string? value = Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES");
             return string.Equals(value, "1", StringComparison.Ordinal)
                 || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static LegacyXlsLoadResult LoadApachePoiFixture(string fileName) {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "apache-poi-testdata",
+                fileName);
+            return ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
         }
 
         private static void AssertLegacyXlsCorpusBaselines(string corpusDirectory) {

@@ -284,7 +284,11 @@ features, PivotTables, chart sheets, embedded charts, drawing objects, embedded
 pictures, form controls, supported formula token combinations, protection
 metadata, and same-folder external workbook references with cached external cell
 values, with approved import-report baselines and optional desktop Excel
-open/import/open validation. A separate `LegacyXlsDiagnosticCorpus` now keeps
+open/import/open validation. The public `apache-poi-testdata` corpus bucket adds
+Apache-2.0 fixtures pinned to an upstream Apache POI commit for 3D formula
+references, reference operator tokens, comments, hyperlinks, AutoFilter metadata,
+and extended style records, all with approved import-report baselines and no
+remaining projection gaps. A separate `LegacyXlsDiagnosticCorpus` now keeps
 expected-error fixtures, starting with Excel-authored password-to-open BIFF8 and
 Excel 5.0/95 BIFF5 workbooks that prove `FilePass` encryption and pre-BIFF8
 workbook versions are reported as explicit hard file-format blockers without

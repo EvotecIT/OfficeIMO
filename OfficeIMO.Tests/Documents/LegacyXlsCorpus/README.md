@@ -53,3 +53,10 @@ are public sample-file sites and openly licensed preservation corpora such as
 OpenPreserve `format-corpus`. After adding an approved fixture, generate its
 `*.import-report.md` baseline with the command above and keep a short source note
 beside the workbook.
+
+The checked-in public buckets currently include:
+
+- `openpreserve-format-corpus`: CC0 public-domain preservation fixtures.
+- `apache-poi-testdata`: Apache POI Apache-2.0 spreadsheet test-data fixtures
+  pinned to a specific upstream commit for formula-token, comment, hyperlink,
+  AutoFilter, and style coverage.
