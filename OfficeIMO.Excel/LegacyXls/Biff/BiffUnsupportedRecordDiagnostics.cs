@@ -360,10 +360,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x020B: return "Index";
                 case 0x0293: return "Style";
                 case 0x0892: return "StyleExt";
-                case 0x0800: return "WebPub";
-                case 0x0801: return "QsiSxTag";
-                case 0x0802: return "DbQueryExt";
-                case 0x0804: return "TxtQry";
+                case 0x0800: return "HLinkTooltip";
+                case 0x0801: return "WebPub";
+                case 0x0802: return "QsiSXTag";
+                case 0x0803: return "DbQueryExt";
+                case 0x0804: return "ExtString";
+                case 0x0805: return "TxtQry";
                 case 0x0850: return "ChartFrtInfo";
                 case 0x0852: return "StartBlock";
                 case 0x0853: return "EndBlock";
@@ -465,9 +467,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || type == (ushort)BiffRecordType.DConRef
                 || type == 0x0059 // XCT
                 || type == 0x005A // CRN
-                || type == 0x0800 // WebPub
-                || type == 0x0802 // DBQueryExt
-                || type == 0x0804 // TxtQry
+                || type == 0x0801 // WebPub
+                || type == 0x0803 // DBQueryExt
+                || type == 0x0804 // ExtString
+                || type == 0x0805 // TxtQry
                 || type == 0x0875; // DConn
         }
 
@@ -601,7 +604,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x00FF: // SXVDEx
                 case 0x0100: // SXFormula
                 case 0x0122: // SXDBEx
-                case 0x0801: // QsiSXTag
+                case 0x0802: // QsiSXTag
                 case 0x0857: // SXViewLink
                 case 0x0858: // PivotChartBits
                 case 0x0864: // SXAddl

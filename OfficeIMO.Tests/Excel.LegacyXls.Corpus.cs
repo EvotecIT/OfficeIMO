@@ -141,6 +141,15 @@ namespace OfficeIMO.Tests {
             Assert.False(result.ImportReport.DrawingShapePropertiesByGroup.ContainsKey("Unknown"));
             Assert.Equal(1, result.ImportReport.DrawingShapeComplexPropertiesByText["wzName:Chart 5"]);
             Assert.Equal(1, result.ImportReport.DrawingShapeComplexPropertiesByText["wzName:Picture 4"]);
+            Assert.Equal(1, result.ImportReport.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.QueryTableTag]);
+            Assert.Equal(1, result.ImportReport.PivotTableQueryTagTargets["PivotTable"]);
+            Assert.Equal(1, result.ImportReport.PivotTableQueryTagNames["ObjectsPivot"]);
+            LegacyXlsPivotTableRecord queryTag = Assert.Single(result.Workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.QueryTableTag);
+            Assert.Equal("ObjectsPivot", queryTag.QueryTableTagName);
+            Assert.True(queryTag.QueryTableTagRelatesToPivotTable);
+            Assert.False(queryTag.QueryTableTagRefreshEnabled);
+            Assert.True(queryTag.QueryTableTagCacheInvalid);
+            Assert.False(queryTag.QueryTableTagTensorEx);
             Assert.Contains(result.Workbook.DrawingRecords.SelectMany(record => record.ShapeProperties),
                 property => property.PropertyName == "wzName" && property.ComplexText == "Chart 5");
             Assert.Contains(result.Workbook.DrawingRecords.SelectMany(record => record.ShapeProperties),
@@ -410,6 +419,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.ChartBarOverlapPercentages["Overlap:0"]);
             Assert.Equal(1, result.ImportReport.ChartBarGapWidths["Gap:150"]);
             Assert.Equal(1, result.ImportReport.ChartBarStates["Transposed:False;Stacked:False;Percent:False;Shadow:False"]);
+            Assert.Equal(1, result.ImportReport.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.QueryTableTag]);
+            Assert.Equal(1, result.ImportReport.PivotTableQueryTagTargets["PivotTable"]);
+            Assert.Equal(1, result.ImportReport.PivotTableQueryTagNames["SalesPivot"]);
+            LegacyXlsPivotTableRecord queryTag = Assert.Single(result.Workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.QueryTableTag);
+            Assert.Equal("SalesPivot", queryTag.QueryTableTagName);
+            Assert.True(queryTag.QueryTableTagRelatesToPivotTable);
+            Assert.False(queryTag.QueryTableTagRefreshEnabled);
+            Assert.True(queryTag.QueryTableTagCacheInvalid);
+            Assert.False(queryTag.QueryTableTagTensorEx);
         }
 
         [Fact]

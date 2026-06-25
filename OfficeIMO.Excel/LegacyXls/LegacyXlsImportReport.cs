@@ -460,6 +460,24 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableCacheRefreshUserStates = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.CacheRecordCount.HasValue)
                 .Select(record => string.IsNullOrWhiteSpace(record.CacheRefreshedBy) ? "NoRefreshUser" : "HasRefreshUser"));
+            PivotTableQueryTagTargets = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.QueryTableTagTargetName))
+                .Select(record => record.QueryTableTagTargetName!));
+            PivotTableQueryTagNames = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.QueryTableTagName))
+                .Select(record => record.QueryTableTagName!));
+            PivotTableQueryTagRefreshStates = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.QueryTableTagRefreshEnabled.HasValue && record.QueryTableTagCacheInvalid.HasValue && record.QueryTableTagTensorEx.HasValue)
+                .Select(record => $"RefreshEnabled:{record.QueryTableTagRefreshEnabled!.Value};CacheInvalid:{record.QueryTableTagCacheInvalid!.Value};TensorEx:{record.QueryTableTagTensorEx!.Value}"));
+            PivotTableQueryTagVersions = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.QueryTableTagLastUpdatedVersion.HasValue && record.QueryTableTagUpdatableMinimumVersion.HasValue)
+                .Select(record => $"LastUpdated:{record.QueryTableTagLastUpdatedVersion!.Value};UpdatableMin:{record.QueryTableTagUpdatableMinimumVersion!.Value}"));
+            PivotTableQueryTagFutureOptions = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.QueryTableTagFutureOptions.HasValue)
+                .Select(record => $"Options:0x{record.QueryTableTagFutureOptions!.Value:X8}"));
+            PivotTableQueryTagUnusedValues = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.QueryTableTagUnused.HasValue)
+                .Select(record => $"Unused:0x{record.QueryTableTagUnused!.Value:X4}"));
             PivotTableDataItemAggregations = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.AggregationFunction.HasValue)
                 .Select(record => $"AggregationFunction:{record.AggregationFunction!.Value}"));
@@ -1964,6 +1982,24 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded SXDB PivotCache records grouped by whether the last-refresh user was present.</summary>
         public IReadOnlyDictionary<string, int> PivotTableCacheRefreshUserStates { get; }
 
+        /// <summary>Gets decoded QsiSXTag records grouped by target type.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableQueryTagTargets { get; }
+
+        /// <summary>Gets decoded QsiSXTag records grouped by query table or PivotTable view name.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableQueryTagNames { get; }
+
+        /// <summary>Gets decoded QsiSXTag records grouped by refresh/cache validity flags.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableQueryTagRefreshStates { get; }
+
+        /// <summary>Gets decoded QsiSXTag records grouped by functionality version pair.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableQueryTagVersions { get; }
+
+        /// <summary>Gets decoded QsiSXTag records grouped by raw future option flags.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableQueryTagFutureOptions { get; }
+
+        /// <summary>Gets decoded QsiSXTag records grouped by trailing unused field value.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableQueryTagUnusedValues { get; }
+
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by raw aggregation function identifier.</summary>
         public IReadOnlyDictionary<string, int> PivotTableDataItemAggregations { get; }
 
@@ -3004,6 +3040,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Cache Used Record Counts", PivotTableCacheUsedRecordCounts);
             AppendDictionary(builder, "Pivot Table Cache Property Flags", PivotTableCachePropertyFlags);
             AppendDictionary(builder, "Pivot Table Cache Refresh User States", PivotTableCacheRefreshUserStates);
+            AppendDictionary(builder, "Pivot Table Query Tag Targets", PivotTableQueryTagTargets);
+            AppendDictionary(builder, "Pivot Table Query Tag Names", PivotTableQueryTagNames);
+            AppendDictionary(builder, "Pivot Table Query Tag Refresh States", PivotTableQueryTagRefreshStates);
+            AppendDictionary(builder, "Pivot Table Query Tag Versions", PivotTableQueryTagVersions);
+            AppendDictionary(builder, "Pivot Table Query Tag Future Options", PivotTableQueryTagFutureOptions);
+            AppendDictionary(builder, "Pivot Table Query Tag Unused Values", PivotTableQueryTagUnusedValues);
             AppendDictionary(builder, "Pivot Table Data Item Aggregations", PivotTableDataItemAggregations);
             AppendDictionary(builder, "Pivot Table Data Item Aggregation Kinds", PivotTableDataItemAggregationKinds);
             AppendDictionary(builder, "Pivot Table Data Item Field Indexes", PivotTableDataItemFieldIndexes);

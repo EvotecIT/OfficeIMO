@@ -19,7 +19,7 @@ External cell caches: 0
 External cached cells: 0
 External query connections: 0
 Data consolidation references: 1
-Pivot table records: 59
+Pivot table records: 60
 Chart records: 296
 Drawing records: 61
 Theme records: 1
@@ -57,8 +57,8 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 61 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 2 |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 59 |
+| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
+| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 60 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 115 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
@@ -233,8 +233,8 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 61 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 2 |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 59 |
+| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
+| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 60 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 115 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
@@ -248,9 +248,9 @@ Warnings: 0
 | ChartSheet | 1 |
 | ConditionalFormatting | 1 |
 | DrawingObject | 61 |
-| ExternalReference | 2 |
+| ExternalReference | 1 |
 | FeatureExtension | 2 |
-| PivotTable | 59 |
+| PivotTable | 60 |
 | StyleExtension | 115 |
 | TableStyle | 1 |
 | Theme | 1 |
@@ -315,7 +315,6 @@ Warnings: 0
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x08A4 | 16 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x08A5 | 12 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|0x0051 | 1 |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|0x0802 | 1 |
 | FeatureExtension\|XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|0x0867 | 2 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00B0 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00B1 | 4 |
@@ -330,6 +329,7 @@ Warnings: 0
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00F1 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x0100 | 4 |
+| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x0802 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x0864 | 35 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x087C | 1 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x087D | 67 |
@@ -402,9 +402,9 @@ Warnings: 0
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TextPropsStream | 16 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 4 |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:DbQueryExt | 1 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:DConRef | 1 |
 | FeatureExtension\|XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|FeatureExtension:Feat | 2 |
+| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:QsiSXTag | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxAddl | 35 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdb | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
@@ -446,10 +446,9 @@ Warnings: 0
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|Objects | 1 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|Pivot | 1 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|(workbook) | 1 |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|Pivot | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 12 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Objects | 1 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Pivot | 46 |
+| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Pivot | 47 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|(workbook) | 115 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|(workbook) | 1 |
@@ -695,12 +694,14 @@ Warnings: 0
 | GroupingRange | 2 |
 | Item | 4 |
 | LineItem | 2 |
+| QueryTableTag | 1 |
 | View | 1 |
 
 ## Pivot Table Records By Name
 
 | Key | Count |
 | --- | --- |
+| QsiSXTag | 1 |
 | SxAddl | 35 |
 | Sxdb | 1 |
 | Sxdi | 1 |
@@ -722,7 +723,7 @@ Warnings: 0
 | --- | --- |
 | (workbook) | 12 |
 | Objects | 1 |
-| Pivot | 46 |
+| Pivot | 47 |
 
 ## Pivot Table Records By Kind And Location
 
@@ -743,12 +744,14 @@ Warnings: 0
 | GroupingRange\|Pivot | 1 |
 | Item\|Pivot | 4 |
 | LineItem\|Pivot | 2 |
+| QueryTableTag\|Pivot | 1 |
 | View\|Pivot | 1 |
 
 ## Pivot Table Records By Name And Location
 
 | Key | Count |
 | --- | --- |
+| QsiSXTag\|Pivot | 1 |
 | SxAddl\|(workbook) | 8 |
 | SxAddl\|Pivot | 27 |
 | Sxdb\|Pivot | 1 |
@@ -789,6 +792,42 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Sxvs\|Sheet | 1 |
+
+## Pivot Table Query Tag Targets
+
+| Key | Count |
+| --- | --- |
+| PivotTable | 1 |
+
+## Pivot Table Query Tag Names
+
+| Key | Count |
+| --- | --- |
+| ObjectsPivot | 1 |
+
+## Pivot Table Query Tag Refresh States
+
+| Key | Count |
+| --- | --- |
+| RefreshEnabled:False;CacheInvalid:True;TensorEx:False | 1 |
+
+## Pivot Table Query Tag Versions
+
+| Key | Count |
+| --- | --- |
+| LastUpdated:8;UpdatableMin:3 | 1 |
+
+## Pivot Table Query Tag Future Options
+
+| Key | Count |
+| --- | --- |
+| Options:0x00000000 | 1 |
+
+## Pivot Table Query Tag Unused Values
+
+| Key | Count |
+| --- | --- |
+| Unused:0x0D00 | 1 |
 
 ## Pivot Table Grouping Kinds
 
@@ -2676,9 +2715,9 @@ Warnings: 0
 | Chart | 296 |
 | ConditionalFormatting | 1 |
 | DrawingObject | 61 |
-| ExternalReference | 2 |
+| ExternalReference | 1 |
 | FeatureExtension | 2 |
-| PivotTable | 59 |
+| PivotTable | 60 |
 | StyleExtension | 115 |
 | TableStyle | 1 |
 | Theme | 1 |
@@ -2741,9 +2780,9 @@ Warnings: 0
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TextPropsStream | 16 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 4 |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:DbQueryExt | 1 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:DConRef | 1 |
 | FeatureExtension\|XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|FeatureExtension:Feat | 2 |
+| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:QsiSXTag | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxAddl | 35 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdb | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |

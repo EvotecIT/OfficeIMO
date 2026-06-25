@@ -1225,7 +1225,7 @@ namespace OfficeIMO.Tests {
                 long boundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Extensions"));
                 WriteRecord(stream, 0x0051, new byte[12]);
-                WriteRecord(stream, 0x0802, BuildExternalQueryConnectionPayload());
+                WriteRecord(stream, (ushort)BiffRecordType.DbQueryExt, BuildExternalQueryConnectionPayload());
                 WriteRecord(stream, 0x00e3, new byte[8]);
                 WriteRecord(stream, 0x01c0, new byte[4]);
                 WriteRecord(stream, 0x01c1, new byte[4]);

@@ -250,6 +250,45 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets whether this record is an empty SxNil PivotCache item.</summary>
         public bool IsEmptyCacheItem => CacheItemKind == LegacyXlsPivotCacheItemKind.Empty;
 
+        /// <summary>Gets the future-record type stored in a QsiSXTag header, when decoded.</summary>
+        public ushort? QueryTableTagFutureRecordType { get; private set; }
+
+        /// <summary>Gets the future-record flags stored in a QsiSXTag header, when decoded.</summary>
+        public ushort? QueryTableTagFutureFlags { get; private set; }
+
+        /// <summary>Gets whether a QsiSXTag record relates to a PivotTable view instead of a query table.</summary>
+        public bool? QueryTableTagRelatesToPivotTable { get; private set; }
+
+        /// <summary>Gets a stable target name for the QsiSXTag record.</summary>
+        public string? QueryTableTagTargetName { get; private set; }
+
+        /// <summary>Gets whether refresh is enabled according to QsiSXTag, when decoded.</summary>
+        public bool? QueryTableTagRefreshEnabled { get; private set; }
+
+        /// <summary>Gets whether QsiSXTag marks the associated PivotCache records invalid.</summary>
+        public bool? QueryTableTagCacheInvalid { get; private set; }
+
+        /// <summary>Gets whether QsiSXTag marks the PivotTable view as OLAP.</summary>
+        public bool? QueryTableTagTensorEx { get; private set; }
+
+        /// <summary>Gets the raw QsiSXTag future option flags.</summary>
+        public uint? QueryTableTagFutureOptions { get; private set; }
+
+        /// <summary>Gets the data functionality level that last refreshed the QsiSXTag target.</summary>
+        public byte? QueryTableTagLastUpdatedVersion { get; private set; }
+
+        /// <summary>Gets the minimum data functionality level required to refresh the QsiSXTag target.</summary>
+        public byte? QueryTableTagUpdatableMinimumVersion { get; private set; }
+
+        /// <summary>Gets the QsiSXTag name offset marker byte.</summary>
+        public byte? QueryTableTagNameOffsetMarker { get; private set; }
+
+        /// <summary>Gets the query table or PivotTable view name carried by QsiSXTag.</summary>
+        public string? QueryTableTagName { get; private set; }
+
+        /// <summary>Gets the trailing unused QsiSXTag field value.</summary>
+        public ushort? QueryTableTagUnused { get; private set; }
+
         internal void SetDataItem(
             short dataItemFieldIndex,
             short aggregationFunction,
@@ -309,6 +348,34 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             CacheUsedRecordCount = usedRecordCount;
             SetCacheSourceType(sourceType);
             CacheRefreshedBy = refreshedBy;
+        }
+
+        internal void SetQueryTableTag(
+            ushort futureRecordType,
+            ushort futureFlags,
+            bool relatesToPivotTable,
+            bool refreshEnabled,
+            bool cacheInvalid,
+            bool tensorEx,
+            uint futureOptions,
+            byte lastUpdatedVersion,
+            byte updatableMinimumVersion,
+            byte nameOffsetMarker,
+            string name,
+            ushort unused) {
+            QueryTableTagFutureRecordType = futureRecordType;
+            QueryTableTagFutureFlags = futureFlags;
+            QueryTableTagRelatesToPivotTable = relatesToPivotTable;
+            QueryTableTagTargetName = relatesToPivotTable ? "PivotTable" : "QueryTable";
+            QueryTableTagRefreshEnabled = refreshEnabled;
+            QueryTableTagCacheInvalid = cacheInvalid;
+            QueryTableTagTensorEx = tensorEx;
+            QueryTableTagFutureOptions = futureOptions;
+            QueryTableTagLastUpdatedVersion = lastUpdatedVersion;
+            QueryTableTagUpdatableMinimumVersion = updatableMinimumVersion;
+            QueryTableTagNameOffsetMarker = nameOffsetMarker;
+            QueryTableTagName = name ?? throw new ArgumentNullException(nameof(name));
+            QueryTableTagUnused = unused;
         }
 
         internal void SetGroupingRange(bool autoStart, bool autoEnd, LegacyXlsPivotGroupingKind groupingKind) {

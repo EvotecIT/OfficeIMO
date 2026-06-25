@@ -61,6 +61,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x00FF:
                         ReadExtendedPivotField(record, pivotRecord);
                         break;
+                    case 0x0802:
+                        ReadQueryTableTag(record, pivotRecord);
+                        break;
                     case 0x0864:
                         ReadAdditionalMetadata(record, pivotRecord);
                         state?.TrackAdditionalRecord(pivotRecord);
@@ -164,7 +167,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0122:
                     kind = LegacyXlsPivotTableRecordKind.CacheExtension;
                     break;
-                case 0x0801:
+                case 0x0802:
                     kind = LegacyXlsPivotTableRecordKind.QueryTableTag;
                     break;
                 case 0x0857:
@@ -224,6 +227,41 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 usedRecordCount,
                 sourceType,
                 refreshedBy);
+        }
+
+        private static void ReadQueryTableTag(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            byte[] payload = record.Payload;
+            if (payload.Length < 19) {
+                throw new InvalidDataException("The QsiSXTag payload is shorter than the fixed tag header.");
+            }
+
+            ushort futureRecordType = BiffRecordReader.ReadUInt16(payload, 0);
+            ushort futureFlags = BiffRecordReader.ReadUInt16(payload, 2);
+            bool relatesToPivotTable = BiffRecordReader.ReadUInt16(payload, 4) != 0;
+            ushort flags = BiffRecordReader.ReadUInt16(payload, 6);
+            uint futureOptions = BiffRecordReader.ReadUInt32(payload, 8);
+            byte lastUpdatedVersion = payload[12];
+            byte updatableMinimumVersion = payload[13];
+            byte nameOffsetMarker = payload[14];
+            int offset = 16;
+            string name = BiffStringReader.ReadUnicodeString(payload, ref offset);
+            if (offset + 2 > payload.Length) {
+                throw new InvalidDataException("The QsiSXTag payload is missing the trailing unused field.");
+            }
+
+            pivotRecord.SetQueryTableTag(
+                futureRecordType,
+                futureFlags,
+                relatesToPivotTable,
+                refreshEnabled: (flags & 0x0001) != 0,
+                cacheInvalid: (flags & 0x0002) != 0,
+                tensorEx: (flags & 0x0004) != 0,
+                futureOptions,
+                lastUpdatedVersion,
+                updatableMinimumVersion,
+                nameOffsetMarker,
+                name,
+                BiffRecordReader.ReadUInt16(payload, offset));
         }
 
         private static void ReadDataItem(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
