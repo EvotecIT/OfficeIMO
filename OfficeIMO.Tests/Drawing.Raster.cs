@@ -173,6 +173,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeConditionalIconRenderer_DrawsReusableRasterIcons() {
+            OfficeRasterImage circle = new OfficeRasterImage(24, 24, OfficeColor.Transparent);
+            OfficeRasterImage arrow = new OfficeRasterImage(24, 24, OfficeColor.Transparent);
+
+            OfficeConditionalIconRenderer.DrawRaster(new OfficeRasterCanvas(circle), 3, 3, 18, OfficeConditionalIconKind.RedCircle, scale: 1D);
+            OfficeConditionalIconRenderer.DrawRaster(new OfficeRasterCanvas(arrow), 3, 3, 18, OfficeConditionalIconKind.GreenUpArrow, scale: 1D);
+
+            Assert.True(CountPixelsNear(circle, OfficeColor.FromRgb(220, 38, 38)) > 40);
+            Assert.True(CountPixelsNear(arrow, OfficeColor.FromRgb(22, 163, 74)) > 30);
+            Assert.Equal(0, circle.GetPixel(0, 0).A);
+            Assert.Equal(0, arrow.GetPixel(0, 0).A);
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_MeasuresEmptyTextAsZero() {
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(new OfficeRasterImage(16, 16, OfficeColor.Transparent));
 

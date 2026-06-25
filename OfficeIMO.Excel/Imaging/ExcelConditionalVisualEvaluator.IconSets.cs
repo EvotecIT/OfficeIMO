@@ -61,13 +61,12 @@ namespace OfficeIMO.Excel {
 
             if (name.IndexOf("Rating", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 name.IndexOf("Quarters", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                (iconCount > 3 && name.IndexOf("Traffic", StringComparison.OrdinalIgnoreCase) >= 0)) {
+                name.IndexOf("Traffic", StringComparison.OrdinalIgnoreCase) >= 0) {
                 family = ExcelConditionalIconFamily.Circles;
                 return true;
             }
 
-            if (name.IndexOf("Traffic", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                name.IndexOf("Signs", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            if (name.IndexOf("Signs", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 name.IndexOf("Symbols", StringComparison.OrdinalIgnoreCase) >= 0) {
                 family = ExcelConditionalIconFamily.Symbols;
                 return true;

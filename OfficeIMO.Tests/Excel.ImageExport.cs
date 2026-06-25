@@ -396,9 +396,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0D, finalBar.StartRatio);
             Assert.Equal(1D, finalBar.Ratio);
             Assert.Equal(3, snapshot.ConditionalIcons.Count);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.RedCross);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.YellowExclamation);
-            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.GreenCheck);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.RedCircle);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.YellowCircle);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.GreenCircle);
             Assert.All(snapshot.ConditionalIcons, icon => Assert.True(icon.ShowValue));
             OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Info, diagnostic.Severity);
