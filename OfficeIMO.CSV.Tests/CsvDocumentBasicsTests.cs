@@ -297,6 +297,18 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Quoted_Comment_Character_Header_Is_Not_Treated_As_Comment()
+    {
+        var parsed = CsvDocument.Parse("\"#Tag\",Name\n10,Alpha\n");
+
+        var row = Assert.Single(parsed.AsEnumerable());
+
+        Assert.Equal(new[] { "#Tag", "Name" }, parsed.Header);
+        Assert.Equal("10", row.AsString("#Tag"));
+        Assert.Equal("Alpha", row.AsString("Name"));
+    }
+
+    [Fact]
     public void Can_Skip_Comment_Rows_Throughout_File()
     {
         var parsed = CsvDocument.Parse(

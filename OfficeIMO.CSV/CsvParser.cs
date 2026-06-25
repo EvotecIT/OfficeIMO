@@ -6,6 +6,19 @@ namespace OfficeIMO.CSV;
 
 internal static class CsvParser
 {
+    internal readonly struct CsvParsedRecord
+    {
+        public CsvParsedRecord(IReadOnlyList<string> values, bool startsWithCommentCharacter)
+        {
+            Values = values;
+            StartsWithCommentCharacter = startsWithCommentCharacter;
+        }
+
+        public IReadOnlyList<string> Values { get; }
+
+        public bool StartsWithCommentCharacter { get; }
+    }
+
     public static IEnumerable<string[]> Parse(TextReader reader, CsvLoadOptions options)
     {
         return ParseLineOrQuoted(reader, options);
@@ -21,6 +34,24 @@ internal static class CsvParser
         ReadLineOrQuoted(reader, options, recordAction);
     }
 
+    internal static IEnumerable<CsvParsedRecord> ParseWithMetadata(TextReader reader, CsvLoadOptions options)
+    {
+        return ParseLineOrQuotedWithMetadata(reader, options);
+    }
+
+    internal static void ReadRecordsWithMetadata(TextReader reader, CsvLoadOptions options, Action<CsvParsedRecord> recordAction)
+    {
+        if (recordAction == null)
+        {
+            throw new ArgumentNullException(nameof(recordAction));
+        }
+
+        foreach (var record in ParseLineOrQuotedWithMetadata(reader, options))
+        {
+            recordAction(record);
+        }
+    }
+
     public static void ReadRecordsReusable(TextReader reader, CsvLoadOptions options, Action<IReadOnlyList<string>> recordAction)
     {
         if (recordAction == null)
@@ -29,6 +60,16 @@ internal static class CsvParser
         }
 
         ReadLineOrQuotedReusable(reader, options, recordAction);
+    }
+
+    internal static void ReadRecordsReusableWithMetadata(TextReader reader, CsvLoadOptions options, Action<CsvParsedRecord> recordAction)
+    {
+        if (recordAction == null)
+        {
+            throw new ArgumentNullException(nameof(recordAction));
+        }
+
+        ReadLineOrQuotedReusableWithMetadata(reader, options, recordAction);
     }
 
     private static void ReadLineOrQuoted(TextReader reader, CsvLoadOptions options, Action<string[]> recordAction)
@@ -91,6 +132,17 @@ internal static class CsvParser
 
     private static IEnumerable<string[]> ParseLineOrQuoted(TextReader reader, CsvLoadOptions options)
     {
+        foreach (var record in ParseLineOrQuotedWithMetadata(reader, options))
+        {
+            if (record.Values is string[] fields)
+            {
+                yield return fields;
+            }
+        }
+    }
+
+    private static IEnumerable<CsvParsedRecord> ParseLineOrQuotedWithMetadata(TextReader reader, CsvLoadOptions options)
+    {
         var delimiter = options.Delimiter;
         var trim = options.TrimWhitespace;
         var allowEmpty = options.AllowEmptyLines;
@@ -98,6 +150,7 @@ internal static class CsvParser
 
         while (reader.ReadLine() is { } line)
         {
+            var startsWithCommentCharacter = IsRawCommentLine(line, options);
             if (ShouldSkipCommentLine(line, options))
             {
                 lineNumber++;
@@ -108,7 +161,7 @@ internal static class CsvParser
             {
                 if (ShouldEmitRecord(record, allowEmpty))
                 {
-                    yield return record;
+                    yield return new CsvParsedRecord(record, startsWithCommentCharacter);
                 }
 
                 lineNumber++;
@@ -140,7 +193,7 @@ internal static class CsvParser
 
             if (ShouldEmitRecord(fields, allowEmpty))
             {
-                yield return fields;
+                yield return new CsvParsedRecord(fields, startsWithCommentCharacter);
             }
 
             lineNumber++;
@@ -148,6 +201,11 @@ internal static class CsvParser
     }
 
     private static void ReadLineOrQuotedReusable(TextReader reader, CsvLoadOptions options, Action<IReadOnlyList<string>> recordAction)
+    {
+        ReadLineOrQuotedReusableWithMetadata(reader, options, record => recordAction(record.Values));
+    }
+
+    private static void ReadLineOrQuotedReusableWithMetadata(TextReader reader, CsvLoadOptions options, Action<CsvParsedRecord> recordAction)
     {
         var delimiter = options.Delimiter;
         var trim = options.TrimWhitespace;
@@ -157,6 +215,7 @@ internal static class CsvParser
 
         while (reader.ReadLine() is { } line)
         {
+            var startsWithCommentCharacter = IsRawCommentLine(line, options);
             if (ShouldSkipCommentLine(line, options))
             {
                 lineNumber++;
@@ -167,7 +226,7 @@ internal static class CsvParser
             {
                 if (ShouldEmitRecord(reusableRecord, allowEmpty))
                 {
-                    recordAction(reusableRecord);
+                    recordAction(new CsvParsedRecord(reusableRecord, startsWithCommentCharacter));
                 }
 
                 lineNumber++;
@@ -199,7 +258,7 @@ internal static class CsvParser
 
             if (ShouldEmitRecord(fields, allowEmpty))
             {
-                recordAction(fields);
+                recordAction(new CsvParsedRecord(fields, startsWithCommentCharacter));
             }
 
             lineNumber++;
@@ -475,13 +534,16 @@ internal static class CsvParser
 
     private static bool ShouldSkipCommentLine(string line, CsvLoadOptions options)
     {
-        if (!options.SkipCommentRows || line.Length == 0 || line[0] != options.CommentCharacter)
+        if (!options.SkipCommentRows || !IsRawCommentLine(line, options))
         {
             return false;
         }
 
         return !IsW3CFieldsLine(line, options);
     }
+
+    private static bool IsRawCommentLine(string line, CsvLoadOptions options) =>
+        line.Length > 0 && line[0] == options.CommentCharacter;
 
     private static bool IsW3CFieldsLine(string line, CsvLoadOptions options) =>
         options.RecognizeW3CFieldsHeader && line.StartsWith("#Fields:", StringComparison.OrdinalIgnoreCase);
