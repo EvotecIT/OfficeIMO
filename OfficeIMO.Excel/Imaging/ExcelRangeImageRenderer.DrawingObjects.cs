@@ -73,6 +73,7 @@ namespace OfficeIMO.Excel {
                 double textWidth = Math.Max(1D, width - insetLeft - insetRight);
                 double textHeight = Math.Max(1D, height - insetTop - insetBottom);
                 OfficeFontInfo font = ResolveDrawingTextFont(drawingObject, scale, textHeight);
+                double textRotationDegrees = ResolveDrawingTextRotationDegrees(drawingObject);
                 drawing.AddText(
                     drawingObject.Text,
                     offsetX + insetLeft,
@@ -83,7 +84,7 @@ namespace OfficeIMO.Excel {
                     ResolveArgb(drawingObject.TextColorArgb) ?? OfficeColor.FromRgb(31, 41, 55),
                     drawingObject.TextAlignment,
                     verticalAlignment: drawingObject.TextVerticalAlignment,
-                    rotationDegrees: drawingObject.RotationDegrees,
+                    rotationDegrees: textRotationDegrees,
                     rotationCenterX: offsetX + width / 2D,
                     rotationCenterY: offsetY + height / 2D,
                     wrapText: drawingObject.TextWrap,
@@ -116,7 +117,7 @@ namespace OfficeIMO.Excel {
                 : OfficeShape.Rectangle(width, height);
 
         private static void AddRotatedTextApproximationDiagnostic(ExcelVisualDrawingObject drawingObject, List<OfficeImageExportDiagnostic>? diagnostics) {
-            if (diagnostics == null || !drawingObject.HasRotation || string.IsNullOrWhiteSpace(drawingObject.Text)) {
+            if (diagnostics == null || !UsesDrawingTextRotation(drawingObject) || string.IsNullOrWhiteSpace(drawingObject.Text)) {
                 return;
             }
 
@@ -141,10 +142,31 @@ namespace OfficeIMO.Excel {
 
         private static bool IsSupportedTextOrientation(ExcelVisualDrawingObject drawingObject) =>
             drawingObject.TextOrientation == ExcelDrawingTextOrientation.Horizontal ||
+            drawingObject.TextOrientation == ExcelDrawingTextOrientation.Vertical270 ||
             IsSupportedStackedTextOrientation(drawingObject);
 
         private static bool IsSupportedStackedTextOrientation(ExcelVisualDrawingObject drawingObject) =>
             drawingObject.TextOrientation == ExcelDrawingTextOrientation.Vertical;
+
+        private static bool UsesDrawingTextRotation(ExcelVisualDrawingObject drawingObject) =>
+            drawingObject.HasRotation ||
+            drawingObject.TextOrientation == ExcelDrawingTextOrientation.Vertical270;
+
+        private static double ResolveDrawingTextRotationDegrees(ExcelVisualDrawingObject drawingObject) {
+            double rotation = drawingObject.RotationDegrees;
+            if (drawingObject.TextOrientation == ExcelDrawingTextOrientation.Vertical270) {
+                rotation += 270D;
+            }
+
+            return NormalizeRotationDegrees(rotation);
+        }
+
+        private static double NormalizeRotationDegrees(double rotationDegrees) {
+            double normalized = rotationDegrees % 360D;
+            return normalized < 0D
+                ? normalized + 360D
+                : normalized;
+        }
 
         private static void AddTextAutoFitUnsupportedDiagnostic(ExcelVisualDrawingObject drawingObject, List<OfficeImageExportDiagnostic>? diagnostics) {
             if (diagnostics == null || !drawingObject.TextResizeShapeToFit || string.IsNullOrWhiteSpace(drawingObject.Text)) {

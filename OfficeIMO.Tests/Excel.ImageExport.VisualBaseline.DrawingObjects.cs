@@ -583,5 +583,6 @@ namespace OfficeIMO.Tests {
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
+
     }
 }
