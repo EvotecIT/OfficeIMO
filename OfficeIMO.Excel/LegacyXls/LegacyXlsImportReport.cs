@@ -2836,13 +2836,13 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Scatter records grouped by decoded bubble, negative-bubble, shadow, and size-representation state.</summary>
         public IReadOnlyDictionary<string, int> ChartScatterStates { get; }
 
-        /// <summary>Gets Fbi records grouped by decoded chart font scale basis.</summary>
+        /// <summary>Gets Fbi or Fbi2 records grouped by decoded chart font scale basis.</summary>
         public IReadOnlyDictionary<string, int> ChartFontBasisScaleBasis { get; }
 
-        /// <summary>Gets Fbi records grouped by referenced chart font index.</summary>
+        /// <summary>Gets Fbi or Fbi2 records grouped by referenced chart font index.</summary>
         public IReadOnlyDictionary<string, int> ChartFontBasisFontIndexes { get; }
 
-        /// <summary>Gets Fbi records grouped by decoded basis, default font height, scale basis, and font index.</summary>
+        /// <summary>Gets Fbi or Fbi2 records grouped by decoded basis, default font height, scale basis, and font index.</summary>
         public IReadOnlyDictionary<string, int> ChartFontBasisStates { get; }
 
         /// <summary>Gets CrtLayout12 records grouped by decoded layout modes.</summary>

@@ -359,7 +359,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets decoded scatter or bubble chart group options from Scatter records, when present.</summary>
         public LegacyXlsChartScatterOptions? ScatterOptions { get; }
 
-        /// <summary>Gets decoded chart font-scaling metadata from Fbi records, when present.</summary>
+        /// <summary>Gets decoded chart font-scaling metadata from Fbi or Fbi2 records, when present.</summary>
         public LegacyXlsChartFontBasisOptions? FontBasisOptions { get; }
 
         /// <summary>Gets decoded chart layout metadata from CrtLayout12 records, when present.</summary>

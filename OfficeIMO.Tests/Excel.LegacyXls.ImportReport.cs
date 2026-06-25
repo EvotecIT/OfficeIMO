@@ -1268,6 +1268,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartScatterBubbleSizeRepresentations["Width"]);
             Assert.Equal(1, report.ChartScatterBubbleSizeRatioStates["Valid"]);
             Assert.Equal(1, report.ChartScatterStates["Bubble:True;NegativeBubbles:True;Shadow:True;Size:Width"]);
+            Assert.Equal(1, report.ChartFontBasisScaleBasis["PlotArea"]);
+            Assert.Equal(1, report.ChartFontBasisFontIndexes["FontIndex:3"]);
+            Assert.Equal(1, report.ChartFontBasisStates["Basis:640x480;HeightTwips:220;Scale:PlotArea;FontIndex:3"]);
             Assert.Equal(1, report.ChartLineFormatStyles["Dash"]);
             Assert.Equal(1, report.ChartLineFormatWeights["Medium"]);
             Assert.Equal(1, report.ChartAreaFormatPatterns["Solid"]);
@@ -1465,7 +1468,17 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "PlotGrowth" && record.PlotGrowth != null && record.PlotGrowth.HorizontalIntegral == 1 && record.PlotGrowth.HorizontalFractional == 0x4000 && record.PlotGrowth.HorizontalGrowthPoints == 1.25 && record.PlotGrowth.VerticalIntegral == 2 && record.PlotGrowth.VerticalFractional == 0x8000 && record.PlotGrowth.VerticalGrowthPoints == 2.5);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "GelFrame" && record.Kind == LegacyXlsChartRecordKind.Formatting);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "BopPopCustom" && record.Kind == LegacyXlsChartRecordKind.ChartType && record.ChartTypeName == "CustomBarOfPieOrPieOfPie");
-            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Fbi2" && record.Kind == LegacyXlsChartRecordKind.Text);
+            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly"
+                && record.RecordName == "Fbi2"
+                && record.Kind == LegacyXlsChartRecordKind.Text
+                && record.FontBasisOptions != null
+                && record.FontBasisOptions.WidthTwipsBasis == 640
+                && record.FontBasisOptions.HeightTwipsBasis == 480
+                && record.FontBasisOptions.FontHeightTwips == 220
+                && record.FontBasisOptions.ScaleBasis == 0x0001
+                && record.FontBasisOptions.ScaleBasisName == "PlotArea"
+                && record.FontBasisOptions.HasKnownScaleBasis
+                && record.FontBasisOptions.FontIndex == 3);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Chart3d" && record.Kind == LegacyXlsChartRecordKind.ChartType && record.ChartTypeName == "ThreeDimensional");
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Chart3DBarShape" && record.Kind == LegacyXlsChartRecordKind.ChartType && record.ChartTypeName == "ThreeDimensionalBarShape" && record.ThreeDimensionalBarShapeOptions != null && record.ThreeDimensionalBarShapeOptions.Riser == 0x01 && record.ThreeDimensionalBarShapeOptions.RiserName == "Ellipse" && record.ThreeDimensionalBarShapeOptions.Taper == 0x02 && record.ThreeDimensionalBarShapeOptions.TaperName == "ProjectedPoint");
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Scatter" && record.Kind == LegacyXlsChartRecordKind.ChartType && record.ChartTypeName == "Scatter" && record.ScatterOptions != null && record.ScatterOptions.BubbleSizeRatio == 150 && record.ScatterOptions.BubbleSizeRepresentation == 0x0002 && record.ScatterOptions.BubbleSizeRepresentationName == "Width" && record.ScatterOptions.HasKnownBubbleSizeRepresentation && record.ScatterOptions.HasValidBubbleSizeRatio && record.ScatterOptions.Flags == 0x0007 && record.ScatterOptions.IsBubbleChart && record.ScatterOptions.ShowNegativeBubbles && record.ScatterOptions.HasShadow);
@@ -1518,6 +1531,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Chart Scatter Bubble Size Representations", markdown);
             Assert.Contains("Chart Scatter Bubble Size Ratio States", markdown);
             Assert.Contains("Chart Scatter States", markdown);
+            Assert.Contains("Chart FontBasis Scale Basis", markdown);
+            Assert.Contains("Basis:640x480;HeightTwips:220;Scale:PlotArea;FontIndex:3", markdown);
             Assert.Contains("Chart LineFormat Styles", markdown);
             Assert.Contains("Chart LineFormat Weights", markdown);
             Assert.Contains("Chart AreaFormat Patterns", markdown);

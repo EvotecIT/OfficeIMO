@@ -724,7 +724,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static bool TryReadFontBasisOptions(BiffRecord record, out LegacyXlsChartFontBasisOptions? options) {
             options = null;
-            if (record.Type != 0x1060 || record.Payload.Length < 10) {
+            if ((record.Type != 0x1060 && record.Type != 0x1068) || record.Payload.Length < 10) {
                 return false;
             }
 
