@@ -97,6 +97,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportPlacesCommentBodyAwayFromChartWhenSpaceExists() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("CommentChart");
+            for (int column = 1; column <= 10; column++) {
+                sheet.SetColumnWidth(column, 10);
+            }
+
+            for (int row = 1; row <= 8; row++) {
+                sheet.SetRowHeight(row, 28);
+            }
+
+            sheet.CellValue(4, 1, "Month");
+            sheet.CellValue(4, 2, "Score");
+            sheet.CellValue(5, 1, "Jan");
+            sheet.CellValue(5, 2, 120);
+            sheet.CellValue(6, 1, "Feb");
+            sheet.CellValue(6, 2, 180);
+            sheet.CellValue(2, 4, "Review");
+            sheet.SetComment("D2", "This note should avoid the chart when rendered.", "Reviewer");
+            sheet.AddChartFromRange("A4:B6", row: 1, column: 5, widthPixels: 260, heightPixels: 120, type: ExcelChartType.ColumnClustered, title: "Trend");
+
+            var options = new ExcelImageExportOptions {
+                ShowGridlines = false,
+                ShowCommentBodies = true,
+                DefaultColumnWidthPixels = 70D,
+                DefaultRowHeightPixels = 28D
+            };
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:J8").CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = sheet.Range("A1:J8").ExportImage(OfficeImageExportFormat.Svg, options);
+
+            ExcelVisualCommentIndicator indicator = Assert.Single(snapshot.CommentIndicators);
+            ExcelVisualCommentBody body = Assert.Single(snapshot.CommentBodies);
+            ExcelVisualChart chart = Assert.Single(snapshot.Charts);
+            Assert.True(body.X < indicator.X, "The right-side placement overlaps the chart, so the body should move to available space on the left.");
+            Assert.False(Intersects(body.X, body.Y, body.Width, body.Height, chart.X, chart.Y, chart.Width, chart.Height));
+            Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportRendersThreadedCommentIndicatorsAndReportsUnsupportedBodiesInVisibleRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             const string personId = "{11111111-1111-1111-1111-111111111111}";
@@ -1077,5 +1117,19 @@ namespace OfficeIMO.Tests {
 
             return count;
         }
+
+        private static bool Intersects(
+            double firstX,
+            double firstY,
+            double firstWidth,
+            double firstHeight,
+            double secondX,
+            double secondY,
+            double secondWidth,
+            double secondHeight) =>
+            firstX < secondX + secondWidth &&
+            firstX + firstWidth > secondX &&
+            firstY < secondY + secondHeight &&
+            firstY + firstHeight > secondY;
     }
 }
