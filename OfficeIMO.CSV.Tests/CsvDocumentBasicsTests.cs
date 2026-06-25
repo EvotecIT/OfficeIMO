@@ -463,6 +463,31 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Quoted_Multiline_Fields_Preserve_Lf_Newlines()
+    {
+        var parsed = CsvDocument.Parse("Name,Note\nAlpha,\"one\ntwo\"\n");
+        var row = parsed.AsEnumerable().Single();
+
+        Assert.Equal("one\ntwo", row[1]?.ToString());
+        Assert.Equal("one\ntwo", row.AsString("Note"));
+    }
+
+    [Fact]
+    public void Quoted_Multiline_Fields_Preserve_Lf_Newlines_At_End_Of_File()
+    {
+        var text = "Name,Note\nAlpha,\"one\ntwo\"";
+
+        var parsed = CsvDocument.Parse(text);
+        Assert.Equal("one\ntwo", parsed.AsEnumerable().Single().AsString("Note"));
+
+        using var reader = new StringReader(text);
+        string? streamedValue = null;
+        CsvDocument.ReadRowsReusable(reader, (_, row) => streamedValue = row[1]);
+
+        Assert.Equal("one\ntwo", streamedValue);
+    }
+
+    [Fact]
     public void Default_Writer_Quotes_Custom_Span_Formatted_Values_When_Needed()
     {
         using var writer = new StringWriter();

@@ -79,7 +79,7 @@ internal static class CsvParser
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
 
-        while (ReadLineWithSeparator(reader, out _) is { } line)
+        while (ReadLineWithSeparator(reader, out var lineSeparator) is { } line)
         {
             if (ShouldSkipCommentLine(line, options))
             {
@@ -102,15 +102,16 @@ internal static class CsvParser
             if (!TryParseQuotedRecord(line, delimiter, trim, out fields))
             {
                 var logicalRecord = new StringBuilder(line);
+                var pendingSeparator = lineSeparator;
                 while (true)
                 {
-                    var next = ReadLineWithSeparator(reader, out var separator);
+                    var next = ReadLineWithSeparator(reader, out var nextSeparator);
                     if (next == null)
                     {
                         throw new CsvParseException("Unterminated quoted field.", lineNumber);
                     }
 
-                    logicalRecord.Append(separator);
+                    logicalRecord.Append(pendingSeparator);
                     logicalRecord.Append(next);
                     lineNumber++;
 
@@ -118,6 +119,8 @@ internal static class CsvParser
                     {
                         break;
                     }
+
+                    pendingSeparator = nextSeparator;
                 }
             }
 
@@ -148,7 +151,7 @@ internal static class CsvParser
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
 
-        while (ReadLineWithSeparator(reader, out _) is { } line)
+        while (ReadLineWithSeparator(reader, out var lineSeparator) is { } line)
         {
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
             if (ShouldSkipCommentLine(line, options))
@@ -172,15 +175,16 @@ internal static class CsvParser
             if (!TryParseQuotedRecord(line, delimiter, trim, out fields))
             {
                 var logicalRecord = new StringBuilder(line);
+                var pendingSeparator = lineSeparator;
                 while (true)
                 {
-                    var next = ReadLineWithSeparator(reader, out var separator);
+                    var next = ReadLineWithSeparator(reader, out var nextSeparator);
                     if (next == null)
                     {
                         throw new CsvParseException("Unterminated quoted field.", lineNumber);
                     }
 
-                    logicalRecord.Append(separator);
+                    logicalRecord.Append(pendingSeparator);
                     logicalRecord.Append(next);
                     lineNumber++;
 
@@ -188,6 +192,8 @@ internal static class CsvParser
                     {
                         break;
                     }
+
+                    pendingSeparator = nextSeparator;
                 }
             }
 
@@ -213,7 +219,7 @@ internal static class CsvParser
         var lineNumber = 1;
         var reusableRecord = new List<string>(16);
 
-        while (ReadLineWithSeparator(reader, out _) is { } line)
+        while (ReadLineWithSeparator(reader, out var lineSeparator) is { } line)
         {
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
             if (ShouldSkipCommentLine(line, options))
@@ -237,15 +243,16 @@ internal static class CsvParser
             if (!TryParseQuotedRecord(line, delimiter, trim, out fields))
             {
                 var logicalRecord = new StringBuilder(line);
+                var pendingSeparator = lineSeparator;
                 while (true)
                 {
-                    var next = ReadLineWithSeparator(reader, out var separator);
+                    var next = ReadLineWithSeparator(reader, out var nextSeparator);
                     if (next == null)
                     {
                         throw new CsvParseException("Unterminated quoted field.", lineNumber);
                     }
 
-                    logicalRecord.Append(separator);
+                    logicalRecord.Append(pendingSeparator);
                     logicalRecord.Append(next);
                     lineNumber++;
 
@@ -253,6 +260,8 @@ internal static class CsvParser
                     {
                         break;
                     }
+
+                    pendingSeparator = nextSeparator;
                 }
             }
 
