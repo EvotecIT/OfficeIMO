@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
+using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
     public sealed partial class ExcelChart {
@@ -19,23 +20,24 @@ namespace OfficeIMO.Excel {
             C.PlotArea? plotArea = chart?.GetFirstChild<C.PlotArea>();
             C.ShapeProperties? chartAreaProperties = chartSpace.GetFirstChild<C.ShapeProperties>();
             OpenXmlCompositeElement? plotAreaProperties = plotArea?.GetFirstChild<C.ShapeProperties>();
+            WorkbookPart workbookPart = _document.WorkbookPartRoot;
 
-            OfficeColor? chartFill = TryGetSolidFill(chartAreaProperties, out OfficeColor resolvedChartFill) ? resolvedChartFill : null;
-            OfficeColor? chartLine = TryGetSolidLine(chartAreaProperties, out OfficeColor resolvedChartLine) ? resolvedChartLine : null;
-            OfficeColor? plotFill = TryGetSolidFill(plotAreaProperties, out OfficeColor resolvedPlotFill) ? resolvedPlotFill : null;
-            OfficeColor? plotLine = TryGetSolidLine(plotAreaProperties, out OfficeColor resolvedPlotLine) ? resolvedPlotLine : null;
+            OfficeColor? chartFill = TryGetSolidFill(chartAreaProperties, workbookPart, out OfficeColor resolvedChartFill) ? resolvedChartFill : null;
+            OfficeColor? chartLine = TryGetSolidLine(chartAreaProperties, workbookPart, out OfficeColor resolvedChartLine) ? resolvedChartLine : null;
+            OfficeColor? plotFill = TryGetSolidFill(plotAreaProperties, workbookPart, out OfficeColor resolvedPlotFill) ? resolvedPlotFill : null;
+            OfficeColor? plotLine = TryGetSolidLine(plotAreaProperties, workbookPart, out OfficeColor resolvedPlotLine) ? resolvedPlotLine : null;
             OpenXmlCompositeElement? categoryAxis = plotArea == null ? null : ResolveImageExportCategoryAxis(plotArea);
             OpenXmlCompositeElement? valueAxis = plotArea == null ? null : ResolveImageExportValueAxis(plotArea);
             double? chartLineWidth = TryGetLineWidth(chartAreaProperties, out double resolvedChartLineWidth) ? resolvedChartLineWidth : null;
             double? plotLineWidth = TryGetLineWidth(plotAreaProperties, out double resolvedPlotLineWidth) ? resolvedPlotLineWidth : null;
             OfficeStrokeDashStyle? chartLineDashStyle = TryGetLineDashStyle(chartAreaProperties, out OfficeStrokeDashStyle resolvedChartLineDashStyle) ? resolvedChartLineDashStyle : null;
             OfficeStrokeDashStyle? plotLineDashStyle = TryGetLineDashStyle(plotAreaProperties, out OfficeStrokeDashStyle resolvedPlotLineDashStyle) ? resolvedPlotLineDashStyle : null;
-            OfficeColor? categoryAxisLine = TryGetImageExportAxisLineColor(categoryAxis, out OfficeColor resolvedCategoryAxisLine) ? resolvedCategoryAxisLine : null;
-            OfficeColor? valueAxisLine = TryGetImageExportAxisLineColor(valueAxis, out OfficeColor resolvedValueAxisLine) ? resolvedValueAxisLine : null;
-            OfficeColor? categoryGridLine = TryGetImageExportGridLineColor(categoryAxis, out OfficeColor resolvedCategoryGridLine) ? resolvedCategoryGridLine : null;
-            OfficeColor? valueGridLine = TryGetImageExportGridLineColor(valueAxis, out OfficeColor resolvedValueGridLine) ? resolvedValueGridLine : null;
-            OfficeColor? categoryMinorGridLine = TryGetImageExportMinorGridLineColor(categoryAxis, out OfficeColor resolvedCategoryMinorGridLine) ? resolvedCategoryMinorGridLine : null;
-            OfficeColor? valueMinorGridLine = TryGetImageExportMinorGridLineColor(valueAxis, out OfficeColor resolvedValueMinorGridLine) ? resolvedValueMinorGridLine : null;
+            OfficeColor? categoryAxisLine = TryGetImageExportAxisLineColor(categoryAxis, workbookPart, out OfficeColor resolvedCategoryAxisLine) ? resolvedCategoryAxisLine : null;
+            OfficeColor? valueAxisLine = TryGetImageExportAxisLineColor(valueAxis, workbookPart, out OfficeColor resolvedValueAxisLine) ? resolvedValueAxisLine : null;
+            OfficeColor? categoryGridLine = TryGetImageExportGridLineColor(categoryAxis, workbookPart, out OfficeColor resolvedCategoryGridLine) ? resolvedCategoryGridLine : null;
+            OfficeColor? valueGridLine = TryGetImageExportGridLineColor(valueAxis, workbookPart, out OfficeColor resolvedValueGridLine) ? resolvedValueGridLine : null;
+            OfficeColor? categoryMinorGridLine = TryGetImageExportMinorGridLineColor(categoryAxis, workbookPart, out OfficeColor resolvedCategoryMinorGridLine) ? resolvedCategoryMinorGridLine : null;
+            OfficeColor? valueMinorGridLine = TryGetImageExportMinorGridLineColor(valueAxis, workbookPart, out OfficeColor resolvedValueMinorGridLine) ? resolvedValueMinorGridLine : null;
             double? categoryAxisLineWidth = TryGetImageExportAxisLineWidth(categoryAxis, out double resolvedCategoryAxisLineWidth) ? resolvedCategoryAxisLineWidth : null;
             double? valueAxisLineWidth = TryGetImageExportAxisLineWidth(valueAxis, out double resolvedValueAxisLineWidth) ? resolvedValueAxisLineWidth : null;
             double? categoryGridLineWidth = TryGetImageExportGridLineWidth(categoryAxis, out double resolvedCategoryGridLineWidth) ? resolvedCategoryGridLineWidth : null;
@@ -48,18 +50,18 @@ namespace OfficeIMO.Excel {
             OfficeStrokeDashStyle? valueGridLineDashStyle = TryGetImageExportGridLineDashStyle(valueAxis, out OfficeStrokeDashStyle resolvedValueGridLineDashStyle) ? resolvedValueGridLineDashStyle : null;
             OfficeStrokeDashStyle? categoryMinorGridLineDashStyle = TryGetImageExportMinorGridLineDashStyle(categoryAxis, out OfficeStrokeDashStyle resolvedCategoryMinorGridLineDashStyle) ? resolvedCategoryMinorGridLineDashStyle : null;
             OfficeStrokeDashStyle? valueMinorGridLineDashStyle = TryGetImageExportMinorGridLineDashStyle(valueAxis, out OfficeStrokeDashStyle resolvedValueMinorGridLineDashStyle) ? resolvedValueMinorGridLineDashStyle : null;
-            OfficeColor? titleColor = TryGetImageExportTitleColor(chart, out OfficeColor resolvedTitleColor) ? resolvedTitleColor : null;
+            OfficeColor? titleColor = TryGetImageExportTitleColor(chart, workbookPart, out OfficeColor resolvedTitleColor) ? resolvedTitleColor : null;
             string? titleFontFamily = TryGetImageExportTitleFontFamily(chart, out string? resolvedTitleFontFamily) ? resolvedTitleFontFamily : null;
             double? titleFontSize = TryGetImageExportTitleFontSize(chart, out double resolvedTitleFontSize) ? resolvedTitleFontSize : null;
             OfficeFontStyle? titleFontStyle = TryGetImageExportTitleFontStyle(chart, out OfficeFontStyle resolvedTitleFontStyle) ? resolvedTitleFontStyle : null;
-            OfficeColor? legendTextColor = TryGetImageExportLegendTextColor(chart, out OfficeColor resolvedLegendTextColor) ? resolvedLegendTextColor : null;
-            OfficeColor? dataLabelTextColor = TryGetImageExportDataLabelTextColor(plotArea, out OfficeColor resolvedDataLabelTextColor) ? resolvedDataLabelTextColor : null;
-            OfficeColor? dataLabelFill = TryGetImageExportDataLabelFillColor(plotArea, out OfficeColor resolvedDataLabelFill) ? resolvedDataLabelFill : null;
-            OfficeColor? dataLabelLine = TryGetImageExportDataLabelLineColor(plotArea, out OfficeColor resolvedDataLabelLine) ? resolvedDataLabelLine : null;
+            OfficeColor? legendTextColor = TryGetImageExportLegendTextColor(chart, workbookPart, out OfficeColor resolvedLegendTextColor) ? resolvedLegendTextColor : null;
+            OfficeColor? dataLabelTextColor = TryGetImageExportDataLabelTextColor(plotArea, workbookPart, out OfficeColor resolvedDataLabelTextColor) ? resolvedDataLabelTextColor : null;
+            OfficeColor? dataLabelFill = TryGetImageExportDataLabelFillColor(plotArea, workbookPart, out OfficeColor resolvedDataLabelFill) ? resolvedDataLabelFill : null;
+            OfficeColor? dataLabelLine = TryGetImageExportDataLabelLineColor(plotArea, workbookPart, out OfficeColor resolvedDataLabelLine) ? resolvedDataLabelLine : null;
             double? dataLabelLineWidth = TryGetImageExportDataLabelLineWidth(plotArea, out double resolvedDataLabelLineWidth) ? resolvedDataLabelLineWidth : null;
             OfficeStrokeDashStyle? dataLabelLineDashStyle = TryGetImageExportDataLabelLineDashStyle(plotArea, out OfficeStrokeDashStyle resolvedDataLabelLineDashStyle) ? resolvedDataLabelLineDashStyle : null;
-            OfficeColor? mutedTextColor = TryGetImageExportAxisTextColor(plotArea, out OfficeColor resolvedMutedTextColor) ? resolvedMutedTextColor : null;
-            OfficeColor? axisTitleColor = TryGetImageExportAxisTitleTextColor(plotArea, out OfficeColor resolvedAxisTitleColor) ? resolvedAxisTitleColor : null;
+            OfficeColor? mutedTextColor = TryGetImageExportAxisTextColor(plotArea, workbookPart, out OfficeColor resolvedMutedTextColor) ? resolvedMutedTextColor : null;
+            OfficeColor? axisTitleColor = TryGetImageExportAxisTitleTextColor(plotArea, workbookPart, out OfficeColor resolvedAxisTitleColor) ? resolvedAxisTitleColor : null;
             bool hasNoChartFill = HasNoFill(chartAreaProperties);
             bool hasNoChartLine = HasNoLine(chartAreaProperties);
             bool hasGridLineVisibility = plotArea != null && HasImageExportCartesianAxis(plotArea);
@@ -321,7 +323,7 @@ namespace OfficeIMO.Excel {
                 overlayTitle: IsEnabled(title?.GetFirstChild<C.Overlay>()));
         }
 
-        private static ExcelChartData ApplyImageExportSeriesStyles(ChartPart chartPart, ExcelChartData data) {
+        private static ExcelChartData ApplyImageExportSeriesStyles(ChartPart chartPart, ExcelChartData data, WorkbookPart workbookPart) {
             C.PlotArea? plotArea = chartPart.ChartSpace?
                 .GetFirstChild<C.Chart>()?
                 .GetFirstChild<C.PlotArea>();
@@ -329,7 +331,7 @@ namespace OfficeIMO.Excel {
                 return data;
             }
 
-            Dictionary<int, ImageExportSeriesStyle> styles = GetImageExportSeriesStyles(plotArea, data);
+            Dictionary<int, ImageExportSeriesStyle> styles = GetImageExportSeriesStyles(plotArea, data, workbookPart);
             if (styles.Count == 0) {
                 return data;
             }
@@ -349,7 +351,7 @@ namespace OfficeIMO.Excel {
             return changed ? new ExcelChartData(data.Categories, series) : data;
         }
 
-        private static Dictionary<int, ImageExportSeriesStyle> GetImageExportSeriesStyles(C.PlotArea plotArea, ExcelChartData data) {
+        private static Dictionary<int, ImageExportSeriesStyle> GetImageExportSeriesStyles(C.PlotArea plotArea, ExcelChartData data, WorkbookPart workbookPart) {
             var styles = new Dictionary<int, ImageExportSeriesStyle>();
             foreach (OpenXmlCompositeElement series in plotArea.Descendants<OpenXmlCompositeElement>().Where(IsSeriesElement)) {
                 int index = GetSeriesIndex(series);
@@ -357,7 +359,7 @@ namespace OfficeIMO.Excel {
 
                 C.ChartShapeProperties? properties = series.GetFirstChild<C.ChartShapeProperties>();
                 if (properties != null) {
-                    style.SeriesColorArgb = GetImageExportSeriesColor(properties);
+                    style.SeriesColorArgb = GetImageExportSeriesColor(properties, workbookPart);
                     style.SeriesLineWidth = GetImageExportSeriesLineWidth(properties);
                     style.SeriesLineDashStyle = GetImageExportSeriesLineDashStyle(properties);
                 }
@@ -367,10 +369,10 @@ namespace OfficeIMO.Excel {
                 style.ShowMarkers = GetImageExportShowMarkers(marker);
                 style.MarkerSize = GetImageExportMarkerSize(marker);
                 style.MarkerShape = GetImageExportMarkerShape(marker);
-                style.MarkerOutlineColorArgb = GetImageExportMarkerOutlineColor(marker);
+                style.MarkerOutlineColorArgb = GetImageExportMarkerOutlineColor(marker, workbookPart);
                 style.MarkerOutlineWidth = GetImageExportMarkerOutlineWidth(marker);
-                string? markerFill = GetImageExportMarkerFillColor(marker);
-                style.PointColorArgb = GetImageExportPointColors(series, valueCount, markerFill);
+                string? markerFill = GetImageExportMarkerFillColor(marker, workbookPart);
+                style.PointColorArgb = GetImageExportPointColors(series, valueCount, markerFill, workbookPart);
 
                 if (style.HasAny && !styles.ContainsKey(index)) {
                     styles.Add(index, style);
@@ -380,12 +382,12 @@ namespace OfficeIMO.Excel {
             return styles;
         }
 
-        private static string? GetImageExportSeriesColor(C.ChartShapeProperties properties) {
-            if (TryGetSolidFill(properties, out OfficeColor fill)) {
+        private static string? GetImageExportSeriesColor(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
+            if (TryGetSolidFill(properties, workbookPart, out OfficeColor fill)) {
                 return fill.ToRgbHex();
             }
 
-            if (TryGetSolidLine(properties, out OfficeColor line)) {
+            if (TryGetSolidLine(properties, workbookPart, out OfficeColor line)) {
                 return line.ToRgbHex();
             }
 
@@ -398,14 +400,14 @@ namespace OfficeIMO.Excel {
         private static OfficeStrokeDashStyle? GetImageExportSeriesLineDashStyle(C.ChartShapeProperties properties) =>
             TryGetLineDashStyle(properties, out OfficeStrokeDashStyle dashStyle) ? dashStyle : null;
 
-        private static bool TryGetImageExportAxisLineColor(OpenXmlCompositeElement? axis, out OfficeColor color) {
+        private static bool TryGetImageExportAxisLineColor(OpenXmlCompositeElement? axis, WorkbookPart workbookPart, out OfficeColor color) {
             color = default;
             if (axis == null) {
                 return false;
             }
 
             C.ShapeProperties? properties = axis.GetFirstChild<C.ShapeProperties>();
-            return TryGetSolidLine(properties, out color);
+            return TryGetSolidLine(properties, workbookPart, out color);
         }
 
         private static bool TryGetImageExportAxisLineWidth(OpenXmlCompositeElement? axis, out double width) {
@@ -428,20 +430,20 @@ namespace OfficeIMO.Excel {
             return TryGetLineDashStyle(properties, out dashStyle);
         }
 
-        private static bool TryGetImageExportGridLineColor(OpenXmlCompositeElement? axis, out OfficeColor color) {
+        private static bool TryGetImageExportGridLineColor(OpenXmlCompositeElement? axis, WorkbookPart workbookPart, out OfficeColor color) {
             color = default;
-            return TryGetImageExportGridLineColorCore(axis?.GetFirstChild<C.MajorGridlines>(), out color);
+            return TryGetImageExportGridLineColorCore(axis?.GetFirstChild<C.MajorGridlines>(), workbookPart, out color);
         }
 
-        private static bool TryGetImageExportMinorGridLineColor(OpenXmlCompositeElement? axis, out OfficeColor color) {
+        private static bool TryGetImageExportMinorGridLineColor(OpenXmlCompositeElement? axis, WorkbookPart workbookPart, out OfficeColor color) {
             color = default;
-            return TryGetImageExportGridLineColorCore(axis?.GetFirstChild<C.MinorGridlines>(), out color);
+            return TryGetImageExportGridLineColorCore(axis?.GetFirstChild<C.MinorGridlines>(), workbookPart, out color);
         }
 
-        private static bool TryGetImageExportGridLineColorCore(OpenXmlCompositeElement? gridlines, out OfficeColor color) {
+        private static bool TryGetImageExportGridLineColorCore(OpenXmlCompositeElement? gridlines, WorkbookPart workbookPart, out OfficeColor color) {
             color = default;
             C.ChartShapeProperties? properties = gridlines?.GetFirstChild<C.ChartShapeProperties>();
-            return TryGetSolidLine(properties, out color);
+            return TryGetSolidLine(properties, workbookPart, out color);
         }
 
         private static bool TryGetImageExportGridLineWidth(OpenXmlCompositeElement? axis, out double width) {
@@ -510,7 +512,7 @@ namespace OfficeIMO.Excel {
         private static bool IsImageExportAxisLabelsVisible(OpenXmlCompositeElement? axis) =>
             axis == null || axis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value != C.TickLabelPositionValues.None;
 
-        private static IReadOnlyList<string?>? GetImageExportPointColors(OpenXmlCompositeElement series, int valueCount, string? markerFill) {
+        private static IReadOnlyList<string?>? GetImageExportPointColors(OpenXmlCompositeElement series, int valueCount, string? markerFill, WorkbookPart workbookPart) {
             if (valueCount <= 0 && string.IsNullOrWhiteSpace(markerFill)) {
                 return null;
             }
@@ -537,7 +539,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 C.ChartShapeProperties? properties = point.GetFirstChild<C.ChartShapeProperties>();
-                if (properties == null || !TryGetSolidFill(properties, out OfficeColor color)) {
+                if (properties == null || !TryGetSolidFill(properties, workbookPart, out OfficeColor color)) {
                     continue;
                 }
 
@@ -603,14 +605,14 @@ namespace OfficeIMO.Excel {
             return null;
         }
 
-        private static string? GetImageExportMarkerFillColor(C.Marker? marker) {
+        private static string? GetImageExportMarkerFillColor(C.Marker? marker, WorkbookPart workbookPart) {
             C.ChartShapeProperties? properties = marker?.GetFirstChild<C.ChartShapeProperties>();
-            return properties != null && TryGetSolidFill(properties, out OfficeColor color) ? color.ToRgbHex() : null;
+            return properties != null && TryGetSolidFill(properties, workbookPart, out OfficeColor color) ? color.ToRgbHex() : null;
         }
 
-        private static string? GetImageExportMarkerOutlineColor(C.Marker? marker) {
+        private static string? GetImageExportMarkerOutlineColor(C.Marker? marker, WorkbookPart workbookPart) {
             C.ChartShapeProperties? properties = marker?.GetFirstChild<C.ChartShapeProperties>();
-            return properties != null && TryGetSolidLine(properties, out OfficeColor color) ? color.ToRgbHex() : null;
+            return properties != null && TryGetSolidLine(properties, workbookPart, out OfficeColor color) ? color.ToRgbHex() : null;
         }
 
         private static double? GetImageExportMarkerOutlineWidth(C.Marker? marker) {
@@ -629,6 +631,7 @@ namespace OfficeIMO.Excel {
 
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             string source = GetImageExportSource();
+            WorkbookPart workbookPart = _document.WorkbookPartRoot;
             if (chartSpace.Descendants<C.Trendline>().Any()) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
@@ -653,7 +656,7 @@ namespace OfficeIMO.Excel {
                     source));
             }
 
-            if (HasUnsupportedImageExportGridlineStyle(chartSpace)) {
+            if (HasUnsupportedImageExportGridlineStyle(chartSpace, workbookPart)) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartGridlineStyleApproximation,
@@ -661,7 +664,7 @@ namespace OfficeIMO.Excel {
                     source));
             }
 
-            if (HasUnsupportedImageExportAxisStyle(chartSpace)) {
+            if (HasUnsupportedImageExportAxisStyle(chartSpace, workbookPart)) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartAxisStyleApproximation,
@@ -717,7 +720,7 @@ namespace OfficeIMO.Excel {
                     source));
             }
 
-            if (HasUnsupportedImageExportTextStyle(chartSpace)) {
+            if (HasUnsupportedImageExportTextStyle(chartSpace, workbookPart)) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartTextStyleApproximation,
@@ -733,7 +736,7 @@ namespace OfficeIMO.Excel {
                     source));
             }
 
-            if (HasUnsupportedImageExportChartAreaStyle(chartSpace)) {
+            if (HasUnsupportedImageExportChartAreaStyle(chartSpace, workbookPart)) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartAreaStyleApproximation,
@@ -741,7 +744,7 @@ namespace OfficeIMO.Excel {
                     source));
             }
 
-            if (chartSpace.Descendants<C.ChartShapeProperties>().Any(IsUnsupportedImageExportSeriesOrMarkerShapeProperties)) {
+            if (chartSpace.Descendants<C.ChartShapeProperties>().Any(properties => IsUnsupportedImageExportSeriesOrMarkerShapeProperties(properties, workbookPart))) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartSeriesStyleApproximation,
@@ -764,18 +767,37 @@ namespace OfficeIMO.Excel {
         private static bool IsEnabled(C.BooleanType? value) =>
             value != null && (value.Val?.Value ?? true);
 
-        private static bool TryGetSolidFill(OpenXmlCompositeElement? properties, out OfficeColor color) {
-            string? value = properties?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value;
-            return OfficeColor.TryParseHex(value, out color);
+        private static bool TryGetSolidFill(OpenXmlCompositeElement? properties, out OfficeColor color) =>
+            TryGetSolidFill(properties, null, out color);
+
+        private static bool TryGetSolidFill(OpenXmlCompositeElement? properties, WorkbookPart? workbookPart, out OfficeColor color) {
+            string? value = ExcelThemeColorResolver.Resolve(properties?.GetFirstChild<A.SolidFill>(), workbookPart);
+            return TryParseResolvedDrawingColor(value, out color);
         }
 
-        private static bool TryGetSolidLine(OpenXmlCompositeElement? properties, out OfficeColor color) {
-            string? value = properties?
-                .GetFirstChild<A.Outline>()?
-                .GetFirstChild<A.SolidFill>()?
-                .GetFirstChild<A.RgbColorModelHex>()?
-                .Val?
-                .Value;
+        private static bool TryGetSolidLine(OpenXmlCompositeElement? properties, out OfficeColor color) =>
+            TryGetSolidLine(properties, null, out color);
+
+        private static bool TryGetSolidLine(OpenXmlCompositeElement? properties, WorkbookPart? workbookPart, out OfficeColor color) {
+            string? value = ExcelThemeColorResolver.Resolve(
+                properties?
+                    .GetFirstChild<A.Outline>()?
+                    .GetFirstChild<A.SolidFill>(),
+                workbookPart);
+            return TryParseResolvedDrawingColor(value, out color);
+        }
+
+        private static bool TryParseResolvedDrawingColor(string? argb, out OfficeColor color) {
+            color = default;
+            if (string.IsNullOrWhiteSpace(argb)) {
+                return false;
+            }
+
+            string value = argb!.Trim().TrimStart('#');
+            if (value.Length == 8) {
+                value = value.Substring(2, 6) + value.Substring(0, 2);
+            }
+
             return OfficeColor.TryParseHex(value, out color);
         }
 
@@ -860,17 +882,17 @@ namespace OfficeIMO.Excel {
             return null;
         }
 
-        private static bool HasUnsupportedImageExportGridlineStyle(C.ChartSpace chartSpace) {
+        private static bool HasUnsupportedImageExportGridlineStyle(C.ChartSpace chartSpace, WorkbookPart workbookPart) {
             foreach (C.MajorGridlines gridlines in chartSpace.Descendants<C.MajorGridlines>()) {
                 C.ChartShapeProperties? properties = gridlines.GetFirstChild<C.ChartShapeProperties>();
-                if (properties != null && !IsSimpleSupportedGridlineShapeProperties(properties)) {
+                if (properties != null && !IsSimpleSupportedGridlineShapeProperties(properties, workbookPart)) {
                     return true;
                 }
             }
 
             foreach (C.MinorGridlines gridlines in chartSpace.Descendants<C.MinorGridlines>()) {
                 C.ChartShapeProperties? properties = gridlines.GetFirstChild<C.ChartShapeProperties>();
-                if (properties != null && !IsSimpleSupportedGridlineShapeProperties(properties)) {
+                if (properties != null && !IsSimpleSupportedGridlineShapeProperties(properties, workbookPart)) {
                     return true;
                 }
             }
@@ -878,7 +900,7 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsSimpleSupportedGridlineShapeProperties(C.ChartShapeProperties properties) {
+        private static bool IsSimpleSupportedGridlineShapeProperties(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
             if (!properties.ChildElements.Any()) {
                 return true;
             }
@@ -887,7 +909,7 @@ namespace OfficeIMO.Excel {
                 if (child is A.Outline outline) {
                     foreach (OpenXmlElement outlineChild in outline.ChildElements) {
                         if (outlineChild is A.SolidFill) {
-                            if (!TryGetSolidLine(properties, out _)) {
+                            if (!TryGetSolidLine(properties, workbookPart, out _)) {
                                 return false;
                             }
 
@@ -915,11 +937,11 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool HasUnsupportedImageExportAxisStyle(C.ChartSpace chartSpace) {
+        private static bool HasUnsupportedImageExportAxisStyle(C.ChartSpace chartSpace, WorkbookPart workbookPart) {
             foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {
                 foreach (OpenXmlCompositeElement axis in GetImageExportAxes(plotArea)) {
                     C.ShapeProperties? properties = axis.GetFirstChild<C.ShapeProperties>();
-                    if (properties != null && !IsSimpleSupportedAxisShapeProperties(properties)) {
+                    if (properties != null && !IsSimpleSupportedAxisShapeProperties(properties, workbookPart)) {
                         return true;
                     }
                 }
@@ -928,7 +950,7 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsSimpleSupportedAxisShapeProperties(C.ShapeProperties properties) {
+        private static bool IsSimpleSupportedAxisShapeProperties(C.ShapeProperties properties, WorkbookPart workbookPart) {
             if (!properties.ChildElements.Any()) {
                 return true;
             }
@@ -937,7 +959,7 @@ namespace OfficeIMO.Excel {
                 if (child is A.Outline outline) {
                     foreach (OpenXmlElement outlineChild in outline.ChildElements) {
                         if (outlineChild is A.SolidFill) {
-                            if (!TryGetSolidLine(properties, out _)) {
+                            if (!TryGetSolidLine(properties, workbookPart, out _)) {
                                 return false;
                             }
 
@@ -1108,15 +1130,15 @@ namespace OfficeIMO.Excel {
             (axis is C.CategoryAxis || axis is C.DateAxis) &&
             !HasHorizontalBarChart(plotArea);
 
-        private static bool HasUnsupportedImageExportChartAreaStyle(C.ChartSpace chartSpace) {
+        private static bool HasUnsupportedImageExportChartAreaStyle(C.ChartSpace chartSpace, WorkbookPart workbookPart) {
             C.ShapeProperties? chartAreaProperties = chartSpace.GetFirstChild<C.ShapeProperties>();
-            if (chartAreaProperties != null && !IsSimpleSupportedChartAreaShapeProperties(chartAreaProperties)) {
+            if (chartAreaProperties != null && !IsSimpleSupportedChartAreaShapeProperties(chartAreaProperties, workbookPart)) {
                 return true;
             }
 
             foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {
                 C.ShapeProperties? properties = plotArea.GetFirstChild<C.ShapeProperties>();
-                if (properties != null && !IsSimpleSupportedChartAreaShapeProperties(properties)) {
+                if (properties != null && !IsSimpleSupportedChartAreaShapeProperties(properties, workbookPart)) {
                     return true;
                 }
             }
@@ -1124,14 +1146,14 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsSimpleSupportedChartAreaShapeProperties(C.ShapeProperties properties) {
+        private static bool IsSimpleSupportedChartAreaShapeProperties(C.ShapeProperties properties, WorkbookPart workbookPart) {
             if (!properties.ChildElements.Any()) {
                 return true;
             }
 
             foreach (OpenXmlElement child in properties.ChildElements) {
                 if (child is A.SolidFill) {
-                    if (!TryGetSolidFill(properties, out _)) {
+                    if (!TryGetSolidFill(properties, workbookPart, out _)) {
                         return false;
                     }
 
@@ -1149,7 +1171,7 @@ namespace OfficeIMO.Excel {
 
                     foreach (OpenXmlElement outlineChild in outline.ChildElements) {
                         if (outlineChild is A.SolidFill) {
-                            if (!TryGetSolidLine(properties, out _)) {
+                            if (!TryGetSolidLine(properties, workbookPart, out _)) {
                                 return false;
                             }
 
@@ -1198,39 +1220,39 @@ namespace OfficeIMO.Excel {
                 || parent is C.Trendline;
         }
 
-        private static bool IsUnsupportedImageExportSeriesOrMarkerShapeProperties(C.ChartShapeProperties properties) {
+        private static bool IsUnsupportedImageExportSeriesOrMarkerShapeProperties(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
             if (!IsSeriesOrMarkerShapeProperties(properties)) {
                 return false;
             }
 
             OpenXmlElement? parent = properties.Parent;
             if (parent is C.Marker marker) {
-                return !IsSimpleSupportedMarker(marker);
+                return !IsSimpleSupportedMarker(marker, workbookPart);
             }
 
             if (parent is C.DataPoint point) {
-                return !IsSimpleSupportedDataPoint(point);
+                return !IsSimpleSupportedDataPoint(point, workbookPart);
             }
 
             if (parent is C.DataLabels) {
-                return !IsSimpleSupportedSeriesShapeProperties(properties);
+                return !IsSimpleSupportedSeriesShapeProperties(properties, workbookPart);
             }
 
             if (parent is C.DataLabel || parent is C.Trendline) {
                 return true;
             }
 
-            return !IsSimpleSupportedSeriesShapeProperties(properties);
+            return !IsSimpleSupportedSeriesShapeProperties(properties, workbookPart);
         }
 
-        private static bool IsSimpleSupportedSeriesShapeProperties(C.ChartShapeProperties properties) {
+        private static bool IsSimpleSupportedSeriesShapeProperties(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
             if (!properties.ChildElements.Any()) {
                 return true;
             }
 
             foreach (OpenXmlElement child in properties.ChildElements) {
                 if (child is A.SolidFill) {
-                    if (!TryGetSolidFill(properties, out _)) {
+                    if (!TryGetSolidFill(properties, workbookPart, out _)) {
                         return false;
                     }
 
@@ -1244,7 +1266,7 @@ namespace OfficeIMO.Excel {
 
                     foreach (OpenXmlElement outlineChild in outline.ChildElements) {
                         if (outlineChild is A.SolidFill) {
-                            if (!TryGetSolidLine(properties, out _)) {
+                            if (!TryGetSolidLine(properties, workbookPart, out _)) {
                                 return false;
                             }
 
@@ -1272,7 +1294,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool IsSimpleSupportedMarker(C.Marker marker) {
+        private static bool IsSimpleSupportedMarker(C.Marker marker, WorkbookPart workbookPart) {
             C.MarkerStyleValues? symbol = marker.Symbol?.Val?.Value;
             if (symbol != null &&
                 symbol.Value != C.MarkerStyleValues.Circle &&
@@ -1290,17 +1312,17 @@ namespace OfficeIMO.Excel {
             }
 
             C.ChartShapeProperties? properties = marker.GetFirstChild<C.ChartShapeProperties>();
-            return properties == null || IsSimpleSupportedMarkerShapeProperties(properties);
+            return properties == null || IsSimpleSupportedMarkerShapeProperties(properties, workbookPart);
         }
 
-        private static bool IsSimpleSupportedMarkerShapeProperties(C.ChartShapeProperties properties) {
+        private static bool IsSimpleSupportedMarkerShapeProperties(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
             if (!properties.ChildElements.Any()) {
                 return true;
             }
 
             foreach (OpenXmlElement child in properties.ChildElements) {
                 if (child is A.SolidFill) {
-                    if (!TryGetSolidFill(properties, out _)) {
+                    if (!TryGetSolidFill(properties, workbookPart, out _)) {
                         return false;
                     }
 
@@ -1310,7 +1332,7 @@ namespace OfficeIMO.Excel {
                 if (child is A.Outline outline) {
                     foreach (OpenXmlElement outlineChild in outline.ChildElements) {
                         if (outlineChild is A.SolidFill) {
-                            if (!TryGetSolidLine(properties, out _)) {
+                            if (!TryGetSolidLine(properties, workbookPart, out _)) {
                                 return false;
                             }
 
@@ -1329,7 +1351,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool IsSimpleSupportedDataPoint(C.DataPoint point) {
+        private static bool IsSimpleSupportedDataPoint(C.DataPoint point, WorkbookPart workbookPart) {
             C.ChartShapeProperties? properties = point.GetFirstChild<C.ChartShapeProperties>();
             if (properties == null) {
                 return true;
@@ -1341,7 +1363,7 @@ namespace OfficeIMO.Excel {
 
             foreach (OpenXmlElement child in properties.ChildElements) {
                 if (child is A.SolidFill) {
-                    if (!TryGetSolidFill(properties, out _)) {
+                    if (!TryGetSolidFill(properties, workbookPart, out _)) {
                         return false;
                     }
 

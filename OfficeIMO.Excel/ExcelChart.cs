@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 chartData = ExcelChartUtils.ApplyChartSeriesTypes(chartPart, chartData, ChartType);
-                chartData = ApplyImageExportSeriesStyles(chartPart, chartData);
+                chartData = ApplyImageExportSeriesStyles(chartPart, chartData, _document.WorkbookPartRoot);
                 _dataRange = range;
                 data = chartData;
                 return true;

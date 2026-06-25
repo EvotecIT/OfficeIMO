@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using A = DocumentFormat.OpenXml.Drawing;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -133,6 +134,47 @@ namespace OfficeIMO.Tests {
                     OfficeColor.FromRgb(180, 83, 9),
                     tolerance: 42),
                 "Expected the exported chart to include the authored data-label border color.");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportResolvesChartSeriesThemeColorsThroughSharedResolver() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("ChartThemeColor");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(2, 2, 120);
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(3, 2, 180);
+            sheet.CellValue(4, 1, "Mar");
+            sheet.CellValue(4, 2, 160);
+            sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 265, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Theme Series");
+            SetFirstChartSeriesSchemeFill(document, A.SchemeColorValues.Accent2);
+
+            ExcelRange range = sheet.Range("A1:H9");
+            var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+            string svg = range.ToSvg(options);
+
+            Assert.Equal("C0504D", visualChart.Snapshot.Data.Series[0].SeriesColorArgb);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartSeriesStyleApproximation);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.Contains("#C0504D", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+            Assert.True(
+                ContainsPixelNear(
+                    rendered!,
+                    visualChart.X * options.Scale,
+                    visualChart.Y * options.Scale,
+                    (visualChart.X + visualChart.Width) * options.Scale,
+                    (visualChart.Y + visualChart.Height) * options.Scale,
+                    OfficeColor.FromRgb(192, 80, 77),
+                    tolerance: 8),
+                "Expected the exported chart to include the workbook theme accent2 series color.");
         }
 
         [Fact]
@@ -915,6 +957,19 @@ namespace OfficeIMO.Tests {
             minorTickMark.Val = value;
             if (minorTickMark.Parent == null) {
                 valueAxis.Append(minorTickMark);
+            }
+
+            chartPart.ChartSpace.Save();
+        }
+
+        private static void SetFirstChartSeriesSchemeFill(ExcelDocument document, A.SchemeColorValues schemeColor) {
+            var chartPart = GetFirstChartPart(document);
+            BarChartSeries series = chartPart.ChartSpace.Descendants<BarChartSeries>().First();
+            ChartShapeProperties properties = series.GetFirstChild<ChartShapeProperties>() ?? new ChartShapeProperties();
+            properties.RemoveAllChildren<A.SolidFill>();
+            properties.PrependChild(new A.SolidFill(new A.SchemeColor { Val = schemeColor }));
+            if (properties.Parent == null) {
+                series.Append(properties);
             }
 
             chartPart.ChartSpace.Save();
