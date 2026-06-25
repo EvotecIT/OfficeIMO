@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            return ValidateBofPayload(first.Payload, first.Offset, WorkbookGlobalsSubstream, sheetName: null, workbook.MutableUnsupportedFeatures, workbook.MutableDiagnostics);
+            return ValidateBofPayload(first.Payload, first.Offset, WorkbookGlobalsSubstream, sheetName: null, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutableDiagnostics);
         }
 
         internal static bool ValidateWorksheetBof(
@@ -35,8 +35,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int offset,
             string sheetName,
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
+            List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsImportDiagnostic> diagnostics) {
-            return ValidateBofPayload(payload, offset, expectedSubstreamType: null, sheetName, unsupportedFeatures, diagnostics);
+            return ValidateBofPayload(payload, offset, expectedSubstreamType: null, sheetName, unsupportedFeatures, preservedFeatureRecords, diagnostics);
         }
 
         private static bool ValidateBofPayload(
@@ -45,6 +46,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort? expectedSubstreamType,
             string? sheetName,
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
+            List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsImportDiagnostic> diagnostics) {
             if (payload.Length < 4) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
@@ -60,7 +62,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort version = BiffRecordReader.ReadUInt16(payload, 0);
             ushort substreamType = BiffRecordReader.ReadUInt16(payload, 2);
             if (version != Biff8Version) {
-                unsupportedFeatures.Add(BiffUnsupportedRecordDiagnostics.CreateUnsupportedBiffVersionFeature(offset, version, substreamType, sheetName));
+                LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedBiffVersionFeature(offset, version, substreamType, sheetName);
+                unsupportedFeatures.Add(feature);
+                if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, payload.Length, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
+                    preservedFeatureRecords.Add(preservedRecord!);
+                }
+
                 BiffUnsupportedRecordDiagnostics.AddUnsupportedBiffVersionDiagnostic(diagnostics, offset, version, substreamType, sheetName);
                 return false;
             }

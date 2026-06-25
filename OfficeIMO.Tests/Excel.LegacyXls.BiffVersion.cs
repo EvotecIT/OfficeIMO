@@ -28,6 +28,10 @@ namespace OfficeIMO.Tests {
             Assert.True(report.HasUnsupportedFeatures);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["UnsupportedBiffVersion|XLS-BIFF-VERSION-UNSUPPORTED|BiffVersion:BIFF5:WorkbookGlobals"]);
+            Assert.Equal(1, report.PreservedFeatureRecordCount);
+            Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion]);
+            Assert.Equal(0, report.UnsupportedProjectionGapCount);
+            Assert.Empty(report.UnsupportedProjectionGapsByKind);
             Assert.Equal(1, report.FileFormatStates["WorkbookFormat:UnsupportedBiff"]);
             Assert.Equal(1, report.FileFormatStates["Encryption:Missing"]);
             Assert.Equal(1, report.FileFormatStates["UnsupportedBiffVersion:Present"]);
@@ -66,6 +70,10 @@ namespace OfficeIMO.Tests {
                 && diagnostic.Code == "XLS-BIFF-VERSION-UNSUPPORTED"
                 && diagnostic.DetailCode == "BiffVersion:BIFF5:Worksheet");
             LegacyXlsImportReport report = workbook.CreateImportReport();
+            Assert.Equal(1, report.PreservedFeatureRecordCount);
+            Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion]);
+            Assert.Equal(0, report.UnsupportedProjectionGapCount);
+            Assert.Empty(report.UnsupportedProjectionGapsByKind);
             Assert.Equal(1, report.FileFormatBlockers["UnsupportedBiffVersion|BiffVersion:BIFF5:Worksheet"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersion["BIFF5"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["Worksheet"]);
@@ -95,6 +103,9 @@ namespace OfficeIMO.Tests {
                 diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
                 && diagnostic.Code == "XLS-BIFF-VERSION-UNSUPPORTED"
                 && diagnostic.DetailCode == expectedDetail);
+            Assert.Equal(1, report.PreservedFeatureRecordCount);
+            Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion]);
+            Assert.Equal(0, report.UnsupportedProjectionGapCount);
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersion[expectedVersionName]);
             Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["WorkbookGlobals"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersionAndSubstream[$"{expectedVersionName}|WorkbookGlobals"]);

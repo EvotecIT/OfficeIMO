@@ -80,7 +80,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         return;
                     }
 
-                    if (!LegacyBiffVersionValidator.ValidateWorksheetBof(payload, offset, sheet.Name, unsupportedFeatures, diagnostics)) {
+                    if (!LegacyBiffVersionValidator.ValidateWorksheetBof(payload, offset, sheet.Name, unsupportedFeatures, preservedFeatureRecords, diagnostics)) {
                         return;
                     }
                 } else if (type == (ushort)BiffRecordType.Bof) {

@@ -46,7 +46,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } else if (record.Type == (ushort)BiffRecordType.ExternSheet) {
                     ReadExternSheet(record, externSheets, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.FilePass) {
-                    workbook.MutableUnsupportedFeatures.Add(BiffUnsupportedRecordDiagnostics.CreateFilePassFeature(record));
+                    LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateFilePassFeature(record);
+                    workbook.MutableUnsupportedFeatures.Add(feature);
+                    AddPreservedFeatureRecord(workbook, feature, record.Payload.Length);
                     BiffUnsupportedRecordDiagnostics.AddFilePassDiagnostic(record, workbook.MutableDiagnostics);
                     return workbook;
                 } else if (record.Type == (ushort)BiffRecordType.Font) {
@@ -180,9 +182,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string? sheetName) {
             LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(record.Type, record.Offset, sheetName);
             workbook.MutableUnsupportedFeatures.Add(feature);
-            if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, record.Payload.Length, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
-                workbook.MutablePreservedFeatureRecords.Add(preservedRecord!);
-            }
+            AddPreservedFeatureRecord(workbook, feature, record.Payload.Length);
         }
 
         private static void AddUnsupportedSheetFeature(
@@ -193,6 +193,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             workbook.MutableUnsupportedFeatures.Add(feature);
             if (unsupportedSheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet
                 && BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, record.Payload.Length, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
+                workbook.MutablePreservedFeatureRecords.Add(preservedRecord!);
+            }
+        }
+
+        private static void AddPreservedFeatureRecord(
+            LegacyXlsWorkbook workbook,
+            LegacyXlsUnsupportedFeature feature,
+            int payloadLength) {
+            if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, payloadLength, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
                 workbook.MutablePreservedFeatureRecords.Add(preservedRecord!);
             }
         }

@@ -4024,33 +4024,76 @@ namespace OfficeIMO.Excel.LegacyXls {
         }
 
         private static LegacyXlsUnsupportedFeature[] GetUnsupportedProjectionGaps(LegacyXlsWorkbook workbook) {
-            var preservedFeatureKeys = new HashSet<string>(
-                workbook.PreservedFeatureRecords.Select(GetPreservedFeatureRecordKey),
+            var projectedFeatureKeys = new HashSet<string>(
+                GetProjectedFeatureKeys(workbook),
                 StringComparer.Ordinal);
 
             return workbook.UnsupportedFeatures
-                .Where(feature => !preservedFeatureKeys.Contains(GetUnsupportedFeatureKey(feature)))
+                .Where(feature => !projectedFeatureKeys.Contains(GetUnsupportedFeatureKey(feature)))
                 .ToArray();
         }
 
+        private static IEnumerable<string> GetProjectedFeatureKeys(LegacyXlsWorkbook workbook) {
+            foreach (LegacyXlsPreservedFeatureRecord record in workbook.PreservedFeatureRecords) {
+                yield return GetPreservedFeatureRecordKey(record);
+            }
+
+            foreach (LegacyXlsCompoundFeatureRecord record in workbook.CompoundFeatureRecords) {
+                string? key = GetCompoundFeatureRecordKey(record);
+                if (key != null) {
+                    yield return key;
+                }
+            }
+        }
+
         private static string GetUnsupportedFeatureKey(LegacyXlsUnsupportedFeature feature) {
-            return string.Join("|",
+            return GetProjectedFeatureKey(
                 feature.Kind,
                 feature.Code,
-                feature.SheetName ?? string.Empty,
-                feature.RecordOffset?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-                feature.RecordType?.ToString("X4", CultureInfo.InvariantCulture) ?? string.Empty,
-                feature.DetailCode ?? string.Empty);
+                feature.SheetName,
+                feature.RecordOffset,
+                feature.RecordType,
+                feature.DetailCode);
         }
 
         private static string GetPreservedFeatureRecordKey(LegacyXlsPreservedFeatureRecord record) {
-            return string.Join("|",
+            return GetProjectedFeatureKey(
                 record.Kind,
                 record.Code,
-                record.SheetName ?? string.Empty,
-                record.RecordOffset.ToString(CultureInfo.InvariantCulture),
-                record.RecordType.ToString("X4", CultureInfo.InvariantCulture),
-                record.DetailCode ?? string.Empty);
+                record.SheetName,
+                record.RecordOffset,
+                record.RecordType,
+                record.DetailCode);
+        }
+
+        private static string? GetCompoundFeatureRecordKey(LegacyXlsCompoundFeatureRecord record) {
+            return record.Kind switch {
+                LegacyXlsCompoundFeatureRecordKind.VbaProject => GetProjectedFeatureKey(
+                    LegacyXlsUnsupportedFeatureKind.VbaProject,
+                    "XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED",
+                    detailCode: "Compound:VbaProjectStorage"),
+                LegacyXlsCompoundFeatureRecordKind.OleObject => GetProjectedFeatureKey(
+                    LegacyXlsUnsupportedFeatureKind.OleObject,
+                    "XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED",
+                    detailCode: "Compound:OleObjectStorage"),
+                _ => null
+            };
+        }
+
+        private static string GetProjectedFeatureKey(
+            LegacyXlsUnsupportedFeatureKind kind,
+            string code,
+            string? sheetName = null,
+            int? recordOffset = null,
+            ushort? recordType = null,
+            string? detailCode = null) {
+            return string.Join("|",
+                kind,
+                code,
+                sheetName ?? string.Empty,
+                recordOffset?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                recordType?.ToString("X4", CultureInfo.InvariantCulture) ?? string.Empty,
+                detailCode ?? string.Empty);
         }
 
         private static IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> CountPreservedRecordsByKind(IEnumerable<LegacyXlsPreservedFeatureRecord> records) {
