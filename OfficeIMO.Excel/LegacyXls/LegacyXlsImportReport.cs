@@ -841,6 +841,27 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartClientColorPaletteColors = CountByCode(workbook.ChartRecords
                 .Where(record => record.ClientColorPalette != null)
                 .SelectMany(record => GetChartClientColorPaletteColorKeys(record.ClientColorPalette!)));
+            ChartGelFrameOfficeArtRecordsByType = CountByCode(workbook.ChartRecords
+                .Where(record => record.GelFrame != null)
+                .SelectMany(record => record.GelFrame!.OfficeArtRecords.Select(officeArtRecord => officeArtRecord.RecordTypeName)));
+            ChartGelFrameOfficeArtRecordsByContainerState = CountByCode(workbook.ChartRecords
+                .Where(record => record.GelFrame != null)
+                .SelectMany(record => record.GelFrame!.OfficeArtRecords.Select(officeArtRecord => officeArtRecord.IsContainer ? "Container" : "Leaf")));
+            ChartGelFrameShapePropertyCounts = CountByCode(workbook.ChartRecords
+                .Where(record => record.GelFrame != null)
+                .Select(record => $"Properties:{record.GelFrame!.ShapePropertyCount}"));
+            ChartGelFrameShapePropertiesByName = CountByCode(workbook.ChartRecords
+                .Where(record => record.GelFrame != null)
+                .SelectMany(record => record.GelFrame!.ShapeProperties.Select(property => property.PropertyName)));
+            ChartGelFrameShapePropertiesByGroup = CountByCode(workbook.ChartRecords
+                .Where(record => record.GelFrame != null)
+                .SelectMany(record => record.GelFrame!.ShapeProperties.Select(property => property.PropertyGroupName)));
+            ChartGelFrameShapePropertiesByFlagState = CountByCode(workbook.ChartRecords
+                .Where(record => record.GelFrame != null)
+                .SelectMany(record => record.GelFrame!.ShapeProperties.Select(property => $"Complex:{property.IsComplex};Blip:{property.IsBlipId}")));
+            ChartGelFrameShapePropertiesByValue = CountByCode(workbook.ChartRecords
+                .Where(record => record.GelFrame != null)
+                .SelectMany(record => record.GelFrame!.ShapeProperties.Select(property => $"{property.PropertyIdKey};Value:0x{property.Value:X8}")));
             ChartAttachedLabelFlags = CountByCode(workbook.ChartRecords
                 .Where(record => record.AttachedLabel != null)
                 .SelectMany(record => record.AttachedLabel!.FlagNames));
@@ -2369,6 +2390,27 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets ClrtClient records grouped by decoded role-specific color.</summary>
         public IReadOnlyDictionary<string, int> ChartClientColorPaletteColors { get; }
 
+        /// <summary>Gets GelFrame OfficeArt records grouped by record type.</summary>
+        public IReadOnlyDictionary<string, int> ChartGelFrameOfficeArtRecordsByType { get; }
+
+        /// <summary>Gets GelFrame OfficeArt records grouped by container or leaf state.</summary>
+        public IReadOnlyDictionary<string, int> ChartGelFrameOfficeArtRecordsByContainerState { get; }
+
+        /// <summary>Gets GelFrame records grouped by OfficeArtFOPT property count.</summary>
+        public IReadOnlyDictionary<string, int> ChartGelFrameShapePropertyCounts { get; }
+
+        /// <summary>Gets GelFrame OfficeArtFOPT properties grouped by property name.</summary>
+        public IReadOnlyDictionary<string, int> ChartGelFrameShapePropertiesByName { get; }
+
+        /// <summary>Gets GelFrame OfficeArtFOPT properties grouped by property family.</summary>
+        public IReadOnlyDictionary<string, int> ChartGelFrameShapePropertiesByGroup { get; }
+
+        /// <summary>Gets GelFrame OfficeArtFOPT properties grouped by complex and BLIP flag state.</summary>
+        public IReadOnlyDictionary<string, int> ChartGelFrameShapePropertiesByFlagState { get; }
+
+        /// <summary>Gets GelFrame OfficeArtFOPT properties grouped by raw property value.</summary>
+        public IReadOnlyDictionary<string, int> ChartGelFrameShapePropertiesByValue { get; }
+
         /// <summary>Gets AttachedLabel records grouped by decoded displayed data-label element.</summary>
         public IReadOnlyDictionary<string, int> ChartAttachedLabelFlags { get; }
 
@@ -3172,6 +3214,13 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart ClrtClient Completeness States", ChartClientColorPaletteCompletenessStates);
             AppendDictionary(builder, "Chart ClrtClient Expected Count States", ChartClientColorPaletteExpectedCountStates);
             AppendDictionary(builder, "Chart ClrtClient Colors", ChartClientColorPaletteColors);
+            AppendDictionary(builder, "Chart GelFrame OfficeArt Records By Type", ChartGelFrameOfficeArtRecordsByType);
+            AppendDictionary(builder, "Chart GelFrame OfficeArt Records By Container State", ChartGelFrameOfficeArtRecordsByContainerState);
+            AppendDictionary(builder, "Chart GelFrame Shape Property Counts", ChartGelFrameShapePropertyCounts);
+            AppendDictionary(builder, "Chart GelFrame Shape Properties By Name", ChartGelFrameShapePropertiesByName);
+            AppendDictionary(builder, "Chart GelFrame Shape Properties By Group", ChartGelFrameShapePropertiesByGroup);
+            AppendDictionary(builder, "Chart GelFrame Shape Properties By Flag State", ChartGelFrameShapePropertiesByFlagState);
+            AppendDictionary(builder, "Chart GelFrame Shape Properties By Value", ChartGelFrameShapePropertiesByValue);
             AppendDictionary(builder, "Chart AttachedLabel Flags", ChartAttachedLabelFlags);
             AppendDictionary(builder, "Chart AttachedLabel States", ChartAttachedLabelStates);
             AppendDictionary(builder, "Chart DefaultText Targets", ChartDefaultTextTargets);

@@ -1647,6 +1647,108 @@ Warnings: 0
 | --- | --- |
 | ExplosionPercent:0 | 1 |
 
+## Chart GelFrame OfficeArt Records By Type
+
+| Key | Count |
+| --- | --- |
+| EscherRecordType:0xF122 | 1 |
+| OfficeArtFOPT | 1 |
+
+## Chart GelFrame OfficeArt Records By Container State
+
+| Key | Count |
+| --- | --- |
+| Leaf | 2 |
+
+## Chart GelFrame Shape Property Counts
+
+| Key | Count |
+| --- | --- |
+| Properties:30 | 1 |
+
+## Chart GelFrame Shape Properties By Name
+
+| Key | Count |
+| --- | --- |
+| fillBackColor | 1 |
+| fillColor | 1 |
+| FillStyleBooleanProperties | 1 |
+| PropertyId:0x0180 | 1 |
+| PropertyId:0x0182 | 1 |
+| PropertyId:0x0184 | 1 |
+| PropertyId:0x0185 | 1 |
+| PropertyId:0x0186 | 1 |
+| PropertyId:0x0187 | 1 |
+| PropertyId:0x0188 | 1 |
+| PropertyId:0x0189 | 1 |
+| PropertyId:0x018A | 1 |
+| PropertyId:0x018B | 1 |
+| PropertyId:0x018C | 1 |
+| PropertyId:0x018D | 1 |
+| PropertyId:0x018E | 1 |
+| PropertyId:0x018F | 1 |
+| PropertyId:0x0190 | 1 |
+| PropertyId:0x0191 | 1 |
+| PropertyId:0x0192 | 1 |
+| PropertyId:0x0193 | 1 |
+| PropertyId:0x0194 | 1 |
+| PropertyId:0x0195 | 1 |
+| PropertyId:0x0196 | 1 |
+| PropertyId:0x0197 | 1 |
+| PropertyId:0x0198 | 1 |
+| PropertyId:0x0199 | 1 |
+| PropertyId:0x019A | 1 |
+| PropertyId:0x019B | 1 |
+| PropertyId:0x019C | 1 |
+
+## Chart GelFrame Shape Properties By Group
+
+| Key | Count |
+| --- | --- |
+| Fill | 30 |
+
+## Chart GelFrame Shape Properties By Flag State
+
+| Key | Count |
+| --- | --- |
+| Complex:False;Blip:False | 27 |
+| Complex:True;Blip:True | 3 |
+
+## Chart GelFrame Shape Properties By Value
+
+| Key | Count |
+| --- | --- |
+| PropertyId:0x0180;Value:0x00000000 | 1 |
+| PropertyId:0x0181;Value:0x02826015 | 1 |
+| PropertyId:0x0182;Value:0x00010000 | 1 |
+| PropertyId:0x0183;Value:0x02FFFFFF | 1 |
+| PropertyId:0x0184;Value:0x00010000 | 1 |
+| PropertyId:0x0185;Value:0x100000F4 | 1 |
+| PropertyId:0x0186;Value:0x00000000 | 1 |
+| PropertyId:0x0187;Value:0x00000000 | 1 |
+| PropertyId:0x0188;Value:0x00000000 | 1 |
+| PropertyId:0x0189;Value:0x00000000 | 1 |
+| PropertyId:0x018A;Value:0x00000000 | 1 |
+| PropertyId:0x018B;Value:0x00000000 | 1 |
+| PropertyId:0x018C;Value:0x00000000 | 1 |
+| PropertyId:0x018D;Value:0x00000000 | 1 |
+| PropertyId:0x018E;Value:0x00000000 | 1 |
+| PropertyId:0x018F;Value:0x00000000 | 1 |
+| PropertyId:0x0190;Value:0x00000000 | 1 |
+| PropertyId:0x0191;Value:0x00000000 | 1 |
+| PropertyId:0x0192;Value:0x00000000 | 1 |
+| PropertyId:0x0193;Value:0x00000000 | 1 |
+| PropertyId:0x0194;Value:0x00000000 | 1 |
+| PropertyId:0x0195;Value:0x00000000 | 1 |
+| PropertyId:0x0196;Value:0x00000000 | 1 |
+| PropertyId:0x0197;Value:0x00000000 | 1 |
+| PropertyId:0x0198;Value:0x00000000 | 1 |
+| PropertyId:0x0199;Value:0x00000000 | 1 |
+| PropertyId:0x019A;Value:0x00000000 | 1 |
+| PropertyId:0x019B;Value:0x00000000 | 1 |
+| PropertyId:0x019C;Value:0x40000003 | 1 |
+| PropertyId:0x01BF;Value:0x001F001C | 1 |
+
 ## Chart AttachedLabel States
 
 | Key | Count |

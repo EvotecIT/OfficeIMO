@@ -141,6 +141,24 @@ namespace OfficeIMO.Tests {
             Assert.False(result.ImportReport.DrawingShapePropertiesByGroup.ContainsKey("Unknown"));
             Assert.Equal(1, result.ImportReport.DrawingShapeComplexPropertiesByText["wzName:Chart 5"]);
             Assert.Equal(1, result.ImportReport.DrawingShapeComplexPropertiesByText["wzName:Picture 4"]);
+            Assert.Equal(2, result.ImportReport.ChartGelFrameOfficeArtRecordsByType["OfficeArtFOPT"]);
+            Assert.Equal(2, result.ImportReport.ChartGelFrameOfficeArtRecordsByType["EscherRecordType:0xF122"]);
+            Assert.Equal(2, result.ImportReport.ChartGelFrameShapePropertyCounts["Properties:30"]);
+            Assert.Equal(60, result.ImportReport.ChartGelFrameShapePropertiesByGroup["Fill"]);
+            Assert.Equal(2, result.ImportReport.ChartGelFrameShapePropertiesByName["fillColor"]);
+            Assert.Equal(2, result.ImportReport.ChartGelFrameShapePropertiesByName["fillBackColor"]);
+            Assert.Equal(2, result.ImportReport.ChartGelFrameShapePropertiesByName["FillStyleBooleanProperties"]);
+            List<LegacyXlsChartRecord> gelFrameRecords = result.Workbook.ChartRecords
+                .Where(record => record.RecordName == "GelFrame")
+                .ToList();
+            Assert.Equal(2, gelFrameRecords.Count);
+            Assert.All(gelFrameRecords, record => {
+                Assert.NotNull(record.GelFrame);
+                Assert.Equal(2, record.GelFrame!.OfficeArtRecordCount);
+                Assert.Equal(30, record.GelFrame.ShapePropertyCount);
+                Assert.Contains(record.GelFrame.ShapeProperties, property => property.PropertyName == "fillColor");
+                Assert.Contains(record.GelFrame.ShapeProperties, property => property.PropertyName == "fillBackColor");
+            });
             Assert.Equal(1, result.ImportReport.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.QueryTableTag]);
             Assert.Equal(1, result.ImportReport.PivotTableQueryTagTargets["PivotTable"]);
             Assert.Equal(1, result.ImportReport.PivotTableQueryTagNames["ObjectsPivot"]);
@@ -419,6 +437,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.ChartBarOverlapPercentages["Overlap:0"]);
             Assert.Equal(1, result.ImportReport.ChartBarGapWidths["Gap:150"]);
             Assert.Equal(1, result.ImportReport.ChartBarStates["Transposed:False;Stacked:False;Percent:False;Shadow:False"]);
+            Assert.Equal(1, result.ImportReport.ChartGelFrameOfficeArtRecordsByType["OfficeArtFOPT"]);
+            Assert.Equal(1, result.ImportReport.ChartGelFrameOfficeArtRecordsByType["EscherRecordType:0xF122"]);
+            Assert.Equal(1, result.ImportReport.ChartGelFrameShapePropertyCounts["Properties:30"]);
+            Assert.Equal(30, result.ImportReport.ChartGelFrameShapePropertiesByGroup["Fill"]);
+            Assert.Equal(1, result.ImportReport.ChartGelFrameShapePropertiesByName["fillColor"]);
+            Assert.Equal(1, result.ImportReport.ChartGelFrameShapePropertiesByName["fillBackColor"]);
+            Assert.Equal(1, result.ImportReport.ChartGelFrameShapePropertiesByName["FillStyleBooleanProperties"]);
+            LegacyXlsChartRecord gelFrameRecord = Assert.Single(result.Workbook.ChartRecords, record => record.RecordName == "GelFrame");
+            Assert.NotNull(gelFrameRecord.GelFrame);
+            Assert.Equal(2, gelFrameRecord.GelFrame!.OfficeArtRecordCount);
+            Assert.Equal(30, gelFrameRecord.GelFrame.ShapePropertyCount);
+            Assert.Contains(gelFrameRecord.GelFrame.ShapeProperties, property => property.PropertyName == "fillColor");
+            Assert.Contains(gelFrameRecord.GelFrame.ShapeProperties, property => property.PropertyName == "fillBackColor");
             Assert.Equal(1, result.ImportReport.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.QueryTableTag]);
             Assert.Equal(1, result.ImportReport.PivotTableQueryTagTargets["PivotTable"]);
             Assert.Equal(1, result.ImportReport.PivotTableQueryTagNames["SalesPivot"]);

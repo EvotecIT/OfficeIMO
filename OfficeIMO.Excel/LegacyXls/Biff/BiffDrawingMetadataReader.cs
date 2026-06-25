@@ -95,6 +95,32 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return;
             }
 
+            ReadOfficeArtPayload(
+                record.Payload,
+                out blipStoreEntries,
+                out shapeEntries,
+                out anchorEntries,
+                out childAnchorEntries,
+                out officeArtRecords,
+                out drawingGroupBlocks,
+                out drawingGroupInfos,
+                out shapeProperties);
+        }
+
+        internal static void ReadOfficeArtPayload(
+            byte[] payload,
+            out IReadOnlyList<LegacyXlsDrawingBlipStoreEntry> blipStoreEntries,
+            out IReadOnlyList<LegacyXlsDrawingShape> shapeEntries,
+            out IReadOnlyList<LegacyXlsDrawingAnchor> anchorEntries,
+            out IReadOnlyList<LegacyXlsDrawingChildAnchor> childAnchorEntries,
+            out IReadOnlyList<LegacyXlsDrawingOfficeArtRecord> officeArtRecords,
+            out IReadOnlyList<LegacyXlsDrawingGroupBlock> drawingGroupBlocks,
+            out IReadOnlyList<LegacyXlsDrawingGroupInfo> drawingGroupInfos,
+            out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties) {
+            if (payload == null) {
+                throw new ArgumentNullException(nameof(payload));
+            }
+
             var blips = new List<LegacyXlsDrawingBlipStoreEntry>();
             var shapes = new List<LegacyXlsDrawingShape>();
             var anchors = new List<LegacyXlsDrawingAnchor>();
@@ -103,7 +129,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var groupBlocks = new List<LegacyXlsDrawingGroupBlock>();
             var groupInfos = new List<LegacyXlsDrawingGroupInfo>();
             var properties = new List<LegacyXlsDrawingShapeProperty>();
-            TryReadOfficeArtRecords(record.Payload, 0, record.Payload.Length, records, blips, shapes, anchors, childAnchors, groupBlocks, groupInfos, properties, depth: 0);
+            TryReadOfficeArtRecords(payload, 0, payload.Length, records, blips, shapes, anchors, childAnchors, groupBlocks, groupInfos, properties, depth: 0);
             blipStoreEntries = blips;
             shapeEntries = shapes;
             anchorEntries = anchors;

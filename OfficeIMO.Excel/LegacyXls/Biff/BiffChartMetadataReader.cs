@@ -60,6 +60,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadPlotAreaLayout12(record, out LegacyXlsChartPlotAreaLayout12? plotAreaLayout12);
             TryReadFutureBlock(record, out LegacyXlsChartFutureBlock? futureBlock);
             TryReadUnits(record, out LegacyXlsChartUnits? units);
+            TryReadGelFrame(record, out LegacyXlsChartGelFrame? gelFrame);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -132,7 +133,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 units,
                 seriesList,
                 seriesFormat,
-                clientColorPalette));
+                clientColorPalette,
+                gelFrame));
             return true;
         }
 
@@ -639,6 +641,26 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             dataTableOptions = new LegacyXlsChartDataTableOptions(BiffRecordReader.ReadUInt16(record.Payload, 0));
+            return true;
+        }
+
+        private static bool TryReadGelFrame(BiffRecord record, out LegacyXlsChartGelFrame? gelFrame) {
+            gelFrame = null;
+            if (record.Type != 0x1066 || record.Payload.Length < 8) {
+                return false;
+            }
+
+            BiffDrawingMetadataReader.ReadOfficeArtPayload(
+                record.Payload,
+                out _,
+                out _,
+                out _,
+                out _,
+                out IReadOnlyList<LegacyXlsDrawingOfficeArtRecord> officeArtRecords,
+                out _,
+                out _,
+                out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties);
+            gelFrame = new LegacyXlsChartGelFrame(officeArtRecords, shapeProperties);
             return true;
         }
 

@@ -78,7 +78,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartUnits? units = null,
             LegacyXlsChartSeriesList? seriesList = null,
             LegacyXlsChartSeriesFormat? seriesFormat = null,
-            LegacyXlsChartClientColorPalette? clientColorPalette = null) {
+            LegacyXlsChartClientColorPalette? clientColorPalette = null,
+            LegacyXlsChartGelFrame? gelFrame = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -155,6 +156,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             SeriesList = seriesList;
             SeriesFormat = seriesFormat;
             ClientColorPalette = clientColorPalette;
+            GelFrame = gelFrame;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -300,6 +302,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded custom client color palette metadata from ClrtClient records, when present.</summary>
         public LegacyXlsChartClientColorPalette? ClientColorPalette { get; }
+
+        /// <summary>Gets decoded OfficeArt fill-property metadata from GelFrame records, when present.</summary>
+        public LegacyXlsChartGelFrame? GelFrame { get; }
 
         /// <summary>Gets decoded data-label display metadata from AttachedLabel records, when present.</summary>
         public LegacyXlsChartAttachedLabel? AttachedLabel { get; }
