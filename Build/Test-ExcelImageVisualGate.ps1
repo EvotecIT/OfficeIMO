@@ -82,6 +82,7 @@ function New-TestNameFilter {
 $fullGeneratedFilter = 'FullyQualifiedName~ExcelImageExportVisualBaselineTests&FullyQualifiedName~MatchesApprovedBaselines'
 $fullApprovedFilter = 'FullyQualifiedName~ExcelImageExportVisualBaselineTests&FullyQualifiedName~AreRenderableAndNonBlank'
 $architectureFilter = 'FullyQualifiedName~DrawingArchitectureTests'
+$fidelityManifestFilter = 'FullyQualifiedName~ExcelImageExportVisualFidelityGateTests'
 
 $visualBaselineTestClass = 'OfficeIMO.Tests.ExcelImageExportVisualBaselineTests'
 
@@ -132,6 +133,10 @@ try {
         Invoke-VisualGateStep `
             -Name 'Approved Excel image baselines are renderable and nonblank' `
             -Filter $fullApprovedFilter
+
+        Invoke-VisualGateStep `
+            -Name 'Excel image visual fidelity manifest tracks clean baselines, approximations, and gaps' `
+            -Filter $fidelityManifestFilter
     } elseif ($Suite -eq "Smoke") {
         Invoke-VisualGateStep `
             -Name 'Excel image smoke output matches approved baselines' `
@@ -140,6 +145,10 @@ try {
         Invoke-VisualGateStep `
             -Name 'Approved Excel image smoke baselines are renderable and nonblank' `
             -Filter $smokeApprovedFilter
+
+        Invoke-VisualGateStep `
+            -Name 'Excel image visual fidelity manifest tracks clean baselines, approximations, and gaps' `
+            -Filter $fidelityManifestFilter
     }
 
     if (-not $SkipArchitecture) {
