@@ -47,8 +47,8 @@ Worksheet future metadata records: 0
 Unsupported sheet metadata records: 8
 Unsupported sheet future metadata records: 0
 Unsupported features: 1488
-Unsupported projection gaps: 5
-Preserved feature records: 1483
+Unsupported projection gaps: 1
+Preserved feature records: 1487
 Errors: 0
 Warnings: 0
 
@@ -540,20 +540,12 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| ChartSheet | 4 |
 | VbaProject | 1 |
-
-## Unsupported Projection Gap Record Types
-
-| Key | Count |
-| --- | --- |
-| ChartSheet\|XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|0x0085 | 4 |
 
 ## Unsupported Projection Gap Details
 
 | Key | Count |
 | --- | --- |
-| ChartSheet\|XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|Sheet:ChartSheet | 4 |
 | VbaProject\|XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED\|Compound:VbaProjectStorage | 1 |
 
 ## File Format States
@@ -2534,6 +2526,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Chart | 1419 |
+| ChartSheet | 4 |
 | DrawingObject | 44 |
 | ExternalReference | 2 |
 | PhoneticGuide | 2 |
@@ -2543,6 +2536,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| ChartSheet\|XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|Sheet:ChartSheet | 4 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AreaFormat | 66 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AttachedLabel | 56 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AxesUsed | 40 |

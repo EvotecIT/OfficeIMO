@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         boundSheetProjectedWorksheetIndexes.Add(null);
                         LegacyXlsUnsupportedSheet unsupportedSheet = ToUnsupportedSheet(sheet, ToUnsupportedSheetKind(sheet.SheetType));
                         workbook.MutableUnsupportedSheets.Add(unsupportedSheet);
-                        workbook.MutableUnsupportedFeatures.Add(BiffUnsupportedRecordDiagnostics.CreateUnsupportedSheetTypeFeature(record, unsupportedSheet));
+                        AddUnsupportedSheetFeature(workbook, record, unsupportedSheet);
                         if (options.ReportUnsupportedRecords) {
                             BiffUnsupportedRecordDiagnostics.AddUnsupportedSheetTypeDiagnostic(workbook.MutableDiagnostics, record, unsupportedSheet);
                         }
@@ -181,6 +181,18 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(record.Type, record.Offset, sheetName);
             workbook.MutableUnsupportedFeatures.Add(feature);
             if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, record.Payload.Length, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
+                workbook.MutablePreservedFeatureRecords.Add(preservedRecord!);
+            }
+        }
+
+        private static void AddUnsupportedSheetFeature(
+            LegacyXlsWorkbook workbook,
+            BiffRecord record,
+            LegacyXlsUnsupportedSheet unsupportedSheet) {
+            LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedSheetTypeFeature(record, unsupportedSheet);
+            workbook.MutableUnsupportedFeatures.Add(feature);
+            if (unsupportedSheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet
+                && BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, record.Payload.Length, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
                 workbook.MutablePreservedFeatureRecords.Add(preservedRecord!);
             }
         }

@@ -27,6 +27,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, report.ConditionalFormattingCount);
             Assert.Equal(0, report.AutoFilterCriteriaCount);
             Assert.Equal(3, report.UnsupportedFeatureCount);
+            Assert.Equal(1, report.PreservedFeatureRecordCount);
+            Assert.Equal(2, report.UnsupportedProjectionGapCount);
             Assert.False(report.HasImportErrors);
             Assert.True(report.HasUnsupportedFeatures);
             Assert.Equal(1, report.UnsupportedSheetsByKind[LegacyXlsUnsupportedSheetKind.MacroSheet]);
@@ -46,6 +48,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.MacroSheet]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.VbaModuleSheet]);
+            Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
+            Assert.Equal(1, report.UnsupportedProjectionGapsByKind[LegacyXlsUnsupportedFeatureKind.MacroSheet]);
+            Assert.Equal(1, report.UnsupportedProjectionGapsByKind[LegacyXlsUnsupportedFeatureKind.VbaModuleSheet]);
+            Assert.DoesNotContain(report.UnsupportedProjectionGapsByKind, entry => entry.Key == LegacyXlsUnsupportedFeatureKind.ChartSheet);
             Assert.Equal(1, report.UnsupportedFeaturesByCode["XLS-BIFF-FEATURE-MACRO-SHEET-UNSUPPORTED"]);
             Assert.Equal(1, report.UnsupportedFeaturesByRecordType["MacroSheet|XLS-BIFF-FEATURE-MACRO-SHEET-UNSUPPORTED|0x0085"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["MacroSheet|XLS-BIFF-FEATURE-MACRO-SHEET-UNSUPPORTED|Sheet:MacroSheet"]);
@@ -55,9 +61,11 @@ namespace OfficeIMO.Tests {
             string markdown = report.ToMarkdown();
             Assert.Contains("Worksheets: 1", markdown);
             Assert.Contains("Unsupported sheets: 3", markdown);
+            Assert.Contains("Unsupported projection gaps: 2", markdown);
             Assert.Contains("XLS-BIFF-FEATURE-MACRO-SHEET-UNSUPPORTED", markdown);
             Assert.Contains("Unsupported Feature Record Types", markdown);
             Assert.Contains("Unsupported Feature Details", markdown);
+            Assert.Contains("Preserved Feature Records By Kind", markdown);
             Assert.Contains("Unsupported Sheets By Kind", markdown);
             Assert.Contains("Unsupported Sheets By Visibility", markdown);
             Assert.Contains("Sheet:ChartSheet", markdown);
@@ -1066,7 +1074,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.FutureMetadata]);
             Assert.Equal(1, unsupportedSheet.ChartRecordsByChartType["Scatter"]);
             Assert.Equal(44, report.UnsupportedFeatureCount);
-            Assert.Equal(43, report.PreservedFeatureRecordCount);
+            Assert.Equal(44, report.PreservedFeatureRecordCount);
+            Assert.Equal(0, report.UnsupportedProjectionGapCount);
             Assert.Equal(1, report.UnsupportedSheetsByKind[LegacyXlsUnsupportedSheetKind.ChartSheet]);
             Assert.Equal(1, report.UnsupportedSheetsByType["0x02|ChartSheet"]);
             Assert.Equal(1, report.UnsupportedSheetsByName["ChartOnly"]);
@@ -1092,7 +1101,10 @@ namespace OfficeIMO.Tests {
             Assert.Empty(report.UnsupportedChartSheetPrintSizeKinds);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
             Assert.Equal(43, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
+            Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
             Assert.Equal(43, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
+            Assert.Empty(report.UnsupportedProjectionGapsByKind);
+            Assert.Empty(report.UnsupportedProjectionGapsByDetail);
             Assert.Equal(43, report.ChartRecordCount);
             Assert.Equal(4, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Container]);
             Assert.Equal(10, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Axis]);

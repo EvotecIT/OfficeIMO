@@ -1016,6 +1016,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "Sheet:MacroSheet");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "Sheet:ChartSheet");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "Sheet:VbaModuleSheet");
+            Assert.Contains(legacy.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.ChartSheet && record.SheetName == "Chart1" && record.RecordType == 0x0085);
+            Assert.DoesNotContain(legacy.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.MacroSheet);
+            Assert.DoesNotContain(legacy.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.VbaModuleSheet);
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-MACRO-SHEET-UNSUPPORTED" && d.SheetName == "Macro1" && d.RecordType == 0x0085);
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED" && d.SheetName == "Chart1" && d.RecordType == 0x0085);
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-VBA-MODULE-SHEET-UNSUPPORTED" && d.SheetName == "Module1" && d.RecordType == 0x0085);
