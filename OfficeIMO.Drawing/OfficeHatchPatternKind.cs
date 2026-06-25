@@ -23,5 +23,20 @@ public enum OfficeHatchPatternKind {
     Trellis,
 
     /// <summary>Small repeated square dots.</summary>
-    Dotted
+    Dotted,
+
+    /// <summary>Stipple fill with roughly 6.25 percent foreground coverage.</summary>
+    Percent6_25,
+
+    /// <summary>Stipple fill with roughly 12.5 percent foreground coverage.</summary>
+    Percent12_5,
+
+    /// <summary>Stipple fill with roughly 25 percent foreground coverage.</summary>
+    Percent25,
+
+    /// <summary>Stipple fill with roughly 50 percent foreground coverage.</summary>
+    Percent50,
+
+    /// <summary>Stipple fill with roughly 75 percent foreground coverage.</summary>
+    Percent75
 }

@@ -12,6 +12,11 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
+        if (OfficeStipplePattern.TryCreate(pattern, out OfficeStipplePattern stipplePattern)) {
+            DrawStipplePattern(x, y, width, height, color, step, lineWidth, stipplePattern);
+            return;
+        }
+
         switch (pattern) {
             case OfficeHatchPatternKind.Horizontal:
                 DrawHorizontalHatchPattern(x, y, width, height, color, step, lineWidth);
@@ -68,6 +73,22 @@ public sealed partial class OfficeRasterCanvas {
         for (double yy = y + step / 2D; yy < y + height; yy += step) {
             for (double xx = x + step / 2D; xx < x + width; xx += step) {
                 FillRectangle(xx, yy, size, size, color);
+            }
+        }
+    }
+
+    private void DrawStipplePattern(double x, double y, double width, double height, OfficeColor color, double step, double dotSize, OfficeStipplePattern pattern) {
+        double size = Math.Max(1D, dotSize);
+        double tileSize = Math.Max(step, size * pattern.Size);
+        for (double tileY = y; tileY < y + height; tileY += tileSize) {
+            for (double tileX = x; tileX < x + width; tileX += tileSize) {
+                for (int cellY = 0; cellY < pattern.Size; cellY++) {
+                    for (int cellX = 0; cellX < pattern.Size; cellX++) {
+                        if (pattern.IsFilled(cellX, cellY)) {
+                            FillRectangle(tileX + cellX * size, tileY + cellY * size, size, size, color);
+                        }
+                    }
+                }
             }
         }
     }

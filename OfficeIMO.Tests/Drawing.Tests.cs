@@ -1442,6 +1442,19 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeSvgFormattingAppendsSharedPercentStipplePatternRectangle() {
+        var builder = new StringBuilder();
+
+        builder.AppendHatchPatternRectangle(0, 0, 8, 8, OfficeColor.FromRgb(10, 160, 30), 4, 1, OfficeHatchPatternKind.Percent12_5);
+
+        string svg = builder.ToString();
+        Assert.DoesNotContain("<line", svg, StringComparison.Ordinal);
+        Assert.Equal(8, CountOccurrences(svg, "<rect"));
+        Assert.Contains("fill=\"#0AA01E\"", svg, StringComparison.Ordinal);
+        Assert.Contains("x=\"2\" y=\"2\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeSparklineRendererAppendsReusableSvgSparklines() {
         var builder = new StringBuilder();
 
@@ -2539,6 +2552,17 @@ public class DrawingTests {
     private static void AssertPointNear(OfficePoint actual, double expectedX, double expectedY) {
         Assert.Equal(expectedX, actual.X, precision: 6);
         Assert.Equal(expectedY, actual.Y, precision: 6);
+    }
+
+    private static int CountOccurrences(string value, string pattern) {
+        int count = 0;
+        int index = 0;
+        while ((index = value.IndexOf(pattern, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += pattern.Length;
+        }
+
+        return count;
     }
 
     private static void WritePlaceableWmfChecksum(byte[] data) {

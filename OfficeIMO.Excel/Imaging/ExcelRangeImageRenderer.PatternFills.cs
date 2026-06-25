@@ -135,6 +135,16 @@ namespace OfficeIMO.Excel {
 
         private static OfficeHatchPatternKind MapExcelPatternToHatchPattern(string pattern) {
             switch (pattern) {
+                case "gray0625":
+                    return OfficeHatchPatternKind.Percent6_25;
+                case "gray125":
+                    return OfficeHatchPatternKind.Percent12_5;
+                case "lightgray":
+                    return OfficeHatchPatternKind.Percent25;
+                case "mediumgray":
+                    return OfficeHatchPatternKind.Percent50;
+                case "darkgray":
+                    return OfficeHatchPatternKind.Percent75;
                 case "lighthorizontal":
                 case "darkhorizontal":
                     return OfficeHatchPatternKind.Horizontal;
@@ -159,12 +169,23 @@ namespace OfficeIMO.Excel {
         }
 
         private static PatternMetrics GetPatternMetrics(string pattern, double scale) {
+            if (IsGrayPattern(pattern)) {
+                return new PatternMetrics(Math.Max(4D, 4D * scale), Math.Max(1D, scale));
+            }
+
             bool dark = pattern.StartsWith("dark", StringComparison.Ordinal) || pattern == "darkgray";
             bool medium = pattern == "mediumgray" || pattern == "gray125";
             double step = Math.Max(3D, (dark ? 5D : medium ? 6D : 8D) * scale);
             double width = Math.Max(1D, (dark ? 1.5D : 1D) * scale);
             return new PatternMetrics(step, width);
         }
+
+        private static bool IsGrayPattern(string pattern) =>
+            pattern == "gray0625" ||
+            pattern == "gray125" ||
+            pattern == "lightgray" ||
+            pattern == "mediumgray" ||
+            pattern == "darkgray";
 
         private static void AddGradientDiagnosticIfNeeded(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
             if (!cell.Style.FillGradientUnsupported) {

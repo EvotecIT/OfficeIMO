@@ -18,6 +18,11 @@ public static partial class OfficeSvgFormatting {
             return builder;
         }
 
+        if (OfficeStipplePattern.TryCreate(pattern, out OfficeStipplePattern stipplePattern)) {
+            AppendSvgStipplePattern(builder, x, y, width, height, color, step, lineWidth, stipplePattern);
+            return builder;
+        }
+
         switch (pattern) {
             case OfficeHatchPatternKind.Horizontal:
                 AppendSvgHorizontalHatchPattern(builder, x, y, width, height, color, step, lineWidth);
@@ -82,6 +87,28 @@ public static partial class OfficeSvgFormatting {
                     .AppendNumberAttribute("height", size)
                     .AppendPaintAttribute("fill", color)
                     .Append("/>");
+            }
+        }
+    }
+
+    private static void AppendSvgStipplePattern(StringBuilder builder, double x, double y, double width, double height, OfficeColor color, double step, double dotSize, OfficeStipplePattern pattern) {
+        double size = Math.Max(1D, dotSize);
+        double tileSize = Math.Max(step, size * pattern.Size);
+        for (double tileY = y; tileY < y + height; tileY += tileSize) {
+            for (double tileX = x; tileX < x + width; tileX += tileSize) {
+                for (int cellY = 0; cellY < pattern.Size; cellY++) {
+                    for (int cellX = 0; cellX < pattern.Size; cellX++) {
+                        if (pattern.IsFilled(cellX, cellY)) {
+                            builder.Append("<rect");
+                            builder.AppendNumberAttribute("x", tileX + cellX * size)
+                                .AppendNumberAttribute("y", tileY + cellY * size)
+                                .AppendNumberAttribute("width", size)
+                                .AppendNumberAttribute("height", size)
+                                .AppendPaintAttribute("fill", color)
+                                .Append("/>");
+                        }
+                    }
+                }
             }
         }
     }

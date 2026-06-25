@@ -35,6 +35,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportRendersGrayPatternFillsAsSharedPercentStipples() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Patterns");
+            sheet.CellValue(1, 1, "Gray");
+            sheet.SetColumnWidth(1, 18);
+            sheet.SetRowHeight(1, 42);
+            ApplyPatternFill(sheet, 1, 1, PatternValues.Gray125, "FF00A000", "FFFFFFFF");
+
+            ExcelRange range = sheet.Range("A1:A1");
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
+            string svg = range.ToSvg(new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
+
+            Assert.Contains("fill=\"#00A000\"", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("stroke=\"#00A000\"", svg, StringComparison.Ordinal);
+            Assert.Contains(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.FillPatternApproximation && diagnostic.Source == "Patterns!A1");
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.NotNull(image);
+            Assert.True(CountGreenPixels(image!) > 20);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportRendersSimpleLinearGradientFill() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
