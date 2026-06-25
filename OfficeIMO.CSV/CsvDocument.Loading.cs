@@ -111,11 +111,23 @@ public sealed partial class CsvDocument
         IReadOnlyList<string>? header = null;
         if (options.HasHeaderRow)
         {
-            ReadRecordsWithMetadataSkippingCommentsBeforeInitial(reader, options, recordsToSkip, record =>
+            CsvParser.ReadRecordsWithMetadata(reader, options, record =>
             {
                 if (header is null)
                 {
-                    if (TryGetW3CFieldsHeader(record.Values, options, out var w3cHeader))
+                    var isW3CFieldsHeader = TryGetW3CFieldsHeader(record.Values, options, out var w3cHeader);
+                    if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options) && !isW3CFieldsHeader)
+                    {
+                        return;
+                    }
+
+                    if (recordsToSkip > 0)
+                    {
+                        recordsToSkip--;
+                        return;
+                    }
+
+                    if (isW3CFieldsHeader)
                     {
                         header = w3cHeader;
                         return;
@@ -181,11 +193,23 @@ public sealed partial class CsvDocument
         IReadOnlyList<string>? header = null;
         if (options.HasHeaderRow)
         {
-            ReadRecordsReusableWithMetadataSkippingCommentsBeforeInitial(reader, options, recordsToSkip, record =>
+            CsvParser.ReadRecordsReusableWithMetadata(reader, options, record =>
             {
                 if (header is null)
                 {
-                    if (TryGetW3CFieldsHeader(record.Values, options, out var w3cHeader))
+                    var isW3CFieldsHeader = TryGetW3CFieldsHeader(record.Values, options, out var w3cHeader);
+                    if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options) && !isW3CFieldsHeader)
+                    {
+                        return;
+                    }
+
+                    if (recordsToSkip > 0)
+                    {
+                        recordsToSkip--;
+                        return;
+                    }
+
+                    if (isW3CFieldsHeader)
                     {
                         header = w3cHeader;
                         return;
@@ -542,26 +566,6 @@ public sealed partial class CsvDocument
         });
     }
 
-    private static void ReadRecordsWithMetadataSkippingCommentsBeforeInitial(TextReader reader, CsvLoadOptions options, int recordsToSkip, Action<CsvParser.CsvParsedRecord> recordAction)
-    {
-        CsvParser.ReadRecordsWithMetadata(reader, options, record =>
-        {
-            var isW3CFieldsHeader = TryGetW3CFieldsHeader(record.Values, options, out _);
-            if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options) && !isW3CFieldsHeader)
-            {
-                return;
-            }
-
-            if (recordsToSkip > 0)
-            {
-                recordsToSkip--;
-                return;
-            }
-
-            recordAction(record);
-        });
-    }
-
     private static void ReadRecordsReusableWithMetadataSkippingInitial(TextReader reader, CsvLoadOptions options, int recordsToSkip, Action<CsvParser.CsvParsedRecord> recordAction)
     {
         if (recordsToSkip == 0)
@@ -572,26 +576,6 @@ public sealed partial class CsvDocument
 
         CsvParser.ReadRecordsReusableWithMetadata(reader, options, record =>
         {
-            if (recordsToSkip > 0)
-            {
-                recordsToSkip--;
-                return;
-            }
-
-            recordAction(record);
-        });
-    }
-
-    private static void ReadRecordsReusableWithMetadataSkippingCommentsBeforeInitial(TextReader reader, CsvLoadOptions options, int recordsToSkip, Action<CsvParser.CsvParsedRecord> recordAction)
-    {
-        CsvParser.ReadRecordsReusableWithMetadata(reader, options, record =>
-        {
-            var isW3CFieldsHeader = TryGetW3CFieldsHeader(record.Values, options, out _);
-            if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options) && !isW3CFieldsHeader)
-            {
-                return;
-            }
-
             if (recordsToSkip > 0)
             {
                 recordsToSkip--;

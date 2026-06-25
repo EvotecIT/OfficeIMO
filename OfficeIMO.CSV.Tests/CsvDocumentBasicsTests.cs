@@ -274,6 +274,36 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void ReadRows_Preserves_Post_Header_Comment_Prefixed_Data()
+    {
+        var rows = new System.Collections.Generic.List<string>();
+        using var reader = new StringReader("Name,Value\n#tag,1\nAlpha,2\n");
+
+        CsvDocument.ReadRows(reader, (header, row) =>
+        {
+            Assert.Equal(new[] { "Name", "Value" }, header);
+            rows.Add($"{row[0]}|{row[1]}");
+        });
+
+        Assert.Equal(new[] { "#tag|1", "Alpha|2" }, rows);
+    }
+
+    [Fact]
+    public void ReadRowsReusable_Preserves_Post_Header_Comment_Prefixed_Data()
+    {
+        var rows = new System.Collections.Generic.List<string>();
+        using var reader = new StringReader("Name,Value\n#tag,1\nAlpha,2\n");
+
+        CsvDocument.ReadRowsReusable(reader, (header, row) =>
+        {
+            Assert.Equal(new[] { "Name", "Value" }, header);
+            rows.Add($"{row[0]}|{row[1]}");
+        });
+
+        Assert.Equal(new[] { "#tag|1", "Alpha|2" }, rows);
+    }
+
+    [Fact]
     public void Can_Skip_Initial_Records_With_Explicit_Header()
     {
         var parsed = CsvDocument.Parse(
