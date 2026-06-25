@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 ExcelImageExportDiagnosticCodes.FillPatternApproximation,
                 ExcelImageExportDiagnosticCodes.FillPatternApproximation,
                 ExcelImageExportDiagnosticCodes.FillPatternApproximation),
-            Gap("officeimo-excel-image-premium-range", "Premium range still shows a comment indicator only unless comment bodies are enabled.", ExcelImageExportDiagnosticCodes.CellCommentUnsupported),
+            Tracked("officeimo-excel-image-premium-range", "Premium range renders the comment body as a dependency-free callout approximation.", ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation),
             Tracked("officeimo-excel-image-rich-text", "Rich text still has clipped and rotated-text fidelity gaps.", ExcelImageExportDiagnosticCodes.CellTextClipped, ExcelImageExportDiagnosticCodes.CellTextRotationApproximation),
             Clean("officeimo-excel-image-rotated-image"),
             Clean("officeimo-excel-image-rotated-preset-drawing-object"),
@@ -105,11 +105,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelImageVisualFidelityManifestKeepsPremiumRangeAsKnownGapUntilCommentBodyIsEnabledThere() {
+        public void ExcelImageVisualFidelityManifestTracksPremiumRangeCommentBodyApproximation() {
             ExcelImageBaselineFidelityRecord premiumRange = Assert.Single(Baselines, item => item.Name == "officeimo-excel-image-premium-range");
 
-            Assert.Equal(ExcelImageBaselineFidelity.KnownPremiumGap, premiumRange.Fidelity);
-            Assert.Contains(ExcelImageExportDiagnosticCodes.CellCommentUnsupported, premiumRange.ExpectedDiagnosticCodes);
+            Assert.Equal(ExcelImageBaselineFidelity.TrackedApproximation, premiumRange.Fidelity);
+            Assert.Contains(ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation, premiumRange.ExpectedDiagnosticCodes);
+            Assert.DoesNotContain(ExcelImageExportDiagnosticCodes.CellCommentUnsupported, premiumRange.ExpectedDiagnosticCodes);
         }
 
         private static ExcelImageBaselineFidelityRecord Clean(string name) =>
@@ -117,9 +118,6 @@ namespace OfficeIMO.Tests {
 
         private static ExcelImageBaselineFidelityRecord Tracked(string name, string reviewNote, params string[] expectedDiagnosticCodes) =>
             new(name, ExcelImageBaselineFidelity.TrackedApproximation, reviewNote, expectedDiagnosticCodes);
-
-        private static ExcelImageBaselineFidelityRecord Gap(string name, string reviewNote, params string[] expectedDiagnosticCodes) =>
-            new(name, ExcelImageBaselineFidelity.KnownPremiumGap, reviewNote, expectedDiagnosticCodes);
 
         private static IReadOnlyList<ParsedDiagnostic> ParseDiagnosticsBaseline(string path) {
             var diagnostics = new List<ParsedDiagnostic>();
@@ -141,8 +139,7 @@ namespace OfficeIMO.Tests {
 
         private enum ExcelImageBaselineFidelity {
             CleanApprovedBaseline,
-            TrackedApproximation,
-            KnownPremiumGap
+            TrackedApproximation
         }
 
         private sealed record ExcelImageBaselineFidelityRecord(

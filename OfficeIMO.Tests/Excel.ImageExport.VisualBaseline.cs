@@ -30,11 +30,14 @@ namespace OfficeIMO.Tests {
             using ExcelBaselineFixture fixture = CreatePremiumBaselineWorkbook();
             ExcelRange range = fixture.Sheet.Range("A1:H8");
             ExcelImageExportOptions options = CreateBaselineOptions();
+            options.ShowCommentBodies = true;
 
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentUnsupported);
+            OfficeImageExportDiagnostic commentDiagnostic = Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation);
+            Assert.Equal("Premium!D7", commentDiagnostic.Source);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentUnsupported);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
             AssertDiagnosticsBaseline(BaselineName + ".diagnostics.txt", png.Diagnostics);
@@ -342,6 +345,7 @@ namespace OfficeIMO.Tests {
                 using ExcelBaselineFixture fixture = CreatePremiumBaselineWorkbook();
                 ExcelRange range = fixture.Sheet.Range("A1:H8");
                 ExcelImageExportOptions options = CreateBaselineOptions();
+                options.ShowCommentBodies = true;
                 AssertRasterBaseline(BaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
                 AssertTextBaseline(BaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
             }
@@ -376,6 +380,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
             Assert.Contains("<polygon", svg, StringComparison.Ordinal);
             Assert.Contains("#C00000", svg, StringComparison.Ordinal);
+            Assert.Contains("Reviewer", svg, StringComparison.Ordinal);
+            Assert.Contains("Ready for leadership review", svg, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -822,7 +828,6 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(3, 2).Percent(0);
             sheet.CellValue(3, 3, "Ready");
             sheet.CellAt(3, 3).Success();
-            sheet.SetComment("C3", "Ready for leadership review", "Reviewer");
             sheet.CellValue(3, 4, "Wrapped cell text stays centered and readable");
             sheet.WrapCells(3, 3, 4);
             sheet.CellVerticalAlign(3, 4, VerticalAlignmentValues.Center);
@@ -851,6 +856,13 @@ namespace OfficeIMO.Tests {
                 new ExcelRichTextRun(" text") { Italic = true, Underline = true, FontColor = "7C3AED", FontSize = 12D });
             sheet.CellAt(6, 4).SetBorder(BorderStyleValues.Thin, "CBD5E1");
             sheet.CellAt(6, 4).SetFillColor("F8FAFC");
+            sheet.CellValue(7, 4, "Review note");
+            sheet.CellAt(7, 4).SetBorder(BorderStyleValues.Thin, "CBD5E1");
+            sheet.CellAt(7, 4).SetFillColor("FFF7ED");
+            sheet.CellAt(7, 4).SetFontColor("92400E");
+            sheet.CellAlign(7, 4, HorizontalAlignmentValues.Center);
+            sheet.CellVerticalAlign(7, 4, VerticalAlignmentValues.Center);
+            sheet.SetComment("D7", "Ready for leadership review", "Reviewer");
 
             sheet.SetColumnWidth(1, 14);
             sheet.SetColumnWidth(2, 10);
@@ -864,6 +876,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(4, 36);
             sheet.SetRowHeight(5, 40);
             sheet.SetRowHeight(6, 32);
+            sheet.SetRowHeight(7, 32);
 
             for (int row = 2; row <= 5; row++) {
                 for (int column = 1; column <= 4; column++) {

@@ -1,1 +1,1 @@
-Warning|ExcelCellCommentUnsupported|Premium!C3|Excel cell comment/note body is not rendered by the dependency-free image exporter yet; only the cell indicator is rendered.
+Warning|ExcelCellCommentBodyApproximation|Premium!D7|Excel cell comment/note body is rendered as a dependency-free callout approximation, not an Excel-exact popover.
