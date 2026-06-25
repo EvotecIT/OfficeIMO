@@ -894,6 +894,62 @@ Warnings: 0
 | --- | --- |
 | FieldIndexes:0 | 1 |
 
+## Pivot Table Line Item Counts
+
+| Key | Count |
+| --- | --- |
+| LineItems:1 | 1 |
+| LineItems:4 | 1 |
+
+## Pivot Table Line Item Types
+
+| Key | Count |
+| --- | --- |
+| LineItemType:0 | 4 |
+| LineItemType:13 | 1 |
+
+## Pivot Table Line Item Type Kinds
+
+| Key | Count |
+| --- | --- |
+| Data | 4 |
+| GrandTotal | 1 |
+
+## Pivot Table Line Item Entry Counts
+
+| Key | Count |
+| --- | --- |
+| Entries:0 | 1 |
+| Entries:1 | 4 |
+
+## Pivot Table Line Item Entry Indexes
+
+| Key | Count |
+| --- | --- |
+| EntryIndex:0 | 2 |
+| EntryIndex:1 | 1 |
+| EntryIndex:2 | 1 |
+
+## Pivot Table Line Item Data Indexes
+
+| Key | Count |
+| --- | --- |
+| DataIndex:0 | 5 |
+
+## Pivot Table Line Item Flag States
+
+| Key | Count |
+| --- | --- |
+| Subtotal:False;Block:False;Grand:False;MultiDataName:False;MultiDataOnAxis:False | 4 |
+| Subtotal:True;Block:False;Grand:True;MultiDataName:False;MultiDataOnAxis:False | 1 |
+
+## Pivot Table Line Item Sequences
+
+| Key | Count |
+| --- | --- |
+| LineItems:Type:Data;Entries: | 1 |
+| LineItems:Type:Data;Entries:EntryIndex:0,Type:Data;Entries:EntryIndex:1,Type:Data;Entries:EntryIndex:2,Type:GrandTotal;Entries:EntryIndex:0 | 1 |
+
 ## Pivot Table Item Types
 
 | Key | Count |

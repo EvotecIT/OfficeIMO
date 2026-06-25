@@ -30,6 +30,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x00B4:
                         ReadFieldIndexList(record, pivotRecord);
                         break;
+                    case 0x00B5:
+                        ReadLineItems(record, pivotRecord);
+                        break;
                     case 0x00B6:
                         ReadPageItems(record, pivotRecord);
                         break;
@@ -202,6 +205,51 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             pivotRecord.SetFieldIndexList(fieldIndexes);
+        }
+
+        private static void ReadLineItems(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            byte[] payload = record.Payload;
+            int offset = 0;
+            var lineItems = new List<LegacyXlsPivotLineItem>();
+            while (offset < payload.Length) {
+                if (offset + 8 > payload.Length) {
+                    throw new InvalidDataException("The SXLI payload contains a partial line item header.");
+                }
+
+                short sameAsPreviousCount = BiffRecordReader.ReadInt16(payload, offset);
+                ushort itemType = (ushort)(BiffRecordReader.ReadUInt16(payload, offset + 2) & 0x7FFF);
+                short entryCount = BiffRecordReader.ReadInt16(payload, offset + 4);
+                if (entryCount < 0) {
+                    throw new InvalidDataException("The SXLI payload declares a negative line entry count.");
+                }
+
+                ushort flags = BiffRecordReader.ReadUInt16(payload, offset + 6);
+                int entriesOffset = offset + 8;
+                int entriesLength = checked(entryCount * 2);
+                if (entriesOffset + entriesLength > payload.Length) {
+                    throw new InvalidDataException("The SXLI payload contains a partial line entry array.");
+                }
+
+                var entryIndexes = new short[entryCount];
+                for (int i = 0; i < entryIndexes.Length; i++) {
+                    entryIndexes[i] = BiffRecordReader.ReadInt16(payload, entriesOffset + (i * 2));
+                }
+
+                lineItems.Add(new LegacyXlsPivotLineItem(
+                    sameAsPreviousCount,
+                    itemType,
+                    entryCount,
+                    multiDataName: (flags & 0x0001) != 0,
+                    dataIndex: (byte)((flags >> 1) & 0x00FF),
+                    subtotal: (flags & 0x0200) != 0,
+                    blockTotal: (flags & 0x0400) != 0,
+                    grandTotal: (flags & 0x0800) != 0,
+                    multiDataOnAxis: (flags & 0x1000) != 0,
+                    entryIndexes));
+                offset = entriesOffset + entriesLength;
+            }
+
+            pivotRecord.SetLineItems(lineItems);
         }
 
         private static void ReadPageItems(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {

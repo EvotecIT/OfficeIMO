@@ -482,6 +482,30 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableFieldIndexSequences = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.FieldIndexReferences.Count > 0)
                 .Select(record => "FieldIndexes:" + string.Join(",", record.FieldIndexReferences)));
+            PivotTableLineItemCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.LineItems.Count > 0)
+                .Select(record => $"LineItems:{record.LineItems.Count}"));
+            PivotTableLineItemTypes = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.LineItems)
+                .Select(item => $"LineItemType:{item.ItemType}"));
+            PivotTableLineItemTypeKinds = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.LineItems)
+                .Select(item => item.ItemTypeName));
+            PivotTableLineItemEntryCounts = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.LineItems)
+                .Select(item => $"Entries:{item.EntryCount}"));
+            PivotTableLineItemEntryIndexes = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.LineItems)
+                .SelectMany(item => item.EntryIndexNames));
+            PivotTableLineItemDataIndexes = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.LineItems)
+                .Select(item => $"DataIndex:{item.DataIndex}"));
+            PivotTableLineItemFlagStates = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.LineItems)
+                .Select(item => $"Subtotal:{item.Subtotal};Block:{item.BlockTotal};Grand:{item.GrandTotal};MultiDataName:{item.MultiDataName};MultiDataOnAxis:{item.MultiDataOnAxis}"));
+            PivotTableLineItemSequences = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.LineItems.Count > 0)
+                .Select(record => "LineItems:" + string.Join(",", record.LineItems.Select(item => $"Type:{item.ItemTypeName};Entries:{string.Join(",", item.EntryIndexNames)}"))));
             PivotTablePageItemCounts = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.PageItems.Count > 0)
                 .Select(record => $"PageItems:{record.PageItems.Count}"));
@@ -2127,6 +2151,30 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded SxIvd PivotTable field-index lists grouped by full index sequence.</summary>
         public IReadOnlyDictionary<string, int> PivotTableFieldIndexSequences { get; }
 
+        /// <summary>Gets decoded SXLI PivotTable line item records grouped by line item count.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableLineItemCounts { get; }
+
+        /// <summary>Gets decoded SXLI PivotTable line items grouped by raw item type.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableLineItemTypes { get; }
+
+        /// <summary>Gets decoded SXLI PivotTable line items grouped by item type name.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableLineItemTypeKinds { get; }
+
+        /// <summary>Gets decoded SXLI PivotTable line items grouped by declared entry count.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableLineItemEntryCounts { get; }
+
+        /// <summary>Gets decoded SXLI PivotTable line items grouped by entry index name.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableLineItemEntryIndexes { get; }
+
+        /// <summary>Gets decoded SXLI PivotTable line items grouped by data item index.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableLineItemDataIndexes { get; }
+
+        /// <summary>Gets decoded SXLI PivotTable line items grouped by subtotal, block total, grand total, and data-axis flags.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableLineItemFlagStates { get; }
+
+        /// <summary>Gets decoded SXLI PivotTable line item records grouped by full line entry sequence.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableLineItemSequences { get; }
+
         /// <summary>Gets decoded SXPI PivotTable page item selectors grouped by selector count.</summary>
         public IReadOnlyDictionary<string, int> PivotTablePageItemCounts { get; }
 
@@ -3294,6 +3342,14 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Field Index List Lengths", PivotTableFieldIndexListLengths);
             AppendDictionary(builder, "Pivot Table Field Index References", PivotTableFieldIndexReferences);
             AppendDictionary(builder, "Pivot Table Field Index Sequences", PivotTableFieldIndexSequences);
+            AppendDictionary(builder, "Pivot Table Line Item Counts", PivotTableLineItemCounts);
+            AppendDictionary(builder, "Pivot Table Line Item Types", PivotTableLineItemTypes);
+            AppendDictionary(builder, "Pivot Table Line Item Type Kinds", PivotTableLineItemTypeKinds);
+            AppendDictionary(builder, "Pivot Table Line Item Entry Counts", PivotTableLineItemEntryCounts);
+            AppendDictionary(builder, "Pivot Table Line Item Entry Indexes", PivotTableLineItemEntryIndexes);
+            AppendDictionary(builder, "Pivot Table Line Item Data Indexes", PivotTableLineItemDataIndexes);
+            AppendDictionary(builder, "Pivot Table Line Item Flag States", PivotTableLineItemFlagStates);
+            AppendDictionary(builder, "Pivot Table Line Item Sequences", PivotTableLineItemSequences);
             AppendDictionary(builder, "Pivot Table Page Item Counts", PivotTablePageItemCounts);
             AppendDictionary(builder, "Pivot Table Page Item Field Indexes", PivotTablePageItemFieldIndexes);
             AppendDictionary(builder, "Pivot Table Page Item Indexes", PivotTablePageItemIndexes);

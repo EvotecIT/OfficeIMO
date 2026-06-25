@@ -169,6 +169,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the pivot field indexes referenced by an SxIvd row or column field-index list.</summary>
         public IReadOnlyList<short> FieldIndexReferences { get; private set; } = Array.Empty<short>();
 
+        /// <summary>Gets the row or column line items decoded from an SXLI record.</summary>
+        public IReadOnlyList<LegacyXlsPivotLineItem> LineItems { get; private set; } = Array.Empty<LegacyXlsPivotLineItem>();
+
         /// <summary>Gets the page-axis pivot item selectors decoded from an SXPI record.</summary>
         public IReadOnlyList<LegacyXlsPivotPageItem> PageItems { get; private set; } = Array.Empty<LegacyXlsPivotPageItem>();
 
@@ -563,6 +566,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void SetFieldIndexList(IReadOnlyList<short> fieldIndexes) {
             FieldIndexReferences = fieldIndexes ?? throw new ArgumentNullException(nameof(fieldIndexes));
+        }
+
+        internal void SetLineItems(IReadOnlyList<LegacyXlsPivotLineItem> lineItems) {
+            LineItems = lineItems ?? throw new ArgumentNullException(nameof(lineItems));
         }
 
         internal void SetPageItems(IReadOnlyList<LegacyXlsPivotPageItem> pageItems) {
