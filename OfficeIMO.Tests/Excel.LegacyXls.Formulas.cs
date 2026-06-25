@@ -197,6 +197,16 @@ namespace OfficeIMO.Tests {
             LegacyXlsImportReport report = legacy.CreateImportReport();
             Assert.Equal(1, report.ExternalNamesByBodyKind["AddInUdf"]);
             Assert.Equal(1, report.ExternalNamesByFlagShape["Body:AddInUdf|BuiltIn:Missing|Advise:Missing|Picture:Missing|Ole:Missing|OleLink:Missing|Icon:Missing"]);
+            Assert.Equal(1, report.FormulaFunctionsById["Function:0x00FF"]);
+            Assert.Equal(1, report.FormulaFunctionsByName["UserDefinedFunction"]);
+            Assert.Equal(1, report.FormulaFunctionsByParameterCount["UserDefinedFunction|Args:2"]);
+            Assert.Contains(legacy.FormulaTokenRecords, record =>
+                record.TokenName == "PtgFuncVar"
+                && record.FunctionId == 0x00ff
+                && record.FunctionName == "UserDefinedFunction"
+                && record.FunctionParameterCount == 2
+                && record.OperandKind == "VariableFunction"
+                && record.OperandText == "UserDefinedFunction");
 
             LegacyXlsCell formula = Assert.Single(Assert.Single(legacy.Worksheets).Cells);
             Assert.True(formula.IsFormula);

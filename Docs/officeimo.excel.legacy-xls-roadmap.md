@@ -117,6 +117,9 @@ detail-coded formula-token diagnostics when unsupported-record reporting is enab
 Formula token import reports also group observed tokens and blockers by worksheet
 and by formula context plus worksheet, so corpus analysis can identify which sheets
 and formula sources drive the next decoder gaps without dumping cell-level detail.
+Variable-function tokens using the legacy add-in/user-defined `0x00FF` function
+id are now classified as `UserDefinedFunction` in function-name and argument-count
+diagnostics while retaining the raw function id bucket.
 It also imports external
 URL `HLink` records that use Office shared URL monikers and projects them through
 normal OfficeIMO hyperlink relationships without rewriting the linked cell value.

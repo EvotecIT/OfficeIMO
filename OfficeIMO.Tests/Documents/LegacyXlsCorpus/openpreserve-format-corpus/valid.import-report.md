@@ -294,16 +294,17 @@ Warnings: 0
 | IF | 21 |
 | NA | 21 |
 | RSQ | 7 |
+| UserDefinedFunction | 7 |
 | VLOOKUP | 1491 |
 
 ## Formula Functions By Parameter Count
 
 | Key | Count |
 | --- | --- |
-| Function:0x00FF\|Args:3 | 7 |
 | IF\|Args:3 | 21 |
 | NA\|Args:0 | 21 |
 | RSQ\|Args:2 | 7 |
+| UserDefinedFunction\|Args:3 | 7 |
 | VLOOKUP\|Args:3 | 321 |
 | VLOOKUP\|Args:4 | 1170 |
 

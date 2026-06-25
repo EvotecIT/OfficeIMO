@@ -246,6 +246,7 @@ Warnings: 0
 | ROUNDDOWN | 1 |
 | ROUNDUP | 1 |
 | SUMPRODUCT | 1 |
+| UserDefinedFunction | 2 |
 | VLOOKUP | 1 |
 
 ## Formula Functions By Parameter Count
@@ -253,8 +254,6 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DATEVALUE\|Args:1 | 1 |
-| Function:0x00FF\|Args:3 | 1 |
-| Function:0x00FF\|Args:4 | 1 |
 | HLOOKUP\|Args:4 | 1 |
 | INDEX\|Args:2 | 1 |
 | ISERROR\|Args:1 | 1 |
@@ -266,6 +265,8 @@ Warnings: 0
 | ROUNDDOWN\|Args:2 | 1 |
 | ROUNDUP\|Args:2 | 1 |
 | SUMPRODUCT\|Args:2 | 1 |
+| UserDefinedFunction\|Args:3 | 1 |
+| UserDefinedFunction\|Args:4 | 1 |
 | VLOOKUP\|Args:4 | 1 |
 
 ## Formula Functions By Cetab State

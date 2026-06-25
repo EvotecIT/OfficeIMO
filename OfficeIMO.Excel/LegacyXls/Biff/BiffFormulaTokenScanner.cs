@@ -107,7 +107,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     ushort functionBits = BiffRecordReader.ReadUInt16(formulaPayload, offset);
                     functionId = (ushort)(functionBits & 0x7fff);
                     functionIsCetab = (functionBits & 0x8000) != 0;
-                    functionName = functionIsCetab.Value
+                    functionName = !functionIsCetab.Value && functionId.Value == 0x00ff
+                        ? "UserDefinedFunction"
+                        : functionIsCetab.Value
                         ? $"Cetab:0x{functionId.Value:X4}"
                         : GetFunctionName(functionId.Value);
                     offset += 2;
