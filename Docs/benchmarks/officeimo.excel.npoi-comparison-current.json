@@ -1,0 +1,136 @@
+{
+  "GeneratedAtUtc": "2026-06-25T11:07:55.2253735Z",
+  "MachineName": "EVOMAGIC",
+  "Framework": ".NET 8.0.28",
+  "RowCount": 2500,
+  "WarmupIterations": 1,
+  "MeasuredIterations": 3,
+  "Measurements": [
+    {
+      "Scenario": "xlsx-write-cellvalues",
+      "Library": "OfficeIMO.Excel",
+      "Description": "Plain row/cell write to .xlsx through OfficeIMO CellValue.",
+      "AverageMilliseconds": 5.626,
+      "MinimumMilliseconds": 3.609,
+      "MaximumMilliseconds": 8.284,
+      "Metric": 77441
+    },
+    {
+      "Scenario": "xlsx-write-cellvalues",
+      "Library": "NPOI XSSF",
+      "Description": "Plain row/cell write to .xlsx through XSSFWorkbook.",
+      "AverageMilliseconds": 50.165,
+      "MinimumMilliseconds": 46.187,
+      "MaximumMilliseconds": 53.505,
+      "Metric": 65995
+    },
+    {
+      "Scenario": "xlsx-read-cellvalues",
+      "Library": "OfficeIMO.Excel",
+      "Description": "Plain row/cell read from an NPOI-generated .xlsx workbook.",
+      "AverageMilliseconds": 11.664,
+      "MinimumMilliseconds": 10.509,
+      "MaximumMilliseconds": 12.928,
+      "Metric": -1088997238
+    },
+    {
+      "Scenario": "xlsx-read-cellvalues",
+      "Library": "NPOI XSSF",
+      "Description": "Plain row/cell read from the same NPOI-generated .xlsx workbook.",
+      "AverageMilliseconds": 34.785,
+      "MinimumMilliseconds": 30.785,
+      "MaximumMilliseconds": 37.08,
+      "Metric": -1088997238
+    },
+    {
+      "Scenario": "xls-read-cellvalues",
+      "Library": "OfficeIMO.Excel Legacy XLS",
+      "Description": "Read an HSSF-generated .xls workbook through the OfficeIMO legacy importer.",
+      "AverageMilliseconds": 9.313,
+      "MinimumMilliseconds": 1.512,
+      "MaximumMilliseconds": 24.754,
+      "Metric": -1088997238
+    },
+    {
+      "Scenario": "xls-read-cellvalues",
+      "Library": "NPOI HSSF",
+      "Description": "Read the same HSSF-generated .xls workbook through HSSFWorkbook.",
+      "AverageMilliseconds": 13.12,
+      "MinimumMilliseconds": 9.1,
+      "MaximumMilliseconds": 19.09,
+      "Metric": -1088997238
+    },
+    {
+      "Scenario": "xls-read-formulas",
+      "Library": "OfficeIMO.Excel Legacy XLS",
+      "Description": "Read BIFF8 formula text and cached values from an HSSF-generated .xls workbook.",
+      "AverageMilliseconds": 3.564,
+      "MinimumMilliseconds": 2.783,
+      "MaximumMilliseconds": 5.03,
+      "Metric": 1512288360
+    },
+    {
+      "Scenario": "xls-read-formulas",
+      "Library": "NPOI HSSF",
+      "Description": "Read formula text and cached values from the same HSSF-generated .xls workbook.",
+      "AverageMilliseconds": 13.233,
+      "MinimumMilliseconds": 12.346,
+      "MaximumMilliseconds": 14.507,
+      "Metric": 1512288360
+    },
+    {
+      "Scenario": "xls-read-metadata",
+      "Library": "OfficeIMO.Excel Legacy XLS",
+      "Description": "Read BIFF8 comments, hyperlinks, merged ranges, and list validations from an HSSF-generated .xls workbook.",
+      "AverageMilliseconds": 16.43,
+      "MinimumMilliseconds": 1.292,
+      "MaximumMilliseconds": 46.41,
+      "Metric": 4871976
+    },
+    {
+      "Scenario": "xls-read-metadata",
+      "Library": "NPOI HSSF",
+      "Description": "Read comments, hyperlinks, merged ranges, and list validations from the same HSSF-generated .xls workbook.",
+      "AverageMilliseconds": 69.306,
+      "MinimumMilliseconds": 52.012,
+      "MaximumMilliseconds": 89.839,
+      "Metric": 1915359144
+    },
+    {
+      "Scenario": "xls-read-conditional-formatting",
+      "Library": "OfficeIMO.Excel Legacy XLS",
+      "Description": "Read BIFF8 cell-is and formula conditional-formatting rules from an HSSF-generated .xls workbook.",
+      "AverageMilliseconds": 3.211,
+      "MinimumMilliseconds": 1.132,
+      "MaximumMilliseconds": 6.559,
+      "Metric": 1784850088
+    },
+    {
+      "Scenario": "xls-read-conditional-formatting",
+      "Library": "NPOI HSSF",
+      "Description": "Read cell-is and formula conditional-formatting rules from the same HSSF-generated .xls workbook.",
+      "AverageMilliseconds": 16.921,
+      "MinimumMilliseconds": 11.567,
+      "MaximumMilliseconds": 24.725,
+      "Metric": -176501821
+    },
+    {
+      "Scenario": "xls-read-autofilter-range",
+      "Library": "OfficeIMO.Excel Legacy XLS",
+      "Description": "Read BIFF8 AutoFilter range/drop-down metadata from an HSSF-generated .xls workbook.",
+      "AverageMilliseconds": 1.164,
+      "MinimumMilliseconds": 1.043,
+      "MaximumMilliseconds": 1.234,
+      "Metric": -830262858
+    },
+    {
+      "Scenario": "xls-read-autofilter-range",
+      "Library": "NPOI HSSF",
+      "Description": "Read the hidden AutoFilter range name from the same HSSF-generated .xls workbook.",
+      "AverageMilliseconds": 13.052,
+      "MinimumMilliseconds": 11.388,
+      "MaximumMilliseconds": 16.374,
+      "Metric": -830262858
+    }
+  ]
+}

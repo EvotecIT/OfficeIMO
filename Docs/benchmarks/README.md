@@ -8,6 +8,7 @@ This folder stores small, committed benchmark artifacts for `OfficeIMO.Excel`.
 - `officeimo.excel.write-profile-YYYY-MM-DD.json`: write-stage breakdown for optimization work.
 - `officeimo.excel.read-profile-YYYY-MM-DD.json`: read-stage comparison for automatic, forced sequential, and forced parallel range conversion.
 - `officeimo.excel.library-comparison.json`: local opt-in comparison across matching library surfaces.
+- `officeimo.excel.npoi-comparison-current.json`: local opt-in NPOI comparison for equivalent `.xlsx` row/cell and `.xls` HSSF read lanes. NPOI stays outside normal solution restore/build.
 - `comparison-current\officeimo.excel.comparison-suite-manifest.json`: release-style suite manifest.
 - `comparison-current\officeimo.excel.comparison-summary.md|csv|json`: one-table decision summary with speed, allocation, and package-size ratios.
 - `officeimo.excel.comparison-report.md`: generated website/blog-oriented report distilled from comparison data.
@@ -20,6 +21,7 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-write .\Docs\benchmarks\officeimo.excel.write-profile-YYYY-MM-DD.json
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-read .\Docs\benchmarks\officeimo.excel.read-profile-YYYY-MM-DD.json
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --warmup 1 --iterations 3
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks.NPOI\OfficeIMO.Excel.Benchmarks.NPOI.csproj -- --rows 2500 --warmup 1 --iterations 3 --out .\Docs\benchmarks\officeimo.excel.npoi-comparison-current.json
 ```
 
 After a suite run, generate the website/blog data layer:
@@ -32,4 +34,5 @@ After a suite run, generate the website/blog data layer:
 
 - This folder stores benchmark artifacts and artifact-generation notes.
 - Benchmark code lives in `OfficeIMO.Excel.Benchmarks`.
+- NPOI comparison code lives in `OfficeIMO.Excel.Benchmarks.NPOI` and is explicit benchmark-only evidence, not an OfficeIMO runtime dependency.
 - Runtime Excel behavior lives in `OfficeIMO.Excel`.
