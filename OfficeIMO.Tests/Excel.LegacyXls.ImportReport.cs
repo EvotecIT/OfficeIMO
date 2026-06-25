@@ -1839,6 +1839,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsLegendValidityMetadata() {
+            byte[] payload = {
+                0x0a, 0x00, 0x00, 0x00,
+                0x14, 0x00, 0x00, 0x00,
+                0x2c, 0x01, 0x00, 0x00,
+                0x90, 0x01, 0x00, 0x00,
+                0x00, 0x01,
+                0x1f, 0x00
+            };
+
+            var chartRecords = new List<LegacyXlsChartRecord>();
+            Assert.True(BiffChartMetadataReader.TryRead(new BiffRecord(0x1015, offset: 596, payload), "LegendChart", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            LegacyXlsChartLegend? legend = record.Legend;
+            Assert.NotNull(legend);
+            Assert.True(legend!.HasExpectedSpacing);
+            Assert.True(legend.HasRequiredReservedBit);
+            Assert.True(legend.HasZeroReservedBits);
+            Assert.True(legend.HasValidReservedBits);
+            Assert.True(legend.HasValidAutoPositionState);
+            Assert.True(legend.HasValidDataTableState);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+            Assert.Equal(1, report.ChartLegendLayouts["Vertical"]);
+            Assert.Equal(1, report.ChartLegendSpacingStates["ExpectedSpacing"]);
+            Assert.Equal(1, report.ChartLegendReservedStates["ReservedExpected"]);
+            Assert.Equal(1, report.ChartLegendAutoPositionStates["AutoPositionConsistent"]);
+            Assert.Equal(1, report.ChartLegendDataTableStates["DataTableConsistent"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart Legend Reserved States", markdown);
+            Assert.Contains("ReservedExpected", markdown);
+            Assert.Contains("Chart Legend Data Table States", markdown);
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_GroupsLineChartGroupMetadata() {
             byte[] payload = {
                 0x07, 0x00

@@ -1655,6 +1655,30 @@ Warnings: 0
 | --- | --- |
 | MultiColumnOrManual | 4 |
 
+## Chart Legend Spacing States
+
+| Key | Count |
+| --- | --- |
+| ExpectedSpacing | 4 |
+
+## Chart Legend Reserved States
+
+| Key | Count |
+| --- | --- |
+| ReservedExpected | 4 |
+
+## Chart Legend Auto Position States
+
+| Key | Count |
+| --- | --- |
+| AutoPositionConsistent | 4 |
+
+## Chart Legend Data Table States
+
+| Key | Count |
+| --- | --- |
+| DataTableConsistent | 4 |
+
 ## Chart Tick Major Locations
 
 | Key | Count |

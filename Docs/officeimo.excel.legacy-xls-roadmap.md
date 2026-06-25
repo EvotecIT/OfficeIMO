@@ -254,7 +254,8 @@ preserve-only chart group stacking, percentage, shadow, and reserved-bit
 states, `PieFormat` records now decode preserve-only pie/doughnut
 explosion percentages, chart `SerFmt` records now decode preserve-only series-format
 smooth-line, 3-D bubble, shadow, and reserved-bit states, chart `ClrtClient` records
-now decode preserve-only client color palettes, and chart `AttachedLabel` records now decode preserve-only
+now decode preserve-only client color palettes, chart `Legend` records now report
+spacing, reserved-bit, automatic-position, and data-table consistency states, and chart `AttachedLabel` records now decode preserve-only
 data-label display flags for value, percent, category label, bubble size, and
 series name states. `StartBlock`, `EndBlock`, `Units`, `ChartFormat`, `SerToCrt`, `SeriesList`, `SBaseRef`, `CatLab`,
 `CrtLayout12`, `CrtLayout12A`, `ChartFrtInfo`, and `CrtMlFrt` records now decode preserve-only chart-group

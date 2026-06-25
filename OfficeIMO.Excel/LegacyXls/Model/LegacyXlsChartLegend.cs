@@ -49,5 +49,23 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets whether the legend is shown in a data table.</summary>
         public bool WasDataTable { get; }
+
+        /// <summary>Gets whether the legend-entry spacing matches the BIFF-defined value.</summary>
+        public bool HasExpectedSpacing => Spacing == 0x01;
+
+        /// <summary>Gets whether the required reserved Legend flag bit is set.</summary>
+        public bool HasRequiredReservedBit => (Flags & 0x0002) != 0;
+
+        /// <summary>Gets whether the reserved high Legend flag bits are zero.</summary>
+        public bool HasZeroReservedBits => (Flags & 0xffc0) == 0;
+
+        /// <summary>Gets whether all reserved Legend flag bits have BIFF-defined values.</summary>
+        public bool HasValidReservedBits => HasRequiredReservedBit && HasZeroReservedBits;
+
+        /// <summary>Gets whether automatic legend positioning has matching automatic x and y positioning.</summary>
+        public bool HasValidAutoPositionState => !AutoPosition || (AutoPositionX && AutoPositionY);
+
+        /// <summary>Gets whether a data-table legend is also marked vertical.</summary>
+        public bool HasValidDataTableState => !WasDataTable || Vertical;
     }
 }

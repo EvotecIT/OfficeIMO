@@ -2237,6 +2237,30 @@ Warnings: 0
 | --- | --- |
 | Vertical | 2 |
 
+## Chart Legend Spacing States
+
+| Key | Count |
+| --- | --- |
+| ExpectedSpacing | 2 |
+
+## Chart Legend Reserved States
+
+| Key | Count |
+| --- | --- |
+| ReservedExpected | 2 |
+
+## Chart Legend Auto Position States
+
+| Key | Count |
+| --- | --- |
+| AutoPositionConsistent | 2 |
+
+## Chart Legend Data Table States
+
+| Key | Count |
+| --- | --- |
+| DataTableConsistent | 2 |
+
 ## Chart Tick Major Locations
 
 | Key | Count |

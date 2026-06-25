@@ -1826,6 +1826,30 @@ Warnings: 0
 | MultiColumnOrManual | 2 |
 | Vertical | 6 |
 
+## Chart Legend Spacing States
+
+| Key | Count |
+| --- | --- |
+| ExpectedSpacing | 8 |
+
+## Chart Legend Reserved States
+
+| Key | Count |
+| --- | --- |
+| ReservedExpected | 8 |
+
+## Chart Legend Auto Position States
+
+| Key | Count |
+| --- | --- |
+| AutoPositionConsistent | 8 |
+
+## Chart Legend Data Table States
+
+| Key | Count |
+| --- | --- |
+| DataTableConsistent | 8 |
+
 ## Chart Tick Major Locations
 
 | Key | Count |

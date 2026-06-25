@@ -1264,6 +1264,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartLegendLayouts = CountByCode(workbook.ChartRecords
                 .Where(record => record.Legend != null)
                 .Select(record => record.Legend!.Vertical ? "Vertical" : "MultiColumnOrManual"));
+            ChartLegendSpacingStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.Legend != null)
+                .Select(record => record.Legend!.HasExpectedSpacing ? "ExpectedSpacing" : "UnexpectedSpacing"));
+            ChartLegendReservedStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.Legend != null)
+                .Select(record => record.Legend!.HasValidReservedBits ? "ReservedExpected" : "ReservedUnexpected"));
+            ChartLegendAutoPositionStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.Legend != null)
+                .Select(record => record.Legend!.HasValidAutoPositionState ? "AutoPositionConsistent" : "AutoPositionInconsistent"));
+            ChartLegendDataTableStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.Legend != null)
+                .Select(record => record.Legend!.HasValidDataTableState ? "DataTableConsistent" : "DataTableWithoutVerticalLayout"));
             ChartTickMajorLocations = CountByCode(workbook.ChartRecords
                 .Where(record => record.Tick != null)
                 .Select(record => record.Tick!.MajorTickLocationName));
@@ -3184,6 +3196,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Legend records grouped by decoded layout.</summary>
         public IReadOnlyDictionary<string, int> ChartLegendLayouts { get; }
 
+        /// <summary>Gets Legend records grouped by entry-spacing validity.</summary>
+        public IReadOnlyDictionary<string, int> ChartLegendSpacingStates { get; }
+
+        /// <summary>Gets Legend records grouped by reserved-bit validity.</summary>
+        public IReadOnlyDictionary<string, int> ChartLegendReservedStates { get; }
+
+        /// <summary>Gets Legend records grouped by automatic-position consistency.</summary>
+        public IReadOnlyDictionary<string, int> ChartLegendAutoPositionStates { get; }
+
+        /// <summary>Gets Legend records grouped by data-table layout consistency.</summary>
+        public IReadOnlyDictionary<string, int> ChartLegendDataTableStates { get; }
+
         /// <summary>Gets Tick records grouped by decoded major tick-mark location.</summary>
         public IReadOnlyDictionary<string, int> ChartTickMajorLocations { get; }
 
@@ -4211,6 +4235,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Text Flags", ChartTextFlags);
             AppendDictionary(builder, "Chart ObjectLink Targets", ChartObjectLinkTargets);
             AppendDictionary(builder, "Chart Legend Layouts", ChartLegendLayouts);
+            AppendDictionary(builder, "Chart Legend Spacing States", ChartLegendSpacingStates);
+            AppendDictionary(builder, "Chart Legend Reserved States", ChartLegendReservedStates);
+            AppendDictionary(builder, "Chart Legend Auto Position States", ChartLegendAutoPositionStates);
+            AppendDictionary(builder, "Chart Legend Data Table States", ChartLegendDataTableStates);
             AppendDictionary(builder, "Chart Tick Major Locations", ChartTickMajorLocations);
             AppendDictionary(builder, "Chart Tick Label Locations", ChartTickLabelLocations);
             AppendDictionary(builder, "Chart ValueRange Scales", ChartValueRangeScales);
