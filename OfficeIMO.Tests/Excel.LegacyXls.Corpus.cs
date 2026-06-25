@@ -209,6 +209,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, result.ImportReport.ChartDataSourceFormulaTexts["'Objects'!$A$2:$A$6"]);
             Assert.Equal(2, result.ImportReport.ChartDataSourceFormulaTexts["'Objects'!$B$1"]);
             Assert.Equal(2, result.ImportReport.ChartDataSourceFormulaTexts["'Objects'!$B$2:$B$6"]);
+            Assert.Equal(8, result.ImportReport.ChartLineFormatColors["#000000"]);
+            Assert.Equal(8, result.ImportReport.ChartLineFormatColorIndexes["ColorIndex:23"]);
+            Assert.Equal(4, result.ImportReport.ChartLineFormatStates["Style:Solid;Weight:Narrow;Automatic:False;AxisVisible:False;AutomaticColor:False"]);
+            Assert.Equal(8, result.ImportReport.ChartAreaFormatColors["Foreground:#FFFFFF"]);
+            Assert.Equal(4, result.ImportReport.ChartAreaFormatColorIndexes["ForegroundIndex:78"]);
+            Assert.Equal(6, result.ImportReport.ChartAreaFormatStates["Pattern:Solid;Automatic:False;InvertNegative:False"]);
+            Assert.Equal(2, result.ImportReport.ChartMarkerFormatColors["Foreground:#000000"]);
+            Assert.Equal(2, result.ImportReport.ChartMarkerFormatStates["Type:Diamond;Automatic:True;InteriorHidden:False;BorderHidden:False"]);
             List<LegacyXlsChartRecord> gelFrameRecords = result.Workbook.ChartRecords
                 .Where(record => record.RecordName == "GelFrame")
                 .ToList();

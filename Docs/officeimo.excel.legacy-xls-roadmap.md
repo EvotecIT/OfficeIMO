@@ -256,6 +256,9 @@ layout states, reserved unit states, plot-area layout states, future-record bloc
 Chart `BRAI` data-source formulas now also surface projected source-reference
 formula text in import reports, so chart category/title/value ranges are visible
 in corpus baselines without projecting legacy charts into `.xlsx` chart parts.
+Chart `LineFormat`, `AreaFormat`, and `MarkerFormat` reports now also expose
+decoded color, color-index, and flag-state buckets for preserve-only chart
+formatting evidence.
 Client color palette buckets capture declared and decoded color counts, expected-count
 state, completeness, and foreground/background/neutral colors.
 Drawing `ShapePropsStream`, `TextPropsStream`, and `RichTextStream` future-record

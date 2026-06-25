@@ -2045,12 +2045,60 @@ Warnings: 0
 | Hairline | 4 |
 | Narrow | 4 |
 
+## Chart LineFormat Colors
+
+| Key | Count |
+| --- | --- |
+| #000000 | 4 |
+| #808080 | 4 |
+
+## Chart LineFormat Color Indexes
+
+| Key | Count |
+| --- | --- |
+| ColorIndex:23 | 4 |
+| ColorIndex:77 | 4 |
+
+## Chart LineFormat States
+
+| Key | Count |
+| --- | --- |
+| Style:None;Weight:Hairline;Automatic:False;AxisVisible:False;AutomaticColor:True | 4 |
+| Style:Solid;Weight:Narrow;Automatic:False;AxisVisible:False;AutomaticColor:False | 2 |
+| Style:Solid;Weight:Narrow;Automatic:False;AxisVisible:True;AutomaticColor:False | 2 |
+
 ## Chart AreaFormat Patterns
 
 | Key | Count |
 | --- | --- |
 | None | 2 |
 | Solid | 3 |
+
+## Chart AreaFormat Colors
+
+| Key | Count |
+| --- | --- |
+| Background:#000000 | 4 |
+| Background:#FFFFFF | 1 |
+| Foreground:#008080 | 1 |
+| Foreground:#FFFFFF | 4 |
+
+## Chart AreaFormat Color Indexes
+
+| Key | Count |
+| --- | --- |
+| BackgroundIndex:77 | 4 |
+| BackgroundIndex:9 | 1 |
+| ForegroundIndex:21 | 1 |
+| ForegroundIndex:78 | 2 |
+| ForegroundIndex:9 | 2 |
+
+## Chart AreaFormat States
+
+| Key | Count |
+| --- | --- |
+| Pattern:None;Automatic:False;InvertNegative:False | 2 |
+| Pattern:Solid;Automatic:False;InvertNegative:False | 3 |
 
 ## Chart MarkerFormat Types
 
@@ -2063,6 +2111,26 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | SizeTwips:60 | 1 |
+
+## Chart MarkerFormat Colors
+
+| Key | Count |
+| --- | --- |
+| Background:#000000 | 1 |
+| Foreground:#000000 | 1 |
+
+## Chart MarkerFormat Color Indexes
+
+| Key | Count |
+| --- | --- |
+| BackgroundIndex:77 | 1 |
+| ForegroundIndex:77 | 1 |
+
+## Chart MarkerFormat States
+
+| Key | Count |
+| --- | --- |
+| Type:Diamond;Automatic:True;InteriorHidden:False;BorderHidden:False | 1 |
 
 ## Chart PieFormat Explosions
 

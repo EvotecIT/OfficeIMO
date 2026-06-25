@@ -1630,12 +1630,54 @@ Warnings: 0
 | Hairline | 48 |
 | Narrow | 18 |
 
+## Chart LineFormat Colors
+
+| Key | Count |
+| --- | --- |
+| #000000 | 66 |
+
+## Chart LineFormat Color Indexes
+
+| Key | Count |
+| --- | --- |
+| ColorIndex:77 | 48 |
+| ColorIndex:8 | 18 |
+
+## Chart LineFormat States
+
+| Key | Count |
+| --- | --- |
+| Style:None;Weight:Hairline;Automatic:False;AxisVisible:False;AutomaticColor:True | 46 |
+| Style:Solid;Weight:Hairline;Automatic:True;AxisVisible:False;AutomaticColor:True | 2 |
+| Style:Solid;Weight:Narrow;Automatic:False;AxisVisible:False;AutomaticColor:False | 18 |
+
 ## Chart AreaFormat Patterns
 
 | Key | Count |
 | --- | --- |
 | None | 8 |
 | Solid | 58 |
+
+## Chart AreaFormat Colors
+
+| Key | Count |
+| --- | --- |
+| Background:#000000 | 66 |
+| Foreground:#FFFFFF | 66 |
+
+## Chart AreaFormat Color Indexes
+
+| Key | Count |
+| --- | --- |
+| BackgroundIndex:77 | 66 |
+| ForegroundIndex:78 | 66 |
+
+## Chart AreaFormat States
+
+| Key | Count |
+| --- | --- |
+| Pattern:None;Automatic:False;InvertNegative:False | 8 |
+| Pattern:Solid;Automatic:True;InvertNegative:False | 58 |
 
 ## Chart MarkerFormat Types
 
@@ -1654,6 +1696,40 @@ Warnings: 0
 | --- | --- |
 | SizeTwips:100 | 48 |
 | SizeTwips:60 | 8 |
+
+## Chart MarkerFormat Colors
+
+| Key | Count |
+| --- | --- |
+| Background:#000000 | 32 |
+| Background:#800000 | 8 |
+| Background:#FFFFFF | 16 |
+| Foreground:#000000 | 48 |
+| Foreground:#800000 | 8 |
+
+## Chart MarkerFormat Color Indexes
+
+| Key | Count |
+| --- | --- |
+| BackgroundIndex:37 | 8 |
+| BackgroundIndex:77 | 8 |
+| BackgroundIndex:78 | 16 |
+| BackgroundIndex:8 | 24 |
+| ForegroundIndex:37 | 8 |
+| ForegroundIndex:77 | 8 |
+| ForegroundIndex:8 | 40 |
+
+## Chart MarkerFormat States
+
+| Key | Count |
+| --- | --- |
+| Type:Circle;Automatic:False;InteriorHidden:False;BorderHidden:False | 8 |
+| Type:Circle;Automatic:False;InteriorHidden:True;BorderHidden:False | 8 |
+| Type:Diamond;Automatic:True;InteriorHidden:False;BorderHidden:False | 8 |
+| Type:None;Automatic:False;InteriorHidden:False;BorderHidden:False | 10 |
+| Type:Square;Automatic:False;InteriorHidden:False;BorderHidden:False | 6 |
+| Type:SquareWithX;Automatic:False;InteriorHidden:True;BorderHidden:False | 8 |
+| Type:Triangle;Automatic:False;InteriorHidden:False;BorderHidden:False | 8 |
 
 ## Chart PieFormat Explosions
 

@@ -1018,15 +1018,42 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartLineFormatWeights = CountByCode(workbook.ChartRecords
                 .Where(record => record.LineFormat != null)
                 .Select(record => record.LineFormat!.WeightName));
+            ChartLineFormatColors = CountByCode(workbook.ChartRecords
+                .Where(record => record.LineFormat != null)
+                .Select(record => record.LineFormat!.RgbHex));
+            ChartLineFormatColorIndexes = CountByCode(workbook.ChartRecords
+                .Where(record => record.LineFormat != null)
+                .Select(record => $"ColorIndex:{record.LineFormat!.ColorIndex}"));
+            ChartLineFormatStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.LineFormat != null)
+                .Select(GetChartLineFormatStateKey));
             ChartAreaFormatPatterns = CountByCode(workbook.ChartRecords
                 .Where(record => record.AreaFormat != null)
                 .Select(record => record.AreaFormat!.PatternName));
+            ChartAreaFormatColors = CountByCode(workbook.ChartRecords
+                .Where(record => record.AreaFormat != null)
+                .SelectMany(record => GetChartAreaFormatColorKeys(record.AreaFormat!)));
+            ChartAreaFormatColorIndexes = CountByCode(workbook.ChartRecords
+                .Where(record => record.AreaFormat != null)
+                .SelectMany(record => GetChartAreaFormatColorIndexKeys(record.AreaFormat!)));
+            ChartAreaFormatStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.AreaFormat != null)
+                .Select(GetChartAreaFormatStateKey));
             ChartMarkerFormatTypes = CountByCode(workbook.ChartRecords
                 .Where(record => record.MarkerFormat != null)
                 .Select(record => record.MarkerFormat!.MarkerTypeName));
             ChartMarkerFormatSizes = CountByCode(workbook.ChartRecords
                 .Where(record => record.MarkerFormat != null)
                 .Select(record => $"SizeTwips:{record.MarkerFormat!.SizeTwips}"));
+            ChartMarkerFormatColors = CountByCode(workbook.ChartRecords
+                .Where(record => record.MarkerFormat != null)
+                .SelectMany(record => GetChartMarkerFormatColorKeys(record.MarkerFormat!)));
+            ChartMarkerFormatColorIndexes = CountByCode(workbook.ChartRecords
+                .Where(record => record.MarkerFormat != null)
+                .SelectMany(record => GetChartMarkerFormatColorIndexKeys(record.MarkerFormat!)));
+            ChartMarkerFormatStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.MarkerFormat != null)
+                .Select(GetChartMarkerFormatStateKey));
             ChartPieFormatExplosions = CountByCode(workbook.ChartRecords
                 .Where(record => record.PieFormat != null)
                 .Select(record => $"ExplosionPercent:{record.PieFormat!.ExplosionPercentage}"));
@@ -2755,14 +2782,41 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets LineFormat records grouped by decoded line weight.</summary>
         public IReadOnlyDictionary<string, int> ChartLineFormatWeights { get; }
 
+        /// <summary>Gets LineFormat records grouped by decoded RGB color.</summary>
+        public IReadOnlyDictionary<string, int> ChartLineFormatColors { get; }
+
+        /// <summary>Gets LineFormat records grouped by chart color index.</summary>
+        public IReadOnlyDictionary<string, int> ChartLineFormatColorIndexes { get; }
+
+        /// <summary>Gets LineFormat records grouped by decoded flag state.</summary>
+        public IReadOnlyDictionary<string, int> ChartLineFormatStates { get; }
+
         /// <summary>Gets AreaFormat records grouped by decoded fill pattern.</summary>
         public IReadOnlyDictionary<string, int> ChartAreaFormatPatterns { get; }
+
+        /// <summary>Gets AreaFormat records grouped by decoded foreground and background RGB color.</summary>
+        public IReadOnlyDictionary<string, int> ChartAreaFormatColors { get; }
+
+        /// <summary>Gets AreaFormat records grouped by chart foreground and background color index.</summary>
+        public IReadOnlyDictionary<string, int> ChartAreaFormatColorIndexes { get; }
+
+        /// <summary>Gets AreaFormat records grouped by decoded flag state.</summary>
+        public IReadOnlyDictionary<string, int> ChartAreaFormatStates { get; }
 
         /// <summary>Gets MarkerFormat records grouped by decoded marker type.</summary>
         public IReadOnlyDictionary<string, int> ChartMarkerFormatTypes { get; }
 
         /// <summary>Gets MarkerFormat records grouped by marker size in twips.</summary>
         public IReadOnlyDictionary<string, int> ChartMarkerFormatSizes { get; }
+
+        /// <summary>Gets MarkerFormat records grouped by decoded foreground and background RGB color.</summary>
+        public IReadOnlyDictionary<string, int> ChartMarkerFormatColors { get; }
+
+        /// <summary>Gets MarkerFormat records grouped by chart foreground and background color index.</summary>
+        public IReadOnlyDictionary<string, int> ChartMarkerFormatColorIndexes { get; }
+
+        /// <summary>Gets MarkerFormat records grouped by decoded flag state.</summary>
+        public IReadOnlyDictionary<string, int> ChartMarkerFormatStates { get; }
 
         /// <summary>Gets PieFormat records grouped by decoded explosion distance percentage.</summary>
         public IReadOnlyDictionary<string, int> ChartPieFormatExplosions { get; }
@@ -3774,9 +3828,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Sheet Property States", ChartSheetPropertyStates);
             AppendDictionary(builder, "Chart LineFormat Styles", ChartLineFormatStyles);
             AppendDictionary(builder, "Chart LineFormat Weights", ChartLineFormatWeights);
+            AppendDictionary(builder, "Chart LineFormat Colors", ChartLineFormatColors);
+            AppendDictionary(builder, "Chart LineFormat Color Indexes", ChartLineFormatColorIndexes);
+            AppendDictionary(builder, "Chart LineFormat States", ChartLineFormatStates);
             AppendDictionary(builder, "Chart AreaFormat Patterns", ChartAreaFormatPatterns);
+            AppendDictionary(builder, "Chart AreaFormat Colors", ChartAreaFormatColors);
+            AppendDictionary(builder, "Chart AreaFormat Color Indexes", ChartAreaFormatColorIndexes);
+            AppendDictionary(builder, "Chart AreaFormat States", ChartAreaFormatStates);
             AppendDictionary(builder, "Chart MarkerFormat Types", ChartMarkerFormatTypes);
             AppendDictionary(builder, "Chart MarkerFormat Sizes", ChartMarkerFormatSizes);
+            AppendDictionary(builder, "Chart MarkerFormat Colors", ChartMarkerFormatColors);
+            AppendDictionary(builder, "Chart MarkerFormat Color Indexes", ChartMarkerFormatColorIndexes);
+            AppendDictionary(builder, "Chart MarkerFormat States", ChartMarkerFormatStates);
             AppendDictionary(builder, "Chart PieFormat Explosions", ChartPieFormatExplosions);
             AppendDictionary(builder, "Chart SerFmt Flags", ChartSeriesFormatFlags);
             AppendDictionary(builder, "Chart SerFmt States", ChartSeriesFormatStates);
@@ -4584,6 +4647,41 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetChartDataFormatStateKey(LegacyXlsChartRecord record) {
             return $"Target:{record.DataFormatTarget ?? "Unknown"};PointIndex:{record.DataFormatPointIndex?.ToString(CultureInfo.InvariantCulture) ?? "Missing"};SeriesIndex:{record.DataFormatSeriesIndex?.ToString(CultureInfo.InvariantCulture) ?? "Missing"};Order:{record.DataFormatOrder?.ToString(CultureInfo.InvariantCulture) ?? "Missing"}";
+        }
+
+        private static string GetChartLineFormatStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartLineFormat lineFormat = record.LineFormat!;
+            return $"Style:{lineFormat.StyleName};Weight:{lineFormat.WeightName};Automatic:{lineFormat.Automatic};AxisVisible:{lineFormat.AxisVisible};AutomaticColor:{lineFormat.AutomaticColor}";
+        }
+
+        private static IEnumerable<string> GetChartAreaFormatColorKeys(LegacyXlsChartAreaFormat areaFormat) {
+            yield return $"Foreground:{areaFormat.ForegroundRgbHex}";
+            yield return $"Background:{areaFormat.BackgroundRgbHex}";
+        }
+
+        private static IEnumerable<string> GetChartAreaFormatColorIndexKeys(LegacyXlsChartAreaFormat areaFormat) {
+            yield return $"ForegroundIndex:{areaFormat.ForegroundColorIndex}";
+            yield return $"BackgroundIndex:{areaFormat.BackgroundColorIndex}";
+        }
+
+        private static string GetChartAreaFormatStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartAreaFormat areaFormat = record.AreaFormat!;
+            return $"Pattern:{areaFormat.PatternName};Automatic:{areaFormat.Automatic};InvertNegative:{areaFormat.InvertNegative}";
+        }
+
+        private static IEnumerable<string> GetChartMarkerFormatColorKeys(LegacyXlsChartMarkerFormat markerFormat) {
+            yield return $"Foreground:{markerFormat.ForegroundRgbHex}";
+            yield return $"Background:{markerFormat.BackgroundRgbHex}";
+        }
+
+        private static IEnumerable<string> GetChartMarkerFormatColorIndexKeys(LegacyXlsChartMarkerFormat markerFormat) {
+            yield return $"ForegroundIndex:{markerFormat.ForegroundColorIndex}";
+            yield return $"BackgroundIndex:{markerFormat.BackgroundColorIndex}";
+        }
+
+        private static string GetChartMarkerFormatStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartMarkerFormat markerFormat = record.MarkerFormat!;
+            return $"Type:{markerFormat.MarkerTypeName};Automatic:{markerFormat.Automatic};InteriorHidden:{markerFormat.InteriorHidden};BorderHidden:{markerFormat.BorderHidden}";
         }
 
         private static string GetChartSeriesFormatStateKey(LegacyXlsChartRecord record) {
