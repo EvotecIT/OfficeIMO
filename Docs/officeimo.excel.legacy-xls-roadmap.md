@@ -197,7 +197,9 @@ Current implementation has the first diagnostics contract: `FilePass` encrypted
 workbooks stop import with an explicit unsupported-encryption error, while unsupported
 BIFF versions older than BIFF8 are reported as explicit unsupported-version
 errors from workbook-global and worksheet BOF records before BIFF8-specific
-record layouts are interpreted. Unsupported
+record layouts are interpreted. The import report groups these hard file-format
+blockers by detail, BIFF record type/name, and workbook or sheet location so
+diagnostic corpus baselines can distinguish the exact blocker surface. Unsupported
 hyperlink, worksheet drawing/object, PivotTable, and chart records are reported with
 feature-specific diagnostic codes when unsupported-record reporting is enabled.
 Legacy AutoFilter control and criteria records outside the supported simple

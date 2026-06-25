@@ -287,10 +287,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.FileFormatStates["Encryption:Present"]);
             Assert.Equal(1, report.FileFormatStates["UnsupportedBiffVersion:Missing"]);
             Assert.Equal(1, report.FileFormatBlockers["EncryptedWorkbook|Encryption:FilePass:XorObfuscation"]);
+            Assert.Equal(1, report.FileFormatBlockersByRecordType["EncryptedWorkbook|0x002F"]);
+            Assert.Equal(1, report.FileFormatBlockersByRecordName["EncryptedWorkbook|Record0x002F"]);
+            Assert.Equal(1, report.FileFormatBlockersByLocation["XLS-BIFF-FILEPASS-UNSUPPORTED|(workbook)"]);
             Assert.Equal(1, report.EncryptedWorkbooksByMethod["XorObfuscation"]);
             string markdown = report.ToMarkdown();
             Assert.Contains("File Format States", markdown);
             Assert.Contains("File Format Blockers", markdown);
+            Assert.Contains("File Format Blockers By Record Type", markdown);
+            Assert.Contains("File Format Blockers By Record Name", markdown);
+            Assert.Contains("File Format Blockers By Location", markdown);
             Assert.Contains("Encrypted Workbooks By Method", markdown);
             Assert.Empty(legacy.Worksheets);
         }
@@ -329,6 +335,9 @@ namespace OfficeIMO.Tests {
             Assert.Single(legacy.Diagnostics);
             Assert.Equal(1, report.ErrorCount);
             Assert.Equal(1, report.FileFormatBlockers["EncryptedWorkbook|Encryption:FilePass:XorObfuscation"]);
+            Assert.Equal(1, report.FileFormatBlockersByRecordType["EncryptedWorkbook|0x002F"]);
+            Assert.Equal(1, report.FileFormatBlockersByRecordName["EncryptedWorkbook|Record0x002F"]);
+            Assert.Equal(1, report.FileFormatBlockersByLocation["XLS-BIFF-FILEPASS-UNSUPPORTED|(workbook)"]);
             Assert.Equal(1, report.EncryptedWorkbooksByMethod["XorObfuscation"]);
             Assert.Empty(legacy.Worksheets);
         }

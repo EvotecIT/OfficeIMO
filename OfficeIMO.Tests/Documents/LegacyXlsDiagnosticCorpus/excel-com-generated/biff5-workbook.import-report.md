@@ -113,6 +113,24 @@ Warnings: 0
 | --- | --- |
 | UnsupportedBiffVersion\|BiffVersion:BIFF5:WorkbookGlobals | 1 |
 
+## File Format Blockers By Record Type
+
+| Key | Count |
+| --- | --- |
+| UnsupportedBiffVersion\|0x0809 | 1 |
+
+## File Format Blockers By Record Name
+
+| Key | Count |
+| --- | --- |
+| UnsupportedBiffVersion\|Record0x0809 | 1 |
+
+## File Format Blockers By Location
+
+| Key | Count |
+| --- | --- |
+| XLS-BIFF-VERSION-UNSUPPORTED\|(workbook) | 1 |
+
 ## Unsupported BIFF Versions By Version
 
 | Key | Count |

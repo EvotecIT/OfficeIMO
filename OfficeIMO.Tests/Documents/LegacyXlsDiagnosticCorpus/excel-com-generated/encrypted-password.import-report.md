@@ -113,6 +113,24 @@ Warnings: 0
 | --- | --- |
 | EncryptedWorkbook\|Encryption:FilePass:Rc4 | 1 |
 
+## File Format Blockers By Record Type
+
+| Key | Count |
+| --- | --- |
+| EncryptedWorkbook\|0x002F | 1 |
+
+## File Format Blockers By Record Name
+
+| Key | Count |
+| --- | --- |
+| EncryptedWorkbook\|Record0x002F | 1 |
+
+## File Format Blockers By Location
+
+| Key | Count |
+| --- | --- |
+| XLS-BIFF-FILEPASS-UNSUPPORTED\|(workbook) | 1 |
+
 ## Encrypted Workbooks By Method
 
 | Key | Count |

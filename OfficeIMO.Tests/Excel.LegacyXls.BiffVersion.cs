@@ -37,12 +37,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.FileFormatStates["UnsupportedBiffVersion:Present"]);
             Assert.Equal(1, report.FileFormatStates["MalformedBof:Missing"]);
             Assert.Equal(1, report.FileFormatBlockers["UnsupportedBiffVersion|BiffVersion:BIFF5:WorkbookGlobals"]);
+            Assert.Equal(1, report.FileFormatBlockersByRecordType["UnsupportedBiffVersion|0x0809"]);
+            Assert.Equal(1, report.FileFormatBlockersByRecordName["UnsupportedBiffVersion|Record0x0809"]);
+            Assert.Equal(1, report.FileFormatBlockersByLocation["XLS-BIFF-VERSION-UNSUPPORTED|(workbook)"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersion["BIFF5"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["WorkbookGlobals"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersionAndSubstream["BIFF5|WorkbookGlobals"]);
             string markdown = report.ToMarkdown();
             Assert.Contains("File Format States", markdown);
             Assert.Contains("File Format Blockers", markdown);
+            Assert.Contains("File Format Blockers By Record Type", markdown);
+            Assert.Contains("File Format Blockers By Record Name", markdown);
+            Assert.Contains("File Format Blockers By Location", markdown);
             Assert.Contains("Unsupported BIFF Versions By Version", markdown);
             Assert.Contains("Unsupported BIFF Versions By Substream", markdown);
             Assert.Contains("Unsupported BIFF Versions By Version And Substream", markdown);
@@ -75,6 +81,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, report.UnsupportedProjectionGapCount);
             Assert.Empty(report.UnsupportedProjectionGapsByKind);
             Assert.Equal(1, report.FileFormatBlockers["UnsupportedBiffVersion|BiffVersion:BIFF5:Worksheet"]);
+            Assert.Equal(1, report.FileFormatBlockersByRecordType["UnsupportedBiffVersion|0x0809"]);
+            Assert.Equal(1, report.FileFormatBlockersByRecordName["UnsupportedBiffVersion|Record0x0809"]);
+            Assert.Equal(1, report.FileFormatBlockersByLocation["XLS-BIFF-VERSION-UNSUPPORTED|OldSheet"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersion["BIFF5"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["Worksheet"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersionAndSubstream["BIFF5|Worksheet"]);
@@ -106,6 +115,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PreservedFeatureRecordCount);
             Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion]);
             Assert.Equal(0, report.UnsupportedProjectionGapCount);
+            Assert.Equal(1, report.FileFormatBlockersByRecordType["UnsupportedBiffVersion|0x0809"]);
+            Assert.Equal(1, report.FileFormatBlockersByRecordName["UnsupportedBiffVersion|Record0x0809"]);
+            Assert.Equal(1, report.FileFormatBlockersByLocation["XLS-BIFF-VERSION-UNSUPPORTED|(workbook)"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersion[expectedVersionName]);
             Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["WorkbookGlobals"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersionAndSubstream[$"{expectedVersionName}|WorkbookGlobals"]);

@@ -795,6 +795,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook]);
             Assert.Equal(1, report.EncryptedWorkbooksByMethod["Rc4"]);
             Assert.Equal(1, report.FileFormatBlockers["EncryptedWorkbook|Encryption:FilePass:Rc4"]);
+            Assert.Equal(1, report.FileFormatBlockersByRecordType["EncryptedWorkbook|0x002F"]);
+            Assert.Equal(1, report.FileFormatBlockersByRecordName["EncryptedWorkbook|Record0x002F"]);
+            Assert.Equal(1, report.FileFormatBlockersByLocation["XLS-BIFF-FILEPASS-UNSUPPORTED|(workbook)"]);
         }
 
         [Fact]
@@ -824,6 +827,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersion["BIFF5"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["WorkbookGlobals"]);
             Assert.Equal(1, report.FileFormatBlockers["UnsupportedBiffVersion|BiffVersion:BIFF5:WorkbookGlobals"]);
+            Assert.Equal(1, report.FileFormatBlockersByRecordType["UnsupportedBiffVersion|0x0809"]);
+            Assert.Equal(1, report.FileFormatBlockersByRecordName["UnsupportedBiffVersion|Record0x0809"]);
+            Assert.Equal(1, report.FileFormatBlockersByLocation["XLS-BIFF-VERSION-UNSUPPORTED|(workbook)"]);
         }
 
         private static bool IsLegacyXlsCorpusBaselineUpdateRequested() {
