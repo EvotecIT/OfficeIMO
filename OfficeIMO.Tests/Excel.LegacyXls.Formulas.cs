@@ -1023,6 +1023,41 @@ namespace OfficeIMO.Tests {
             string markdown = report.ToMarkdown();
             Assert.Contains("Array Formulas By Range", markdown, StringComparison.Ordinal);
             Assert.Contains("Array Formulas By Projection State", markdown, StringComparison.Ordinal);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            Cell projectedFormula = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>(),
+                cell => cell.CellReference?.Value == "D1");
+            Assert.Equal(CellFormulaValues.Array, projectedFormula.CellFormula!.FormulaType!.Value);
+            Assert.Equal("D1", projectedFormula.CellFormula.Reference!.Value);
+            Assert.Equal("C1+1", projectedFormula.CellFormula.Text);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ProjectsMultiCellArrayFormulaRange() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaMultiCellArrayWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            LegacyXlsArrayFormulaRecord arrayFormula = Assert.Single(Assert.Single(result.Workbook.Worksheets).ArrayFormulaRecords);
+            Assert.Equal("D1:E1", arrayFormula.Range);
+            Assert.Equal(2, arrayFormula.DeclaredCellCount);
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            Cell projectedFormula = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>(),
+                cell => cell.CellReference?.Value == "D1");
+            Assert.Equal(CellFormulaValues.Array, projectedFormula.CellFormula!.FormulaType!.Value);
+            Assert.Equal("D1:E1", projectedFormula.CellFormula.Reference!.Value);
+            Assert.Equal("C1+1", projectedFormula.CellFormula.Text);
         }
 
         [Fact]
@@ -1805,6 +1840,25 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0203, BuildNumberPayload(0, 2, 30d));
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 3, 31d, formulaTokens: BuildSharedFormulaReferenceTokens(0, 3)));
                 WriteRecord(stream, 0x0221, BuildArrayFormulaPayload(0, 3, 0, 3, BuildRelativeReferenceAdditionFormulaTokens(0, -1, 1)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateFormulaMultiCellArrayWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ArrayFormula"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0203, BuildNumberPayload(0, 2, 30d));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 3, 31d, formulaTokens: BuildSharedFormulaReferenceTokens(0, 3)));
+                WriteRecord(stream, 0x0221, BuildArrayFormulaPayload(0, 3, 0, 4, BuildRelativeReferenceAdditionFormulaTokens(0, -1, 1)));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();

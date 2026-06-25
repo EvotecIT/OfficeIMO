@@ -700,7 +700,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ReadCellFormatApplyFlags(
                 record.Payload,
                 out bool applyNumberFormat,
-                out bool applyFont);
+                out bool applyFont,
+                out bool applyFill);
             ReadCellFormatFill(record.Payload, out byte fillPattern, out ushort fillForegroundColorIndex, out ushort fillBackgroundColorIndex);
             ReadCellFormatAlignment(
                 record.Payload,
@@ -734,6 +735,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 parentStyleIndex,
                 applyNumberFormat,
                 applyFont,
+                applyFill,
                 fillPattern,
                 fillForegroundColorIndex,
                 fillBackgroundColorIndex,
@@ -758,9 +760,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private static void ReadCellFormatApplyFlags(
             byte[] payload,
             out bool applyNumberFormat,
-            out bool applyFont) {
+            out bool applyFont,
+            out bool applyFill) {
             applyNumberFormat = false;
             applyFont = false;
+            applyFill = false;
 
             if (payload.Length < 10) {
                 return;
@@ -769,6 +773,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort attributes = BiffRecordReader.ReadUInt16(payload, 8);
             applyNumberFormat = (attributes & 0x0400) != 0;
             applyFont = (attributes & 0x0800) != 0;
+            applyFill = (attributes & 0x4000) != 0;
         }
 
         private static void ReadCellFormatProtection(
@@ -888,6 +893,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             fillBackgroundColorIndex = 0;
 
             if (payload.Length < 20) {
+                return;
+            }
+
+            ushort attributes = BiffRecordReader.ReadUInt16(payload, 8);
+            if ((attributes & 0x4000) == 0) {
                 return;
             }
 

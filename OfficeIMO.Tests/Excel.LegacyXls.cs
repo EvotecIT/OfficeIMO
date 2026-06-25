@@ -1724,6 +1724,7 @@ namespace OfficeIMO.Tests {
                 ushort parentStyleIndex = 0,
                 bool? applyNumberFormat = null,
                 bool? applyFont = null,
+                bool? applyFill = null,
                 byte fillPattern = 0,
                 ushort fillForegroundColorIndex = 0x0040,
                 ushort fillBackgroundColorIndex = 0x0041,
@@ -1787,7 +1788,7 @@ namespace OfficeIMO.Tests {
                     attributes |= 0x1000;
                 }
 
-                if (fillPattern != 0) {
+                if (applyFill ?? fillPattern != 0) {
                     attributes |= 0x4000;
                 }
 

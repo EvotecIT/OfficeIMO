@@ -64,6 +64,17 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     ApplyQuotePrefix(currentSheet, cell, format);
                 }
 
+                foreach (LegacyXlsArrayFormulaRecord arrayFormula in legacySheet.ArrayFormulaRecords) {
+                    LegacyXlsCell? formulaCell = legacySheet.Cells.FirstOrDefault(cell =>
+                        cell.Row == arrayFormula.FirstRow
+                        && cell.Column == arrayFormula.FirstColumn
+                        && cell.IsFormula
+                        && !string.IsNullOrWhiteSpace(cell.FormulaText));
+                    if (formulaCell != null) {
+                        currentSheet.SetLegacyArrayFormula(arrayFormula.Range, formulaCell.FormulaText!);
+                    }
+                }
+
                 if (legacySheet.DefaultColumnWidth.HasValue) {
                     currentSheet.SetDefaultColumnWidth(legacySheet.DefaultColumnWidth.Value, save: false);
                 }
@@ -177,9 +188,9 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             foreach (LegacyXlsComment comment in legacySheet.Comments) {
                 if (TryCreateCommentRichTextRuns(workbook, comment, out IReadOnlyList<ExcelRichTextRun> richTextRuns)) {
-                    sheet.SetCommentRichText(comment.Row, comment.Column, richTextRuns, comment.Author);
+                    sheet.SetLegacyCommentRichText(comment.Row, comment.Column, richTextRuns, comment.Author, comment.Visible);
                 } else {
-                    sheet.SetComment(comment.Row, comment.Column, comment.Text, comment.Author);
+                    sheet.SetLegacyComment(comment.Row, comment.Column, comment.Text, comment.Author, comment.Visible);
                 }
             }
 
@@ -739,7 +750,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             LegacyXlsWorkbook workbook,
             LegacyXlsCell cell,
             LegacyXlsCellFormat? format) {
-            if (format == null || format.FillPattern == 0) {
+            if (format == null || !format.ApplyFill || format.FillPattern == 0) {
                 return;
             }
 

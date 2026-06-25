@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
             if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
             if (string.IsNullOrEmpty(text)) throw new ArgumentException("Comment text is required.", nameof(text));
-            SetCommentInternal(row, column, BuildCommentText(text), author, initials);
+            SetCommentInternal(row, column, BuildCommentText(text), author, initials, visible: false);
         }
 
         /// <summary>
@@ -81,10 +81,23 @@ namespace OfficeIMO.Excel {
         public void SetCommentRichText(int row, int column, IEnumerable<ExcelRichTextRun> runs, string author = "OfficeIMO", string? initials = null) {
             if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
-            SetCommentInternal(row, column, BuildCommentText(runs), author, initials);
+            SetCommentInternal(row, column, BuildCommentText(runs), author, initials, visible: false);
         }
 
-        private void SetCommentInternal(int row, int column, CommentText commentText, string author, string? initials) {
+        internal void SetLegacyComment(int row, int column, string text, string author, bool visible) {
+            if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
+            if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
+            if (string.IsNullOrEmpty(text)) throw new ArgumentException("Comment text is required.", nameof(text));
+            SetCommentInternal(row, column, BuildCommentText(text), author, initials: null, visible);
+        }
+
+        internal void SetLegacyCommentRichText(int row, int column, IEnumerable<ExcelRichTextRun> runs, string author, bool visible) {
+            if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
+            if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
+            SetCommentInternal(row, column, BuildCommentText(runs), author, initials: null, visible);
+        }
+
+        private void SetCommentInternal(int row, int column, CommentText commentText, string author, string? initials, bool visible) {
             WriteLock(() => {
                 string reference = A1.CellReference(row, column);
                 string authorDisplay = NormalizeAuthor(author, initials);
@@ -102,7 +115,7 @@ namespace OfficeIMO.Excel {
                 comments.CommentList.Append(comment);
                 comments.Save();
 
-                EnsureCommentVmlShape(row, column);
+                EnsureCommentVmlShape(row, column, visible);
                 WorksheetRoot.Save();
             });
         }
@@ -519,7 +532,7 @@ namespace OfficeIMO.Excel {
             return part;
         }
 
-        private void EnsureCommentVmlShape(int row, int column) {
+        private void EnsureCommentVmlShape(int row, int column, bool visible = false) {
             var vmlPart = GetOrCreateCommentVmlPart();
             var doc = LoadOrCreateVmlDocument(vmlPart);
             var root = doc.Root;
@@ -533,11 +546,12 @@ namespace OfficeIMO.Excel {
 
             int shapeId = NextVmlShapeId(root);
             string anchor = BuildAnchor(row, column);
+            string visibility = visible ? "visible" : "hidden";
 
             var shape = new XElement(v + "shape",
                 new XAttribute("id", $"_x0000_s{shapeId}"),
                 new XAttribute("type", "#_x0000_t202"),
-                new XAttribute("style", "position:absolute;margin-left:0pt;margin-top:0pt;width:108pt;height:59pt;z-index:1;visibility:hidden"),
+                new XAttribute("style", $"position:absolute;margin-left:0pt;margin-top:0pt;width:108pt;height:59pt;z-index:1;visibility:{visibility}"),
                 new XAttribute("fillcolor", "#ffffe1"),
                 new XAttribute(o + "insetmode", "auto"),
                 new XElement(v + "fill", new XAttribute("color2", "#ffffe1")),
@@ -551,6 +565,7 @@ namespace OfficeIMO.Excel {
                     new XElement(x + "SizeWithCells"),
                     new XElement(x + "Anchor", anchor),
                     new XElement(x + "AutoFill", "False"),
+                    visible ? new XElement(x + "Visible") : null,
                     new XElement(x + "Row", (row - 1).ToString(CultureInfo.InvariantCulture)),
                     new XElement(x + "Column", (column - 1).ToString(CultureInfo.InvariantCulture))
                 )

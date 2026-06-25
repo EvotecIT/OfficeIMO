@@ -232,6 +232,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     Error = validation.Error,
                     ShowInputMessage = validation.ShowInputMessage,
                     ShowErrorMessage = validation.ShowErrorMessage,
+                    PreserveShowMessageFlags = true,
                     ErrorStyle = ToDataValidationErrorStyle(validation.ErrorStyle),
                     SuppressDropDown = validation.SuppressDropDown ? true : null
                 });

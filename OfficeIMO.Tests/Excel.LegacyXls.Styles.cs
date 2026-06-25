@@ -75,6 +75,34 @@ namespace OfficeIMO.Tests {
             Assert.True(inheritedFormat.Protection.Hidden!.Value);
         }
 
+        [Fact]
+        public void LegacyXls_Load_InheritsParentFillWhenCellFormatDoesNotApplyFill() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5FillApplyFlagWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            LegacyXlsCellFormat effectiveFormat = legacy.GetEffectiveCellFormat(1)!;
+            Assert.True(effectiveFormat.ApplyFill);
+            Assert.Equal(1, effectiveFormat.FillPattern);
+            Assert.Equal(0x0008, effectiveFormat.FillForegroundColorIndex);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+            Cell cell = Assert.Single(workbookPart.WorksheetParts.Single().Worksheet.Descendants<Cell>(), c => c.CellReference?.Value == "A1");
+            CellFormat format = workbookPart.WorkbookStylesPart!.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)cell.StyleIndex!.Value);
+            Fill fill = workbookPart.WorkbookStylesPart.Stylesheet.Fills!.Elements<Fill>().ElementAt((int)format.FillId!.Value);
+            Assert.Equal("FF123456", fill.PatternFill!.ForegroundColor!.Rgb!.Value);
+        }
+
         private static partial class LegacyXlsTestWorkbookBuilder {
             internal static byte[] CreatePhase3StyleInheritanceWorkbookStream() {
                 using var stream = new MemoryStream();
@@ -114,6 +142,37 @@ namespace OfficeIMO.Tests {
                 int sheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0203, BuildNumberPayload(0, 0, new DateTime(2024, 2, 3).ToOADate(), styleIndex: 1));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreatePhase5FillApplyFlagWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "FillApply"));
+                WriteRecord(stream, 0x0092, BuildPalettePayload("FF123456", "FFABCDEF"));
+                WriteRecord(stream, 0x00e0, BuildXfPayload(
+                    0,
+                    isStyle: true,
+                    parentStyleIndex: 0x0fff,
+                    fillPattern: 1,
+                    fillForegroundColorIndex: 0x0008,
+                    applyFill: true));
+                WriteRecord(stream, 0x00e0, BuildXfPayload(
+                    0,
+                    parentStyleIndex: 0,
+                    fillPattern: 1,
+                    fillForegroundColorIndex: 0x0009,
+                    applyFill: false));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Filled", styleIndex: 1));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();

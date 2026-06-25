@@ -602,6 +602,24 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase5PrintPageSetupNoPrinterSettingsOrientationWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "NoPrinter"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Printable"));
+                WriteRecord(stream, 0x00a1, BuildSetupPayload(scale: 100, fitToWidth: 1, fitToHeight: 1, landscape: false, header: 0.3d, footer: 0.3d, extraFlags: 0x0004));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase5ShortCellFormatWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -797,6 +815,25 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Validated"));
                 WriteRecord(stream, 0x01b2, BuildDataValidationCollectionPayload(1));
                 WriteRecord(stream, 0x01be, BuildWholeNumberDataValidationPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)validationBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreatePhase5HiddenMessageDataValidationWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long validationBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "HiddenMessages"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Validated"));
+                WriteRecord(stream, 0x01b2, BuildDataValidationCollectionPayload(1));
+                WriteRecord(stream, 0x01be, BuildHiddenMessageDataValidationPayload());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -2043,11 +2080,11 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            private static byte[] BuildNotePayload(ushort row, ushort column, ushort objectId, string author) {
+            private static byte[] BuildNotePayload(ushort row, ushort column, ushort objectId, string author, bool visible = false) {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, row);
                 WriteUInt16(stream, column);
-                WriteUInt16(stream, 0);
+                WriteUInt16(stream, visible ? (ushort)0x0002 : (ushort)0);
                 WriteUInt16(stream, objectId);
                 WriteUInt16(stream, checked((ushort)author.Length));
                 WriteCompressedUnicodeStringNoCch(stream, author);
@@ -2151,6 +2188,24 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, 3);
                 WriteUInt16(stream, 1);
                 WriteUInt16(stream, 1);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildHiddenMessageDataValidationPayload() {
+                using var stream = new MemoryStream();
+                uint flags = 0x01U;
+                WriteUInt32(stream, flags);
+                WriteUnicodeString(stream, "Hidden prompt");
+                WriteUnicodeString(stream, "Hidden error");
+                WriteUnicodeString(stream, "Do not show this prompt automatically.");
+                WriteUnicodeString(stream, "Do not show this error automatically.");
+                WriteDvFormula(stream, BuildPtgIntFormula(1));
+                WriteDvFormula(stream, BuildPtgIntFormula(9));
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
                 return stream.ToArray();
             }
 
@@ -2711,13 +2766,14 @@ namespace OfficeIMO.Tests {
                 ushort fitToHeight,
                 bool landscape,
                 double header,
-                double footer) {
+                double footer,
+                ushort extraFlags = 0) {
                 byte[] payload = new byte[34];
                 WriteUInt16(payload, 0, 1);
                 WriteUInt16(payload, 2, scale);
                 WriteUInt16(payload, 6, fitToWidth);
                 WriteUInt16(payload, 8, fitToHeight);
-                WriteUInt16(payload, 10, landscape ? (ushort)0x0000 : (ushort)0x0002);
+                WriteUInt16(payload, 10, (ushort)((landscape ? 0x0000 : 0x0002) | extraFlags));
                 Buffer.BlockCopy(BitConverter.GetBytes(header), 0, payload, 16, 8);
                 Buffer.BlockCopy(BitConverter.GetBytes(footer), 0, payload, 24, 8);
                 WriteUInt16(payload, 32, 1);

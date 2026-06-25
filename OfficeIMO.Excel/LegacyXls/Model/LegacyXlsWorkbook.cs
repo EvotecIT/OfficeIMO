@@ -516,7 +516,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             bool inheritFont = !format.ApplyFont;
             bool inheritAlignment = !format.ApplyAlignment && HasNonDefaultAlignment(parent);
             bool inheritBorder = format.Border == null && parent.Border != null;
-            bool inheritFill = format.FillPattern == 0 && parent.FillPattern != 0;
+            bool inheritFill = !format.ApplyFill && parent.ApplyFill && parent.FillPattern != 0;
             bool inheritProtection = !format.ApplyProtection && HasNonDefaultProtection(parent);
 
             return new LegacyXlsCellFormat(
@@ -527,6 +527,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 format.ParentStyleIndex,
                 format.ApplyNumberFormat || inheritNumberFormat,
                 format.ApplyFont || inheritFont,
+                format.ApplyFill || inheritFill,
                 inheritFill ? parent.FillPattern : format.FillPattern,
                 inheritFill ? parent.FillForegroundColorIndex : format.FillForegroundColorIndex,
                 inheritFill ? parent.FillBackgroundColorIndex : format.FillBackgroundColorIndex,

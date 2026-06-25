@@ -97,6 +97,25 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Comments By Anchor Range", report.ToMarkdown());
         }
 
+        [Fact]
+        public void LegacyXls_Load_ProjectsVisibleCommentsAsVisibleNotes() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5VisibleCommentWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            VmlDrawingPart vmlPart = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts.Single().VmlDrawingParts);
+            using var reader = new StreamReader(vmlPart.GetStream());
+            string vml = reader.ReadToEnd();
+            Assert.Contains("visibility:visible", vml, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<x:Visible", vml, StringComparison.OrdinalIgnoreCase);
+        }
+
         private static partial class LegacyXlsTestWorkbookBuilder {
             internal static byte[] CreatePhase4AnchoredCommentWorkbookStream() {
                 const string text = "Anchored note";
@@ -144,6 +163,29 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x003c, BuildCompressedUnicodeStringNoCchPayload(text));
                 WriteRecord(stream, 0x003c, BuildTxoRunsPayload((0, 5), (4, 0), ((ushort)text.Length, 0)));
                 WriteRecord(stream, 0x001c, BuildNotePayload(0, 0, 1, "Legacy Author"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreatePhase5VisibleCommentWorkbookStream() {
+                const string text = "Visible note";
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "VisibleComment"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Review me"));
+                WriteRecord(stream, 0x005d, BuildNoteObjectPayload(1));
+                WriteRecord(stream, 0x01b6, BuildTxoPayload(text, 8));
+                WriteRecord(stream, 0x003c, BuildCompressedUnicodeStringNoCchPayload(text));
+                WriteRecord(stream, 0x003c, BuildTxoRunsPayload((ushort)text.Length));
+                WriteRecord(stream, 0x001c, BuildNotePayload(0, 0, 1, "Legacy Author", visible: true));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();

@@ -300,8 +300,12 @@ namespace OfficeIMO.Excel {
                 var validations = WorksheetRoot.GetFirstChild<DataValidations>();
                 if (validations == null) return;
                 bool changed = false;
-                bool showInputMessage = options.ShowInputMessage || !string.IsNullOrEmpty(options.Prompt) || !string.IsNullOrEmpty(options.PromptTitle);
-                bool showErrorMessage = options.ShowErrorMessage || !string.IsNullOrEmpty(options.Error) || !string.IsNullOrEmpty(options.ErrorTitle);
+                bool showInputMessage = options.PreserveShowMessageFlags
+                    ? options.ShowInputMessage
+                    : options.ShowInputMessage || !string.IsNullOrEmpty(options.Prompt) || !string.IsNullOrEmpty(options.PromptTitle);
+                bool showErrorMessage = options.PreserveShowMessageFlags
+                    ? options.ShowErrorMessage
+                    : options.ShowErrorMessage || !string.IsNullOrEmpty(options.Error) || !string.IsNullOrEmpty(options.ErrorTitle);
                 foreach (var validation in validations.Elements<DataValidation>()) {
                     string range = validation.SequenceOfReferences?.InnerText ?? string.Empty;
                     if (!ReferenceListOverlaps(range, filter)) continue;

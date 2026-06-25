@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <param name="parentStyleIndex">Legacy parent style XF index for cell XF inheritance.</param>
         /// <param name="applyNumberFormat">Whether the number format facet is owned by this cell XF.</param>
         /// <param name="applyFont">Whether the font facet is owned by this cell XF.</param>
+        /// <param name="applyFill">Whether the fill facet is owned by this cell XF.</param>
         /// <param name="fillPattern">Legacy fill pattern code.</param>
         /// <param name="fillForegroundColorIndex">Legacy foreground fill color index.</param>
         /// <param name="fillBackgroundColorIndex">Legacy background fill color index.</param>
@@ -40,6 +41,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort parentStyleIndex,
             bool applyNumberFormat,
             bool applyFont,
+            bool applyFill,
             byte fillPattern,
             ushort fillForegroundColorIndex,
             ushort fillBackgroundColorIndex,
@@ -66,6 +68,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ParentStyleIndex = parentStyleIndex;
             ApplyNumberFormat = applyNumberFormat;
             ApplyFont = applyFont;
+            ApplyFill = applyFill;
             FillPattern = fillPattern;
             FillForegroundColorIndex = fillForegroundColorIndex;
             FillBackgroundColorIndex = fillBackgroundColorIndex;
@@ -121,6 +124,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets whether the font facet is owned by this cell XF instead of inherited from the parent style XF.
         /// </summary>
         public bool ApplyFont { get; }
+
+        /// <summary>
+        /// Gets whether the fill facet is owned by this cell XF instead of inherited from the parent style XF.
+        /// </summary>
+        public bool ApplyFill { get; }
 
         /// <summary>
         /// Gets the legacy fill pattern code.

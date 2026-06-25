@@ -1078,6 +1078,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_IgnoresSetupOrientationWhenPrinterSettingsAreAbsent() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5PrintPageSetupNoPrinterSettingsOrientationWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.Null(Assert.Single(result.Workbook.Worksheets).PageSetup!.Landscape);
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            PageSetup openXmlSetup = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.GetFirstChild<PageSetup>()!;
+            Assert.Null(openXmlSetup.Orientation);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ReportsShortCellFormatWithoutReadingPastPayload() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5ShortCellFormatWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -1420,6 +1437,29 @@ namespace OfficeIMO.Tests {
             Assert.True(openXmlValidation.ShowInputMessage!.Value);
             Assert.True(openXmlValidation.ShowErrorMessage!.Value);
             Assert.True(openXmlValidation.ShowDropDown!.Value);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_PreservesHiddenValidationMessageFlags() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5HiddenMessageDataValidationWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            ExcelDataValidationInfo projectedValidation = Assert.Single(document.Sheets[0].GetDataValidations("A1:A1"));
+            Assert.Equal("Hidden prompt", projectedValidation.PromptTitle);
+            Assert.Equal("Hidden error", projectedValidation.ErrorTitle);
+            Assert.False(projectedValidation.ShowInputMessage);
+            Assert.False(projectedValidation.ShowErrorMessage);
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            DataValidation openXmlValidation = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<DataValidation>());
+            Assert.False(openXmlValidation.ShowInputMessage!.Value);
+            Assert.False(openXmlValidation.ShowErrorMessage!.Value);
         }
 
         [Fact]

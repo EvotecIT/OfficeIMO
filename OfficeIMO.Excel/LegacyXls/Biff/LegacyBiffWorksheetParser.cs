@@ -1044,7 +1044,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             pageSetup.FitToWidth = fitToWidth;
             pageSetup.FitToHeight = fitToHeight;
 
-            if (!ignoreOrientation) {
+            if (!ignorePrinterSettings && !ignoreOrientation) {
                 pageSetup.Landscape = (flags & 0x0002) == 0;
             }
 
