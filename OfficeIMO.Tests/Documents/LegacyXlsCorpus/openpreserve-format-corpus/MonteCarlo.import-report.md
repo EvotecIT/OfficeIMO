@@ -1227,6 +1227,37 @@ Warnings: 0
 | SeriesIndex:3 | 4 |
 | SeriesIndex:4 | 4 |
 
+## Chart DataFormat Point Indexes
+
+| Key | Count |
+| --- | --- |
+| PointIndex:0 | 8 |
+| PointIndex:18 | 6 |
+| PointIndex:65535 | 26 |
+
+## Chart DataFormat Orders
+
+| Key | Count |
+| --- | --- |
+| Order:0 | 8 |
+| Order:1 | 12 |
+| Order:2 | 4 |
+| Order:3 | 4 |
+| Order:4 | 4 |
+| Order:65533 | 8 |
+
+## Chart DataFormat States
+
+| Key | Count |
+| --- | --- |
+| Target:Point;PointIndex:0;SeriesIndex:0;Order:65533 | 8 |
+| Target:Point;PointIndex:18;SeriesIndex:1;Order:1 | 6 |
+| Target:Series;PointIndex:65535;SeriesIndex:0;Order:0 | 8 |
+| Target:Series;PointIndex:65535;SeriesIndex:1;Order:1 | 6 |
+| Target:Series;PointIndex:65535;SeriesIndex:2;Order:2 | 4 |
+| Target:Series;PointIndex:65535;SeriesIndex:3;Order:3 | 4 |
+| Target:Series;PointIndex:65535;SeriesIndex:4;Order:4 | 4 |
+
 ## Chart Font Indexes
 
 | Key | Count |

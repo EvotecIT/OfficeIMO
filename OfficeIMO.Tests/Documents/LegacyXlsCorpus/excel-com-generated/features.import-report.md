@@ -1421,6 +1421,24 @@ Warnings: 0
 | --- | --- |
 | SeriesIndex:0 | 1 |
 
+## Chart DataFormat Point Indexes
+
+| Key | Count |
+| --- | --- |
+| PointIndex:65535 | 1 |
+
+## Chart DataFormat Orders
+
+| Key | Count |
+| --- | --- |
+| Order:0 | 1 |
+
+## Chart DataFormat States
+
+| Key | Count |
+| --- | --- |
+| Target:Series;PointIndex:65535;SeriesIndex:0;Order:0 | 1 |
+
 ## Chart Font Indexes
 
 | Key | Count |

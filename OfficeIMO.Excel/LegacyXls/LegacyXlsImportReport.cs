@@ -791,6 +791,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartDataFormatSeriesIndexes = CountByCode(workbook.ChartRecords
                 .Where(record => record.DataFormatSeriesIndex.HasValue)
                 .Select(record => $"SeriesIndex:{record.DataFormatSeriesIndex!.Value}"));
+            ChartDataFormatPointIndexes = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataFormatPointIndex.HasValue)
+                .Select(record => $"PointIndex:{record.DataFormatPointIndex!.Value}"));
+            ChartDataFormatOrders = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataFormatOrder.HasValue)
+                .Select(record => $"Order:{record.DataFormatOrder!.Value}"));
+            ChartDataFormatStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataFormatPointIndex.HasValue
+                    || record.DataFormatSeriesIndex.HasValue
+                    || record.DataFormatOrder.HasValue
+                    || !string.IsNullOrWhiteSpace(record.DataFormatTarget))
+                .Select(GetChartDataFormatStateKey));
             ChartNumberFormatIds = CountByCode(workbook.ChartRecords
                 .Where(record => record.NumberFormatId.HasValue)
                 .Select(record => $"NumberFormatId:{record.NumberFormatId!.Value}"));
@@ -2469,6 +2481,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets DataFormat records grouped by raw series index.</summary>
         public IReadOnlyDictionary<string, int> ChartDataFormatSeriesIndexes { get; }
 
+        /// <summary>Gets DataFormat records grouped by raw point index.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataFormatPointIndexes { get; }
+
+        /// <summary>Gets DataFormat records grouped by raw chart-format order.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataFormatOrders { get; }
+
+        /// <summary>Gets DataFormat records grouped by target, point, series, and order.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataFormatStates { get; }
+
         /// <summary>Gets IFmtRecord records grouped by raw number format identifier.</summary>
         public IReadOnlyDictionary<string, int> ChartNumberFormatIds { get; }
 
@@ -3451,6 +3472,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart DataSource States", ChartDataSourceStates);
             AppendDictionary(builder, "Chart DataFormat Targets", ChartDataFormatTargets);
             AppendDictionary(builder, "Chart DataFormat Series Indexes", ChartDataFormatSeriesIndexes);
+            AppendDictionary(builder, "Chart DataFormat Point Indexes", ChartDataFormatPointIndexes);
+            AppendDictionary(builder, "Chart DataFormat Orders", ChartDataFormatOrders);
+            AppendDictionary(builder, "Chart DataFormat States", ChartDataFormatStates);
             AppendDictionary(builder, "Chart Number Format Ids", ChartNumberFormatIds);
             AppendDictionary(builder, "Chart Font Indexes", ChartFontIndexes);
             AppendDictionary(builder, "Chart DataTable Options", ChartDataTableOptions);
@@ -4191,6 +4215,10 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartAttachedLabelStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartAttachedLabel attachedLabel = record.AttachedLabel!;
             return $"ShowValue:{attachedLabel.ShowValue};ShowPercent:{attachedLabel.ShowPercent};ShowLabelAndPercent:{attachedLabel.ShowLabelAndPercent};ShowLabel:{attachedLabel.ShowLabel};ShowBubbleSizes:{attachedLabel.ShowBubbleSizes};ShowSeriesName:{attachedLabel.ShowSeriesName}";
+        }
+
+        private static string GetChartDataFormatStateKey(LegacyXlsChartRecord record) {
+            return $"Target:{record.DataFormatTarget ?? "Unknown"};PointIndex:{record.DataFormatPointIndex?.ToString(CultureInfo.InvariantCulture) ?? "Missing"};SeriesIndex:{record.DataFormatSeriesIndex?.ToString(CultureInfo.InvariantCulture) ?? "Missing"};Order:{record.DataFormatOrder?.ToString(CultureInfo.InvariantCulture) ?? "Missing"}";
         }
 
         private static string GetChartSeriesFormatStateKey(LegacyXlsChartRecord record) {

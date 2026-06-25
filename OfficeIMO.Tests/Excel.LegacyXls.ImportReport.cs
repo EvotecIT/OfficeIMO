@@ -1161,6 +1161,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.FormulaTokensByName["PtgArea"]);
             Assert.Equal(1, report.ChartDataFormatTargets["Series"]);
             Assert.Equal(1, report.ChartDataFormatSeriesIndexes["SeriesIndex:2"]);
+            Assert.Equal(1, report.ChartDataFormatPointIndexes["PointIndex:65535"]);
+            Assert.Equal(1, report.ChartDataFormatOrders["Order:1"]);
+            Assert.Equal(1, report.ChartDataFormatStates["Target:Series;PointIndex:65535;SeriesIndex:2;Order:1"]);
             Assert.Equal(1, report.ChartNumberFormatIds["NumberFormatId:14"]);
             Assert.Equal(1, report.ChartFontIndexes["FontIndex:3"]);
             Assert.Equal(1, report.ChartDataTableOptions["HorizontalBorders:True;VerticalBorders:False;Outline:True;SeriesKeys:True"]);
@@ -1366,6 +1369,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Chart DataSource States", markdown);
             Assert.Contains("Chart DataFormat Targets", markdown);
             Assert.Contains("Chart DataFormat Series Indexes", markdown);
+            Assert.Contains("Chart DataFormat Point Indexes", markdown);
+            Assert.Contains("Chart DataFormat Orders", markdown);
+            Assert.Contains("Chart DataFormat States", markdown);
             Assert.Contains("Chart Number Format Ids", markdown);
             Assert.Contains("Chart Font Indexes", markdown);
             Assert.Contains("Chart DataTable Options", markdown);
