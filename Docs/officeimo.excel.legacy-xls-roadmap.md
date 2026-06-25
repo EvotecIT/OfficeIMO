@@ -19,6 +19,21 @@ OLE compound file
 The parser owns binary format details. The legacy model owns workbook concepts. The
 projector owns mapping decisions into OfficeIMO's Open XML workbook model.
 
+## Current Public API Shape
+
+Legacy `.xls` import is currently explicit. Callers use
+`ExcelDocument.LoadLegacyXls(...)` when they want the projected `ExcelDocument`,
+or `ExcelDocument.LoadLegacyXlsWithReport(...)` when they also want the parsed
+legacy workbook, diagnostics, and import report. Normal `ExcelDocument.Load(...)`
+continues to mean Open XML workbook loading.
+
+That explicit surface is intentional for the current preview-quality import
+phase: it makes `.xls` conversion visible, keeps unsupported/preserve-only
+features easy to inspect, and avoids silently implying full `.xls` edit/save
+support. A future convenience API can be considered after the import model,
+diagnostics, and user expectations are settled, but native `.xls` save remains
+out of scope for this roadmap.
+
 ## Phase 1 - Foundation
 
 - Detect true OLE compound `.xls` files and locate the `Workbook` or `Book` stream.
