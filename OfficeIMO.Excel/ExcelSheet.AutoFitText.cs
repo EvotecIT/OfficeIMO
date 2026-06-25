@@ -128,7 +128,7 @@ namespace OfficeIMO.Excel {
         }
 
         private string? GetNumberFormatCodeCore(uint numberFormatId, AutoFitTextContext? context) {
-            string? builtIn = GetBuiltInNumberFormatCode(numberFormatId);
+            string? builtIn = ExcelBuiltInNumberFormats.GetCode(numberFormatId);
             if (builtIn != null) {
                 return builtIn;
             }
@@ -149,37 +149,6 @@ namespace OfficeIMO.Excel {
             }
 
             return null;
-        }
-
-        private static string? GetBuiltInNumberFormatCode(uint id) {
-            switch (id) {
-                case 0: return "General";
-                case 1: return "0";
-                case 2: return "0.00";
-                case 3: return "#,##0";
-                case 4: return "#,##0.00";
-                case 9: return "0%";
-                case 10: return "0.00%";
-                case 11: return "0.00E+00";
-                case 14: return "m/d/yyyy";
-                case 15: return "d-mmm-yy";
-                case 16: return "d-mmm";
-                case 17: return "mmm-yy";
-                case 18: return "h:mm AM/PM";
-                case 19: return "h:mm:ss AM/PM";
-                case 20: return "h:mm";
-                case 21: return "h:mm:ss";
-                case 22: return "m/d/yyyy h:mm";
-                case 37: return "#,##0;(#,##0)";
-                case 38: return "#,##0;[Red](#,##0)";
-                case 39: return "#,##0.00;(#,##0.00)";
-                case 40: return "#,##0.00;[Red](#,##0.00)";
-                case 45: return "mm:ss";
-                case 46: return "[h]:mm:ss";
-                case 47: return "mm:ss.0";
-                case 49: return "@";
-                default: return null;
-            }
         }
 
         private static bool TryGetSharedStringIndex(Cell cell, out int id) {

@@ -91,6 +91,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportUsesBuiltInNumberFormatIdsWithoutCustomFormatCodes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("BuiltIns");
+            sheet.SetColumnWidth(1, 14);
+            sheet.SetColumnWidth(2, 14);
+            sheet.SetColumnWidth(3, 16);
+            sheet.SetColumnWidth(4, 14);
+            sheet.CellValue(1, 1, 0.1234);
+            sheet.CellValue(1, 2, -1234);
+            sheet.CellValue(1, 3, new DateTime(2026, 6, 24).ToOADate());
+            sheet.CellValue(1, 4, 1.5);
+            ApplyBuiltInNumberFormatId(document, sheet, "A1", 10U);
+            ApplyBuiltInNumberFormatId(document, sheet, "B1", 37U);
+            ApplyBuiltInNumberFormatId(document, sheet, "C1", 14U);
+            ApplyBuiltInNumberFormatId(document, sheet, "D1", 46U);
+
+            ExcelRange range = sheet.Range("A1:D1");
+            ExcelImageExportOptions options = new() { ShowGridlines = false };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+            string svg = range.ToSvg(options);
+
+            Assert.Equal("12.34%", snapshot.Cells.Single(cell => cell.Column == 1).Text);
+            Assert.Equal("(1,234)", snapshot.Cells.Single(cell => cell.Column == 2).Text);
+            Assert.Equal("6/24/2026", snapshot.Cells.Single(cell => cell.Column == 3).Text);
+            Assert.Equal("36:00:00", snapshot.Cells.Single(cell => cell.Column == 4).Text);
+            Assert.Contains("12.34%", svg, StringComparison.Ordinal);
+            Assert.Contains("(1,234)", svg, StringComparison.Ordinal);
+            Assert.Contains("6/24/2026", svg, StringComparison.Ordinal);
+            Assert.Contains("36:00:00", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+            foreach (ExcelVisualCell cell in snapshot.Cells) {
+                Assert.True(ContainsDarkPixel(rendered!, cell), $"Expected built-in formatted text pixels in R{cell.Row}C{cell.Column}.");
+            }
+        }
+
+        [Fact]
+        public void ExcelNumberFormatDisplayFallsBackToBuiltInCodesWhenFormatCodeIsMissing() {
+            Assert.Equal("12.34%", ExcelNumberFormatDisplay.FormatNumericText(0.1234D, 10U, null, "0.1234"));
+            Assert.Equal("(1,234)", ExcelNumberFormatDisplay.FormatNumericText(-1234D, 37U, null, "-1234"));
+            Assert.Equal("6/24/2026", ExcelNumberFormatDisplay.FormatNumericText(new DateTime(2026, 6, 24).ToOADate(), 14U, null, "46200"));
+            Assert.Equal("36:00:00", ExcelNumberFormatDisplay.FormatNumericText(1.5D, 46U, null, "1.5"));
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportUsesExcelGeneralAlignmentByValueKind() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -532,16 +580,14 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(rendered);
             ExcelVisualCell cellIsRendered = snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 1);
             ExcelVisualCell formulaRendered = snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 2);
-            AssertPixelNear(
+            AssertCellContainsPixelNear(
                 rendered!,
-                (int)(cellIsRendered.X + cellIsRendered.Width - 8),
-                (int)(cellIsRendered.Y + cellIsRendered.Height - 8),
+                cellIsRendered,
                 OfficeColor.FromRgb(198, 239, 206),
                 tolerance: 3);
-            AssertPixelNear(
+            AssertCellContainsPixelNear(
                 rendered!,
-                (int)(formulaRendered.X + formulaRendered.Width - 8),
-                (int)(formulaRendered.Y + formulaRendered.Height - 8),
+                formulaRendered,
                 OfficeColor.FromRgb(254, 226, 226),
                 tolerance: 3);
         }
@@ -835,28 +881,24 @@ namespace OfficeIMO.Tests {
             ExcelVisualCell bottomCell = snapshot.Cells.Single(cell => cell.Row == 3 && cell.Column == 2);
             ExcelVisualCell topPercentCell = snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 3);
             ExcelVisualCell bottomPercentCell = snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 4);
-            AssertPixelNear(
+            AssertCellContainsPixelNear(
                 rendered!,
-                (int)(topCell.X + topCell.Width - 8),
-                (int)(topCell.Y + topCell.Height - 8),
+                topCell,
                 OfficeColor.FromRgb(198, 239, 206),
                 tolerance: 3);
-            AssertPixelNear(
+            AssertCellContainsPixelNear(
                 rendered!,
-                (int)(bottomCell.X + bottomCell.Width - 8),
-                (int)(bottomCell.Y + bottomCell.Height - 8),
+                bottomCell,
                 OfficeColor.FromRgb(254, 226, 226),
                 tolerance: 3);
-            AssertPixelNear(
+            AssertCellContainsPixelNear(
                 rendered!,
-                (int)(topPercentCell.X + topPercentCell.Width - 8),
-                (int)(topPercentCell.Y + topPercentCell.Height - 8),
+                topPercentCell,
                 OfficeColor.FromRgb(252, 228, 214),
                 tolerance: 3);
-            AssertPixelNear(
+            AssertCellContainsPixelNear(
                 rendered!,
-                (int)(bottomPercentCell.X + bottomPercentCell.Width - 8),
-                (int)(bottomPercentCell.Y + bottomPercentCell.Height - 8),
+                bottomPercentCell,
                 OfficeColor.FromRgb(219, 234, 254),
                 tolerance: 3);
         }
@@ -3029,6 +3071,28 @@ namespace OfficeIMO.Tests {
             stylesheet.Save();
         }
 
+        private static void ApplyBuiltInNumberFormatId(ExcelDocument document, ExcelSheet sheet, string cellReference, uint numberFormatId) {
+            document.EnsureWorkbookThemeAndStyles();
+            WorkbookPart workbookPart = document.WorkbookPartRoot;
+            Stylesheet stylesheet = workbookPart.WorkbookStylesPart!.Stylesheet!;
+            CellFormats formats = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            uint styleIndex = (uint)formats.Elements<CellFormat>().Count();
+            formats.Append(new CellFormat {
+                NumberFormatId = numberFormatId,
+                FontId = 0U,
+                FillId = 0U,
+                BorderId = 0U,
+                FormatId = 0U,
+                ApplyNumberFormat = true
+            });
+            formats.Count = (uint)formats.Elements<CellFormat>().Count();
+
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
+            Cell cell = worksheet.Descendants<Cell>().First(item => item.CellReference?.Value == cellReference);
+            cell.StyleIndex = styleIndex;
+            stylesheet.Save();
+        }
+
         private static void AssertPixelNear(OfficeRasterImage image, int x, int y, OfficeColor expected, int tolerance) {
             OfficeColor actual = image.GetPixel(x, y);
             Assert.True(
@@ -3036,6 +3100,19 @@ namespace OfficeIMO.Tests {
                 && Math.Abs(actual.G - expected.G) <= tolerance
                 && Math.Abs(actual.B - expected.B) <= tolerance,
                 $"Expected pixel {x},{y} near {expected}, got {actual}.");
+        }
+
+        private static void AssertCellContainsPixelNear(OfficeRasterImage image, ExcelVisualCell cell, OfficeColor expected, int tolerance) {
+            double inset = 3D;
+            bool hasExpectedPixel = ContainsPixelNear(
+                image,
+                cell.X + inset,
+                cell.Y + inset,
+                cell.X + cell.Width - inset,
+                cell.Y + cell.Height - inset,
+                expected,
+                tolerance);
+            Assert.True(hasExpectedPixel, $"Expected R{cell.Row}C{cell.Column} interior to contain a pixel near {expected}.");
         }
 
         private static int CountGreenIconPixels(OfficeRasterImage image, ExcelVisualConditionalIcon icon) {

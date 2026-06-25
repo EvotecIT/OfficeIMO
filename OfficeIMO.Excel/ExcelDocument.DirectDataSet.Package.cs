@@ -582,7 +582,7 @@ namespace OfficeIMO.Excel {
                 .FirstOrDefault(format => format.NumberFormatId?.Value == numberFormatId)
                 ?.FormatCode
                 ?.Value;
-            numberFormat = customFormat ?? ResolveBuiltInNumberFormatCode(numberFormatId);
+            numberFormat = customFormat ?? ExcelBuiltInNumberFormats.GetCode(numberFormatId);
             return numberFormat != null;
         }
 
@@ -603,39 +603,6 @@ namespace OfficeIMO.Excel {
             }
 
             return false;
-        }
-
-        private static string? ResolveBuiltInNumberFormatCode(uint numberFormatId) {
-            return numberFormatId switch {
-                1U => "0",
-                2U => "0.00",
-                3U => "#,##0",
-                4U => "#,##0.00",
-                9U => "0%",
-                10U => "0.00%",
-                11U => "0.00E+00",
-                12U => "# ?/?",
-                13U => "# ??/??",
-                14U => "mm-dd-yy",
-                15U => "d-mmm-yy",
-                16U => "d-mmm",
-                17U => "mmm-yy",
-                18U => "h:mm AM/PM",
-                19U => "h:mm:ss AM/PM",
-                20U => "h:mm",
-                21U => "h:mm:ss",
-                22U => "m/d/yy h:mm",
-                37U => "#,##0 ;(#,##0)",
-                38U => "#,##0 ;[Red](#,##0)",
-                39U => "#,##0.00;(#,##0.00)",
-                40U => "#,##0.00;[Red](#,##0.00)",
-                45U => "mm:ss",
-                46U => "[h]:mm:ss",
-                47U => "mmss.0",
-                48U => "##0.0E+0",
-                49U => "@",
-                _ => null
-            };
         }
 
         private static bool TryGetCellCoordinates(Cell cell, int fallbackRow, int fallbackColumn, out int row, out int column) {

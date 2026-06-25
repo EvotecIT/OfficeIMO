@@ -189,12 +189,11 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return GetBuiltInNumberFormatCode(numberFormatId);
+            return ExcelBuiltInNumberFormats.GetCode(numberFormatId);
         }
 
         private static bool IsBuiltInDate(uint numberFormatId) =>
-            numberFormatId is 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22
-                or 27 or 30 or 36 or 45 or 46 or 47;
+            ExcelBuiltInNumberFormats.IsDate(numberFormatId);
 
     }
 }

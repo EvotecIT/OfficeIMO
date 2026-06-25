@@ -13,20 +13,26 @@ namespace OfficeIMO.Excel {
                 return fallback;
             }
 
+            formatCode = ResolveFormatCode(numberFormatId, formatCode);
             if (string.IsNullOrWhiteSpace(formatCode) || string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase)) {
                 return fallback;
             }
 
             if (IsDateNumberFormat(numberFormatId, formatCode)) {
-                return FormatDateValue(value, numberFormatId, formatCode!, dateSystem);
+                return FormatDateValue(value, numberFormatId, formatCode, dateSystem);
             }
 
-            return FormatNumberValue(value, numberFormatId, formatCode!) ?? fallback;
+            return FormatNumberValue(value, numberFormatId, formatCode) ?? fallback;
         }
 
         internal static bool IsDateNumberFormat(uint numberFormatId, string? formatCode)
-            => numberFormatId is 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22 or 45 or 46 or 47
+            => ExcelBuiltInNumberFormats.IsDate(numberFormatId)
             || ExcelNumberFormatClassifier.LooksLikeDateFormat(formatCode);
+
+        private static string? ResolveFormatCode(uint numberFormatId, string? formatCode) =>
+            string.IsNullOrWhiteSpace(formatCode)
+                ? ExcelBuiltInNumberFormats.GetCode(numberFormatId)
+                : formatCode;
 
         internal static bool TryGetDateSample(uint numberFormatId, string? formatCode, out string sample) {
             sample = string.Empty;
