@@ -2294,6 +2294,50 @@ Warnings: 0
 | ShapePropsStream\|StreamBytes:12 | 1 |
 | TextPropsStream\|StreamBytes:20 | 16 |
 
+## Drawing Text Object Alignments
+
+| Key | Count |
+| --- | --- |
+| Horizontal:Center;Vertical:Middle | 1 |
+| Horizontal:Left;Vertical:Middle | 1 |
+| Horizontal:Left;Vertical:Top | 2 |
+
+## Drawing Text Object Rotations
+
+| Key | Count |
+| --- | --- |
+| None | 4 |
+
+## Drawing Text Object Text Lengths
+
+| Key | Count |
+| --- | --- |
+| Characters:6 | 1 |
+| Characters:8 | 2 |
+| Characters:9 | 1 |
+
+## Drawing Text Object Formatting Run Byte Counts
+
+| Key | Count |
+| --- | --- |
+| RunBytes:16 | 4 |
+
+## Drawing Text Object Formula Byte Counts
+
+| Key | Count |
+| --- | --- |
+| FormulaBytes:2 | 4 |
+
+## Drawing Text Object Flags
+
+| Key | Count |
+| --- | --- |
+| FormattingRunsInContinueRecords:Present | 4 |
+| JustifyLastLine:False | 4 |
+| LockedText:True | 4 |
+| SecretEdit:False | 4 |
+| TextInContinueRecords:Present | 4 |
+
 ## Drawing Records By Escher Record Type
 
 | Key | Count |

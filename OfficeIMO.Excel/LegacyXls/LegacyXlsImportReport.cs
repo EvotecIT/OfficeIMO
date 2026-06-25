@@ -1098,6 +1098,24 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingFutureRecordStreamByteCounts = CountByCode(workbook.DrawingRecords
                 .Where(record => record.FutureRecordHeader != null)
                 .Select(record => $"{record.RecordName}|StreamBytes:{record.FutureRecordHeader!.StreamByteCount}"));
+            DrawingTextObjectAlignments = CountByCode(workbook.DrawingRecords
+                .Where(record => record.TextObject != null)
+                .Select(record => $"Horizontal:{record.TextObject!.HorizontalAlignmentName};Vertical:{record.TextObject.VerticalAlignmentName}"));
+            DrawingTextObjectRotations = CountByCode(workbook.DrawingRecords
+                .Where(record => record.TextObject != null)
+                .Select(record => record.TextObject!.RotationName));
+            DrawingTextObjectTextLengths = CountByCode(workbook.DrawingRecords
+                .Where(record => record.TextObject != null)
+                .Select(record => $"Characters:{record.TextObject!.TextCharacterCount}"));
+            DrawingTextObjectFormattingRunByteCounts = CountByCode(workbook.DrawingRecords
+                .Where(record => record.TextObject != null)
+                .Select(record => $"RunBytes:{record.TextObject!.FormattingRunByteCount}"));
+            DrawingTextObjectFormulaByteCounts = CountByCode(workbook.DrawingRecords
+                .Where(record => record.TextObject != null)
+                .Select(record => $"FormulaBytes:{record.TextObject!.FormulaByteCount}"));
+            DrawingTextObjectFlags = CountByCode(workbook.DrawingRecords
+                .Where(record => record.TextObject != null)
+                .SelectMany(record => GetDrawingTextObjectFlagKeys(record.TextObject!)));
             DrawingRecordsByEscherRecordType = CountByCode(workbook.DrawingRecords
                 .Where(record => record.EscherRecordType.HasValue)
                 .Select(record => $"EscherRecordType:0x{record.EscherRecordType!.Value:X4}"));
@@ -2787,6 +2805,24 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets drawing future-record streams grouped by remaining stream byte count.</summary>
         public IReadOnlyDictionary<string, int> DrawingFutureRecordStreamByteCounts { get; }
 
+        /// <summary>Gets TxO text-object records grouped by decoded horizontal and vertical alignment.</summary>
+        public IReadOnlyDictionary<string, int> DrawingTextObjectAlignments { get; }
+
+        /// <summary>Gets TxO text-object records grouped by decoded rotation.</summary>
+        public IReadOnlyDictionary<string, int> DrawingTextObjectRotations { get; }
+
+        /// <summary>Gets TxO text-object records grouped by declared text character count.</summary>
+        public IReadOnlyDictionary<string, int> DrawingTextObjectTextLengths { get; }
+
+        /// <summary>Gets TxO text-object records grouped by declared formatting-run byte count.</summary>
+        public IReadOnlyDictionary<string, int> DrawingTextObjectFormattingRunByteCounts { get; }
+
+        /// <summary>Gets TxO text-object records grouped by optional formula byte count.</summary>
+        public IReadOnlyDictionary<string, int> DrawingTextObjectFormulaByteCounts { get; }
+
+        /// <summary>Gets TxO text-object records grouped by decoded flag state.</summary>
+        public IReadOnlyDictionary<string, int> DrawingTextObjectFlags { get; }
+
         /// <summary>Gets MsoDrawing records grouped by decoded top-level Escher record type.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByEscherRecordType { get; }
 
@@ -3577,6 +3613,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Future Record Reference States", DrawingFutureRecordReferenceStates);
             AppendDictionary(builder, "Drawing Future Record Ranges", DrawingFutureRecordRanges);
             AppendDictionary(builder, "Drawing Future Record Stream Byte Counts", DrawingFutureRecordStreamByteCounts);
+            AppendDictionary(builder, "Drawing Text Object Alignments", DrawingTextObjectAlignments);
+            AppendDictionary(builder, "Drawing Text Object Rotations", DrawingTextObjectRotations);
+            AppendDictionary(builder, "Drawing Text Object Text Lengths", DrawingTextObjectTextLengths);
+            AppendDictionary(builder, "Drawing Text Object Formatting Run Byte Counts", DrawingTextObjectFormattingRunByteCounts);
+            AppendDictionary(builder, "Drawing Text Object Formula Byte Counts", DrawingTextObjectFormulaByteCounts);
+            AppendDictionary(builder, "Drawing Text Object Flags", DrawingTextObjectFlags);
             AppendDictionary(builder, "Drawing Records By Escher Record Type", DrawingRecordsByEscherRecordType);
             AppendDictionary(builder, "Drawing Records By Escher Record Type Name", DrawingRecordsByEscherRecordTypeName);
             AppendDictionary(builder, "Drawing OfficeArt Records By Type", DrawingOfficeArtRecordsByType);
@@ -4265,6 +4307,14 @@ namespace OfficeIMO.Excel.LegacyXls {
             string start = A1.CellReference(header.FirstRow!.Value + 1, header.FirstColumn!.Value + 1);
             string end = A1.CellReference(header.LastRow!.Value + 1, header.LastColumn!.Value + 1);
             return $"{record.RecordName}|{start}:{end}";
+        }
+
+        private static IEnumerable<string> GetDrawingTextObjectFlagKeys(LegacyXlsDrawingTextObject textObject) {
+            yield return $"TextInContinueRecords:{GetPresenceKey(textObject.HasTextInContinueRecords)}";
+            yield return $"FormattingRunsInContinueRecords:{GetPresenceKey(textObject.HasFormattingRunsInContinueRecords)}";
+            yield return $"LockedText:{textObject.LockedText}";
+            yield return $"JustifyLastLine:{textObject.JustifyLastLine}";
+            yield return $"SecretEdit:{textObject.SecretEdit}";
         }
 
         private static string GetDrawingAnchorRangeKey(LegacyXlsDrawingAnchor anchor) {

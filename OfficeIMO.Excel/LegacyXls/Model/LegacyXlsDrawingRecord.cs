@@ -31,7 +31,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             IReadOnlyList<LegacyXlsDrawingGroupInfo>? drawingGroupInfos = null,
             IReadOnlyList<LegacyXlsDrawingShapeProperty>? shapeProperties = null,
             IReadOnlyList<LegacyXlsDrawingObjectSubRecord>? objectSubRecords = null,
-            LegacyXlsDrawingFutureRecordHeader? futureRecordHeader = null) {
+            LegacyXlsDrawingFutureRecordHeader? futureRecordHeader = null,
+            LegacyXlsDrawingTextObject? textObject = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -64,6 +65,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ShapeProperties = shapeProperties?.ToArray() ?? Array.Empty<LegacyXlsDrawingShapeProperty>();
             ObjectSubRecords = objectSubRecords?.ToArray() ?? Array.Empty<LegacyXlsDrawingObjectSubRecord>();
             FutureRecordHeader = futureRecordHeader;
+            TextObject = textObject;
         }
 
         /// <summary>Gets the shallow drawing record category.</summary>
@@ -113,6 +115,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets whether this drawing record has a decoded future-record stream header.</summary>
         public bool HasFutureRecordHeader => FutureRecordHeader != null;
+
+        /// <summary>Gets decoded TxO text-object header metadata, when this record is a TxO record.</summary>
+        public LegacyXlsDrawingTextObject? TextObject { get; }
+
+        /// <summary>Gets whether this record has decoded TxO text-object header metadata.</summary>
+        public bool HasTextObject => TextObject != null;
 
         /// <summary>Gets whether the object is locked.</summary>
         public bool IsObjectLocked => HasObjectFlag(0x0001);

@@ -459,6 +459,27 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "Locked", "DefaultSize", "Printable", "Disabled", "UiObject", "RecalculateOnLoad", "AlwaysRecalculate" }, record.ObjectFlagNames);
         }
 
+        [Fact]
+        public void LegacyXlsDrawingTextObject_DecodesAlignmentRotationAndFlags() {
+            var textObject = new LegacyXlsDrawingTextObject(
+                0xc212,
+                rotation: 2,
+                textCharacterCount: 19,
+                formattingRunByteCount: 16,
+                emptyFontIndex: 0,
+                formulaByteCount: 4);
+
+            Assert.Equal("Left", textObject.HorizontalAlignmentName);
+            Assert.Equal("Top", textObject.VerticalAlignmentName);
+            Assert.Equal("RotatedCounterClockwise90", textObject.RotationName);
+            Assert.True(textObject.LockedText);
+            Assert.True(textObject.JustifyLastLine);
+            Assert.True(textObject.SecretEdit);
+            Assert.True(textObject.HasTextInContinueRecords);
+            Assert.True(textObject.HasFormattingRunsInContinueRecords);
+            Assert.Equal(4, textObject.FormulaByteCount);
+        }
+
         [Theory]
         [InlineData(0xF000, LegacyXlsDrawingEscherRecordType.OfficeArtDggContainer, "OfficeArtDggContainer")]
         [InlineData(0xF002, LegacyXlsDrawingEscherRecordType.OfficeArtDgContainer, "OfficeArtDgContainer")]
@@ -1212,7 +1233,24 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingRecordCount);
             Assert.Equal(1, report.DrawingRecordsByKind[LegacyXlsDrawingRecordKind.TextObject]);
             Assert.Equal(1, report.DrawingRecordsByName["TxO"]);
+            Assert.Equal(1, report.DrawingTextObjectAlignments["Horizontal:Unknown:0;Vertical:Unknown:0"]);
+            Assert.Equal(1, report.DrawingTextObjectRotations["None"]);
+            Assert.Equal(1, report.DrawingTextObjectTextLengths["Characters:0"]);
+            Assert.Equal(1, report.DrawingTextObjectFormattingRunByteCounts["RunBytes:0"]);
+            Assert.Equal(1, report.DrawingTextObjectFormulaByteCounts["FormulaBytes:2"]);
+            Assert.Equal(1, report.DrawingTextObjectFlags["TextInContinueRecords:Missing"]);
+            Assert.Equal(1, report.DrawingTextObjectFlags["FormattingRunsInContinueRecords:Missing"]);
+            Assert.Equal(1, report.DrawingTextObjectFlags["LockedText:False"]);
+            Assert.Equal(1, report.DrawingTextObjectFlags["JustifyLastLine:False"]);
+            Assert.Equal(1, report.DrawingTextObjectFlags["SecretEdit:False"]);
             Assert.Equal(1, report.DrawingRecordsByLocation["ChartOnly"]);
+            LegacyXlsDrawingRecord textObjectRecord = Assert.Single(workbook.DrawingRecords, record => record.RecordName == "TxO");
+            Assert.NotNull(textObjectRecord.TextObject);
+            Assert.Equal((ushort)0, textObjectRecord.TextObject!.RawOptions);
+            Assert.Equal("Unknown:0", textObjectRecord.TextObject.HorizontalAlignmentName);
+            Assert.Equal("Unknown:0", textObjectRecord.TextObject.VerticalAlignmentName);
+            Assert.Equal("None", textObjectRecord.TextObject.RotationName);
+            Assert.Equal(2, textObjectRecord.TextObject.FormulaByteCount);
             Assert.Equal(43, report.UnsupportedFeaturesByLocation["XLS-BIFF-FEATURE-CHART-UNSUPPORTED|ChartOnly"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Begin"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ChartFrtInfo"]);

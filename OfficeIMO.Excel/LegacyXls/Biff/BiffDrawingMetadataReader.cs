@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadObjectCommonData(record, out ushort? objectType, out ushort? objectId, out ushort? objectFlags);
             IReadOnlyList<LegacyXlsDrawingObjectSubRecord> objectSubRecords = ReadObjectSubRecords(record);
             LegacyXlsDrawingFutureRecordHeader? futureRecordHeader = TryReadFutureRecordHeader(record);
+            LegacyXlsDrawingTextObject? textObject = TryReadTextObject(record);
             TryReadEscherHeader(record, out ushort? escherRecordType, out ushort? escherRecordInstance, out byte? escherRecordVersion, out uint? escherPayloadLength);
             ReadOfficeArtMetadata(
                 record,
@@ -48,7 +49,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 drawingGroupInfos: drawingGroupInfos,
                 shapeProperties: shapeProperties,
                 objectSubRecords: objectSubRecords,
-                futureRecordHeader: futureRecordHeader));
+                futureRecordHeader: futureRecordHeader,
+                textObject: textObject));
             return true;
         }
 
@@ -490,6 +492,26 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 firstColumn,
                 lastColumn,
                 Math.Max(0, payload.Length - headerLength));
+        }
+
+        private static LegacyXlsDrawingTextObject? TryReadTextObject(BiffRecord record) {
+            if (record.Type != (ushort)BiffRecordType.Txo || record.Payload.Length < 16) {
+                return null;
+            }
+
+            byte[] payload = record.Payload;
+            ushort options = BiffRecordReader.ReadUInt16(payload, 0);
+            ushort rotation = BiffRecordReader.ReadUInt16(payload, 2);
+            ushort textCharacterCount = BiffRecordReader.ReadUInt16(payload, 10);
+            ushort formattingRunByteCount = BiffRecordReader.ReadUInt16(payload, 12);
+            ushort emptyFontIndex = BiffRecordReader.ReadUInt16(payload, 14);
+            return new LegacyXlsDrawingTextObject(
+                options,
+                rotation,
+                textCharacterCount,
+                formattingRunByteCount,
+                emptyFontIndex,
+                payload.Length - 16);
         }
 
         private static IReadOnlyList<LegacyXlsDrawingObjectSubRecord> ReadObjectSubRecords(BiffRecord record) {
