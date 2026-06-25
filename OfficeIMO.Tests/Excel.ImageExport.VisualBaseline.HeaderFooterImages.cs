@@ -20,9 +20,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("HeaderFooterImages!A3:D4", png.Source);
             Assert.Equal("HeaderFooterImages!A3:D4", svg.Source);
             Assert.Equal(1056, png.Width);
-            Assert.Equal(816, png.Height);
+            Assert.Equal(888, png.Height);
             Assert.Equal(1056, svg.Width);
-            Assert.Equal(816, svg.Height);
+            Assert.Equal(888, svg.Height);
             Assert.Contains(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation);
             Assert.Contains(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation);
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
 
             OfficeRasterImage image = VisualBaselineTestSupport.DecodePng(File.ReadAllBytes(pngPath), "Approved header/footer image PNG baseline is not a supported PNG file.");
             Assert.Equal(1056, image.Width);
-            Assert.Equal(816, image.Height);
+            Assert.Equal(888, image.Height);
             int nonBackgroundPixels = VisualBaselineTestSupport.CountNonBackgroundPixels(image, OfficeColor.White);
             int headerLogoPixels = CountPixelsNear(image, OfficeColor.FromRgb(220, 38, 38));
             int footerLogoPixels = CountPixelsNear(image, OfficeColor.FromRgb(254, 240, 138));

@@ -24,9 +24,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("PageLayout!A3:D8", png.Source);
             Assert.Equal("PageLayout!A3:D8", svg.Source);
             Assert.Equal(1056, png.Width);
-            Assert.Equal(816, png.Height);
+            Assert.Equal(872, png.Height);
             Assert.Equal(1056, svg.Width);
-            Assert.Equal(816, svg.Height);
+            Assert.Equal(872, svg.Height);
             Assert.Contains(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ManualPageBreaksSplit);
             Assert.Contains(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ManualPageBreaksSplit);
             Assert.Contains(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation);
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.DoesNotContain(svg.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.Contains("width=\"1056\"", svgText, StringComparison.Ordinal);
-            Assert.Contains("height=\"816\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("height=\"872\"", svgText, StringComparison.Ordinal);
             Assert.Contains("Page 2 / 2 - PageLayout", svgText, StringComparison.Ordinal);
             Assert.Contains("Reviewed", svgText, StringComparison.Ordinal);
             Assert.Contains("Region", svgText, StringComparison.Ordinal);
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
 
             OfficeRasterImage image = VisualBaselineTestSupport.DecodePng(File.ReadAllBytes(pngPath), "Approved page-layout PNG baseline is not a supported PNG file.");
             Assert.Equal(1056, image.Width);
-            Assert.Equal(816, image.Height);
+            Assert.Equal(872, image.Height);
             int nonBackgroundPixels = VisualBaselineTestSupport.CountNonBackgroundPixels(image, OfficeColor.White);
             int headerPixels = CountPixelsNear(image, OfficeColor.FromRgb(15, 23, 42));
             int statusPixels = CountPixelsNear(image, OfficeColor.FromRgb(252, 228, 228));

@@ -295,7 +295,7 @@ namespace OfficeIMO.Tests {
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal("ShapeOnly!B2", drawingObject.Source);
                 Assert.Equal("Outside used range", drawingObject.Text);
-                Assert.NotEqual("ShapeOnly!A1:A1", png.Source);
+                Assert.Equal("ShapeOnly!A1:D3", png.Source);
                 Assert.Equal(png.Source, svg.Source);
                 Assert.Contains("#E0F2FE", svgText, StringComparison.Ordinal);
                 Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);

@@ -493,7 +493,28 @@ namespace OfficeIMO.Excel {
                     diagnostics.Add(diagnostic);
                 }
 
-                if (!TryGetAnchor(columnsByIndex, rowsByIndex, chartSnapshot.ColumnIndex, chartSnapshot.RowIndex, chartSnapshot.WidthPixels, chartSnapshot.HeightPixels, out double x, out double y, out double width, out double height)) {
+                if (!TryGetImageAnchor(
+                    options,
+                    firstRow,
+                    firstColumn,
+                    rowDefinitions,
+                    columnDefinitions,
+                    columnsByIndex,
+                    rowsByIndex,
+                    chartSnapshot.ColumnIndex,
+                    chartSnapshot.RowIndex,
+                    0,
+                    0,
+                    chartSnapshot.WidthPixels,
+                    chartSnapshot.HeightPixels,
+                    toColumnIndex: null,
+                    toRowIndex: null,
+                    toOffsetXPixels: 0,
+                    toOffsetYPixels: 0,
+                    out double x,
+                    out double y,
+                    out double width,
+                    out double height)) {
                     if (!options.IncludeHidden && IsHiddenAnchorInRange(chartSnapshot.RowIndex, chartSnapshot.ColumnIndex, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, columnDefinitions)) {
                         diagnostics.Add(new OfficeImageExportDiagnostic(
                             OfficeImageExportDiagnosticSeverity.Warning,

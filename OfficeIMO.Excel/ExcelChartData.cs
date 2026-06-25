@@ -26,6 +26,10 @@ namespace OfficeIMO.Excel {
                 if (item.Values.Count != count) {
                     throw new ArgumentException("Each series must match the categories count.", nameof(series));
                 }
+
+                if (item.XValues != null && item.XValues.Count != item.Values.Count) {
+                    throw new ArgumentException("Each series X values collection must match the series values count.", nameof(series));
+                }
             }
         }
 

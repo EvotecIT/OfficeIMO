@@ -7,6 +7,63 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class ExcelImageExportTests {
         [Fact]
+        public void ExcelRange_ImageExportPreservesScatterSeriesCachedXYValues() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("ScatterXY");
+            sheet.CellValue(1, 1, "X1");
+            sheet.CellValue(1, 2, "Y1");
+            sheet.CellValue(1, 3, "X2");
+            sheet.CellValue(1, 4, "Y2");
+            sheet.CellValue(2, 1, 1);
+            sheet.CellValue(3, 1, 2);
+            sheet.CellValue(2, 2, 10);
+            sheet.CellValue(3, 2, 20);
+            sheet.CellValue(2, 3, 100);
+            sheet.CellValue(3, 3, 200);
+            sheet.CellValue(2, 4, 30);
+            sheet.CellValue(3, 4, 40);
+            sheet.AddScatterChartFromRanges(
+                new[] {
+                    new ExcelChartSeriesRange("First", "A2:A3", "B2:B3"),
+                    new ExcelChartSeriesRange("Second", "C2:C3", "D2:D3")
+                },
+                row: 1,
+                column: 6,
+                widthPixels: 260,
+                heightPixels: 170,
+                title: "Scatter");
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:J10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+
+            Assert.Equal(new[] { 1D, 2D }, visualChart.Snapshot.Data.Series[0].XValues);
+            Assert.Equal(new[] { 10D, 20D }, visualChart.Snapshot.Data.Series[0].Values);
+            Assert.Equal(new[] { 100D, 200D }, visualChart.Snapshot.Data.Series[1].XValues);
+            Assert.Equal(new[] { 30D, 40D }, visualChart.Snapshot.Data.Series[1].Values);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportIncludesChartsThatOverlapSelectedRange() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("ChartOverlap");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(2, 2, 10);
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(3, 2, 20);
+            sheet.AddChartFromRange("A1:B3", row: 1, column: 1, widthPixels: 260, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Overlap");
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("B1:D8").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+
+            Assert.True(visualChart.X < 0D);
+            Assert.True(visualChart.X + visualChart.Width > 0D);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportCarriesChartBodyTextColorsIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

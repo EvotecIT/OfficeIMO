@@ -229,7 +229,7 @@ namespace OfficeIMO.Excel {
                 snapshot.Data.Series.Select(series => new OfficeChartSeries(
                     series.Name,
                     series.Values,
-                    xValues: null,
+                    series.XValues,
                     ResolveArgb(series.SeriesColorArgb),
                     ResolvePointColors(series.PointColorArgb),
                     series.ShowMarkers,

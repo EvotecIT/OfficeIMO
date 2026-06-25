@@ -21,8 +21,8 @@ namespace OfficeIMO.Excel {
                 return result;
             }
 
-            result = ApplyHeaderFooterTextChrome(format, result, options, pageNumber, pageCount);
-            return ApplyPageSetupCanvas(format, result, options);
+            result = ApplyPageSetupCanvas(format, result, options);
+            return ApplyHeaderFooterTextChrome(format, result, options, pageNumber, pageCount);
         }
 
         private OfficeImageExportResult RenderPrintTitleLayout(

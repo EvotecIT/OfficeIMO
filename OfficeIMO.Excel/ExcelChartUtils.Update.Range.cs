@@ -209,10 +209,109 @@ namespace OfficeIMO.Excel {
                     seriesType = chartType;
                 }
 
-                series.Add(new ExcelChartSeries(current.Name, current.Values, seriesType, current.AxisGroup));
+                series.Add(new ExcelChartSeries(current.Name, current.Values, seriesType, current.AxisGroup).WithXValues(current.XValues));
             }
 
             return new ExcelChartData(data.Categories, series);
+        }
+
+        internal static ExcelChartData ApplyScatterSeriesXValues(ChartPart chartPart, ExcelChartData data, ExcelSheet contextSheet) {
+            var chart = chartPart.ChartSpace?.GetFirstChild<Chart>();
+            var plotArea = chart?.GetFirstChild<PlotArea>();
+            if (plotArea == null || data.Series.Count == 0) {
+                return data;
+            }
+
+            var scatterValuesByIndex = new Dictionary<int, (IReadOnlyList<double>? XValues, IReadOnlyList<double>? YValues)>();
+            foreach (ScatterChartSeries scatterSeries in plotArea.Descendants<ScatterChartSeries>()) {
+                int index = (int)(scatterSeries.GetFirstChild<ChartIndex>()?.Val?.Value ?? uint.MaxValue);
+                if (index < 0 || index >= data.Series.Count) {
+                    continue;
+                }
+
+                NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
+                NumberReference? yReference = scatterSeries.GetFirstChild<YValues>()?.GetFirstChild<NumberReference>();
+                if (!TryReadCachedNumberValues(xReference, out IReadOnlyList<double>? xValues)) {
+                    TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out xValues);
+                }
+
+                if (!TryReadCachedNumberValues(yReference, out IReadOnlyList<double>? yValues)) {
+                    TryReadReferencedNumberValues(contextSheet, yReference?.Formula?.Text, out yValues);
+                }
+
+                if (xValues != null || yValues != null) {
+                    scatterValuesByIndex[index] = (xValues, yValues);
+                }
+            }
+
+            if (scatterValuesByIndex.Count == 0) {
+                return data;
+            }
+
+            var series = new List<ExcelChartSeries>(data.Series.Count);
+            for (int i = 0; i < data.Series.Count; i++) {
+                ExcelChartSeries current = data.Series[i];
+                if (!scatterValuesByIndex.TryGetValue(i, out var cachedValues)) {
+                    series.Add(current);
+                    continue;
+                }
+
+                IReadOnlyList<double> values = cachedValues.YValues ?? current.Values;
+                series.Add(current.WithValuesAndXValues(values, cachedValues.XValues ?? current.XValues));
+            }
+
+            return new ExcelChartData(data.Categories, series);
+        }
+
+        private static bool TryReadCachedNumberValues(NumberReference? reference, out IReadOnlyList<double>? values) {
+            values = null;
+            NumberingCache? cache = reference?.GetFirstChild<NumberingCache>();
+            if (cache == null) {
+                return false;
+            }
+
+            var numericValues = new List<double>();
+            foreach (NumericPoint point in cache.Elements<NumericPoint>().OrderBy(point => point.Index?.Value ?? uint.MaxValue)) {
+                string? text = point.NumericValue?.Text;
+                if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
+                    return false;
+                }
+
+                numericValues.Add(value);
+            }
+
+            values = numericValues;
+            return numericValues.Count > 0;
+        }
+
+        private static bool TryReadReferencedNumberValues(ExcelSheet contextSheet, string? formula, out IReadOnlyList<double>? values) {
+            values = null;
+            if (!TryParseSheetQualifiedRange(formula, out string sheetName, out string range) ||
+                !TryParseRange(range, out int r1, out int c1, out int r2, out int c2)) {
+                return false;
+            }
+
+            ExcelSheet sheet;
+            try {
+                sheet = contextSheet.Document[sheetName];
+            } catch {
+                return false;
+            }
+
+            var numericValues = new List<double>();
+            for (int row = r1; row <= r2; row++) {
+                for (int column = c1; column <= c2; column++) {
+                    if (!sheet.TryGetCellText(row, column, out string? raw) ||
+                        !double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out double value)) {
+                        return false;
+                    }
+
+                    numericValues.Add(value);
+                }
+            }
+
+            values = numericValues;
+            return numericValues.Count > 0;
         }
 
         private static bool TryGetChartElementType(OpenXmlElement element, out ExcelChartType chartType) {

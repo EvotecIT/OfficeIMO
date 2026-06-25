@@ -12,12 +12,13 @@ namespace OfficeIMO.Excel {
         /// Creates a chart series with the specified name and values.
         /// </summary>
         public ExcelChartSeries(string name, IEnumerable<double> values, ExcelChartType? chartType = null, ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary, string? seriesColorArgb = null)
-            : this(name, (values ?? Array.Empty<double>()).ToList(), chartType, axisGroup, seriesColorArgb, seriesLineWidth: null, seriesLineDashStyle: null, pointColorArgb: null, showMarkers: true, markerSize: null, markerShape: null, markerOutlineColorArgb: null, markerOutlineWidth: null, ownsValues: true) {
+            : this(name, (values ?? Array.Empty<double>()).ToList(), xValues: null, chartType, axisGroup, seriesColorArgb, seriesLineWidth: null, seriesLineDashStyle: null, pointColorArgb: null, showMarkers: true, markerSize: null, markerShape: null, markerOutlineColorArgb: null, markerOutlineWidth: null, ownsValues: true) {
         }
 
-        private ExcelChartSeries(string name, IReadOnlyList<double> values, ExcelChartType? chartType, ExcelChartAxisGroup axisGroup, string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, int? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth, bool ownsValues) {
+        private ExcelChartSeries(string name, IReadOnlyList<double> values, IReadOnlyList<double>? xValues, ExcelChartType? chartType, ExcelChartAxisGroup axisGroup, string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, int? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth, bool ownsValues) {
             Name = name ?? string.Empty;
             Values = values ?? Array.Empty<double>();
+            XValues = xValues;
             ChartType = chartType;
             AxisGroup = axisGroup;
             SeriesColorArgb = NormalizeColor(seriesColorArgb);
@@ -32,10 +33,16 @@ namespace OfficeIMO.Excel {
         }
 
         internal static ExcelChartSeries CreateOwned(string name, IReadOnlyList<double> values, ExcelChartType? chartType = null, ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary)
-            => new(name, values, chartType, axisGroup, seriesColorArgb: null, seriesLineWidth: null, seriesLineDashStyle: null, pointColorArgb: null, showMarkers: true, markerSize: null, markerShape: null, markerOutlineColorArgb: null, markerOutlineWidth: null, ownsValues: true);
+            => new(name, values, xValues: null, chartType, axisGroup, seriesColorArgb: null, seriesLineWidth: null, seriesLineDashStyle: null, pointColorArgb: null, showMarkers: true, markerSize: null, markerShape: null, markerOutlineColorArgb: null, markerOutlineWidth: null, ownsValues: true);
+
+        internal ExcelChartSeries WithXValues(IReadOnlyList<double>? xValues) =>
+            new(Name, Values, xValues, ChartType, AxisGroup, SeriesColorArgb, SeriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, MarkerSize, MarkerShape, MarkerOutlineColorArgb, MarkerOutlineWidth, ownsValues: false);
+
+        internal ExcelChartSeries WithValuesAndXValues(IReadOnlyList<double> values, IReadOnlyList<double>? xValues) =>
+            new(Name, values, xValues, ChartType, AxisGroup, SeriesColorArgb, SeriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, MarkerSize, MarkerShape, MarkerOutlineColorArgb, MarkerOutlineWidth, ownsValues: false);
 
         internal ExcelChartSeries WithImageExportStyle(string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, int? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth) =>
-            new(Name, Values, ChartType, AxisGroup, seriesColorArgb, seriesLineWidth, seriesLineDashStyle, pointColorArgb, showMarkers, markerSize, markerShape, markerOutlineColorArgb, markerOutlineWidth, ownsValues: false);
+            new(Name, Values, XValues, ChartType, AxisGroup, seriesColorArgb, seriesLineWidth, seriesLineDashStyle, pointColorArgb, showMarkers, markerSize, markerShape, markerOutlineColorArgb, markerOutlineWidth, ownsValues: false);
 
         /// <summary>
         /// Gets the series name.
@@ -46,6 +53,11 @@ namespace OfficeIMO.Excel {
         /// Gets the series values.
         /// </summary>
         public IReadOnlyList<double> Values { get; }
+
+        /// <summary>
+        /// Gets optional per-point X values for scatter-style chart rendering.
+        /// </summary>
+        public IReadOnlyList<double>? XValues { get; }
 
         /// <summary>
         /// Gets the optional chart type override for this series.

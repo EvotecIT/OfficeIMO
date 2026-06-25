@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendSvgImage(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, ref int index) {
             double scale = options.Scale;
-            if (!OfficeSvgImageRenderer.TryGetEmbeddableContentType(image.DetectedFormat, out string contentType)) {
+            if (!OfficeSvgImageRenderer.TryResolveEmbeddableContentType(image.ContentType, image.Bytes, null, out string contentType)) {
                 diagnostics?.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported,
