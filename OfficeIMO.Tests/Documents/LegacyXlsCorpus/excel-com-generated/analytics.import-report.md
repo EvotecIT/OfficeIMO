@@ -775,6 +775,12 @@ Warnings: 0
 | --- | --- |
 | SelfReference | 1 |
 
+## Data Consolidation References By Source Prefix
+
+| Key | Count |
+| --- | --- |
+| Prefix:0x02 | 1 |
+
 ## Data Consolidation References By Source
 
 | Key | Count |
@@ -786,6 +792,18 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | A1:G13 | 1 |
+
+## Data Consolidation References By Shape
+
+| Key | Count |
+| --- | --- |
+| Rows:13;Columns:7 | 1 |
+
+## Data Consolidation References By Source And Range
+
+| Key | Count |
+| --- | --- |
+| SalesData\|A1:G13 | 1 |
 
 ## Data Consolidation References By Unused Byte Count
 

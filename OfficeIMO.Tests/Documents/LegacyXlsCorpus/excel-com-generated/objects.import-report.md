@@ -649,6 +649,12 @@ Warnings: 0
 | --- | --- |
 | SelfReference | 1 |
 
+## Data Consolidation References By Source Prefix
+
+| Key | Count |
+| --- | --- |
+| Prefix:0x02 | 1 |
+
 ## Data Consolidation References By Source
 
 | Key | Count |
@@ -660,6 +666,18 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | A1:D6 | 1 |
+
+## Data Consolidation References By Shape
+
+| Key | Count |
+| --- | --- |
+| Rows:6;Columns:4 | 1 |
+
+## Data Consolidation References By Source And Range
+
+| Key | Count |
+| --- | --- |
+| Objects\|A1:D6 | 1 |
 
 ## Data Consolidation References By Unused Byte Count
 

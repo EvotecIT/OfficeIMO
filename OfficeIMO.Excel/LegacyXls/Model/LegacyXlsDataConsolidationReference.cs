@@ -29,6 +29,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Source = source ?? throw new ArgumentNullException(nameof(source));
             SourcePrefix = sourcePrefix;
             UnusedByteCount = unusedByteCount;
+            RowSpan = LastRow >= FirstRow ? LastRow - FirstRow + 1 : 0;
+            ColumnSpan = LastColumn >= FirstColumn ? LastColumn - FirstColumn + 1 : 0;
         }
 
         /// <summary>Gets the byte offset of the DConRef BIFF record.</summary>
@@ -51,6 +53,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the referenced source range in A1 notation.</summary>
         public string CellRange { get; }
+
+        /// <summary>Gets the number of rows covered by the source range, or zero when the range is invalid.</summary>
+        public int RowSpan { get; }
+
+        /// <summary>Gets the number of columns covered by the source range, or zero when the range is invalid.</summary>
+        public int ColumnSpan { get; }
 
         /// <summary>Gets the decoded DConFile source kind.</summary>
         public LegacyXlsDataConsolidationSourceKind SourceKind { get; }

@@ -1033,6 +1033,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4, consolidationReference.LastRow);
             Assert.Equal(2, consolidationReference.FirstColumn);
             Assert.Equal(4, consolidationReference.LastColumn);
+            Assert.Equal(3, consolidationReference.RowSpan);
+            Assert.Equal(3, consolidationReference.ColumnSpan);
+            Assert.Equal((byte)0x01, consolidationReference.SourcePrefix);
             Assert.Equal(0, consolidationReference.UnusedByteCount);
             Assert.True(legacy.HasRefreshAllMarker);
             Assert.Equal(1, legacy.MetadataRecords.Count(record => record.Kind == LegacyXlsWorkbookMetadataKind.RefreshAll));
@@ -1070,8 +1073,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ExternalReferencesByCachedCellCount["CachedCells:0"]);
             Assert.Equal(1, report.DataConsolidationReferenceCount);
             Assert.Equal(1, report.DataConsolidationReferencesBySourceKind["ExternalVirtualPath"]);
+            Assert.Equal(1, report.DataConsolidationReferencesBySourcePrefix["Prefix:0x01"]);
             Assert.Equal(1, report.DataConsolidationReferencesBySource["C:\\Data\\Budget.xls"]);
             Assert.Equal(1, report.DataConsolidationReferencesByRange["B2:D4"]);
+            Assert.Equal(1, report.DataConsolidationReferencesByShape["Rows:3;Columns:3"]);
+            Assert.Equal(1, report.DataConsolidationReferencesBySourceAndRange["C:\\Data\\Budget.xls|B2:D4"]);
             Assert.Equal(1, report.DataConsolidationReferencesByUnusedByteCount["UnusedBytes:0"]);
             Assert.Equal(2, report.ExternalSheetNamesByReferenceKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
             Assert.Equal(3, report.ExternalNamesByReferenceKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
