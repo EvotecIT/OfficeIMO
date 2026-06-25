@@ -8,7 +8,10 @@ namespace OfficeIMO.Excel {
         /// The resulting document saves as Open XML `.xlsx`; native `.xls` save is intentionally out of scope.
         /// </summary>
         public static ExcelDocument LoadLegacyXls(string path, LegacyXlsImportOptions? options = null) {
-            return LegacyXlsWorkbook.Load(path, options).ToExcelDocument();
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(path, options);
+            ExcelDocument document = workbook.ToExcelDocument();
+            document.MarkLoadedFromLegacyXls(path, workbook);
+            return document;
         }
 
         /// <summary>
@@ -17,7 +20,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static LegacyXlsLoadResult LoadLegacyXlsWithReport(string path, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(path, options);
-            return new LegacyXlsLoadResult(workbook.ToExcelDocument(), workbook);
+            ExcelDocument document = workbook.ToExcelDocument();
+            document.MarkLoadedFromLegacyXls(path, workbook);
+            return new LegacyXlsLoadResult(document, workbook);
         }
 
         /// <summary>
@@ -25,7 +30,10 @@ namespace OfficeIMO.Excel {
         /// The resulting document saves as Open XML `.xlsx`; native `.xls` save is intentionally out of scope.
         /// </summary>
         public static ExcelDocument LoadLegacyXls(Stream stream, LegacyXlsImportOptions? options = null) {
-            return LegacyXlsWorkbook.Load(stream, options).ToExcelDocument();
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(stream, options);
+            ExcelDocument document = workbook.ToExcelDocument();
+            document.MarkLoadedFromLegacyXls(sourcePath: null, workbook);
+            return document;
         }
 
         /// <summary>
@@ -34,7 +42,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static LegacyXlsLoadResult LoadLegacyXlsWithReport(Stream stream, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(stream, options);
-            return new LegacyXlsLoadResult(workbook.ToExcelDocument(), workbook);
+            ExcelDocument document = workbook.ToExcelDocument();
+            document.MarkLoadedFromLegacyXls(sourcePath: null, workbook);
+            return new LegacyXlsLoadResult(document, workbook);
         }
     }
 }
