@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text;
 
 namespace OfficeIMO.Drawing;
@@ -332,7 +331,7 @@ public static partial class OfficeTextLayoutEngine {
         RichTextToken token,
         double maxWidth,
         Func<string?, double, string?, double> measure) {
-        foreach (string textElement in EnumerateTextElements(token.Text)) {
+        foreach (string textElement in OfficeTextElements.Enumerate(token.Text)) {
             double width = Measure(textElement, token.Run.FontSize, token.Run.FontFamily, measure);
             if (builder.Width + width > maxWidth && !builder.IsEmpty) {
                 AddRichTextLine(lines, builder);
@@ -372,7 +371,7 @@ public static partial class OfficeTextLayoutEngine {
 
             int last = segments.Count - 1;
             OfficeRichTextSegment segment = segments[last];
-            string text = RemoveLastTextElement(segment.Text);
+            string text = OfficeTextElements.RemoveLast(segment.Text);
             if (text.Length == 0) {
                 segments.RemoveAt(last);
             } else {
@@ -417,13 +416,6 @@ public static partial class OfficeTextLayoutEngine {
 
     private static double Measure(string? text, double fontSize, string? fontFamily, Func<string?, double, string?, double> measure) =>
         string.IsNullOrEmpty(text) ? 0D : Math.Max(0D, measure(text, NormalizePositive(fontSize, 1D), fontFamily));
-
-    private static IEnumerable<string> EnumerateTextElements(string value) {
-        TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(value);
-        while (enumerator.MoveNext()) {
-            yield return enumerator.GetTextElement();
-        }
-    }
 
     private static double MeasureMaxRichTextLineWidth(IReadOnlyList<OfficeRichTextLine> lines) {
         double max = 0D;

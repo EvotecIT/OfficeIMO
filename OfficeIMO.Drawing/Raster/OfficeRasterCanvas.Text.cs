@@ -61,9 +61,17 @@ public sealed partial class OfficeRasterCanvas {
         if (font != null) {
             double measured = font.Measure(value, size);
             double availableWidth = Math.Max(1D, width - 6D);
-            while (measured > availableWidth && value.Length > 1) {
-                value = value.Substring(0, value.Length - 1);
+            while (measured > availableWidth && value.Length > 0) {
+                value = OfficeTextElements.RemoveLast(value);
+                if (value.Length == 0) {
+                    break;
+                }
+
                 measured = font.Measure(value + "...", size);
+            }
+
+            if (value.Length == 0 && font.Measure("...", size) > availableWidth) {
+                return;
             }
 
             if (!string.Equals(value, text, StringComparison.Ordinal)) {
@@ -215,8 +223,8 @@ public sealed partial class OfficeRasterCanvas {
 
         string value = text;
         double fontHeight = Math.Max(1D, height);
-        while (MeasureStrokeText(value, fontHeight) > width && value.Length > 1) {
-            value = value.Substring(0, value.Length - 1);
+        while (MeasureStrokeText(value, fontHeight) > width && value.Length > 0) {
+            value = OfficeTextElements.RemoveLast(value);
         }
 
         DrawStrokeText(value, x, y + (fontHeight / 2D), fontHeight, color, false, false, OfficeTextAlignment.Left, 0D, x, y);

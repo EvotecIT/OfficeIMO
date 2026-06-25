@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 
 namespace OfficeIMO.Drawing;
 
@@ -296,13 +295,7 @@ public static partial class OfficeTextLayoutEngine {
     }
 
     private static IReadOnlyList<string> SplitTextElements(string text) {
-        var elements = new List<string>();
-        TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(text);
-        while (enumerator.MoveNext()) {
-            elements.Add(enumerator.GetTextElement());
-        }
-
-        return elements.Count == 0 ? new[] { string.Empty } : elements;
+        return OfficeTextElements.Split(text, includeEmptyElement: true);
     }
 
     private static IReadOnlyList<OfficeRichTextRun> SplitRichTextElements(IReadOnlyList<OfficeRichTextRun> runs) {
@@ -314,10 +307,9 @@ public static partial class OfficeTextLayoutEngine {
                 continue;
             }
 
-            TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(value);
-            while (enumerator.MoveNext()) {
+            foreach (string textElement in OfficeTextElements.Enumerate(value)) {
                 elements.Add(new OfficeRichTextRun(
-                    enumerator.GetTextElement(),
+                    textElement,
                     run.FontSize,
                     run.Color,
                     run.Bold,

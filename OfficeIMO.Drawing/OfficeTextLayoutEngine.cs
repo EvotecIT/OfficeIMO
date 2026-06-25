@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 
 namespace OfficeIMO.Drawing;
 
@@ -111,7 +110,7 @@ public static partial class OfficeTextLayoutEngine {
         clipped = true;
         const string ellipsis = "...";
         while (value.Length > 0 && Measure(value + ellipsis, fontSize, measure) > width) {
-            value = RemoveLastTextElement(value);
+            value = OfficeTextElements.RemoveLast(value);
         }
 
         value = value.Length == 0 && Measure(ellipsis, fontSize, measure) > width ? string.Empty : value + ellipsis;
@@ -143,7 +142,7 @@ public static partial class OfficeTextLayoutEngine {
         clipped = true;
         const string ellipsis = "...";
         while (value.Length > 0 && Measure(ellipsis + value, fontSize, measure) > width) {
-            value = RemoveFirstTextElement(value);
+            value = OfficeTextElements.RemoveFirst(value);
         }
 
         value = value.Length == 0 && Measure(ellipsis, fontSize, measure) > width ? string.Empty : ellipsis + value;
@@ -455,9 +454,7 @@ public static partial class OfficeTextLayoutEngine {
 
     private static IEnumerable<OfficeTextLine> BreakWord(string word, double fontSize, double maxWidth, Func<string?, double, double> measure) {
         string part = string.Empty;
-        TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(word);
-        while (enumerator.MoveNext()) {
-            string textElement = enumerator.GetTextElement();
+        foreach (string textElement in OfficeTextElements.Enumerate(word)) {
             string candidate = part + textElement;
             if (part.Length > 0 && Measure(candidate, fontSize, measure) > maxWidth) {
                 yield return new OfficeTextLine(part, Measure(part, fontSize, measure));
@@ -492,16 +489,6 @@ public static partial class OfficeTextLayoutEngine {
 
     private static double Measure(string? text, double fontSize, Func<string?, double, double> measure) =>
         string.IsNullOrEmpty(text) ? 0D : measure(text, fontSize);
-
-    private static string RemoveLastTextElement(string value) {
-        int[] indexes = StringInfo.ParseCombiningCharacters(value);
-        return indexes.Length <= 1 ? string.Empty : value.Substring(0, indexes[indexes.Length - 1]);
-    }
-
-    private static string RemoveFirstTextElement(string value) {
-        int[] indexes = StringInfo.ParseCombiningCharacters(value);
-        return indexes.Length <= 1 ? string.Empty : value.Substring(indexes[1]);
-    }
 
     private static string NormalizeSingleLineText(string text) =>
         text.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ');

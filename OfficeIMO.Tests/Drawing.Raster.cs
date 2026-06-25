@@ -1479,6 +1479,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_DrawTextTrimsAtTextElementBoundaries() {
+            if (OfficeTrueTypeFont.TryLoadDefault() == null) {
+                return;
+            }
+
+            string eAcute = "e\u0301";
+            string smile = char.ConvertFromUtf32(0x1F600);
+            const double fontSize = 20D;
+            double availableWidth = Math.Ceiling(new OfficeRasterCanvas(new OfficeRasterImage(1, 1, OfficeColor.Transparent)).MeasureText("A" + eAcute + "...", fontSize)) + 0.5D;
+            double boxWidth = availableWidth + 6D;
+            OfficeRasterImage clipped = new OfficeRasterImage(120, 40, OfficeColor.Transparent);
+            OfficeRasterImage expected = new OfficeRasterImage(120, 40, OfficeColor.Transparent);
+
+            new OfficeRasterCanvas(clipped).DrawText("A" + eAcute + smile + "BC", 0D, 0D, boxWidth, 32D, OfficeColor.Black, fontSize);
+            new OfficeRasterCanvas(expected).DrawText("A" + eAcute + "...", 0D, 0D, boxWidth, 32D, OfficeColor.Black, fontSize);
+
+            AssertRasterImagesEqual(expected, clipped);
+        }
+
+        [Fact]
         public void OfficeTextBlockRenderer_DrawsRasterTextBlockWithAlignmentAndUnderline() {
             OfficeRasterImage image = new OfficeRasterImage(120, 72, OfficeColor.Transparent);
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
@@ -1902,6 +1922,20 @@ namespace OfficeIMO.Tests {
                 Math.Abs(actual.B - expected.B) <= 8 &&
                 actual.A > 0,
                 $"Expected ARGB near {expected.A},{expected.R},{expected.G},{expected.B} but got {actual.A},{actual.R},{actual.G},{actual.B}.");
+        }
+
+        private static void AssertRasterImagesEqual(OfficeRasterImage expected, OfficeRasterImage actual) {
+            Assert.Equal(expected.Width, actual.Width);
+            Assert.Equal(expected.Height, actual.Height);
+            for (int y = 0; y < expected.Height; y++) {
+                for (int x = 0; x < expected.Width; x++) {
+                    OfficeColor expectedPixel = expected.GetPixel(x, y);
+                    OfficeColor actualPixel = actual.GetPixel(x, y);
+                    Assert.True(
+                        expectedPixel.Equals(actualPixel),
+                        $"Pixel mismatch at {x},{y}. Expected {expectedPixel.A},{expectedPixel.R},{expectedPixel.G},{expectedPixel.B}; actual {actualPixel.A},{actualPixel.R},{actualPixel.G},{actualPixel.B}.");
+                }
+            }
         }
 
     }
