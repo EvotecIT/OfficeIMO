@@ -144,6 +144,7 @@ namespace OfficeIMO.Excel {
     public sealed class ExcelDelimitedImportOptions {
         public char? Delimiter { get; set; }
         public bool HeadersInFirstRow { get; set; } = true;
+        public int SkipInitialRecords { get; set; }
         public CultureInfo Culture { get; set; } = CultureInfo.InvariantCulture;
         public bool ConvertNumbersAndDates { get; set; } = true;
         public bool CreateTable { get; set; } = true;

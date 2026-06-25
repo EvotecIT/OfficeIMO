@@ -55,10 +55,10 @@ namespace OfficeIMO.Excel {
             var table = new DataTable { Locale = options.Culture };
             var recordIndex = 0;
 
-            CsvDocument.ReadRecordsReusable(path, record => {
+            ReadDelimitedRecords(path, csvOptions, GetDelimitedRecordsToSkip(options), record => {
                 AddDelimitedRecord(table, record, recordIndex, options, warnings);
                 recordIndex++;
-            }, csvOptions);
+            });
 
             return table;
         }
@@ -68,10 +68,10 @@ namespace OfficeIMO.Excel {
             var table = new DataTable { Locale = options.Culture };
             var recordIndex = 0;
 
-            CsvDocument.ReadRecordsReusable(reader, record => {
+            ReadDelimitedRecords(reader, csvOptions, GetDelimitedRecordsToSkip(options), record => {
                 AddDelimitedRecord(table, record, recordIndex, options, warnings);
                 recordIndex++;
-            }, csvOptions);
+            });
 
             return table;
         }
@@ -86,6 +86,46 @@ namespace OfficeIMO.Excel {
                 GenerateMissingHeaderNames = false,
                 ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.PadMissingFieldsAndIgnoreExtraFields
             };
+
+        private static int GetDelimitedRecordsToSkip(ExcelDelimitedImportOptions options) {
+            if (options.SkipInitialRecords < 0) {
+                throw new ArgumentOutOfRangeException(nameof(options), "SkipInitialRecords cannot be negative.");
+            }
+
+            return options.SkipInitialRecords;
+        }
+
+        private static void ReadDelimitedRecords(string path, CsvLoadOptions csvOptions, int recordsToSkip, Action<IReadOnlyList<string>> recordAction) {
+            if (recordsToSkip == 0) {
+                CsvDocument.ReadRecordsReusable(path, recordAction, csvOptions);
+                return;
+            }
+
+            CsvDocument.ReadRecordsReusable(path, record => {
+                if (recordsToSkip > 0) {
+                    recordsToSkip--;
+                    return;
+                }
+
+                recordAction(record);
+            }, csvOptions);
+        }
+
+        private static void ReadDelimitedRecords(TextReader reader, CsvLoadOptions csvOptions, int recordsToSkip, Action<IReadOnlyList<string>> recordAction) {
+            if (recordsToSkip == 0) {
+                CsvDocument.ReadRecordsReusable(reader, recordAction, csvOptions);
+                return;
+            }
+
+            CsvDocument.ReadRecordsReusable(reader, record => {
+                if (recordsToSkip > 0) {
+                    recordsToSkip--;
+                    return;
+                }
+
+                recordAction(record);
+            }, csvOptions);
+        }
 
         private static void AddDelimitedRecord(DataTable table, IReadOnlyList<string> record, int recordIndex, ExcelDelimitedImportOptions options, ICollection<string> warnings) {
             if (recordIndex == 0 && options.HeadersInFirstRow) {

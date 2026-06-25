@@ -24,6 +24,11 @@ public sealed class CsvLoadOptions
     public string[]? Header { get; set; }
 
     /// <summary>
+    /// Gets or sets the number of parsed records to skip before header discovery or data emission. Default is <c>0</c>.
+    /// </summary>
+    public int SkipInitialRecords { get; set; }
+
+    /// <summary>
     /// Gets or sets whether comment rows are skipped while discovering the header. Default is <c>true</c>.
     /// Comment rows are identified by <see cref="CommentCharacter"/>.
     /// </summary>

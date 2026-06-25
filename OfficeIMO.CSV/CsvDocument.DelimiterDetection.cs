@@ -52,6 +52,7 @@ public sealed partial class CsvDocument
 
     private static IEnumerable<string> ReadDelimiterDetectionSamples(TextReader reader, CsvLoadOptions options)
     {
+        var recordsToSkip = GetInitialRecordsToSkip(options);
         string? line;
         while ((line = reader.ReadLine()) is not null)
         {
@@ -71,6 +72,12 @@ public sealed partial class CsvDocument
                 line[0] == options.CommentCharacter &&
                 !IsW3CFieldsLine(line, options))
             {
+                continue;
+            }
+
+            if (recordsToSkip > 0)
+            {
+                recordsToSkip--;
                 continue;
             }
 
