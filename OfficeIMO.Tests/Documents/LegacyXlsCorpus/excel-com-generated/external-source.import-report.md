@@ -43,15 +43,15 @@ Cell style extension records: 111
 Formula token records: 0
 Array formula records: 0
 Future function aliases: 0
-Workbook metadata records: 22
-Workbook future metadata records: 4
+Workbook metadata records: 23
+Workbook future metadata records: 5
 Worksheet metadata records: 7
 Worksheet future metadata records: 2
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 119
+Unsupported features: 118
 Unsupported projection gaps: 0
-Preserved feature records: 119
+Preserved feature records: 118
 Errors: 0
 Warnings: 0
 
@@ -59,7 +59,6 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 3 |
@@ -125,7 +124,6 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 3 |
@@ -137,7 +135,6 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| ConditionalFormatting | 1 |
 | DrawingObject | 1 |
 | FeatureExtension | 1 |
 | PivotTable | 3 |
@@ -149,7 +146,6 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|0x088C | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x08A3 | 1 |
 | FeatureExtension\|XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|0x0867 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
@@ -165,7 +161,6 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |
 | FeatureExtension\|XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|FeatureExtension:Feat | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
@@ -181,7 +176,6 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|Data | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
@@ -648,6 +642,7 @@ Warnings: 0
 | BookOptions | 1 |
 | BuiltInFunctionGroupCount | 1 |
 | CodePage | 1 |
+| Compatibility12 | 1 |
 | CompressPictures | 1 |
 | Country | 1 |
 | ExtendedEncryption | 1 |
@@ -670,6 +665,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| Compatibility12 | 1 |
 | CompressPictures | 1 |
 | ExtendedEncryption | 1 |
 | MultiThreadedRecalculationSettings | 1 |
@@ -681,6 +677,7 @@ Warnings: 0
 | --- | --- |
 | 0x01C0 | 1 |
 | 0x01C1 | 1 |
+| 0x088C | 1 |
 | 0x089A | 1 |
 | 0x089B | 1 |
 
@@ -688,6 +685,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| Compat12 | 1 |
 | CompressPictures | 1 |
 | EntExU2 | 1 |
 | MTRSettings | 1 |
@@ -697,7 +695,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| MatchingFutureHeader | 2 |
+| MatchingFutureHeader | 3 |
 | MissingHeader | 1 |
 | ShortFutureHeader | 1 |
 
@@ -706,6 +704,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | 0x01C1 | 1 |
+| 0x088C | 1 |
 | 0x089A | 1 |
 | 0x089B | 1 |
 
@@ -713,14 +712,14 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Flags:0x0000 | 3 |
+| Flags:0x0000 | 4 |
 
 ## Workbook Future Metadata Records By Payload Length
 
 | Key | Count |
 | --- | --- |
 | Bytes:0 | 1 |
-| Bytes:16 | 1 |
+| Bytes:16 | 2 |
 | Bytes:24 | 1 |
 | Bytes:8 | 1 |
 
@@ -730,7 +729,7 @@ Warnings: 0
 | --- | --- |
 | Bytes:0 | 1 |
 | Bytes:12 | 1 |
-| Bytes:4 | 1 |
+| Bytes:4 | 2 |
 | Bytes:8 | 1 |
 
 ## Worksheet Metadata Records By Kind
@@ -748,8 +747,8 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Compatibility12 | 1 |
 | HeaderFooter | 1 |
+| PageLayoutView | 1 |
 
 ## Worksheet Future Metadata Records By Sheet
 
@@ -761,8 +760,8 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Data\|Compatibility12 | 1 |
 | Data\|HeaderFooter | 1 |
+| Data\|PageLayoutView | 1 |
 
 ## Worksheet Future Metadata Records By Record Type
 
@@ -775,8 +774,8 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Compat12 | 1 |
 | HeaderFooter | 1 |
+| PLV | 1 |
 
 ## Worksheet Future Metadata Records By Header State
 
@@ -815,7 +814,6 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| ConditionalFormatting | 1 |
 | DrawingObject | 1 |
 | FeatureExtension | 1 |
 | PivotTable | 3 |
@@ -827,7 +825,6 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |
 | FeatureExtension\|XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|FeatureExtension:Feat | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |

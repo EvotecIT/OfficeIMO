@@ -1,3 +1,4 @@
+using OfficeIMO.Excel.LegacyXls.Biff;
 using System.Text;
 
 namespace OfficeIMO.Tests {
@@ -986,7 +987,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long formattingBoundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ConditionalDxf"));
-                WriteRecord(stream, 0x088c, BuildDifferentialFormatBackgroundColorPayload());
+                WriteRecord(stream, (ushort)BiffRecordType.Dxf, BuildDifferentialFormatBackgroundColorPayload());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
@@ -1009,7 +1010,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long formattingBoundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ConditionalFontDxf"));
-                WriteRecord(stream, 0x088c, BuildDifferentialFormatFontPayload());
+                WriteRecord(stream, (ushort)BiffRecordType.Dxf, BuildDifferentialFormatFontPayload());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
@@ -1032,7 +1033,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long formattingBoundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ConditionalBorderDxf"));
-                WriteRecord(stream, 0x088c, BuildDifferentialFormatBorderPayload());
+                WriteRecord(stream, (ushort)BiffRecordType.Dxf, BuildDifferentialFormatBorderPayload());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
@@ -1056,7 +1057,7 @@ namespace OfficeIMO.Tests {
                 long formattingBoundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ConditionalNumberDxf"));
                 WriteRecord(stream, 0x041e, BuildFormatPayload(164, "$#,##0.00"));
-                WriteRecord(stream, 0x088c, BuildDifferentialFormatNumberFormatPayload());
+                WriteRecord(stream, (ushort)BiffRecordType.Dxf, BuildDifferentialFormatNumberFormatPayload());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
@@ -1119,7 +1120,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x01b1, Array.Empty<byte>());
                 WriteRecord(stream, 0x087a, Array.Empty<byte>());
                 WriteRecord(stream, 0x087b, Array.Empty<byte>());
-                WriteRecord(stream, 0x088c, Array.Empty<byte>());
+                WriteRecord(stream, (ushort)BiffRecordType.Dxf, Array.Empty<byte>());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1132,7 +1133,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long formattingBoundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Differential"));
-                WriteRecord(stream, 0x088c, BuildDifferentialFormatBackgroundColorPayload());
+                WriteRecord(stream, (ushort)BiffRecordType.Dxf, BuildDifferentialFormatBackgroundColorPayload());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
@@ -1147,7 +1148,7 @@ namespace OfficeIMO.Tests {
 
             private static byte[] BuildDifferentialFormatBackgroundColorPayload() {
                 return new byte[] {
-                    0x8c, 0x08, 0x00, 0x00, 0x00, 0x00,
+                    0x8d, 0x08, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x03, 0x00,
                     0x00, 0x00, 0x01, 0x00,
@@ -1158,7 +1159,7 @@ namespace OfficeIMO.Tests {
 
             private static byte[] BuildDifferentialFormatFontPayload() {
                 using var stream = new MemoryStream();
-                WriteUInt16(stream, 0x088c);
+                WriteUInt16(stream, (ushort)BiffRecordType.Dxf);
                 WriteUInt16(stream, 0);
                 WriteUInt16(stream, 0);
                 WriteUInt16(stream, 0);
@@ -1187,7 +1188,7 @@ namespace OfficeIMO.Tests {
 
             private static byte[] BuildDifferentialFormatBorderPayload() {
                 using var stream = new MemoryStream();
-                WriteUInt16(stream, 0x088c);
+                WriteUInt16(stream, (ushort)BiffRecordType.Dxf);
                 WriteUInt16(stream, 0);
                 WriteUInt16(stream, 0);
                 WriteUInt16(stream, 0);
@@ -1211,7 +1212,7 @@ namespace OfficeIMO.Tests {
 
             private static byte[] BuildDifferentialFormatNumberFormatPayload() {
                 using var stream = new MemoryStream();
-                WriteUInt16(stream, 0x088c);
+                WriteUInt16(stream, (ushort)BiffRecordType.Dxf);
                 WriteUInt16(stream, 0);
                 WriteUInt16(stream, 0);
                 WriteUInt16(stream, 0);

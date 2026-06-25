@@ -81,6 +81,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Future-record continuation metadata from a ContinueFrt record.</summary>
         FutureRecordContinuation,
 
+        /// <summary>Page Layout view metadata from a PLV record.</summary>
+        PageLayoutView,
+
         /// <summary>Compatibility metadata from a Compat12 record.</summary>
         Compatibility12,
 

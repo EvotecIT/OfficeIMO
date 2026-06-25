@@ -437,7 +437,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionStopIfTrueStates["StopIfTrue"]);
             Assert.Equal(4, result.ImportReport.ConditionalFormattingExtensionStates["Cf12:Missing|UnprojectedFormatting:Present|MatchedRule:Present|Priority:Present|StopIfTrue:StopIfTrue"]);
             Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionStates.Values.Sum());
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:Dxf"]);
+            Assert.Equal(8, result.ImportReport.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:Dxf"]);
             Assert.Equal(1, result.ImportReport.WorksheetFeatureStates["DataValidations:0|ConditionalFormatting:8|AutoFilterCriteria:0|AutoFilterDropDowns:Missing"]);
 
             LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);

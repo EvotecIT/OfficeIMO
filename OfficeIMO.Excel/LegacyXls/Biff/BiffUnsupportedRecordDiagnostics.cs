@@ -381,8 +381,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x087B: return "CfEx";
                 case 0x087C: return "XFCRC";
                 case 0x087D: return "XfExt";
-                case 0x088B: return "Compat12";
-                case 0x088C: return "Dxf";
+                case 0x088B: return "PLV";
+                case 0x088C: return "Compat12";
+                case 0x088D: return "Dxf";
                 case 0x088E: return "TableStyles";
                 case 0x088F: return "TableStyle";
                 case 0x0890: return "TableStyleElement";
@@ -517,6 +518,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return type == (ushort)BiffRecordType.RecalcId
                 || type == (ushort)BiffRecordType.EntExU2
                 || type == (ushort)BiffRecordType.ContinueFrt
+                || type == (ushort)BiffRecordType.Plv
                 || type == (ushort)BiffRecordType.Compat12
                 || type == (ushort)BiffRecordType.NamePublish
                 || type == (ushort)BiffRecordType.NameCmt

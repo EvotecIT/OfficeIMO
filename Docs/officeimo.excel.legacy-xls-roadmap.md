@@ -209,6 +209,11 @@ features. Extended `CF12` rules and richer `CFEx`/`DXF` payloads beyond the
 currently decoded priority, stop-if-true, fill, font-style, border-style, and
 number-format subset remain diagnostics-first until their broader rule and
 differential-formatting models are implemented.
+The BIFF12-adjacent `PLV`, `Compat12`, and `DXF` record ids are aligned to MS-XLS
+record values (`0x088B`, `0x088C`, and `0x088D` respectively), so Page Layout view
+metadata and compatibility-check metadata are reported separately while Excel-authored
+DXF records feed differential-format evidence instead of generic unsupported-record
+gaps.
 `BoundSheet8` entries for macro sheets, chart sheets, and VBA module sheets are also
 reported as explicit feature diagnostics while worksheet sheets continue to import.
 Unsupported sheet substreams are scanned for preserve-only feature records, so

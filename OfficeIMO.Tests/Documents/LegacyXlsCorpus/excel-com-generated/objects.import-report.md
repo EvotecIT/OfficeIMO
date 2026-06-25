@@ -43,15 +43,15 @@ Cell style extension records: 115
 Formula token records: 7
 Array formula records: 0
 Future function aliases: 0
-Workbook metadata records: 22
-Workbook future metadata records: 4
+Workbook metadata records: 23
+Workbook future metadata records: 5
 Worksheet metadata records: 17
 Worksheet future metadata records: 6
 Unsupported sheet metadata records: 2
 Unsupported sheet future metadata records: 1
-Unsupported features: 539
+Unsupported features: 538
 Unsupported projection gaps: 0
-Preserved feature records: 539
+Preserved feature records: 538
 Errors: 0
 Warnings: 0
 
@@ -61,7 +61,6 @@ Warnings: 0
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 296 |
-| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 61 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
@@ -268,7 +267,6 @@ Warnings: 0
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 296 |
-| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 61 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
@@ -283,7 +281,6 @@ Warnings: 0
 | --- | --- |
 | Chart | 296 |
 | ChartSheet | 1 |
-| ConditionalFormatting | 1 |
 | DrawingObject | 61 |
 | ExternalReference | 1 |
 | FeatureExtension | 2 |
@@ -341,7 +338,6 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1064 | 2 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1065 | 6 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1066 | 2 |
-| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|0x088C | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x005D | 10 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EB | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 16 |
@@ -422,7 +418,6 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Tick | 4 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 2 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ValueRange | 2 |
-| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:HFPicture | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 16 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
@@ -461,7 +456,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|ChartOnly | 1 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|ChartOnly | 148 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Objects | 148 |
-| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 3 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|ChartOnly | 15 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Objects | 43 |
@@ -3229,6 +3223,7 @@ Warnings: 0
 | BookOptions | 1 |
 | BuiltInFunctionGroupCount | 1 |
 | CodePage | 1 |
+| Compatibility12 | 1 |
 | CompressPictures | 1 |
 | Country | 1 |
 | ExtendedEncryption | 1 |
@@ -3251,6 +3246,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| Compatibility12 | 1 |
 | CompressPictures | 1 |
 | ExtendedEncryption | 1 |
 | MultiThreadedRecalculationSettings | 1 |
@@ -3262,6 +3258,7 @@ Warnings: 0
 | --- | --- |
 | 0x01C0 | 1 |
 | 0x01C1 | 1 |
+| 0x088C | 1 |
 | 0x089A | 1 |
 | 0x089B | 1 |
 
@@ -3269,6 +3266,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| Compat12 | 1 |
 | CompressPictures | 1 |
 | EntExU2 | 1 |
 | MTRSettings | 1 |
@@ -3278,7 +3276,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| MatchingFutureHeader | 2 |
+| MatchingFutureHeader | 3 |
 | MissingHeader | 1 |
 | ShortFutureHeader | 1 |
 
@@ -3287,6 +3285,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | 0x01C1 | 1 |
+| 0x088C | 1 |
 | 0x089A | 1 |
 | 0x089B | 1 |
 
@@ -3294,14 +3293,14 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Flags:0x0000 | 3 |
+| Flags:0x0000 | 4 |
 
 ## Workbook Future Metadata Records By Payload Length
 
 | Key | Count |
 | --- | --- |
 | Bytes:0 | 1 |
-| Bytes:16 | 1 |
+| Bytes:16 | 2 |
 | Bytes:24 | 1 |
 | Bytes:8 | 1 |
 
@@ -3311,7 +3310,7 @@ Warnings: 0
 | --- | --- |
 | Bytes:0 | 1 |
 | Bytes:12 | 1 |
-| Bytes:4 | 1 |
+| Bytes:4 | 2 |
 | Bytes:8 | 1 |
 
 ## Worksheet Metadata Records By Kind
@@ -3330,9 +3329,9 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Compatibility12 | 2 |
 | FutureRecordContinuation | 1 |
 | HeaderFooter | 3 |
+| PageLayoutView | 2 |
 
 ## Worksheet Future Metadata Records By Sheet
 
@@ -3345,11 +3344,11 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Objects\|Compatibility12 | 1 |
 | Objects\|HeaderFooter | 2 |
-| Pivot\|Compatibility12 | 1 |
+| Objects\|PageLayoutView | 1 |
 | Pivot\|FutureRecordContinuation | 1 |
 | Pivot\|HeaderFooter | 1 |
+| Pivot\|PageLayoutView | 1 |
 
 ## Worksheet Future Metadata Records By Record Type
 
@@ -3363,9 +3362,9 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Compat12 | 2 |
 | ContinueFrt | 1 |
 | HeaderFooter | 3 |
+| PLV | 2 |
 
 ## Worksheet Future Metadata Records By Header State
 
@@ -3477,7 +3476,6 @@ Warnings: 0
 | --- | --- |
 | Chart | 296 |
 | ChartSheet | 1 |
-| ConditionalFormatting | 1 |
 | DrawingObject | 61 |
 | ExternalReference | 1 |
 | FeatureExtension | 2 |
@@ -3535,7 +3533,6 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Tick | 4 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 2 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ValueRange | 2 |
-| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:HFPicture | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 16 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |

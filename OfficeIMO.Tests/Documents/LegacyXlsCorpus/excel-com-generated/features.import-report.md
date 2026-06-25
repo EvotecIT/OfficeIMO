@@ -28,7 +28,7 @@ Drawing group blocks: 1
 Drawing group infos: 1
 Drawing identifier clusters: 2
 Drawing shape properties: 29
-Differential formats: 0
+Differential formats: 1
 Table style collection records: 1
 Table style definitions: 0
 Table style element records: 0
@@ -43,14 +43,14 @@ Cell style extension records: 112
 Formula token records: 35
 Array formula records: 0
 Future function aliases: 0
-Workbook metadata records: 22
-Workbook future metadata records: 4
+Workbook metadata records: 23
+Workbook future metadata records: 5
 Worksheet metadata records: 10
 Worksheet future metadata records: 3
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 304
-Unsupported projection gaps: 1
+Unsupported features: 303
+Unsupported projection gaps: 0
 Preserved feature records: 303
 Errors: 0
 Warnings: 0
@@ -67,7 +67,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 112 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 1 |
 
 ## Formula Tokens By Name
 
@@ -485,7 +484,13 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Missing | 1 |
+| Present | 1 |
+
+## Conditional Formatting By Differential Fill
+
+| Key | Count |
+| --- | --- |
+| Background:FFCEEFC6 | 1 |
 
 ## Conditional Formatting Extensions By Sheet
 
@@ -516,6 +521,24 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | StopIfTrue | 1 |
+
+## Differential Formats By Record Type
+
+| Key | Count |
+| --- | --- |
+| RecordType:0x088D | 1 |
+
+## Differential Formats By Content State
+
+| Key | Count |
+| --- | --- |
+| FillOnly | 1 |
+
+## Differential Formats By Fill
+
+| Key | Count |
+| --- | --- |
+| Background:FFCEEFC6 | 1 |
 
 ## Table Style Collections By Default Table Style
 
@@ -637,7 +660,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 112 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 1 |
 
 ## Unsupported Features By Kind
 
@@ -651,7 +673,6 @@ Warnings: 0
 | StyleExtension | 112 |
 | TableStyle | 1 |
 | Theme | 1 |
-| UnsupportedRecord | 1 |
 
 ## Unsupported Feature Record Types
 
@@ -702,7 +723,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1065 | 3 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1066 | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|0x087B | 1 |
-| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|0x088C | 1 |
+| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|0x088D | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x005D | 7 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EB | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 11 |
@@ -719,7 +740,6 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x0892 | 47 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|0x088E | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|0x0896 | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x088D | 1 |
 
 ## Unsupported Feature Details
 
@@ -787,7 +807,6 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 64 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyles | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x088D | 1 |
 
 ## Unsupported Feature Locations
 
@@ -804,25 +823,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|(workbook) | 112 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|(workbook) | 1 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 1 |
-
-## Unsupported Projection Gaps By Kind
-
-| Key | Count |
-| --- | --- |
-| UnsupportedRecord | 1 |
-
-## Unsupported Projection Gap Record Types
-
-| Key | Count |
-| --- | --- |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x088D | 1 |
-
-## Unsupported Projection Gap Details
-
-| Key | Count |
-| --- | --- |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x088D | 1 |
 
 ## File Format States
 
@@ -2816,6 +2816,7 @@ Warnings: 0
 | BookOptions | 1 |
 | BuiltInFunctionGroupCount | 1 |
 | CodePage | 1 |
+| Compatibility12 | 1 |
 | CompressPictures | 1 |
 | Country | 1 |
 | ExtendedEncryption | 1 |
@@ -2838,6 +2839,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| Compatibility12 | 1 |
 | CompressPictures | 1 |
 | ExtendedEncryption | 1 |
 | MultiThreadedRecalculationSettings | 1 |
@@ -2849,6 +2851,7 @@ Warnings: 0
 | --- | --- |
 | 0x01C0 | 1 |
 | 0x01C1 | 1 |
+| 0x088C | 1 |
 | 0x089A | 1 |
 | 0x089B | 1 |
 
@@ -2856,6 +2859,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| Compat12 | 1 |
 | CompressPictures | 1 |
 | EntExU2 | 1 |
 | MTRSettings | 1 |
@@ -2865,7 +2869,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| MatchingFutureHeader | 2 |
+| MatchingFutureHeader | 3 |
 | MissingHeader | 1 |
 | ShortFutureHeader | 1 |
 
@@ -2874,6 +2878,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | 0x01C1 | 1 |
+| 0x088C | 1 |
 | 0x089A | 1 |
 | 0x089B | 1 |
 
@@ -2881,14 +2886,14 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Flags:0x0000 | 3 |
+| Flags:0x0000 | 4 |
 
 ## Workbook Future Metadata Records By Payload Length
 
 | Key | Count |
 | --- | --- |
 | Bytes:0 | 1 |
-| Bytes:16 | 1 |
+| Bytes:16 | 2 |
 | Bytes:24 | 1 |
 | Bytes:8 | 1 |
 
@@ -2898,7 +2903,7 @@ Warnings: 0
 | --- | --- |
 | Bytes:0 | 1 |
 | Bytes:12 | 1 |
-| Bytes:4 | 1 |
+| Bytes:4 | 2 |
 | Bytes:8 | 1 |
 
 ## Worksheet Metadata Records By Kind
@@ -2918,8 +2923,8 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Compatibility12 | 1 |
 | HeaderFooter | 2 |
+| PageLayoutView | 1 |
 
 ## Worksheet Future Metadata Records By Sheet
 
@@ -2931,8 +2936,8 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Data\|Compatibility12 | 1 |
 | Data\|HeaderFooter | 2 |
+| Data\|PageLayoutView | 1 |
 
 ## Worksheet Future Metadata Records By Record Type
 
@@ -2945,8 +2950,8 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Compat12 | 1 |
 | HeaderFooter | 2 |
+| PLV | 1 |
 
 ## Worksheet Future Metadata Records By Header State
 

@@ -1,3 +1,4 @@
+using OfficeIMO.Excel.LegacyXls.Biff;
 using System.Text;
 
 namespace OfficeIMO.Tests {
@@ -18,7 +19,8 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0040, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x0863, BuildBookExtPayload());
                 WriteRecord(stream, 0x01c0, new byte[] { 0x01, 0x00, 0x00, 0x00 });
-                WriteRecord(stream, 0x088b, BuildFutureMetadataPayload(0x088b, 0x0001, 0x01, 0x00));
+                WriteRecord(stream, (ushort)BiffRecordType.Plv, BuildFutureMetadataPayload((ushort)BiffRecordType.Plv, 0x0001, 0x64, 0x00, 0x01, 0x00));
+                WriteRecord(stream, (ushort)BiffRecordType.Compat12, BuildFutureMetadataPayload((ushort)BiffRecordType.Compat12, 0x0001, 0x01, 0x00, 0x00, 0x00));
                 WriteRecord(stream, 0x089a, BuildFutureMetadataPayload(0x089a, 0x0002, 0x02, 0x00, 0x04, 0x00));
                 WriteRecord(stream, 0x089b, BuildFutureMetadataPayload(0x089b, 0x0000, 0x01, 0x00));
                 WriteRecord(stream, 0x089c, BuildFutureMetadataPayload(0x089c, 0x0004));
@@ -38,7 +40,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Workbook metadata"));
                 WriteRecord(stream, 0x01ba, BuildUnicodeStringPayload("MetadataSheet"));
-                WriteRecord(stream, 0x088b, BuildFutureMetadataPayload(0x088b, 0x0005, 0x01, 0x00));
+                WriteRecord(stream, (ushort)BiffRecordType.Plv, BuildFutureMetadataPayload((ushort)BiffRecordType.Plv, 0x0005, 0x64, 0x00, 0x01, 0x00));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();

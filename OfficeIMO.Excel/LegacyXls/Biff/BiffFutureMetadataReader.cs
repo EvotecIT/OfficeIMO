@@ -51,6 +51,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case BiffRecordType.ContinueFrt:
                     kind = LegacyXlsWorkbookMetadataKind.FutureRecordContinuation;
                     return true;
+                case BiffRecordType.Plv:
+                    kind = LegacyXlsWorkbookMetadataKind.PageLayoutView;
+                    return true;
                 case BiffRecordType.Compat12:
                     kind = LegacyXlsWorkbookMetadataKind.Compatibility12;
                     return true;
