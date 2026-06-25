@@ -23,6 +23,7 @@ namespace OfficeIMO.PowerPoint {
             FromOfficeImageFormat(OfficeImageReader.FromExtension(imagePath));
 
         public static ImagePartType FromOfficeImageFormat(OfficeImageFormat format) => format switch {
+            OfficeImageFormat.Png => ImagePartType.Png,
             OfficeImageFormat.Jpeg => ImagePartType.Jpeg,
             OfficeImageFormat.Gif => ImagePartType.Gif,
             OfficeImageFormat.Bmp => ImagePartType.Bmp,

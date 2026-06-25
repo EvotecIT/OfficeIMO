@@ -198,6 +198,10 @@ namespace OfficeIMO.Excel.Pdf {
                 return pageSize;
             }
 
+            if (options.PdfOptions != null) {
+                return options.PdfOptions.PageSize;
+            }
+
             OfficePageSize officePageSize = ExcelPageSetupGeometry.ResolvePageSize(pageSetup, OfficePageSizes.Letter);
             return new PdfCore.PageSize(officePageSize.ToPointWidth(), officePageSize.ToPointHeight());
         }

@@ -4,13 +4,27 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static void ApplyWorksheetPageSetup(PdfCore.PdfPageCompose page, ExcelSheetPageSetup? pageSetup, ExcelPdfSaveOptions options) {
-            page.Size(GetEffectivePageSize(options, pageSetup));
+            if (ShouldApplyPageSize(options, pageSetup)) {
+                page.Size(GetEffectivePageSize(options, pageSetup));
+            }
 
             if (options.Margins.HasValue) {
                 page.Margin(options.Margins.Value);
             } else if (pageSetup?.Margins != null) {
                 page.Margin(ToPdfMargins(pageSetup.Margins));
             }
+        }
+
+        private static bool ShouldApplyPageSize(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup) {
+            if (options.PageSize.HasValue) {
+                return true;
+            }
+
+            if (options.PdfOptions != null) {
+                return false;
+            }
+
+            return options.UseWorksheetPageSetup && pageSetup != null;
         }
 
         private static PdfCore.PageMargins ToPdfMargins(ExcelSheetPageMargins margins) {

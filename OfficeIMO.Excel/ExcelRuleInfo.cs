@@ -25,8 +25,12 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<string> Formulas { get; set; } = Array.Empty<string>();
         /// <summary>Gets or sets ARGB colors attached to a color-scale rule, in rule order.</summary>
         public IReadOnlyList<string> ColorScaleColors { get; set; } = Array.Empty<string>();
+        /// <summary>Gets or sets color-scale thresholds in rule order.</summary>
+        public IReadOnlyList<ExcelConditionalFormatThreshold> ColorScaleThresholds { get; set; } = Array.Empty<ExcelConditionalFormatThreshold>();
         /// <summary>Gets or sets the ARGB color attached to a data-bar rule.</summary>
         public string? DataBarColor { get; set; }
+        /// <summary>Gets or sets data-bar thresholds in rule order.</summary>
+        public IReadOnlyList<ExcelConditionalFormatThreshold> DataBarThresholds { get; set; } = Array.Empty<ExcelConditionalFormatThreshold>();
         /// <summary>Gets or sets whether the data-bar rule displays the underlying cell value.</summary>
         public bool DataBarShowValue { get; set; } = true;
         /// <summary>Gets or sets the icon-set name attached to an icon-set rule.</summary>
@@ -49,6 +53,16 @@ namespace OfficeIMO.Excel {
         public bool AboveAverageEqual { get; set; }
         /// <summary>Gets or sets the standard-deviation threshold for above-average rules, when present.</summary>
         public int? AboveAverageStdDev { get; set; }
+    }
+
+    /// <summary>
+    /// Threshold metadata for a conditional-formatting value object.
+    /// </summary>
+    public sealed class ExcelConditionalFormatThreshold {
+        /// <summary>Gets or sets the threshold type, such as Min, Max, Number, Percent, Percentile, or Formula.</summary>
+        public string Type { get; set; } = string.Empty;
+        /// <summary>Gets or sets the raw threshold value, when present.</summary>
+        public string? Value { get; set; }
     }
 
     /// <summary>

@@ -560,6 +560,15 @@ namespace OfficeIMO.Excel {
                     diagnostics.Add(diagnostic);
                 }
 
+                if (!options.IncludeHidden && IsHiddenAnchorInRange(chartSnapshot.RowIndex, chartSnapshot.ColumnIndex, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, columnDefinitions)) {
+                    diagnostics.Add(new OfficeImageExportDiagnostic(
+                        OfficeImageExportDiagnosticSeverity.Warning,
+                        ExcelImageExportDiagnosticCodes.ChartAnchorHidden,
+                        "Worksheet chart is anchored to a hidden row or column and was omitted from the image export.",
+                        sheet.Name + "!" + chartSnapshot.Name));
+                    continue;
+                }
+
                 if (!TryGetImageAnchor(
                     options,
                     firstRow,
@@ -582,14 +591,6 @@ namespace OfficeIMO.Excel {
                     out double y,
                     out double width,
                     out double height)) {
-                    if (!options.IncludeHidden && IsHiddenAnchorInRange(chartSnapshot.RowIndex, chartSnapshot.ColumnIndex, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, columnDefinitions)) {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
-                            OfficeImageExportDiagnosticSeverity.Warning,
-                            ExcelImageExportDiagnosticCodes.ChartAnchorHidden,
-                            "Worksheet chart is anchored to a hidden row or column and was omitted from the image export.",
-                            sheet.Name + "!" + chartSnapshot.Name));
-                    }
-
                     continue;
                 }
 

@@ -32,10 +32,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                double min = candidates.Min(candidate => candidate.Value);
-                double max = candidates.Max(candidate => candidate.Value);
+                IReadOnlyList<double> values = candidates.Select(candidate => candidate.Value).ToArray();
+                (double min, double max) = ExcelConditionalFormatThresholds.ResolveDataBarRange(values, rule.DataBarThresholds);
                 foreach (ConditionalNumericCell candidate in candidates) {
-                    (double startRatio, double ratio) = GetDataBarGeometry(candidate.Value, min, max);
+                    (double startRatio, double ratio) = ExcelConditionalFormatThresholds.GetDataBarGeometry(candidate.Value, min, max);
                     dataBars.Add(new ExcelVisualConditionalDataBar(
                         candidate.Cell.Row,
                         candidate.Cell.Column,
@@ -324,8 +324,8 @@ namespace OfficeIMO.Excel {
             Dictionary<string, string> fills,
             HashSet<string> stoppedCells) {
             if (rule.ColorScaleColors.Count < 2 ||
-                !TryGetRgb(rule.ColorScaleColors[0], out byte startR, out byte startG, out byte startB) ||
-                !TryGetRgb(rule.ColorScaleColors[rule.ColorScaleColors.Count - 1], out byte endR, out byte endG, out byte endB)) {
+                !ExcelConditionalFormatThresholds.TryGetRgb(rule.ColorScaleColors[0], out _, out _, out _) ||
+                !ExcelConditionalFormatThresholds.TryGetRgb(rule.ColorScaleColors[rule.ColorScaleColors.Count - 1], out _, out _, out _)) {
                 return;
             }
 
@@ -336,16 +336,16 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            double min = candidates.Min(candidate => candidate.Value);
-            double max = candidates.Max(candidate => candidate.Value);
+            IReadOnlyList<double> values = candidates.Select(candidate => candidate.Value).ToArray();
             foreach (ConditionalNumericCell candidate in candidates) {
                 string key = Key(candidate.Cell.Row, candidate.Cell.Column);
                 if (fills.ContainsKey(key)) {
                     continue;
                 }
 
-                double ratio = max <= min ? 0.5D : Math.Max(0D, Math.Min(1D, (candidate.Value - min) / (max - min)));
-                fills[key] = "FF" + InterpolateRgbHex(startR, startG, startB, endR, endG, endB, ratio);
+                if (ExcelConditionalFormatThresholds.TryGetColorScaleRgb(values, rule.ColorScaleColors, rule.ColorScaleThresholds, candidate.Value, out string rgbHex)) {
+                    fills[key] = "FF" + rgbHex;
+                }
             }
         }
 
@@ -779,82 +779,8 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetRgb(string value, out byte red, out byte green, out byte blue) {
-            red = green = blue = 0;
-            if (!TryNormalizeArgb(value, out string? argb) || argb == null) {
-                return false;
-            }
-
-            return byte.TryParse(argb.Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out red) &&
-                byte.TryParse(argb.Substring(4, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out green) &&
-                byte.TryParse(argb.Substring(6, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out blue);
-        }
-
-        private static bool TryNormalizeArgb(string? value, out string? argb) {
-            argb = null;
-            if (string.IsNullOrWhiteSpace(value)) {
-                return false;
-            }
-
-            string hex = value!.Trim().TrimStart('#');
-            if (hex.Length == 6) {
-                hex = "FF" + hex;
-            } else if (hex.Length != 8) {
-                return false;
-            }
-
-            for (int i = 0; i < hex.Length; i++) {
-                char ch = hex[i];
-                bool isHex = (ch >= '0' && ch <= '9') ||
-                    (ch >= 'a' && ch <= 'f') ||
-                    (ch >= 'A' && ch <= 'F');
-                if (!isHex) {
-                    return false;
-                }
-            }
-
-            argb = hex.ToUpperInvariant();
-            return true;
-        }
-
-        private static string InterpolateRgbHex(byte startR, byte startG, byte startB, byte endR, byte endG, byte endB, double ratio) {
-            byte red = InterpolateByte(startR, endR, ratio);
-            byte green = InterpolateByte(startG, endG, ratio);
-            byte blue = InterpolateByte(startB, endB, ratio);
-            return red.ToString("X2", CultureInfo.InvariantCulture) +
-                green.ToString("X2", CultureInfo.InvariantCulture) +
-                blue.ToString("X2", CultureInfo.InvariantCulture);
-        }
-
-        private static byte InterpolateByte(byte start, byte end, double ratio) {
-            return (byte)Math.Max(0, Math.Min(255, (int)Math.Round(start + ((end - start) * ratio), MidpointRounding.AwayFromZero)));
-        }
-
-        private static (double StartRatio, double Ratio) GetDataBarGeometry(double value, double min, double max) {
-            if (max <= min) {
-                return (0D, 1D);
-            }
-
-            if (min < 0D && max > 0D) {
-                double range = max - min;
-                double zeroRatio = Math.Max(0D, Math.Min(1D, -min / range));
-                if (value >= 0D) {
-                    return (zeroRatio, Math.Max(0D, Math.Min(1D - zeroRatio, value / range)));
-                }
-
-                double ratio = Math.Max(0D, Math.Min(zeroRatio, -value / range));
-                return (zeroRatio - ratio, ratio);
-            }
-
-            if (max <= 0D) {
-                double maxMagnitude = Math.Max(Math.Abs(min), Math.Abs(max));
-                double ratio = maxMagnitude <= 0D ? 0D : Math.Max(0D, Math.Min(1D, Math.Abs(value) / maxMagnitude));
-                return (1D - ratio, ratio);
-            }
-
-            double positiveRatio = Math.Max(0D, Math.Min(1D, (value - min) / (max - min)));
-            return (0D, positiveRatio);
-        }
+        private static bool TryNormalizeArgb(string? value, out string? argb) =>
+            ExcelConditionalFormatThresholds.TryNormalizeArgb(value, out argb);
 
         private readonly struct ConditionalNumericCell {
             internal ConditionalNumericCell(ExcelVisualCell cell, double value) {

@@ -41,6 +41,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointImagePartExtensionsUseSharedDrawingPolicy() {
+            Assert.Equal(ImagePartType.Png, ImagePartTypeExtensions.FromOfficeImageFormat(OfficeImageFormat.Png));
             Assert.Equal(".png", PowerPointPartFactory.GetImageExtension(ImagePartType.Png));
             Assert.Equal(".jpeg", PowerPointPartFactory.GetImageExtension(ImagePartType.Jpeg));
             Assert.Equal(".svg", PowerPointPartFactory.GetImageExtension(ImagePartType.Svg));

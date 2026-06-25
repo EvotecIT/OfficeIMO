@@ -37,7 +37,9 @@ namespace OfficeIMO.Excel {
                         DifferentialFillColorArgb = ReadDifferentialFillColor(stylesheet, workbookPart, differentialFormatId),
                         Formulas = rule.Elements<Formula>().Select(f => f.Text ?? string.Empty).ToArray(),
                         ColorScaleColors = ReadColorScaleColors(rule),
+                        ColorScaleThresholds = ReadColorScaleThresholds(rule),
                         DataBarColor = ReadDataBarColor(rule),
+                        DataBarThresholds = ReadDataBarThresholds(rule),
                         DataBarShowValue = ReadDataBarShowValue(rule),
                         IconSet = ReadIconSetName(rule),
                         IconSetShowValue = ReadIconSetShowValue(rule),
@@ -139,6 +141,11 @@ namespace OfficeIMO.Excel {
                 .ToArray();
         }
 
+        private static IReadOnlyList<ExcelConditionalFormatThreshold> ReadColorScaleThresholds(ConditionalFormattingRule rule) {
+            ColorScale? colorScale = rule.GetFirstChild<ColorScale>();
+            return ReadConditionalFormatThresholds(colorScale);
+        }
+
         private static string? ReadDataBarColor(ConditionalFormattingRule rule) {
             DataBar? dataBar = rule.GetFirstChild<DataBar>();
             if (dataBar == null) {
@@ -153,6 +160,24 @@ namespace OfficeIMO.Excel {
         private static bool ReadDataBarShowValue(ConditionalFormattingRule rule) {
             DataBar? dataBar = rule.GetFirstChild<DataBar>();
             return dataBar?.ShowValue?.Value ?? true;
+        }
+
+        private static IReadOnlyList<ExcelConditionalFormatThreshold> ReadDataBarThresholds(ConditionalFormattingRule rule) {
+            DataBar? dataBar = rule.GetFirstChild<DataBar>();
+            return ReadConditionalFormatThresholds(dataBar);
+        }
+
+        private static IReadOnlyList<ExcelConditionalFormatThreshold> ReadConditionalFormatThresholds(OpenXmlElement? parent) {
+            if (parent == null) {
+                return Array.Empty<ExcelConditionalFormatThreshold>();
+            }
+
+            return parent.Elements<ConditionalFormatValueObject>()
+                .Select(threshold => new ExcelConditionalFormatThreshold {
+                    Type = threshold.Type?.InnerText ?? string.Empty,
+                    Value = threshold.Val?.Value
+                })
+                .ToArray();
         }
 
         private static string? ReadIconSetName(ConditionalFormattingRule rule) {

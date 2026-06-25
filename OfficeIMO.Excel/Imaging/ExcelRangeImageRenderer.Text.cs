@@ -576,24 +576,59 @@ namespace OfficeIMO.Excel {
             double y = cell.Y * scale;
             double width = cell.Width * scale;
             double height = cell.Height * scale;
-            if (!CanCellTextSpillRight(cell, snapshot)) {
-                return new CellTextViewport(x, y, width, height);
-            }
 
-            double unscaledRight = cell.X + cell.Width;
-            for (int column = cell.Column + 1; column <= snapshot.LastColumn; column++) {
-                if (!cellsByAddress.TryGetValue(Key(cell.Row, column), out ExcelVisualCell? neighbor) ||
-                    !CanSpillThroughNeighbor(neighbor, snapshot)) {
-                    break;
+            if (CanCellTextSpillLeft(cell, snapshot)) {
+                double unscaledLeft = cell.X;
+                for (int column = cell.Column - 1; column >= snapshot.FirstColumn; column--) {
+                    if (!cellsByAddress.TryGetValue(Key(cell.Row, column), out ExcelVisualCell? neighbor) ||
+                        !CanSpillThroughNeighbor(neighbor, snapshot)) {
+                        break;
+                    }
+
+                    unscaledLeft = neighbor.X;
                 }
 
-                unscaledRight = neighbor.X + neighbor.Width;
+                return new CellTextViewport(unscaledLeft * scale, y, Math.Max(width, ((cell.X + cell.Width) - unscaledLeft) * scale), height);
             }
 
-            return new CellTextViewport(x, y, Math.Max(width, (unscaledRight - cell.X) * scale), height);
+            if (CanCellTextSpillRight(cell, snapshot)) {
+                double unscaledRight = cell.X + cell.Width;
+                for (int column = cell.Column + 1; column <= snapshot.LastColumn; column++) {
+                    if (!cellsByAddress.TryGetValue(Key(cell.Row, column), out ExcelVisualCell? neighbor) ||
+                        !CanSpillThroughNeighbor(neighbor, snapshot)) {
+                        break;
+                    }
+
+                    unscaledRight = neighbor.X + neighbor.Width;
+                }
+
+                return new CellTextViewport(x, y, Math.Max(width, (unscaledRight - cell.X) * scale), height);
+            }
+
+            return new CellTextViewport(x, y, width, height);
         }
 
         private static bool CanCellTextSpillRight(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot) {
+            if (!CanCellTextSpill(cell, snapshot)) {
+                return false;
+            }
+
+            string? alignment = cell.Style.HorizontalAlignment;
+            if (string.Equals(alignment, "left", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            return (string.IsNullOrWhiteSpace(alignment) || string.Equals(alignment, "general", StringComparison.OrdinalIgnoreCase)) &&
+                cell.ValueKind == ExcelVisualCellValueKind.Text;
+        }
+
+        private static bool CanCellTextSpillLeft(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot) {
+            return CanCellTextSpill(cell, snapshot) &&
+                cell.ValueKind == ExcelVisualCellValueKind.Text &&
+                string.Equals(cell.Style.HorizontalAlignment, "right", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool CanCellTextSpill(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot) {
             if (cell.CoveredByMerge ||
                 cell.Style.WrapText ||
                 cell.Style.ShrinkToFit ||
@@ -605,13 +640,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string? alignment = cell.Style.HorizontalAlignment;
-            if (string.Equals(alignment, "left", StringComparison.OrdinalIgnoreCase)) {
-                return true;
-            }
-
-            return (string.IsNullOrWhiteSpace(alignment) || string.Equals(alignment, "general", StringComparison.OrdinalIgnoreCase)) &&
-                cell.ValueKind == ExcelVisualCellValueKind.Text;
+            return true;
         }
 
         private static bool CanSpillThroughNeighbor(ExcelVisualCell neighbor, ExcelRangeVisualSnapshot snapshot) {

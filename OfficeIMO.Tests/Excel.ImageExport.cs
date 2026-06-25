@@ -243,6 +243,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportSpillsRightAlignedTextIntoBlankLeftNeighborCells() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("RightSpill");
+            sheet.SetColumnWidth(1, 24);
+            sheet.SetColumnWidth(2, 6);
+            sheet.SetColumnWidth(3, 8);
+            sheet.SetRowHeight(1, 24);
+            sheet.CellValue(1, 2, "Right aligned text spills left");
+            sheet.CellValue(1, 3, "Stop");
+            sheet.CellAlign(1, 2, HorizontalAlignmentValues.Right);
+
+            ExcelRange range = sheet.Range("A1:C1");
+            ExcelImageExportOptions options = new() { ShowGridlines = false };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(svgResult.Bytes);
+
+            ExcelVisualCell blankNeighbor = snapshot.Cells.Single(cell => cell.Column == 1);
+            ExcelVisualCell source = snapshot.Cells.Single(cell => cell.Column == 2);
+            double expectedWidth = blankNeighbor.Width + source.Width;
+            Assert.Equal(blankNeighbor.X, ExtractSvgClipX(svg, "xl-text-1-2"), precision: 2);
+            Assert.Equal(expectedWidth, ExtractSvgClipWidth(svg, "xl-text-1-2"), precision: 2);
+            Assert.DoesNotContain(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "RightSpill!B1");
+            Assert.DoesNotContain(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "RightSpill!B1");
+            Assert.Contains("Right aligned text spills left", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportDoesNotSpillThroughBlankCellsCoveredByDrawings() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -468,6 +498,77 @@ namespace OfficeIMO.Tests {
             Assert.True(barPixel.B > 120 && barPixel.R < 40 && barPixel.G < 40, "Expected a blue data-bar pixel.");
             ExcelVisualConditionalIcon finalIcon = snapshot.ConditionalIcons.Single(icon => icon.Row == 3 && icon.Column == 3);
             Assert.True(CountGreenIconPixels(rendered!, finalIcon) > 4, "Expected visible green conditional-formatting icon pixels.");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportHonorsConditionalDataBarThresholds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("DataBarThresholds");
+                sheet.CellValue(1, 1, 0);
+                sheet.CellValue(2, 1, 50);
+                sheet.CellValue(3, 1, 100);
+                sheet.SetColumnWidth(1, 14);
+                sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                DataBar dataBar = worksheet.Elements<ConditionalFormatting>().First().Elements<ConditionalFormattingRule>().First().GetFirstChild<DataBar>()!;
+                ConditionalFormatValueObject[] thresholds = dataBar.Elements<ConditionalFormatValueObject>().ToArray();
+                thresholds[0].Type = ConditionalFormatValueObjectValues.Number;
+                thresholds[0].Val = "0";
+                thresholds[1].Type = ConditionalFormatValueObjectValues.Number;
+                thresholds[1].Val = "200";
+                worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A3").CreateVisualSnapshot();
+
+                ExcelVisualConditionalDataBar finalBar = snapshot.ConditionalDataBars.Single(bar => bar.Row == 3 && bar.Column == 1);
+                Assert.Equal(0D, finalBar.StartRatio);
+                Assert.Equal(0.5D, finalBar.Ratio, precision: 3);
+            }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportHonorsThreeColorScaleMiddleStop() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("ThreeColor");
+                sheet.CellValue(1, 1, 0);
+                sheet.CellValue(2, 1, 50);
+                sheet.CellValue(3, 1, 100);
+                sheet.SetColumnWidth(1, 14);
+                sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Green);
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                ColorScale colorScale = worksheet.Elements<ConditionalFormatting>().First().Elements<ConditionalFormattingRule>().First().GetFirstChild<ColorScale>()!;
+                colorScale.RemoveAllChildren<ConditionalFormatValueObject>();
+                colorScale.RemoveAllChildren<X.Color>();
+                colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Number, Val = "0" });
+                colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Number, Val = "50" });
+                colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Number, Val = "100" });
+                colorScale.Append(new X.Color { Rgb = "FFFF0000" });
+                colorScale.Append(new X.Color { Rgb = "FFFFFF00" });
+                colorScale.Append(new X.Color { Rgb = "FF00FF00" });
+                worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A3").CreateVisualSnapshot();
+
+                Assert.Equal("FFFF0000", snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style.FillColorArgb);
+                Assert.Equal("FFFFFF00", snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 1).Style.FillColorArgb);
+                Assert.Equal("FF00FF00", snapshot.Cells.Single(cell => cell.Row == 3 && cell.Column == 1).Style.FillColorArgb);
+            }
         }
 
         [Fact]
@@ -3468,15 +3569,24 @@ namespace OfficeIMO.Tests {
         }
 
         private static double ExtractSvgClipWidth(string svg, string clipId) {
+            return ExtractSvgClipDoubleAttribute(svg, clipId, "width");
+        }
+
+        private static double ExtractSvgClipX(string svg, string clipId) {
+            return ExtractSvgClipDoubleAttribute(svg, clipId, "x");
+        }
+
+        private static double ExtractSvgClipDoubleAttribute(string svg, string clipId, string attributeName) {
             string marker = "id=\"" + clipId + "\"><rect";
             int clipStart = svg.IndexOf(marker, StringComparison.Ordinal);
             Assert.True(clipStart >= 0, "SVG did not contain clip path '" + clipId + "'.");
-            int widthStart = svg.IndexOf("width=\"", clipStart, StringComparison.Ordinal);
-            Assert.True(widthStart >= 0, "SVG clip path '" + clipId + "' did not contain a width attribute.");
-            widthStart += "width=\"".Length;
-            int widthEnd = svg.IndexOf('"', widthStart);
-            Assert.True(widthEnd > widthStart, "SVG clip path '" + clipId + "' width attribute was malformed.");
-            return double.Parse(svg.Substring(widthStart, widthEnd - widthStart), System.Globalization.CultureInfo.InvariantCulture);
+            string attributeMarker = attributeName + "=\"";
+            int valueStart = svg.IndexOf(attributeMarker, clipStart, StringComparison.Ordinal);
+            Assert.True(valueStart >= 0, "SVG clip path '" + clipId + "' did not contain a " + attributeName + " attribute.");
+            valueStart += attributeMarker.Length;
+            int valueEnd = svg.IndexOf('"', valueStart);
+            Assert.True(valueEnd > valueStart, "SVG clip path '" + clipId + "' " + attributeName + " attribute was malformed.");
+            return double.Parse(svg.Substring(valueStart, valueEnd - valueStart), System.Globalization.CultureInfo.InvariantCulture);
         }
     }
 }
