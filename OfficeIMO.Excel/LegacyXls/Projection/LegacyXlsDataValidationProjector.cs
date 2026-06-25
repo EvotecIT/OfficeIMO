@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls.Model;
+using System.Globalization;
 
 namespace OfficeIMO.Excel.LegacyXls.Projection {
     internal static class LegacyXlsDataValidationProjector {
@@ -18,7 +19,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     ProjectList(sheet, validation);
                     break;
                 case LegacyXlsDataValidationType.Date:
-                    ProjectDate(sheet, validation);
+                    ProjectDate(workbook, sheet, validation);
                     break;
                 case LegacyXlsDataValidationType.Time:
                     ProjectTime(sheet, validation);
@@ -72,8 +73,13 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             sheet.AppendLegacyDataValidation(openXmlValidation);
         }
 
-        private static void ProjectDate(ExcelSheet sheet, LegacyXlsDataValidation validation) {
-            ProjectFormulaBackedValidation(sheet, validation, DataValidationValues.Date);
+        private static void ProjectDate(LegacyXlsWorkbook workbook, ExcelSheet sheet, LegacyXlsDataValidation validation) {
+            ProjectFormulaBackedValidation(
+                sheet,
+                validation,
+                DataValidationValues.Date,
+                ConvertDateValidationLiteral(workbook, validation.Formula1),
+                ConvertDateValidationLiteral(workbook, validation.Formula2));
         }
 
         private static void ProjectTime(ExcelSheet sheet, LegacyXlsDataValidation validation) {
@@ -101,20 +107,37 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             sheet.AppendLegacyDataValidation(openXmlValidation);
         }
 
-        private static void ProjectFormulaBackedValidation(ExcelSheet sheet, LegacyXlsDataValidation validation, DataValidationValues type) {
-            if (string.IsNullOrWhiteSpace(validation.Formula1)) {
+        private static void ProjectFormulaBackedValidation(
+            ExcelSheet sheet,
+            LegacyXlsDataValidation validation,
+            DataValidationValues type,
+            string? formula1 = null,
+            string? formula2 = null) {
+            formula1 ??= validation.Formula1;
+            formula2 ??= validation.Formula2;
+            if (string.IsNullOrWhiteSpace(formula1)) {
                 return;
             }
 
             string range = ToRange(validation);
             DataValidation openXmlValidation = CreateOpenXmlValidation(validation, range, type, ToDataValidationOperator(validation.Operator));
-            openXmlValidation.Append(new Formula1(validation.Formula1));
-            string? formula2 = validation.Formula2;
+            openXmlValidation.Append(new Formula1(formula1));
             if (!string.IsNullOrWhiteSpace(formula2)) {
                 openXmlValidation.Append(new Formula2(formula2!));
             }
 
             sheet.AppendLegacyDataValidation(openXmlValidation);
+        }
+
+        private static string? ConvertDateValidationLiteral(LegacyXlsWorkbook workbook, string? formula) {
+            if (!workbook.Uses1904DateSystem
+                || string.IsNullOrWhiteSpace(formula)
+                || !double.TryParse(formula, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)
+                || !LegacyXlsDateSerialConverter.TryConvert(serial, uses1904DateSystem: true, out DateTime date)) {
+                return formula;
+            }
+
+            return date.ToOADate().ToString("G15", CultureInfo.InvariantCulture);
         }
 
         private static DataValidation CreateOpenXmlValidation(

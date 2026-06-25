@@ -11,6 +11,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             var packageStream = new MemoryStream();
             ExcelDocument document = ExcelDocument.Create(packageStream, autoSave: false);
+            if (workbook.Worksheets.Count == 0) {
+                document.AddWorkSheet("Sheet1");
+            }
+
             foreach (LegacyXlsWorksheet legacySheet in workbook.Worksheets) {
                 ExcelSheet sheet = document.AddWorkSheet(legacySheet.Name);
                 ProjectWorksheet(workbook, legacySheet, sheet);

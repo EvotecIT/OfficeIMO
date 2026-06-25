@@ -4,6 +4,8 @@ using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffFormulaReferenceFormatter {
+        internal const string MissingProjectedSheetReference = "#REF";
+
         internal static bool TryRead3dReference(
             byte[] formulaBytes,
             int offset,
@@ -197,6 +199,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || lastSheetIndex < firstSheetIndex
                 || lastSheetIndex >= sheetNames.Count) {
                 return false;
+            }
+
+            if (sheetNames[firstSheetIndex] == MissingProjectedSheetReference || sheetNames[lastSheetIndex] == MissingProjectedSheetReference) {
+                sheetQualifier = MissingProjectedSheetReference;
+                return true;
             }
 
             string sheetReference = firstSheetIndex == lastSheetIndex

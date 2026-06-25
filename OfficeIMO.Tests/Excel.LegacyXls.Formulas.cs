@@ -248,6 +248,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ProjectsFormulaReferencesToUnsupportedSheetsAsRef() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormula3dReferenceToUnsupportedSheetWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            LegacyXlsUnsupportedSheet unsupportedSheet = Assert.Single(legacy.UnsupportedSheets);
+            Assert.Equal("Chart1", unsupportedSheet.Name);
+            LegacyXlsCell formula = Assert.Single(legacy.Worksheets[1].Cells, cell => cell.Row == 1 && cell.Column == 1);
+            Assert.True(formula.IsFormula);
+            Assert.Equal("#REF!A1+5", formula.FormulaText);
+            Assert.DoesNotContain("Chart1", formula.FormulaText, StringComparison.OrdinalIgnoreCase);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            Sheet formulasSheet = spreadsheet.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().Single(sheet => sheet.Name == "Formulas");
+            WorksheetPart worksheetPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(formulasSheet.Id!);
+            Cell projectedFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A1");
+            Assert.Equal("#REF!A1+5", projectedFormula.CellFormula!.Text);
+            Assert.DoesNotContain("Chart1", projectedFormula.CellFormula.Text, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsFormulaFixedFunctionTokens() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaFixedFunctionWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -1465,6 +1496,39 @@ namespace OfficeIMO.Tests {
                 Buffer.BlockCopy(BitConverter.GetBytes(dataSheetOffset), 0, bytes, checked((int)dataBoundPosition + 4), 4);
                 Buffer.BlockCopy(BitConverter.GetBytes(chartSheetOffset), 0, bytes, checked((int)chartBoundPosition + 4), 4);
                 Buffer.BlockCopy(BitConverter.GetBytes(totalsSheetOffset), 0, bytes, checked((int)totalsBoundPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateFormula3dReferenceToUnsupportedSheetWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long dataBoundPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Data"));
+                long chartBoundPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Chart1", sheetType: 0x02));
+                long formulasBoundPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Formulas"));
+                WriteRecord(stream, 0x0017, BuildExternSheetPayload((0, 1, 1)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int dataSheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0203, BuildNumberPayload(0, 0, 10d));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int chartSheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x20, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int formulasSheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 0, 15d, formulaTokens: Build3dReferenceAdditionFormulaTokens(0, 0, 0, 5)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(dataSheetOffset), 0, bytes, checked((int)dataBoundPosition + 4), 4);
+                Buffer.BlockCopy(BitConverter.GetBytes(chartSheetOffset), 0, bytes, checked((int)chartBoundPosition + 4), 4);
+                Buffer.BlockCopy(BitConverter.GetBytes(formulasSheetOffset), 0, bytes, checked((int)formulasBoundPosition + 4), 4);
                 return bytes;
             }
 

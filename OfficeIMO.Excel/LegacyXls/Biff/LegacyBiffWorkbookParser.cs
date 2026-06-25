@@ -157,9 +157,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             int[] worksheetIndexMap = MoveDialogSheetsToUnsupported(workbookStream, workbook, options);
             RemapDefinedNameLocalSheetIndexes(workbook, worksheetIndexMap);
-            IReadOnlyList<string> sheetNames = boundSheetNames.Count == 0
-                ? workbook.Worksheets.Select(sheet => sheet.Name).ToArray()
-                : boundSheetNames.ToArray();
+            IReadOnlyList<string> sheetNames = CreateFormulaSheetNameMap(workbook, boundSheetNames);
             LegacyBiffUnsupportedSheetScanner.Scan(
                 workbookStream,
                 workbook.UnsupportedSheets,
@@ -191,6 +189,22 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(record.Type, record.Offset, sheetName);
             workbook.MutableUnsupportedFeatures.Add(feature);
             AddPreservedFeatureRecord(workbook, feature, record.Payload.Length);
+        }
+
+        private static IReadOnlyList<string> CreateFormulaSheetNameMap(LegacyXlsWorkbook workbook, IReadOnlyList<string> boundSheetNames) {
+            IReadOnlyList<string> sheetNames = boundSheetNames.Count == 0
+                ? workbook.Worksheets.Select(sheet => sheet.Name).ToArray()
+                : boundSheetNames.ToArray();
+            if (workbook.UnsupportedSheets.Count == 0) {
+                return sheetNames;
+            }
+
+            var unsupportedSheetNames = new HashSet<string>(
+                workbook.UnsupportedSheets.Select(sheet => sheet.Name),
+                StringComparer.OrdinalIgnoreCase);
+            return sheetNames
+                .Select(sheetName => unsupportedSheetNames.Contains(sheetName) ? BiffFormulaReferenceFormatter.MissingProjectedSheetReference : sheetName)
+                .ToArray();
         }
 
         private static void AddUnsupportedSheetFeature(

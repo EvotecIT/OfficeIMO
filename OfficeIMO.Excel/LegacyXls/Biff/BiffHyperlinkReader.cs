@@ -198,7 +198,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             offset += 16;
-            offset += 2; // cAnti: parent-directory indicator count for relative file monikers.
+            ushort parentDirectoryCount = BiffRecordReader.ReadUInt16(payload, offset);
+            offset += 2;
             uint ansiLength = BiffRecordReader.ReadUInt32(payload, offset);
             offset += 4;
             if (ansiLength == 0 || ansiLength > 32767 || offset + ansiLength > payload.Length) {
@@ -241,8 +242,57 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 target = ansiPath;
             }
 
-            target = target.TrimEnd('\0');
+            target = ApplyFileMonikerParentDirectories(target.TrimEnd('\0'), parentDirectoryCount);
             return !string.IsNullOrWhiteSpace(target);
+        }
+
+        private static string ApplyFileMonikerParentDirectories(string target, ushort parentDirectoryCount) {
+            if (parentDirectoryCount == 0 || string.IsNullOrWhiteSpace(target) || IsAbsoluteFileMonikerTarget(target)) {
+                return target;
+            }
+
+            int existingParentSegments = CountLeadingParentDirectorySegments(target);
+            int missingParentSegments = parentDirectoryCount - existingParentSegments;
+            if (missingParentSegments <= 0) {
+                return target;
+            }
+
+            var builder = new StringBuilder();
+            for (int i = 0; i < missingParentSegments; i++) {
+                builder.Append(@"..\");
+            }
+
+            builder.Append(target);
+            return builder.ToString();
+        }
+
+        private static bool IsAbsoluteFileMonikerTarget(string target) {
+            if (Uri.TryCreate(target, UriKind.Absolute, out _)) {
+                return true;
+            }
+
+            return target.StartsWith(@"\\", StringComparison.Ordinal)
+                || target.StartsWith("//", StringComparison.Ordinal)
+                || target.StartsWith(@"\", StringComparison.Ordinal)
+                || target.StartsWith("/", StringComparison.Ordinal)
+                || (target.Length >= 2 && target[1] == ':');
+        }
+
+        private static int CountLeadingParentDirectorySegments(string target) {
+            int count = 0;
+            int offset = 0;
+            while (offset + 2 <= target.Length
+                && target[offset] == '.'
+                && target[offset + 1] == '.'
+                && (offset + 2 == target.Length || target[offset + 2] == '\\' || target[offset + 2] == '/')) {
+                count++;
+                offset += 2;
+                if (offset < target.Length && (target[offset] == '\\' || target[offset] == '/')) {
+                    offset++;
+                }
+            }
+
+            return count;
         }
 
         private static bool HasClsid(byte[] payload, int offset, byte[] expected) {

@@ -112,6 +112,24 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase4FileHyperlinkWithParentDirectoryCountWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "RelativeLinks"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Relative Budget"));
+                WriteRecord(stream, 0x01b8, BuildFileHLinkPayload(0, 0, 0, 0, @"Docs\Budget.pdf", "Relative Budget", parentDirectoryCount: 1));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase4CommentWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -1037,6 +1055,26 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x01be, BuildDateDataValidationPayload());
                 WriteRecord(stream, 0x01be, BuildTimeDataValidationPayload());
                 WriteRecord(stream, 0x01be, BuildTextLengthDataValidationPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)validationBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreatePhase4Date1904DataValidationWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long validationBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Date1904Validation"));
+                WriteRecord(stream, 0x0022, new byte[] { 0x01, 0x00 });
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Ship date"));
+                WriteRecord(stream, 0x01b2, BuildDataValidationCollectionPayload(1));
+                WriteRecord(stream, 0x01be, BuildDateDataValidationPayload(1d, 2d));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -2459,6 +2497,12 @@ namespace OfficeIMO.Tests {
             }
 
             private static byte[] BuildDateDataValidationPayload() {
+                return BuildDateDataValidationPayload(
+                    new DateTime(2024, 1, 1).ToOADate(),
+                    new DateTime(2024, 12, 31).ToOADate());
+            }
+
+            private static byte[] BuildDateDataValidationPayload(double minimumSerial, double maximumSerial) {
                 using var stream = new MemoryStream();
                 uint flags = 0x04U
                     | 0x00000100U
@@ -2469,8 +2513,8 @@ namespace OfficeIMO.Tests {
                 WriteUnicodeString(stream, "Invalid date");
                 WriteUnicodeString(stream, "Enter a 2024 ship date.");
                 WriteUnicodeString(stream, "Use a date in 2024.");
-                WriteDvFormula(stream, BuildPtgNumFormula(new DateTime(2024, 1, 1).ToOADate()));
-                WriteDvFormula(stream, BuildPtgNumFormula(new DateTime(2024, 12, 31).ToOADate()));
+                WriteDvFormula(stream, BuildPtgNumFormula(minimumSerial));
+                WriteDvFormula(stream, BuildPtgNumFormula(maximumSerial));
                 WriteUInt16(stream, 1);
                 WriteUInt16(stream, 1);
                 WriteUInt16(stream, 4);

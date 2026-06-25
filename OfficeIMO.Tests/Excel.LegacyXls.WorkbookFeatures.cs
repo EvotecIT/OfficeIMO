@@ -181,6 +181,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsFileHyperlinkParentDirectoryCount() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4FileHyperlinkWithParentDirectoryCountWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            LegacyXlsHyperlink hyperlink = Assert.Single(Assert.Single(legacy.Worksheets).Hyperlinks);
+            Assert.True(hyperlink.IsExternal);
+            Assert.Equal(@"..\Docs\Budget.pdf", hyperlink.Target);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            HyperlinkRelationship relationship = Assert.Single(worksheetPart.HyperlinkRelationships);
+            Assert.False(relationship.Uri.IsAbsoluteUri);
+            Assert.Equal("../Docs/Budget.pdf", relationship.Uri.OriginalString);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsPhase4CellComments() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4CommentWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -1852,6 +1879,36 @@ namespace OfficeIMO.Tests {
             Assert.Equal("12", openXmlTextLength.GetFirstChild<Formula1>()!.Text);
             Assert.Null(openXmlTextLength.GetFirstChild<Formula2>());
             Assert.Equal("Invalid text", openXmlTextLength.ErrorTitle!.Value);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_Projects1904DateValidationBoundsAsOpenXmlDateSerials() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4Date1904DataValidationWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string expectedStartDate = new DateTime(1904, 1, 2).ToOADate().ToString("G15", CultureInfo.InvariantCulture);
+            string expectedEndDate = new DateTime(1904, 1, 3).ToOADate().ToString("G15", CultureInfo.InvariantCulture);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.True(legacy.Uses1904DateSystem);
+            LegacyXlsDataValidation dateValidation = Assert.Single(Assert.Single(legacy.Worksheets).DataValidations);
+            Assert.Equal("1", dateValidation.Formula1);
+            Assert.Equal("2", dateValidation.Formula2);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            DataValidation openXmlDate = Assert.Single(worksheetPart.Worksheet.Descendants<DataValidation>());
+            Assert.Equal(DataValidationValues.Date, openXmlDate.Type!.Value);
+            Assert.Equal(expectedStartDate, openXmlDate.GetFirstChild<Formula1>()!.Text);
+            Assert.Equal(expectedEndDate, openXmlDate.GetFirstChild<Formula2>()!.Text);
         }
 
         [Fact]

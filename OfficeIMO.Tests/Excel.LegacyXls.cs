@@ -323,6 +323,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_LoadLegacyXlsWithReport_ReturnsValidWorkbookWhenLegacyWorkbookHasNoSheets() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateEncryptedWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.Single(result.Document.Sheets);
+            Assert.Equal("Sheet1", result.Document.Sheets[0].Name);
+            Assert.Equal(0, result.ImportReport.WorksheetCount);
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            Sheet sheet = Assert.Single(spreadsheet.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>());
+            Assert.Equal("Sheet1", sheet.Name!.Value);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ReportsRc4EncryptedWorkbookMethod() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateRc4EncryptedWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
