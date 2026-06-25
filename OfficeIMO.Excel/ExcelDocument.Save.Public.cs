@@ -77,6 +77,14 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Saves the document without opening it.
+        /// </summary>
+        /// <param name="filePath">Path to save to.</param>
+        public void Save(string filePath) {
+            Save(filePath, openExcel: false);
+        }
+
+        /// <summary>
         /// Saves the document and optionally opens it.
         /// </summary>
         /// <param name="filePath">Path to save to.</param>
@@ -103,6 +111,7 @@ namespace OfficeIMO.Excel {
 
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
             var originalFilePath = FilePath;
+            EnsureLegacyXlsCanSaveToPath(path);
 
             // Ensure target directory is writable
             if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
@@ -189,6 +198,7 @@ namespace OfficeIMO.Excel {
 
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
             var originalFilePath = FilePath;
+            EnsureLegacyXlsCanSaveToPath(path);
             if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
                 throw new IOException($"Failed to save to '{path}'. The file is read-only.");
             }
@@ -292,6 +302,7 @@ namespace OfficeIMO.Excel {
 
             var target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
             var originalFilePath = FilePath;
+            EnsureLegacyXlsCanSaveToPath(target);
             if (File.Exists(target) && new FileInfo(target).IsReadOnly) {
                 throw new IOException($"Failed to save to '{target}'. The file is read-only.");
             }
