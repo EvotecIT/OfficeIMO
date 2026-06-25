@@ -1,9 +1,10 @@
 using System;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeRasterCanvas {
-    private OfficeRasterClipRectangle? _clipRectangle;
+    private OfficeRasterClipRegion? _clipRegion;
 
     /// <summary>
     /// Restricts subsequent raster drawing to the supplied rectangular bounds until the returned scope is disposed.
@@ -15,16 +16,38 @@ public sealed partial class OfficeRasterCanvas {
     /// <param name="height">Height of the clipping rectangle.</param>
     /// <returns>A disposable scope that restores the previous clip.</returns>
     public IDisposable PushClipRectangle(double x, double y, double width, double height) {
-        OfficeRasterClipRectangle? previous = _clipRectangle;
+        OfficeRasterClipRegion? previous = _clipRegion;
         OfficeRasterClipRectangle next = OfficeRasterClipRectangle.FromBounds(x, y, width, height);
-        _clipRectangle = previous.HasValue
-            ? OfficeRasterClipRectangle.Intersect(previous.Value, next)
-            : next;
+        _clipRegion = OfficeRasterClipRegion.Rectangle(next, previous);
+        return new ClipScope(this, previous);
+    }
+
+    /// <summary>
+    /// Restricts subsequent raster drawing to the supplied polygon until the returned scope is disposed.
+    /// Nested clips are intersected with the current clip.
+    /// </summary>
+    /// <param name="points">Polygon points in canvas coordinates.</param>
+    /// <returns>A disposable scope that restores the previous clip.</returns>
+    public IDisposable PushClipPolygon(IReadOnlyList<OfficePoint> points) {
+        OfficeRasterClipRegion? previous = _clipRegion;
+        _clipRegion = OfficeRasterClipRegion.Polygon(points, previous);
+        return new ClipScope(this, previous);
+    }
+
+    /// <summary>
+    /// Restricts subsequent raster drawing to the supplied even-odd contours until the returned scope is disposed.
+    /// Nested clips are intersected with the current clip.
+    /// </summary>
+    /// <param name="contours">Closed contours in canvas coordinates.</param>
+    /// <returns>A disposable scope that restores the previous clip.</returns>
+    public IDisposable PushClipPolygonsEvenOdd(IReadOnlyList<IReadOnlyList<OfficePoint>> contours) {
+        OfficeRasterClipRegion? previous = _clipRegion;
+        _clipRegion = OfficeRasterClipRegion.Polygons(contours, previous);
         return new ClipScope(this, previous);
     }
 
     private bool IsPixelInsideClip(int x, int y) =>
-        !_clipRectangle.HasValue || _clipRectangle.Value.Contains(x, y);
+        _clipRegion == null || _clipRegion.Contains(x, y);
 
     private readonly struct OfficeRasterClipRectangle {
         internal OfficeRasterClipRectangle(int left, int top, int right, int bottom) {
@@ -62,12 +85,59 @@ public sealed partial class OfficeRasterCanvas {
             x >= Left && x < Right && y >= Top && y < Bottom;
     }
 
+    private sealed class OfficeRasterClipRegion {
+        private readonly OfficeRasterClipRectangle? _rectangle;
+        private readonly IReadOnlyList<IReadOnlyList<OfficePoint>>? _contours;
+        private readonly OfficeRasterClipRegion? _previous;
+
+        private OfficeRasterClipRegion(OfficeRasterClipRectangle? rectangle, IReadOnlyList<IReadOnlyList<OfficePoint>>? contours, OfficeRasterClipRegion? previous) {
+            _rectangle = rectangle;
+            _contours = contours;
+            _previous = previous;
+        }
+
+        internal static OfficeRasterClipRegion Rectangle(OfficeRasterClipRectangle rectangle, OfficeRasterClipRegion? previous) =>
+            new OfficeRasterClipRegion(rectangle, null, previous);
+
+        internal static OfficeRasterClipRegion Polygon(IReadOnlyList<OfficePoint> points, OfficeRasterClipRegion? previous) =>
+            new OfficeRasterClipRegion(null, new[] { points }, previous);
+
+        internal static OfficeRasterClipRegion Polygons(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeRasterClipRegion? previous) =>
+            new OfficeRasterClipRegion(null, contours, previous);
+
+        internal bool Contains(int x, int y) {
+            if (_previous != null && !_previous.Contains(x, y)) {
+                return false;
+            }
+
+            if (_rectangle.HasValue) {
+                return _rectangle.Value.Contains(x, y);
+            }
+
+            if (_contours == null || _contours.Count == 0) {
+                return false;
+            }
+
+            double sampleX = x + 0.5D;
+            double sampleY = y + 0.5D;
+            int winding = 0;
+            for (int i = 0; i < _contours.Count; i++) {
+                IReadOnlyList<OfficePoint> contour = _contours[i];
+                if (contour.Count >= 3 && ContainsPoint(contour, sampleX, sampleY)) {
+                    winding++;
+                }
+            }
+
+            return (winding & 1) == 1;
+        }
+    }
+
     private sealed class ClipScope : IDisposable {
         private readonly OfficeRasterCanvas _canvas;
-        private readonly OfficeRasterClipRectangle? _previous;
+        private readonly OfficeRasterClipRegion? _previous;
         private bool _disposed;
 
-        internal ClipScope(OfficeRasterCanvas canvas, OfficeRasterClipRectangle? previous) {
+        internal ClipScope(OfficeRasterCanvas canvas, OfficeRasterClipRegion? previous) {
             _canvas = canvas;
             _previous = previous;
         }
@@ -77,7 +147,7 @@ public sealed partial class OfficeRasterCanvas {
                 return;
             }
 
-            _canvas._clipRectangle = _previous;
+            _canvas._clipRegion = _previous;
             _disposed = true;
         }
     }

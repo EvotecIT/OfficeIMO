@@ -64,6 +64,53 @@ namespace OfficeIMO.Tests {
             Assert.True(includeHiddenInfo.Height > defaultInfo.Height, $"Expected including hidden rows to make the PNG taller. default={defaultInfo.Height}, includeHidden={includeHiddenInfo.Height}");
         }
 
+        [Fact]
+        public void ExcelWorksheet_DefaultImageExportSkipsHiddenImageAnchorsWhenExpandingUsedRange() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("HiddenAnchor");
+            sheet.CellValue(1, 1, "Visible");
+            sheet.SetColumnHidden(10, true);
+            sheet.AddImage(1, 10, CreateSolidPng(24, 18, OfficeColor.FromRgb(220, 38, 38)), "image/png", widthPixels: 24, heightPixels: 18, name: "HiddenLogo");
+
+            OfficeImageExportResult defaultResult = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult includeHiddenResult = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { IncludeHidden = true, ShowGridlines = false });
+
+            Assert.Equal("HiddenAnchor!A1:A1", defaultResult.Source);
+            Assert.Equal("HiddenAnchor!A1:J1", includeHiddenResult.Source);
+            Assert.True(includeHiddenResult.Width > defaultResult.Width, $"Expected including the hidden anchored image to expand the default range. default={defaultResult.Width}, includeHidden={includeHiddenResult.Width}");
+        }
+
+        [Fact]
+        public void ExcelWorksheet_DefaultImageExportUsesVisibleExtentsAcrossHiddenColumns() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("VisibleExtent");
+            sheet.CellValue(1, 1, "Visible");
+            sheet.SetColumnHidden(2, true);
+            sheet.AddImage(1, 1, CreateSolidPng(120, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 120, heightPixels: 18, name: "VisibleLogo");
+
+            OfficeImageExportResult result = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });
+
+            Assert.Equal("VisibleExtent!A1:C1", result.Source);
+            Assert.True(result.Width > 100, $"Expected the visible canvas to extend beyond column A when hidden column B has no visible width. width={result.Width}");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportEvaluatesConditionalFormattingForMergeOriginOutsideSelectedRange() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("MergeCf");
+            sheet.CellValue(1, 1, 20);
+            sheet.MergeRange("A1:B1");
+            sheet.AddConditionalRule("A1:B1", DocumentFormat.OpenXml.Spreadsheet.ConditionalFormattingOperatorValues.GreaterThan, "10", fillColor: "C6EFCE");
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("B1:C1").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+
+            ExcelVisualCell origin = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
+            Assert.Equal("FFC6EFCE", origin.Style.FillColorArgb);
+        }
+
         private static void AssertDiagnostic(IReadOnlyList<OfficeImageExportDiagnostic> diagnostics, string code, string source) {
             OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics, item => item.Code == code);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);

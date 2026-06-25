@@ -143,6 +143,8 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            AddIntersectingMergeOriginCells(sheet, options, firstRow, firstColumn, lastRow, lastColumn, merges, rowDefinitions, columnDefinitions, columnsByIndex, rowsByIndex, hyperlinkMap, cells);
+
             ExcelConditionalVisualState conditionalVisuals = options.IncludeConditionalFormatting
                 ? ExcelConditionalVisualEvaluator.Evaluate(sheet, cells, range, options.ConditionalFormattingDate ?? DateTime.Today, diagnostics)
                 : ExcelConditionalVisualState.Empty;
@@ -150,7 +152,6 @@ namespace OfficeIMO.Excel {
                 cells = ApplyConditionalFills(cells, conditionalVisuals.FillColors);
             }
 
-            AddIntersectingMergeOriginCells(sheet, options, firstRow, firstColumn, lastRow, lastColumn, merges, rowDefinitions, columnDefinitions, columnsByIndex, rowsByIndex, hyperlinkMap, cells);
             List<ExcelVisualSparkline> sparklines = BuildSparklines(sheet, firstRow, firstColumn, lastRow, lastColumn, columnsByIndex, rowsByIndex, diagnostics);
             List<ExcelVisualDrawingObject> drawingObjects = BuildDrawingObjects(sheet, options, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, columnDefinitions, columnsByIndex, rowsByIndex, diagnostics);
             List<ExcelVisualImage> images = BuildImages(sheet, options, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, columnDefinitions, columnsByIndex, rowsByIndex, diagnostics);

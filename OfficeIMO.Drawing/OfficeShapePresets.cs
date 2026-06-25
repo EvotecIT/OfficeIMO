@@ -42,12 +42,12 @@ public static class OfficeShapePresets {
                 shape = OfficeShape.Ellipse(width, height);
                 return true;
             case "line":
-                if (width <= 0D) return false;
+                if (width == 0D && height == 0D) return false;
                 shape = OfficeShape.Line(
                     horizontalFlip ? width : 0D,
-                    height / 2D,
+                    verticalFlip ? height : 0D,
                     horizontalFlip ? 0D : width,
-                    height / 2D);
+                    verticalFlip ? 0D : height);
                 return true;
             case "straightconnector1":
                 if (width == 0D && height == 0D) return false;

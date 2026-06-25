@@ -337,7 +337,7 @@ namespace OfficeIMO.Excel {
                 foreach (ExcelImage image in Images) {
                     if (image.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight)) {
                         ExpandAbsoluteVisualAnchor(absoluteX, absoluteY, absoluteWidth, absoluteHeight, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
-                    } else {
+                    } else if (options.IncludeHidden || !IsHiddenAnchor(image.RowIndex, image.ColumnIndex, rows, columns)) {
                         ExpandVisualAnchor(image.RowIndex, image.ColumnIndex, image.WidthPixels, image.HeightPixels, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
                     }
                 }
@@ -346,14 +346,18 @@ namespace OfficeIMO.Excel {
             if (options.IncludeCharts) {
                 foreach (ExcelChart chart in Charts) {
                     if (chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
-                        ExpandVisualAnchor(snapshot.RowIndex, snapshot.ColumnIndex, snapshot.WidthPixels, snapshot.HeightPixels, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                        if (options.IncludeHidden || !IsHiddenAnchor(snapshot.RowIndex, snapshot.ColumnIndex, rows, columns)) {
+                            ExpandVisualAnchor(snapshot.RowIndex, snapshot.ColumnIndex, snapshot.WidthPixels, snapshot.HeightPixels, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                        }
                     }
                 }
             }
 
             if (options.IncludeDrawingObjects) {
                 foreach (ExcelWorksheetDrawingObjectInfo drawing in ExcelWorksheetDrawingObjectResolver.FindDrawingObjects(WorksheetPart)) {
-                    ExpandVisualAnchor(drawing.Row, drawing.Column, drawing.WidthPixels, drawing.HeightPixels, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                    if (options.IncludeHidden || !IsHiddenAnchor(drawing.Row, drawing.Column, rows, columns)) {
+                        ExpandVisualAnchor(drawing.Row, drawing.Column, drawing.WidthPixels, drawing.HeightPixels, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                    }
                 }
             }
 
@@ -464,7 +468,7 @@ namespace OfficeIMO.Excel {
             double remaining = Math.Max(1D, widthPixels);
             int column = startColumn;
             while (column < 16384) {
-                remaining -= ResolveColumnWidth(columns.FirstOrDefault(item => column >= item.StartIndex && column <= item.EndIndex), options);
+                remaining -= ResolveVisibleColumnWidth(column, columns, options);
                 if (remaining <= 0D) {
                     return column;
                 }
@@ -480,7 +484,7 @@ namespace OfficeIMO.Excel {
             int row = startRow;
             while (row < 1048576) {
                 rows.TryGetValue(row, out ExcelRowSnapshot? definition);
-                remaining -= ResolveRowHeight(definition, options);
+                remaining -= ResolveVisibleRowHeight(definition, options);
                 if (remaining <= 0D) {
                     return row;
                 }
@@ -489,6 +493,32 @@ namespace OfficeIMO.Excel {
             }
 
             return row;
+        }
+
+        private static bool IsHiddenAnchor(int rowIndex, int columnIndex, IReadOnlyDictionary<int, ExcelRowSnapshot> rows, IReadOnlyList<ExcelColumnSnapshot> columns) =>
+            IsHiddenRow(rowIndex, rows) || IsHiddenColumn(columnIndex, columns);
+
+        private static bool IsHiddenRow(int rowIndex, IReadOnlyDictionary<int, ExcelRowSnapshot> rows) =>
+            rows.TryGetValue(rowIndex, out ExcelRowSnapshot? definition) && definition.Hidden;
+
+        private static bool IsHiddenColumn(int columnIndex, IReadOnlyList<ExcelColumnSnapshot> columns) =>
+            columns.Any(definition => definition.Hidden && columnIndex >= definition.StartIndex && columnIndex <= definition.EndIndex);
+
+        private static double ResolveVisibleColumnWidth(int column, IReadOnlyList<ExcelColumnSnapshot> columns, ExcelImageExportOptions options) {
+            ExcelColumnSnapshot? definition = columns.FirstOrDefault(item => column >= item.StartIndex && column <= item.EndIndex);
+            if (definition?.Hidden == true && !options.IncludeHidden) {
+                return 0D;
+            }
+
+            return ResolveColumnWidth(definition, options);
+        }
+
+        private static double ResolveVisibleRowHeight(ExcelRowSnapshot? definition, ExcelImageExportOptions options) {
+            if (definition?.Hidden == true && !options.IncludeHidden) {
+                return 0D;
+            }
+
+            return ResolveRowHeight(definition, options);
         }
 
         private static double ResolveColumnWidth(ExcelColumnSnapshot? definition, ExcelImageExportOptions options) {

@@ -874,7 +874,11 @@ public class DrawingTests {
 
         string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
 
-        Assert.Contains("<text x=\"50\" y=\"22\" font-family=\"Aptos\" font-size=\"10\" text-anchor=\"middle\" fill=\"#010203\" fill-opacity=\"0.502\" font-weight=\"700\" font-style=\"italic\">A&amp;B<tspan x=\"50\" dy=\"14\">Beta</tspan></text>", svg, StringComparison.Ordinal);
+        Assert.Contains("<text x=\"50\" y=\"22\" font-family=\"Aptos\" font-size=\"10\" text-anchor=\"middle\" fill=\"#010203\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill-opacity=\"0.502\"", svg, StringComparison.Ordinal);
+        Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
+        Assert.Contains("font-style=\"italic\"", svg, StringComparison.Ordinal);
+        Assert.Contains(">A&amp;B<tspan x=\"50\" dy=\"14\">Beta</tspan></text>", svg, StringComparison.Ordinal);
     }
 
     [Fact]

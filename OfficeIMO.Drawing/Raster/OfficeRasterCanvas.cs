@@ -38,7 +38,7 @@ public sealed partial class OfficeRasterCanvas {
 
     /// <summary>Fills a rectangle.</summary>
     public void FillRectangle(double x, double y, double width, double height, OfficeColor color) {
-        if (color.A == 0 || width <= 0D || height <= 0D) {
+        if (color.A == 0 || width <= 0D || height <= 0D || IsOutsideCanvas(x, y, width, height)) {
             return;
         }
 
@@ -59,7 +59,7 @@ public sealed partial class OfficeRasterCanvas {
             throw new ArgumentNullException(nameof(gradient));
         }
 
-        if (width <= 0D || height <= 0D) {
+        if (width <= 0D || height <= 0D || IsOutsideCanvas(x, y, width, height)) {
             return;
         }
 
@@ -97,7 +97,7 @@ public sealed partial class OfficeRasterCanvas {
 
     /// <summary>Fills an ellipse bounded by the supplied rectangle.</summary>
     public void FillEllipse(double x, double y, double width, double height, OfficeColor color) {
-        if (color.A == 0 || width <= 0D || height <= 0D) {
+        if (color.A == 0 || width <= 0D || height <= 0D || IsOutsideCanvas(x, y, width, height)) {
             return;
         }
 
@@ -117,7 +117,7 @@ public sealed partial class OfficeRasterCanvas {
 
     /// <summary>Draws an ellipse outline bounded by the supplied rectangle.</summary>
     public void DrawEllipse(double x, double y, double width, double height, OfficeColor color, double thickness = 1D) {
-        if (color.A == 0 || width <= 0D || height <= 0D || thickness <= 0D) {
+        if (color.A == 0 || width <= 0D || height <= 0D || thickness <= 0D || IsOutsideCanvas(x, y, width, height)) {
             return;
         }
 
@@ -679,6 +679,9 @@ public sealed partial class OfficeRasterCanvas {
 
         _target!.BlendPixel(x, y, color);
     }
+
+    private bool IsOutsideCanvas(double x, double y, double width, double height) =>
+        x >= Width || y >= Height || x + width <= 0D || y + height <= 0D;
 
     private double PolygonCoverage(IReadOnlyList<OfficePoint> points, int x, int y) {
         int samples = CoverageSamples;
