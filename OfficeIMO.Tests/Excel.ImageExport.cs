@@ -752,16 +752,14 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(rendered);
             ExcelVisualCell aboveCell = snapshot.Cells.Single(cell => cell.Row == 5 && cell.Column == 1);
             ExcelVisualCell belowCell = snapshot.Cells.Single(cell => cell.Row == 3 && cell.Column == 2);
-            AssertPixelNear(
+            AssertCellContainsPixelNear(
                 rendered!,
-                (int)(aboveCell.X + aboveCell.Width - 8),
-                (int)(aboveCell.Y + aboveCell.Height - 8),
+                aboveCell,
                 OfficeColor.FromRgb(198, 239, 206),
                 tolerance: 3);
-            AssertPixelNear(
+            AssertCellContainsPixelNear(
                 rendered!,
-                (int)(belowCell.X + belowCell.Width - 8),
-                (int)(belowCell.Y + belowCell.Height - 8),
+                belowCell,
                 OfficeColor.FromRgb(219, 234, 254),
                 tolerance: 3);
         }

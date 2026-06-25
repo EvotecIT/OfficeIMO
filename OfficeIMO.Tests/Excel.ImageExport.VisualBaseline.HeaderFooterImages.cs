@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(svg.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.Contains("xl-header-footer-header-center-image", svgText, StringComparison.Ordinal);
             Assert.Contains("xl-header-footer-footer-right-image", svgText, StringComparison.Ordinal);
-            Assert.Equal(2, svgText.Split("data:image/png;base64,", StringSplitOptions.None).Length - 1);
+            Assert.Equal(2, svgText.Split(new[] { "data:image/png;base64," }, StringSplitOptions.None).Length - 1);
             Assert.DoesNotContain("&G", svgText, StringComparison.Ordinal);
             AssertRasterBaseline(HeaderFooterImagesBaselineName + ".png", png.Bytes);
             AssertTextBaseline(HeaderFooterImagesBaselineName + ".svg", svgText);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<svg", svg, StringComparison.Ordinal);
             Assert.Contains("xl-header-footer-header-center-image", svg, StringComparison.Ordinal);
             Assert.Contains("xl-header-footer-footer-right-image", svg, StringComparison.Ordinal);
-            Assert.Equal(2, svg.Split("data:image/png;base64,", StringSplitOptions.None).Length - 1);
+            Assert.Equal(2, svg.Split(new[] { "data:image/png;base64," }, StringSplitOptions.None).Length - 1);
             Assert.Contains("Header/Footer Image Baseline", svg, StringComparison.Ordinal);
             Assert.Contains("Rendered on page 2", svg, StringComparison.Ordinal);
         }

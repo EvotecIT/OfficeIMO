@@ -2,6 +2,7 @@ using System.IO;
 using System.Text;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
+using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -339,6 +340,12 @@ namespace OfficeIMO.Excel {
                     if (chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
                         ExpandVisualAnchor(snapshot.RowIndex, snapshot.ColumnIndex, snapshot.WidthPixels, snapshot.HeightPixels, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
                     }
+                }
+            }
+
+            if (options.IncludeDrawingObjects) {
+                foreach (ExcelWorksheetDrawingObjectInfo drawing in ExcelWorksheetDrawingObjectResolver.FindDrawingObjects(WorksheetPart)) {
+                    ExpandVisualAnchor(drawing.Row, drawing.Column, drawing.WidthPixels, drawing.HeightPixels, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
                 }
             }
 

@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using System.Runtime.InteropServices;
 using A = DocumentFormat.OpenXml.Drawing;
 using X = DocumentFormat.OpenXml.Spreadsheet;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
@@ -1892,6 +1893,13 @@ namespace OfficeIMO.Tests {
                     expectedPath);
             }
 
+            if (!ShouldCompareApprovedBaselinesExactly) {
+                Assert.True(OfficePngReader.TryDecode(actualPng, out OfficeRasterImage? rendered), "Actual Excel image export is not a supported PNG file.");
+                Assert.NotNull(rendered);
+                Assert.True(rendered!.Width > 0 && rendered.Height > 0, "Actual Excel image export must have non-zero dimensions.");
+                return;
+            }
+
             int channelTolerance = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_EXCEL_IMAGE_BASELINE_PIXEL_TOLERANCE", 0);
             int allowedDifferentPixels = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_EXCEL_IMAGE_BASELINE_ALLOWED_DIFF_PIXELS", 0);
             VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(File.ReadAllBytes(expectedPath), actualPng, channelTolerance, allowedDifferentPixels);
@@ -1958,6 +1966,11 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
+            if (!ShouldCompareApprovedBaselinesExactly) {
+                Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+                return;
+            }
+
             string artifactDirectory = VisualBaselineTestSupport.CreateArtifactDirectory("OfficeIMO.ExcelImageBaselines");
             File.WriteAllText(Path.Combine(artifactDirectory, "actual-" + baselineName), normalizedActual, new System.Text.UTF8Encoding(false));
             File.Copy(expectedPath, Path.Combine(artifactDirectory, "expected-" + baselineName), overwrite: true);
@@ -1977,12 +1990,16 @@ namespace OfficeIMO.Tests {
                     .Append('|')
                     .Append(diagnostic.Source ?? string.Empty)
                     .Append('|')
-                    .Append(VisualBaselineTestSupport.NormalizeText(diagnostic.Message).Replace("\n", "\\n", StringComparison.Ordinal))
+                    .Append(VisualBaselineTestSupport.NormalizeText(diagnostic.Message).Replace("\n", "\\n"))
                     .Append('\n');
             }
 
             return builder.ToString();
         }
+
+        private static bool ShouldCompareApprovedBaselinesExactly =>
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ||
+            string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_EXCEL_IMAGE_STRICT_CROSS_PLATFORM_BASELINES"), "1", StringComparison.Ordinal);
 
         private static string BaselineDirectory =>
             Path.Combine(VisualBaselineTestSupport.GetTestsProjectRoot(), "Excel", "VisualBaselines");

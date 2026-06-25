@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
             string baselineDirectory = BaselineDirectory;
             string[] diagnosticsBaselines = Directory
                 .GetFiles(baselineDirectory, "*.diagnostics.txt", SearchOption.TopDirectoryOnly)
-                .Select(path => Path.GetFileName(path).Replace(".diagnostics.txt", string.Empty, StringComparison.Ordinal))
+                .Select(path => TrimDiagnosticsBaselineSuffix(Path.GetFileName(path)))
                 .OrderBy(name => name, StringComparer.Ordinal)
                 .ToArray();
 
@@ -138,6 +138,13 @@ namespace OfficeIMO.Tests {
             }
 
             return diagnostics;
+        }
+
+        private static string TrimDiagnosticsBaselineSuffix(string fileName) {
+            const string suffix = ".diagnostics.txt";
+            return fileName.EndsWith(suffix, StringComparison.Ordinal)
+                ? fileName.Substring(0, fileName.Length - suffix.Length)
+                : Path.GetFileNameWithoutExtension(fileName);
         }
 
         private static string BaselineDirectory =>

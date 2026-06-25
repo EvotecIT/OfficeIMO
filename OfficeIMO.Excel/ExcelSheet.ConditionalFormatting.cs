@@ -196,12 +196,7 @@ namespace OfficeIMO.Excel {
                 };
 
                 var icon = new IconSet { IconSetValue = iconSet, ShowValue = showValue, Reverse = reverseIconOrder };
-                // Schema requires cfvo count to match icon count.
-                int count;
-                var setName = iconSet.ToString();
-                if (setName.StartsWith("Three", System.StringComparison.OrdinalIgnoreCase)) count = 3;
-                else if (setName.StartsWith("Four", System.StringComparison.OrdinalIgnoreCase)) count = 4;
-                else count = 5;
+                int count = ResolveIconSetThresholdCount(iconSet);
 
                 if (numberThresholds != null && numberThresholds.Length == count) {
                     for (int i = 0; i < count; i++) {
@@ -236,6 +231,29 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void AddConditionalIconSet(string range)
             => AddConditionalIconSet(range, IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+
+        private static int ResolveIconSetThresholdCount(IconSetValues iconSet) {
+            if (iconSet == IconSetValues.ThreeArrows ||
+                iconSet == IconSetValues.ThreeArrowsGray ||
+                iconSet == IconSetValues.ThreeFlags ||
+                iconSet == IconSetValues.ThreeSigns ||
+                iconSet == IconSetValues.ThreeSymbols ||
+                iconSet == IconSetValues.ThreeSymbols2 ||
+                iconSet == IconSetValues.ThreeTrafficLights1 ||
+                iconSet == IconSetValues.ThreeTrafficLights2) {
+                return 3;
+            }
+
+            if (iconSet == IconSetValues.FourArrows ||
+                iconSet == IconSetValues.FourArrowsGray ||
+                iconSet == IconSetValues.FourRating ||
+                iconSet == IconSetValues.FourRedToBlack ||
+                iconSet == IconSetValues.FourTrafficLights) {
+                return 4;
+            }
+
+            return 5;
+        }
 
     }
 }

@@ -274,6 +274,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_ImageExportExpandsUsedRangeForDrawingShapes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("ShapeOnly");
+                sheet.CellValue(1, 1, "Only cell");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(filePath, "Outside used range", "Outside used range");
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                var options = new ExcelWorksheetImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = sheet.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, options);
+                OfficeImageExportResult svg = sheet.ExportImage(OfficeImageExportFormat.Svg, options);
+                string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.Equal("ShapeOnly!B2", drawingObject.Source);
+                Assert.Equal("Outside used range", drawingObject.Text);
+                Assert.NotEqual("ShapeOnly!A1:A1", png.Source);
+                Assert.Equal(png.Source, svg.Source);
+                Assert.Contains("#E0F2FE", svgText, StringComparison.Ordinal);
+                Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+            }
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportResolvesThemedDrawingShapeColorsThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
