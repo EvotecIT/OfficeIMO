@@ -429,6 +429,33 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Skip_Comment_Rows_Skips_W3C_Markers_After_Normal_Header()
+    {
+        var parsed = CsvDocument.Parse(
+            "Name,Value\n#Fields: old value\nAlpha,1\n",
+            new CsvLoadOptions { SkipCommentRows = true });
+
+        var row = Assert.Single(parsed.AsEnumerable());
+
+        Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
+        Assert.Equal("Alpha", row.AsString("Name"));
+        Assert.Equal("1", row.AsString("Value"));
+    }
+
+    [Fact]
+    public void Skip_Comment_Rows_Skips_Complete_Multiline_Comment_Record()
+    {
+        var parsed = CsvDocument.Parse(
+            "Name,Value\n#note,\"ignored\nstill ignored\"\nAlpha,1\n",
+            new CsvLoadOptions { SkipCommentRows = true });
+
+        var row = Assert.Single(parsed.AsEnumerable());
+
+        Assert.Equal("Alpha", row.AsString("Name"));
+        Assert.Equal("1", row.AsString("Value"));
+    }
+
+    [Fact]
     public void Can_Skip_Custom_Comment_Rows_Throughout_File()
     {
         var parsed = CsvDocument.Parse(

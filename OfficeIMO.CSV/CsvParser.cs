@@ -78,20 +78,19 @@ internal static class CsvParser
         var trim = options.TrimWhitespace;
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
+        var emittedRecord = false;
 
         while (ReadLineWithSeparator(reader, out var lineSeparator) is { } line)
         {
-            if (ShouldSkipCommentLine(line, options))
-            {
-                lineNumber++;
-                continue;
-            }
+            var startsWithCommentCharacter = IsRawCommentLine(line, options);
 
             if (TrySplitUnquotedRecord(line, delimiter, trim, out var record))
             {
-                if (ShouldEmitRecord(record, allowEmpty))
+                if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecord) &&
+                    ShouldEmitRecord(record, allowEmpty))
                 {
                     recordAction(record);
+                    emittedRecord = true;
                 }
 
                 lineNumber++;
@@ -126,7 +125,11 @@ internal static class CsvParser
 
             if (ShouldEmitRecord(fields, allowEmpty))
             {
-                recordAction(fields);
+                if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecord))
+                {
+                    recordAction(fields);
+                    emittedRecord = true;
+                }
             }
 
             lineNumber++;
@@ -150,21 +153,19 @@ internal static class CsvParser
         var trim = options.TrimWhitespace;
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
+        var emittedRecord = false;
 
         while (ReadLineWithSeparator(reader, out var lineSeparator) is { } line)
         {
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
-            if (ShouldSkipCommentLine(line, options))
-            {
-                lineNumber++;
-                continue;
-            }
 
             if (TrySplitUnquotedRecord(line, delimiter, trim, out var record))
             {
-                if (ShouldEmitRecord(record, allowEmpty))
+                if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecord) &&
+                    ShouldEmitRecord(record, allowEmpty))
                 {
                     yield return new CsvParsedRecord(record, startsWithCommentCharacter);
+                    emittedRecord = true;
                 }
 
                 lineNumber++;
@@ -199,7 +200,11 @@ internal static class CsvParser
 
             if (ShouldEmitRecord(fields, allowEmpty))
             {
-                yield return new CsvParsedRecord(fields, startsWithCommentCharacter);
+                if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecord))
+                {
+                    yield return new CsvParsedRecord(fields, startsWithCommentCharacter);
+                    emittedRecord = true;
+                }
             }
 
             lineNumber++;
@@ -218,21 +223,19 @@ internal static class CsvParser
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
         var reusableRecord = new List<string>(16);
+        var emittedRecord = false;
 
         while (ReadLineWithSeparator(reader, out var lineSeparator) is { } line)
         {
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
-            if (ShouldSkipCommentLine(line, options))
-            {
-                lineNumber++;
-                continue;
-            }
 
             if (TrySplitUnquotedRecord(line, delimiter, trim, reusableRecord))
             {
-                if (ShouldEmitRecord(reusableRecord, allowEmpty))
+                if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecord) &&
+                    ShouldEmitRecord(reusableRecord, allowEmpty))
                 {
                     recordAction(new CsvParsedRecord(reusableRecord, startsWithCommentCharacter));
+                    emittedRecord = true;
                 }
 
                 lineNumber++;
@@ -267,7 +270,11 @@ internal static class CsvParser
 
             if (ShouldEmitRecord(fields, allowEmpty))
             {
-                recordAction(new CsvParsedRecord(fields, startsWithCommentCharacter));
+                if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecord))
+                {
+                    recordAction(new CsvParsedRecord(fields, startsWithCommentCharacter));
+                    emittedRecord = true;
+                }
             }
 
             lineNumber++;
@@ -541,18 +548,24 @@ internal static class CsvParser
         return fieldIndex == fields.Length;
     }
 
-    private static bool ShouldSkipCommentLine(string line, CsvLoadOptions options)
+    private static bool ShouldSkipCommentRecord(bool startsWithCommentCharacter, string firstLine, CsvLoadOptions options, bool emittedRecord)
     {
-        if (!options.SkipCommentRows || !IsRawCommentLine(line, options))
+        if (!options.SkipCommentRows || !startsWithCommentCharacter)
         {
             return false;
         }
 
-        return !IsW3CFieldsLine(line, options);
+        return !CanReadW3CFieldsHeader(options, emittedRecord) || !IsW3CFieldsLine(firstLine, options);
     }
 
     private static bool IsRawCommentLine(string line, CsvLoadOptions options) =>
         line.Length > 0 && line[0] == options.CommentCharacter;
+
+    private static bool CanReadW3CFieldsHeader(CsvLoadOptions options, bool emittedRecord) =>
+        !emittedRecord &&
+        options.HasHeaderRow &&
+        options.Header is null &&
+        options.RecognizeW3CFieldsHeader;
 
     private static bool IsW3CFieldsLine(string line, CsvLoadOptions options) =>
         options.RecognizeW3CFieldsHeader && line.StartsWith("#Fields:", StringComparison.OrdinalIgnoreCase);
