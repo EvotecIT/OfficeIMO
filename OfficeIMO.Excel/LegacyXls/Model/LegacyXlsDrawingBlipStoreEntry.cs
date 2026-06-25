@@ -10,10 +10,13 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort recordInstance,
             byte win32BlipType,
             byte macOsBlipType,
+            string? uidHex,
             uint? sizeBytes,
             uint? referenceCount,
             ushort? embeddedBlipRecordType,
-            uint? embeddedBlipPayloadLength) {
+            uint? embeddedBlipPayloadLength,
+            int? embeddedBlipPayloadAvailableLength,
+            string? embeddedBlipPayloadSha256) {
             RecordInstance = recordInstance;
             RecordInstanceBlipTypeKind = TryGetBlipTypeKind(recordInstance);
             RecordInstanceBlipTypeName = GetBlipTypeName(recordInstance);
@@ -23,11 +26,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             MacOsBlipType = macOsBlipType;
             MacOsBlipTypeKind = TryGetBlipTypeKind(macOsBlipType);
             MacOsBlipTypeName = GetBlipTypeName(macOsBlipType);
+            UidHex = uidHex;
             SizeBytes = sizeBytes;
             ReferenceCount = referenceCount;
             EmbeddedBlipRecordType = embeddedBlipRecordType;
             EmbeddedBlipRecordTypeName = GetEmbeddedBlipRecordTypeName(embeddedBlipRecordType);
             EmbeddedBlipPayloadLength = embeddedBlipPayloadLength;
+            EmbeddedBlipPayloadAvailableLength = embeddedBlipPayloadAvailableLength;
+            EmbeddedBlipPayloadSha256 = embeddedBlipPayloadSha256;
         }
 
         /// <summary>Gets the BLIP type value stored in the FBSE OfficeArt record instance field.</summary>
@@ -57,6 +63,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets a stable display name for the MacOS BLIP type.</summary>
         public string MacOsBlipTypeName { get; }
 
+        /// <summary>Gets the FBSE image UID bytes as uppercase hexadecimal text, when available.</summary>
+        public string? UidHex { get; }
+
         /// <summary>Gets the stored BLIP size from the FBSE entry, when available.</summary>
         public uint? SizeBytes { get; }
 
@@ -71,6 +80,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the embedded BLIP payload length, when an embedded BLIP is present.</summary>
         public uint? EmbeddedBlipPayloadLength { get; }
+
+        /// <summary>Gets the embedded BLIP payload bytes available in the drawing record.</summary>
+        public int? EmbeddedBlipPayloadAvailableLength { get; }
+
+        /// <summary>Gets the SHA-256 hash of the embedded BLIP payload bytes, when available.</summary>
+        public string? EmbeddedBlipPayloadSha256 { get; }
 
         private static LegacyXlsDrawingBlipType? TryGetBlipTypeKind(ushort value) {
             return value switch {

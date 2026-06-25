@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Excel.LegacyXls.Model;
 
@@ -263,26 +264,55 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             byte win32BlipType = payload[contentStart];
             byte macOsBlipType = payload[contentStart + 1];
+            string uidHex = ToHexString(payload, contentStart + 2, 16);
             uint sizeBytes = BiffRecordReader.ReadUInt32(payload, contentStart + 20);
             uint referenceCount = BiffRecordReader.ReadUInt32(payload, contentStart + 24);
             byte nameByteCount = payload[contentStart + 33];
             int embeddedOffset = contentStart + 36 + nameByteCount;
             ushort? embeddedRecordType = null;
             uint? embeddedPayloadLength = null;
+            int? embeddedPayloadAvailableLength = null;
+            string? embeddedPayloadSha256 = null;
             if (embeddedOffset + 8 <= contentEnd) {
                 embeddedRecordType = BiffRecordReader.ReadUInt16(payload, embeddedOffset + 2);
                 embeddedPayloadLength = BiffRecordReader.ReadUInt32(payload, embeddedOffset + 4);
+                int embeddedPayloadOffset = embeddedOffset + 8;
+                int declaredEmbeddedPayloadLength = embeddedPayloadLength > int.MaxValue
+                    ? int.MaxValue
+                    : (int)embeddedPayloadLength.Value;
+                embeddedPayloadAvailableLength = Math.Min(Math.Max(0, contentEnd - embeddedPayloadOffset), declaredEmbeddedPayloadLength);
+                if (embeddedPayloadAvailableLength > 0) {
+                    embeddedPayloadSha256 = ComputeSha256(payload, embeddedPayloadOffset, embeddedPayloadAvailableLength.Value);
+                }
             }
 
             entry = new LegacyXlsDrawingBlipStoreEntry(
                 recordInstance,
                 win32BlipType,
                 macOsBlipType,
+                uidHex,
                 sizeBytes,
                 referenceCount,
                 embeddedRecordType,
-                embeddedPayloadLength);
+                embeddedPayloadLength,
+                embeddedPayloadAvailableLength,
+                embeddedPayloadSha256);
             return true;
+        }
+
+        private static string ComputeSha256(byte[] payload, int offset, int count) {
+            using SHA256 sha256 = SHA256.Create();
+            byte[] hash = sha256.ComputeHash(payload, offset, count);
+            return ToHexString(hash, 0, hash.Length);
+        }
+
+        private static string ToHexString(byte[] payload, int offset, int count) {
+            var builder = new StringBuilder(count * 2);
+            for (int i = 0; i < count; i++) {
+                builder.Append(payload[offset + i].ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+            }
+
+            return builder.ToString();
         }
 
         private static bool TryReadShape(

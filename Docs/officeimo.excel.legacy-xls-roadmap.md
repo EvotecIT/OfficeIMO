@@ -267,6 +267,10 @@ Drawing `ShapePropsStream`, `TextPropsStream`, and `RichTextStream` future-recor
 streams now have first-class preserve-only drawing kinds plus decoded FRT headers,
 including compact report buckets for wrapped record type, flags, range-reference
 state, attached range, and remaining stream byte count.
+OfficeArt FBSE image-store entries now preserve stable image UID metadata plus
+available embedded BLIP payload length and SHA-256 fingerprints in import reports,
+so embedded pictures can be compared and traced across corpus runs before native
+image extraction or DrawingML projection is implemented.
 Unsupported and preserve-only feature occurrences now also populate a structured
 `LegacyXlsWorkbook.UnsupportedFeatures` report with stable codes, feature kind,
 sheet name, record type, record offset, and stable feature-detail keys such as

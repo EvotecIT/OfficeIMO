@@ -2752,11 +2752,29 @@ Warnings: 0
 | --- | --- |
 | (workbook)\|Png | 1 |
 
+## Drawing BLIP Store Entries By UID
+
+| Key | Count |
+| --- | --- |
+| 32E5AD735015D373BA84CAC67A2DED92 | 1 |
+
 ## Drawing BLIP Store Entries By Embedded Record Type
 
 | Key | Count |
 | --- | --- |
 | OfficeArtBlipPNG | 1 |
+
+## Drawing BLIP Store Entries By Embedded Payload Available Length
+
+| Key | Count |
+| --- | --- |
+| AvailableBytes:87 | 1 |
+
+## Drawing BLIP Store Entries By Embedded Payload Hash
+
+| Key | Count |
+| --- | --- |
+| 55152487A3D5132D255D9A7C734DE58C7AE879AC88084F830457841613493663 | 1 |
 
 ## Drawing BLIP Store Entries By Size
 

@@ -184,6 +184,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByEmbeddedRecordType["OfficeArtBlipPNG"]);
             Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByLocation["(workbook)"]);
             Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByTypeAndLocation["(workbook)|Png"]);
+            Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByUid["32E5AD735015D373BA84CAC67A2DED92"]);
+            Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByEmbeddedPayloadAvailableLength["AvailableBytes:87"]);
+            Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByEmbeddedPayloadHash["55152487A3D5132D255D9A7C734DE58C7AE879AC88084F830457841613493663"]);
             Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByName["pib"]);
             Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByName["BlipBooleanProperties"]);
             Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByName["ShapeBooleanProperties"]);

@@ -1335,10 +1335,22 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingBlipStoreEntriesByTypeAndLocation = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.BlipStoreEntries
                     .Select(entry => $"{GetDrawingRecordLocationKey(record)}|{entry.RecordInstanceBlipTypeName}")));
+            DrawingBlipStoreEntriesByUid = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.BlipStoreEntries)
+                .Where(entry => !string.IsNullOrWhiteSpace(entry.UidHex))
+                .Select(entry => entry.UidHex!));
             DrawingBlipStoreEntriesByEmbeddedRecordType = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.BlipStoreEntries)
                 .Where(entry => !string.IsNullOrWhiteSpace(entry.EmbeddedBlipRecordTypeName))
                 .Select(entry => entry.EmbeddedBlipRecordTypeName!));
+            DrawingBlipStoreEntriesByEmbeddedPayloadAvailableLength = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.BlipStoreEntries)
+                .Where(entry => entry.EmbeddedBlipPayloadAvailableLength.HasValue)
+                .Select(entry => $"AvailableBytes:{entry.EmbeddedBlipPayloadAvailableLength!.Value}"));
+            DrawingBlipStoreEntriesByEmbeddedPayloadHash = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.BlipStoreEntries)
+                .Where(entry => !string.IsNullOrWhiteSpace(entry.EmbeddedBlipPayloadSha256))
+                .Select(entry => entry.EmbeddedBlipPayloadSha256!));
             DrawingBlipStoreEntriesBySize = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.BlipStoreEntries)
                 .Where(entry => entry.SizeBytes.HasValue)
@@ -3109,8 +3121,17 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by workbook/sheet location and decoded BLIP type.</summary>
         public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByTypeAndLocation { get; }
 
+        /// <summary>Gets OfficeArt FBSE image-store entries grouped by image UID.</summary>
+        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByUid { get; }
+
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by embedded BLIP record type.</summary>
         public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByEmbeddedRecordType { get; }
+
+        /// <summary>Gets OfficeArt FBSE image-store entries grouped by available embedded payload byte length.</summary>
+        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByEmbeddedPayloadAvailableLength { get; }
+
+        /// <summary>Gets OfficeArt FBSE image-store entries grouped by embedded payload SHA-256 hash.</summary>
+        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByEmbeddedPayloadHash { get; }
 
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by stored byte size.</summary>
         public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesBySize { get; }
@@ -3960,7 +3981,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing BLIP Store Entries By Type", DrawingBlipStoreEntriesByType);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Location", DrawingBlipStoreEntriesByLocation);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Type And Location", DrawingBlipStoreEntriesByTypeAndLocation);
+            AppendDictionary(builder, "Drawing BLIP Store Entries By UID", DrawingBlipStoreEntriesByUid);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Embedded Record Type", DrawingBlipStoreEntriesByEmbeddedRecordType);
+            AppendDictionary(builder, "Drawing BLIP Store Entries By Embedded Payload Available Length", DrawingBlipStoreEntriesByEmbeddedPayloadAvailableLength);
+            AppendDictionary(builder, "Drawing BLIP Store Entries By Embedded Payload Hash", DrawingBlipStoreEntriesByEmbeddedPayloadHash);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Size", DrawingBlipStoreEntriesBySize);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Reference Count", DrawingBlipStoreEntriesByReferenceCount);
             AppendDictionary(builder, "Drawing Shape BLIP Properties By Location", DrawingShapeBlipPropertiesByLocation);
