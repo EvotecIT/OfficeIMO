@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace OfficeIMO.Drawing;
 
@@ -454,14 +455,16 @@ public static partial class OfficeTextLayoutEngine {
 
     private static IEnumerable<OfficeTextLine> BreakWord(string word, double fontSize, double maxWidth, Func<string?, double, double> measure) {
         string part = string.Empty;
-        foreach (char c in word) {
-            string candidate = part + c;
+        TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(word);
+        while (enumerator.MoveNext()) {
+            string textElement = enumerator.GetTextElement();
+            string candidate = part + textElement;
             if (part.Length > 0 && Measure(candidate, fontSize, measure) > maxWidth) {
                 yield return new OfficeTextLine(part, Measure(part, fontSize, measure));
                 part = string.Empty;
             }
 
-            part += c;
+            part += textElement;
         }
 
         if (part.Length > 0) {

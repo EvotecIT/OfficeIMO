@@ -297,6 +297,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_BreaksLongWordsAtTextElementBoundaries() {
+            static double Measure(string? value, double size) => string.IsNullOrEmpty(value) ? 0D : value!.Length * size;
+            string eAcute = "e\u0301";
+            string smile = char.ConvertFromUtf32(0x1F600);
+
+            IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines("A" + eAcute + smile + "B", 1D, 2D, Measure);
+
+            Assert.Equal(new[] { "A", eAcute, smile, "B" }, lines.Select(line => line.Text).ToArray());
+            Assert.DoesNotContain(lines, line => line.Text == "\u0301");
+            Assert.DoesNotContain(lines, line => line.Text.Length == 1 && char.IsSurrogate(line.Text[0]));
+        }
+
+        [Fact]
         public void OfficeTextLayoutEngine_TrimsSingleLineWithEllipsisWhenNeeded() {
             double Measure(string? value, double size) => (value?.Length ?? 0) * size;
 
