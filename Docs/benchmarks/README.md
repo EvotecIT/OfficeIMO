@@ -8,7 +8,7 @@ This folder stores small, committed benchmark artifacts for `OfficeIMO.Excel`.
 - `officeimo.excel.write-profile-YYYY-MM-DD.json`: write-stage breakdown for optimization work.
 - `officeimo.excel.read-profile-YYYY-MM-DD.json`: read-stage comparison for automatic, forced sequential, and forced parallel range conversion.
 - `officeimo.excel.library-comparison.json`: local opt-in comparison across matching library surfaces.
-- `officeimo.excel.npoi-comparison-current.json`: local opt-in NPOI comparison for equivalent `.xlsx` row/cell and `.xls` HSSF read lanes, including scalar values, formulas, metadata, conditional formatting, AutoFilter range, and style signals. NPOI stays outside normal solution restore/build.
+- `officeimo.excel.npoi-comparison-current.json`: local opt-in NPOI comparison for equivalent `.xlsx` row/cell and `.xls` HSSF read lanes, including scalar values, formulas, metadata, conditional formatting, AutoFilter range, style signals, and embedded pictures. NPOI stays outside normal solution restore/build.
 - `comparison-current\officeimo.excel.comparison-suite-manifest.json`: release-style suite manifest.
 - `comparison-current\officeimo.excel.comparison-summary.md|csv|json`: one-table decision summary with speed, allocation, and package-size ratios.
 - `officeimo.excel.comparison-report.md`: generated website/blog-oriented report distilled from comparison data.

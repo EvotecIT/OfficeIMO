@@ -117,8 +117,12 @@ range-setting rather than full criteria editing, the filter comparison lane is
 named `xls-read-autofilter-range` and measures the hidden `_FilterDatabase`
 range/drop-down signal only. The `xls-read-styles` lane now validates HSSF
 font, fill, border, number-format, and alignment style signals against
-OfficeIMO's legacy XLS style model. Later lanes can add DataTable/DataSet-style
-import/export, richer conditional-formatting style reads, and preserved
+OfficeIMO's legacy XLS style model. The `xls-read-pictures` lane validates
+HSSF-generated embedded PNG picture counts against OfficeIMO's preserve-only
+drawing object and BLIP-store metadata, while keeping picture-frame shape counts
+as a metric signal because HSSF can group multiple pictures under fewer decoded
+shape entries in the current importer. Later lanes can add
+DataTable/DataSet-style import/export, richer conditional-formatting style reads, and preserved
 unsupported feature counts, then merge the opt-in JSON output into the existing
 comparison summary format.
 
@@ -129,9 +133,9 @@ metrics in the scalar `.xlsx` read, `.xls` cell-value, `.xls` formula, and
 AutoFilter-range lanes prove the two libraries read the same benchmark signals.
 The `.xls` style lane also produces equal metrics after validating the same
 header, owner, amount, and inactive-row style signals. The richer metadata and
-conditional-formatting lanes intentionally validate counts/ranges but do not
+conditional-formatting lanes, plus the embedded-picture lane, intentionally validate counts/ranges but do not
 require equal metrics because the two object models surface rule and metadata
-text differently.
+text and picture payload details differently.
 
 One implementation detail matters for repeatable local evidence: HSSF
 comment/drawing reads load SkiaSharp at runtime, while NPOI's package metadata

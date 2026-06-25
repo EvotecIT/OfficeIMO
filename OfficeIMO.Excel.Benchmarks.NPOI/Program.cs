@@ -44,6 +44,7 @@ var npoiMetadataXls = new Lazy<byte[]>(() => WriteNpoiMetadataXls(records));
 var npoiConditionalFormattingXls = new Lazy<byte[]>(() => WriteNpoiConditionalFormattingXls(records));
 var npoiAutoFilterXls = new Lazy<byte[]>(() => WriteNpoiAutoFilterXls(records));
 var npoiStylesXls = new Lazy<byte[]>(() => WriteNpoiStylesXls(records));
+var npoiPicturesXls = new Lazy<byte[]>(() => NpoiPictureWorkbookFactory.WriteHssfPictureWorkbook(NpoiPictureWorkbookFactory.GetPictureCount(rowCount)));
 
 if ((IncludeScenario("xls-read-cellvalues")
         || IncludeScenario("xls-read-formulas")
@@ -94,6 +95,12 @@ if (IncludeScenario("xls-read-autofilter-range")) {
 if (IncludeScenario("xls-read-styles")) {
     AddScenario(measurements, "xls-read-styles", "OfficeIMO.Excel Legacy XLS", "Read BIFF8 font, fill, border, number-format, and alignment style signals from an HSSF-generated .xls workbook.", () => ReadOfficeImoXlsStyles(npoiStylesXls.Value, rowCount), warmupIterations, measuredIterations);
     AddScenario(measurements, "xls-read-styles", "NPOI HSSF", "Read font, fill, border, number-format, and alignment style signals from the same HSSF-generated .xls workbook.", () => ReadNpoiWorkbookStyles(npoiStylesXls.Value, rowCount), warmupIterations, measuredIterations);
+}
+
+if (IncludeScenario("xls-read-pictures")) {
+    int pictureCount = NpoiPictureWorkbookFactory.GetPictureCount(rowCount);
+    AddScenario(measurements, "xls-read-pictures", "OfficeIMO.Excel Legacy XLS", "Read BIFF8 embedded picture object and BLIP-store signals from an HSSF-generated .xls workbook.", () => NpoiPictureComparison.ReadOfficeImoXlsPictures(npoiPicturesXls.Value, pictureCount, AddValueMetric), warmupIterations, measuredIterations);
+    AddScenario(measurements, "xls-read-pictures", "NPOI HSSF", "Read embedded picture bytes from the same HSSF-generated .xls workbook.", () => NpoiPictureComparison.ReadNpoiWorkbookPictures(npoiPicturesXls.Value, pictureCount, AddValueMetric), warmupIterations, measuredIterations);
 }
 
 if (measurements.Count == 0) {
@@ -920,6 +927,7 @@ static void WriteUsage() {
     Console.WriteLine("  xls-read-conditional-formatting");
     Console.WriteLine("  xls-read-autofilter-range");
     Console.WriteLine("  xls-read-styles");
+    Console.WriteLine("  xls-read-pictures");
 }
 
 internal sealed record SalesRecord(int Id, string Region, string Owner, double Amount, bool Active) {

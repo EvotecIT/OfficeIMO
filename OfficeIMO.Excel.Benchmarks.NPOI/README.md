@@ -43,6 +43,9 @@ The first lanes are deliberately natural to NPOI:
 - `xls-read-styles`: read font, fill, border, number-format, and alignment
   style signals from an HSSF-generated `.xls` workbook through NPOI and
   OfficeIMO's legacy XLS importer.
+- `xls-read-pictures`: read embedded PNG picture signals from an HSSF-generated
+  `.xls` workbook through NPOI and OfficeIMO's preserve-only drawing/image
+  metadata.
 
 Do not add OfficeIMO-specific template, preflight, PDF, package-copy,
 direct-package, or report-workflow scenarios here unless NPOI has an equivalent
