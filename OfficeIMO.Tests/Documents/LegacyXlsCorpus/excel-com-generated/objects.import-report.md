@@ -2910,6 +2910,12 @@ Warnings: 0
 | Flags:0x00000005 | 2 |
 | Flags:0x00000A00 | 6 |
 
+## Drawing Shape Entries By Reserved State
+
+| Key | Count |
+| --- | --- |
+| ReservedClear | 8 |
+
 ## Drawing Shape Entries By Flag Name
 
 | Key | Count |

@@ -417,6 +417,12 @@ Warnings: 0
 | --- | --- |
 | Flags:0x00000005 | 3 |
 
+## Drawing Shape Entries By Reserved State
+
+| Key | Count |
+| --- | --- |
+| ReservedClear | 3 |
+
 ## Drawing Shape Entries By Flag Name
 
 | Key | Count |

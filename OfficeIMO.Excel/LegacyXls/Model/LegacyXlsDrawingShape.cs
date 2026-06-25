@@ -3,6 +3,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// Describes shallow metadata decoded from an OfficeArtFSP shape record.
     /// </summary>
     public sealed class LegacyXlsDrawingShape {
+        private const uint KnownFlagMask = 0x00000FFF;
+
         /// <summary>
         /// Creates preserve-only metadata for an OfficeArt shape instance.
         /// </summary>
@@ -28,6 +30,15 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets stable names for the defined shape flags set on this record.</summary>
         public IReadOnlyList<string> FlagNames { get; }
+
+        /// <summary>Gets OfficeArtFSP shape flag bits that are not decoded as named flags.</summary>
+        public uint ReservedFlags => Flags & ~KnownFlagMask;
+
+        /// <summary>Gets whether the shape flag field contains bits outside the decoded flag set.</summary>
+        public bool HasReservedFlags => ReservedFlags != 0;
+
+        /// <summary>Gets a compact state key describing whether the shape flag field has reserved bits.</summary>
+        public string ReservedState => HasReservedFlags ? $"Reserved:0x{ReservedFlags:X8}" : "ReservedClear";
 
         private static string GetShapeTypeName(ushort shapeType) {
             return shapeType switch {

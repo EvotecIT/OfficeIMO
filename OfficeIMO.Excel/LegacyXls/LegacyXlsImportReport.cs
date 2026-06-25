@@ -1528,6 +1528,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingShapeEntriesByFlags = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.ShapeEntries)
                 .Select(shape => $"Flags:0x{shape.Flags:X8}"));
+            DrawingShapeEntriesByReservedState = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeEntries)
+                .Select(shape => shape.ReservedState));
             DrawingShapeEntriesByFlagName = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.ShapeEntries)
                 .SelectMany(shape => shape.FlagNames));
@@ -3459,6 +3462,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets OfficeArt shape entries grouped by raw flag bitfield.</summary>
         public IReadOnlyDictionary<string, int> DrawingShapeEntriesByFlags { get; }
 
+        /// <summary>Gets OfficeArt shape entries grouped by whether raw flags contain reserved bits.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapeEntriesByReservedState { get; }
+
         /// <summary>Gets OfficeArt shape entries grouped by decoded flag name.</summary>
         public IReadOnlyDictionary<string, int> DrawingShapeEntriesByFlagName { get; }
 
@@ -4342,6 +4348,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Shape Entries By Type", DrawingShapeEntriesByType);
             AppendDictionary(builder, "Drawing Shape Entries By Id", DrawingShapeEntriesById);
             AppendDictionary(builder, "Drawing Shape Entries By Flags", DrawingShapeEntriesByFlags);
+            AppendDictionary(builder, "Drawing Shape Entries By Reserved State", DrawingShapeEntriesByReservedState);
             AppendDictionary(builder, "Drawing Shape Entries By Flag Name", DrawingShapeEntriesByFlagName);
             AppendDictionary(builder, "Drawing Anchor Entries By Range", DrawingAnchorEntriesByRange);
             AppendDictionary(builder, "Drawing Anchor Entries By Offset", DrawingAnchorEntriesByOffset);

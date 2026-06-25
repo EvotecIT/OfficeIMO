@@ -2508,6 +2508,12 @@ Warnings: 0
 | Flags:0x00000005 | 1 |
 | Flags:0x00000A00 | 6 |
 
+## Drawing Shape Entries By Reserved State
+
+| Key | Count |
+| --- | --- |
+| ReservedClear | 7 |
+
 ## Drawing Shape Entries By Flag Name
 
 | Key | Count |

@@ -294,6 +294,8 @@ OfficeArt FBSE image-store entries now preserve stable image UID metadata plus
 available embedded BLIP payload length and SHA-256 fingerprints in import reports,
 so embedded pictures can be compared and traced across corpus runs before native
 image extraction or DrawingML projection is implemented.
+OfficeArt shape entries now also report whether their FSP flag field contains
+only decoded shape flags or extra reserved bits.
 Unsupported and preserve-only feature occurrences now also populate a structured
 `LegacyXlsWorkbook.UnsupportedFeatures` report with stable codes, feature kind,
 sheet name, record type, record offset, and stable feature-detail keys such as

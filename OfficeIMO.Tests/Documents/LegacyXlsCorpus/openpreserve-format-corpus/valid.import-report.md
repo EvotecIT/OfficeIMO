@@ -2345,6 +2345,12 @@ Warnings: 0
 | Flags:0x00000005 | 3 |
 | Flags:0x00000A02 | 4 |
 
+## Drawing Shape Entries By Reserved State
+
+| Key | Count |
+| --- | --- |
+| ReservedClear | 7 |
+
 ## Drawing Shape Entries By Flag Name
 
 | Key | Count |

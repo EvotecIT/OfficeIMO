@@ -197,6 +197,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingShapeEntriesByType["PictureFrame"]);
             Assert.Equal(1, report.DrawingShapeEntriesById["ShapeId:1024"]);
             Assert.Equal(1, report.DrawingShapeEntriesByFlags["Flags:0x00000A02"]);
+            Assert.Equal(1, report.DrawingShapeEntriesByReservedState["ReservedClear"]);
             Assert.Equal(1, report.DrawingShapeEntriesByFlagName["Child"]);
             Assert.Equal(1, report.DrawingShapeEntriesByFlagName["HaveAnchor"]);
             Assert.Equal(1, report.DrawingShapeEntriesByFlagName["HaveShapeType"]);
@@ -326,6 +327,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("PictureFrame", shape.ShapeTypeName);
             Assert.Equal((uint)1024, shape.ShapeId);
             Assert.Equal((uint)0x00000a02, shape.Flags);
+            Assert.Equal(0u, shape.ReservedFlags);
+            Assert.False(shape.HasReservedFlags);
+            Assert.Equal("ReservedClear", shape.ReservedState);
             Assert.Equal(new[] { "Child", "HaveAnchor", "HaveShapeType" }, shape.FlagNames);
             LegacyXlsDrawingAnchor anchor = Assert.Single(drawing.AnchorEntries);
             Assert.Equal((ushort)0x0000, anchor.Flags);
