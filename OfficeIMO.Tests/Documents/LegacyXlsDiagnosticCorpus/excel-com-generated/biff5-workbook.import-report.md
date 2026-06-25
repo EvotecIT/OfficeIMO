@@ -43,6 +43,7 @@ Future function aliases: 0
 Workbook metadata records: 0
 Workbook future metadata records: 0
 Worksheet metadata records: 0
+Worksheet future metadata records: 0
 Unsupported sheet metadata records: 0
 Unsupported features: 1
 Preserved feature records: 0

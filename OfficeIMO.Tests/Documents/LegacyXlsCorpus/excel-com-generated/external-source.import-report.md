@@ -42,10 +42,11 @@ Array formula records: 0
 Future function aliases: 0
 Workbook metadata records: 22
 Workbook future metadata records: 4
-Worksheet metadata records: 5
+Worksheet metadata records: 7
+Worksheet future metadata records: 2
 Unsupported sheet metadata records: 0
-Unsupported features: 121
-Preserved feature records: 121
+Unsupported features: 119
+Preserved feature records: 119
 Errors: 0
 Warnings: 0
 
@@ -60,7 +61,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 111 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 2 |
 
 ## Worksheets By Visibility
 
@@ -109,7 +109,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 111 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 2 |
 
 ## Unsupported Features By Kind
 
@@ -122,7 +121,6 @@ Warnings: 0
 | StyleExtension | 111 |
 | TableStyle | 1 |
 | Theme | 1 |
-| WorkbookMetadata | 2 |
 
 ## Unsupported Feature Record Types
 
@@ -139,8 +137,6 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x0892 | 47 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|0x088E | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|0x0896 | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x088B | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x089C | 1 |
 
 ## Unsupported Feature Details
 
@@ -157,8 +153,6 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 63 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:Compat12 | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:HeaderFooter | 1 |
 
 ## Unsupported Feature Locations
 
@@ -172,7 +166,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|(workbook) | 111 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|(workbook) | 1 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|Data | 2 |
 
 ## File Format States
 
@@ -721,11 +714,79 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| FutureMetadata | 2 |
 | GridSet | 1 |
 | OutlineLevels | 1 |
 | RowBlockIndex | 1 |
 | Selection | 1 |
 | SheetOptions | 1 |
+
+## Worksheet Future Metadata Records By Kind
+
+| Key | Count |
+| --- | --- |
+| Compatibility12 | 1 |
+| HeaderFooter | 1 |
+
+## Worksheet Future Metadata Records By Sheet
+
+| Key | Count |
+| --- | --- |
+| Data | 2 |
+
+## Worksheet Future Metadata Records By Sheet And Kind
+
+| Key | Count |
+| --- | --- |
+| Data\|Compatibility12 | 1 |
+| Data\|HeaderFooter | 1 |
+
+## Worksheet Future Metadata Records By Record Type
+
+| Key | Count |
+| --- | --- |
+| 0x088B | 1 |
+| 0x089C | 1 |
+
+## Worksheet Future Metadata Records By Record Name
+
+| Key | Count |
+| --- | --- |
+| Compat12 | 1 |
+| HeaderFooter | 1 |
+
+## Worksheet Future Metadata Records By Header State
+
+| Key | Count |
+| --- | --- |
+| MatchingFutureHeader | 2 |
+
+## Worksheet Future Metadata Records By Header Record Type
+
+| Key | Count |
+| --- | --- |
+| 0x088B | 1 |
+| 0x089C | 1 |
+
+## Worksheet Future Metadata Records By Header Flags
+
+| Key | Count |
+| --- | --- |
+| Flags:0x0000 | 2 |
+
+## Worksheet Future Metadata Records By Payload Length
+
+| Key | Count |
+| --- | --- |
+| Bytes:16 | 1 |
+| Bytes:38 | 1 |
+
+## Worksheet Future Metadata Records By Body Byte Count
+
+| Key | Count |
+| --- | --- |
+| Bytes:26 | 1 |
+| Bytes:4 | 1 |
 
 ## Preserved Feature Records By Kind
 
@@ -738,7 +799,6 @@ Warnings: 0
 | StyleExtension | 111 |
 | TableStyle | 1 |
 | Theme | 1 |
-| WorkbookMetadata | 2 |
 
 ## Preserved Feature Record Details
 
@@ -755,5 +815,3 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 63 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:Compat12 | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:HeaderFooter | 1 |

@@ -457,6 +457,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     default:
                         if (type != (ushort)BiffRecordType.Bof) {
+                            if (BiffFutureMetadataReader.TryCreateWorksheetRecord(new BiffRecord(type, offset, payload), out LegacyXlsWorksheetFutureMetadataRecord? futureMetadataRecord)) {
+                                sheet.AddFutureMetadataRecord(futureMetadataRecord!);
+                                break;
+                            }
+
                             if (type == (ushort)BiffRecordType.Drawing) {
                                 commentState.TryReadDrawingAnchors(new BiffRecord(type, offset, payload));
                             }

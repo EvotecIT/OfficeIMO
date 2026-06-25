@@ -28,6 +28,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         PrintSize,
 
         /// <summary>Worksheet sort dialog metadata from a Sort record.</summary>
-        Sort
+        Sort,
+
+        /// <summary>Preserve-only extended metadata from a future metadata record in the sheet substream.</summary>
+        FutureMetadata
     }
 }

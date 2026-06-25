@@ -194,6 +194,36 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(record => $"Flags:0x{record.HeaderFlags!.Value:X4}"));
             WorkbookFutureMetadataRecordsByPayloadLength = CountByCode(workbook.FutureMetadataRecords.Select(record => $"Bytes:{record.PayloadLength}"));
             WorkbookFutureMetadataRecordsByBodyByteCount = CountByCode(workbook.FutureMetadataRecords.Select(record => $"Bytes:{record.BodyByteCount}"));
+            WorksheetFutureMetadataRecordsByKind = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.FutureMetadataRecords)
+                .Select(record => record.Kind.ToString()));
+            WorksheetFutureMetadataRecordsBySheet = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.FutureMetadataRecords.Select(_ => sheet.Name)));
+            WorksheetFutureMetadataRecordsBySheetAndKind = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.FutureMetadataRecords.Select(record => $"{sheet.Name}|{record.Kind}")));
+            WorksheetFutureMetadataRecordsByRecordType = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.FutureMetadataRecords)
+                .Select(record => $"0x{record.RecordType:X4}"));
+            WorksheetFutureMetadataRecordsByRecordName = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.FutureMetadataRecords)
+                .Select(record => BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.RecordType)));
+            WorksheetFutureMetadataRecordsByHeaderState = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.FutureMetadataRecords)
+                .Select(record => record.HeaderState));
+            WorksheetFutureMetadataRecordsByHeaderRecordType = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.FutureMetadataRecords)
+                .Where(record => record.HeaderRecordType.HasValue)
+                .Select(record => $"0x{record.HeaderRecordType!.Value:X4}"));
+            WorksheetFutureMetadataRecordsByHeaderFlags = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.FutureMetadataRecords)
+                .Where(record => record.HeaderFlags.HasValue)
+                .Select(record => $"Flags:0x{record.HeaderFlags!.Value:X4}"));
+            WorksheetFutureMetadataRecordsByPayloadLength = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.FutureMetadataRecords)
+                .Select(record => $"Bytes:{record.PayloadLength}"));
+            WorksheetFutureMetadataRecordsByBodyByteCount = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.FutureMetadataRecords)
+                .Select(record => $"Bytes:{record.BodyByteCount}"));
             WorksheetCodeNameStates = CountByCode(workbook.Worksheets.Select(sheet => string.IsNullOrWhiteSpace(sheet.CodeName) ? "Missing" : "Present"));
             WorksheetCodeNames = CountByCode(workbook.Worksheets
                 .Where(sheet => !string.IsNullOrWhiteSpace(sheet.CodeName))
@@ -237,6 +267,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             WorkbookMetadataRecordCount = workbook.MetadataRecords.Count;
             WorkbookFutureMetadataRecordCount = workbook.FutureMetadataRecords.Count;
             WorksheetMetadataRecordCount = workbook.Worksheets.Sum(sheet => sheet.MetadataRecords.Count);
+            WorksheetFutureMetadataRecordCount = workbook.Worksheets.Sum(sheet => sheet.FutureMetadataRecords.Count);
             UnsupportedSheetMetadataRecordCount = workbook.UnsupportedSheets.Sum(sheet => sheet.MetadataRecords.Count);
             UnsupportedFeatureCount = workbook.UnsupportedFeatures.Count;
             PreservedFeatureRecordCount = workbook.PreservedFeatureRecords.Count;
@@ -1796,6 +1827,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of worksheet metadata records parsed from BIFF records.</summary>
         public int WorksheetMetadataRecordCount { get; }
 
+        /// <summary>Gets the number of preserve-only worksheet future metadata records parsed from BIFF records.</summary>
+        public int WorksheetFutureMetadataRecordCount { get; }
+
         /// <summary>Gets the number of metadata records parsed from unsupported sheet substreams.</summary>
         public int UnsupportedSheetMetadataRecordCount { get; }
 
@@ -3143,6 +3177,36 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets parsed worksheet metadata records grouped by metadata kind.</summary>
         public IReadOnlyDictionary<LegacyXlsWorksheetMetadataKind, int> WorksheetMetadataRecordsByKind { get; }
 
+        /// <summary>Gets preserve-only worksheet future metadata records grouped by metadata kind.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByKind { get; }
+
+        /// <summary>Gets preserve-only worksheet future metadata records grouped by sheet name.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsBySheet { get; }
+
+        /// <summary>Gets preserve-only worksheet future metadata records grouped by sheet and metadata kind.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsBySheetAndKind { get; }
+
+        /// <summary>Gets preserve-only worksheet future metadata records grouped by BIFF record type.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByRecordType { get; }
+
+        /// <summary>Gets preserve-only worksheet future metadata records grouped by BIFF record name.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByRecordName { get; }
+
+        /// <summary>Gets preserve-only worksheet future metadata records grouped by decoded header state.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByHeaderState { get; }
+
+        /// <summary>Gets preserve-only worksheet future metadata records grouped by future-record header type.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByHeaderRecordType { get; }
+
+        /// <summary>Gets preserve-only worksheet future metadata records grouped by future-record header flags.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByHeaderFlags { get; }
+
+        /// <summary>Gets preserve-only worksheet future metadata records grouped by BIFF payload length.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByPayloadLength { get; }
+
+        /// <summary>Gets preserve-only worksheet future metadata records grouped by body byte count after future-record header decoding.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByBodyByteCount { get; }
+
         /// <summary>Gets parsed unsupported-sheet metadata records grouped by metadata kind.</summary>
         public IReadOnlyDictionary<LegacyXlsUnsupportedSheetMetadataKind, int> UnsupportedSheetMetadataRecordsByKind { get; }
 
@@ -3208,6 +3272,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Workbook metadata records: {WorkbookMetadataRecordCount}");
             builder.AppendLine($"Workbook future metadata records: {WorkbookFutureMetadataRecordCount}");
             builder.AppendLine($"Worksheet metadata records: {WorksheetMetadataRecordCount}");
+            builder.AppendLine($"Worksheet future metadata records: {WorksheetFutureMetadataRecordCount}");
             builder.AppendLine($"Unsupported sheet metadata records: {UnsupportedSheetMetadataRecordCount}");
             builder.AppendLine($"Unsupported features: {UnsupportedFeatureCount}");
             builder.AppendLine($"Preserved feature records: {PreservedFeatureRecordCount}");
@@ -3788,6 +3853,16 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "Worksheet Future Metadata Records By Kind", WorksheetFutureMetadataRecordsByKind);
+            AppendDictionary(builder, "Worksheet Future Metadata Records By Sheet", WorksheetFutureMetadataRecordsBySheet);
+            AppendDictionary(builder, "Worksheet Future Metadata Records By Sheet And Kind", WorksheetFutureMetadataRecordsBySheetAndKind);
+            AppendDictionary(builder, "Worksheet Future Metadata Records By Record Type", WorksheetFutureMetadataRecordsByRecordType);
+            AppendDictionary(builder, "Worksheet Future Metadata Records By Record Name", WorksheetFutureMetadataRecordsByRecordName);
+            AppendDictionary(builder, "Worksheet Future Metadata Records By Header State", WorksheetFutureMetadataRecordsByHeaderState);
+            AppendDictionary(builder, "Worksheet Future Metadata Records By Header Record Type", WorksheetFutureMetadataRecordsByHeaderRecordType);
+            AppendDictionary(builder, "Worksheet Future Metadata Records By Header Flags", WorksheetFutureMetadataRecordsByHeaderFlags);
+            AppendDictionary(builder, "Worksheet Future Metadata Records By Payload Length", WorksheetFutureMetadataRecordsByPayloadLength);
+            AppendDictionary(builder, "Worksheet Future Metadata Records By Body Byte Count", WorksheetFutureMetadataRecordsByBodyByteCount);
             AppendDictionary(builder, "Unsupported Sheet Metadata Records By Kind", UnsupportedSheetMetadataRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,

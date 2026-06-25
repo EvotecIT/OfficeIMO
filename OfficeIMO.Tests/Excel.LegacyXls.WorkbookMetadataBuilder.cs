@@ -38,6 +38,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Workbook metadata"));
                 WriteRecord(stream, 0x01ba, BuildUnicodeStringPayload("MetadataSheet"));
+                WriteRecord(stream, 0x088b, BuildFutureMetadataPayload(0x088b, 0x0005, 0x01, 0x00));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
