@@ -108,6 +108,58 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void ReadRowsReusable_StreamsHeaderAndRows()
+    {
+        using var reader = new StringReader("Name,Value\nA,1\nB,2\n");
+        var rows = new List<string>();
+
+        CsvDocument.ReadRowsReusable(reader, (header, values) =>
+        {
+            Assert.Equal(new[] { "Name", "Value" }, header);
+            rows.Add(values[0] + ":" + values[1]);
+        });
+
+        Assert.Equal(new[] { "A:1", "B:2" }, rows);
+    }
+
+    [Fact]
+    public void ReadRowsReusable_ReusesUnquotedRowBuffer()
+    {
+        using var reader = new StringReader("Name,Value\nA,1\nB,2\n");
+        IReadOnlyList<string>? first = null;
+        IReadOnlyList<string>? second = null;
+
+        CsvDocument.ReadRowsReusable(reader, (_, values) =>
+        {
+            if (first == null)
+            {
+                first = values;
+            }
+            else
+            {
+                second = values;
+            }
+        });
+
+        Assert.NotNull(first);
+        Assert.Same(first, second);
+    }
+
+    [Fact]
+    public void ReadRowsReusable_HandlesQuotedRows()
+    {
+        using var reader = new StringReader("Name,Value\n\"A, quoted\",1\nB,2\n");
+        var rows = new List<string>();
+
+        CsvDocument.ReadRowsReusable(reader, (_, values) =>
+        {
+            rows.Add(values[0] + ":" + values[1]);
+        });
+
+        Assert.Equal(new[] { "A, quoted:1", "B:2" }, rows);
+    }
+
+    [Fact]
     public void SaveObjects_WritesFile()
     {
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.SaveObjects." + Guid.NewGuid().ToString("N") + ".csv");

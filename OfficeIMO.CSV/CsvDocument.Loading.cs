@@ -43,6 +43,32 @@ public sealed partial class CsvDocument
     }
 
     /// <summary>
+    /// Reads a CSV file in a single pass while reusing the row value buffer for unquoted rows.
+    /// </summary>
+    /// <param name="path">Source CSV path.</param>
+    /// <param name="rowAction">Action receiving the header and current row values. Row values must not be captured after the callback returns.</param>
+    /// <param name="options">Optional load settings.</param>
+    public static void ReadRowsReusable(string path, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvLoadOptions? options = null)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new ArgumentException("File path cannot be empty.", nameof(path));
+        }
+
+        if (rowAction == null)
+        {
+            throw new ArgumentNullException(nameof(rowAction));
+        }
+
+        options ??= new CsvLoadOptions();
+        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        var readerFactory = () => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: FileBufferSize);
+        var resolvedOptions = ResolveLoadOptions(readerFactory, options);
+        using var reader = readerFactory();
+        ReadRowsReusable(reader, rowAction, resolvedOptions);
+    }
+
+    /// <summary>
     /// Reads CSV data in a single pass and invokes an action for each data row.
     /// </summary>
     /// <param name="reader">Source text reader.</param>
@@ -112,6 +138,80 @@ public sealed partial class CsvDocument
         CsvParser.ReadRecords(reader, options, record =>
         {
             header ??= GenerateDefaultHeader(record.Length);
+            InvokeRowAction(rowAction, header, record, options.ColumnCountMismatchPolicy);
+        });
+    }
+
+    /// <summary>
+    /// Reads CSV data in a single pass while reusing the row value buffer for unquoted rows.
+    /// </summary>
+    /// <param name="reader">Source text reader.</param>
+    /// <param name="rowAction">Action receiving the header and current row values. Row values must not be captured after the callback returns.</param>
+    /// <param name="options">Optional load settings.</param>
+    public static void ReadRowsReusable(TextReader reader, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvLoadOptions? options = null)
+    {
+        if (reader == null)
+        {
+            throw new ArgumentNullException(nameof(reader));
+        }
+
+        if (rowAction == null)
+        {
+            throw new ArgumentNullException(nameof(rowAction));
+        }
+
+        options ??= new CsvLoadOptions();
+        if (options.DetectDelimiter)
+        {
+            var text = reader.ReadToEnd();
+            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options);
+            using var bufferedReader = new StringReader(text);
+            ReadRowsReusable(bufferedReader, rowAction, resolvedOptions);
+            return;
+        }
+
+        var explicitHeader = NormalizeExplicitHeader(options);
+        if (explicitHeader is not null)
+        {
+            CsvParser.ReadRecordsReusable(reader, options, record =>
+            {
+                InvokeRowAction(rowAction, explicitHeader, record, options.ColumnCountMismatchPolicy);
+            });
+
+            return;
+        }
+
+        IReadOnlyList<string>? header = null;
+        if (options.HasHeaderRow)
+        {
+            CsvParser.ReadRecordsReusable(reader, options, record =>
+            {
+                if (header is null)
+                {
+                    if (TryGetW3CFieldsHeader(record, options, out var w3cHeader))
+                    {
+                        header = w3cHeader;
+                        return;
+                    }
+
+                    if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options))
+                    {
+                        return;
+                    }
+
+                    header = NormalizeParsedHeader(record, options);
+                    return;
+                }
+
+                InvokeRowAction(rowAction, header, record, options.ColumnCountMismatchPolicy);
+            });
+
+            return;
+        }
+
+        CsvParser.ReadRecordsReusable(reader, options, record =>
+        {
+            header ??= GenerateDefaultHeader(record.Count);
             InvokeRowAction(rowAction, header, record, options.ColumnCountMismatchPolicy);
         });
     }
@@ -327,16 +427,16 @@ public sealed partial class CsvDocument
         return false;
     }
 
-    private static bool TryGetW3CFieldsHeader(string[] record, CsvLoadOptions options, out IReadOnlyList<string> header)
+    private static bool TryGetW3CFieldsHeader(IReadOnlyList<string> record, CsvLoadOptions options, out IReadOnlyList<string> header)
     {
         header = Array.Empty<string>();
-        if (!options.RecognizeW3CFieldsHeader || record.Length == 0)
+        if (!options.RecognizeW3CFieldsHeader || record.Count == 0)
         {
             return false;
         }
 
         const string prefix = "#Fields:";
-        if (record.Length == 1 && record[0].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        if (record.Count == 1 && record[0].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
         {
             var fields = record[0].Substring(prefix.Length)
                 .Trim()
@@ -348,7 +448,7 @@ public sealed partial class CsvDocument
             }
         }
 
-        if (string.Equals(record[0], prefix, StringComparison.OrdinalIgnoreCase) && record.Length > 1)
+        if (string.Equals(record[0], prefix, StringComparison.OrdinalIgnoreCase) && record.Count > 1)
         {
             header = record.Skip(1).ToArray();
             return true;
@@ -357,8 +457,8 @@ public sealed partial class CsvDocument
         return false;
     }
 
-    private static bool IsCommentRecord(string[] record, CsvLoadOptions options) =>
-        record.Length > 0 &&
+    private static bool IsCommentRecord(IReadOnlyList<string> record, CsvLoadOptions options) =>
+        record.Count > 0 &&
         record[0].Length > 0 &&
         record[0][0] == options.CommentCharacter;
 }
