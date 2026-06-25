@@ -18,6 +18,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             try {
                 state?.TryAttachGroupingRangeValue(record);
                 switch (record.Type) {
+                    case 0x00B0:
+                        ReadView(record, pivotRecord);
+                        break;
+                    case 0x00B1:
+                        ReadField(record, pivotRecord);
+                        break;
                     case 0x00C1:
                         ReadDataItem(record, pivotRecord);
                         break;
@@ -75,6 +81,85 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             return true;
+        }
+
+        private static void ReadView(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            byte[] payload = record.Payload;
+            if (payload.Length < 44) {
+                throw new InvalidDataException("The SxView payload is shorter than the fixed PivotTable view header.");
+            }
+
+            ushort firstRow = BiffRecordReader.ReadUInt16(payload, 0);
+            ushort lastRow = BiffRecordReader.ReadUInt16(payload, 2);
+            ushort firstColumn = BiffRecordReader.ReadUInt16(payload, 4);
+            ushort lastColumn = BiffRecordReader.ReadUInt16(payload, 6);
+            ushort firstHeaderRow = BiffRecordReader.ReadUInt16(payload, 8);
+            ushort firstDataRow = BiffRecordReader.ReadUInt16(payload, 10);
+            ushort firstDataColumn = BiffRecordReader.ReadUInt16(payload, 12);
+            short cacheIndex = BiffRecordReader.ReadInt16(payload, 14);
+            ushort dataAxis = BiffRecordReader.ReadUInt16(payload, 18);
+            short dataPosition = BiffRecordReader.ReadInt16(payload, 20);
+            short fieldCount = BiffRecordReader.ReadInt16(payload, 22);
+            ushort rowFieldCount = BiffRecordReader.ReadUInt16(payload, 24);
+            ushort columnFieldCount = BiffRecordReader.ReadUInt16(payload, 26);
+            ushort pageFieldCount = BiffRecordReader.ReadUInt16(payload, 28);
+            short dataFieldCount = BiffRecordReader.ReadInt16(payload, 30);
+            ushort rowLineCount = BiffRecordReader.ReadUInt16(payload, 32);
+            ushort columnLineCount = BiffRecordReader.ReadUInt16(payload, 34);
+            ushort flags = BiffRecordReader.ReadUInt16(payload, 36);
+            ushort autoFormatId = BiffRecordReader.ReadUInt16(payload, 38);
+            ushort tableNameLength = BiffRecordReader.ReadUInt16(payload, 40);
+            ushort dataNameLength = BiffRecordReader.ReadUInt16(payload, 42);
+            int offset = 44;
+            string tableName = tableNameLength == 0
+                ? string.Empty
+                : BiffStringReader.ReadUnicodeStringNoCch(payload, ref offset, tableNameLength);
+            string dataName = dataNameLength == 0
+                ? string.Empty
+                : BiffStringReader.ReadUnicodeStringNoCch(payload, ref offset, dataNameLength);
+
+            pivotRecord.SetView(
+                firstRow,
+                lastRow,
+                firstColumn,
+                lastColumn,
+                firstHeaderRow,
+                firstDataRow,
+                firstDataColumn,
+                cacheIndex,
+                dataAxis,
+                dataPosition,
+                fieldCount,
+                rowFieldCount,
+                columnFieldCount,
+                pageFieldCount,
+                dataFieldCount,
+                rowLineCount,
+                columnLineCount,
+                flags,
+                autoFormatId,
+                tableName,
+                dataName);
+        }
+
+        private static void ReadField(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            byte[] payload = record.Payload;
+            if (payload.Length < 10) {
+                throw new InvalidDataException("The Sxvd payload is shorter than the fixed PivotTable field header.");
+            }
+
+            ushort axis = BiffRecordReader.ReadUInt16(payload, 0);
+            ushort subtotalCount = BiffRecordReader.ReadUInt16(payload, 2);
+            ushort subtotalFlags = BiffRecordReader.ReadUInt16(payload, 4);
+            short itemCount = BiffRecordReader.ReadInt16(payload, 6);
+            ushort nameLength = BiffRecordReader.ReadUInt16(payload, 8);
+            string? name = null;
+            if (nameLength != 0xFFFF && nameLength != 0) {
+                int offset = 10;
+                name = BiffStringReader.ReadUnicodeStringNoCch(payload, ref offset, nameLength);
+            }
+
+            pivotRecord.SetField(axis, subtotalFlags, subtotalCount, itemCount, name);
         }
 
         private static LegacyXlsPivotTableRecord CreateRecord(BiffRecord record, string? sheetName) {

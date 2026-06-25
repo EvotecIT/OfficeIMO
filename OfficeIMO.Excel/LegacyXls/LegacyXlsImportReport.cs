@@ -429,6 +429,50 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableRecordsByNameAndLocation = CountByCode(workbook.PivotTableRecords
                 .Select(record => $"{record.RecordName}|{GetPivotTableRecordLocationKey(record)}"));
             PivotTableWorkbookStates = CountByCode(GetPivotTableWorkbookStateKeys(workbook.PivotTableRecords));
+            PivotTableViewRanges = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.ViewRange))
+                .Select(record => record.ViewRange!));
+            PivotTableViewNames = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.ViewTableName))
+                .Select(record => record.ViewTableName!));
+            PivotTableViewDataNames = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.ViewDataName))
+                .Select(record => record.ViewDataName!));
+            PivotTableViewFieldCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.ViewFieldCount.HasValue)
+                .Select(record => $"Fields:{record.ViewFieldCount!.Value};Rows:{record.ViewRowFieldCount!.Value};Columns:{record.ViewColumnFieldCount!.Value};Pages:{record.ViewPageFieldCount!.Value};Data:{record.ViewDataFieldCount!.Value}"));
+            PivotTableViewLineCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.ViewRowLineCount.HasValue && record.ViewColumnLineCount.HasValue)
+                .Select(record => $"Rows:{record.ViewRowLineCount!.Value};Columns:{record.ViewColumnLineCount!.Value}"));
+            PivotTableViewDataAxes = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.ViewDataAxisName))
+                .Select(record => record.ViewDataAxisName!));
+            PivotTableViewDataPositions = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.ViewDataPosition.HasValue)
+                .Select(record => $"Position:{record.ViewDataPosition!.Value}"));
+            PivotTableViewCacheIndexes = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.ViewCacheIndex.HasValue)
+                .Select(record => $"CacheIndex:{record.ViewCacheIndex!.Value}"));
+            PivotTableViewGrandTotalStates = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.ViewRowGrandTotals.HasValue && record.ViewColumnGrandTotals.HasValue)
+                .Select(record => $"Rows:{record.ViewRowGrandTotals!.Value};Columns:{record.ViewColumnGrandTotals!.Value}"));
+            PivotTableViewAutoFormatStates = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.ViewAutoFormat.HasValue && record.ViewAutoFormatId.HasValue)
+                .Select(record => $"AutoFormat:{record.ViewAutoFormat!.Value};Id:{record.ViewAutoFormatId!.Value}"));
+            PivotTableFieldAxes = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.FieldAxisName))
+                .Select(record => record.FieldAxisName!));
+            PivotTableFieldItemCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.FieldItemCount.HasValue)
+                .Select(record => $"Items:{record.FieldItemCount!.Value}"));
+            PivotTableFieldSubtotalCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.FieldSubtotalCount.HasValue && record.FieldSubtotalFlags.HasValue)
+                .Select(record => $"Subtotals:{record.FieldSubtotalCount!.Value};Flags:0x{record.FieldSubtotalFlags!.Value:X4}"));
+            PivotTableFieldSubtotalFunctions = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.FieldSubtotalFunctionNames));
+            PivotTableFieldNames = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.FieldName))
+                .Select(record => record.FieldName!));
             PivotTableFormulaPayloadLengths = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.Kind == LegacyXlsPivotTableRecordKind.Formula)
                 .Select(record => $"{record.RecordName}|Bytes:{record.PayloadLength}"));
@@ -1976,6 +2020,51 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets workbook-level PivotTable model-shape states derived from preserve-only PivotTable BIFF records.</summary>
         public IReadOnlyDictionary<string, int> PivotTableWorkbookStates { get; }
 
+        /// <summary>Gets decoded SxView PivotTable views grouped by covered A1 range.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableViewRanges { get; }
+
+        /// <summary>Gets decoded SxView PivotTable views grouped by PivotTable name.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableViewNames { get; }
+
+        /// <summary>Gets decoded SxView PivotTable views grouped by data field caption.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableViewDataNames { get; }
+
+        /// <summary>Gets decoded SxView PivotTable views grouped by field counts.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableViewFieldCounts { get; }
+
+        /// <summary>Gets decoded SxView PivotTable views grouped by row and column line counts.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableViewLineCounts { get; }
+
+        /// <summary>Gets decoded SxView PivotTable views grouped by default data axis.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableViewDataAxes { get; }
+
+        /// <summary>Gets decoded SxView PivotTable views grouped by data field position.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableViewDataPositions { get; }
+
+        /// <summary>Gets decoded SxView PivotTable views grouped by PivotCache index.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableViewCacheIndexes { get; }
+
+        /// <summary>Gets decoded SxView PivotTable views grouped by row and column grand total state.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableViewGrandTotalStates { get; }
+
+        /// <summary>Gets decoded SxView PivotTable views grouped by AutoFormat state and identifier.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableViewAutoFormatStates { get; }
+
+        /// <summary>Gets decoded Sxvd PivotTable fields grouped by axis.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFieldAxes { get; }
+
+        /// <summary>Gets decoded Sxvd PivotTable fields grouped by declared item count.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFieldItemCounts { get; }
+
+        /// <summary>Gets decoded Sxvd PivotTable fields grouped by declared subtotal count and raw subtotal flags.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFieldSubtotalCounts { get; }
+
+        /// <summary>Gets decoded Sxvd PivotTable fields grouped by subtotal function name.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFieldSubtotalFunctions { get; }
+
+        /// <summary>Gets decoded Sxvd PivotTable fields grouped by explicit caption.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFieldNames { get; }
+
         /// <summary>Gets PivotTable formula records grouped by BIFF record name and payload length.</summary>
         public IReadOnlyDictionary<string, int> PivotTableFormulaPayloadLengths { get; }
 
@@ -3083,6 +3172,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Records By Kind And Location", PivotTableRecordsByKindAndLocation);
             AppendDictionary(builder, "Pivot Table Records By Name And Location", PivotTableRecordsByNameAndLocation);
             AppendDictionary(builder, "Pivot Table Workbook States", PivotTableWorkbookStates);
+            AppendDictionary(builder, "Pivot Table View Ranges", PivotTableViewRanges);
+            AppendDictionary(builder, "Pivot Table View Names", PivotTableViewNames);
+            AppendDictionary(builder, "Pivot Table View Data Names", PivotTableViewDataNames);
+            AppendDictionary(builder, "Pivot Table View Field Counts", PivotTableViewFieldCounts);
+            AppendDictionary(builder, "Pivot Table View Line Counts", PivotTableViewLineCounts);
+            AppendDictionary(builder, "Pivot Table View Data Axes", PivotTableViewDataAxes);
+            AppendDictionary(builder, "Pivot Table View Data Positions", PivotTableViewDataPositions);
+            AppendDictionary(builder, "Pivot Table View Cache Indexes", PivotTableViewCacheIndexes);
+            AppendDictionary(builder, "Pivot Table View Grand Total States", PivotTableViewGrandTotalStates);
+            AppendDictionary(builder, "Pivot Table View AutoFormat States", PivotTableViewAutoFormatStates);
+            AppendDictionary(builder, "Pivot Table Field Axes", PivotTableFieldAxes);
+            AppendDictionary(builder, "Pivot Table Field Item Counts", PivotTableFieldItemCounts);
+            AppendDictionary(builder, "Pivot Table Field Subtotal Counts", PivotTableFieldSubtotalCounts);
+            AppendDictionary(builder, "Pivot Table Field Subtotal Functions", PivotTableFieldSubtotalFunctions);
+            AppendDictionary(builder, "Pivot Table Field Names", PivotTableFieldNames);
             AppendDictionary(builder, "Pivot Table Formula Payload Lengths", PivotTableFormulaPayloadLengths);
             AppendDictionary(builder, "Pivot Table Cache Item Kinds", PivotTableCacheItemKinds);
             AppendDictionary(builder, "Pivot Table Cache Item Value States", PivotTableCacheItemValueStates);

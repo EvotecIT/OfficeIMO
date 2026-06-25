@@ -919,6 +919,96 @@ Warnings: 0
 | --- | --- |
 | View:Present\|Cache:Present\|CacheSource:Present\|CacheItems:Missing\|Fields:Present\|Items:Present\|DataItems:Present\|Grouping:Present\|Formulas:Present\|Additional:Present\|Locations:WorkbookAndSheets | 1 |
 
+## Pivot Table View Ranges
+
+| Key | Count |
+| --- | --- |
+| A3:I9 | 1 |
+
+## Pivot Table View Names
+
+| Key | Count |
+| --- | --- |
+| SalesPivot | 1 |
+
+## Pivot Table View Data Names
+
+| Key | Count |
+| --- | --- |
+| Values | 1 |
+
+## Pivot Table View Field Counts
+
+| Key | Count |
+| --- | --- |
+| Fields:7;Rows:1;Columns:2;Pages:1;Data:2 | 1 |
+
+## Pivot Table View Line Counts
+
+| Key | Count |
+| --- | --- |
+| Rows:4;Columns:8 | 1 |
+
+## Pivot Table View Data Axes
+
+| Key | Count |
+| --- | --- |
+| Column | 1 |
+
+## Pivot Table View Data Positions
+
+| Key | Count |
+| --- | --- |
+| Position:-1 | 1 |
+
+## Pivot Table View Cache Indexes
+
+| Key | Count |
+| --- | --- |
+| CacheIndex:0 | 1 |
+
+## Pivot Table View Grand Total States
+
+| Key | Count |
+| --- | --- |
+| Rows:True;Columns:True | 1 |
+
+## Pivot Table View AutoFormat States
+
+| Key | Count |
+| --- | --- |
+| AutoFormat:True;Id:1 | 1 |
+
+## Pivot Table Field Axes
+
+| Key | Count |
+| --- | --- |
+| Column | 1 |
+| Data | 2 |
+| None | 2 |
+| Page | 1 |
+| Row | 1 |
+
+## Pivot Table Field Item Counts
+
+| Key | Count |
+| --- | --- |
+| Items:0 | 4 |
+| Items:4 | 2 |
+| Items:7 | 1 |
+
+## Pivot Table Field Subtotal Counts
+
+| Key | Count |
+| --- | --- |
+| Subtotals:1;Flags:0x0001 | 7 |
+
+## Pivot Table Field Subtotal Functions
+
+| Key | Count |
+| --- | --- |
+| Default | 7 |
+
 ## Pivot Table Formula Payload Lengths
 
 | Key | Count |

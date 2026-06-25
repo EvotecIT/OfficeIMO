@@ -76,6 +76,96 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the optional custom SXDI data item name, when decoded.</summary>
         public string? Name { get; private set; }
 
+        /// <summary>Gets the A1 range covered by an SxView PivotTable view, when decoded.</summary>
+        public string? ViewRange { get; private set; }
+
+        /// <summary>Gets the zero-based first row covered by an SxView PivotTable view, when decoded.</summary>
+        public ushort? ViewFirstRow { get; private set; }
+
+        /// <summary>Gets the zero-based last row covered by an SxView PivotTable view, when decoded.</summary>
+        public ushort? ViewLastRow { get; private set; }
+
+        /// <summary>Gets the zero-based first column covered by an SxView PivotTable view, when decoded.</summary>
+        public ushort? ViewFirstColumn { get; private set; }
+
+        /// <summary>Gets the zero-based last column covered by an SxView PivotTable view, when decoded.</summary>
+        public ushort? ViewLastColumn { get; private set; }
+
+        /// <summary>Gets the first row of the row area from an SxView PivotTable view, when decoded.</summary>
+        public ushort? ViewFirstHeaderRow { get; private set; }
+
+        /// <summary>Gets the first data row from an SxView PivotTable view, when decoded.</summary>
+        public ushort? ViewFirstDataRow { get; private set; }
+
+        /// <summary>Gets the first data column from an SxView PivotTable view, when decoded.</summary>
+        public ushort? ViewFirstDataColumn { get; private set; }
+
+        /// <summary>Gets the PivotCache index referenced by an SxView PivotTable view, when decoded.</summary>
+        public short? ViewCacheIndex { get; private set; }
+
+        /// <summary>Gets the default data-axis name decoded from sxaxis4Data in an SxView record.</summary>
+        public string? ViewDataAxisName { get; private set; }
+
+        /// <summary>Gets the data field position from an SxView PivotTable view, when decoded.</summary>
+        public short? ViewDataPosition { get; private set; }
+
+        /// <summary>Gets the declared pivot field count from an SxView record.</summary>
+        public short? ViewFieldCount { get; private set; }
+
+        /// <summary>Gets the row-axis field count from an SxView record.</summary>
+        public ushort? ViewRowFieldCount { get; private set; }
+
+        /// <summary>Gets the column-axis field count from an SxView record.</summary>
+        public ushort? ViewColumnFieldCount { get; private set; }
+
+        /// <summary>Gets the page-axis field count from an SxView record.</summary>
+        public ushort? ViewPageFieldCount { get; private set; }
+
+        /// <summary>Gets the data field count from an SxView record.</summary>
+        public short? ViewDataFieldCount { get; private set; }
+
+        /// <summary>Gets the row-area pivot line count from an SxView record.</summary>
+        public ushort? ViewRowLineCount { get; private set; }
+
+        /// <summary>Gets the column-area pivot line count from an SxView record.</summary>
+        public ushort? ViewColumnLineCount { get; private set; }
+
+        /// <summary>Gets whether an SxView record declares row grand totals.</summary>
+        public bool? ViewRowGrandTotals { get; private set; }
+
+        /// <summary>Gets whether an SxView record declares column grand totals.</summary>
+        public bool? ViewColumnGrandTotals { get; private set; }
+
+        /// <summary>Gets whether an SxView record declares AutoFormat is applied.</summary>
+        public bool? ViewAutoFormat { get; private set; }
+
+        /// <summary>Gets the AutoFormat identifier from an SxView record.</summary>
+        public ushort? ViewAutoFormatId { get; private set; }
+
+        /// <summary>Gets the PivotTable name carried by an SxView record.</summary>
+        public string? ViewTableName { get; private set; }
+
+        /// <summary>Gets the data field caption carried by an SxView record.</summary>
+        public string? ViewDataName { get; private set; }
+
+        /// <summary>Gets the decoded pivot field axis for an Sxvd record.</summary>
+        public string? FieldAxisName { get; private set; }
+
+        /// <summary>Gets the declared subtotal count for an Sxvd record.</summary>
+        public ushort? FieldSubtotalCount { get; private set; }
+
+        /// <summary>Gets the raw subtotal-function flags for an Sxvd record.</summary>
+        public ushort? FieldSubtotalFlags { get; private set; }
+
+        /// <summary>Gets decoded subtotal-function names for an Sxvd record.</summary>
+        public IReadOnlyList<string> FieldSubtotalFunctionNames { get; private set; } = Array.Empty<string>();
+
+        /// <summary>Gets the declared pivot item count for an Sxvd record.</summary>
+        public short? FieldItemCount { get; private set; }
+
+        /// <summary>Gets the optional pivot field caption carried by an Sxvd record.</summary>
+        public string? FieldName { get; private set; }
+
         /// <summary>Gets the PivotCache stream identifier, when decoded from SXStreamID or SXDB.</summary>
         public ushort? CacheStreamId { get; private set; }
 
@@ -378,6 +468,63 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             QueryTableTagUnused = unused;
         }
 
+        internal void SetView(
+            ushort firstRow,
+            ushort lastRow,
+            ushort firstColumn,
+            ushort lastColumn,
+            ushort firstHeaderRow,
+            ushort firstDataRow,
+            ushort firstDataColumn,
+            short cacheIndex,
+            ushort dataAxis,
+            short dataPosition,
+            short fieldCount,
+            ushort rowFieldCount,
+            ushort columnFieldCount,
+            ushort pageFieldCount,
+            short dataFieldCount,
+            ushort rowLineCount,
+            ushort columnLineCount,
+            ushort flags,
+            ushort autoFormatId,
+            string tableName,
+            string dataName) {
+            ViewFirstRow = firstRow;
+            ViewLastRow = lastRow;
+            ViewFirstColumn = firstColumn;
+            ViewLastColumn = lastColumn;
+            ViewRange = FormatRange(firstRow, lastRow, firstColumn, lastColumn);
+            ViewFirstHeaderRow = firstHeaderRow;
+            ViewFirstDataRow = firstDataRow;
+            ViewFirstDataColumn = firstDataColumn;
+            ViewCacheIndex = cacheIndex;
+            ViewDataAxisName = GetAxisName(dataAxis);
+            ViewDataPosition = dataPosition;
+            ViewFieldCount = fieldCount;
+            ViewRowFieldCount = rowFieldCount;
+            ViewColumnFieldCount = columnFieldCount;
+            ViewPageFieldCount = pageFieldCount;
+            ViewDataFieldCount = dataFieldCount;
+            ViewRowLineCount = rowLineCount;
+            ViewColumnLineCount = columnLineCount;
+            ViewRowGrandTotals = (flags & 0x0001) != 0;
+            ViewColumnGrandTotals = (flags & 0x0002) != 0;
+            ViewAutoFormat = (flags & 0x0008) != 0;
+            ViewAutoFormatId = autoFormatId;
+            ViewTableName = tableName ?? throw new ArgumentNullException(nameof(tableName));
+            ViewDataName = dataName ?? throw new ArgumentNullException(nameof(dataName));
+        }
+
+        internal void SetField(ushort axis, ushort subtotalFlags, ushort subtotalCount, short itemCount, string? fieldName) {
+            FieldAxisName = GetAxisName(axis);
+            FieldSubtotalCount = subtotalCount;
+            FieldSubtotalFlags = subtotalFlags;
+            FieldSubtotalFunctionNames = GetSubtotalFunctionNames(subtotalFlags);
+            FieldItemCount = itemCount;
+            FieldName = fieldName;
+        }
+
         internal void SetGroupingRange(bool autoStart, bool autoEnd, LegacyXlsPivotGroupingKind groupingKind) {
             AutoStart = autoStart;
             AutoEnd = autoEnd;
@@ -519,6 +666,64 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                     return LegacyXlsPivotCacheSourceType.Scenario;
                 default:
                     return null;
+            }
+        }
+
+        private static string GetAxisName(ushort value) {
+            bool row = (value & 0x0001) != 0;
+            bool column = (value & 0x0002) != 0;
+            bool page = (value & 0x0004) != 0;
+            bool data = (value & 0x0008) != 0;
+            if (!row && !column && !page && !data) {
+                return "None";
+            }
+
+            var names = new List<string>(4);
+            if (row) {
+                names.Add("Row");
+            }
+
+            if (column) {
+                names.Add("Column");
+            }
+
+            if (page) {
+                names.Add("Page");
+            }
+
+            if (data) {
+                names.Add("Data");
+            }
+
+            return string.Join("+", names);
+        }
+
+        private static string FormatRange(ushort firstRow, ushort lastRow, ushort firstColumn, ushort lastColumn) {
+            string start = A1.CellReference(firstRow + 1, firstColumn + 1);
+            string end = A1.CellReference(lastRow + 1, lastColumn + 1);
+            return start == end ? start : start + ":" + end;
+        }
+
+        private static IReadOnlyList<string> GetSubtotalFunctionNames(ushort value) {
+            var names = new List<string>(12);
+            AddSubtotalName(names, value, 0x0001, "Default");
+            AddSubtotalName(names, value, 0x0002, "Sum");
+            AddSubtotalName(names, value, 0x0004, "Count");
+            AddSubtotalName(names, value, 0x0008, "Average");
+            AddSubtotalName(names, value, 0x0010, "Max");
+            AddSubtotalName(names, value, 0x0020, "Min");
+            AddSubtotalName(names, value, 0x0040, "Product");
+            AddSubtotalName(names, value, 0x0080, "CountNumbers");
+            AddSubtotalName(names, value, 0x0100, "StdDev");
+            AddSubtotalName(names, value, 0x0200, "StdDevPopulation");
+            AddSubtotalName(names, value, 0x0400, "Variance");
+            AddSubtotalName(names, value, 0x0800, "VariancePopulation");
+            return names;
+        }
+
+        private static void AddSubtotalName(List<string> names, ushort value, ushort flag, string name) {
+            if ((value & flag) != 0) {
+                names.Add(name);
             }
         }
 
