@@ -65,6 +65,21 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void WriteObjects_ProjectsDictionaryRowsByFirstRowColumns()
+    {
+        var items = new object?[]
+        {
+            new Dictionary<string, object?> { ["Name"] = "A", ["Value"] = 1 },
+            new Dictionary<string, object?> { ["Value"] = 2, ["Name"] = "B" }
+        };
+
+        using var writer = new StringWriter();
+        CsvDocument.WriteObjects(writer, items, new CsvSaveOptions { NewLine = "\n" });
+
+        Assert.Equal("Name,Value\nA,1\nB,2\n", writer.ToString());
+    }
+
+    [Fact]
     public void CsvObjectWriter_StreamsRowsAndCanLeaveWriterOpen()
     {
         using var writer = new StringWriter();

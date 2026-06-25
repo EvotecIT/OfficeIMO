@@ -63,7 +63,8 @@ public sealed class CsvObjectWriter : IDisposable
             throw new InvalidOperationException("Data rows cannot contain null entries.");
         }
 
-        EnsureColumns(ObjectDataHelpers.GetColumnNames(item));
+        var itemColumns = ObjectDataHelpers.GetColumnNames(item);
+        EnsureColumns(itemColumns, requireOrder: !ObjectDataHelpers.IsDictionaryLike(item));
         var columns = _columns!;
 
         var values = new object?[columns.Count];
@@ -201,11 +202,11 @@ public sealed class CsvObjectWriter : IDisposable
         }
     }
 
-    private void EnsureColumns(IReadOnlyList<string> columns)
+    private void EnsureColumns(IReadOnlyList<string> columns, bool requireOrder = true)
     {
         if (_columns != null)
         {
-            ValidateColumns(columns);
+            ValidateColumns(columns, requireOrder);
             return;
         }
 
@@ -221,11 +222,17 @@ public sealed class CsvObjectWriter : IDisposable
         }
     }
 
-    private void ValidateColumns(IReadOnlyList<string> columns)
+    private void ValidateColumns(IReadOnlyList<string> columns, bool requireOrder)
     {
         if (columns.Count != _columns!.Count)
         {
             throw new CsvException($"Row defines {columns.Count} columns but header defines {_columns.Count} columns.");
+        }
+
+        if (!requireOrder)
+        {
+            ValidateColumnSet(columns);
+            return;
         }
 
         for (var i = 0; i < columns.Count; i++)
@@ -233,6 +240,18 @@ public sealed class CsvObjectWriter : IDisposable
             if (!string.Equals(columns[i], _columns[i], StringComparison.Ordinal))
             {
                 throw new CsvException($"Row column '{columns[i]}' at index {i} does not match header column '{_columns[i]}'.");
+            }
+        }
+    }
+
+    private void ValidateColumnSet(IReadOnlyList<string> columns)
+    {
+        var expected = new HashSet<string>(_columns!, StringComparer.Ordinal);
+        for (var i = 0; i < columns.Count; i++)
+        {
+            if (!expected.Remove(columns[i]))
+            {
+                throw new CsvException($"Row column '{columns[i]}' does not match the header columns.");
             }
         }
     }

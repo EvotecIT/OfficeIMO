@@ -71,6 +71,31 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadRowsReusable_SkipsInitialRecordsAfterLeadingComments()
+    {
+        var headers = new List<string[]>();
+        var rows = new List<string[]>();
+        using var reader = new StringReader("#note\nmetadata,with,commas\nName;Value\nAlpha;1\n");
+
+        CsvDocument.ReadRowsReusable(
+            reader,
+            (header, values) =>
+            {
+                headers.Add(header.ToArray());
+                rows.Add(values.ToArray());
+            },
+            new CsvLoadOptions {
+                DetectDelimiter = true,
+                SkipInitialRecords = 1
+            });
+
+        var header = Assert.Single(headers);
+        var row = Assert.Single(rows);
+        Assert.Equal(new[] { "Name", "Value" }, header);
+        Assert.Equal(new[] { "Alpha", "1" }, row);
+    }
+
+    [Fact]
     public void LoadFromStream_InMemoryMode_ParsesRows()
     {
         var bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n2,Bob\n");

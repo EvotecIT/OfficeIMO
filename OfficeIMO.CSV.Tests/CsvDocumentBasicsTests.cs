@@ -209,6 +209,23 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Delimiter_Detection_Skips_Initial_Records_After_Leading_Comments()
+    {
+        var parsed = CsvDocument.Parse(
+            "#note\nmetadata,with,commas\nName;Value\nAlpha;1\n",
+            new CsvLoadOptions {
+                DetectDelimiter = true,
+                SkipInitialRecords = 1
+            });
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal(';', parsed.Delimiter);
+        Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
+        Assert.Equal("Alpha", row.AsString("Name"));
+        Assert.Equal("1", row.AsString("Value"));
+    }
+
+    [Fact]
     public void Can_Skip_Initial_Records_With_Explicit_Header()
     {
         var parsed = CsvDocument.Parse(

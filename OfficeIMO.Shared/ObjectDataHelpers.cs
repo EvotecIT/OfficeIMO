@@ -61,6 +61,23 @@ internal static class ObjectDataHelpers
     }
 
     /// <summary>
+    /// Returns whether the item exposes dictionary keys rather than fixed CLR properties.
+    /// </summary>
+    public static bool IsDictionaryLike(object item)
+    {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(item);
+#else
+        if (item == null) throw new ArgumentNullException(nameof(item));
+#endif
+
+        return item is Dictionary<string, object?>
+            || item is IReadOnlyDictionary<string, object?>
+            || item is IDictionary<string, object?>
+            || item is IDictionary;
+    }
+
+    /// <summary>
     /// Retrieves a value for the specified column from a dictionary or property.
     /// </summary>
 #if NET5_0_OR_GREATER
