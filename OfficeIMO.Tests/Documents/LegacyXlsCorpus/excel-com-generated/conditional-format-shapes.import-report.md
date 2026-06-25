@@ -218,12 +218,22 @@ Warnings: 0
 | --- | --- |
 | StopIfTrue | 8 |
 
+## Conditional Formatting Extension Inline Formatting Byte Counts
+
+| Key | Count |
+| --- | --- |
+| Bytes:152 | 2 |
+| Bytes:156 | 2 |
+| Bytes:38 | 3 |
+
 ## Conditional Formatting Extension Dxf Projection States
 
 | Key | Count |
 | --- | --- |
 | NoDxfRequested | 1 |
-| UnprojectedMultipleDxfCandidates:8 | 4 |
+| UnprojectedInlineDxfBytes:152 | 1 |
+| UnprojectedInlineDxfBytes:156 | 1 |
+| UnprojectedInlineDxfBytes:38 | 2 |
 | UnprojectedUnmatchedRule | 3 |
 
 ## Differential Formats By Record Type

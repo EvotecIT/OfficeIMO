@@ -352,6 +352,12 @@ Warnings: 0
 | --- | --- |
 | Continue | 1 |
 
+## Conditional Formatting Extension Inline Formatting Byte Counts
+
+| Key | Count |
+| --- | --- |
+| Bytes:38 | 1 |
+
 ## Conditional Formatting Extension Dxf Projection States
 
 | Key | Count |

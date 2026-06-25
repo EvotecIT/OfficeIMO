@@ -136,6 +136,9 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(record => record.Priority.HasValue)
                 .Select(record => $"Priority:{record.Priority!.Value}"));
             ConditionalFormattingExtensionStopIfTrueStates = CountByCode(conditionalFormattingExtensions.Select(GetConditionalFormattingExtensionStopIfTrueStateKey));
+            ConditionalFormattingExtensionInlineFormattingByteCounts = CountByCode(conditionalFormattingExtensions
+                .Where(record => record.InlineFormattingByteCount.HasValue)
+                .Select(record => $"Bytes:{record.InlineFormattingByteCount!.Value.ToString(CultureInfo.InvariantCulture)}"));
             ConditionalFormattingExtensionDxfProjectionStates = CountByCode(conditionalFormattingExtensions
                 .Select(record => GetConditionalFormattingExtensionDxfProjectionStateKey(record, workbook.DifferentialFormats.Count)));
             AutoFilterCriteriaBySheet = CountByCode(workbook.Worksheets
@@ -1947,6 +1950,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets preserve-only conditional-formatting extension records grouped by decoded stop-if-true state.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionStopIfTrueStates { get; }
+
+        /// <summary>Gets preserve-only conditional-formatting extension records grouped by declared inline formatting byte count.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionInlineFormattingByteCounts { get; }
 
         /// <summary>Gets preserve-only conditional-formatting extension records grouped by Dxf projection state.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionDxfProjectionStates { get; }
@@ -3966,6 +3972,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Conditional Formatting Extension States", ConditionalFormattingExtensionStates);
             AppendDictionary(builder, "Conditional Formatting Extension Priorities", ConditionalFormattingExtensionPriorities);
             AppendDictionary(builder, "Conditional Formatting Extension Stop If True States", ConditionalFormattingExtensionStopIfTrueStates);
+            AppendDictionary(builder, "Conditional Formatting Extension Inline Formatting Byte Counts", ConditionalFormattingExtensionInlineFormattingByteCounts);
             AppendDictionary(builder, "Conditional Formatting Extension Dxf Projection States", ConditionalFormattingExtensionDxfProjectionStates);
             AppendDictionary(builder, "Differential Formats By Record Type", DifferentialFormatsByRecordType);
             AppendDictionary(builder, "Differential Formats By Content State", DifferentialFormatsByContentState);
@@ -5778,6 +5785,10 @@ namespace OfficeIMO.Excel.LegacyXls {
 
             if (differentialFormatCount == 1) {
                 return "ProjectedSingleDxf";
+            }
+
+            if (record.InlineFormattingByteCount.HasValue) {
+                return $"UnprojectedInlineDxfBytes:{record.InlineFormattingByteCount.Value.ToString(CultureInfo.InvariantCulture)}";
             }
 
             return $"UnprojectedMultipleDxfCandidates:{differentialFormatCount.ToString(CultureInfo.InvariantCulture)}";

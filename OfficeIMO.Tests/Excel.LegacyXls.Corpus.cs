@@ -437,9 +437,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionStopIfTrueStates["StopIfTrue"]);
             Assert.Equal(4, result.ImportReport.ConditionalFormattingExtensionStates["Cf12:Missing|UnprojectedFormatting:Present|MatchedRule:Present|Priority:Present|StopIfTrue:StopIfTrue"]);
             Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionStates.Values.Sum());
-            Assert.Equal(4, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["UnprojectedMultipleDxfCandidates:8"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["UnprojectedInlineDxfBytes:156"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["UnprojectedInlineDxfBytes:152"]);
+            Assert.Equal(2, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["UnprojectedInlineDxfBytes:38"]);
             Assert.Equal(3, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["UnprojectedUnmatchedRule"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["NoDxfRequested"]);
+            Assert.Equal(3, result.ImportReport.ConditionalFormattingExtensionInlineFormattingByteCounts["Bytes:38"]);
+            Assert.Equal(2, result.ImportReport.ConditionalFormattingExtensionInlineFormattingByteCounts["Bytes:152"]);
+            Assert.Equal(2, result.ImportReport.ConditionalFormattingExtensionInlineFormattingByteCounts["Bytes:156"]);
             Assert.Equal(8, result.ImportReport.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:Dxf"]);
             Assert.Equal(1, result.ImportReport.WorksheetFeatureStates["DataValidations:0|ConditionalFormatting:8|AutoFilterCriteria:0|AutoFilterDropDowns:Missing"]);
 

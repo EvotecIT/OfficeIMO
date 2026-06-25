@@ -101,6 +101,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort? parsedHeaderId = null;
             ushort? parsedRuleIndex = null;
             bool? parsedStopIfTrue = null;
+            int? inlineFormattingByteCount = null;
             if (!isCf12 && payload.Length >= 43) {
                 parsedHeaderId = BiffRecordReader.ReadUInt16(payload, 16);
                 int contentOffset = 18;
@@ -109,6 +110,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 byte flags = payload[contentOffset + 6];
                 parsedStopIfTrue = (flags & 0x02) != 0;
                 hasUnprojectedFormatting = payload[contentOffset + 7] != 0;
+                if (hasUnprojectedFormatting && payload.Length > contentOffset + 8) {
+                    inlineFormattingByteCount = payload[contentOffset + 8];
+                }
             }
 
             extensionRecord = new LegacyXlsConditionalFormattingExtensionRecord(
@@ -122,7 +126,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 priority,
                 parsedStopIfTrue,
                 hasUnprojectedFormatting,
-                matchedRule);
+                matchedRule,
+                inlineFormattingByteCount);
 
             if (isCf12 || !parsedHeaderId.HasValue || !parsedRuleIndex.HasValue || !parsedStopIfTrue.HasValue) {
                 return true;
