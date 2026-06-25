@@ -876,6 +876,31 @@ Premium Excel export means PNG/SVG output that looks intentionally rendered, not
 - Baseline failures produce reviewable diff artifacts, not just red tests.
 - Large ranges and worksheets have a documented memory/page/tiling story before workbook-wide export is called production-grade.
 
+### Continuation Checkpoint 2026-06-25
+
+This PR proves the right architecture and a credible first Excel PNG/SVG export path, but it should not be described as premium-complete. The shared renderer now has approved visual baselines, a smoke/full visual gate, stable diagnostics, and architecture guards that keep Excel, Visio, and PDF-oriented rendering paths using `OfficeIMO.Drawing` instead of separate private brains. The remaining work is a fidelity burn-down, not a rewrite.
+
+Current approved Excel image baselines are split into clean baselines and tracked approximations by `ExcelImageExportVisualFidelityGateTests`. The tracked approximation set is the authoritative continuation list for the next premium PRs:
+
+- Comment and threaded-comment bodies: render as dependency-free callouts, but still need Excel-exact popover geometry, visibility state, threading metadata, stacking, connector/pointer behavior, and richer body formatting.
+- Conditional formatting icons: deterministic and visually improved, but still need Excel icon-artwork parity, threshold semantics, richer icon sets, and diagnostics for any impossible parity.
+- Pattern fills and gradients: hatch output is deterministic, but needs closer Excel pattern density/phase/color behavior, broader gradient handling, and theme-aware parity.
+- Rich text and cell text layout: readable output exists, including wrapping, clipping, shrink-to-fit, rotated text, and stacked text, but premium still needs Excel-exact baseline metrics, font fallback behavior, vertical alignment edge cases, text spill/overflow parity, and a measured-text cache story for larger exports.
+- Drawing-object text: supported simple shapes route through Drawing, but rotated shape text, text-box metrics, auto-fit, complex vertical orientation, connectors, groups, theme/system/transformed colors, and richer preset geometry remain incomplete.
+- Sparklines: line, column, and win/loss output exists, but hidden/empty data behavior, date axes, group-level scaling, axis display, and Excel-exact marker/negative/first/last/high/low semantics need deeper parity.
+- Charts: the current snapshot bridge carries a useful slice of authored style/layout into shared Drawing, but premium still needs trendlines, leader lines, point-level label overrides, picture markers, richer series/marker effects, deeper axis/tick/number-format behavior, display-unit placement, chart/plot area effects, per-element rich chart text, and Excel-exact chart geometry where practical.
+- Images and objects: embedded PNG/SVG-friendly images, crop, rotation, flip, two-cell sizing, clipping, and z-order are covered, but broader raster formats, EMF/SVG/JPEG edge cases, transparency/effects, grouped objects, connectors, and deeper object clipping still need explicit contracts.
+- Worksheet/page export: print area, manual page slicing, print titles, page setup, orientation, margins, scaling, paper sizes, and text header/footer chrome have first-pass support, but automatic pagination, large-sheet tiling, broader paper-size coverage, Excel-exact header/footer image geometry, and full page-break/fit-to-page parity are still open.
+- Diagnostics and QA: every unsupported or approximate detail must keep a stable diagnostic code with a source reference. Visual QA must expand beyond curated baselines into broader fixture matrices, renderable/nonblank checks, visual diff artifacts, and, where practical, Excel-reference comparison notes.
+
+Recommended next PR order:
+
+1. Keep the multi-target build lane clean, especially `net472`, before starting new fidelity work.
+2. Burn down the most visible tracked approximations first: comment bodies, rotated/stacked text metrics, sparklines, pattern fills, and conditional icons.
+3. Expand chart parity in focused slices, with diagnostics for anything deliberately approximate.
+4. Add larger worksheet/page tiling and pagination contracts only after range and page-sliced output stay stable.
+5. Continue moving reusable geometry, text, image projection, and SVG/raster primitives into `OfficeIMO.Drawing`; keep Excel, Visio, PDF, Word, and PowerPoint as source-format adapters over the shared engine.
+
 The first visible milestone can be:
 
 ```csharp

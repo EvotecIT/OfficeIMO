@@ -13,16 +13,17 @@ namespace OfficeIMO.Excel {
                 return fallback;
             }
 
-            formatCode = ResolveFormatCode(numberFormatId, formatCode);
-            if (string.IsNullOrWhiteSpace(formatCode) || string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase)) {
+            string? resolvedFormatCode = ResolveFormatCode(numberFormatId, formatCode);
+            if (string.IsNullOrWhiteSpace(resolvedFormatCode) || string.Equals(resolvedFormatCode, "General", StringComparison.OrdinalIgnoreCase)) {
                 return fallback;
             }
 
-            if (IsDateNumberFormat(numberFormatId, formatCode)) {
-                return FormatDateValue(value, numberFormatId, formatCode, dateSystem);
+            string nonEmptyFormatCode = resolvedFormatCode!;
+            if (IsDateNumberFormat(numberFormatId, nonEmptyFormatCode)) {
+                return FormatDateValue(value, numberFormatId, nonEmptyFormatCode, dateSystem);
             }
 
-            return FormatNumberValue(value, numberFormatId, formatCode) ?? fallback;
+            return FormatNumberValue(value, numberFormatId, nonEmptyFormatCode) ?? fallback;
         }
 
         internal static bool IsDateNumberFormat(uint numberFormatId, string? formatCode)
