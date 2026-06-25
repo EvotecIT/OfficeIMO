@@ -304,6 +304,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportResolvesAbsoluteAnchorDrawingShapeCoordinates() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("AbsoluteShape");
+                sheet.SetColumnWidth(1, 8);
+                sheet.SetColumnWidth(2, 8);
+                sheet.SetRowHeight(1, 24);
+                sheet.CellValue(1, 2, "Shape area");
+                document.Save(false);
+            }
+
+            AppendAbsoluteDrawingShape(filePath, "Absolute shape", "Absolute shape", xPixels: 80, yPixels: 12, widthPixels: 96, heightPixels: 34);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRangeVisualSnapshot snapshot = sheet.Range("B1:D3").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.Equal("Absolute shape", drawingObject.Text);
+                Assert.True(drawingObject.X > 0D, "Absolute-anchor shapes should resolve from worksheet-canvas coordinates instead of falling back to A1.");
+                Assert.True(drawingObject.Y > 0D, "Absolute-anchor shapes should preserve their vertical worksheet-canvas offset.");
+                Assert.Equal(96D, drawingObject.Width);
+                Assert.Equal(34D, drawingObject.Height);
+            }
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportResolvesThemedDrawingShapeColorsThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -974,6 +1001,40 @@ namespace OfficeIMO.Tests {
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
                 CreateSupportedShapeAnchor(1, 1, toColumn, toRow, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, fillSchemeColor, fillLuminanceModulation, fillLuminanceOffset, strokeSchemeColor, textSchemeColor, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textShrinkToFit, textResizeShapeToFit, textOrientation, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu));
+            drawingsPart.WorksheetDrawing.Save();
+            worksheetPart.Worksheet.Save();
+        }
+
+        private static void AppendAbsoluteDrawingShape(string filePath, string name, string text, int xPixels, int yPixels, int widthPixels, int heightPixels) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
+            if (worksheetPart.Worksheet!.Elements<X.Drawing>().FirstOrDefault() == null) {
+                worksheetPart.Worksheet.Append(new X.Drawing { Id = worksheetPart.GetIdOfPart(drawingsPart) });
+            }
+
+            drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
+            drawingsPart.WorksheetDrawing.Append(new Xdr.AbsoluteAnchor(
+                new Xdr.Position { X = xPixels * 9525L, Y = yPixels * 9525L },
+                new Xdr.Extent { Cx = widthPixels * 9525L, Cy = heightPixels * 9525L },
+                new Xdr.Shape(
+                    new Xdr.NonVisualShapeProperties(
+                        new Xdr.NonVisualDrawingProperties { Id = 88U, Name = name },
+                        new Xdr.NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true })),
+                    new Xdr.ShapeProperties(
+                        new A.Transform2D(
+                            new A.Offset { X = 0L, Y = 0L },
+                            new A.Extents { Cx = widthPixels * 9525L, Cy = heightPixels * 9525L }),
+                        new A.PresetGeometry { Preset = A.ShapeTypeValues.RoundRectangle },
+                        CreateSolidFill("E0F2FE"),
+                        new A.Outline(CreateSolidFill("0284C7")) { Width = 12700 }),
+                    new Xdr.TextBody(
+                        new A.BodyProperties(),
+                        new A.ListStyle(),
+                        new A.Paragraph(new A.Run(
+                            new A.RunProperties(),
+                            new A.Text(text))))),
+                new Xdr.ClientData()));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }

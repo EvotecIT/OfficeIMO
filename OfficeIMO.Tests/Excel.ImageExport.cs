@@ -1072,6 +1072,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_ImageExportNormalizesExplicitRangeReferences() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Normalize");
+            sheet.CellValue(1, 1, "Normalized");
+
+            OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+                Range = "'Normalize'!$A$1",
+                ShowGridlines = false
+            });
+
+            Assert.Equal("Normalize!A1:A1", png.Source);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRendersMergedCellsStartingOutsideSelectedRange() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("MergedClip");
+            sheet.SetColumnWidth(1, 8);
+            sheet.SetColumnWidth(2, 8);
+            sheet.SetColumnWidth(3, 8);
+            sheet.CellValue(1, 1, "Merged title");
+            sheet.Range("A1:C1").Merge();
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("B1:C1").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+
+            ExcelVisualCell mergedOrigin = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1 && !cell.CoveredByMerge);
+            Assert.Equal("Merged title", mergedOrigin.Text);
+            Assert.True(mergedOrigin.X < 0D, "The merged origin should keep its true negative X position relative to the selected range.");
+            Assert.True(mergedOrigin.Width > snapshot.Width, "The merged origin should retain the full merged-cell width for clipping.");
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportUsesTwoCellImageAnchorDimensions() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             byte[] banner = CreateSolidPng(32, 32, OfficeColor.FromRgb(37, 99, 235));
@@ -1107,6 +1143,31 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
             Assert.NotNull(rendered);
             AssertPixelNear(rendered!, Math.Min(rendered!.Width - 1, 120), Math.Min(rendered.Height - 1, 40), OfficeColor.FromRgb(37, 99, 235), tolerance: 3);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRespectsAbsoluteAnchorImageCoordinates() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            byte[] banner = CreateSolidPng(80, 20, OfficeColor.FromRgb(22, 163, 74));
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("AbsoluteImage");
+                sheet.SetColumnWidth(1, 8);
+                sheet.SetColumnWidth(2, 8);
+                sheet.SetRowHeight(1, 24);
+                document.Save(false);
+            }
+
+            AddAbsoluteAnchoredImage(filePath, banner, xPixels: 40, yPixels: 0, widthPixels: 80, heightPixels: 20);
+
+            using ExcelDocument loaded = ExcelDocument.Load(filePath);
+            ExcelSheet loadedSheet = loaded.Sheets.Single();
+            ExcelRangeVisualSnapshot snapshot = loadedSheet.Range("B1:C2").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+
+            ExcelVisualImage image = Assert.Single(snapshot.Images);
+            Assert.Equal("AbsoluteImage!AbsoluteBanner", image.Source);
+            Assert.True(image.X < 0D, "Absolute-anchor images should keep their worksheet-canvas X position relative to the selected range.");
+            Assert.Equal(80D, image.Width);
+            Assert.Equal(20D, image.Height);
         }
 
         [Fact]
@@ -2976,6 +3037,39 @@ namespace OfficeIMO.Tests {
                 new Xdr.Picture(
                     new Xdr.NonVisualPictureProperties(
                         new Xdr.NonVisualDrawingProperties { Id = 77U, Name = "TwoCellBanner" },
+                        new Xdr.NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true })),
+                    new Xdr.BlipFill(
+                        new A.Blip { Embed = relationshipId },
+                        new A.Stretch(new A.FillRectangle())),
+                    new Xdr.ShapeProperties(
+                        new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle })),
+                new Xdr.ClientData()));
+            drawingsPart.WorksheetDrawing.Save();
+            worksheetPart.Worksheet.Save();
+        }
+
+        private static void AddAbsoluteAnchoredImage(string filePath, byte[] imageBytes, int xPixels, int yPixels, int widthPixels, int heightPixels) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
+            drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
+
+            if (worksheetPart.Worksheet!.Elements<X.Drawing>().FirstOrDefault() == null) {
+                worksheetPart.Worksheet.Append(new X.Drawing { Id = worksheetPart.GetIdOfPart(drawingsPart) });
+            }
+
+            ImagePart imagePart = drawingsPart.AddImagePart(ImagePartType.Png);
+            using (MemoryStream stream = new MemoryStream(imageBytes)) {
+                imagePart.FeedData(stream);
+            }
+
+            string relationshipId = drawingsPart.GetIdOfPart(imagePart);
+            drawingsPart.WorksheetDrawing.Append(new Xdr.AbsoluteAnchor(
+                new Xdr.Position { X = xPixels * 9525L, Y = yPixels * 9525L },
+                new Xdr.Extent { Cx = widthPixels * 9525L, Cy = heightPixels * 9525L },
+                new Xdr.Picture(
+                    new Xdr.NonVisualPictureProperties(
+                        new Xdr.NonVisualDrawingProperties { Id = 81U, Name = "AbsoluteBanner" },
                         new Xdr.NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true })),
                     new Xdr.BlipFill(
                         new A.Blip { Embed = relationshipId },

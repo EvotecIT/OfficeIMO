@@ -106,10 +106,14 @@ namespace OfficeIMO.Excel {
 
         private IReadOnlyList<WorksheetImageRangeResolution> ResolveWorksheetImageRanges(ExcelWorksheetImageExportOptions options, bool allowMultipleResults) {
             if (!string.IsNullOrWhiteSpace(options.Range)) {
-                return ApplyManualPageBreakSplits(
-                    SingleImageRange(options.Range!, Array.Empty<OfficeImageExportDiagnostic>()),
-                    options,
-                    allowMultipleResults);
+                if (TryNormalizeWorksheetImageRange(options.Range!, out string? normalizedRange)) {
+                    return ApplyManualPageBreakSplits(
+                        SingleImageRange(normalizedRange!, Array.Empty<OfficeImageExportDiagnostic>()),
+                        options,
+                        allowMultipleResults);
+                }
+
+                throw new ArgumentException("Worksheet image export range must be a supported A1 cell or range reference.", nameof(options));
             }
 
             var diagnostics = new List<OfficeImageExportDiagnostic>();
@@ -331,7 +335,11 @@ namespace OfficeIMO.Excel {
             Dictionary<int, ExcelRowSnapshot> rows = GetRowDefinitions().ToDictionary(row => row.Index);
             if (options.IncludeImages) {
                 foreach (ExcelImage image in Images) {
-                    ExpandVisualAnchor(image.RowIndex, image.ColumnIndex, image.WidthPixels, image.HeightPixels, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                    if (image.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight)) {
+                        ExpandAbsoluteVisualAnchor(absoluteX, absoluteY, absoluteWidth, absoluteHeight, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                    } else {
+                        ExpandVisualAnchor(image.RowIndex, image.ColumnIndex, image.WidthPixels, image.HeightPixels, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                    }
                 }
             }
 
@@ -390,6 +398,66 @@ namespace OfficeIMO.Excel {
             firstColumn = Math.Min(firstColumn, columnIndex);
             lastRow = Math.Max(lastRow, ResolveLastVisualRow(rowIndex, heightPixels, rows, options));
             lastColumn = Math.Max(lastColumn, ResolveLastVisualColumn(columnIndex, widthPixels, columns, options));
+        }
+
+        private static void ExpandAbsoluteVisualAnchor(
+            int xPixels,
+            int yPixels,
+            int widthPixels,
+            int heightPixels,
+            IReadOnlyList<ExcelColumnSnapshot> columns,
+            IReadOnlyDictionary<int, ExcelRowSnapshot> rows,
+            ExcelImageExportOptions options,
+            ref int firstRow,
+            ref int firstColumn,
+            ref int lastRow,
+            ref int lastColumn) {
+            int startColumn = ResolveColumnAtAbsoluteOffset(xPixels, columns, options);
+            int endColumn = ResolveColumnAtAbsoluteOffset(xPixels + Math.Max(1, widthPixels), columns, options);
+            int startRow = ResolveRowAtAbsoluteOffset(yPixels, rows, options);
+            int endRow = ResolveRowAtAbsoluteOffset(yPixels + Math.Max(1, heightPixels), rows, options);
+            firstColumn = Math.Min(firstColumn, startColumn);
+            lastColumn = Math.Max(lastColumn, endColumn);
+            firstRow = Math.Min(firstRow, startRow);
+            lastRow = Math.Max(lastRow, endRow);
+        }
+
+        private static int ResolveColumnAtAbsoluteOffset(int offsetPixels, IReadOnlyList<ExcelColumnSnapshot> columns, ExcelImageExportOptions options) {
+            double cursor = 0D;
+            for (int column = 1; column < 16384; column++) {
+                ExcelColumnSnapshot? definition = columns.FirstOrDefault(item => column >= item.StartIndex && column <= item.EndIndex);
+                double width = ResolveColumnWidth(definition, options);
+                if (definition?.Hidden == true && !options.IncludeHidden) {
+                    width = 0D;
+                }
+
+                if (cursor + width >= offsetPixels) {
+                    return column;
+                }
+
+                cursor += width;
+            }
+
+            return 16384;
+        }
+
+        private static int ResolveRowAtAbsoluteOffset(int offsetPixels, IReadOnlyDictionary<int, ExcelRowSnapshot> rows, ExcelImageExportOptions options) {
+            double cursor = 0D;
+            for (int row = 1; row < 1048576; row++) {
+                rows.TryGetValue(row, out ExcelRowSnapshot? definition);
+                double height = ResolveRowHeight(definition, options);
+                if (definition?.Hidden == true && !options.IncludeHidden) {
+                    height = 0D;
+                }
+
+                if (cursor + height >= offsetPixels) {
+                    return row;
+                }
+
+                cursor += height;
+            }
+
+            return 1048576;
         }
 
         private static int ResolveLastVisualColumn(int startColumn, int widthPixels, IReadOnlyList<ExcelColumnSnapshot> columns, ExcelImageExportOptions options) {

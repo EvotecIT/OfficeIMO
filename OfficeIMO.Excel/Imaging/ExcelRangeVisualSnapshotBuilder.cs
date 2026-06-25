@@ -150,6 +150,7 @@ namespace OfficeIMO.Excel {
                 cells = ApplyConditionalFills(cells, conditionalVisuals.FillColors);
             }
 
+            AddIntersectingMergeOriginCells(sheet, options, firstRow, firstColumn, lastRow, lastColumn, merges, rowDefinitions, columnDefinitions, columnsByIndex, rowsByIndex, hyperlinkMap, cells);
             List<ExcelVisualSparkline> sparklines = BuildSparklines(sheet, firstRow, firstColumn, lastRow, lastColumn, columnsByIndex, rowsByIndex, diagnostics);
             List<ExcelVisualDrawingObject> drawingObjects = BuildDrawingObjects(sheet, options, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, columnDefinitions, columnsByIndex, rowsByIndex, diagnostics);
             List<ExcelVisualImage> images = BuildImages(sheet, options, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, columnDefinitions, columnsByIndex, rowsByIndex, diagnostics);
@@ -242,6 +243,71 @@ namespace OfficeIMO.Excel {
             }
 
             return value.Length == 8 ? value.ToUpperInvariant() : null;
+        }
+
+        private static void AddIntersectingMergeOriginCells(
+            ExcelSheet sheet,
+            ExcelImageExportOptions options,
+            int firstRow,
+            int firstColumn,
+            int lastRow,
+            int lastColumn,
+            IReadOnlyList<ExcelMergedRangeSnapshot> merges,
+            IReadOnlyDictionary<int, ExcelRowSnapshot> rowDefinitions,
+            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions,
+            IReadOnlyDictionary<int, ExcelVisualColumn> columnsByIndex,
+            IReadOnlyDictionary<int, ExcelVisualRow> rowsByIndex,
+            IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> hyperlinkMap,
+            List<ExcelVisualCell> cells) {
+            foreach (ExcelMergedRangeSnapshot merge in merges) {
+                if (merge.StartRow >= firstRow &&
+                    merge.StartRow <= lastRow &&
+                    merge.StartColumn >= firstColumn &&
+                    merge.StartColumn <= lastColumn &&
+                    rowsByIndex.ContainsKey(merge.StartRow) &&
+                    columnsByIndex.ContainsKey(merge.StartColumn)) {
+                    continue;
+                }
+
+                double width = 0D;
+                for (int column = merge.StartColumn; column <= merge.EndColumn; column++) {
+                    width += ResolveVisibleColumnWidth(column, columnDefinitions, options);
+                }
+
+                double height = 0D;
+                for (int row = merge.StartRow; row <= merge.EndRow; row++) {
+                    height += ResolveVisibleRowHeight(row, rowDefinitions, options);
+                }
+
+                if (width <= 0D || height <= 0D) {
+                    continue;
+                }
+
+                double x = ResolveRelativeColumnOffset(firstColumn, merge.StartColumn, 0, columnDefinitions, options);
+                double y = ResolveRelativeRowOffset(firstRow, merge.StartRow, 0, rowDefinitions, options);
+                ExcelCellStyleSnapshot style = sheet.GetCellStyle(merge.StartRow, merge.StartColumn);
+                ExcelCellData valueData = sheet.GetCellValueSnapshot(merge.StartRow, merge.StartColumn);
+                string rawText = sheet.TryGetCellText(merge.StartRow, merge.StartColumn, out string cellText)
+                    ? cellText
+                    : string.Empty;
+                string text = string.IsNullOrEmpty(rawText)
+                    ? string.Empty
+                    : FormatCellDisplayText(rawText, style, sheet.Document.DateSystem);
+                hyperlinkMap.TryGetValue(A1.CellReference(merge.StartRow, merge.StartColumn), out ExcelHyperlinkSnapshot? hyperlink);
+                cells.Add(new ExcelVisualCell(
+                    merge.StartRow,
+                    merge.StartColumn,
+                    x,
+                    y,
+                    width,
+                    height,
+                    text,
+                    style,
+                    coveredByMerge: false,
+                    hyperlink,
+                    BuildRichTextRuns(sheet.GetRichText(merge.StartRow, merge.StartColumn)),
+                    ResolveVisualCellValueKind(valueData, rawText, style)));
+            }
         }
 
         private static List<ExcelVisualDrawingObject> BuildDrawingObjects(
@@ -388,7 +454,8 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (ExcelImage image in sheet.Images) {
-                if (!options.IncludeHidden && IsHiddenAnchorInRange(image.RowIndex, image.ColumnIndex, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, columnDefinitions)) {
+                bool absoluteAnchor = image.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight);
+                if (!absoluteAnchor && !options.IncludeHidden && IsHiddenAnchorInRange(image.RowIndex, image.ColumnIndex, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, columnDefinitions)) {
                     diagnostics.Add(new OfficeImageExportDiagnostic(
                         OfficeImageExportDiagnosticSeverity.Warning,
                         ExcelImageExportDiagnosticCodes.ImageAnchorHidden,
@@ -405,16 +472,16 @@ namespace OfficeIMO.Excel {
                     columnDefinitions,
                     columnsByIndex,
                     rowsByIndex,
-                    image.ColumnIndex,
-                    image.RowIndex,
-                    image.OffsetXPixels,
-                    image.OffsetYPixels,
-                    image.WidthPixels,
-                    image.HeightPixels,
-                    image.ToColumnIndex,
-                    image.ToRowIndex,
-                    image.ToOffsetXPixels,
-                    image.ToOffsetYPixels,
+                    absoluteAnchor ? 1 : image.ColumnIndex,
+                    absoluteAnchor ? 1 : image.RowIndex,
+                    absoluteAnchor ? absoluteX : image.OffsetXPixels,
+                    absoluteAnchor ? absoluteY : image.OffsetYPixels,
+                    absoluteAnchor ? absoluteWidth : image.WidthPixels,
+                    absoluteAnchor ? absoluteHeight : image.HeightPixels,
+                    absoluteAnchor ? null : image.ToColumnIndex,
+                    absoluteAnchor ? null : image.ToRowIndex,
+                    absoluteAnchor ? 0 : image.ToOffsetXPixels,
+                    absoluteAnchor ? 0 : image.ToOffsetYPixels,
                     out double x,
                     out double y,
                     out double width,

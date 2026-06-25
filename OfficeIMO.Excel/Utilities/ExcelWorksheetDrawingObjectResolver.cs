@@ -280,6 +280,24 @@ namespace OfficeIMO.Excel.Utilities {
         }
 
         private static AnchorPosition GetAnchorPosition(OpenXmlElement anchor, WorksheetPart worksheetPart) {
+            if (anchor is Xdr.AbsoluteAnchor absoluteAnchor) {
+                int absoluteX = ParseEmuPixels(absoluteAnchor.Position?.X?.Value);
+                int absoluteY = ParseEmuPixels(absoluteAnchor.Position?.Y?.Value);
+                ResolveAbsoluteColumn(worksheetPart, absoluteX, out int absoluteColumn, out int columnOffset);
+                ResolveAbsoluteRow(worksheetPart, absoluteY, out int absoluteRow, out int rowOffset);
+                return new AnchorPosition(
+                    absoluteRow,
+                    absoluteColumn,
+                    columnOffset,
+                    rowOffset,
+                    ParseEmuPixels(absoluteAnchor.Extent?.Cx?.Value),
+                    ParseEmuPixels(absoluteAnchor.Extent?.Cy?.Value),
+                    toColumn: null,
+                    toRow: null,
+                    toOffsetXPixels: 0,
+                    toOffsetYPixels: 0);
+            }
+
             Xdr.MarkerType? fromMarker = anchor switch {
                 Xdr.OneCellAnchor oneCellAnchor => oneCellAnchor.FromMarker,
                 Xdr.TwoCellAnchor twoCellAnchor => twoCellAnchor.FromMarker,
@@ -304,6 +322,37 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             return new AnchorPosition(row, column, offsetX, offsetY, width, height, toColumn, toRow, toOffsetX, toOffsetY);
+        }
+
+        private static void ResolveAbsoluteColumn(WorksheetPart worksheetPart, int absolutePixels, out int column, out int offsetPixels) {
+            double maximumDigitWidth = GetDefaultMaximumDigitWidth(worksheetPart);
+            int cursor = 0;
+            for (column = 1; column < 16384; column++) {
+                int width = GetColumnWidthPixels(worksheetPart, column, maximumDigitWidth);
+                if (cursor + width >= absolutePixels) {
+                    offsetPixels = Math.Max(0, absolutePixels - cursor);
+                    return;
+                }
+
+                cursor += width;
+            }
+
+            offsetPixels = 0;
+        }
+
+        private static void ResolveAbsoluteRow(WorksheetPart worksheetPart, int absolutePixels, out int row, out int offsetPixels) {
+            int cursor = 0;
+            for (row = 1; row < 1048576; row++) {
+                int height = GetRowHeightPixels(worksheetPart, row);
+                if (cursor + height >= absolutePixels) {
+                    offsetPixels = Math.Max(0, absolutePixels - cursor);
+                    return;
+                }
+
+                cursor += height;
+            }
+
+            offsetPixels = 0;
         }
 
         private static int ResolveTwoCellWidthPixels(WorksheetPart worksheetPart, int fromColumn, int fromOffsetPixels, int toColumn, int toOffsetPixels) {

@@ -107,6 +107,11 @@ namespace OfficeIMO.Excel {
         public bool HasTwoCellAnchor => _anchor is Xdr.TwoCellAnchor;
 
         /// <summary>
+        /// Gets whether the image is positioned with an absolute drawing anchor.
+        /// </summary>
+        public bool HasAbsoluteAnchor => _anchor is Xdr.AbsoluteAnchor;
+
+        /// <summary>
         /// Gets the 1-based ending row index for two-cell anchored images, when available.
         /// </summary>
         public int? ToRowIndex => TryGetToMarkerRow(out int row) ? row + 1 : null;
@@ -125,6 +130,27 @@ namespace OfficeIMO.Excel {
         /// Gets the vertical offset from the two-cell ending marker row in pixels.
         /// </summary>
         public int ToOffsetYPixels => EmuOffsetToPx(GetToMarkerRowOffset());
+
+        internal bool TryGetAbsoluteAnchorBounds(out int xPixels, out int yPixels, out int widthPixels, out int heightPixels) {
+            xPixels = 0;
+            yPixels = 0;
+            widthPixels = 0;
+            heightPixels = 0;
+            if (_anchor is not Xdr.AbsoluteAnchor absoluteAnchor) {
+                return false;
+            }
+
+            xPixels = EmuOffsetToPx(absoluteAnchor.Position?.X?.Value ?? 0L);
+            yPixels = EmuOffsetToPx(absoluteAnchor.Position?.Y?.Value ?? 0L);
+            widthPixels = EmuToPx(absoluteAnchor.Extent?.Cx?.Value ?? 0L);
+            heightPixels = EmuToPx(absoluteAnchor.Extent?.Cy?.Value ?? 0L);
+            if (widthPixels <= 0 || heightPixels <= 0) {
+                widthPixels = WidthPixels;
+                heightPixels = HeightPixels;
+            }
+
+            return widthPixels > 0 && heightPixels > 0;
+        }
 
         /// <summary>
         /// Gets the left crop ratio authored on the image, where 0 means no crop and 1 means the full width.
