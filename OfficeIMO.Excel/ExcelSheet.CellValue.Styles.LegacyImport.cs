@@ -425,7 +425,8 @@ namespace OfficeIMO.Excel {
             }
 
             workbook.TryResolveColor(font.ColorIndex, out string? fontColor);
-            if (font.Name == null && !font.Size.HasValue && fontColor == null && !font.Bold && !font.Italic && !font.Underline && !font.Strikeout) {
+            VerticalAlignmentRunValues? verticalTextAlignment = ToLegacyVerticalTextAlignment(font.Escapement);
+            if (font.Name == null && !font.Size.HasValue && fontColor == null && !font.Bold && !font.Italic && !font.Underline && !font.Strikeout && !verticalTextAlignment.HasValue) {
                 return;
             }
 
@@ -446,6 +447,7 @@ namespace OfficeIMO.Excel {
                 SetItalic(projectedFont, font.Italic);
                 SetUnderline(projectedFont, font.Underline);
                 SetStrike(projectedFont, font.Strikeout);
+                SetVerticalTextAlignment(projectedFont, verticalTextAlignment);
             });
             candidate.ApplyFont = true;
         }
@@ -624,6 +626,14 @@ namespace OfficeIMO.Excel {
                 13 => BorderStyleValues.SlantDashDot,
                 _ => null
             };
+        }
+
+        private static VerticalAlignmentRunValues? ToLegacyVerticalTextAlignment(LegacyXlsFontEscapement escapement) {
+            return escapement == LegacyXlsFontEscapement.Superscript
+                ? VerticalAlignmentRunValues.Superscript
+                : escapement == LegacyXlsFontEscapement.Subscript
+                    ? VerticalAlignmentRunValues.Subscript
+                    : null;
         }
 
         private static PatternValues? ToLegacyFillPattern(byte pattern) {

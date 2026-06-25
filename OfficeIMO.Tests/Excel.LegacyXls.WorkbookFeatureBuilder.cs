@@ -2342,11 +2342,15 @@ namespace OfficeIMO.Tests {
                 WriteUnicodeString(stream, "Use a value between the worksheet bounds.");
                 WriteDvFormula(stream, BuildPtgRefFormula(0, 0));
                 WriteDvFormula(stream, BuildPtgRefFormula(0, 1));
-                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 2);
                 WriteUInt16(stream, 1);
                 WriteUInt16(stream, 5);
                 WriteUInt16(stream, 2);
                 WriteUInt16(stream, 2);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 5);
+                WriteUInt16(stream, 4);
+                WriteUInt16(stream, 4);
                 return stream.ToArray();
             }
 
@@ -2677,9 +2681,9 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            private static byte[] BuildSelectionPayload() {
+            private static byte[] BuildSelectionPayload(byte pane = 0) {
                 using var stream = new MemoryStream();
-                stream.WriteByte(0);
+                stream.WriteByte(pane);
                 WriteUInt16(stream, 2);
                 WriteUInt16(stream, 1);
                 WriteUInt16(stream, 0);

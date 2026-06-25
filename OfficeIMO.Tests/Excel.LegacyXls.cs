@@ -837,12 +837,12 @@ namespace OfficeIMO.Tests {
             LegacyXlsNumberFormat numberFormat = Assert.Single(legacy.NumberFormats);
             Assert.Equal(164, numberFormat.FormatId);
             Assert.Equal("yyyy-mm-dd", numberFormat.FormatCode);
-            Assert.Equal(11, legacy.CellFormats.Count);
+            Assert.Equal(13, legacy.CellFormats.Count);
             Assert.Equal(2, legacy.CellStyles.Count);
             Assert.Equal(3, legacy.CellStyleExtensions.Count);
             LegacyXlsCellStyleExtension xfCrcExtension = Assert.Single(legacy.CellStyleExtensions, extension => extension.RecordType == 0x087c);
             Assert.Equal("XFCRC", xfCrcExtension.RecordName);
-            Assert.Equal((ushort)11, xfCrcExtension.XfRecordCount.GetValueOrDefault());
+            Assert.Equal((ushort)13, xfCrcExtension.XfRecordCount.GetValueOrDefault());
             Assert.Equal(0x12345678U, xfCrcExtension.Checksum.GetValueOrDefault());
             LegacyXlsCellStyleExtension xfExtension = Assert.Single(legacy.CellStyleExtensions, extension => extension.RecordType == 0x087d);
             Assert.Equal("XfExt", xfExtension.RecordName);
@@ -929,6 +929,7 @@ namespace OfficeIMO.Tests {
             Assert.True(legacy.CellFormats[5].ShrinkToFit);
             Assert.Equal(2, legacy.CellFormats[5].ReadingOrder);
             Assert.NotNull(legacy.CellFormats[6].Border);
+            Assert.True(legacy.CellFormats[6].ApplyBorder);
             Assert.Equal(1, legacy.CellFormats[6].Border!.LeftStyle);
             Assert.Equal(0x000a, legacy.CellFormats[6].Border!.LeftColorIndex);
             Assert.Equal(8, legacy.CellFormats[6].Border!.RightStyle);
@@ -937,17 +938,26 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4, legacy.CellFormats[6].Border!.DiagonalStyle);
             Assert.True(legacy.CellFormats[6].Border!.DiagonalUp);
             Assert.True(legacy.CellFormats[6].Border!.DiagonalDown);
+            Assert.True(legacy.CellFormats[12].ApplyBorder);
+            Assert.Null(legacy.CellFormats[12].Border);
             Assert.True(legacy.CellFormats[8].ApplyProtection);
             Assert.False(legacy.CellFormats[8].Locked);
             Assert.True(legacy.CellFormats[8].FormulaHidden);
             Assert.True(legacy.CellFormats[9].QuotePrefix);
-            LegacyXlsColumnLayout defaultStyledColumn = Assert.Single(legacy.Worksheets[0].Columns);
+            Assert.Equal(2, legacy.Worksheets[0].Columns.Count);
+            LegacyXlsColumnLayout defaultStyledColumn = Assert.Single(legacy.Worksheets[0].Columns, column => column.StartColumn == 11);
             Assert.Equal(11, defaultStyledColumn.StartColumn);
             Assert.Equal(11, defaultStyledColumn.EndColumn);
             Assert.Equal(4, defaultStyledColumn.StyleIndex);
-            LegacyXlsRowLayout defaultStyledRow = Assert.Single(legacy.Worksheets[0].Rows);
+            LegacyXlsColumnLayout fontStyledColumn = Assert.Single(legacy.Worksheets[0].Columns, column => column.StartColumn == 12);
+            Assert.Equal(12, fontStyledColumn.EndColumn);
+            Assert.Equal(10, fontStyledColumn.StyleIndex);
+            Assert.Equal(2, legacy.Worksheets[0].Rows.Count);
+            LegacyXlsRowLayout defaultStyledRow = Assert.Single(legacy.Worksheets[0].Rows, row => row.Row == 3);
             Assert.Equal(3, defaultStyledRow.Row);
             Assert.Equal((ushort?)5, defaultStyledRow.StyleIndex);
+            LegacyXlsRowLayout fontStyledRow = Assert.Single(legacy.Worksheets[0].Rows, row => row.Row == 4);
+            Assert.Equal((ushort?)10, fontStyledRow.StyleIndex);
             using LegacyXlsLoadResult reportResult = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
             });
@@ -964,7 +974,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByStyleCategory["Custom"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByStyleFlags["BuiltIn:False;Hidden:False;Custom:False"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByStyleName["OfficeIMO Accent"]);
-            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByXfRecordCount["XFs:11"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByXfRecordCount["XFs:13"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByChecksum["Checksum:0x12345678"]);
             Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x000E"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x000F"]);
@@ -1050,6 +1060,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Courier New", subscriptFont.FontName!.Val!.Value);
             Assert.Equal(VerticalAlignmentRunValues.Subscript, subscriptFont.VerticalTextAlignment!.Val!.Value);
 
+            Cell clearedBorderCell = cells["L1"];
+            Assert.NotNull(clearedBorderCell.StyleIndex);
+            CellFormat clearedBorderFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)clearedBorderCell.StyleIndex!.Value);
+            Border clearedBorder = workbookPart.WorkbookStylesPart.Stylesheet.Borders!.Elements<Border>().ElementAt((int)(clearedBorderFormat.BorderId?.Value ?? 0U));
+            Assert.True(clearedBorder.LeftBorder == null || clearedBorder.LeftBorder.Style == null);
+
             Cell fillCell = cells["D1"];
             Assert.NotNull(fillCell.StyleIndex);
             CellFormat fillFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)fillCell.StyleIndex!.Value);
@@ -1114,18 +1130,27 @@ namespace OfficeIMO.Tests {
             CellFormat quotePrefixFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)quotePrefixCell.StyleIndex!.Value);
             Assert.True(quotePrefixFormat.QuotePrefix!.Value);
 
-            ExcelColumnSnapshot columnSnapshot = Assert.Single(document.Sheets[0].GetColumnDefinitions());
+            List<ExcelColumnSnapshot> columnSnapshots = document.Sheets[0].GetColumnDefinitions().ToList();
+            Assert.Equal(2, columnSnapshots.Count);
+            ExcelColumnSnapshot columnSnapshot = Assert.Single(columnSnapshots, column => column.StartIndex == 11);
             Assert.Equal(11, columnSnapshot.StartIndex);
             Assert.Equal(11, columnSnapshot.EndIndex);
             Assert.NotNull(columnSnapshot.StyleIndex);
-            Column defaultStyledOpenXmlColumn = worksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().Single();
+            Column defaultStyledOpenXmlColumn = worksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().Single(column => column.Min!.Value == 11U);
             Assert.Equal(columnSnapshot.StyleIndex!.Value, defaultStyledOpenXmlColumn.Style!.Value);
             CellFormat columnFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)columnSnapshot.StyleIndex.Value);
             Fill columnFill = workbookPart.WorkbookStylesPart.Stylesheet.Fills!.Elements<Fill>().ElementAt((int)columnFormat.FillId!.Value);
             Assert.Equal(PatternValues.Solid, columnFill.PatternFill!.PatternType!.Value);
             Assert.Equal("FFABCDEF", columnFill.PatternFill.ForegroundColor!.Rgb!.Value);
 
-            ExcelRowSnapshot rowSnapshot = Assert.Single(document.Sheets[0].GetRowDefinitions());
+            ExcelColumnSnapshot fontColumnSnapshot = Assert.Single(columnSnapshots, column => column.StartIndex == 12);
+            CellFormat fontColumnFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)fontColumnSnapshot.StyleIndex!.Value);
+            DocumentFormat.OpenXml.Spreadsheet.Font fontColumnFont = workbookPart.WorkbookStylesPart.Stylesheet.Fonts!.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAt((int)fontColumnFormat.FontId!.Value);
+            Assert.Equal(VerticalAlignmentRunValues.Subscript, fontColumnFont.VerticalTextAlignment!.Val!.Value);
+
+            List<ExcelRowSnapshot> rowSnapshots = document.Sheets[0].GetRowDefinitions().ToList();
+            Assert.Equal(2, rowSnapshots.Count);
+            ExcelRowSnapshot rowSnapshot = Assert.Single(rowSnapshots, row => row.Index == 3);
             Assert.Equal(3, rowSnapshot.Index);
             Assert.True(rowSnapshot.CustomFormat);
             Assert.NotNull(rowSnapshot.StyleIndex);
@@ -1136,6 +1161,10 @@ namespace OfficeIMO.Tests {
             Assert.True(rowFormat.ApplyAlignment!.Value);
             Assert.Equal(HorizontalAlignmentValues.Center, rowFormat.Alignment!.Horizontal!.Value);
             Assert.Equal(VerticalAlignmentValues.Center, rowFormat.Alignment.Vertical!.Value);
+            ExcelRowSnapshot fontRowSnapshot = Assert.Single(rowSnapshots, row => row.Index == 4);
+            CellFormat fontRowFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)fontRowSnapshot.StyleIndex!.Value);
+            DocumentFormat.OpenXml.Spreadsheet.Font fontRowFont = workbookPart.WorkbookStylesPart.Stylesheet.Fonts!.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAt((int)fontRowFormat.FontId!.Value);
+            Assert.Equal(VerticalAlignmentRunValues.Subscript, fontRowFont.VerticalTextAlignment!.Val!.Value);
         }
 
         [Fact]
@@ -1473,6 +1502,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0208, BuildRowPayload(1, 18d, hidden: true, customHeight: true, outlineLevel: 1, collapsed: true));
                 WriteRecord(stream, 0x023e, BuildWindow2Payload(frozen: true, showGridlines: false, showRowColumnHeadings: false, showZeroValues: false, rightToLeft: true));
                 WriteRecord(stream, 0x0041, BuildPanePayload(leftColumns: 1, topRows: 2));
+                WriteRecord(stream, 0x001d, BuildSelectionPayload(pane: 3));
                 WriteRecord(stream, 0x00e5, BuildMergeCellsPayload((0, 0, 0, 2)));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
@@ -1538,9 +1568,11 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x00e0, BuildXfPayload(0, locked: false, formulaHidden: true, applyProtection: true));
                 WriteRecord(stream, 0x00e0, BuildXfPayload(0, quotePrefix: true));
                 WriteRecord(stream, 0x00e0, BuildXfPayload(0, fontIndex: 6));
+                WriteRecord(stream, 0x00e0, BuildXfPayload(0, isStyle: true, leftBorderStyle: 1, leftBorderColorIndex: 0x000a));
+                WriteRecord(stream, 0x00e0, BuildXfPayload(0, parentStyleIndex: 11, applyBorder: true));
                 WriteRecord(stream, 0x0293, BuildStylePayload(0, builtInStyleId: 0));
                 WriteRecord(stream, 0x0293, BuildStylePayload(4, name: "OfficeIMO Accent"));
-                WriteRecord(stream, 0x087c, BuildXfCrcPayload(xfRecordCount: 11, checksum: 0x12345678U));
+                WriteRecord(stream, 0x087c, BuildXfCrcPayload(xfRecordCount: 13, checksum: 0x12345678U));
                 WriteRecord(stream, 0x087d, BuildXfExtPayload(
                     formatIndex: 4,
                     BuildXfExtProperty(0x000e, 0x0001),
@@ -1563,8 +1595,11 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 8, "Protection", styleIndex: 8));
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 9, "Prefixed", styleIndex: 9));
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 10, "Subscript", styleIndex: 10));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 11, "Clear border", styleIndex: 12));
                 WriteRecord(stream, 0x007d, BuildColInfoPayload(10, 10, 9.5d, hidden: false, styleIndex: 4));
+                WriteRecord(stream, 0x007d, BuildColInfoPayload(11, 11, 9.5d, hidden: false, styleIndex: 10));
                 WriteRecord(stream, 0x0208, BuildRowPayload(2, 18d, hidden: false, customHeight: false, styleIndex: 5));
+                WriteRecord(stream, 0x0208, BuildRowPayload(3, 18d, hidden: false, customHeight: false, styleIndex: 10));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1725,6 +1760,7 @@ namespace OfficeIMO.Tests {
                 bool? applyNumberFormat = null,
                 bool? applyFont = null,
                 bool? applyFill = null,
+                bool? applyBorder = null,
                 byte fillPattern = 0,
                 ushort fillForegroundColorIndex = 0x0040,
                 ushort fillBackgroundColorIndex = 0x0041,
@@ -1792,7 +1828,7 @@ namespace OfficeIMO.Tests {
                     attributes |= 0x4000;
                 }
 
-                if (leftBorderStyle != 0 || rightBorderStyle != 0 || topBorderStyle != 0 || bottomBorderStyle != 0 || diagonalBorderStyle != 0) {
+                if (applyBorder ?? (leftBorderStyle != 0 || rightBorderStyle != 0 || topBorderStyle != 0 || bottomBorderStyle != 0 || diagonalBorderStyle != 0)) {
                     attributes |= 0x2000;
                 }
 

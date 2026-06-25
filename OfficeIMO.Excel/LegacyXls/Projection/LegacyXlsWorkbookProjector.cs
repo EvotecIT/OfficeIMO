@@ -225,6 +225,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 0x00 => PaneValues.BottomRight,
                 0x01 => PaneValues.TopRight,
                 0x02 => PaneValues.BottomLeft,
+                0x03 => PaneValues.TopLeft,
                 _ => null
             };
         }

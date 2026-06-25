@@ -236,10 +236,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     throw new InvalidDataException("The BIFF string variable data length is invalid.");
                 }
 
-                bool ignoredUtf16 = false;
                 int remaining = byteCount;
                 while (remaining > 0) {
-                    EnsureStringVariableDataAvailable(ref ignoredUtf16);
+                    EnsureRawDataAvailable();
                     byte[] segment = _segments[_segmentIndex];
                     int take = Math.Min(remaining, segment.Length - _offset);
                     _offset += take;
@@ -264,6 +263,22 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                 byte continueOptions = _segments[_segmentIndex][_offset++];
                 isUtf16 = (continueOptions & 0x01) != 0;
+            }
+
+            private void EnsureRawDataAvailable() {
+                if (_segmentIndex >= _segments.Count) {
+                    throw new InvalidDataException("Unexpected end of BIFF string variable data.");
+                }
+
+                if (_offset < _segments[_segmentIndex].Length) {
+                    return;
+                }
+
+                _segmentIndex++;
+                _offset = 0;
+                if (_segmentIndex >= _segments.Count || _segments[_segmentIndex].Length == 0) {
+                    throw new InvalidDataException("Unexpected end of BIFF string variable data.");
+                }
             }
 
             private void AdvancePastEmptySegments() {

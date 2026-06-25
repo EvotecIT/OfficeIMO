@@ -515,7 +515,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             bool inheritNumberFormat = !format.ApplyNumberFormat;
             bool inheritFont = !format.ApplyFont;
             bool inheritAlignment = !format.ApplyAlignment && HasNonDefaultAlignment(parent);
-            bool inheritBorder = format.Border == null && parent.Border != null;
+            bool inheritBorder = !format.ApplyBorder && parent.Border != null;
             bool inheritFill = !format.ApplyFill && parent.ApplyFill && parent.FillPattern != 0;
             bool inheritProtection = !format.ApplyProtection && HasNonDefaultProtection(parent);
 
@@ -531,6 +531,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 inheritFill ? parent.FillPattern : format.FillPattern,
                 inheritFill ? parent.FillForegroundColorIndex : format.FillForegroundColorIndex,
                 inheritFill ? parent.FillBackgroundColorIndex : format.FillBackgroundColorIndex,
+                format.ApplyBorder || inheritBorder,
                 format.ApplyAlignment || inheritAlignment,
                 inheritAlignment ? parent.HorizontalAlignment : format.HorizontalAlignment,
                 inheritAlignment ? parent.VerticalAlignment : format.VerticalAlignment,

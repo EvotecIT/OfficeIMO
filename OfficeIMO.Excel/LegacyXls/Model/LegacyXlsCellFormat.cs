@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <param name="fillPattern">Legacy fill pattern code.</param>
         /// <param name="fillForegroundColorIndex">Legacy foreground fill color index.</param>
         /// <param name="fillBackgroundColorIndex">Legacy background fill color index.</param>
+        /// <param name="applyBorder">Whether the border facet is owned by this cell XF.</param>
         /// <param name="applyAlignment">Whether alignment fields should be projected.</param>
         /// <param name="horizontalAlignment">Legacy horizontal alignment code.</param>
         /// <param name="verticalAlignment">Legacy vertical alignment code.</param>
@@ -45,6 +46,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             byte fillPattern,
             ushort fillForegroundColorIndex,
             ushort fillBackgroundColorIndex,
+            bool applyBorder,
             bool applyAlignment,
             byte horizontalAlignment,
             byte verticalAlignment,
@@ -72,6 +74,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             FillPattern = fillPattern;
             FillForegroundColorIndex = fillForegroundColorIndex;
             FillBackgroundColorIndex = fillBackgroundColorIndex;
+            ApplyBorder = applyBorder;
             ApplyAlignment = applyAlignment;
             HorizontalAlignment = horizontalAlignment;
             VerticalAlignment = verticalAlignment;
@@ -144,6 +147,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets the legacy background fill color index.
         /// </summary>
         public ushort FillBackgroundColorIndex { get; }
+
+        /// <summary>
+        /// Gets whether the border facet is owned by this cell XF instead of inherited from the parent style XF.
+        /// </summary>
+        public bool ApplyBorder { get; }
 
         /// <summary>
         /// Gets whether alignment fields should be projected.

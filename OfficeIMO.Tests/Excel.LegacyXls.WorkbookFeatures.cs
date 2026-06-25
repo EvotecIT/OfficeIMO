@@ -1436,7 +1436,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyXlsDataValidationType.WholeNumber, validation.Type);
             Assert.Equal("$A$1", validation.Formula1);
             Assert.Equal("$B$1", validation.Formula2);
-            Assert.Equal("C2:C6", Assert.Single(validation.Ranges));
+            Assert.Equal(new[] { "C2:C6", "E2:E6" }, validation.Ranges);
 
             using var output = new MemoryStream();
             result.Document.Save(output);
@@ -1445,6 +1445,7 @@ namespace OfficeIMO.Tests {
             DataValidation openXmlValidation = Assert.Single(worksheetPart.Worksheet.Descendants<DataValidation>());
             Assert.Equal(DataValidationValues.Whole, openXmlValidation.Type!.Value);
             Assert.Equal(DataValidationOperatorValues.Between, openXmlValidation.Operator!.Value);
+            Assert.Equal("C2:C6 E2:E6", openXmlValidation.SequenceOfReferences!.InnerText);
             Assert.Equal("$A$1", openXmlValidation.GetFirstChild<Formula1>()!.Text);
             Assert.Equal("$B$1", openXmlValidation.GetFirstChild<Formula2>()!.Text);
             Assert.Equal("Out of range", openXmlValidation.ErrorTitle!.Value);
