@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
@@ -269,6 +270,51 @@ namespace OfficeIMO.Tests {
                 Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
                 Assert.NotNull(rendered);
                 Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(224, 242, 254)) > 100);
+            }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportResolvesThemedDrawingShapeColorsThroughSharedDrawing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.EnsureWorkbookTheme();
+                ExcelSheet sheet = document.AddWorkSheet("ThemeShape");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(2, 2, "Themed shape");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Themed shape",
+                "Theme text",
+                fillSchemeColor: "accent1",
+                fillLuminanceModulation: 60000,
+                fillLuminanceOffset: 40000,
+                strokeSchemeColor: "accent2",
+                textSchemeColor: "accent3");
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:D4");
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+                string svg = range.ToSvg(options);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.Equal("FF95B3D7", drawingObject.FillColorArgb);
+                Assert.Equal("FFC0504D", drawingObject.StrokeColorArgb);
+                Assert.Equal("FF9BBB59", drawingObject.TextColorArgb);
+                Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.Contains("#95B3D7", svg, StringComparison.Ordinal);
+                Assert.Contains("#C0504D", svg, StringComparison.Ordinal);
+                Assert.Contains("#9BBB59", svg, StringComparison.Ordinal);
+
+                Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+                Assert.NotNull(rendered);
+                Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(149, 179, 215)) > 100);
             }
         }
 
@@ -868,6 +914,11 @@ namespace OfficeIMO.Tests {
             A.TextAlignmentTypeValues? paragraphAlignment = null,
             A.TextAnchoringTypeValues? verticalAlignment = null,
             string textColorHex = "1F2937",
+            string? fillSchemeColor = null,
+            int? fillLuminanceModulation = null,
+            int? fillLuminanceOffset = null,
+            string? strokeSchemeColor = null,
+            string? textSchemeColor = null,
             string? textFontFamily = null,
             double? textFontSize = null,
             bool textBold = false,
@@ -892,7 +943,7 @@ namespace OfficeIMO.Tests {
 
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
-                CreateSupportedShapeAnchor(1, 1, toColumn, toRow, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textShrinkToFit, textResizeShapeToFit, textOrientation, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu));
+                CreateSupportedShapeAnchor(1, 1, toColumn, toRow, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, fillSchemeColor, fillLuminanceModulation, fillLuminanceOffset, strokeSchemeColor, textSchemeColor, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textShrinkToFit, textResizeShapeToFit, textOrientation, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
@@ -938,6 +989,11 @@ namespace OfficeIMO.Tests {
             A.TextAlignmentTypeValues? paragraphAlignment = null,
             A.TextAnchoringTypeValues? verticalAlignment = null,
             string textColorHex = "1F2937",
+            string? fillSchemeColor = null,
+            int? fillLuminanceModulation = null,
+            int? fillLuminanceOffset = null,
+            string? strokeSchemeColor = null,
+            string? textSchemeColor = null,
             string? textFontFamily = null,
             double? textFontSize = null,
             bool textBold = false,
@@ -1013,7 +1069,7 @@ namespace OfficeIMO.Tests {
                 runProperties.Underline = A.TextUnderlineValues.Single;
             }
 
-            runProperties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = textColorHex }));
+            runProperties.Append(CreateSolidFill(textColorHex, textSchemeColor));
             if (!string.IsNullOrWhiteSpace(textFontFamily)) {
                 runProperties.Append(new A.LatinFont { Typeface = textFontFamily });
             }
@@ -1040,9 +1096,9 @@ namespace OfficeIMO.Tests {
                     new Xdr.ShapeProperties(
                         transform,
                         new A.PresetGeometry { Preset = preset ?? A.ShapeTypeValues.RoundRectangle },
-                        new A.SolidFill(new A.RgbColorModelHex { Val = fillHex }),
+                        CreateSolidFill(fillHex, fillSchemeColor, fillLuminanceModulation, fillLuminanceOffset),
                         new A.Outline(
-                            new A.SolidFill(new A.RgbColorModelHex { Val = strokeHex })) {
+                            CreateSolidFill(strokeHex, strokeSchemeColor)) {
                             Width = 12700
                         }),
                     new Xdr.TextBody(
@@ -1051,6 +1107,40 @@ namespace OfficeIMO.Tests {
                         paragraph)),
                 new Xdr.ClientData());
         }
+
+        private static A.SolidFill CreateSolidFill(string rgbHex, string? schemeColor = null, int? luminanceModulation = null, int? luminanceOffset = null) {
+            var fill = new A.SolidFill();
+            OpenXmlCompositeElement color = string.IsNullOrWhiteSpace(schemeColor)
+                ? new A.RgbColorModelHex { Val = rgbHex }
+                : new A.SchemeColor { Val = ResolveSchemeColor(schemeColor!) };
+            if (luminanceModulation.HasValue) {
+                color.Append(new A.LuminanceModulation { Val = luminanceModulation.Value });
+            }
+
+            if (luminanceOffset.HasValue) {
+                color.Append(new A.LuminanceOffset { Val = luminanceOffset.Value });
+            }
+
+            fill.Append(color);
+            return fill;
+        }
+
+        private static A.SchemeColorValues ResolveSchemeColor(string value) =>
+            value switch {
+                "accent1" => A.SchemeColorValues.Accent1,
+                "accent2" => A.SchemeColorValues.Accent2,
+                "accent3" => A.SchemeColorValues.Accent3,
+                "accent4" => A.SchemeColorValues.Accent4,
+                "accent5" => A.SchemeColorValues.Accent5,
+                "accent6" => A.SchemeColorValues.Accent6,
+                "tx1" => A.SchemeColorValues.Text1,
+                "tx2" => A.SchemeColorValues.Text2,
+                "bg1" => A.SchemeColorValues.Background1,
+                "bg2" => A.SchemeColorValues.Background2,
+                "hlink" => A.SchemeColorValues.Hyperlink,
+                "folHlink" => A.SchemeColorValues.FollowedHyperlink,
+                _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unsupported DrawingML scheme color fixture value.")
+            };
 
         private static byte[] CreateSolidPng(int width, int height, OfficeColor color) {
             OfficeRasterImage image = new OfficeRasterImage(width, height, color);

@@ -21,13 +21,14 @@ namespace OfficeIMO.Excel.Utilities {
                 return Array.Empty<ExcelWorksheetDrawingObjectInfo>();
             }
 
+            WorkbookPart? workbookPart = worksheetPart.GetParentParts().OfType<WorkbookPart>().FirstOrDefault();
             var objects = new List<ExcelWorksheetDrawingObjectInfo>();
             for (int order = 0; order < worksheetDrawing.ChildElements.Count; order++) {
                 OpenXmlElement anchor = worksheetDrawing.ChildElements[order];
                 AnchorPosition position = GetAnchorPosition(anchor);
                 foreach (OpenXmlElement element in anchor.ChildElements) {
                     if (element is Xdr.Shape shape) {
-                        objects.Add(CreateShapeInfo(shape, position, order));
+                        objects.Add(CreateShapeInfo(shape, position, order, workbookPart));
                     } else if (IsUnsupportedDrawingElement(element)) {
                         objects.Add(CreateUnsupportedInfo(element, position, order, null));
                     }
@@ -42,7 +43,7 @@ namespace OfficeIMO.Excel.Utilities {
                 .Where(drawing => !drawing.IsRenderable)
                 .ToList();
 
-        private static ExcelWorksheetDrawingObjectInfo CreateShapeInfo(Xdr.Shape shape, AnchorPosition position, int order) {
+        private static ExcelWorksheetDrawingObjectInfo CreateShapeInfo(Xdr.Shape shape, AnchorPosition position, int order, WorkbookPart? workbookPart) {
             string name = GetDrawingName(shape, "shape");
             A.Transform2D? transform = shape.ShapeProperties?.GetFirstChild<A.Transform2D>();
             TryGetRotationDegrees(transform, out double rotationDegrees);
@@ -51,11 +52,11 @@ namespace OfficeIMO.Excel.Utilities {
                 return CreateUnsupportedInfo(shape, position, order, unsupportedReason);
             }
 
-            if (!TryGetFillColor(shape.ShapeProperties, out string? fillColorArgb, out unsupportedReason)) {
+            if (!TryGetFillColor(shape.ShapeProperties, workbookPart, out string? fillColorArgb, out unsupportedReason)) {
                 return CreateUnsupportedInfo(shape, position, order, unsupportedReason);
             }
 
-            if (!TryGetStroke(shape.ShapeProperties, out string? strokeColorArgb, out double strokeWidth, out unsupportedReason)) {
+            if (!TryGetStroke(shape.ShapeProperties, workbookPart, out string? strokeColorArgb, out double strokeWidth, out unsupportedReason)) {
                 return CreateUnsupportedInfo(shape, position, order, unsupportedReason);
             }
 
@@ -71,7 +72,7 @@ namespace OfficeIMO.Excel.Utilities {
             bool textResizeShapeToFit = ResolveTextResizeShapeToFit(bodyProperties);
             ExcelDrawingTextOrientation textOrientation = ResolveTextOrientation(bodyProperties);
             DrawingTextInsets textInsets = ResolveTextInsets(bodyProperties);
-            DrawingTextStyle textStyle = ResolveTextStyle(shape.TextBody);
+            DrawingTextStyle textStyle = ResolveTextStyle(shape.TextBody, workbookPart);
 
             return new ExcelWorksheetDrawingObjectInfo(
                 name,
@@ -245,7 +246,7 @@ namespace OfficeIMO.Excel.Utilities {
                 ParseEmuPixels(bodyProperties.BottomInset?.Value ?? DefaultTopBottomTextInsetEmu));
         }
 
-        private static DrawingTextStyle ResolveTextStyle(Xdr.TextBody? textBody) {
+        private static DrawingTextStyle ResolveTextStyle(Xdr.TextBody? textBody, WorkbookPart? workbookPart) {
             A.RunProperties? runProperties = textBody?
                 .Descendants<A.RunProperties>()
                 .FirstOrDefault();
@@ -253,7 +254,7 @@ namespace OfficeIMO.Excel.Utilities {
                 return DrawingTextStyle.Default;
             }
 
-            string? colorArgb = NormalizeRgb(runProperties.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+            string? colorArgb = ExcelThemeColorResolver.Resolve(runProperties.GetFirstChild<A.SolidFill>(), workbookPart);
             string? fontFamily = NormalizeFontFamily(runProperties.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
             double? fontSize = runProperties.FontSize?.Value > 0
                 ? runProperties.FontSize.Value / 100D
@@ -316,7 +317,7 @@ namespace OfficeIMO.Excel.Utilities {
             return true;
         }
 
-        private static bool TryGetFillColor(OpenXmlCompositeElement? properties, out string? fillColorArgb, out string? unsupportedReason) {
+        private static bool TryGetFillColor(OpenXmlCompositeElement? properties, WorkbookPart? workbookPart, out string? fillColorArgb, out string? unsupportedReason) {
             fillColorArgb = null;
             unsupportedReason = null;
             if (properties == null || properties.GetFirstChild<A.NoFill>() != null) {
@@ -329,16 +330,16 @@ namespace OfficeIMO.Excel.Utilities {
                 return false;
             }
 
-            fillColorArgb = NormalizeRgb(solidFill.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+            fillColorArgb = ExcelThemeColorResolver.Resolve(solidFill, workbookPart);
             if (fillColorArgb != null) {
                 return true;
             }
 
-            unsupportedReason = "shape fill uses a theme, system, or transformed color that is not rendered yet";
+            unsupportedReason = "shape fill color could not be resolved by the dependency-free exporter";
             return false;
         }
 
-        private static bool TryGetStroke(OpenXmlCompositeElement? properties, out string? strokeColorArgb, out double strokeWidth, out string? unsupportedReason) {
+        private static bool TryGetStroke(OpenXmlCompositeElement? properties, WorkbookPart? workbookPart, out string? strokeColorArgb, out double strokeWidth, out string? unsupportedReason) {
             strokeColorArgb = null;
             strokeWidth = 1D;
             unsupportedReason = null;
@@ -354,9 +355,9 @@ namespace OfficeIMO.Excel.Utilities {
                 return false;
             }
 
-            strokeColorArgb = NormalizeRgb(solidFill.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+            strokeColorArgb = ExcelThemeColorResolver.Resolve(solidFill, workbookPart);
             if (strokeColorArgb == null) {
-                unsupportedReason = "shape outline uses a theme, system, or transformed color that is not rendered yet";
+                unsupportedReason = "shape outline color could not be resolved by the dependency-free exporter";
                 return false;
             }
 
@@ -415,19 +416,6 @@ namespace OfficeIMO.Excel.Utilities {
                 default:
                     return element.LocalName;
             }
-        }
-
-        private static string? NormalizeRgb(string? value) {
-            if (string.IsNullOrWhiteSpace(value)) {
-                return null;
-            }
-
-            string normalized = value!.Trim().TrimStart('#');
-            if (normalized.Length == 6) {
-                return "FF" + normalized.ToUpperInvariant();
-            }
-
-            return normalized.Length == 8 ? normalized.ToUpperInvariant() : null;
         }
 
         private static string? NormalizeFontFamily(string? value) =>

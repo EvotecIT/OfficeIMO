@@ -54,6 +54,32 @@ namespace OfficeIMO.Excel.Utilities {
             return alpha + red.ToString("X2") + green.ToString("X2") + blue.ToString("X2");
         }
 
+        internal static string? Resolve(A.SolidFill? solidFill, WorkbookPart? workbookPart) {
+            if (solidFill == null) {
+                return null;
+            }
+
+            A.RgbColorModelHex? rgbColor = solidFill.GetFirstChild<A.RgbColorModelHex>();
+            if (rgbColor != null) {
+                string? directArgb = NormalizeArgb(rgbColor.Val?.Value);
+                return directArgb == null ? null : ApplyDrawingColorTransforms(directArgb, rgbColor);
+            }
+
+            A.SchemeColor? schemeColor = solidFill.GetFirstChild<A.SchemeColor>();
+            if (schemeColor != null) {
+                string? rgb = ResolveThemeRgb(workbookPart, ResolveDrawingSchemeThemeIndex(schemeColor.Val?.InnerText));
+                return rgb == null ? null : ApplyDrawingColorTransforms("FF" + rgb, schemeColor);
+            }
+
+            A.SystemColor? systemColor = solidFill.GetFirstChild<A.SystemColor>();
+            if (systemColor != null) {
+                string? rgb = NormalizeRgb(systemColor.LastColor?.Value);
+                return rgb == null ? null : ApplyDrawingColorTransforms("FF" + rgb, systemColor);
+            }
+
+            return null;
+        }
+
         private static string? ResolveThemeRgb(WorkbookPart? workbookPart, uint themeIndex) {
             A.ColorScheme? scheme = workbookPart?
                 .GetPartsOfType<ThemePart>()
@@ -83,6 +109,87 @@ namespace OfficeIMO.Excel.Utilities {
 
             return NormalizeRgb(color?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value)
                 ?? NormalizeRgb(color?.GetFirstChild<A.SystemColor>()?.LastColor?.Value);
+        }
+
+        private static uint ResolveDrawingSchemeThemeIndex(string? value) =>
+            value switch {
+                "bg1" or "lt1" => 0U,
+                "tx1" or "dk1" => 1U,
+                "bg2" or "lt2" => 2U,
+                "tx2" or "dk2" => 3U,
+                "accent1" => 4U,
+                "accent2" => 5U,
+                "accent3" => 6U,
+                "accent4" => 7U,
+                "accent5" => 8U,
+                "accent6" => 9U,
+                "hlink" => 10U,
+                "folHlink" => 11U,
+                _ => uint.MaxValue
+            };
+
+        private static string? ApplyDrawingColorTransforms(string argb, OpenXmlElement colorElement) {
+            string? normalized = NormalizeArgb(argb);
+            if (normalized == null) {
+                return null;
+            }
+
+            int alpha = Convert.ToInt32(normalized.Substring(0, 2), 16);
+            int red = Convert.ToInt32(normalized.Substring(2, 2), 16);
+            int green = Convert.ToInt32(normalized.Substring(4, 2), 16);
+            int blue = Convert.ToInt32(normalized.Substring(6, 2), 16);
+            double luminanceModulation = 1D;
+            double luminanceOffset = 0D;
+
+            foreach (OpenXmlElement transform in colorElement.ChildElements) {
+                if (!TryReadPercentageTransform(transform, out double value)) {
+                    continue;
+                }
+
+                switch (transform.LocalName) {
+                    case "alpha":
+                        alpha = ClampChannel(255D * value);
+                        break;
+                    case "alphaMod":
+                        alpha = ClampChannel(alpha * value);
+                        break;
+                    case "lumMod":
+                        luminanceModulation = value;
+                        break;
+                    case "lumOff":
+                        luminanceOffset = value;
+                        break;
+                    case "tint":
+                        red = ApplyTint(red, value);
+                        green = ApplyTint(green, value);
+                        blue = ApplyTint(blue, value);
+                        break;
+                    case "shade":
+                        red = ClampChannel(red * value);
+                        green = ClampChannel(green * value);
+                        blue = ClampChannel(blue * value);
+                        break;
+                }
+            }
+
+            if (Math.Abs(luminanceModulation - 1D) > double.Epsilon || Math.Abs(luminanceOffset) > double.Epsilon) {
+                red = ClampChannel((red * luminanceModulation) + (255D * luminanceOffset));
+                green = ClampChannel((green * luminanceModulation) + (255D * luminanceOffset));
+                blue = ClampChannel((blue * luminanceModulation) + (255D * luminanceOffset));
+            }
+
+            return alpha.ToString("X2") +
+                red.ToString("X2") +
+                green.ToString("X2") +
+                blue.ToString("X2");
+        }
+
+        private static bool TryReadPercentageTransform(OpenXmlElement transform, out double value) {
+            value = 0D;
+            string? raw = transform.GetAttribute("val", string.Empty).Value;
+            return !string.IsNullOrWhiteSpace(raw) &&
+                int.TryParse(raw, out int scaled) &&
+                (value = scaled / 100000D) >= 0D;
         }
 
         private static string? NormalizeRgb(string? value) {
@@ -151,7 +258,10 @@ namespace OfficeIMO.Excel.Utilities {
             double value = tint < 0D
                 ? channel * (1D + tint)
                 : channel + (255D - channel) * tint;
-            return Math.Max(0, Math.Min(255, (int)Math.Round(value, MidpointRounding.AwayFromZero)));
+            return ClampChannel(value);
         }
+
+        private static int ClampChannel(double value) =>
+            Math.Max(0, Math.Min(255, (int)Math.Round(value, MidpointRounding.AwayFromZero)));
     }
 }
