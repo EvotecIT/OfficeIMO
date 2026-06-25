@@ -639,6 +639,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_LayoutsRichTextAtTextElementBoundaries() {
+            double Measure(string? value, double size) => (value?.Length ?? 0) * size;
+            string eAcute = "e\u0301";
+            string smile = char.ConvertFromUtf32(0x1F600);
+
+            OfficeRichTextBlockLayout wrapped = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                new[] { new OfficeRichTextRun("A" + smile + "B", 1D, OfficeColor.Red, bold: true) },
+                2D,
+                10D,
+                lineHeightFactor: 1D,
+                Measure,
+                wrap: true,
+                shrinkToFit: false,
+                minimumFontSize: 1D,
+                overflowBehavior: OfficeTextOverflowBehavior.Clip);
+            OfficeRichTextBlockLayout ellipsis = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                new[] { new OfficeRichTextRun("A" + eAcute + smile + "BC", 1D, OfficeColor.Blue, italic: true) },
+                6D,
+                10D,
+                lineHeightFactor: 1D,
+                Measure,
+                wrap: false);
+
+            Assert.Equal(new[] { "A", smile, "B" }, wrapped.Lines.Select(line => string.Concat(line.Segments.Select(segment => segment.Text))).ToArray());
+            Assert.True(wrapped.Lines.All(line => line.Segments.All(segment => segment.Bold)));
+            Assert.True(ellipsis.Clipped);
+            Assert.Equal("A" + eAcute + "...", string.Concat(ellipsis.Lines[0].Segments.Select(segment => segment.Text)));
+            Assert.Contains(eAcute, ellipsis.Lines[0].Segments[0].Text, StringComparison.Ordinal);
+            Assert.DoesNotContain(smile, ellipsis.Lines[0].Segments[0].Text, StringComparison.Ordinal);
+            Assert.True(ellipsis.Lines[0].Segments.Last().Italic);
+        }
+
+        [Fact]
         public void OfficeTextLayoutEngine_LayoutsRichTextRunsWithFontFamilyAwareMeasurement() {
             double Measure(string? value, double size, string? family) {
                 double factor = string.Equals(family, "Wide", StringComparison.Ordinal) ? 10D : 1D;
