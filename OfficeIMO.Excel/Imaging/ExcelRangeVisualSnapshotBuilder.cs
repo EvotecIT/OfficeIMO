@@ -222,6 +222,7 @@ namespace OfficeIMO.Excel {
                     run.Bold,
                     run.Italic,
                     run.Underline,
+                    run.Strikethrough,
                     NormalizeRunColor(run.FontColor),
                     string.IsNullOrWhiteSpace(run.FontName) ? null : run.FontName,
                     run.FontSize));

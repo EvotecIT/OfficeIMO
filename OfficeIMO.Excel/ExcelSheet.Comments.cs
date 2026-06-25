@@ -374,6 +374,7 @@ namespace OfficeIMO.Excel {
                 if (richRun.Bold) properties.Append(new Bold());
                 if (richRun.Italic) properties.Append(new Italic());
                 if (richRun.Underline) properties.Append(new Underline());
+                if (richRun.Strikethrough) properties.Append(new Strike());
                 if (!string.IsNullOrWhiteSpace(richRun.FontColor)) properties.Append(new Color { Rgb = NormalizeHexColor(richRun.FontColor!) });
                 if (!string.IsNullOrWhiteSpace(richRun.FontName)) properties.Append(new RunFont { Val = richRun.FontName });
                 if (richRun.FontSize.HasValue) properties.Append(new FontSize { Val = richRun.FontSize.Value });
@@ -397,6 +398,7 @@ namespace OfficeIMO.Excel {
                     Bold = run.Bold,
                     Italic = run.Italic,
                     Underline = run.Underline,
+                    Strikethrough = run.Strikethrough,
                     FontColor = run.FontColor,
                     FontName = run.FontName,
                     FontSize = run.FontSize
@@ -453,6 +455,7 @@ namespace OfficeIMO.Excel {
                     Bold = properties?.GetFirstChild<Bold>() != null,
                     Italic = properties?.GetFirstChild<Italic>() != null,
                     Underline = properties?.GetFirstChild<Underline>() != null,
+                    Strikethrough = properties?.GetFirstChild<Strike>() != null,
                     FontColor = properties?.GetFirstChild<Color>()?.Rgb?.Value,
                     FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
                     FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value

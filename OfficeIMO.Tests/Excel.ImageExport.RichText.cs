@@ -15,25 +15,30 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, 28);
             sheet.CellAt(1, 1).SetRichText(
                 new ExcelRichTextRun("Strong") { Bold = true, FontColor = "FF0000" },
-                new ExcelRichTextRun(" note") { Italic = true, Underline = true, FontColor = "0563C1", FontSize = 13D });
+                new ExcelRichTextRun(" note") { Italic = true, Underline = true, FontColor = "0563C1", FontSize = 13D },
+                new ExcelRichTextRun(" gone") { Strikethrough = true, FontColor = "6B7280", FontSize = 12D });
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
             string svg = Encoding.UTF8.GetString(svgResult.Bytes);
 
-            Assert.Equal(2, snapshot.Cells[0].RichTextRuns.Count);
+            Assert.Equal(3, snapshot.Cells[0].RichTextRuns.Count);
             Assert.Equal("Strong", snapshot.Cells[0].RichTextRuns[0].Text);
             Assert.Equal(" note", snapshot.Cells[0].RichTextRuns[1].Text);
+            Assert.True(snapshot.Cells[0].RichTextRuns[2].Strikethrough);
             Assert.DoesNotContain(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
             Assert.Contains("#FF0000", svg, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("#0563C1", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#6B7280", svg, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("text-anchor=\"start\"", svg, StringComparison.Ordinal);
             Assert.Contains("xml:space=\"preserve\"", svg, StringComparison.Ordinal);
             Assert.Contains("> note</text>", svg, StringComparison.Ordinal);
+            Assert.Contains("> gone</text>", svg, StringComparison.Ordinal);
             Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
             Assert.Contains("font-style=\"italic\"", svg, StringComparison.Ordinal);
             Assert.Contains("text-decoration=\"underline\"", svg, StringComparison.Ordinal);
+            Assert.Contains("text-decoration=\"line-through\"", svg, StringComparison.Ordinal);
         }
 
         [Fact]

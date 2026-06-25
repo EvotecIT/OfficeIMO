@@ -241,11 +241,12 @@ namespace OfficeIMO.Excel {
     /// Visual rich text run metadata in an Excel cell snapshot.
     /// </summary>
     public sealed class ExcelVisualTextRun {
-        internal ExcelVisualTextRun(string text, bool bold, bool italic, bool underline, string? fontColorArgb, string? fontName, double? fontSize) {
+        internal ExcelVisualTextRun(string text, bool bold, bool italic, bool underline, bool strikethrough, string? fontColorArgb, string? fontName, double? fontSize) {
             Text = text ?? string.Empty;
             Bold = bold;
             Italic = italic;
             Underline = underline;
+            Strikethrough = strikethrough;
             FontColorArgb = fontColorArgb;
             FontName = fontName;
             FontSize = fontSize;
@@ -262,6 +263,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Whether the run is underlined.</summary>
         public bool Underline { get; }
+
+        /// <summary>Whether the run is struck through.</summary>
+        public bool Strikethrough { get; }
 
         /// <summary>Run font color in ARGB hexadecimal form, when specified.</summary>
         public string? FontColorArgb { get; }

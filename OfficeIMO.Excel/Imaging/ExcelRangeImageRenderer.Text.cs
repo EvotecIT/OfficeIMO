@@ -451,7 +451,7 @@ namespace OfficeIMO.Excel {
                 bool bold = cell.Style.Bold || run.Bold;
                 bool italic = cell.Style.Italic || run.Italic;
                 bool underline = fallbackUnderline || run.Underline;
-                runs.Add(new OfficeRichTextRun(run.Text, fontSize, color, bold, italic, underline, ResolveRunFontFamily(run, cell.Style)));
+                runs.Add(new OfficeRichTextRun(run.Text, fontSize, color, bold, italic, underline, ResolveRunFontFamily(run, cell.Style), strikethrough: run.Strikethrough));
             }
 
             if (runs.Count == 0) {

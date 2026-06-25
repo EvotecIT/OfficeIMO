@@ -602,6 +602,8 @@ namespace OfficeIMO.Excel {
         public bool Italic { get; set; }
         /// <summary>Gets or sets whether the run is underlined.</summary>
         public bool Underline { get; set; }
+        /// <summary>Gets or sets whether the run is struck through.</summary>
+        public bool Strikethrough { get; set; }
         /// <summary>Gets or sets the run font color as a hex value.</summary>
         public string? FontColor { get; set; }
         /// <summary>Gets or sets the run font name.</summary>

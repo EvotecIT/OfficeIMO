@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorkSheet("Comments");
                 sheet.SetCommentRichText("A1", new[] {
                     new ExcelRichTextRun("Important ") { Bold = true, FontColor = "#FF0000" },
-                    new ExcelRichTextRun("note") { Italic = true, Underline = true, FontName = "Arial", FontSize = 14D }
+                    new ExcelRichTextRun("note") { Italic = true, Underline = true, Strikethrough = true, FontName = "Arial", FontSize = 14D }
                 }, author: "Alice", initials: "AA");
 
                 var comment = Assert.Single(sheet.GetComments());
@@ -123,12 +123,13 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, comment.RichTextRuns.Count);
                 Assert.True(comment.RichTextRuns[0].Bold);
                 Assert.Equal("FFFF0000", comment.RichTextRuns[0].FontColor);
+                Assert.True(comment.RichTextRuns[1].Strikethrough);
 
                 int updated = sheet.UpdateCommentsRichText(
                     new ExcelCommentFilter { Author = "Alice (AA)", TextContains = "note" },
                     new[] {
                         new ExcelRichTextRun("Reviewed") { Bold = true },
-                        new ExcelRichTextRun(" item") { FontColor = "0563C1" }
+                        new ExcelRichTextRun(" item") { Strikethrough = true, FontColor = "0563C1" }
                     },
                     author: "Bob",
                     initials: "BB");
@@ -145,6 +146,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Reviewed", runs[0].Text!.Text);
                 Assert.NotNull(runs[0].RunProperties!.GetFirstChild<Bold>());
                 Assert.Equal(" item", runs[1].Text!.Text);
+                Assert.NotNull(runs[1].RunProperties!.GetFirstChild<Strike>());
                 Assert.Equal("FF0563C1", runs[1].RunProperties!.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Color>()!.Rgb!.Value);
             }
 
@@ -154,6 +156,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Reviewed item", comment.Text);
                 Assert.Equal(2, comment.RichTextRuns.Count);
                 Assert.True(comment.RichTextRuns[0].Bold);
+                Assert.True(comment.RichTextRuns[1].Strikethrough);
                 Assert.Equal("FF0563C1", comment.RichTextRuns[1].FontColor);
                 Assert.Empty(document.ValidateOpenXml());
             }
