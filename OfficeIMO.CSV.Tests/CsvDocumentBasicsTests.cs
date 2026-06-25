@@ -226,6 +226,54 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Skip_Initial_Records_Applies_Before_W3C_Header_Recognition()
+    {
+        var parsed = CsvDocument.Parse(
+            "#Fields: Old Value\nName,Value\nAlpha,1\n",
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
+        Assert.Equal("Alpha", row.AsString("Name"));
+        Assert.Equal("1", row.AsString("Value"));
+    }
+
+    [Fact]
+    public void Delimiter_Detection_Keeps_Comment_Looking_Data_When_No_Header_Is_Discovered()
+    {
+        var parsed = CsvDocument.Parse(
+            "#a,b,c\n1;2;3\n4;5;6\n",
+            new CsvLoadOptions {
+                DetectDelimiter = true,
+                HasHeaderRow = false
+            });
+
+        var rows = parsed.AsEnumerable().ToArray();
+        Assert.Equal(',', parsed.Delimiter);
+        Assert.Equal(new[] { "Column1", "Column2", "Column3" }, parsed.Header);
+        Assert.Equal("#a", rows[0].AsString("Column1"));
+        Assert.Equal("b", rows[0].AsString("Column2"));
+        Assert.Equal("1;2;3", rows[1].AsString("Column1"));
+    }
+
+    [Fact]
+    public void Delimiter_Detection_Keeps_Comment_Looking_Data_With_Explicit_Header()
+    {
+        var parsed = CsvDocument.Parse(
+            "#Alpha,1\nBeta;2\n",
+            new CsvLoadOptions {
+                DetectDelimiter = true,
+                Header = new[] { "Name", "Value" }
+            });
+
+        var rows = parsed.AsEnumerable().ToArray();
+        Assert.Equal(',', parsed.Delimiter);
+        Assert.Equal("#Alpha", rows[0].AsString("Name"));
+        Assert.Equal("1", rows[0].AsString("Value"));
+        Assert.Equal("Beta;2", rows[1].AsString("Name"));
+    }
+
+    [Fact]
     public void Can_Skip_Initial_Records_With_Explicit_Header()
     {
         var parsed = CsvDocument.Parse(
@@ -504,6 +552,7 @@ public class CsvDocumentBasicsTests
         Assert.Equal("one\ntwo", streamedValue);
     }
 
+#if NET6_0_OR_GREATER
     [Fact]
     public void Default_Writer_Quotes_Custom_Span_Formatted_Values_When_Needed()
     {
@@ -541,4 +590,5 @@ public class CsvDocumentBasicsTests
 
         public override string ToString() => _value;
     }
+#endif
 }

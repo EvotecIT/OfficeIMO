@@ -415,14 +415,9 @@ public sealed partial class CsvDocument
         {
             consumedRecordCount++;
             var record = enumerator.Current;
+            var isW3CFieldsHeader = TryGetW3CFieldsHeader(record.Values, options, out var w3cHeader);
 
-            if (TryGetW3CFieldsHeader(record.Values, options, out var w3cHeader))
-            {
-                header = w3cHeader;
-                return true;
-            }
-
-            if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options))
+            if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options) && !isW3CFieldsHeader)
             {
                 continue;
             }
@@ -431,6 +426,12 @@ public sealed partial class CsvDocument
             {
                 initialRecordsToSkip--;
                 continue;
+            }
+
+            if (isW3CFieldsHeader)
+            {
+                header = w3cHeader;
+                return true;
             }
 
             header = NormalizeParsedHeader(record.Values, options);
@@ -545,13 +546,8 @@ public sealed partial class CsvDocument
     {
         CsvParser.ReadRecordsWithMetadata(reader, options, record =>
         {
-            if (TryGetW3CFieldsHeader(record.Values, options, out _))
-            {
-                recordAction(record);
-                return;
-            }
-
-            if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options))
+            var isW3CFieldsHeader = TryGetW3CFieldsHeader(record.Values, options, out _);
+            if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options) && !isW3CFieldsHeader)
             {
                 return;
             }
@@ -590,13 +586,8 @@ public sealed partial class CsvDocument
     {
         CsvParser.ReadRecordsReusableWithMetadata(reader, options, record =>
         {
-            if (TryGetW3CFieldsHeader(record.Values, options, out _))
-            {
-                recordAction(record);
-                return;
-            }
-
-            if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options))
+            var isW3CFieldsHeader = TryGetW3CFieldsHeader(record.Values, options, out _);
+            if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options) && !isW3CFieldsHeader)
             {
                 return;
             }

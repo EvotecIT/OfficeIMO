@@ -67,10 +67,7 @@ public sealed partial class CsvDocument
                 continue;
             }
 
-            if ((options.SkipCommentRowsBeforeHeader || options.SkipCommentRows) &&
-                line.Length > 0 &&
-                line[0] == options.CommentCharacter &&
-                !IsW3CFieldsLine(line, options))
+            if (ShouldSkipCommentDuringDelimiterDetection(line, options))
             {
                 continue;
             }
@@ -97,6 +94,12 @@ public sealed partial class CsvDocument
             count++;
         }
     }
+
+    private static bool ShouldSkipCommentDuringDelimiterDetection(string line, CsvLoadOptions options) =>
+        (options.SkipCommentRows || (options.HasHeaderRow && options.Header is null && options.SkipCommentRowsBeforeHeader)) &&
+        line.Length > 0 &&
+        line[0] == options.CommentCharacter &&
+        !IsW3CFieldsLine(line, options);
 
     private static bool IsW3CFieldsLine(string line, CsvLoadOptions options) =>
         options.RecognizeW3CFieldsHeader && line.StartsWith("#Fields:", StringComparison.OrdinalIgnoreCase);
