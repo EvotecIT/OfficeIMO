@@ -218,6 +218,14 @@ Warnings: 0
 | --- | --- |
 | StopIfTrue | 8 |
 
+## Conditional Formatting Extension Dxf Projection States
+
+| Key | Count |
+| --- | --- |
+| NoDxfRequested | 1 |
+| UnprojectedMultipleDxfCandidates:8 | 4 |
+| UnprojectedUnmatchedRule | 3 |
+
 ## Differential Formats By Record Type
 
 | Key | Count |

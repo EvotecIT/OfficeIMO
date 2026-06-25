@@ -136,6 +136,8 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(record => record.Priority.HasValue)
                 .Select(record => $"Priority:{record.Priority!.Value}"));
             ConditionalFormattingExtensionStopIfTrueStates = CountByCode(conditionalFormattingExtensions.Select(GetConditionalFormattingExtensionStopIfTrueStateKey));
+            ConditionalFormattingExtensionDxfProjectionStates = CountByCode(conditionalFormattingExtensions
+                .Select(record => GetConditionalFormattingExtensionDxfProjectionStateKey(record, workbook.DifferentialFormats.Count)));
             AutoFilterCriteriaBySheet = CountByCode(workbook.Worksheets
                 .SelectMany(sheet => sheet.AutoFilterCriteria.Select(_ => sheet.Name)));
             AutoFilterCriteriaByOperator = CountByCode(workbook.Worksheets
@@ -1945,6 +1947,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets preserve-only conditional-formatting extension records grouped by decoded stop-if-true state.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionStopIfTrueStates { get; }
+
+        /// <summary>Gets preserve-only conditional-formatting extension records grouped by Dxf projection state.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionDxfProjectionStates { get; }
 
         /// <summary>Gets imported AutoFilter criteria grouped by worksheet name.</summary>
         public IReadOnlyDictionary<string, int> AutoFilterCriteriaBySheet { get; }
@@ -3961,6 +3966,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Conditional Formatting Extension States", ConditionalFormattingExtensionStates);
             AppendDictionary(builder, "Conditional Formatting Extension Priorities", ConditionalFormattingExtensionPriorities);
             AppendDictionary(builder, "Conditional Formatting Extension Stop If True States", ConditionalFormattingExtensionStopIfTrueStates);
+            AppendDictionary(builder, "Conditional Formatting Extension Dxf Projection States", ConditionalFormattingExtensionDxfProjectionStates);
             AppendDictionary(builder, "Differential Formats By Record Type", DifferentialFormatsByRecordType);
             AppendDictionary(builder, "Differential Formats By Content State", DifferentialFormatsByContentState);
             AppendDictionary(builder, "Differential Formats By Fill", DifferentialFormatsByFill);
@@ -5749,6 +5755,32 @@ namespace OfficeIMO.Excel.LegacyXls {
             }
 
             return record.StopIfTrue.Value ? "StopIfTrue" : "Continue";
+        }
+
+        private static string GetConditionalFormattingExtensionDxfProjectionStateKey(
+            LegacyXlsConditionalFormattingExtensionRecord record,
+            int differentialFormatCount) {
+            if (record.IsCf12) {
+                return "UnprojectedCf12";
+            }
+
+            if (!record.HasUnprojectedFormatting) {
+                return "NoDxfRequested";
+            }
+
+            if (!record.MatchedRule) {
+                return "UnprojectedUnmatchedRule";
+            }
+
+            if (differentialFormatCount == 0) {
+                return "UnprojectedMissingDxf";
+            }
+
+            if (differentialFormatCount == 1) {
+                return "ProjectedSingleDxf";
+            }
+
+            return $"UnprojectedMultipleDxfCandidates:{differentialFormatCount.ToString(CultureInfo.InvariantCulture)}";
         }
 
         private static string GetDifferentialFormatContentStateKey(LegacyXlsDifferentialFormat format) {

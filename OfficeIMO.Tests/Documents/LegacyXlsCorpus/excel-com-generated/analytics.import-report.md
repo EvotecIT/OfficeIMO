@@ -352,6 +352,12 @@ Warnings: 0
 | --- | --- |
 | Continue | 1 |
 
+## Conditional Formatting Extension Dxf Projection States
+
+| Key | Count |
+| --- | --- |
+| ProjectedSingleDxf | 1 |
+
 ## Differential Formats By Record Type
 
 | Key | Count |

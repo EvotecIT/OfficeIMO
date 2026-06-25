@@ -1955,6 +1955,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByPriority["Priority:7"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByStopIfTrueState["StopIfTrue"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFormatState["Missing"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["NoDxfRequested"]);
 
             ExcelConditionalFormattingInfo info = Assert.Single(result.Document.Sheets[0].GetConditionalFormattingRules("A1:A3"));
             Assert.Equal(7, info.Priority);
@@ -2084,6 +2085,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByStopIfTrueState["StopIfTrue"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFormatState["Present"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFill["Background:FFFFFF00"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["ProjectedSingleDxf"]);
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByContentState["FillOnly"]);
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByFill["Background:FFFFFF00"]);
 
