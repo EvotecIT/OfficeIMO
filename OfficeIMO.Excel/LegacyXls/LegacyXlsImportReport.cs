@@ -970,6 +970,36 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartBarStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.BarOptions != null)
                 .Select(GetChartBarStateKey));
+            ChartBopPopSubtypes = CountByCode(workbook.ChartRecords
+                .Where(record => record.BopPopOptions != null)
+                .Select(record => record.BopPopOptions!.SubtypeName));
+            ChartBopPopSplitTypes = CountByCode(workbook.ChartRecords
+                .Where(record => record.BopPopOptions != null)
+                .Select(record => record.BopPopOptions!.SplitName));
+            ChartBopPopSplitValues = CountByCode(workbook.ChartRecords
+                .Where(record => record.BopPopOptions != null)
+                .Select(record => $"Position:{record.BopPopOptions!.SplitPosition};Percent:{record.BopPopOptions.SplitPercent};Size:{record.BopPopOptions.SecondaryPieSizePercent};Gap:{record.BopPopOptions.GapPercent};Value:{FormatDouble(record.BopPopOptions.SplitValue)}"));
+            ChartBopPopStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.BopPopOptions != null)
+                .Select(GetChartBopPopStateKey));
+            ChartBopPopReservedStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.BopPopOptions != null)
+                .Select(record => record.BopPopOptions!.HasZeroReservedBits ? "ReservedZero" : "ReservedNonZero"));
+            ChartBopPopCustomDataPointCounts = CountByCode(workbook.ChartRecords
+                .Where(record => record.BopPopCustomSplit != null)
+                .Select(record => $"DataPoints:{record.BopPopCustomSplit!.DataPointCount}"));
+            ChartBopPopCustomSecondaryCounts = CountByCode(workbook.ChartRecords
+                .Where(record => record.BopPopCustomSplit != null)
+                .Select(record => $"Secondary:{record.BopPopCustomSplit!.SecondaryDataPointIndexes.Count}"));
+            ChartBopPopCustomSecondaryIndexes = CountByCode(workbook.ChartRecords
+                .Where(record => record.BopPopCustomSplit != null)
+                .Select(record => record.BopPopCustomSplit!.SecondaryDataPointIndexes.Count == 0 ? "Secondary:None" : "Secondary:" + string.Join(",", record.BopPopCustomSplit.SecondaryDataPointIndexes)));
+            ChartBopPopCustomCompletionStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.BopPopCustomSplit != null)
+                .Select(record => record.BopPopCustomSplit!.HasCompleteBitmap ? "Complete" : "Truncated"));
+            ChartBopPopCustomStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.BopPopCustomSplit != null)
+                .Select(GetChartBopPopCustomStateKey));
             ChartThreeDimensionalViewAngles = CountByCode(workbook.ChartRecords
                 .Where(record => record.ThreeDimensionalOptions != null)
                 .Select(record => $"Rotation:{record.ThreeDimensionalOptions!.RotationDegrees};Elevation:{record.ThreeDimensionalOptions.ElevationDegrees}"));
@@ -2827,6 +2857,36 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Bar records grouped by decoded orientation, stacking, percentage, and shadow flags.</summary>
         public IReadOnlyDictionary<string, int> ChartBarStates { get; }
 
+        /// <summary>Gets BopPop records grouped by decoded chart group subtype.</summary>
+        public IReadOnlyDictionary<string, int> ChartBopPopSubtypes { get; }
+
+        /// <summary>Gets BopPop records grouped by decoded split mode.</summary>
+        public IReadOnlyDictionary<string, int> ChartBopPopSplitTypes { get; }
+
+        /// <summary>Gets BopPop records grouped by decoded split position, percentage, size, gap, and value.</summary>
+        public IReadOnlyDictionary<string, int> ChartBopPopSplitValues { get; }
+
+        /// <summary>Gets BopPop records grouped by decoded subtype, split, automatic split, and shadow state.</summary>
+        public IReadOnlyDictionary<string, int> ChartBopPopStates { get; }
+
+        /// <summary>Gets BopPop records grouped by reserved-bit state.</summary>
+        public IReadOnlyDictionary<string, int> ChartBopPopReservedStates { get; }
+
+        /// <summary>Gets BopPopCustom records grouped by declared data point count.</summary>
+        public IReadOnlyDictionary<string, int> ChartBopPopCustomDataPointCounts { get; }
+
+        /// <summary>Gets BopPopCustom records grouped by secondary bar/pie data point count.</summary>
+        public IReadOnlyDictionary<string, int> ChartBopPopCustomSecondaryCounts { get; }
+
+        /// <summary>Gets BopPopCustom records grouped by secondary bar/pie data point indexes.</summary>
+        public IReadOnlyDictionary<string, int> ChartBopPopCustomSecondaryIndexes { get; }
+
+        /// <summary>Gets BopPopCustom records grouped by bitmap completion state.</summary>
+        public IReadOnlyDictionary<string, int> ChartBopPopCustomCompletionStates { get; }
+
+        /// <summary>Gets BopPopCustom records grouped by decoded count, marker, and consistency state.</summary>
+        public IReadOnlyDictionary<string, int> ChartBopPopCustomStates { get; }
+
         /// <summary>Gets Chart3d records grouped by rotation and elevation angles.</summary>
         public IReadOnlyDictionary<string, int> ChartThreeDimensionalViewAngles { get; }
 
@@ -3987,6 +4047,16 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Bar Overlap Percentages", ChartBarOverlapPercentages);
             AppendDictionary(builder, "Chart Bar Gap Widths", ChartBarGapWidths);
             AppendDictionary(builder, "Chart Bar States", ChartBarStates);
+            AppendDictionary(builder, "Chart BopPop Subtypes", ChartBopPopSubtypes);
+            AppendDictionary(builder, "Chart BopPop Split Types", ChartBopPopSplitTypes);
+            AppendDictionary(builder, "Chart BopPop Split Values", ChartBopPopSplitValues);
+            AppendDictionary(builder, "Chart BopPop States", ChartBopPopStates);
+            AppendDictionary(builder, "Chart BopPop Reserved States", ChartBopPopReservedStates);
+            AppendDictionary(builder, "Chart BopPopCustom Data Point Counts", ChartBopPopCustomDataPointCounts);
+            AppendDictionary(builder, "Chart BopPopCustom Secondary Counts", ChartBopPopCustomSecondaryCounts);
+            AppendDictionary(builder, "Chart BopPopCustom Secondary Indexes", ChartBopPopCustomSecondaryIndexes);
+            AppendDictionary(builder, "Chart BopPopCustom Completion States", ChartBopPopCustomCompletionStates);
+            AppendDictionary(builder, "Chart BopPopCustom States", ChartBopPopCustomStates);
             AppendDictionary(builder, "Chart 3D View Angles", ChartThreeDimensionalViewAngles);
             AppendDictionary(builder, "Chart 3D Scale Values", ChartThreeDimensionalScaleValues);
             AppendDictionary(builder, "Chart 3D States", ChartThreeDimensionalStates);
@@ -4839,6 +4909,16 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartBarStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartBarOptions options = record.BarOptions!;
             return $"Transposed:{options.IsTransposed};Stacked:{options.IsStacked};Percent:{options.IsPercentStacked};Shadow:{options.HasShadow}";
+        }
+
+        private static string GetChartBopPopStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartBopPopOptions options = record.BopPopOptions!;
+            return $"Subtype:{options.SubtypeName};Split:{options.SplitName};Auto:{options.AutomaticSplit};Shadow:{options.HasShadow}";
+        }
+
+        private static string GetChartBopPopCustomStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartBopPopCustomSplit split = record.BopPopCustomSplit!;
+            return $"DataPoints:{split.DataPointCount};Secondary:{split.SecondaryDataPointIndexes.Count};NoSecondary:{split.NoSecondaryDataPointsMarker};Consistent:{split.HasConsistentNoSecondaryDataPointsMarker}";
         }
 
         private static string GetChartThreeDimensionalBarShapeStateKey(LegacyXlsChartRecord record) {

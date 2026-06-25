@@ -51,6 +51,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadDataTableOptions(record, out LegacyXlsChartDataTableOptions? dataTableOptions);
             TryReadSheetProperties(record, out LegacyXlsChartSheetProperties? sheetProperties);
             TryReadBarOptions(record, out LegacyXlsChartBarOptions? barOptions);
+            TryReadBopPopOptions(record, out LegacyXlsChartBopPopOptions? bopPopOptions);
+            TryReadBopPopCustomSplit(record, out LegacyXlsChartBopPopCustomSplit? bopPopCustomSplit);
             TryReadThreeDimensionalOptions(record, out LegacyXlsChart3DOptions? threeDimensionalOptions);
             TryReadThreeDimensionalBarShapeOptions(record, out LegacyXlsChart3DBarShapeOptions? threeDimensionalBarShapeOptions);
             TryReadScatterOptions(record, out LegacyXlsChartScatterOptions? scatterOptions);
@@ -124,6 +126,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 sheetProperties,
                 valueRange,
                 barOptions,
+                bopPopOptions,
+                bopPopCustomSplit,
                 threeDimensionalOptions,
                 threeDimensionalBarShapeOptions,
                 scatterOptions,
@@ -698,6 +702,66 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 BiffRecordReader.ReadInt16(record.Payload, 0),
                 BiffRecordReader.ReadUInt16(record.Payload, 2),
                 BiffRecordReader.ReadUInt16(record.Payload, 4));
+            return true;
+        }
+
+        private static bool TryReadBopPopOptions(BiffRecord record, out LegacyXlsChartBopPopOptions? options) {
+            options = null;
+            if (record.Type != 0x1061 || record.Payload.Length < 22) {
+                return false;
+            }
+
+            options = new LegacyXlsChartBopPopOptions(
+                record.Payload[0],
+                record.Payload[1] != 0,
+                BiffRecordReader.ReadUInt16(record.Payload, 2),
+                BiffRecordReader.ReadInt16(record.Payload, 4),
+                BiffRecordReader.ReadInt16(record.Payload, 6),
+                BiffRecordReader.ReadInt16(record.Payload, 8),
+                BiffRecordReader.ReadInt16(record.Payload, 10),
+                BiffRecordReader.ReadDouble(record.Payload, 12),
+                BiffRecordReader.ReadUInt16(record.Payload, 20));
+            return true;
+        }
+
+        private static bool TryReadBopPopCustomSplit(BiffRecord record, out LegacyXlsChartBopPopCustomSplit? split) {
+            split = null;
+            if (record.Type != 0x1067 || record.Payload.Length < 3) {
+                return false;
+            }
+
+            ushort bitCount = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            int expectedBitmapByteCount = 1 + (bitCount / 8);
+            int bitmapBytesAvailable = Math.Max(0, record.Payload.Length - 2);
+            int bitmapBytesToRead = Math.Min(expectedBitmapByteCount, bitmapBytesAvailable);
+            int paddingBits = Math.Max(0, (expectedBitmapByteCount * 8) - bitCount);
+            int dataPointCount = bitCount == 0 ? 0 : bitCount - 1;
+            var secondaryDataPointIndexes = new List<int>();
+            bool noSecondaryDataPointsMarker = false;
+
+            for (int bitIndex = 0; bitIndex < bitCount; bitIndex++) {
+                int absoluteBitIndex = paddingBits + bitIndex;
+                int byteIndex = absoluteBitIndex / 8;
+                if (byteIndex >= bitmapBytesToRead) {
+                    break;
+                }
+
+                int bitInByte = 7 - (absoluteBitIndex % 8);
+                bool isSet = (record.Payload[2 + byteIndex] & (1 << bitInByte)) != 0;
+                if (bitIndex < dataPointCount) {
+                    if (isSet) {
+                        secondaryDataPointIndexes.Add(bitIndex);
+                    }
+                } else {
+                    noSecondaryDataPointsMarker = isSet;
+                }
+            }
+
+            split = new LegacyXlsChartBopPopCustomSplit(
+                bitCount,
+                bitmapBytesAvailable,
+                secondaryDataPointIndexes,
+                noSecondaryDataPointsMarker);
             return true;
         }
 

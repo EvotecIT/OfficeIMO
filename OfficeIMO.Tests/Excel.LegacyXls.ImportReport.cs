@@ -1669,6 +1669,86 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsBopPopMetadata() {
+            byte[] bopPopPayload = new byte[22];
+            bopPopPayload[0] = 0x02;
+            bopPopPayload[1] = 0x00;
+            WriteUInt16(bopPopPayload, 2, 0x0003);
+            WriteUInt16(bopPopPayload, 4, 2);
+            WriteUInt16(bopPopPayload, 6, 5);
+            WriteUInt16(bopPopPayload, 8, 120);
+            WriteUInt16(bopPopPayload, 10, 40);
+            Buffer.BlockCopy(BitConverter.GetBytes(12.5d), 0, bopPopPayload, 12, 8);
+            WriteUInt16(bopPopPayload, 20, 0x0001);
+
+            byte[] customPayload = {
+                0x05, 0x00,
+                0x14
+            };
+
+            var chartRecords = new List<LegacyXlsChartRecord>();
+            Assert.True(BiffChartMetadataReader.TryRead(new BiffRecord(0x1061, offset: 512, bopPopPayload), "BopPopChart", chartRecords));
+            Assert.True(BiffChartMetadataReader.TryRead(new BiffRecord(0x1067, offset: 538, customPayload), "BopPopChart", chartRecords));
+
+            LegacyXlsChartRecord bopPopRecord = Assert.Single(chartRecords, record => record.RecordName == "BopPop");
+            LegacyXlsChartBopPopOptions? bopPop = bopPopRecord.BopPopOptions;
+            Assert.NotNull(bopPop);
+            Assert.Equal(0x02, bopPop!.Subtype);
+            Assert.Equal("BarOfPie", bopPop.SubtypeName);
+            Assert.True(bopPop.HasKnownSubtype);
+            Assert.False(bopPop.AutomaticSplit);
+            Assert.Equal(0x0003, bopPop.Split);
+            Assert.Equal("Custom", bopPop.SplitName);
+            Assert.True(bopPop.HasKnownSplit);
+            Assert.Equal(2, bopPop.SplitPosition);
+            Assert.Equal(5, bopPop.SplitPercent);
+            Assert.Equal(120, bopPop.SecondaryPieSizePercent);
+            Assert.Equal(40, bopPop.GapPercent);
+            Assert.Equal(12.5d, bopPop.SplitValue);
+            Assert.True(bopPop.HasShadow);
+            Assert.True(bopPop.HasZeroReservedBits);
+
+            LegacyXlsChartRecord customRecord = Assert.Single(chartRecords, record => record.RecordName == "BopPopCustom");
+            LegacyXlsChartBopPopCustomSplit? customSplit = customRecord.BopPopCustomSplit;
+            Assert.NotNull(customSplit);
+            Assert.Equal(5, customSplit!.BitCount);
+            Assert.Equal(4, customSplit.DataPointCount);
+            Assert.Equal(1, customSplit.ExpectedBitmapByteCount);
+            Assert.Equal(1, customSplit.BitmapBytesAvailable);
+            Assert.True(customSplit.HasCompleteBitmap);
+            Assert.Equal(new[] { 0, 2 }, customSplit.SecondaryDataPointIndexes);
+            Assert.False(customSplit.NoSecondaryDataPointsMarker);
+            Assert.True(customSplit.HasConsistentNoSecondaryDataPointsMarker);
+
+            var workbook = new LegacyXlsWorkbook();
+            foreach (LegacyXlsChartRecord record in chartRecords) {
+                workbook.MutableChartRecords.Add(record);
+            }
+
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+            Assert.Equal(1, report.ChartBopPopSubtypes["BarOfPie"]);
+            Assert.Equal(1, report.ChartBopPopSplitTypes["Custom"]);
+            Assert.Equal(1, report.ChartBopPopSplitValues["Position:2;Percent:5;Size:120;Gap:40;Value:12.5"]);
+            Assert.Equal(1, report.ChartBopPopStates["Subtype:BarOfPie;Split:Custom;Auto:False;Shadow:True"]);
+            Assert.Equal(1, report.ChartBopPopReservedStates["ReservedZero"]);
+            Assert.Equal(1, report.ChartBopPopCustomDataPointCounts["DataPoints:4"]);
+            Assert.Equal(1, report.ChartBopPopCustomSecondaryCounts["Secondary:2"]);
+            Assert.Equal(1, report.ChartBopPopCustomSecondaryIndexes["Secondary:0,2"]);
+            Assert.Equal(1, report.ChartBopPopCustomCompletionStates["Complete"]);
+            Assert.Equal(1, report.ChartBopPopCustomStates["DataPoints:4;Secondary:2;NoSecondary:False;Consistent:True"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart BopPop Subtypes", markdown);
+            Assert.Contains("Chart BopPopCustom Secondary Indexes", markdown);
+            Assert.Contains("Secondary:0,2", markdown);
+
+            static void WriteUInt16(byte[] buffer, int offset, ushort value) {
+                buffer[offset] = (byte)(value & 0xff);
+                buffer[offset + 1] = (byte)(value >> 8);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_GroupsChartGroupAndPivotViewReferences() {
             var chartRecords = new List<LegacyXlsChartRecord>();
             byte[] chartFormatPayload = {

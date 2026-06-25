@@ -67,6 +67,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartSheetProperties? sheetProperties = null,
             LegacyXlsChartValueRange? valueRange = null,
             LegacyXlsChartBarOptions? barOptions = null,
+            LegacyXlsChartBopPopOptions? bopPopOptions = null,
+            LegacyXlsChartBopPopCustomSplit? bopPopCustomSplit = null,
             LegacyXlsChart3DOptions? threeDimensionalOptions = null,
             LegacyXlsChart3DBarShapeOptions? threeDimensionalBarShapeOptions = null,
             LegacyXlsChartScatterOptions? scatterOptions = null,
@@ -146,6 +148,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             SheetProperties = sheetProperties;
             ValueRange = valueRange;
             BarOptions = barOptions;
+            BopPopOptions = bopPopOptions;
+            BopPopCustomSplit = bopPopCustomSplit;
             ThreeDimensionalOptions = threeDimensionalOptions;
             ThreeDimensionalBarShapeOptions = threeDimensionalBarShapeOptions;
             ScatterOptions = scatterOptions;
@@ -354,6 +358,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded bar or column chart group options from Bar records, when present.</summary>
         public LegacyXlsChartBarOptions? BarOptions { get; }
+
+        /// <summary>Gets decoded bar-of-pie or pie-of-pie chart group options from BopPop records, when present.</summary>
+        public LegacyXlsChartBopPopOptions? BopPopOptions { get; }
+
+        /// <summary>Gets decoded custom secondary bar/pie data point membership from BopPopCustom records, when present.</summary>
+        public LegacyXlsChartBopPopCustomSplit? BopPopCustomSplit { get; }
 
         /// <summary>Gets decoded 3-D chart group options from Chart3d records, when present.</summary>
         public LegacyXlsChart3DOptions? ThreeDimensionalOptions { get; }
