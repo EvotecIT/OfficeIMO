@@ -231,6 +231,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.QueryTableTag]);
             Assert.Equal(1, result.ImportReport.PivotTableQueryTagTargets["PivotTable"]);
             Assert.Equal(1, result.ImportReport.PivotTableQueryTagNames["ObjectsPivot"]);
+            Assert.Equal(35, result.ImportReport.PivotTableAdditionalFutureRecordTypes["FrtType:0x0864"]);
+            Assert.Equal(35, result.ImportReport.PivotTableAdditionalFutureFlags["Flags:0x0000"]);
+            Assert.Equal(2, result.ImportReport.PivotTableAdditionalSequenceIndexes["Index:1"]);
+            Assert.Equal(8, result.ImportReport.PivotTableAdditionalPayloadLengthsByClassType["SxcField12|SXD:0x01|Bytes:12"]);
+            Assert.Equal(1, result.ImportReport.PivotTableAdditionalPayloadLengthsByClassType["SxcView|SXD:0x1E|Bytes:50"]);
             LegacyXlsPivotTableRecord queryTag = Assert.Single(result.Workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.QueryTableTag);
             Assert.Equal("ObjectsPivot", queryTag.QueryTableTagName);
             Assert.True(queryTag.QueryTableTagRelatesToPivotTable);

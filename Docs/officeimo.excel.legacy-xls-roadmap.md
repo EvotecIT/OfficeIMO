@@ -237,7 +237,9 @@ import-report buckets limited to type/value-state metadata rather than dumping r
 source values. PivotCache stream identifiers, source-data type records, and the fixed
 `SXDB` cache-property header now decode into preserve-only PivotTable metadata,
 including compact report buckets for cache stream names, source types, cache record
-and field counts, property flags, and last-refresh-user presence.
+and field counts, property flags, and last-refresh-user presence. PivotTable
+`SxAddl` future records now also report future-record type, future flags, class
+sequence indexes, and class/type payload-length buckets.
 Chart `CatSerRange` records now decode preserve-only category/series axis
 crossing and interval metadata, `AxisLineFormat` records now decode the formatted
 axis component target, `PieFormat` records now decode preserve-only pie/doughnut

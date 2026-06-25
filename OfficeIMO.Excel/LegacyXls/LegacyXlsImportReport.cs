@@ -734,6 +734,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableAdditionalClassTypes = CountByCode(workbook.PivotTableRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.AdditionalClassName) && !string.IsNullOrWhiteSpace(record.AdditionalTypeName))
                 .Select(GetPivotTableAdditionalClassTypeKey));
+            PivotTableAdditionalFutureRecordTypes = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.AdditionalFutureRecordType.HasValue)
+                .Select(record => $"FrtType:0x{record.AdditionalFutureRecordType!.Value:X4}"));
+            PivotTableAdditionalFutureFlags = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.AdditionalFutureFlags.HasValue)
+                .Select(record => $"Flags:0x{record.AdditionalFutureFlags!.Value:X4}"));
+            PivotTableAdditionalSequenceIndexes = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.AdditionalSequenceIndex.HasValue)
+                .Select(record => $"Index:{record.AdditionalSequenceIndex!.Value}"));
+            PivotTableAdditionalPayloadLengthsByClassType = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.AdditionalClassName) && !string.IsNullOrWhiteSpace(record.AdditionalTypeName))
+                .Select(record => $"{GetPivotTableAdditionalClassTypeKey(record)}|Bytes:{record.PayloadLength}"));
             PivotTableAdditionalCacheIds = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.AdditionalCacheId.HasValue)
                 .Select(record => $"CacheId:{record.AdditionalCacheId!.Value}"));
@@ -2497,6 +2509,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded SXAddl records grouped by class and detail type.</summary>
         public IReadOnlyDictionary<string, int> PivotTableAdditionalClassTypes { get; }
 
+        /// <summary>Gets decoded SXAddl records grouped by future-record type.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableAdditionalFutureRecordTypes { get; }
+
+        /// <summary>Gets decoded SXAddl records grouped by future-record flags.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableAdditionalFutureFlags { get; }
+
+        /// <summary>Gets decoded SXAddl records grouped by sequence index in the scanned PivotTable scope.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableAdditionalSequenceIndexes { get; }
+
+        /// <summary>Gets decoded SXAddl records grouped by class, detail type, and payload length.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableAdditionalPayloadLengthsByClassType { get; }
+
         /// <summary>Gets decoded SXAddl SxcCache/SXDId records grouped by PivotCache identifier.</summary>
         public IReadOnlyDictionary<string, int> PivotTableAdditionalCacheIds { get; }
 
@@ -3730,6 +3754,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Additional Classes", PivotTableAdditionalClasses);
             AppendDictionary(builder, "Pivot Table Additional Types", PivotTableAdditionalTypes);
             AppendDictionary(builder, "Pivot Table Additional Class Types", PivotTableAdditionalClassTypes);
+            AppendDictionary(builder, "Pivot Table Additional Future Record Types", PivotTableAdditionalFutureRecordTypes);
+            AppendDictionary(builder, "Pivot Table Additional Future Flags", PivotTableAdditionalFutureFlags);
+            AppendDictionary(builder, "Pivot Table Additional Sequence Indexes", PivotTableAdditionalSequenceIndexes);
+            AppendDictionary(builder, "Pivot Table Additional Payload Lengths By Class Type", PivotTableAdditionalPayloadLengthsByClassType);
             AppendDictionary(builder, "Pivot Table Additional Cache Ids", PivotTableAdditionalCacheIds);
             AppendDictionary(builder, "Pivot Table Additional Class Depths Before", PivotTableAdditionalClassDepthsBefore);
             AppendDictionary(builder, "Pivot Table Additional Class Depths After", PivotTableAdditionalClassDepthsAfter);

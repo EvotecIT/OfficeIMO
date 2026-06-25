@@ -1104,6 +1104,74 @@ Warnings: 0
 | SxcView\|SXDVer10Info | 1 |
 | SxcView\|SXDVer12Info | 1 |
 
+## Pivot Table Additional Future Record Types
+
+| Key | Count |
+| --- | --- |
+| FrtType:0x0864 | 35 |
+
+## Pivot Table Additional Future Flags
+
+| Key | Count |
+| --- | --- |
+| Flags:0x0000 | 35 |
+
+## Pivot Table Additional Sequence Indexes
+
+| Key | Count |
+| --- | --- |
+| Index:1 | 2 |
+| Index:10 | 1 |
+| Index:11 | 1 |
+| Index:12 | 1 |
+| Index:13 | 1 |
+| Index:14 | 1 |
+| Index:15 | 1 |
+| Index:16 | 1 |
+| Index:17 | 1 |
+| Index:18 | 1 |
+| Index:19 | 1 |
+| Index:2 | 2 |
+| Index:20 | 1 |
+| Index:21 | 1 |
+| Index:22 | 1 |
+| Index:23 | 1 |
+| Index:24 | 1 |
+| Index:25 | 1 |
+| Index:26 | 1 |
+| Index:27 | 1 |
+| Index:3 | 2 |
+| Index:4 | 2 |
+| Index:5 | 2 |
+| Index:6 | 2 |
+| Index:7 | 2 |
+| Index:8 | 2 |
+| Index:9 | 1 |
+
+## Pivot Table Additional Payload Lengths By Class Type
+
+| Key | Count |
+| --- | --- |
+| SxcCache\|SXD:0x01\|Bytes:12 | 2 |
+| SxcCache\|SXD:0x02\|Bytes:28 | 1 |
+| SxcCache\|SXD:0x18\|Bytes:12 | 1 |
+| SxcCache\|SXD:0x34\|Bytes:12 | 1 |
+| SxcCache\|SXD:0x41\|Bytes:12 | 1 |
+| SxcCache\|SXDEnd\|Bytes:12 | 1 |
+| SxcCache\|SXDId\|Bytes:12 | 1 |
+| SxcField12\|SXD:0x01\|Bytes:12 | 8 |
+| SxcField12\|SXDEnd\|Bytes:12 | 4 |
+| SxcField12\|SXDId\|Bytes:19 | 1 |
+| SxcField12\|SXDId\|Bytes:20 | 1 |
+| SxcField12\|SXDId\|Bytes:21 | 2 |
+| SxcField12\|SXDVer12Info\|Bytes:12 | 4 |
+| SxcView\|SXD:0x01\|Bytes:12 | 2 |
+| SxcView\|SXD:0x1E\|Bytes:50 | 1 |
+| SxcView\|SXDEnd\|Bytes:12 | 1 |
+| SxcView\|SXDId\|Bytes:27 | 1 |
+| SxcView\|SXDVer10Info\|Bytes:12 | 1 |
+| SxcView\|SXDVer12Info\|Bytes:12 | 1 |
+
 ## Pivot Table Additional Cache Ids
 
 | Key | Count |
