@@ -207,6 +207,12 @@ Warnings: 0
 | ServerBased:False | 1 |
 | ShowAllItems:False | 1 |
 
+## Pivot Table Extended Field Permission States
+
+| Key | Count |
+| --- | --- |
+| ShowAllItems:False\|Row:False\|Column:False\|Page:True\|Hide:False\|PreventData:False\|ServerBased:False | 1 |
+
 ## Drawing Records By Kind
 
 | Key | Count |

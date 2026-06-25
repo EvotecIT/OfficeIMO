@@ -743,6 +743,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableDataItemNames["Sales"]);
             Assert.Equal(1, report.PivotTableGroupingKinds["Months"]);
             Assert.Equal(1, report.PivotTableGroupingBoundaryStates["AutoStart:True;AutoEnd:True"]);
+            Assert.Equal(1, report.PivotTableGroupingCompletionStates["CompleteDateRange"]);
+            Assert.Equal(1, report.PivotTableGroupingStates["Kind:Months|AutoStart:True|AutoEnd:True|CompleteDateRange"]);
             Assert.Equal(1, report.PivotTableGroupingDateRanges["Start:2024-01-01 00:00:00;End:2024-12-31 00:00:00;Interval:1"]);
             Assert.Equal(1, report.PivotTableFormulaScopes["AllCacheFields"]);
             Assert.Equal(1, report.PivotTableFormulaCacheFieldIndexes["CacheField:-1"]);
@@ -754,6 +756,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableExtendedFieldStates["CanDragToHide:True"]);
             Assert.Equal(1, report.PivotTableExtendedFieldStates["PreventDragToData:False"]);
             Assert.Equal(1, report.PivotTableExtendedFieldStates["ServerBased:True"]);
+            Assert.Equal(1, report.PivotTableExtendedFieldPermissionStates["ShowAllItems:True|Row:True|Column:True|Page:True|Hide:True|PreventData:False|ServerBased:True"]);
             Assert.Equal(2, report.PivotTableAdditionalClasses["SxcCache"]);
             Assert.Equal(1, report.PivotTableAdditionalTypes["SXDId"]);
             Assert.Equal(1, report.PivotTableAdditionalTypes["SXDEnd"]);

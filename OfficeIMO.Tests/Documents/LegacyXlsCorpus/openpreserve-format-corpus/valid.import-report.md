@@ -1036,6 +1036,28 @@ Warnings: 0
 | AutoStart:True;AutoEnd:False | 4 |
 | AutoStart:True;AutoEnd:True | 5 |
 
+## Pivot Table Grouping Completion States
+
+| Key | Count |
+| --- | --- |
+| IncompleteDateRange | 14 |
+
+## Pivot Table Grouping States
+
+| Key | Count |
+| --- | --- |
+| Kind:Hours\|AutoStart:False\|AutoEnd:False\|IncompleteDateRange | 1 |
+| Kind:Hours\|AutoStart:False\|AutoEnd:True\|IncompleteDateRange | 1 |
+| Kind:Hours\|AutoStart:True\|AutoEnd:False\|IncompleteDateRange | 2 |
+| Kind:Minutes\|AutoStart:False\|AutoEnd:True\|IncompleteDateRange | 1 |
+| Kind:Months\|AutoStart:True\|AutoEnd:False\|IncompleteDateRange | 1 |
+| Kind:Months\|AutoStart:True\|AutoEnd:True\|IncompleteDateRange | 2 |
+| Kind:Quarters\|AutoStart:False\|AutoEnd:True\|IncompleteDateRange | 1 |
+| Kind:Quarters\|AutoStart:True\|AutoEnd:True\|IncompleteDateRange | 1 |
+| Kind:Seconds\|AutoStart:False\|AutoEnd:False\|IncompleteDateRange | 1 |
+| Kind:Seconds\|AutoStart:True\|AutoEnd:False\|IncompleteDateRange | 1 |
+| Kind:Years\|AutoStart:True\|AutoEnd:True\|IncompleteDateRange | 2 |
+
 ## Pivot Table Extended Field States
 
 | Key | Count |
@@ -1047,6 +1069,12 @@ Warnings: 0
 | PreventDragToData:False | 1 |
 | ServerBased:False | 1 |
 | ShowAllItems:False | 1 |
+
+## Pivot Table Extended Field Permission States
+
+| Key | Count |
+| --- | --- |
+| ShowAllItems:False\|Row:False\|Column:False\|Page:True\|Hide:False\|PreventData:False\|ServerBased:False | 1 |
 
 ## Chart Records By Kind
 

@@ -510,6 +510,18 @@ Warnings: 0
 | --- | --- |
 | AutoStart:False;AutoEnd:True | 1 |
 
+## Pivot Table Grouping Completion States
+
+| Key | Count |
+| --- | --- |
+| IncompleteDateRange | 1 |
+
+## Pivot Table Grouping States
+
+| Key | Count |
+| --- | --- |
+| Kind:Years\|AutoStart:False\|AutoEnd:True\|IncompleteDateRange | 1 |
+
 ## Pivot Table Extended Field States
 
 | Key | Count |
@@ -521,6 +533,12 @@ Warnings: 0
 | PreventDragToData:False | 1 |
 | ServerBased:False | 1 |
 | ShowAllItems:False | 1 |
+
+## Pivot Table Extended Field Permission States
+
+| Key | Count |
+| --- | --- |
+| ShowAllItems:False\|Row:False\|Column:False\|Page:True\|Hide:False\|PreventData:False\|ServerBased:False | 1 |
 
 ## Drawing Records By Kind
 

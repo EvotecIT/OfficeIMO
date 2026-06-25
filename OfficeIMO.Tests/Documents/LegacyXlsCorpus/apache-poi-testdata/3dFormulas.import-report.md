@@ -395,6 +395,21 @@ Warnings: 0
 | AutoStart:False;AutoEnd:False | 2 |
 | AutoStart:False;AutoEnd:True | 1 |
 
+## Pivot Table Grouping Completion States
+
+| Key | Count |
+| --- | --- |
+| IncompleteDateRange | 2 |
+| IncompleteNumericRange | 1 |
+
+## Pivot Table Grouping States
+
+| Key | Count |
+| --- | --- |
+| Kind:Days\|AutoStart:False\|AutoEnd:False\|IncompleteDateRange | 1 |
+| Kind:Numeric\|AutoStart:False\|AutoEnd:False\|IncompleteNumericRange | 1 |
+| Kind:Seconds\|AutoStart:False\|AutoEnd:True\|IncompleteDateRange | 1 |
+
 ## Pivot Table Extended Field States
 
 | Key | Count |
@@ -406,6 +421,12 @@ Warnings: 0
 | PreventDragToData:False | 1 |
 | ServerBased:False | 1 |
 | ShowAllItems:False | 1 |
+
+## Pivot Table Extended Field Permission States
+
+| Key | Count |
+| --- | --- |
+| ShowAllItems:False\|Row:False\|Column:False\|Page:True\|Hide:False\|PreventData:False\|ServerBased:False | 1 |
 
 ## Calculation Settings By Kind
 

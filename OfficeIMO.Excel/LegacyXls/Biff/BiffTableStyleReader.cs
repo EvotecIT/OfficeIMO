@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             style = new LegacyXlsTableStyle(
-                name,
+                name!,
                 (flags & 0x0002) != 0,
                 (flags & 0x0004) != 0,
                 BiffRecordReader.ReadUInt32(record.Payload, 14),
