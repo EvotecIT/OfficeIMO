@@ -104,6 +104,21 @@ Warnings: 0
 | CellFormula\|FormulaAdvanced | 62 |
 | DefinedName\|(workbook) | 2 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|AreaReference | 8 |
+| CellFormula\|Attribute | 1 |
+| CellFormula\|BooleanLiteral | 2 |
+| CellFormula\|CellReference | 6 |
+| CellFormula\|DefinedName | 2 |
+| CellFormula\|FixedFunction | 5 |
+| CellFormula\|IntegerLiteral | 19 |
+| CellFormula\|StringLiteral | 4 |
+| CellFormula\|VariableFunction | 10 |
+| DefinedName\|ErrorLiteral | 2 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

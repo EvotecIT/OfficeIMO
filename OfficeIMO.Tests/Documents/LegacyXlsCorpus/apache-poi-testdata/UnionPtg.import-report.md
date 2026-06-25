@@ -86,6 +86,13 @@ Warnings: 0
 | --- | --- |
 | CellFormula\|Sheet1 | 3 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|AreaReference | 2 |
+| CellFormula\|VariableFunction | 1 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

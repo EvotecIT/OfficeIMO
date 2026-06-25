@@ -149,6 +149,31 @@ Warnings: 0
 | SharedFormula\|maquis | 1 |
 | SharedFormula\|wijn | 2 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|AreaReference | 28 |
+| CellFormula\|Attribute | 15 |
+| CellFormula\|BooleanLiteral | 1170 |
+| CellFormula\|CellReference | 1507 |
+| CellFormula\|ExternalAreaReference | 1491 |
+| CellFormula\|ExternalCellReference | 14 |
+| CellFormula\|ExternalName | 7 |
+| CellFormula\|FixedFunction | 12 |
+| CellFormula\|IntegerLiteral | 1491 |
+| CellFormula\|StringLiteral | 5 |
+| CellFormula\|VariableFunction | 1503 |
+| ChartDataSource\|ExternalAreaReference | 80 |
+| ChartDataSource\|ExternalCellReference | 40 |
+| DefinedName\|ExternalAreaReference | 3 |
+| SharedFormulaReference\|SharedOrArrayFormulaAnchor | 617 |
+| SharedFormula\|Attribute | 48 |
+| SharedFormula\|FixedFunction | 16 |
+| SharedFormula\|RelativeCellReference | 39 |
+| SharedFormula\|StringLiteral | 16 |
+| SharedFormula\|VariableFunction | 16 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

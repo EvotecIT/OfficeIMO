@@ -95,6 +95,17 @@ Warnings: 0
 | --- | --- |
 | CellFormula\|Functions | 37 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|AreaReference | 8 |
+| CellFormula\|CellReference | 4 |
+| CellFormula\|FixedFunction | 3 |
+| CellFormula\|IntegerLiteral | 2 |
+| CellFormula\|StringLiteral | 9 |
+| CellFormula\|VariableFunction | 11 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

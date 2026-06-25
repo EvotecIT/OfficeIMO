@@ -92,6 +92,13 @@ Warnings: 0
 | --- | --- |
 | CellFormula\|Protected | 3 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|CellReference | 1 |
+| CellFormula\|IntegerLiteral | 1 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

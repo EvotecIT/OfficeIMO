@@ -93,6 +93,16 @@ Warnings: 0
 | CellFormula\|Sheet1 | 5 |
 | DefinedName\|(workbook) | 1 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|Attribute | 1 |
+| CellFormula\|CellReference | 1 |
+| CellFormula\|DefinedName | 1 |
+| CellFormula\|MemoryFunction | 1 |
+| DefinedName\|ExternalCellReference | 1 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

@@ -86,6 +86,12 @@ Warnings: 0
 | --- | --- |
 | DefinedName\|(workbook) | 1 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| DefinedName\|ExternalAreaReference | 1 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

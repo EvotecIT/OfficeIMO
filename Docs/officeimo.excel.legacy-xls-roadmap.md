@@ -117,6 +117,9 @@ detail-coded formula-token diagnostics when unsupported-record reporting is enab
 Formula token import reports also group observed tokens and blockers by worksheet
 and by formula context plus worksheet, so corpus analysis can identify which sheets
 and formula sources drive the next decoder gaps without dumping cell-level detail.
+They also group decoded operand categories by formula context, making it easier
+to compare cell, shared, defined-name, chart, validation, and formatting token
+streams without manually cross-joining report sections.
 Variable-function tokens using the legacy add-in/user-defined `0x00FF` function
 id are now classified as `UserDefinedFunction` in function-name and argument-count
 diagnostics while retaining the raw function id bucket.

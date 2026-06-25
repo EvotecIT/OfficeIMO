@@ -369,6 +369,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             FormulaTokensByContext = CountByCode(workbook.FormulaTokenRecords.Select(record => record.Context));
             FormulaTokensBySheet = CountByCode(workbook.FormulaTokenRecords.Select(GetFormulaTokenSheetKey));
             FormulaTokensByContextAndSheet = CountByCode(workbook.FormulaTokenRecords.Select(record => record.Context + "|" + GetFormulaTokenSheetKey(record)));
+            FormulaTokensByContextAndOperandKind = CountByCode(workbook.FormulaTokenRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.OperandKind))
+                .Select(record => $"{record.Context}|{record.OperandKind!}"));
             FormulaTokensByRecordType = CountByCode(workbook.FormulaTokenRecords.Select(record => $"0x{record.RecordType:X4}|{record.TokenName}"));
             FormulaTokensByClass = CountByCode(workbook.FormulaTokenRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.TokenClassName))
@@ -2179,6 +2182,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets observed parsed-formula tokens grouped by formula source context and worksheet name.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokensByContextAndSheet { get; }
 
+        /// <summary>Gets observed parsed-formula tokens grouped by formula source context and decoded operand category.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensByContextAndOperandKind { get; }
+
         /// <summary>Gets observed parsed-formula tokens grouped by BIFF record type and token name.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokensByRecordType { get; }
 
@@ -3793,6 +3799,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Formula Tokens By Context", FormulaTokensByContext);
             AppendDictionary(builder, "Formula Tokens By Sheet", FormulaTokensBySheet);
             AppendDictionary(builder, "Formula Tokens By Context And Sheet", FormulaTokensByContextAndSheet);
+            AppendDictionary(builder, "Formula Tokens By Context And Operand Kind", FormulaTokensByContextAndOperandKind);
             AppendDictionary(builder, "Formula Tokens By Record Type", FormulaTokensByRecordType);
             AppendDictionary(builder, "Formula Tokens By Class", FormulaTokensByClass);
             AppendDictionary(builder, "Formula Tokens By Name And Class", FormulaTokensByNameAndClass);

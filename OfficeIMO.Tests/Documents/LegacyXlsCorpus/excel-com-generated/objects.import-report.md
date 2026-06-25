@@ -99,6 +99,14 @@ Warnings: 0
 | ChartDataSource\|Objects | 3 |
 | DefinedName\|(workbook) | 1 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| ChartDataSource\|ExternalAreaReference | 4 |
+| ChartDataSource\|ExternalCellReference | 2 |
+| DefinedName\|ExternalAreaReference | 1 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

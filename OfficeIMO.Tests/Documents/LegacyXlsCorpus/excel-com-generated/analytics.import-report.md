@@ -103,6 +103,15 @@ Warnings: 0
 | ChartDataSource\|RevenueChart | 3 |
 | DefinedName\|(workbook) | 2 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|CellReference | 24 |
+| ChartDataSource\|ExternalAreaReference | 2 |
+| ChartDataSource\|ExternalCellReference | 1 |
+| DefinedName\|ExternalAreaReference | 2 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

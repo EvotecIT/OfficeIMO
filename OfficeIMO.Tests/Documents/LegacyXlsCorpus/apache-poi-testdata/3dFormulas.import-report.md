@@ -91,6 +91,15 @@ Warnings: 0
 | CellFormula\|Sheet1 | 7 |
 | DefinedName\|(workbook) | 3 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|ExternalAreaReference | 1 |
+| CellFormula\|ExternalCellReference | 5 |
+| CellFormula\|VariableFunction | 1 |
+| DefinedName\|ExternalAreaReference | 3 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

@@ -108,6 +108,22 @@ Warnings: 0
 | ChartDataSource\|Data | 3 |
 | DefinedName\|(workbook) | 4 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|AreaReference | 3 |
+| CellFormula\|Attribute | 3 |
+| CellFormula\|CellReference | 5 |
+| CellFormula\|FixedFunction | 1 |
+| CellFormula\|IntegerLiteral | 1 |
+| CellFormula\|NumberLiteral | 4 |
+| CellFormula\|StringLiteral | 4 |
+| CellFormula\|VariableFunction | 2 |
+| ChartDataSource\|ExternalAreaReference | 2 |
+| ChartDataSource\|ExternalCellReference | 1 |
+| DefinedName\|ExternalAreaReference | 4 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

@@ -130,6 +130,20 @@ Warnings: 0
 | SharedFormula\|ZPFCUM | 24 |
 | SharedFormula\|ZRAINCUM | 24 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|CellReference | 10 |
+| CellFormula\|ExternalCellReference | 8 |
+| CellFormula\|IntegerLiteral | 3 |
+| ChartDataSource\|ExternalAreaReference | 48 |
+| ChartDataSource\|ExternalCellReference | 24 |
+| SharedFormulaReference\|SharedOrArrayFormulaAnchor | 1240 |
+| SharedFormula\|CellReference | 8 |
+| SharedFormula\|IntegerLiteral | 13 |
+| SharedFormula\|RelativeCellReference | 38 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

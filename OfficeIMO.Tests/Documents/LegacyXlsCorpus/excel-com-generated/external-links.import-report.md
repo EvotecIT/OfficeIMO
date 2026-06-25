@@ -95,6 +95,15 @@ Warnings: 0
 | --- | --- |
 | CellFormula\|Linked | 7 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|Attribute | 1 |
+| CellFormula\|CellReference | 2 |
+| CellFormula\|ExternalAreaReference | 1 |
+| CellFormula\|ExternalCellReference | 2 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

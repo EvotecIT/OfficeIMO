@@ -1261,6 +1261,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartDataSourceStates["Source:ValuesOrHorizontalValues;Reference:WorksheetRange;CustomNumberFormat:True;FormulaBytes:9;FormulaComplete:True;FormulaTextProjected:True"]);
             Assert.Equal(1, report.FormulaTokensByContext["ChartDataSource"]);
             Assert.Equal(1, report.FormulaTokensByContextAndSheet["ChartDataSource|ChartOnly"]);
+            Assert.Equal(1, report.FormulaTokensByContextAndOperandKind["ChartDataSource|AreaReference"]);
             Assert.Equal(1, report.FormulaTokensByName["PtgArea"]);
             Assert.Equal(1, report.ChartDataFormatTargets["Series"]);
             Assert.Equal(1, report.ChartDataFormatSeriesIndexes["SeriesIndex:2"]);

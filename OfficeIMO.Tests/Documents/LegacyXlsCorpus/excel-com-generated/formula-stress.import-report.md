@@ -114,6 +114,23 @@ Warnings: 0
 | CellFormula\|Formulas | 44 |
 | SharedFormulaReference\|Formulas | 1 |
 
+## Formula Tokens By Context And Operand Kind
+
+| Key | Count |
+| --- | --- |
+| ArrayFormula\|AreaReference | 1 |
+| ArrayFormula\|ArrayLiteral | 1 |
+| ArrayFormula\|Attribute | 1 |
+| CellFormula\|AreaReference | 1 |
+| CellFormula\|ArrayLiteral | 1 |
+| CellFormula\|Attribute | 5 |
+| CellFormula\|CellReference | 18 |
+| CellFormula\|FixedFunction | 1 |
+| CellFormula\|IntegerLiteral | 2 |
+| CellFormula\|StringLiteral | 3 |
+| CellFormula\|VariableFunction | 1 |
+| SharedFormulaReference\|SharedOrArrayFormulaAnchor | 1 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |
