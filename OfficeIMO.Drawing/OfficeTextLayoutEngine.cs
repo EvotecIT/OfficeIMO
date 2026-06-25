@@ -111,7 +111,7 @@ public static partial class OfficeTextLayoutEngine {
         clipped = true;
         const string ellipsis = "...";
         while (value.Length > 0 && Measure(value + ellipsis, fontSize, measure) > width) {
-            value = value.Substring(0, value.Length - 1);
+            value = RemoveLastTextElement(value);
         }
 
         value = value.Length == 0 && Measure(ellipsis, fontSize, measure) > width ? string.Empty : value + ellipsis;
@@ -143,7 +143,7 @@ public static partial class OfficeTextLayoutEngine {
         clipped = true;
         const string ellipsis = "...";
         while (value.Length > 0 && Measure(ellipsis + value, fontSize, measure) > width) {
-            value = value.Substring(1);
+            value = RemoveFirstTextElement(value);
         }
 
         value = value.Length == 0 && Measure(ellipsis, fontSize, measure) > width ? string.Empty : ellipsis + value;
@@ -492,6 +492,16 @@ public static partial class OfficeTextLayoutEngine {
 
     private static double Measure(string? text, double fontSize, Func<string?, double, double> measure) =>
         string.IsNullOrEmpty(text) ? 0D : measure(text, fontSize);
+
+    private static string RemoveLastTextElement(string value) {
+        int[] indexes = StringInfo.ParseCombiningCharacters(value);
+        return indexes.Length <= 1 ? string.Empty : value.Substring(0, indexes[indexes.Length - 1]);
+    }
+
+    private static string RemoveFirstTextElement(string value) {
+        int[] indexes = StringInfo.ParseCombiningCharacters(value);
+        return indexes.Length <= 1 ? string.Empty : value.Substring(indexes[1]);
+    }
 
     private static string NormalizeSingleLineText(string text) =>
         text.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ');

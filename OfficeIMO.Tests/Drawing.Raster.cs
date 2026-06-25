@@ -329,6 +329,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_TrimsSingleLineAtTextElementBoundaries() {
+            static double Measure(string? value, double size) => string.IsNullOrEmpty(value) ? 0D : value!.Length * size;
+            string eAcute = "e\u0301";
+            string smile = char.ConvertFromUtf32(0x1F600);
+
+            OfficeTextLine endTrimmed = OfficeTextLayoutEngine.TrimLineToWidth("A" + eAcute + smile + "BC", 1D, 6D, Measure, out bool endClipped);
+            OfficeTextLine startTrimmed = OfficeTextLayoutEngine.TrimLineStartToWidth("XA" + eAcute + smile + "B", 1D, 6D, Measure, out bool startClipped);
+
+            Assert.True(endClipped);
+            Assert.True(startClipped);
+            Assert.Equal("A" + eAcute + "...", endTrimmed.Text);
+            Assert.Equal("..." + smile + "B", startTrimmed.Text);
+            Assert.Contains(eAcute, endTrimmed.Text, StringComparison.Ordinal);
+            Assert.Contains(smile, startTrimmed.Text, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void OfficeTextLayoutEngine_CanKeepOverflowingTextForCallerClipping() {
             double Measure(string? value, double size) => (value?.Length ?? 0) * size;
 
