@@ -7,6 +7,11 @@ namespace OfficeIMO.CSV;
 
 internal static class CsvWriter
 {
+#if NET8_0_OR_GREATER
+    private static readonly System.Buffers.SearchValues<char> DefaultCommaQuoteCharacters =
+        System.Buffers.SearchValues.Create(new[] { '"', ',', '\r', '\n' });
+#endif
+
     public static void Write(TextWriter writer, CsvDocument document, CsvSaveOptions options)
     {
         var delimiter = options.Delimiter;
@@ -142,8 +147,7 @@ internal static class CsvWriter
             AppendEscapedValue(buffer, values[i], delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i));
         }
 
-        buffer.Append(newLine);
-        writer.Write(buffer);
+        WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
     internal static void WriteRecordBuffered(
@@ -174,8 +178,7 @@ internal static class CsvWriter
             AppendEscapedValue(buffer, values[i], delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i));
         }
 
-        buffer.Append(newLine);
-        writer.Write(buffer);
+        WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
     internal static void WriteRecordBufferedDefault(
@@ -202,8 +205,7 @@ internal static class CsvWriter
             AppendEscapedValueDefault(buffer, values[i], delimiter, culture);
         }
 
-        buffer.Append(newLine);
-        writer.Write(buffer);
+        WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
     internal static void WriteRecordBufferedAlwaysQuoted(
@@ -230,8 +232,7 @@ internal static class CsvWriter
             AppendAlwaysQuotedValue(buffer, values[i], culture);
         }
 
-        buffer.Append(newLine);
-        writer.Write(buffer);
+        WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
     internal static void WriteRecordBufferedAlwaysQuoted(
@@ -258,8 +259,7 @@ internal static class CsvWriter
             AppendAlwaysQuotedValue(buffer, values[i], culture);
         }
 
-        buffer.Append(newLine);
-        writer.Write(buffer);
+        WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
 
@@ -335,8 +335,7 @@ internal static class CsvWriter
             AppendEscapedValue(buffer, valueAccessor(state, i), delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i));
         }
 
-        buffer.Append(newLine);
-        writer.Write(buffer);
+        WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
     private static string FormatValue(object? value, CultureInfo culture)
@@ -352,6 +351,20 @@ internal static class CsvWriter
         }
 
         return value.ToString() ?? string.Empty;
+    }
+
+    private static void WriteBufferedRecordLine(TextWriter writer, StringBuilder buffer, string newLine)
+    {
+#if NET6_0_OR_GREATER
+        if (string.Equals(newLine, writer.NewLine, StringComparison.Ordinal))
+        {
+            writer.WriteLine(buffer);
+            return;
+        }
+#endif
+
+        buffer.Append(newLine);
+        writer.Write(buffer);
     }
 
     private static void AppendEscapedValue(
@@ -819,6 +832,13 @@ internal static class CsvWriter
 
     private static bool NeedsQuotes(string text, char delimiter)
     {
+#if NET8_0_OR_GREATER
+        if (delimiter == ',')
+        {
+            return text.AsSpan().IndexOfAny(DefaultCommaQuoteCharacters) >= 0;
+        }
+#endif
+
         foreach (var ch in text)
         {
             if (ch == '"' || ch == '\n' || ch == '\r' || ch == delimiter)
@@ -833,6 +853,13 @@ internal static class CsvWriter
 #if NET6_0_OR_GREATER
     private static bool NeedsQuotes(ReadOnlySpan<char> text, char delimiter)
     {
+#if NET8_0_OR_GREATER
+        if (delimiter == ',')
+        {
+            return text.IndexOfAny(DefaultCommaQuoteCharacters) >= 0;
+        }
+#endif
+
         foreach (var ch in text)
         {
             if (ch == '"' || ch == '\n' || ch == '\r' || ch == delimiter)
