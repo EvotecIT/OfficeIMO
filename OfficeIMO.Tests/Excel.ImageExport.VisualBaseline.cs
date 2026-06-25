@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void RichTextImageExportMatchesApprovedBaselines() {
             using ExcelBaselineFixture fixture = CreateRichTextBaselineWorkbook();
-            ExcelRange range = fixture.Sheet.Range("A1:B7");
+            ExcelRange range = fixture.Sheet.Range("A1:B8");
             ExcelImageExportOptions options = CreateBaselineOptions();
 
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
@@ -266,6 +266,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
             Assert.Contains(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && item.Source == "RichText!B6");
             Assert.Contains(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellTextRotationApproximation && item.Source == "RichText!B7");
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && item.Source == "RichText!B8");
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.DoesNotContain(svg.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.Contains("Single", svgText, StringComparison.Ordinal);
@@ -274,6 +275,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Shrink", svgText, StringComparison.Ordinal);
             Assert.Contains("Clip", svgText, StringComparison.Ordinal);
             Assert.Contains("Tilt", svgText, StringComparison.Ordinal);
+            Assert.Contains("tiny line stays visible", svgText, StringComparison.Ordinal);
             Assert.Contains("transform=\"rotate(-45", svgText, StringComparison.Ordinal);
             Assert.Contains("#0F766E", svgText, StringComparison.Ordinal);
             Assert.Contains("#7C3AED", svgText, StringComparison.Ordinal);
@@ -955,7 +957,7 @@ namespace OfficeIMO.Tests {
             sheet.CellAlign(1, 1, HorizontalAlignmentValues.Center);
             sheet.CellVerticalAlign(1, 1, VerticalAlignmentValues.Center);
 
-            string[] labels = { "Single", "Hard break", "Wrapped", "Shrink", "Clipped", "Rotated" };
+            string[] labels = { "Single", "Hard break", "Wrapped", "Shrink", "Clipped", "Rotated", "Mixed size" };
             for (int i = 0; i < labels.Length; i++) {
                 int row = i + 2;
                 sheet.CellValue(row, 1, labels[i]);
@@ -996,6 +998,10 @@ namespace OfficeIMO.Tests {
                     new ExcelRichTextRun(" rich") { Italic = true, FontColor = "7C3AED", FontSize = 13D },
                     new ExcelRichTextRun(" text") { Underline = true, FontColor = "2563EB", FontSize = 13D });
 
+            sheet.CellAt(8, 2).SetRichText(
+                new ExcelRichTextRun("Large line") { Bold = true, FontColor = "0F766E", FontSize = 18D },
+                new ExcelRichTextRun("\ntiny line stays visible") { Italic = true, FontColor = "7C3AED", FontSize = 8D });
+
             sheet.SetColumnWidth(1, 14);
             sheet.SetColumnWidth(2, 18);
             sheet.SetRowHeight(1, 28);
@@ -1005,7 +1011,8 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(5, 28);
             sheet.SetRowHeight(6, 24);
             sheet.SetRowHeight(7, 48);
-            for (int row = 1; row <= 7; row++) {
+            sheet.SetRowHeight(8, 36);
+            for (int row = 1; row <= 8; row++) {
                 for (int column = 1; column <= 2; column++) {
                     sheet.CellAt(row, column).SetBorder(BorderStyleValues.Thin, "CBD5E1");
                 }

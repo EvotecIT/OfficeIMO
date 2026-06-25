@@ -116,7 +116,7 @@ public static partial class OfficeTextLayoutEngine {
         double lineFactor = NormalizePositive(lineHeightFactor, 1.2D);
         if (elements.Count == 0) {
             double lineHeight = Math.Max(1D, Math.Ceiling(lineFactor));
-            return new OfficeRichTextBlockLayout(new[] { new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>()) }, lineHeight, 0D, lineHeight);
+            return new OfficeRichTextBlockLayout(new[] { new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>(), lineHeight) }, lineHeight, 0D, lineHeight);
         }
 
         if (shrinkToFit) {
@@ -125,7 +125,7 @@ public static partial class OfficeTextLayoutEngine {
 
         double maxFontSize = ResolveMaxRichTextFontSize(elements);
         double resolvedLineHeight = Math.Max(1D, Math.Ceiling(maxFontSize * lineFactor));
-        List<OfficeRichTextLine> lines = CreateStackedRichTextLines(elements, measure);
+        List<OfficeRichTextLine> lines = CreateStackedRichTextLines(elements, measure, resolvedLineHeight);
         return ClipStackedRichTextBlockToHeight(lines, resolvedLineHeight, width, height, measure);
     }
 
@@ -247,7 +247,7 @@ public static partial class OfficeTextLayoutEngine {
         return true;
     }
 
-    private static List<OfficeRichTextLine> CreateStackedRichTextLines(IReadOnlyList<OfficeRichTextRun> elements, Func<string?, double, string?, double> measure) {
+    private static List<OfficeRichTextLine> CreateStackedRichTextLines(IReadOnlyList<OfficeRichTextRun> elements, Func<string?, double, string?, double> measure, double lineHeight) {
         var lines = new List<OfficeRichTextLine>(elements.Count);
         for (int i = 0; i < elements.Count; i++) {
             OfficeRichTextRun run = elements[i];
@@ -262,7 +262,7 @@ public static partial class OfficeTextLayoutEngine {
                     run.Underline,
                     run.FontFamily,
                     run.Strikethrough)
-            }));
+            }, lineHeight));
         }
 
         return lines;
@@ -291,7 +291,7 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         double blockWidth = MeasureMaxRichTextLineWidth(lines);
-        double blockHeight = lines.Count * lineHeight;
+        double blockHeight = MeasureRichTextBlockHeight(lines, lineHeight);
         return new OfficeRichTextBlockLayout(lines, lineHeight, blockWidth, blockHeight, clipped);
     }
 

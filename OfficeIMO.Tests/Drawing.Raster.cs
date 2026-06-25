@@ -628,6 +628,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_UsesPerLineHeightsForMixedSizeRichText() {
+            double Measure(string? value, double size) => (value?.Length ?? 0) * size;
+
+            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                new[] {
+                    new OfficeRichTextRun("Big ", 20D, OfficeColor.Black),
+                    new OfficeRichTextRun("small", 8D, OfficeColor.Blue)
+                },
+                75D,
+                34D,
+                lineHeightFactor: 1.2D,
+                Measure,
+                wrap: true,
+                shrinkToFit: false,
+                minimumFontSize: 1D,
+                overflowBehavior: OfficeTextOverflowBehavior.Clip);
+
+            Assert.False(layout.Clipped);
+            Assert.Equal(2, layout.Lines.Count);
+            Assert.Equal(24D, layout.LineHeight);
+            Assert.Equal(24D, layout.Lines[0].LineHeight);
+            Assert.Equal(10D, layout.Lines[1].LineHeight);
+            Assert.Equal(34D, layout.Height);
+            Assert.Equal(new[] { "Big", "small" }, layout.Lines.Select(line => string.Concat(line.Segments.Select(segment => segment.Text))).ToArray());
+        }
+
+        [Fact]
         public void OfficeTextPlacement_ResolvesSharedHorizontalAndVerticalCoordinates() {
             Assert.Equal(10D, OfficeTextPlacement.ResolveAnchorX(10D, 100D, OfficeTextAlignment.Left));
             Assert.Equal(60D, OfficeTextPlacement.ResolveAnchorX(10D, 100D, OfficeTextAlignment.Center));

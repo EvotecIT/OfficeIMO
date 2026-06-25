@@ -11,7 +11,8 @@ public sealed class OfficeRichTextLine {
     /// Creates a measured rich text line.
     /// </summary>
     /// <param name="segments">Measured segments on the line.</param>
-    public OfficeRichTextLine(IReadOnlyList<OfficeRichTextSegment> segments) {
+    /// <param name="lineHeight">Optional resolved height for this line. A value of zero lets block renderers fall back to the containing layout line height.</param>
+    public OfficeRichTextLine(IReadOnlyList<OfficeRichTextSegment> segments, double lineHeight = 0D) {
         Segments = segments ?? Array.Empty<OfficeRichTextSegment>();
         double width = 0D;
         double fontSize = 0D;
@@ -22,6 +23,7 @@ public sealed class OfficeRichTextLine {
 
         Width = width;
         FontSize = fontSize;
+        LineHeight = lineHeight > 0D && !double.IsNaN(lineHeight) && !double.IsInfinity(lineHeight) ? lineHeight : 0D;
     }
 
     /// <summary>
@@ -38,4 +40,9 @@ public sealed class OfficeRichTextLine {
     /// Gets the largest font size used by this line.
     /// </summary>
     public double FontSize { get; }
+
+    /// <summary>
+    /// Gets the resolved line height for this line, or zero when the containing block line height should be used.
+    /// </summary>
+    public double LineHeight { get; }
 }

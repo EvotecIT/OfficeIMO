@@ -194,16 +194,18 @@ public static class OfficeTextBlockRenderer {
         }
 
         double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment);
+        double lineTop = textTop;
         for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {
             OfficeRichTextLine line = layout.Lines[lineIndex];
             if (line.Segments.Count == 0) {
+                lineTop += ResolveRichTextRenderLineHeight(line, layout.LineHeight);
                 continue;
             }
 
-            double lineTop = textTop + (lineIndex * layout.LineHeight);
+            double lineHeight = ResolveRichTextRenderLineHeight(line, layout.LineHeight);
             double lineFontSize = Math.Max(1D, line.FontSize);
             double runTop = centerLineInLineHeight
-                ? lineTop + Math.Max(0D, (layout.LineHeight - lineFontSize) / 2D)
+                ? lineTop + Math.Max(0D, (lineHeight - lineFontSize) / 2D)
                 : lineTop;
             double baseline = runTop + (lineFontSize * 0.84D);
             double cursor = OfficeTextPlacement.ResolveLineLeft(left, width, line.Width, horizontalAlignment);
@@ -227,6 +229,8 @@ public static class OfficeTextBlockRenderer {
                     segment.FontFamily);
                 cursor += segment.Width;
             }
+
+            lineTop += lineHeight;
         }
     }
 
@@ -272,16 +276,18 @@ public static class OfficeTextBlockRenderer {
         }
 
         double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment);
+        double lineTop = textTop;
         for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {
             OfficeRichTextLine line = layout.Lines[lineIndex];
             if (line.Segments.Count == 0) {
+                lineTop += ResolveRichTextRenderLineHeight(line, layout.LineHeight);
                 continue;
             }
 
-            double lineTop = textTop + (lineIndex * layout.LineHeight);
+            double lineHeight = ResolveRichTextRenderLineHeight(line, layout.LineHeight);
             double lineFontSize = Math.Max(1D, line.FontSize);
             double runTop = centerLineInLineHeight
-                ? lineTop + Math.Max(0D, (layout.LineHeight - lineFontSize) / 2D)
+                ? lineTop + Math.Max(0D, (lineHeight - lineFontSize) / 2D)
                 : lineTop;
             double baseline = runTop + (lineFontSize * 0.84D);
             double cursor = OfficeTextPlacement.ResolveLineLeft(left, width, line.Width, horizontalAlignment);
@@ -290,6 +296,8 @@ public static class OfficeTextBlockRenderer {
                 builder.AppendSvgRichTextSegment(segment, cursor, baseline, rotationDegrees, rotationCenterX, rotationCenterY);
                 cursor += segment.Width;
             }
+
+            lineTop += lineHeight;
         }
 
         return builder;
@@ -714,6 +722,9 @@ public static class OfficeTextBlockRenderer {
                 return "start";
         }
     }
+
+    private static double ResolveRichTextRenderLineHeight(OfficeRichTextLine line, double fallbackLineHeight) =>
+        line.LineHeight > 0D ? line.LineHeight : fallbackLineHeight;
 
     private static bool RequiresSvgWhitespacePreserve(OfficeTextBlockLayout layout) {
         for (int i = 0; i < layout.Lines.Count; i++) {

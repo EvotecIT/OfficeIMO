@@ -201,6 +201,8 @@ public static partial class OfficeTextLayoutEngine {
             lines.Add(new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>()));
         }
 
+        ApplyRichTextLineHeights(lines, lineFactor, maxFontSize);
+
         if (!wrap && lines.Count > 0 && lines[0].Width > width + 0.01D) {
             if (overflowBehavior == OfficeTextOverflowBehavior.Ellipsis) {
                 lines[0] = TrimRichTextLineToWidthWithEllipsis(lines[0], width, measure);
@@ -209,17 +211,12 @@ public static partial class OfficeTextLayoutEngine {
             clipped = true;
         }
 
-        int maxLines = Math.Max(1, (int)Math.Floor(height / lineHeight));
-        if (lines.Count > maxLines) {
+        if (ClipRichTextLinesToHeight(lines, height, width, measure, overflowBehavior)) {
             clipped = true;
-            lines.RemoveRange(maxLines, lines.Count - maxLines);
-            if (lines.Count > 0 && overflowBehavior == OfficeTextOverflowBehavior.Ellipsis) {
-                lines[lines.Count - 1] = TrimRichTextLineToWidthWithEllipsis(lines[lines.Count - 1], width, measure);
-            }
         }
 
         double blockWidth = MeasureMaxRichTextLineWidth(lines);
-        double blockHeight = lines.Count * lineHeight;
+        double blockHeight = MeasureRichTextBlockHeight(lines, lineHeight);
         return new OfficeRichTextBlockLayout(lines, lineHeight, blockWidth, blockHeight, clipped);
     }
 
@@ -368,7 +365,7 @@ public static partial class OfficeTextLayoutEngine {
         OfficeRichTextSegment ellipsisStyle = segments[segments.Count - 1];
         double width = NormalizeNonNegative(maxWidth);
         while (segments.Count > 0) {
-            OfficeRichTextLine candidate = CreateRichTextLineWithEllipsis(segments, ellipsisStyle, measure);
+            OfficeRichTextLine candidate = CreateRichTextLineWithEllipsis(segments, ellipsisStyle, measure, line.LineHeight);
             if (candidate.Width <= width) {
                 return candidate;
             }
@@ -385,11 +382,11 @@ public static partial class OfficeTextLayoutEngine {
 
         const string ellipsis = "...";
         return Measure(ellipsis, ellipsisStyle.FontSize, ellipsisStyle.FontFamily, measure) <= width
-            ? new OfficeRichTextLine(new[] { CreateRichTextSegment(ellipsis, ellipsisStyle, measure) })
-            : new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>());
+            ? new OfficeRichTextLine(new[] { CreateRichTextSegment(ellipsis, ellipsisStyle, measure) }, line.LineHeight)
+            : new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>(), line.LineHeight);
     }
 
-    private static OfficeRichTextLine CreateRichTextLineWithEllipsis(List<OfficeRichTextSegment> segments, OfficeRichTextSegment ellipsisStyle, Func<string?, double, string?, double> measure) {
+    private static OfficeRichTextLine CreateRichTextLineWithEllipsis(List<OfficeRichTextSegment> segments, OfficeRichTextSegment ellipsisStyle, Func<string?, double, string?, double> measure, double lineHeight) {
         var measured = new List<OfficeRichTextSegment>(segments.Count);
         for (int i = 0; i < segments.Count; i++) {
             OfficeRichTextSegment segment = segments[i];
@@ -402,7 +399,7 @@ public static partial class OfficeTextLayoutEngine {
             measured.Add(CreateRichTextSegment(ellipsis, ellipsisStyle, measure));
         }
 
-        return new OfficeRichTextLine(measured);
+        return new OfficeRichTextLine(measured, lineHeight);
     }
 
     private static OfficeRichTextLine CreateRichTextLine(List<OfficeRichTextSegment> segments, Func<string?, double, string?, double> measure) {
@@ -428,6 +425,69 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         return max;
+    }
+
+    private static void ApplyRichTextLineHeights(List<OfficeRichTextLine> lines, double lineHeightFactor, double fallbackFontSize) {
+        for (int i = 0; i < lines.Count; i++) {
+            OfficeRichTextLine line = lines[i];
+            lines[i] = new OfficeRichTextLine(
+                line.Segments,
+                ResolveRichTextLineHeight(line, lineHeightFactor, fallbackFontSize));
+        }
+    }
+
+    private static double ResolveRichTextLineHeight(OfficeRichTextLine line, double lineHeightFactor, double fallbackFontSize) {
+        if (line.LineHeight > 0D) {
+            return line.LineHeight;
+        }
+
+        double fontSize = line.FontSize > 0D ? line.FontSize : Math.Max(1D, fallbackFontSize);
+        return Math.Max(1D, Math.Ceiling(fontSize * lineHeightFactor));
+    }
+
+    private static bool ClipRichTextLinesToHeight(
+        List<OfficeRichTextLine> lines,
+        double maxHeight,
+        double maxWidth,
+        Func<string?, double, string?, double> measure,
+        OfficeTextOverflowBehavior overflowBehavior) {
+        if (lines.Count == 0) {
+            return false;
+        }
+
+        double height = NormalizeNonNegative(maxHeight);
+        double used = 0D;
+        int visibleCount = 0;
+        for (int i = 0; i < lines.Count; i++) {
+            double lineHeight = Math.Max(1D, lines[i].LineHeight);
+            if (visibleCount > 0 && used + lineHeight > height + 0.01D) {
+                break;
+            }
+
+            used += lineHeight;
+            visibleCount++;
+        }
+
+        visibleCount = Math.Max(1, visibleCount);
+        if (visibleCount >= lines.Count) {
+            return false;
+        }
+
+        lines.RemoveRange(visibleCount, lines.Count - visibleCount);
+        if (overflowBehavior == OfficeTextOverflowBehavior.Ellipsis) {
+            lines[lines.Count - 1] = TrimRichTextLineToWidthWithEllipsis(lines[lines.Count - 1], maxWidth, measure);
+        }
+
+        return true;
+    }
+
+    private static double MeasureRichTextBlockHeight(IReadOnlyList<OfficeRichTextLine> lines, double fallbackLineHeight) {
+        double height = 0D;
+        for (int i = 0; i < lines.Count; i++) {
+            height += lines[i].LineHeight > 0D ? lines[i].LineHeight : fallbackLineHeight;
+        }
+
+        return height;
     }
 
     private readonly struct RichTextToken {
