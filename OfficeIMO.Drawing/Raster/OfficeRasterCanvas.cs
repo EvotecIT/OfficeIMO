@@ -819,17 +819,42 @@ public sealed partial class OfficeRasterCanvas {
         OfficeColor c10 = image.GetPixel(x1, y0);
         OfficeColor c01 = image.GetPixel(x0, y1);
         OfficeColor c11 = image.GetPixel(x1, y1);
+        double w00 = (1D - tx) * (1D - ty);
+        double w10 = tx * (1D - ty);
+        double w01 = (1D - tx) * ty;
+        double w11 = tx * ty;
+        double alpha = (c00.A * w00) + (c10.A * w10) + (c01.A * w01) + (c11.A * w11);
+        if (alpha <= 0D) {
+            return OfficeColor.Transparent;
+        }
+
         return OfficeColor.FromRgba(
-            InterpolateChannel(c00.R, c10.R, c01.R, c11.R, tx, ty),
-            InterpolateChannel(c00.G, c10.G, c01.G, c11.G, tx, ty),
-            InterpolateChannel(c00.B, c10.B, c01.B, c11.B, tx, ty),
-            InterpolateChannel(c00.A, c10.A, c01.A, c11.A, tx, ty));
+            SamplePremultipliedChannel(c00.R, c00.A, w00, c10.R, c10.A, w10, c01.R, c01.A, w01, c11.R, c11.A, w11, alpha),
+            SamplePremultipliedChannel(c00.G, c00.A, w00, c10.G, c10.A, w10, c01.G, c01.A, w01, c11.G, c11.A, w11, alpha),
+            SamplePremultipliedChannel(c00.B, c00.A, w00, c10.B, c10.A, w10, c01.B, c01.A, w01, c11.B, c11.A, w11, alpha),
+            (byte)Math.Round(Clamp(alpha, 0D, 255D)));
     }
 
-    private static byte InterpolateChannel(byte c00, byte c10, byte c01, byte c11, double tx, double ty) {
-        double top = c00 + ((c10 - c00) * tx);
-        double bottom = c01 + ((c11 - c01) * tx);
-        return (byte)Math.Round(Clamp(top + ((bottom - top) * ty), 0D, 255D));
+    private static byte SamplePremultipliedChannel(
+        byte c00,
+        byte a00,
+        double w00,
+        byte c10,
+        byte a10,
+        double w10,
+        byte c01,
+        byte a01,
+        double w01,
+        byte c11,
+        byte a11,
+        double w11,
+        double alpha) {
+        double premultiplied =
+            (c00 * a00 * w00) +
+            (c10 * a10 * w10) +
+            (c01 * a01 * w01) +
+            (c11 * a11 * w11);
+        return (byte)Math.Round(Clamp(premultiplied / alpha, 0D, 255D));
     }
 
     private static double DistanceToSegment(double px, double py, double x1, double y1, double x2, double y2) {

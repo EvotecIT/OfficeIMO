@@ -1248,6 +1248,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_ScalesTransparentImageEdgesWithoutDarkeningColor() {
+            OfficeRasterImage source = new OfficeRasterImage(2, 2, OfficeColor.Transparent);
+            source.SetPixel(0, 0, OfficeColor.FromRgb(0, 255, 0));
+            OfficeRasterImage target = new OfficeRasterImage(8, 8, OfficeColor.Transparent);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(target);
+
+            canvas.DrawImage(source, 0, 0, 8, 8);
+
+            OfficeColor edge = target.GetPixel(4, 0);
+            Assert.InRange(edge.A, 1, 254);
+            Assert.True(edge.G > 220, "Expected transparent-edge image scaling to preserve premultiplied source color instead of blending toward transparent black.");
+            Assert.True(edge.R < 10);
+            Assert.True(edge.B < 10);
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_DrawsRotatedImagesAroundCenter() {
             OfficeRasterImage source = new OfficeRasterImage(8, 2, OfficeColor.FromRgb(34, 197, 94));
             OfficeRasterImage target = new OfficeRasterImage(32, 32, OfficeColor.Transparent);
