@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using System.Globalization;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using X = DocumentFormat.OpenXml.Spreadsheet;
@@ -499,6 +500,96 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
             ExcelVisualConditionalIcon finalIcon = snapshot.ConditionalIcons.Single(icon => icon.Row == 3 && icon.Column == 1);
             Assert.True(CountGreenIconPixels(rendered!, finalIcon) > 4, "Expected visible green conditional-formatting icon pixels.");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportHonorsConditionalDataBarHiddenValues() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("DataBarOnly");
+                sheet.CellValue(1, 1, 42);
+                sheet.SetColumnWidth(1, 12);
+                sheet.SetRowHeight(1, 24);
+                sheet.AddConditionalDataBar("A1:A1", OfficeColor.Blue);
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                DataBar dataBar = worksheet.Elements<ConditionalFormatting>().First().Elements<ConditionalFormattingRule>().First().GetFirstChild<DataBar>()!;
+                dataBar.ShowValue = false;
+                worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:A1");
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+                string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+
+                ExcelVisualConditionalDataBar bar = Assert.Single(snapshot.ConditionalDataBars);
+                Assert.False(bar.ShowValue);
+                Assert.DoesNotContain(">42<", svg, StringComparison.Ordinal);
+                Assert.Contains("#0000FF", svg, StringComparison.Ordinal);
+            }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportUsesRawNumericValuesForFormattedConditionalCandidates() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Formatted");
+            for (int row = 1; row <= 3; row++) {
+                double value = row / 10D;
+                sheet.CellValue(row, 1, value);
+                sheet.CellValue(row, 2, value);
+                ApplyBuiltInNumberFormatId(document, sheet, "A" + row.ToString(CultureInfo.InvariantCulture), 10U);
+                ApplyBuiltInNumberFormatId(document, sheet, "B" + row.ToString(CultureInfo.InvariantCulture), 10U);
+            }
+
+            sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
+            sheet.AddConditionalIconSet("B1:B3", IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:B3").CreateVisualSnapshot();
+
+            Assert.Equal(new[] { "10.00%", "20.00%", "30.00%" }, snapshot.Cells.Where(cell => cell.Column == 1).Select(cell => cell.Text).ToArray());
+            Assert.Equal(3, snapshot.ConditionalDataBars.Count);
+            Assert.Equal(3, snapshot.ConditionalIcons.Count);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Column == 2 && icon.Kind == ExcelConditionalIconKind.GreenCircle);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportPreservesAbsoluteConditionalFormulaReferences() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Absolute");
+            sheet.CellValue(1, 1, 1);
+            sheet.CellValue(2, 1, 0);
+            sheet.CellValue(3, 1, 0);
+            for (int row = 1; row <= 3; row++) {
+                sheet.CellValue(row, 2, "row " + row.ToString(CultureInfo.InvariantCulture));
+            }
+
+            sheet.AddConditionalFormulaRule("B1:B3", "=$A$1>0", stopIfTrue: false, fillColor: "C6EFCE");
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:B3").CreateVisualSnapshot();
+
+            Assert.All(snapshot.Cells.Where(cell => cell.Column == 2), cell => Assert.Equal("FFC6EFCE", cell.Style.FillColorArgb));
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportHonorsStopIfTrueRulesWithoutSupportedFills() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("StopOnly");
+            sheet.CellValue(1, 1, 1);
+            sheet.CellValue(1, 2, 10);
+            sheet.AddConditionalFormulaRule("B1:B1", "=$A$1>0", stopIfTrue: true, fillColor: null);
+            sheet.AddConditionalFormulaRule("B1:B1", "=B1>0", stopIfTrue: false, fillColor: "FCE4D6");
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:B1").CreateVisualSnapshot();
+
+            Assert.Null(snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 2).Style.FillColorArgb);
         }
 
         [Fact]

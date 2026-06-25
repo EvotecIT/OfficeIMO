@@ -98,6 +98,11 @@ public sealed partial class PdfDocument {
                         ValidatePointInsideClip(command.Point, clipPath);
                         hasDraw = true;
                         break;
+                    case OfficePathCommandKind.QuadraticBezierTo:
+                        ValidatePointInsideClip(command.ControlPoint1, clipPath);
+                        ValidatePointInsideClip(command.Point, clipPath);
+                        hasDraw = true;
+                        break;
                     case OfficePathCommandKind.CubicBezierTo:
                         ValidatePointInsideClip(command.ControlPoint1, clipPath);
                         ValidatePointInsideClip(command.ControlPoint2, clipPath);

@@ -281,7 +281,7 @@ namespace OfficeIMO.Excel {
     /// Conditional-formatting data bar overlay in an Excel range snapshot.
     /// </summary>
     public sealed class ExcelVisualConditionalDataBar {
-        internal ExcelVisualConditionalDataBar(int row, int column, double x, double y, double width, double height, string colorArgb, double startRatio, double ratio) {
+        internal ExcelVisualConditionalDataBar(int row, int column, double x, double y, double width, double height, string colorArgb, double startRatio, double ratio, bool showValue) {
             Row = row;
             Column = column;
             X = x;
@@ -291,6 +291,7 @@ namespace OfficeIMO.Excel {
             ColorArgb = colorArgb ?? string.Empty;
             StartRatio = startRatio;
             Ratio = ratio;
+            ShowValue = showValue;
         }
 
         /// <summary>One-based source row.</summary>
@@ -319,6 +320,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Bar width ratio inside the cell.</summary>
         public double Ratio { get; }
+
+        /// <summary>Whether the underlying cell value should be drawn over the bar.</summary>
+        public bool ShowValue { get; }
     }
 
     /// <summary>

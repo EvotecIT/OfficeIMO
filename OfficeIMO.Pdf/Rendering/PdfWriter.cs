@@ -953,9 +953,11 @@ internal static partial class PdfWriter {
     }
 
     private static void AddPageBackgroundImage(LayoutResult.Page page, PdfOptions options, PdfPageBackgroundImage image) {
+        double imageWidth = image.ImageInfo.Width > 0 ? image.ImageInfo.Width : options.PageWidth;
+        double imageHeight = image.ImageInfo.Height > 0 ? image.ImageInfo.Height : options.PageHeight;
         OfficeImageRenderPlan renderPlan = OfficeImageRenderPlan.CreateBottomLeft(
-            image.ImageInfo.Width,
-            image.ImageInfo.Height,
+            imageWidth,
+            imageHeight,
             0D,
             0D,
             options.PageWidth,

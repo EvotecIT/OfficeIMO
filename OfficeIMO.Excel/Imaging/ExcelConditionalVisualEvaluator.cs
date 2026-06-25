@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                List<ConditionalNumericCell> candidates = GetNumericCandidates(cells, rule.Range);
+                List<ConditionalNumericCell> candidates = GetNumericCandidates(sheet, cells, rule.Range);
                 if (candidates.Count == 0) {
                     continue;
                 }
@@ -45,7 +45,8 @@ namespace OfficeIMO.Excel {
                         candidate.Cell.Height,
                         colorArgb,
                         startRatio,
-                        ratio));
+                        ratio,
+                        rule.DataBarShowValue));
                 }
             }
 
@@ -146,7 +147,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
-                        !CanEvaluateTopBottomRule(cells, rule)) {
+                        !CanEvaluateTopBottomRule(sheet, cells, rule)) {
                         diagnostics.Add(new OfficeImageExportDiagnostic(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.ConditionalTopBottomUnsupported,
@@ -172,7 +173,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
-                        !CanEvaluateAboveAverageRule(cells, rule)) {
+                        !CanEvaluateAboveAverageRule(sheet, cells, rule)) {
                         diagnostics.Add(new OfficeImageExportDiagnostic(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.ConditionalAboveAverageUnsupported,
@@ -250,11 +251,7 @@ namespace OfficeIMO.Excel {
             var stoppedCells = new HashSet<string>(StringComparer.Ordinal);
             foreach (ExcelConditionalFormattingInfo rule in rules.OrderBy(rule => NormalizePriority(rule.Priority))) {
                 if (string.Equals(rule.Type, "ColorScale", StringComparison.OrdinalIgnoreCase)) {
-                    ApplyColorScaleFill(cells, rule, fills, stoppedCells);
-                    continue;
-                }
-
-                if (string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb)) {
+                    ApplyColorScaleFill(sheet, cells, rule, fills, stoppedCells);
                     continue;
                 }
 
@@ -270,7 +267,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (string.Equals(rule.Type, "Top10", StringComparison.OrdinalIgnoreCase)) {
-                    ApplyTopBottomFill(cells, rule, fills, stoppedCells);
+                    ApplyTopBottomFill(sheet, cells, rule, fills, stoppedCells);
                     continue;
                 }
 
@@ -285,7 +282,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (string.Equals(rule.Type, "AboveAverage", StringComparison.OrdinalIgnoreCase)) {
-                    ApplyAboveAverageFill(cells, rule, fills, stoppedCells);
+                    ApplyAboveAverageFill(sheet, cells, rule, fills, stoppedCells);
                     continue;
                 }
 
@@ -306,7 +303,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (RuleMatchesCell(sheet, cell, rule)) {
-                        if (!fills.ContainsKey(key)) {
+                        if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) && !fills.ContainsKey(key)) {
                             fills[key] = rule.DifferentialFillColorArgb!;
                         }
 
@@ -321,6 +318,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ApplyColorScaleFill(
+            ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             ExcelConditionalFormattingInfo rule,
             Dictionary<string, string> fills,
@@ -331,7 +329,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            List<ConditionalNumericCell> candidates = GetNumericCandidates(cells, rule.Range)
+            List<ConditionalNumericCell> candidates = GetNumericCandidates(sheet, cells, rule.Range)
                 .Where(candidate => !stoppedCells.Contains(Key(candidate.Cell.Row, candidate.Cell.Column)))
                 .ToList();
             if (candidates.Count == 0) {
@@ -362,23 +360,23 @@ namespace OfficeIMO.Excel {
                 result;
         }
 
-        private static bool CanEvaluateTopBottomRule(IReadOnlyList<ExcelVisualCell> cells, ExcelConditionalFormattingInfo rule) =>
+        private static bool CanEvaluateTopBottomRule(ExcelSheet sheet, IReadOnlyList<ExcelVisualCell> cells, ExcelConditionalFormattingInfo rule) =>
             rule.TopBottomRank.HasValue &&
             rule.TopBottomRank.Value > 0U &&
-            CalculateTopBottomSelectionCount(rule, GetNumericCandidates(cells, rule.Range).Count) > 0;
+            CalculateTopBottomSelectionCount(rule, GetNumericCandidates(sheet, cells, rule.Range).Count) > 0;
 
         private static void ApplyTopBottomFill(
+            ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             ExcelConditionalFormattingInfo rule,
             Dictionary<string, string> fills,
             HashSet<string> stoppedCells) {
-            if (string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) ||
-                !rule.TopBottomRank.HasValue ||
+            if (!rule.TopBottomRank.HasValue ||
                 rule.TopBottomRank.Value == 0U) {
                 return;
             }
 
-            List<ConditionalNumericCell> candidates = GetNumericCandidates(cells, rule.Range)
+            List<ConditionalNumericCell> candidates = GetNumericCandidates(sheet, cells, rule.Range)
                 .Where(candidate => !stoppedCells.Contains(Key(candidate.Cell.Row, candidate.Cell.Column)))
                 .ToList();
             if (candidates.Count == 0) {
@@ -404,7 +402,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 string key = Key(candidate.Cell.Row, candidate.Cell.Column);
-                if (!fills.ContainsKey(key)) {
+                if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) && !fills.ContainsKey(key)) {
                     fills[key] = rule.DifferentialFillColorArgb!;
                 }
 
@@ -428,21 +426,21 @@ namespace OfficeIMO.Excel {
             return Math.Max(1, Math.Min(candidateCount, count));
         }
 
-        private static bool CanEvaluateAboveAverageRule(IReadOnlyList<ExcelVisualCell> cells, ExcelConditionalFormattingInfo rule) =>
+        private static bool CanEvaluateAboveAverageRule(ExcelSheet sheet, IReadOnlyList<ExcelVisualCell> cells, ExcelConditionalFormattingInfo rule) =>
             !rule.AboveAverageStdDev.HasValue &&
-            GetNumericCandidates(cells, rule.Range).Count > 0;
+            GetNumericCandidates(sheet, cells, rule.Range).Count > 0;
 
         private static void ApplyAboveAverageFill(
+            ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             ExcelConditionalFormattingInfo rule,
             Dictionary<string, string> fills,
             HashSet<string> stoppedCells) {
-            if (string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) ||
-                rule.AboveAverageStdDev.HasValue) {
+            if (rule.AboveAverageStdDev.HasValue) {
                 return;
             }
 
-            List<ConditionalNumericCell> candidates = GetNumericCandidates(cells, rule.Range)
+            List<ConditionalNumericCell> candidates = GetNumericCandidates(sheet, cells, rule.Range)
                 .Where(candidate => !stoppedCells.Contains(Key(candidate.Cell.Row, candidate.Cell.Column)))
                 .ToList();
             if (candidates.Count == 0) {
@@ -459,7 +457,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 string key = Key(candidate.Cell.Row, candidate.Cell.Column);
-                if (!fills.ContainsKey(key)) {
+                if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) && !fills.ContainsKey(key)) {
                     fills[key] = rule.DifferentialFillColorArgb!;
                 }
 
@@ -475,10 +473,6 @@ namespace OfficeIMO.Excel {
             Dictionary<string, string> fills,
             HashSet<string> stoppedCells,
             bool selectDuplicates) {
-            if (string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb)) {
-                return;
-            }
-
             var candidates = new List<(ExcelVisualCell Cell, string Value)>();
             foreach (ExcelVisualCell cell in GetRuleCells(cells, rule.Range)) {
                 string key = Key(cell.Row, cell.Column);
@@ -509,7 +503,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 string key = Key(cell.Row, cell.Column);
-                if (!fills.ContainsKey(key)) {
+                if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) && !fills.ContainsKey(key)) {
                     fills[key] = rule.DifferentialFillColorArgb!;
                 }
 
@@ -652,15 +646,39 @@ namespace OfficeIMO.Excel {
 
         private static bool TryResolveCellReference(ExcelSheet sheet, ExcelVisualCell cell, string ruleRange, string reference, out int row, out int column) {
             row = column = 0;
-            string normalized = StripSheetPrefix(reference).Replace("$", string.Empty);
+            string normalized = NormalizeCellReference(StripSheetPrefix(reference), out bool absoluteColumn, out bool absoluteRow);
             if (!A1.TryParseCellReferenceFast(normalized, out int referenceRow, out int referenceColumn)) {
                 return false;
             }
 
             (int topRow, int leftColumn) = GetReferenceListOrigin(ruleRange);
-            row = referenceRow + (cell.Row - topRow);
-            column = referenceColumn + (cell.Column - leftColumn);
+            row = absoluteRow ? referenceRow : referenceRow + (cell.Row - topRow);
+            column = absoluteColumn ? referenceColumn : referenceColumn + (cell.Column - leftColumn);
             return row >= 1 && column >= 1;
+        }
+
+        private static string NormalizeCellReference(string reference, out bool absoluteColumn, out bool absoluteRow) {
+            absoluteColumn = false;
+            absoluteRow = false;
+            if (string.IsNullOrWhiteSpace(reference)) {
+                return string.Empty;
+            }
+
+            int index = 0;
+            if (reference[index] == '$') {
+                absoluteColumn = true;
+                index++;
+            }
+
+            while (index < reference.Length && char.IsLetter(reference[index])) {
+                index++;
+            }
+
+            if (index < reference.Length && reference[index] == '$') {
+                absoluteRow = true;
+            }
+
+            return reference.Replace("$", string.Empty);
         }
 
         private static (int Row, int Column) GetReferenceListOrigin(string referenceList) {
@@ -705,14 +723,14 @@ namespace OfficeIMO.Excel {
             return TryGetConditionalNumericValue(data.CachedText, out value);
         }
 
-        private static List<ConditionalNumericCell> GetNumericCandidates(IReadOnlyList<ExcelVisualCell> cells, string referenceList) {
+        private static List<ConditionalNumericCell> GetNumericCandidates(ExcelSheet sheet, IReadOnlyList<ExcelVisualCell> cells, string referenceList) {
             var candidates = new List<ConditionalNumericCell>();
             foreach (ExcelVisualCell cell in cells) {
                 if (cell.CoveredByMerge || !IsCellInReferenceList(cell.Row, cell.Column, referenceList)) {
                     continue;
                 }
 
-                if (TryGetConditionalNumericValue(cell.Text, out double value)) {
+                if (TryGetCellNumericValue(sheet, cell, out double value)) {
                     candidates.Add(new ConditionalNumericCell(cell, value));
                 }
             }

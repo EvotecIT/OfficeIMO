@@ -27,6 +27,8 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<string> ColorScaleColors { get; set; } = Array.Empty<string>();
         /// <summary>Gets or sets the ARGB color attached to a data-bar rule.</summary>
         public string? DataBarColor { get; set; }
+        /// <summary>Gets or sets whether the data-bar rule displays the underlying cell value.</summary>
+        public bool DataBarShowValue { get; set; } = true;
         /// <summary>Gets or sets the icon-set name attached to an icon-set rule.</summary>
         public string? IconSet { get; set; }
         /// <summary>Gets or sets whether the icon-set rule displays the underlying cell value.</summary>

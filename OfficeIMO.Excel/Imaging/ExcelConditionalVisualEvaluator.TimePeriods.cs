@@ -19,8 +19,7 @@ namespace OfficeIMO.Excel {
             DateTime referenceDate,
             Dictionary<string, string> fills,
             HashSet<string> stoppedCells) {
-            if (string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) ||
-                string.IsNullOrWhiteSpace(rule.TimePeriod) ||
+            if (string.IsNullOrWhiteSpace(rule.TimePeriod) ||
                 !TryGetTimePeriodBounds(rule.TimePeriod!, referenceDate, out DateTime start, out DateTime endExclusive)) {
                 return;
             }
@@ -34,7 +33,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (!fills.ContainsKey(key)) {
+                if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) && !fills.ContainsKey(key)) {
                     fills[key] = rule.DifferentialFillColorArgb!;
                 }
 

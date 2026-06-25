@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
             ExcelConditionalFormattingInfo rule,
             Dictionary<string, string> fills,
             HashSet<string> stoppedCells) {
-            if (string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) || !CanEvaluateTextRule(rule)) {
+            if (!CanEvaluateTextRule(rule)) {
                 return;
             }
 
@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (!fills.ContainsKey(key)) {
+                if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) && !fills.ContainsKey(key)) {
                     fills[key] = rule.DifferentialFillColorArgb!;
                 }
 

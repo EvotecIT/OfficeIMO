@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                List<ConditionalNumericCell> candidates = GetNumericCandidates(cells, rule.Range);
+                List<ConditionalNumericCell> candidates = GetNumericCandidates(sheet, cells, rule.Range);
                 if (candidates.Count == 0) {
                     diagnostics.Add(new OfficeImageExportDiagnostic(
                         OfficeImageExportDiagnosticSeverity.Warning,

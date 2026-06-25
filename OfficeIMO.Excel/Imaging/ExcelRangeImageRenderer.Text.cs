@@ -23,6 +23,10 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            if (TryGetConditionalDataBarForCell(snapshot, cell, out ExcelVisualConditionalDataBar dataBar) && !dataBar.ShowValue) {
+                return;
+            }
+
             CellTextViewport viewport = ResolveCellTextViewport(cell, snapshot, scale, cellsByAddress);
             if (TryGetConditionalIconForCell(snapshot, cell, out ExcelVisualConditionalIcon conditionalIcon)) {
                 if (!conditionalIcon.ShowValue) {
@@ -157,6 +161,10 @@ namespace OfficeIMO.Excel {
             }
 
             double scale = options.Scale;
+            if (TryGetConditionalDataBarForCell(snapshot, cell, out ExcelVisualConditionalDataBar dataBar) && !dataBar.ShowValue) {
+                return;
+            }
+
             CellTextViewport viewport = ResolveCellTextViewport(cell, snapshot, scale, cellsByAddress);
             if (TryGetConditionalIconForCell(snapshot, cell, out ExcelVisualConditionalIcon conditionalIcon)) {
                 if (!conditionalIcon.ShowValue) {
@@ -526,6 +534,19 @@ namespace OfficeIMO.Excel {
             }
 
             icon = null!;
+            return false;
+        }
+
+        private static bool TryGetConditionalDataBarForCell(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, out ExcelVisualConditionalDataBar dataBar) {
+            for (int index = 0; index < snapshot.ConditionalDataBars.Count; index++) {
+                ExcelVisualConditionalDataBar candidate = snapshot.ConditionalDataBars[index];
+                if (candidate.Row == cell.Row && candidate.Column == cell.Column) {
+                    dataBar = candidate;
+                    return true;
+                }
+            }
+
+            dataBar = null!;
             return false;
         }
 

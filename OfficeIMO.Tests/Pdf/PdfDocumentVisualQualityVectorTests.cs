@@ -480,6 +480,35 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void VectorPath_RendersQuadraticBezierCommandsAsPdfCubicCurves() {
+        var shape = OfficeShape.Path(
+            OfficePathCommand.MoveTo(0, 40),
+            OfficePathCommand.QuadraticBezierTo(40, 0, 80, 40),
+            OfficePathCommand.Close());
+        shape.FillColor = OfficeColor.WhiteSmoke;
+        shape.StrokeColor = OfficeColor.SteelBlue;
+        shape.StrokeWidth = 1.5;
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180,
+                MarginLeft = 20,
+                MarginRight = 20,
+                MarginTop = 20,
+                MarginBottom = 20
+            })
+            .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("80 120 m", content);
+        Assert.Contains("106.667 146.667 133.333 146.667 160 120 c", content);
+        Assert.Contains("h", content);
+        Assert.Contains("B", content);
+    }
+
+    [Fact]
     public void VectorDrawing_RendersPositionedShapesFromSharedDrawingScene() {
         var background = OfficeShape.Rectangle(120, 60);
         background.FillColor = OfficeColor.WhiteSmoke;

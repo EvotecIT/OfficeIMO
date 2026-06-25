@@ -38,6 +38,7 @@ namespace OfficeIMO.Excel {
                         Formulas = rule.Elements<Formula>().Select(f => f.Text ?? string.Empty).ToArray(),
                         ColorScaleColors = ReadColorScaleColors(rule),
                         DataBarColor = ReadDataBarColor(rule),
+                        DataBarShowValue = ReadDataBarShowValue(rule),
                         IconSet = ReadIconSetName(rule),
                         IconSetShowValue = ReadIconSetShowValue(rule),
                         IconSetReverse = ReadIconSetReverse(rule),
@@ -147,6 +148,11 @@ namespace OfficeIMO.Excel {
             return dataBar.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>()
                 .Select(color => color.Rgb?.Value)
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+        }
+
+        private static bool ReadDataBarShowValue(ConditionalFormattingRule rule) {
+            DataBar? dataBar = rule.GetFirstChild<DataBar>();
+            return dataBar?.ShowValue?.Value ?? true;
         }
 
         private static string? ReadIconSetName(ConditionalFormattingRule rule) {
