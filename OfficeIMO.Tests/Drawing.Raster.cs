@@ -229,6 +229,7 @@ namespace OfficeIMO.Tests {
             Assert.True(CountPixelsNear(image, style.FillColor) > 1000);
             Assert.True(CountPixelsNear(image, style.HeaderFillColor) > 400);
             Assert.True(CountPixelsNear(image, style.AccentColor) > 120);
+            Assert.True(CountPixelsNearAlpha(image, style.ShadowColor, 8, 10, 80) > 100);
             Assert.True(CountPaintedPixels(image) > 3000);
 
             var builder = new System.Text.StringBuilder();
@@ -242,7 +243,9 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("review-callout-body", svg, StringComparison.Ordinal);
             Assert.Contains("review-callout-text", svg, StringComparison.Ordinal);
+            Assert.Contains("fill-opacity=", svg, StringComparison.Ordinal);
             Assert.Contains("fill=\"#FFFBE6\"", svg, StringComparison.Ordinal);
+            Assert.Contains("fill=\"#0F172A\"", svg, StringComparison.Ordinal);
             Assert.Contains("fill=\"#7C3AED\"", svg, StringComparison.Ordinal);
             Assert.Contains(">Reviewer</text>", svg, StringComparison.Ordinal);
             Assert.Contains("Ready", svg, StringComparison.Ordinal);
@@ -1767,6 +1770,17 @@ namespace OfficeIMO.Tests {
                         Math.Abs(color.G - expected.G) <= 8 &&
                         Math.Abs(color.B - expected.B) <= 8 &&
                         color.A > 0;
+                });
+
+        private static int CountPixelsNearAlpha(OfficeRasterImage image, OfficeColor expected, int tolerance, byte minimumAlpha, byte maximumAlpha) =>
+            Enumerable.Range(0, image.Width * image.Height)
+                .Count(index => {
+                    OfficeColor color = image.GetPixel(index % image.Width, index / image.Width);
+                    return Math.Abs(color.R - expected.R) <= tolerance &&
+                        Math.Abs(color.G - expected.G) <= tolerance &&
+                        Math.Abs(color.B - expected.B) <= tolerance &&
+                        color.A >= minimumAlpha &&
+                        color.A <= maximumAlpha;
                 });
 
         private static double ExtractSvgRectHeight(string svg) {

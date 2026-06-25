@@ -34,7 +34,7 @@ public static class OfficeCalloutRenderer {
         double height = callout.Height * scale;
         double headerHeight = Math.Min(height, style.HeaderHeight * scale);
 
-        canvas.FillRectangle(x + (2D * scale), y + (2D * scale), width, height, style.ShadowColor);
+        DrawRasterBodyShadow(canvas, style, scale, x, y, width, height);
         DrawRasterPointer(canvas, callout, style, scale, shadow: true);
         DrawRasterPointer(canvas, callout, style, scale, shadow: false);
         OfficeDrawing drawing = CreateBodyDrawing(style, scale, width, height, headerHeight);
@@ -86,6 +86,7 @@ public static class OfficeCalloutRenderer {
         double height = callout.Height * scale;
         string safePrefix = string.IsNullOrWhiteSpace(idPrefix) ? "office-callout" : idPrefix;
 
+        AppendSvgBodyShadow(builder, style, scale, x, y, width, height);
         AppendSvgPointer(builder, callout, style, scale, shadow: true);
         AppendSvgPointer(builder, callout, style, scale, shadow: false);
         builder.AppendNestedSvgStart(x, y, width, height);
@@ -218,7 +219,7 @@ public static class OfficeCalloutRenderer {
     }
 
     private static void AppendSvgBody(StringBuilder builder, OfficeCalloutStyle style, double scale, double width, double height, string idPrefix) {
-        double radius = Math.Min(7D * scale, Math.Min(width, height) / 7D);
+        double radius = ResolveCornerRadius(width, height, scale);
         double headerHeight = Math.Min(height, style.HeaderHeight * scale);
         string clipId = idPrefix + "-body";
 
@@ -241,8 +242,60 @@ public static class OfficeCalloutRenderer {
         builder.Append("</g>");
     }
 
+    private static void DrawRasterBodyShadow(OfficeRasterCanvas canvas, OfficeCalloutStyle style, double scale, double x, double y, double width, double height) {
+        if (style.ShadowColor.A == 0) {
+            return;
+        }
+
+        double spread = Math.Max(0D, style.ShadowSpread * scale);
+        double offsetX = style.ShadowOffsetX * scale;
+        double offsetY = style.ShadowOffsetY * scale;
+        double radius = ResolveCornerRadius(width, height, scale);
+
+        if (spread > 0D) {
+            OfficeDrawing ambient = CreateShadowDrawing(ScaleAlpha(style.ShadowColor, 0.45D), width + (spread * 2D), height + (spread * 2D), radius + spread);
+            OfficeRasterImage ambientImage = OfficeDrawingRasterRenderer.Render(ambient);
+            canvas.DrawImage(ambientImage, x + offsetX - spread, y + offsetY - spread, width + (spread * 2D), height + (spread * 2D));
+        }
+
+        OfficeDrawing shadow = CreateShadowDrawing(style.ShadowColor, width, height, radius);
+        OfficeRasterImage shadowImage = OfficeDrawingRasterRenderer.Render(shadow);
+        canvas.DrawImage(shadowImage, x + offsetX, y + offsetY, width, height);
+    }
+
+    private static void AppendSvgBodyShadow(StringBuilder builder, OfficeCalloutStyle style, double scale, double x, double y, double width, double height) {
+        if (style.ShadowColor.A == 0) {
+            return;
+        }
+
+        double spread = Math.Max(0D, style.ShadowSpread * scale);
+        double offsetX = style.ShadowOffsetX * scale;
+        double offsetY = style.ShadowOffsetY * scale;
+        double radius = ResolveCornerRadius(width, height, scale);
+
+        if (spread > 0D) {
+            builder.AppendRectElement(
+                x + offsetX - spread,
+                y + offsetY - spread,
+                width + (spread * 2D),
+                height + (spread * 2D),
+                radius + spread,
+                radius + spread,
+                new StringBuilder().AppendPaintAttribute("fill", ScaleAlpha(style.ShadowColor, 0.45D)).ToString());
+        }
+
+        builder.AppendRectElement(
+            x + offsetX,
+            y + offsetY,
+            width,
+            height,
+            radius,
+            radius,
+            new StringBuilder().AppendPaintAttribute("fill", style.ShadowColor).ToString());
+    }
+
     private static OfficeDrawing CreateBodyDrawing(OfficeCalloutStyle style, double scale, double width, double height, double headerHeight) {
-        double radius = Math.Min(7D * scale, Math.Min(width, height) / 7D);
+        double radius = ResolveCornerRadius(width, height, scale);
         var drawing = new OfficeDrawing(width, height);
 
         OfficeShape background = OfficeShape.RoundedRectangle(width, height, radius);
@@ -264,6 +317,23 @@ public static class OfficeCalloutRenderer {
         drawing.AddShape(accent, 0D, 0D);
 
         return drawing;
+    }
+
+    private static OfficeDrawing CreateShadowDrawing(OfficeColor shadowColor, double width, double height, double radius) {
+        var drawing = new OfficeDrawing(width, height);
+        OfficeShape shadow = OfficeShape.RoundedRectangle(width, height, radius);
+        shadow.FillColor = shadowColor;
+        shadow.StrokeColor = null;
+        drawing.AddShape(shadow, 0D, 0D);
+        return drawing;
+    }
+
+    private static double ResolveCornerRadius(double width, double height, double scale) =>
+        Math.Min(7D * scale, Math.Min(width, height) / 7D);
+
+    private static OfficeColor ScaleAlpha(OfficeColor color, double factor) {
+        double clamped = Math.Max(0D, Math.Min(1D, factor));
+        return OfficeColor.FromRgba(color.R, color.G, color.B, (byte)Math.Round(color.A * clamped));
     }
 
     private static void AppendSvgText(

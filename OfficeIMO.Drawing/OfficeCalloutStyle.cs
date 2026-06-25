@@ -16,6 +16,15 @@ public sealed class OfficeCalloutStyle {
     /// <summary>Drop-shadow color.</summary>
     public OfficeColor ShadowColor { get; set; } = OfficeColor.FromRgba(15, 23, 42, 46);
 
+    /// <summary>Horizontal shadow offset in CSS pixels before renderer scale is applied.</summary>
+    public double ShadowOffsetX { get; set; } = 2D;
+
+    /// <summary>Vertical shadow offset in CSS pixels before renderer scale is applied.</summary>
+    public double ShadowOffsetY { get; set; } = 2D;
+
+    /// <summary>Soft shadow spread in CSS pixels before renderer scale is applied.</summary>
+    public double ShadowSpread { get; set; } = 1D;
+
     /// <summary>Vertical accent line color.</summary>
     public OfficeColor AccentColor { get; set; } = OfficeColor.FromRgb(192, 0, 0);
 
