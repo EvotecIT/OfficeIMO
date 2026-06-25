@@ -104,19 +104,11 @@ public static class OfficeSparklineRenderer {
         double baseline = ResolveZeroY(range, bounds.Top, bounds.Height);
         double slot = bounds.Width / values.Count;
         double barWidth = Math.Max(1D, slot * ClampPositiveRatio(style.ColumnWidthRatio, 0.62D));
-        double valueExtent = Math.Max(Math.Abs(range.Max), Math.Abs(range.Min));
-        if (valueExtent < 0.000001D) {
-            valueExtent = 1D;
-        }
 
         for (int i = 0; i < values.Count; i++) {
-            double value = values[i];
-            double barHeight = winLoss
-                ? Math.Max(1D, bounds.Height * ClampPositiveRatio(style.WinLossHeightRatio, 0.42D))
-                : Math.Max(1D, Math.Abs(value) / valueExtent * bounds.Height);
+            ColumnBar bar = ResolveColumnBar(bounds, range, baseline, values[i], winLoss, style);
             double barX = bounds.Left + (slot * i) + ((slot - barWidth) / 2D);
-            double barY = value < 0D ? baseline : baseline - barHeight;
-            canvas.FillRectangle(barX, barY, barWidth, barHeight, ResolvePointStyle(style, i).Color);
+            canvas.FillRectangle(barX, bar.Y, barWidth, bar.Height, ResolvePointStyle(style, i).Color);
         }
     }
 
@@ -159,21 +151,13 @@ public static class OfficeSparklineRenderer {
         double baseline = ResolveZeroY(range, bounds.Top, bounds.Height);
         double slot = bounds.Width / values.Count;
         double barWidth = Math.Max(1D, slot * ClampPositiveRatio(style.ColumnWidthRatio, 0.62D));
-        double valueExtent = Math.Max(Math.Abs(range.Max), Math.Abs(range.Min));
-        if (valueExtent < 0.000001D) {
-            valueExtent = 1D;
-        }
 
         for (int i = 0; i < values.Count; i++) {
-            double value = values[i];
-            double barHeight = winLoss
-                ? Math.Max(1D, bounds.Height * ClampPositiveRatio(style.WinLossHeightRatio, 0.42D))
-                : Math.Max(1D, Math.Abs(value) / valueExtent * bounds.Height);
+            ColumnBar bar = ResolveColumnBar(bounds, range, baseline, values[i], winLoss, style);
             double barX = bounds.Left + (slot * i) + ((slot - barWidth) / 2D);
-            double barY = value < 0D ? baseline : baseline - barHeight;
             var attributes = new StringBuilder();
             attributes.AppendPaintAttribute("fill", ResolvePointStyle(style, i).Color);
-            builder.AppendRectElement(barX, barY, barWidth, barHeight, attributes.ToString());
+            builder.AppendRectElement(barX, bar.Y, barWidth, bar.Height, attributes.ToString());
         }
     }
 
@@ -265,8 +249,42 @@ public static class OfficeSparklineRenderer {
         return top + height - ((0D - range.Min) / (range.Max - range.Min) * height);
     }
 
+    private static ColumnBar ResolveColumnBar(SparklineBounds bounds, ValueRange range, double baseline, double value, bool winLoss, OfficeSparklineStyle style) {
+        double bottom = bounds.Top + bounds.Height;
+        bool negative = value < 0D;
+        double available = negative
+            ? Math.Max(1D, bottom - baseline)
+            : Math.Max(1D, baseline - bounds.Top);
+        double height = winLoss
+            ? available * ClampPositiveRatio(style.WinLossHeightRatio, 0.42D)
+            : Math.Abs(value) / ResolveColumnScale(range, negative) * available;
+        height = Math.Min(available, Math.Max(1D, height));
+        double y = negative ? baseline : baseline - height;
+        return new ColumnBar(y, height);
+    }
+
+    private static double ResolveColumnScale(ValueRange range, bool negative) {
+        double scale = negative && range.Min < 0D
+            ? Math.Abs(range.Min)
+            : !negative && range.Max > 0D
+                ? range.Max
+                : Math.Max(Math.Abs(range.Max), Math.Abs(range.Min));
+        return scale < 0.000001D ? 1D : scale;
+    }
+
     private static double ClampPositiveRatio(double value, double fallback) =>
         double.IsNaN(value) || double.IsInfinity(value) || value <= 0D ? fallback : value;
+
+    private readonly struct ColumnBar {
+        internal ColumnBar(double y, double height) {
+            Y = y;
+            Height = height;
+        }
+
+        internal double Y { get; }
+
+        internal double Height { get; }
+    }
 
     private readonly struct SparklineBounds {
         internal SparklineBounds(double left, double top, double width, double height, double axisLeft, double axisRight) {
