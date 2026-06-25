@@ -473,6 +473,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableFieldNames = CountByCode(workbook.PivotTableRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.FieldName))
                 .Select(record => record.FieldName!));
+            PivotTableItemTypes = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.ItemType.HasValue)
+                .Select(record => $"ItemType:{record.ItemType!.Value}"));
+            PivotTableItemTypeKinds = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.ItemTypeName))
+                .Select(record => record.ItemTypeName!));
+            PivotTableItemCacheIndexes = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.ItemCacheIndexName))
+                .Select(record => record.ItemCacheIndexName!));
+            PivotTableItemFlagStates = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.ItemHidden.HasValue && record.ItemHideDetail.HasValue && record.ItemFormula.HasValue && record.ItemMissing.HasValue)
+                .Select(record => $"Hidden:{record.ItemHidden!.Value};HideDetail:{record.ItemHideDetail!.Value};Formula:{record.ItemFormula!.Value};Missing:{record.ItemMissing!.Value}"));
+            PivotTableItemNames = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.ItemName))
+                .Select(record => record.ItemName!));
             PivotTableFormulaPayloadLengths = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.Kind == LegacyXlsPivotTableRecordKind.Formula)
                 .Select(record => $"{record.RecordName}|Bytes:{record.PayloadLength}"));
@@ -2079,6 +2094,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded Sxvd PivotTable fields grouped by explicit caption.</summary>
         public IReadOnlyDictionary<string, int> PivotTableFieldNames { get; }
 
+        /// <summary>Gets decoded SXVI PivotTable items grouped by raw item type.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableItemTypes { get; }
+
+        /// <summary>Gets decoded SXVI PivotTable items grouped by item type name.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableItemTypeKinds { get; }
+
+        /// <summary>Gets decoded SXVI PivotTable items grouped by referenced PivotCache item index.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableItemCacheIndexes { get; }
+
+        /// <summary>Gets decoded SXVI PivotTable items grouped by visibility and formula flags.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableItemFlagStates { get; }
+
+        /// <summary>Gets decoded SXVI PivotTable items grouped by explicit caption.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableItemNames { get; }
+
         /// <summary>Gets PivotTable formula records grouped by BIFF record name and payload length.</summary>
         public IReadOnlyDictionary<string, int> PivotTableFormulaPayloadLengths { get; }
 
@@ -3213,6 +3243,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Field Subtotal Counts", PivotTableFieldSubtotalCounts);
             AppendDictionary(builder, "Pivot Table Field Subtotal Functions", PivotTableFieldSubtotalFunctions);
             AppendDictionary(builder, "Pivot Table Field Names", PivotTableFieldNames);
+            AppendDictionary(builder, "Pivot Table Item Types", PivotTableItemTypes);
+            AppendDictionary(builder, "Pivot Table Item Type Kinds", PivotTableItemTypeKinds);
+            AppendDictionary(builder, "Pivot Table Item Cache Indexes", PivotTableItemCacheIndexes);
+            AppendDictionary(builder, "Pivot Table Item Flag States", PivotTableItemFlagStates);
+            AppendDictionary(builder, "Pivot Table Item Names", PivotTableItemNames);
             AppendDictionary(builder, "Pivot Table Formula Payload Lengths", PivotTableFormulaPayloadLengths);
             AppendDictionary(builder, "Pivot Table Cache Item Kinds", PivotTableCacheItemKinds);
             AppendDictionary(builder, "Pivot Table Cache Item Value States", PivotTableCacheItemValueStates);

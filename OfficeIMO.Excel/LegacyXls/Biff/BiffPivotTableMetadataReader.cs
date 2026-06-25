@@ -24,6 +24,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x00B1:
                         ReadField(record, pivotRecord);
                         break;
+                    case 0x00B2:
+                        ReadItem(record, pivotRecord);
+                        break;
                     case 0x00C1:
                         ReadDataItem(record, pivotRecord);
                         break;
@@ -160,6 +163,25 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             pivotRecord.SetField(axis, subtotalFlags, subtotalCount, itemCount, name);
+        }
+
+        private static void ReadItem(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            byte[] payload = record.Payload;
+            if (payload.Length < 8) {
+                throw new InvalidDataException("The SXVI payload is shorter than the fixed PivotTable item header.");
+            }
+
+            short itemType = BiffRecordReader.ReadInt16(payload, 0);
+            ushort flags = BiffRecordReader.ReadUInt16(payload, 2);
+            short cacheIndex = BiffRecordReader.ReadInt16(payload, 4);
+            ushort nameLength = BiffRecordReader.ReadUInt16(payload, 6);
+            string? name = null;
+            if (nameLength != 0xFFFF && nameLength != 0) {
+                int offset = 8;
+                name = BiffStringReader.ReadUnicodeStringNoCch(payload, ref offset, nameLength);
+            }
+
+            pivotRecord.SetItem(itemType, flags, cacheIndex, name);
         }
 
         private static LegacyXlsPivotTableRecord CreateRecord(BiffRecord record, string? sheetName) {

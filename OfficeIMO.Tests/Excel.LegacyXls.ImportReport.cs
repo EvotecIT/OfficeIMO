@@ -573,6 +573,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableFieldSubtotalCounts["Subtotals:1;Flags:0x0001"]);
             Assert.Equal(1, report.PivotTableFieldSubtotalFunctions["Default"]);
             Assert.Equal(1, report.PivotTableFieldNames["Region"]);
+            Assert.Equal(1, report.PivotTableItemTypes["ItemType:0"]);
+            Assert.Equal(1, report.PivotTableItemTypeKinds["Data"]);
+            Assert.Equal(1, report.PivotTableItemCacheIndexes["CacheItem:1"]);
+            Assert.Equal(1, report.PivotTableItemFlagStates["Hidden:False;HideDetail:True;Formula:False;Missing:False"]);
+            Assert.Equal(1, report.PivotTableItemNames["East"]);
             Assert.Equal(1, report.PivotTableFormulaPayloadLengths["SxFormula|Bytes:4"]);
             Assert.Equal(1, report.PivotTableCacheItemKinds["Number"]);
             Assert.Equal(1, report.PivotTableCacheItemKinds["Integer"]);
@@ -687,6 +692,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Default", Assert.Single(field.FieldSubtotalFunctionNames));
             Assert.Equal((short)3, field.FieldItemCount);
             Assert.Equal("Region", field.FieldName);
+
+            LegacyXlsPivotTableRecord item = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Item && record.RecordName == "Sxvi");
+            Assert.Equal("PivotMeta", item.SheetName);
+            Assert.Equal((short)0, item.ItemType);
+            Assert.Equal(LegacyXlsPivotItemType.Data, item.ItemTypeKind);
+            Assert.Equal("Data", item.ItemTypeName);
+            Assert.False(item.ItemHidden);
+            Assert.True(item.ItemHideDetail);
+            Assert.False(item.ItemFormula);
+            Assert.False(item.ItemMissing);
+            Assert.Equal((short)1, item.ItemCacheIndex);
+            Assert.Equal("CacheItem:1", item.ItemCacheIndexName);
+            Assert.Equal("East", item.ItemName);
 
             LegacyXlsPivotTableRecord numberItem = Assert.Single(workbook.PivotTableRecords, record => record.RecordName == "Sxnum");
             Assert.Equal(LegacyXlsPivotCacheItemKind.Number, numberItem.CacheItemKind);
@@ -838,6 +856,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Pivot Table Field Axes", markdown);
             Assert.Contains("Pivot Table Field Names", markdown);
             Assert.Contains("Region", markdown);
+            Assert.Contains("Pivot Table Item Type Kinds", markdown);
+            Assert.Contains("CacheItem:1", markdown);
             Assert.Contains("Pivot Table Formula Payload Lengths", markdown);
             Assert.Contains("Pivot Table Cache Item Kinds", markdown);
             Assert.Contains("Pivot Table Cache Stream Names", markdown);

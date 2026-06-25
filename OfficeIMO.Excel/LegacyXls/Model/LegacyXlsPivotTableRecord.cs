@@ -166,6 +166,36 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the optional pivot field caption carried by an Sxvd record.</summary>
         public string? FieldName { get; private set; }
 
+        /// <summary>Gets the raw item type stored in an SXVI PivotTable item record.</summary>
+        public short? ItemType { get; private set; }
+
+        /// <summary>Gets the decoded item type stored in an SXVI PivotTable item record, when known.</summary>
+        public LegacyXlsPivotItemType? ItemTypeKind { get; private set; }
+
+        /// <summary>Gets the item type name for an SXVI PivotTable item record, or a stable raw identifier for unknown values.</summary>
+        public string? ItemTypeName { get; private set; }
+
+        /// <summary>Gets whether an SXVI PivotTable item is hidden.</summary>
+        public bool? ItemHidden { get; private set; }
+
+        /// <summary>Gets whether an SXVI PivotTable item hides detail.</summary>
+        public bool? ItemHideDetail { get; private set; }
+
+        /// <summary>Gets whether an SXVI PivotTable item represents a calculated item formula.</summary>
+        public bool? ItemFormula { get; private set; }
+
+        /// <summary>Gets whether an SXVI PivotTable item is missing from the cache.</summary>
+        public bool? ItemMissing { get; private set; }
+
+        /// <summary>Gets the PivotCache item index referenced by an SXVI PivotTable item.</summary>
+        public short? ItemCacheIndex { get; private set; }
+
+        /// <summary>Gets a stable cache-index name for an SXVI PivotTable item.</summary>
+        public string? ItemCacheIndexName { get; private set; }
+
+        /// <summary>Gets the optional caption carried by an SXVI PivotTable item.</summary>
+        public string? ItemName { get; private set; }
+
         /// <summary>Gets the PivotCache stream identifier, when decoded from SXStreamID or SXDB.</summary>
         public ushort? CacheStreamId { get; private set; }
 
@@ -525,6 +555,21 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             FieldName = fieldName;
         }
 
+        internal void SetItem(short itemType, ushort flags, short cacheIndex, string? itemName) {
+            ItemType = itemType;
+            ItemTypeKind = TryGetItemTypeKind(itemType);
+            ItemTypeName = ItemTypeKind?.ToString() ?? $"ItemType:{itemType}";
+            ItemHidden = (flags & 0x0001) != 0;
+            ItemHideDetail = (flags & 0x0002) != 0;
+            ItemFormula = (flags & 0x0008) != 0;
+            ItemMissing = (flags & 0x0010) != 0;
+            ItemCacheIndex = cacheIndex;
+            ItemCacheIndexName = cacheIndex == -1
+                ? "NoCacheItem"
+                : $"CacheItem:{cacheIndex}";
+            ItemName = itemName;
+        }
+
         internal void SetGroupingRange(bool autoStart, bool autoEnd, LegacyXlsPivotGroupingKind groupingKind) {
             AutoStart = autoStart;
             AutoEnd = autoEnd;
@@ -652,6 +697,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         private static LegacyXlsPivotDisplayCalculation? TryGetDisplayCalculationKind(short value) {
             return value >= 0 && value <= 8 ? (LegacyXlsPivotDisplayCalculation)value : null;
+        }
+
+        private static LegacyXlsPivotItemType? TryGetItemTypeKind(short value) {
+            return value >= 0 && value <= 12 ? (LegacyXlsPivotItemType)value : null;
         }
 
         private static LegacyXlsPivotCacheSourceType? TryGetCacheSourceTypeKind(ushort value) {

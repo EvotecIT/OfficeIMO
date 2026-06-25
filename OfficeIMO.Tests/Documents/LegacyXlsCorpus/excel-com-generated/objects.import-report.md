@@ -876,6 +876,35 @@ Warnings: 0
 | --- | --- |
 | Default | 4 |
 
+## Pivot Table Item Types
+
+| Key | Count |
+| --- | --- |
+| ItemType:0 | 3 |
+| ItemType:1 | 1 |
+
+## Pivot Table Item Type Kinds
+
+| Key | Count |
+| --- | --- |
+| Data | 3 |
+| Default | 1 |
+
+## Pivot Table Item Cache Indexes
+
+| Key | Count |
+| --- | --- |
+| CacheItem:0 | 1 |
+| CacheItem:1 | 1 |
+| CacheItem:2 | 1 |
+| NoCacheItem | 1 |
+
+## Pivot Table Item Flag States
+
+| Key | Count |
+| --- | --- |
+| Hidden:False;HideDetail:False;Formula:False;Missing:False | 4 |
+
 ## Pivot Table Formula Payload Lengths
 
 | Key | Count |
