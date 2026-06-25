@@ -467,29 +467,7 @@ internal static class CsvParser
 
     private static bool ShouldEmitRecord(IReadOnlyList<string> fields, bool allowEmpty)
     {
-        if (fields.Count == 0)
-        {
-            return allowEmpty;
-        }
-
-        if (!allowEmpty && AllFieldsEmpty(fields))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private static bool AllFieldsEmpty(IReadOnlyList<string> fields)
-    {
-        for (var i = 0; i < fields.Count; i++)
-        {
-            if (!string.IsNullOrEmpty(fields[i]))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return fields.Count != 0 &&
+            (allowEmpty || fields.Count != 1 || fields[0].Length != 0);
     }
 }

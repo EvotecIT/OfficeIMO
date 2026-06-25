@@ -126,6 +126,27 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Blank_Lines_Are_Skipped_By_Default()
+    {
+        var parsed = CsvDocument.Parse("Name,Value\n\nAlpha,1\n");
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal("Alpha", row.AsString("Name"));
+    }
+
+    [Fact]
+    public void Delimiter_Only_Rows_Are_Data_Rows()
+    {
+        var parsed = CsvDocument.Parse("Name,Value\n,\nAlpha,1\n");
+        var rows = parsed.AsEnumerable().ToArray();
+
+        Assert.Equal(2, rows.Length);
+        Assert.Equal(string.Empty, rows[0].AsString("Name"));
+        Assert.Equal(string.Empty, rows[0].AsString("Value"));
+        Assert.Equal("Alpha", rows[1].AsString("Name"));
+    }
+
+    [Fact]
     public void Explicit_Header_Treats_First_Record_As_Data()
     {
         var parsed = CsvDocument.Parse(
