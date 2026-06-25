@@ -410,7 +410,6 @@ static int ReadOfficeImoXlsConditionalFormatting(byte[] workbookBytes, int rowCo
         metric = AddValueMetric(metric, string.Join(";", formatting.Ranges));
     }
 
-    metric = AddValueMetric(metric, rowCount);
     return metric;
 }
 
@@ -424,11 +423,7 @@ static int ReadOfficeImoXlsAutoFilterRange(byte[] workbookBytes, int rowCount) {
 
     int metric = 0;
     metric = AddValueMetric(metric, filterName.Name);
-    metric = AddValueMetric(metric, filterName.Reference);
-    metric = AddValueMetric(metric, filterName.Hidden);
-    metric = AddValueMetric(metric, filterName.BuiltIn);
-    metric = AddValueMetric(metric, worksheet.AutoFilterDropDownCount);
-    metric = AddValueMetric(metric, worksheet.AutoFilterCriteria.Count);
+    metric = AddValueMetric(metric, NormalizeSheetQuote(filterName.Reference));
     return metric;
 }
 
@@ -518,16 +513,16 @@ static int ReadNpoiWorkbookConditionalFormatting(byte[] workbookBytes) {
     int metric = 0;
     for (int formattingIndex = 0; formattingIndex < conditionalFormatting.NumConditionalFormattings; formattingIndex++) {
         IConditionalFormatting formatting = conditionalFormatting.GetConditionalFormattingAt(formattingIndex);
-        foreach (CellRangeAddress range in formatting.GetFormattingRanges()) {
-            metric = AddValueMetric(metric, range.FormatAsString());
-        }
-
         for (int ruleIndex = 0; ruleIndex < formatting.NumberOfRules; ruleIndex++) {
             IConditionalFormattingRule rule = formatting.GetRule(ruleIndex);
-            metric = AddValueMetric(metric, rule.ConditionType.ToString());
-            metric = AddValueMetric(metric, rule.ComparisonOperation.ToString());
+            metric = AddValueMetric(metric, NormalizeConditionalFormattingType(rule.ConditionType.ToString()));
+            metric = AddValueMetric(metric, NormalizeConditionalFormattingOperator(rule.ComparisonOperation.ToString()));
             metric = AddValueMetric(metric, rule.Formula1);
             metric = AddValueMetric(metric, rule.Formula2);
+        }
+
+        foreach (CellRangeAddress range in formatting.GetFormattingRanges()) {
+            metric = AddValueMetric(metric, range.FormatAsString());
         }
     }
 
@@ -545,8 +540,7 @@ static int ReadNpoiWorkbookAutoFilterRange(byte[] workbookBytes, int rowCount) {
 
     int metric = 0;
     metric = AddValueMetric(metric, filterName.NameName);
-    metric = AddValueMetric(metric, filterName.RefersToFormula);
-    metric = AddValueMetric(metric, filterName.SheetIndex);
+    metric = AddValueMetric(metric, NormalizeSheetQuote(filterName.RefersToFormula));
     return metric;
 }
 
@@ -587,6 +581,7 @@ static int AddValueMetric(int metric, object? value) {
 
 static string ToMetricText(object value) {
     return value switch {
+        string text => text.TrimEnd('\0'),
         bool flag => flag ? "TRUE" : "FALSE",
         byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal
             => Convert.ToDecimal(value, CultureInfo.InvariantCulture).ToString("G29", CultureInfo.InvariantCulture),
@@ -652,6 +647,22 @@ static void ValidateAutoFilterRange(string? reference, int rowCount, string libr
 
 static string NormalizeSheetQuote(string? reference) {
     return (reference ?? string.Empty).Replace("'Data'!", "Data!", StringComparison.OrdinalIgnoreCase);
+}
+
+static string? NormalizeConditionalFormattingType(string? value) {
+    return value switch {
+        null => null,
+        "Formula" => "Expression",
+        _ => value
+    };
+}
+
+static string? NormalizeConditionalFormattingOperator(string? value) {
+    return value switch {
+        null => null,
+        "NoComparison" => null,
+        _ => value
+    };
 }
 
 static int? ParsePositiveOption(string[] args, params string[] optionNames) {

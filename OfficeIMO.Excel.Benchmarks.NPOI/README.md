@@ -12,6 +12,12 @@ SkiaSharp is referenced explicitly here because NPOI HSSF comment/drawing reads
 load it at runtime while NPOI's package metadata excludes those runtime assets
 from the transitive reference.
 
+The JSON `Metric` field is a lightweight anti-elision checksum for each measured
+read/write path. Equal metrics are a useful parity signal for the scalar
+cell-value, formula, and AutoFilter-range lanes; different metrics in richer
+metadata lanes should be read as "the benchmark exercised the path and validated
+its counts/ranges", not as a full feature-diff verdict.
+
 ```powershell
 dotnet run -c Release --project .\OfficeIMO.Excel.Benchmarks.NPOI\OfficeIMO.Excel.Benchmarks.NPOI.csproj -- --rows 2500 --warmup 1 --iterations 3 --out .\Docs\benchmarks\npoi-comparison.json
 ```
