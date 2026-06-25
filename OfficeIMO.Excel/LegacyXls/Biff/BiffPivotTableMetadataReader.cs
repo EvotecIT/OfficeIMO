@@ -30,6 +30,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x00B4:
                         ReadFieldIndexList(record, pivotRecord);
                         break;
+                    case 0x00B6:
+                        ReadPageItems(record, pivotRecord);
+                        break;
                     case 0x00C1:
                         ReadDataItem(record, pivotRecord);
                         break;
@@ -199,6 +202,24 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             pivotRecord.SetFieldIndexList(fieldIndexes);
+        }
+
+        private static void ReadPageItems(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            byte[] payload = record.Payload;
+            if ((payload.Length % 6) != 0) {
+                throw new InvalidDataException("The SXPI payload contains a partial page item selector.");
+            }
+
+            var pageItems = new LegacyXlsPivotPageItem[payload.Length / 6];
+            for (int i = 0; i < pageItems.Length; i++) {
+                int offset = i * 6;
+                pageItems[i] = new LegacyXlsPivotPageItem(
+                    BiffRecordReader.ReadInt16(payload, offset),
+                    BiffRecordReader.ReadInt16(payload, offset + 2),
+                    BiffRecordReader.ReadInt16(payload, offset + 4));
+            }
+
+            pivotRecord.SetPageItems(pageItems);
         }
 
         private static LegacyXlsPivotTableRecord CreateRecord(BiffRecord record, string? sheetName) {

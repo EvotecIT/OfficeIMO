@@ -654,6 +654,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Pivot data"));
                 WriteRecord(stream, 0x00b1, BuildSxvdPayload());
                 WriteRecord(stream, 0x00b4, BuildSxIvdPayload());
+                WriteRecord(stream, 0x00b6, BuildSxpiPayload());
                 WriteRecord(stream, 0x00b2, BuildSxviPayload());
                 WriteRecord(stream, 0x00d7, BuildSxRngPayload());
                 WriteRecord(stream, 0x00cd, BuildSxDtrPayload(2024, 1, 1, 0, 0, 0));
@@ -2445,6 +2446,14 @@ namespace OfficeIMO.Tests {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, 0);
                 WriteUInt16(stream, 2);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxpiPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 0x7ffd);
+                WriteUInt16(stream, 42);
                 return stream.ToArray();
             }
 

@@ -482,6 +482,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableFieldIndexSequences = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.FieldIndexReferences.Count > 0)
                 .Select(record => "FieldIndexes:" + string.Join(",", record.FieldIndexReferences)));
+            PivotTablePageItemCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.PageItems.Count > 0)
+                .Select(record => $"PageItems:{record.PageItems.Count}"));
+            PivotTablePageItemFieldIndexes = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.PageItems)
+                .Select(item => $"FieldIndex:{item.FieldIndex}"));
+            PivotTablePageItemIndexes = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.PageItems)
+                .Select(item => item.ItemIndexName));
+            PivotTablePageItemObjectIds = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.PageItems)
+                .Select(item => $"ObjectId:{item.ObjectId}"));
+            PivotTablePageItemSequences = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.PageItems.Count > 0)
+                .Select(record => "PageItems:" + string.Join(",", record.PageItems.Select(item => $"FieldIndex:{item.FieldIndex};{item.ItemIndexName};ObjectId:{item.ObjectId}"))));
             PivotTableItemTypes = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.ItemType.HasValue)
                 .Select(record => $"ItemType:{record.ItemType!.Value}"));
@@ -2112,6 +2127,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded SxIvd PivotTable field-index lists grouped by full index sequence.</summary>
         public IReadOnlyDictionary<string, int> PivotTableFieldIndexSequences { get; }
 
+        /// <summary>Gets decoded SXPI PivotTable page item selectors grouped by selector count.</summary>
+        public IReadOnlyDictionary<string, int> PivotTablePageItemCounts { get; }
+
+        /// <summary>Gets decoded SXPI PivotTable page item selectors grouped by page-axis field index.</summary>
+        public IReadOnlyDictionary<string, int> PivotTablePageItemFieldIndexes { get; }
+
+        /// <summary>Gets decoded SXPI PivotTable page item selectors grouped by selected item index.</summary>
+        public IReadOnlyDictionary<string, int> PivotTablePageItemIndexes { get; }
+
+        /// <summary>Gets decoded SXPI PivotTable page item selectors grouped by drop-down object identifier.</summary>
+        public IReadOnlyDictionary<string, int> PivotTablePageItemObjectIds { get; }
+
+        /// <summary>Gets decoded SXPI PivotTable page item selectors grouped by full selector sequence.</summary>
+        public IReadOnlyDictionary<string, int> PivotTablePageItemSequences { get; }
+
         /// <summary>Gets decoded SXVI PivotTable items grouped by raw item type.</summary>
         public IReadOnlyDictionary<string, int> PivotTableItemTypes { get; }
 
@@ -3264,6 +3294,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Field Index List Lengths", PivotTableFieldIndexListLengths);
             AppendDictionary(builder, "Pivot Table Field Index References", PivotTableFieldIndexReferences);
             AppendDictionary(builder, "Pivot Table Field Index Sequences", PivotTableFieldIndexSequences);
+            AppendDictionary(builder, "Pivot Table Page Item Counts", PivotTablePageItemCounts);
+            AppendDictionary(builder, "Pivot Table Page Item Field Indexes", PivotTablePageItemFieldIndexes);
+            AppendDictionary(builder, "Pivot Table Page Item Indexes", PivotTablePageItemIndexes);
+            AppendDictionary(builder, "Pivot Table Page Item Object Ids", PivotTablePageItemObjectIds);
+            AppendDictionary(builder, "Pivot Table Page Item Sequences", PivotTablePageItemSequences);
             AppendDictionary(builder, "Pivot Table Item Types", PivotTableItemTypes);
             AppendDictionary(builder, "Pivot Table Item Type Kinds", PivotTableItemTypeKinds);
             AppendDictionary(builder, "Pivot Table Item Cache Indexes", PivotTableItemCacheIndexes);

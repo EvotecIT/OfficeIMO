@@ -1031,6 +1031,36 @@ Warnings: 0
 | FieldIndexes:0 | 1 |
 | FieldIndexes:2,-2 | 1 |
 
+## Pivot Table Page Item Counts
+
+| Key | Count |
+| --- | --- |
+| PageItems:1 | 1 |
+
+## Pivot Table Page Item Field Indexes
+
+| Key | Count |
+| --- | --- |
+| FieldIndex:1 | 1 |
+
+## Pivot Table Page Item Indexes
+
+| Key | Count |
+| --- | --- |
+| AllItems | 1 |
+
+## Pivot Table Page Item Object Ids
+
+| Key | Count |
+| --- | --- |
+| ObjectId:1 | 1 |
+
+## Pivot Table Page Item Sequences
+
+| Key | Count |
+| --- | --- |
+| PageItems:FieldIndex:1;AllItems;ObjectId:1 | 1 |
+
 ## Pivot Table Item Types
 
 | Key | Count |
