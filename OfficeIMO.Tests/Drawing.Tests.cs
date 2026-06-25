@@ -1533,9 +1533,11 @@ public class DrawingTests {
         Assert.Contains("<circle", circleSvg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#DC2626\"", circleSvg, StringComparison.Ordinal);
         Assert.Contains("stroke=\"#B91C1C\"", circleSvg, StringComparison.Ordinal);
+        Assert.Contains("fill-opacity=", circleSvg, StringComparison.Ordinal);
         Assert.Contains("<path", arrowSvg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#16A34A\"", arrowSvg, StringComparison.Ordinal);
         Assert.Contains("stroke=\"#15803D\"", arrowSvg, StringComparison.Ordinal);
+        Assert.Contains("fill-opacity=", arrowSvg, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -188,6 +188,8 @@ namespace OfficeIMO.Tests {
             Assert.True(CountPixelsNear(arrow, OfficeColor.FromRgb(22, 163, 74)) > 30);
             Assert.True(CountPixelsNear(rating, OfficeColor.FromRgb(22, 163, 74)) > 45);
             Assert.True(CountPixelsNear(quarter, OfficeColor.FromRgb(249, 115, 22)) > 20);
+            Assert.True(CountPixelsNearAlpha(circle, OfficeColor.FromRgb(15, 23, 42), 8, 10, 70) > 0);
+            Assert.True(CountPixelsNearAlpha(arrow, OfficeColor.FromRgb(15, 23, 42), 8, 10, 70) > 0);
             Assert.Equal(0, circle.GetPixel(0, 0).A);
             Assert.Equal(0, arrow.GetPixel(0, 0).A);
             Assert.Equal(0, rating.GetPixel(0, 0).A);

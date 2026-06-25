@@ -8,6 +8,9 @@ namespace OfficeIMO.Drawing;
 /// Shared dependency-free renderer for compact conditional-formatting icon shapes.
 /// </summary>
 public static class OfficeConditionalIconRenderer {
+    private static readonly OfficeColor IconShadowColor = OfficeColor.FromRgba(15, 23, 42, 42);
+    private static readonly OfficeColor IconHighlightColor = OfficeColor.FromRgba(255, 255, 255, 72);
+
     /// <summary>
     /// Draws a conditional-formatting icon on a raster canvas.
     /// </summary>
@@ -25,6 +28,8 @@ public static class OfficeConditionalIconRenderer {
         double strokeWidth = Math.Max(1D, scale);
         switch (kind) {
             case OfficeConditionalIconKind.GreenCheck:
+                DrawRasterLineShadow(canvas, x + size * 0.22D, y + size * 0.54D, x + size * 0.42D, y + size * 0.74D, size);
+                DrawRasterLineShadow(canvas, x + size * 0.42D, y + size * 0.74D, x + size * 0.80D, y + size * 0.28D, size);
                 canvas.DrawLine(x + size * 0.22D, y + size * 0.54D, x + size * 0.42D, y + size * 0.74D, fill, Math.Max(2D, size * 0.14D));
                 canvas.DrawLine(x + size * 0.42D, y + size * 0.74D, x + size * 0.80D, y + size * 0.28D, fill, Math.Max(2D, size * 0.14D));
                 break;
@@ -34,6 +39,8 @@ public static class OfficeConditionalIconRenderer {
                 canvas.FillEllipse(x + size * 0.44D, y + size * 0.72D, size * 0.12D, size * 0.12D, OfficeColor.White);
                 break;
             case OfficeConditionalIconKind.RedCross:
+                DrawRasterLineShadow(canvas, x + size * 0.25D, y + size * 0.25D, x + size * 0.75D, y + size * 0.75D, size);
+                DrawRasterLineShadow(canvas, x + size * 0.75D, y + size * 0.25D, x + size * 0.25D, y + size * 0.75D, size);
                 canvas.DrawLine(x + size * 0.25D, y + size * 0.25D, x + size * 0.75D, y + size * 0.75D, fill, Math.Max(2D, size * 0.14D));
                 canvas.DrawLine(x + size * 0.75D, y + size * 0.25D, x + size * 0.25D, y + size * 0.75D, fill, Math.Max(2D, size * 0.14D));
                 break;
@@ -60,8 +67,10 @@ public static class OfficeConditionalIconRenderer {
                 break;
             default:
                 IReadOnlyList<OfficePoint> points = CreateArrowPoints(x, y, size, kind);
+                canvas.FillPolygon(OffsetPoints(points, size * 0.055D, size * 0.065D), IconShadowColor);
                 canvas.FillPolygon(points, fill);
                 canvas.DrawPolygon(points, stroke, strokeWidth);
+                DrawRasterArrowHighlight(canvas, x, y, size, kind);
                 break;
         }
     }
@@ -83,6 +92,8 @@ public static class OfficeConditionalIconRenderer {
         double strokeWidth = Math.Max(1D, scale);
         switch (kind) {
             case OfficeConditionalIconKind.GreenCheck:
+                AppendSvgLineShadow(builder, x + size * 0.22D, y + size * 0.54D, x + size * 0.42D, y + size * 0.74D, size);
+                AppendSvgLineShadow(builder, x + size * 0.42D, y + size * 0.74D, x + size * 0.80D, y + size * 0.28D, size);
                 AppendSvgLine(builder, x + size * 0.22D, y + size * 0.54D, x + size * 0.42D, y + size * 0.74D, fill, size * 0.14D);
                 AppendSvgLine(builder, x + size * 0.42D, y + size * 0.74D, x + size * 0.80D, y + size * 0.28D, fill, size * 0.14D);
                 break;
@@ -92,6 +103,8 @@ public static class OfficeConditionalIconRenderer {
                 builder.AppendCircleElement(x + size * 0.5D, y + size * 0.78D, size * 0.06D, OfficeColor.White);
                 break;
             case OfficeConditionalIconKind.RedCross:
+                AppendSvgLineShadow(builder, x + size * 0.25D, y + size * 0.25D, x + size * 0.75D, y + size * 0.75D, size);
+                AppendSvgLineShadow(builder, x + size * 0.75D, y + size * 0.25D, x + size * 0.25D, y + size * 0.75D, size);
                 AppendSvgLine(builder, x + size * 0.25D, y + size * 0.25D, x + size * 0.75D, y + size * 0.75D, fill, size * 0.14D);
                 AppendSvgLine(builder, x + size * 0.75D, y + size * 0.25D, x + size * 0.25D, y + size * 0.75D, fill, size * 0.14D);
                 break;
@@ -118,12 +131,17 @@ public static class OfficeConditionalIconRenderer {
                 break;
             default:
                 IReadOnlyList<OfficePoint> points = CreateArrowPoints(x, y, size, kind);
+                var shadowAttributes = new StringBuilder()
+                    .AppendPaintAttribute("fill", IconShadowColor)
+                    .ToString();
+                builder.AppendPathElement(OfficeSvgFormatting.FormatMoveLinePathData(OffsetPoints(points, size * 0.055D, size * 0.065D), closePath: true), shadowAttributes);
                 var attributes = new StringBuilder()
                     .AppendPaintAttribute("fill", fill)
                     .AppendPaintAttribute("stroke", stroke)
                     .AppendNumberAttribute("stroke-width", strokeWidth)
                     .ToString();
                 builder.AppendPathElement(OfficeSvgFormatting.FormatMoveLinePathData(points, closePath: true), attributes);
+                AppendSvgArrowHighlight(builder, x, y, size, kind);
                 break;
         }
 
@@ -131,7 +149,10 @@ public static class OfficeConditionalIconRenderer {
     }
 
     private static void DrawRasterCircle(OfficeRasterCanvas canvas, double x, double y, double size, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
+        double shadowOffset = Math.Max(0.75D, size * 0.045D);
+        canvas.FillEllipse(x + shadowOffset, y + shadowOffset, size, size, IconShadowColor);
         canvas.FillEllipse(x, y, size, size, fill);
+        canvas.FillEllipse(x + size * 0.18D, y + size * 0.14D, size * 0.44D, size * 0.26D, IconHighlightColor);
         canvas.DrawEllipse(x, y, size, size, stroke, strokeWidth);
     }
 
@@ -154,6 +175,8 @@ public static class OfficeConditionalIconRenderer {
 
     private static void DrawRasterQuarterPie(OfficeRasterCanvas canvas, double x, double y, double size, int quarters, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
         OfficeColor emptyFill = OfficeColor.FromRgb(241, 245, 249);
+        double shadowOffset = Math.Max(0.75D, size * 0.045D);
+        canvas.FillEllipse(x + shadowOffset, y + shadowOffset, size, size, IconShadowColor);
         canvas.FillEllipse(x, y, size, size, emptyFill);
         if (quarters >= 4) {
             canvas.FillEllipse(x, y, size, size, fill);
@@ -161,16 +184,20 @@ public static class OfficeConditionalIconRenderer {
             canvas.FillPolygon(CreateQuarterPiePoints(x, y, size, quarters), fill);
         }
 
+        canvas.FillEllipse(x + size * 0.18D, y + size * 0.14D, size * 0.44D, size * 0.26D, IconHighlightColor);
         canvas.DrawEllipse(x, y, size, size, stroke, strokeWidth);
     }
 
     private static void AppendSvgCircle(StringBuilder builder, double x, double y, double size, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
+        double shadowOffset = Math.Max(0.75D, size * 0.045D);
+        builder.AppendCircleElement(x + size / 2D + shadowOffset, y + size / 2D + shadowOffset, size / 2D, IconShadowColor);
         var attributes = new StringBuilder()
             .AppendPaintAttribute("fill", fill)
             .AppendPaintAttribute("stroke", stroke)
             .AppendNumberAttribute("stroke-width", strokeWidth)
             .ToString();
         builder.AppendCircleElement(x + size / 2D, y + size / 2D, size / 2D, attributes);
+        builder.AppendEllipseElement(x + size * 0.4D, y + size * 0.27D, size * 0.22D, size * 0.13D, IconHighlightColor);
     }
 
     private static void AppendSvgRatingBars(StringBuilder builder, double x, double y, double size, int filledBars, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
@@ -196,6 +223,8 @@ public static class OfficeConditionalIconRenderer {
 
     private static void AppendSvgQuarterPie(StringBuilder builder, double x, double y, double size, int quarters, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
         OfficeColor emptyFill = OfficeColor.FromRgb(241, 245, 249);
+        double shadowOffset = Math.Max(0.75D, size * 0.045D);
+        builder.AppendCircleElement(x + size / 2D + shadowOffset, y + size / 2D + shadowOffset, size / 2D, IconShadowColor);
         builder.AppendCircleElement(
             x + size / 2D,
             y + size / 2D,
@@ -215,10 +244,59 @@ public static class OfficeConditionalIconRenderer {
             double inset = strokeWidth * 0.5D;
             builder.AppendPolygonElement(CreateQuarterPiePoints(x + inset, y + inset, size - strokeWidth, quarters), attributes);
         }
+
+        builder.AppendEllipseElement(x + size * 0.4D, y + size * 0.27D, size * 0.22D, size * 0.13D, IconHighlightColor);
     }
 
     private static void AppendSvgLine(StringBuilder builder, double x1, double y1, double x2, double y2, OfficeColor color, double width) {
         builder.AppendLineElement(x1, y1, x2, y2, color, Math.Max(1D, width), OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap.Round);
+    }
+
+    private static void DrawRasterLineShadow(OfficeRasterCanvas canvas, double x1, double y1, double x2, double y2, double size) {
+        double offset = Math.Max(0.75D, size * 0.045D);
+        canvas.DrawLine(x1 + offset, y1 + offset, x2 + offset, y2 + offset, IconShadowColor, Math.Max(2D, size * 0.14D));
+    }
+
+    private static void AppendSvgLineShadow(StringBuilder builder, double x1, double y1, double x2, double y2, double size) {
+        double offset = Math.Max(0.75D, size * 0.045D);
+        AppendSvgLine(builder, x1 + offset, y1 + offset, x2 + offset, y2 + offset, IconShadowColor, size * 0.14D);
+    }
+
+    private static void DrawRasterArrowHighlight(OfficeRasterCanvas canvas, double x, double y, double size, OfficeConditionalIconKind kind) {
+        if (kind == OfficeConditionalIconKind.YellowSideArrow) {
+            canvas.DrawLine(x + size * 0.20D, y + size * 0.43D, x + size * 0.55D, y + size * 0.43D, IconHighlightColor, Math.Max(1D, size * 0.08D));
+            return;
+        }
+
+        if (kind == OfficeConditionalIconKind.RedDownArrow || kind == OfficeConditionalIconKind.YellowDownArrow) {
+            canvas.DrawLine(x + size * 0.42D, y + size * 0.18D, x + size * 0.42D, y + size * 0.53D, IconHighlightColor, Math.Max(1D, size * 0.08D));
+            return;
+        }
+
+        canvas.DrawLine(x + size * 0.42D, y + size * 0.88D, x + size * 0.42D, y + size * 0.48D, IconHighlightColor, Math.Max(1D, size * 0.08D));
+    }
+
+    private static void AppendSvgArrowHighlight(StringBuilder builder, double x, double y, double size, OfficeConditionalIconKind kind) {
+        if (kind == OfficeConditionalIconKind.YellowSideArrow) {
+            AppendSvgLine(builder, x + size * 0.20D, y + size * 0.43D, x + size * 0.55D, y + size * 0.43D, IconHighlightColor, size * 0.08D);
+            return;
+        }
+
+        if (kind == OfficeConditionalIconKind.RedDownArrow || kind == OfficeConditionalIconKind.YellowDownArrow) {
+            AppendSvgLine(builder, x + size * 0.42D, y + size * 0.18D, x + size * 0.42D, y + size * 0.53D, IconHighlightColor, size * 0.08D);
+            return;
+        }
+
+        AppendSvgLine(builder, x + size * 0.42D, y + size * 0.88D, x + size * 0.42D, y + size * 0.48D, IconHighlightColor, size * 0.08D);
+    }
+
+    private static IReadOnlyList<OfficePoint> OffsetPoints(IReadOnlyList<OfficePoint> points, double offsetX, double offsetY) {
+        var shifted = new OfficePoint[points.Count];
+        for (int i = 0; i < points.Count; i++) {
+            shifted[i] = new OfficePoint(points[i].X + offsetX, points[i].Y + offsetY);
+        }
+
+        return shifted;
     }
 
     private static IReadOnlyList<OfficePoint> CreateQuarterPiePoints(double x, double y, double size, int quarters) {
