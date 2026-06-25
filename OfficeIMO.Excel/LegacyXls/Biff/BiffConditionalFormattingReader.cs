@@ -159,8 +159,22 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string> ranges,
             out LegacyXlsConditionalFormatting? conditionalFormatting,
             out BiffFormulaReadFailure? formulaFailure) {
+            return TryReadRule(payload, externSheets, externalReferences, sheetNames, definedNames, ranges, out conditionalFormatting, out formulaFailure, out _);
+        }
+
+        internal static bool TryReadRule(
+            byte[] payload,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            IReadOnlyList<string> sheetNames,
+            IReadOnlyList<string?> definedNames,
+            IReadOnlyList<string> ranges,
+            out LegacyXlsConditionalFormatting? conditionalFormatting,
+            out BiffFormulaReadFailure? formulaFailure,
+            out bool hasInlineFormatting) {
             conditionalFormatting = null;
             formulaFailure = null;
+            hasInlineFormatting = false;
             if (payload.Length < 6 || ranges.Count == 0) {
                 return false;
             }
@@ -174,6 +188,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
+            hasInlineFormatting = formulaStart > 6;
             BiffFormulaAnchor.TryGetFirstRangeAnchor(ranges, out int formulaRow, out int formulaColumn);
             if (!TryReadFormula(payload, formulaStart, formula1Length, formulaRow, formulaColumn, externSheets, externalReferences, sheetNames, definedNames, out string? formula1, out formulaFailure)) {
                 return false;

@@ -659,7 +659,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 ushort firstRowBelowBreak = BiffRecordReader.ReadUInt16(payload, breakOffset);
                 ushort columnStart = BiffRecordReader.ReadUInt16(payload, breakOffset + 2);
                 ushort columnEnd = BiffRecordReader.ReadUInt16(payload, breakOffset + 4);
-                if (columnStart > 16383 || columnEnd > 16383 || columnEnd <= columnStart) {
+                if (columnStart > 16383 || columnEnd > 16383 || columnEnd < columnStart) {
                     throw new InvalidDataException("The HORIZONTALPAGEBREAKS record contains an invalid column span.");
                 }
 
@@ -739,7 +739,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 ushort firstColumnRightOfBreak = BiffRecordReader.ReadUInt16(payload, breakOffset);
                 ushort rowStart = BiffRecordReader.ReadUInt16(payload, breakOffset + 2);
                 ushort rowEnd = BiffRecordReader.ReadUInt16(payload, breakOffset + 4);
-                if (rowEnd <= rowStart) {
+                if (rowEnd < rowStart) {
                     throw new InvalidDataException("The VERTICALPAGEBREAKS record contains an invalid row span.");
                 }
 

@@ -266,6 +266,25 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase4SingleCellPageBreaksWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "NarrowBreaks"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Breaks"));
+                WriteRecord(stream, 0x001b, BuildHorizontalPageBreaksPayload((3, 5, 5)));
+                WriteRecord(stream, 0x001a, BuildVerticalPageBreaksPayload((2, 7, 7)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase4ZoomScaleWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -860,6 +879,45 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase4AnyValueDataValidationWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long validationBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "AnyValueValidation"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Message only"));
+                WriteRecord(stream, 0x01b2, BuildDataValidationCollectionPayload(1));
+                WriteRecord(stream, 0x01be, BuildAnyValueDataValidationPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)validationBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreatePhase4FormulaBoundDataValidationWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long validationBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "FormulaBounds"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Minimum"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 1, "Maximum"));
+                WriteRecord(stream, 0x01b2, BuildDataValidationCollectionPayload(1));
+                WriteRecord(stream, 0x01be, BuildFormulaBoundDataValidationPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)validationBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase4ListDataValidationWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -1081,6 +1139,26 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x027e, BuildRkPayload(2, 0, 0, EncodeRkInteger(15)));
                 WriteRecord(stream, 0x01b0, BuildConditionalFormattingRangePayload(0, 0, 2, 0, 1));
                 WriteRecord(stream, 0x01b1, BuildFormulaConditionalFormattingRulePayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)formattingBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreatePhase4InlineFormattedConditionalFormattingWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long formattingBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "InlineCf"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Score"));
+                WriteRecord(stream, 0x027e, BuildRkPayload(1, 0, 0, EncodeRkInteger(15)));
+                WriteRecord(stream, 0x01b0, BuildConditionalFormattingRangePayload(0, 0, 1, 0, 1));
+                WriteRecord(stream, 0x01b1, BuildCellIsGreaterThanConditionalFormattingRulePayload(10, includeInlineFormatting: true));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1371,13 +1449,17 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            private static byte[] BuildCellIsGreaterThanConditionalFormattingRulePayload(ushort threshold) {
+            private static byte[] BuildCellIsGreaterThanConditionalFormattingRulePayload(ushort threshold, bool includeInlineFormatting = false) {
                 byte[] formula = BuildPtgIntFormula(threshold);
                 using var stream = new MemoryStream();
                 stream.WriteByte(0x01);
                 stream.WriteByte(0x05);
                 WriteUInt16(stream, checked((ushort)formula.Length));
                 WriteUInt16(stream, 0);
+                if (includeInlineFormatting) {
+                    stream.Write(new byte[] { 0x01, 0x00, 0x00, 0x00 }, 0, 4);
+                }
+
                 stream.Write(formula, 0, formula.Length);
                 return stream.ToArray();
             }
@@ -2229,6 +2311,45 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
+            private static byte[] BuildAnyValueDataValidationPayload() {
+                using var stream = new MemoryStream();
+                uint flags = 0x00040000U
+                    | 0x00080000U;
+                WriteUInt32(stream, flags);
+                WriteUnicodeString(stream, "Instructions");
+                WriteUnicodeString(stream, "Check value");
+                WriteUnicodeString(stream, "Enter the value from the source system.");
+                WriteUnicodeString(stream, "The value will be reviewed later.");
+                WriteDvFormula(stream, Array.Empty<byte>());
+                WriteDvFormula(stream, Array.Empty<byte>());
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildFormulaBoundDataValidationPayload() {
+                using var stream = new MemoryStream();
+                uint flags = 0x01U
+                    | 0x00000100U
+                    | 0x00080000U;
+                WriteUInt32(stream, flags);
+                WriteUnicodeString(stream, string.Empty);
+                WriteUnicodeString(stream, "Out of range");
+                WriteUnicodeString(stream, string.Empty);
+                WriteUnicodeString(stream, "Use a value between the worksheet bounds.");
+                WriteDvFormula(stream, BuildPtgRefFormula(0, 0));
+                WriteDvFormula(stream, BuildPtgRefFormula(0, 1));
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 5);
+                WriteUInt16(stream, 2);
+                WriteUInt16(stream, 2);
+                return stream.ToArray();
+            }
+
             private static byte[] BuildListDataValidationPayload() {
                 using var stream = new MemoryStream();
                 uint flags = 0x03U
@@ -2472,6 +2593,14 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(checked((byte)value.Length));
                 stream.WriteByte(0);
                 stream.Write(valueBytes, 0, valueBytes.Length);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildPtgRefFormula(ushort row, ushort column) {
+                using var stream = new MemoryStream();
+                stream.WriteByte(0x24);
+                WriteUInt16(stream, row);
+                WriteUInt16(stream, column);
                 return stream.ToArray();
             }
 

@@ -49,9 +49,9 @@ Worksheet metadata records: 10
 Worksheet future metadata records: 3
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 303
+Unsupported features: 304
 Unsupported projection gaps: 0
-Preserved feature records: 303
+Preserved feature records: 304
 Errors: 0
 Warnings: 0
 
@@ -60,7 +60,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 148 |
-| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 2 |
+| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 35 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 3 |
@@ -737,7 +737,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 148 |
-| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 2 |
+| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 35 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 3 |
@@ -750,7 +750,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Chart | 148 |
-| ConditionalFormatting | 2 |
+| ConditionalFormatting | 3 |
 | DrawingObject | 35 |
 | FeatureExtension | 1 |
 | PivotTable | 3 |
@@ -806,6 +806,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1064 | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1065 | 3 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1066 | 1 |
+| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|0x01B1 | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|0x087B | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|0x088D | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x005D | 7 |
@@ -873,6 +874,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Tick | 2 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ValueRange | 1 |
+| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Cf | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:CfEx | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 11 |
@@ -898,7 +900,7 @@ Warnings: 0
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Data | 148 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|(workbook) | 1 |
-| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|Data | 1 |
+| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|Data | 2 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 2 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Data | 33 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|Data | 1 |
@@ -3147,7 +3149,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Chart | 148 |
-| ConditionalFormatting | 2 |
+| ConditionalFormatting | 3 |
 | DrawingObject | 35 |
 | FeatureExtension | 1 |
 | PivotTable | 3 |
@@ -3203,6 +3205,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Tick | 2 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ValueRange | 1 |
+| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Cf | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:CfEx | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 11 |

@@ -49,9 +49,9 @@ Worksheet metadata records: 7
 Worksheet future metadata records: 2
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 133
+Unsupported features: 141
 Unsupported projection gaps: 0
-Preserved feature records: 133
+Preserved feature records: 141
 Errors: 0
 Warnings: 0
 
@@ -59,7 +59,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 16 |
+| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 24 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 3 |
@@ -329,7 +329,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 16 |
+| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 24 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 3 |
@@ -341,7 +341,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| ConditionalFormatting | 16 |
+| ConditionalFormatting | 24 |
 | DrawingObject | 1 |
 | FeatureExtension | 1 |
 | PivotTable | 3 |
@@ -353,6 +353,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|0x01B1 | 8 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|0x087B | 8 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|0x088D | 8 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x08A3 | 1 |
@@ -370,6 +371,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Cf | 8 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:CfEx | 8 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 8 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |
@@ -388,7 +390,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|(workbook) | 8 |
-| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|Conditions | 8 |
+| XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|Conditions | 16 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|Conditions | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
@@ -1104,7 +1106,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| ConditionalFormatting | 16 |
+| ConditionalFormatting | 24 |
 | DrawingObject | 1 |
 | FeatureExtension | 1 |
 | PivotTable | 3 |
@@ -1116,6 +1118,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Cf | 8 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:CfEx | 8 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 8 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |

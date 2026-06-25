@@ -93,7 +93,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 string prompt = BiffStringReader.ReadUnicodeString(payload, ref offset);
                 string error = BiffStringReader.ReadUnicodeString(payload, ref offset);
 
-                if (!TryReadFormula(payload, ref offset, externSheets, externalReferences, sheetNames, definedNames, out string? formula1, out BiffDataValidationFormulaLayout? formula1Layout, out formulaFailure) || string.IsNullOrWhiteSpace(formula1)) {
+                if (!TryReadFormula(payload, ref offset, externSheets, externalReferences, sheetNames, definedNames, out string? formula1, out BiffDataValidationFormulaLayout? formula1Layout, out formulaFailure)
+                    || (modelValidationType != LegacyXlsDataValidationType.None && string.IsNullOrWhiteSpace(formula1))) {
                     return false;
                 }
 
@@ -101,7 +102,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return false;
                 }
 
-                bool requiresSecondFormula = modelValidationType != LegacyXlsDataValidationType.List
+                bool requiresSecondFormula = modelValidationType != LegacyXlsDataValidationType.None
+                    && modelValidationType != LegacyXlsDataValidationType.List
                     && modelValidationType != LegacyXlsDataValidationType.Custom
                     && (comparisonOperator == LegacyXlsDataValidationOperator.Between
                         || comparisonOperator == LegacyXlsDataValidationOperator.NotBetween);
@@ -109,9 +111,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return false;
                 }
 
-                if (!TryGetListSource(modelValidationType, formula1!, out IReadOnlyList<string>? listItems, out string? listSourceRange, out string? listSourceName, out string? listSourceSheetName)
-                    || !IsSupportedFormula(modelValidationType, formula1!, listItems, listSourceRange, listSourceName)
-                    || (modelValidationType != LegacyXlsDataValidationType.List
+                if (!TryGetListSource(modelValidationType, formula1 ?? string.Empty, out IReadOnlyList<string>? listItems, out string? listSourceRange, out string? listSourceName, out string? listSourceSheetName)
+                    || !IsSupportedFormula(modelValidationType, formula1 ?? string.Empty, listItems, listSourceRange, listSourceName)
+                    || (modelValidationType != LegacyXlsDataValidationType.None
+                        && modelValidationType != LegacyXlsDataValidationType.List
                         && modelValidationType != LegacyXlsDataValidationType.Custom
                         && formula2 != null
                         && !IsSupportedFormula(modelValidationType, formula2, null, null, null))) {
@@ -132,7 +135,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                 if (BiffFormulaAnchor.TryGetFirstRangeAnchor(ranges, out int formulaRow, out int formulaColumn)) {
                     if (!TryDecodeFormulaLayout(payload, formula1Layout, formulaRow, formulaColumn, externSheets, externalReferences, sheetNames, definedNames, out formula1, out formulaFailure)
-                        || string.IsNullOrWhiteSpace(formula1)
+                        || (modelValidationType != LegacyXlsDataValidationType.None && string.IsNullOrWhiteSpace(formula1))
                         || !TryDecodeFormulaLayout(payload, formula2Layout, formulaRow, formulaColumn, externSheets, externalReferences, sheetNames, definedNames, out formula2, out formulaFailure)) {
                         return false;
                     }
@@ -151,7 +154,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 validation = new LegacyXlsDataValidation(
                     modelValidationType,
                     comparisonOperator,
-                    formula1!,
+                    formula1 ?? string.Empty,
                     formula2,
                     (flags & AllowBlankFlag) != 0,
                     (flags & ShowInputMessageFlag) != 0,
@@ -176,11 +179,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         private static bool IsSupportedValidationType(uint validationType) {
-            return validationType >= 0x01 && validationType <= 0x07;
+            return validationType <= 0x07;
         }
 
         private static LegacyXlsDataValidationType ToValidationType(uint validationType) {
             return validationType switch {
+                0x00 => LegacyXlsDataValidationType.None,
                 0x01 => LegacyXlsDataValidationType.WholeNumber,
                 0x02 => LegacyXlsDataValidationType.Decimal,
                 0x03 => LegacyXlsDataValidationType.List,
@@ -233,6 +237,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort expressionLength = BiffRecordReader.ReadUInt16(payload, offset);
             offset += 2;
             if (expressionLength == 0) {
+                offset += 2;
                 return true;
             }
 
@@ -417,12 +422,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string? listSourceRange,
             string? listSourceName) {
             return validationType switch {
-                LegacyXlsDataValidationType.WholeNumber => int.TryParse(formula, NumberStyles.Integer, CultureInfo.InvariantCulture, out _),
-                LegacyXlsDataValidationType.Decimal => double.TryParse(formula, NumberStyles.Float, CultureInfo.InvariantCulture, out _),
+                LegacyXlsDataValidationType.None => true,
+                LegacyXlsDataValidationType.WholeNumber => !string.IsNullOrWhiteSpace(formula),
+                LegacyXlsDataValidationType.Decimal => !string.IsNullOrWhiteSpace(formula),
                 LegacyXlsDataValidationType.List => listItems?.Count > 0 || !string.IsNullOrWhiteSpace(listSourceRange) || !string.IsNullOrWhiteSpace(listSourceName),
-                LegacyXlsDataValidationType.Date => double.TryParse(formula, NumberStyles.Float, CultureInfo.InvariantCulture, out _),
-                LegacyXlsDataValidationType.Time => double.TryParse(formula, NumberStyles.Float, CultureInfo.InvariantCulture, out _),
-                LegacyXlsDataValidationType.TextLength => int.TryParse(formula, NumberStyles.Integer, CultureInfo.InvariantCulture, out _),
+                LegacyXlsDataValidationType.Date => !string.IsNullOrWhiteSpace(formula),
+                LegacyXlsDataValidationType.Time => !string.IsNullOrWhiteSpace(formula),
+                LegacyXlsDataValidationType.TextLength => !string.IsNullOrWhiteSpace(formula),
                 LegacyXlsDataValidationType.Custom => !string.IsNullOrWhiteSpace(formula),
                 _ => false
             };

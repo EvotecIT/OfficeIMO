@@ -67,7 +67,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 _definedNames,
                 _ranges,
                 out LegacyXlsConditionalFormatting? conditionalFormatting,
-                out formulaFailure);
+                out formulaFailure,
+                out bool hasInlineFormatting);
 
             if (parsed) {
                 LegacyXlsConditionalFormatting rule = conditionalFormatting!;
@@ -85,7 +86,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 Clear();
             }
 
-            return parsed;
+            return parsed && !hasInlineFormatting;
         }
 
         internal bool TryReadExtension(byte[] payload, int recordOffset, out bool hasUnprojectedFormatting) {

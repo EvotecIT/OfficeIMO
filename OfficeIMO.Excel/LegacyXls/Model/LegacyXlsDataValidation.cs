@@ -179,6 +179,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// </summary>
     public enum LegacyXlsDataValidationType {
         /// <summary>
+        /// Any-value validation used to carry prompt or error messages without restricting input.
+        /// </summary>
+        None,
+
+        /// <summary>
         /// Whole-number validation.
         /// </summary>
         WholeNumber,

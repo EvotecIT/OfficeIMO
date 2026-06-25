@@ -621,6 +621,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsSingleCellPageBreakSpans() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4SingleCellPageBreaksWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            LegacyXlsWorksheet legacySheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsPageBreak rowBreak = Assert.Single(legacySheet.RowPageBreaks);
+            Assert.Equal(3, rowBreak.Position);
+            Assert.Equal(6, rowBreak.Start);
+            Assert.Equal(6, rowBreak.End);
+            LegacyXlsPageBreak columnBreak = Assert.Single(legacySheet.ColumnPageBreaks);
+            Assert.Equal(2, columnBreak.Position);
+            Assert.Equal(8, columnBreak.Start);
+            Assert.Equal(8, columnBreak.End);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType is 0x001a or 0x001b);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsPhase4ZoomScale() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4ZoomScaleWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -1369,6 +1391,66 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsAnyValueDataValidationMessages() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4AnyValueDataValidationWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.False(result.HasUnsupportedFeatures);
+            LegacyXlsDataValidation validation = Assert.Single(Assert.Single(result.Workbook.Worksheets).DataValidations);
+            Assert.Equal(LegacyXlsDataValidationType.None, validation.Type);
+            Assert.Equal(string.Empty, validation.Formula1);
+            Assert.Equal("A2", Assert.Single(validation.Ranges));
+            Assert.True(validation.ShowInputMessage);
+            Assert.True(validation.ShowErrorMessage);
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            DataValidation openXmlValidation = Assert.Single(worksheetPart.Worksheet.Descendants<DataValidation>());
+            Assert.Equal(DataValidationValues.None, openXmlValidation.Type!.Value);
+            Assert.Equal("A2", openXmlValidation.SequenceOfReferences!.InnerText);
+            Assert.Equal("Instructions", openXmlValidation.PromptTitle!.Value);
+            Assert.Equal("Check value", openXmlValidation.ErrorTitle!.Value);
+            Assert.Null(openXmlValidation.GetFirstChild<Formula1>());
+            Assert.Null(openXmlValidation.GetFirstChild<Formula2>());
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ImportsFormulaBackedDataValidationBounds() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4FormulaBoundDataValidationWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.False(result.HasUnsupportedFeatures);
+            LegacyXlsDataValidation validation = Assert.Single(Assert.Single(result.Workbook.Worksheets).DataValidations);
+            Assert.Equal(LegacyXlsDataValidationType.WholeNumber, validation.Type);
+            Assert.Equal("$A$1", validation.Formula1);
+            Assert.Equal("$B$1", validation.Formula2);
+            Assert.Equal("C2:C6", Assert.Single(validation.Ranges));
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            DataValidation openXmlValidation = Assert.Single(worksheetPart.Worksheet.Descendants<DataValidation>());
+            Assert.Equal(DataValidationValues.Whole, openXmlValidation.Type!.Value);
+            Assert.Equal(DataValidationOperatorValues.Between, openXmlValidation.Operator!.Value);
+            Assert.Equal("$A$1", openXmlValidation.GetFirstChild<Formula1>()!.Text);
+            Assert.Equal("$B$1", openXmlValidation.GetFirstChild<Formula2>()!.Text);
+            Assert.Equal("Out of range", openXmlValidation.ErrorTitle!.Value);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsInlineListDataValidation() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4ListDataValidationWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -2008,6 +2090,26 @@ namespace OfficeIMO.Tests {
             Assert.Null(info.Operator);
             Assert.Equal(new[] { "A1>10" }, info.Formulas);
             Assert.Empty(result.Document.ValidateOpenXml());
+        }
+
+        [Fact]
+        public void LegacyXls_Load_DiagnosesInlineConditionalFormattingBlocks() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4InlineFormattedConditionalFormattingWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
+            Assert.Equal(LegacyXlsConditionalFormattingType.CellIs, conditionalFormatting.Type);
+            Assert.Equal("10", conditionalFormatting.Formula1);
+            Assert.Contains(result.Workbook.UnsupportedFeatures, feature =>
+                feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting
+                && feature.DetailCode == "ConditionalFormatting:Cf");
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingCount);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ConditionalFormatting]);
         }
 
         [Fact]
