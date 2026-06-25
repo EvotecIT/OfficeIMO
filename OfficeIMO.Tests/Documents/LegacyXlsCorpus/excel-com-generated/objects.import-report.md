@@ -2882,6 +2882,12 @@ Warnings: 0
 | --- | --- |
 | PictureObjects:Present\|BlipStore:Present\|PictureBlipReferences:Present\|ReferencedBlips:Resolved | 1 |
 
+## Drawing Picture Count States
+
+| Key | Count |
+| --- | --- |
+| PictureObjects:1\|BlipStoreEntries:1\|PictureBlipReferences:1\|PictureFrames:1\|ObjectBlipParity:Balanced\|ObjectFrameCoverage:Balanced\|ReferencedBlips:Resolved | 1 |
+
 ## Drawing Shape Entries By Type
 
 | Key | Count |

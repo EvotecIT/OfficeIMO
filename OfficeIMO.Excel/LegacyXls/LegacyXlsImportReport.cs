@@ -1519,6 +1519,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(IsPictureBlipReferenceProperty)
                 .Select(property => $"BlipId:{property.Value}"));
             DrawingPictureStates = CountByCode(GetDrawingPictureStateKeys(workbook));
+            DrawingPictureCountStates = CountByCode(GetDrawingPictureCountStateKeys(workbook));
             DrawingShapeEntriesByType = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.ShapeEntries)
                 .Select(shape => shape.ShapeTypeName));
@@ -3453,6 +3454,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets picture drawing states grouped by object, image-store, BLIP reference, and reference-resolution presence.</summary>
         public IReadOnlyDictionary<string, int> DrawingPictureStates { get; }
 
+        /// <summary>Gets picture drawing states grouped by object, BLIP, reference, and decoded picture-frame counts.</summary>
+        public IReadOnlyDictionary<string, int> DrawingPictureCountStates { get; }
+
         /// <summary>Gets OfficeArt shape entries grouped by decoded shape type.</summary>
         public IReadOnlyDictionary<string, int> DrawingShapeEntriesByType { get; }
 
@@ -4345,6 +4349,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Picture BLIP References By Location", DrawingPictureBlipReferencesByLocation);
             AppendDictionary(builder, "Drawing Picture BLIP References By Value", DrawingPictureBlipReferencesByValue);
             AppendDictionary(builder, "Drawing Picture States", DrawingPictureStates);
+            AppendDictionary(builder, "Drawing Picture Count States", DrawingPictureCountStates);
             AppendDictionary(builder, "Drawing Shape Entries By Type", DrawingShapeEntriesByType);
             AppendDictionary(builder, "Drawing Shape Entries By Id", DrawingShapeEntriesById);
             AppendDictionary(builder, "Drawing Shape Entries By Flags", DrawingShapeEntriesByFlags);
@@ -5228,6 +5233,30 @@ namespace OfficeIMO.Excel.LegacyXls {
                 + $"|ReferencedBlips:{GetDrawingPictureBlipResolutionKey(pictureBlipReferences, blipStoreEntryCount)}";
         }
 
+        private static IEnumerable<string> GetDrawingPictureCountStateKeys(LegacyXlsWorkbook workbook) {
+            int pictureObjectCount = workbook.DrawingRecords.Count(record => record.ObjectTypeKind == LegacyXlsDrawingObjectType.Picture);
+            int blipStoreEntryCount = workbook.DrawingRecords.Sum(record => record.BlipStoreEntries.Count);
+            uint[] pictureBlipReferences = workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties)
+                .Where(IsPictureBlipReferenceProperty)
+                .Select(property => property.Value)
+                .ToArray();
+            int pictureFrameCount = workbook.DrawingRecords
+                .SelectMany(record => record.ShapeEntries)
+                .Count(shape => string.Equals(shape.ShapeTypeName, "PictureFrame", StringComparison.Ordinal));
+            if (pictureObjectCount == 0 && blipStoreEntryCount == 0 && pictureBlipReferences.Length == 0 && pictureFrameCount == 0) {
+                yield break;
+            }
+
+            yield return $"PictureObjects:{pictureObjectCount}"
+                + $"|BlipStoreEntries:{blipStoreEntryCount}"
+                + $"|PictureBlipReferences:{pictureBlipReferences.Length}"
+                + $"|PictureFrames:{pictureFrameCount}"
+                + $"|ObjectBlipParity:{GetCountParityKey(pictureObjectCount, blipStoreEntryCount, "Objects", "Blips")}"
+                + $"|ObjectFrameCoverage:{GetCountParityKey(pictureObjectCount, pictureFrameCount, "Objects", "Frames")}"
+                + $"|ReferencedBlips:{GetDrawingPictureBlipResolutionKey(pictureBlipReferences, blipStoreEntryCount)}";
+        }
+
         private static string GetDrawingPictureBlipResolutionKey(IReadOnlyCollection<uint> pictureBlipReferences, int blipStoreEntryCount) {
             if (pictureBlipReferences.Count == 0) {
                 return "None";
@@ -5246,6 +5275,16 @@ namespace OfficeIMO.Excel.LegacyXls {
             }
 
             return hasResolvedReference ? "Resolved" : "Missing";
+        }
+
+        private static string GetCountParityKey(int primaryCount, int secondaryCount, string primaryName, string secondaryName) {
+            if (primaryCount == secondaryCount) {
+                return "Balanced";
+            }
+
+            return primaryCount > secondaryCount
+                ? $"{primaryName}Exceed{secondaryName}"
+                : $"{secondaryName}Exceed{primaryName}";
         }
 
         private static string GetShapePropertyFlagState(LegacyXlsDrawingShapeProperty property) {
