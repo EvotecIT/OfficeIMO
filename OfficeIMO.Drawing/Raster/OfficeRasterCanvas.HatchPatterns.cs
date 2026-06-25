@@ -72,7 +72,7 @@ public sealed partial class OfficeRasterCanvas {
         double size = Math.Max(1D, dotSize);
         for (double yy = y + step / 2D; yy < y + height; yy += step) {
             for (double xx = x + step / 2D; xx < x + width; xx += step) {
-                FillRectangle(xx, yy, size, size, color);
+                DrawHatchDot(xx, yy, size, color);
             }
         }
     }
@@ -85,11 +85,16 @@ public sealed partial class OfficeRasterCanvas {
                 for (int cellY = 0; cellY < pattern.Size; cellY++) {
                     for (int cellX = 0; cellX < pattern.Size; cellX++) {
                         if (pattern.IsFilled(cellX, cellY)) {
-                            FillRectangle(tileX + cellX * size, tileY + cellY * size, size, size, color);
+                            DrawHatchDot(tileX + cellX * size, tileY + cellY * size, size, color);
                         }
                     }
                 }
             }
         }
+    }
+
+    private void DrawHatchDot(double x, double y, double size, OfficeColor color) {
+        double dotSize = Math.Max(1D, size);
+        FillEllipse(x, y, dotSize, dotSize, color);
     }
 }

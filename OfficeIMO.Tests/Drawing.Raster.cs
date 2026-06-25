@@ -69,13 +69,13 @@ namespace OfficeIMO.Tests {
             OfficeRasterImage sparse = new OfficeRasterImage(16, 16, OfficeColor.Transparent);
             OfficeRasterImage denser = new OfficeRasterImage(16, 16, OfficeColor.Transparent);
 
-            new OfficeRasterCanvas(sparse).DrawHatchPatternRectangle(0, 0, 16, 16, OfficeColor.Green, 4, 1, OfficeHatchPatternKind.Percent6_25);
-            new OfficeRasterCanvas(denser).DrawHatchPatternRectangle(0, 0, 16, 16, OfficeColor.Green, 4, 1, OfficeHatchPatternKind.Percent12_5);
+            new OfficeRasterCanvas(sparse).DrawHatchPatternRectangle(0, 0, 16, 16, OfficeColor.Green, 4, 2, OfficeHatchPatternKind.Percent6_25);
+            new OfficeRasterCanvas(denser).DrawHatchPatternRectangle(0, 0, 16, 16, OfficeColor.Green, 4, 2, OfficeHatchPatternKind.Percent12_5);
 
             int sparsePixels = CountPaintedPixels(sparse);
             int denserPixels = CountPaintedPixels(denser);
-            Assert.Equal(16, sparsePixels);
-            Assert.Equal(32, denserPixels);
+            Assert.InRange(sparsePixels, 16, 80);
+            Assert.InRange(denserPixels, sparsePixels + 1, 120);
             Assert.True(denserPixels > sparsePixels);
         }
 

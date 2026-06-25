@@ -1449,9 +1449,9 @@ public class DrawingTests {
 
         string svg = builder.ToString();
         Assert.DoesNotContain("<line", svg, StringComparison.Ordinal);
-        Assert.Equal(8, CountOccurrences(svg, "<rect"));
+        Assert.Equal(8, CountOccurrences(svg, "<circle"));
         Assert.Contains("fill=\"#0AA01E\"", svg, StringComparison.Ordinal);
-        Assert.Contains("x=\"2\" y=\"2\"", svg, StringComparison.Ordinal);
+        Assert.Contains("cx=\"2.5\" cy=\"2.5\"", svg, StringComparison.Ordinal);
     }
 
     [Fact]

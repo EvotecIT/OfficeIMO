@@ -80,13 +80,7 @@ public static partial class OfficeSvgFormatting {
         double size = Math.Max(1D, dotSize);
         for (double yy = y + step / 2D; yy < y + height; yy += step) {
             for (double xx = x + step / 2D; xx < x + width; xx += step) {
-                builder.Append("<rect");
-                builder.AppendNumberAttribute("x", xx)
-                    .AppendNumberAttribute("y", yy)
-                    .AppendNumberAttribute("width", size)
-                    .AppendNumberAttribute("height", size)
-                    .AppendPaintAttribute("fill", color)
-                    .Append("/>");
+                AppendSvgHatchDot(builder, xx, yy, size, color);
             }
         }
     }
@@ -99,18 +93,23 @@ public static partial class OfficeSvgFormatting {
                 for (int cellY = 0; cellY < pattern.Size; cellY++) {
                     for (int cellX = 0; cellX < pattern.Size; cellX++) {
                         if (pattern.IsFilled(cellX, cellY)) {
-                            builder.Append("<rect");
-                            builder.AppendNumberAttribute("x", tileX + cellX * size)
-                                .AppendNumberAttribute("y", tileY + cellY * size)
-                                .AppendNumberAttribute("width", size)
-                                .AppendNumberAttribute("height", size)
-                                .AppendPaintAttribute("fill", color)
-                                .Append("/>");
+                            AppendSvgHatchDot(builder, tileX + cellX * size, tileY + cellY * size, size, color);
                         }
                     }
                 }
             }
         }
+    }
+
+    private static void AppendSvgHatchDot(StringBuilder builder, double x, double y, double size, OfficeColor color) {
+        double dotSize = Math.Max(1D, size);
+        double radius = dotSize / 2D;
+        builder.Append("<circle");
+        builder.AppendNumberAttribute("cx", x + radius)
+            .AppendNumberAttribute("cy", y + radius)
+            .AppendNumberAttribute("r", radius)
+            .AppendPaintAttribute("fill", color)
+            .Append("/>");
     }
 
     private static void AppendSvgHatchLine(StringBuilder builder, double x1, double y1, double x2, double y2, OfficeColor color, double lineWidth) {
