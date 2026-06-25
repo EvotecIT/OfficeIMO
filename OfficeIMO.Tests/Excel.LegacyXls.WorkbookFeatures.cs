@@ -1043,6 +1043,8 @@ namespace OfficeIMO.Tests {
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             Assert.Equal("Data", sheet.Name);
             Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "Imported"));
+            LegacyXlsDefinedName localName = Assert.Single(legacy.DefinedNames, name => name.Name == "DataLocal");
+            Assert.Equal(0, localName.LocalSheetIndex);
             LegacyXlsUnsupportedSheet unsupportedSheet = Assert.Single(legacy.UnsupportedSheets, sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.DialogSheet);
             Assert.Equal("Dialog1", unsupportedSheet.Name);
             Assert.Equal(0x00, unsupportedSheet.SheetType);
@@ -1057,6 +1059,37 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Data", projectedSheet.Name);
             Assert.True(projectedSheet.TryGetCellText(1, 1, out string? text));
             Assert.Equal("Imported", text);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_PreservesZeroFitToHeightAsUnlimitedPagesTall() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5PrintPageSetupUnlimitedHeightWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.Equal((ushort)0, Assert.Single(result.Workbook.Worksheets).PageSetup!.FitToHeight);
+            ExcelSheetPageSetup setup = result.Document.Sheets[0].GetPageSetup();
+            Assert.Equal(1U, setup.FitToWidth);
+            Assert.Equal(0U, setup.FitToHeight);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ReportsShortCellFormatWithoutReadingPastPayload() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5ShortCellFormatWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.Contains(legacy.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-XF-SHORT");
+            Assert.Empty(legacy.CellFormats);
+            Assert.Contains(Assert.Single(legacy.Worksheets).Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "Imported"));
         }
 
         [Fact]
@@ -2104,6 +2137,32 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PatternValues.Solid, patternFill.PatternType!.Value);
             Assert.Equal("FFFFFF00", patternFill.ForegroundColor!.Rgb!.Value);
             Assert.Equal("FFFFFF00", patternFill.BackgroundColor!.Rgb!.Value);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_AttachesConditionalFormattingDxfToMatchingPriorityRule() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5ConditionalFormattingPriorityDxfWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.Equal(2, Assert.Single(result.Workbook.Worksheets).ConditionalFormattings.Count);
+
+            using var packageStream = new MemoryStream();
+            result.Document.Save(packageStream);
+            packageStream.Position = 0;
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(packageStream, false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            Dictionary<int, ConditionalFormattingRule> rulesByPriority = worksheetPart.Worksheet
+                .Elements<ConditionalFormatting>()
+                .SelectMany(formatting => formatting.Elements<ConditionalFormattingRule>())
+                .ToDictionary(rule => rule.Priority!.Value);
+
+            Assert.Null(rulesByPriority[2].FormatId);
+            Assert.Equal(0U, rulesByPriority[1].FormatId!.Value);
         }
 
         [Fact]

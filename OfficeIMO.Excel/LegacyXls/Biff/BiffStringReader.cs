@@ -14,6 +14,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return ReadUnicodeStringBody(bytes, ref offset, charCount);
         }
 
+        internal static string ReadUnicodeString(IReadOnlyList<byte[]> payloads) {
+            if (payloads.Count == 0) {
+                throw new InvalidDataException("The BIFF string has no payload data.");
+            }
+
+            var reader = new BiffStringSegmentReader(payloads);
+            return ReadSegmentedUnicodeString(reader);
+        }
+
         internal static string ReadUnicodeStringNoCch(byte[] bytes, ref int offset, int charCount) {
             return ReadUnicodeStringBody(bytes, ref offset, charCount);
         }

@@ -388,6 +388,20 @@ namespace OfficeIMO.Excel {
             rule.FormatId = differentialFormatId;
         }
 
+        internal void SetConditionalFormattingRuleDifferentialFormatId(string range, int? priority, ConditionalFormatValues type, uint differentialFormatId) {
+            ConditionalFormattingRule? rule = WorksheetRoot.Elements<ConditionalFormatting>()
+                .Where(formatting => string.Equals(formatting.SequenceOfReferences?.InnerText, range, StringComparison.Ordinal))
+                .SelectMany(formatting => formatting.Elements<ConditionalFormattingRule>())
+                .Where(rule => rule.Type?.Value == type)
+                .Where(rule => !priority.HasValue || rule.Priority?.Value == priority.Value)
+                .LastOrDefault();
+            if (rule == null) {
+                return;
+            }
+
+            rule.FormatId = differentialFormatId;
+        }
+
         private static string GetFirstCellReference(string range) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
             string firstReference = range.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries)[0];

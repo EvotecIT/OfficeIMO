@@ -23,18 +23,18 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                         conditionalFormatting.Formula2,
                         conditionalFormatting.StopIfTrue,
                         conditionalFormatting.Priority);
-                    ApplyDifferentialFormatId(sheet, differentialFormatId);
+                    ApplyDifferentialFormatId(sheet, differentialFormatId, range, conditionalFormatting.Priority, ConditionalFormatValues.CellIs);
                     break;
                 case LegacyXlsConditionalFormattingType.Formula:
                     sheet.AddConditionalFormulaRule(range, conditionalFormatting.Formula1, conditionalFormatting.StopIfTrue, conditionalFormatting.Priority);
-                    ApplyDifferentialFormatId(sheet, differentialFormatId);
+                    ApplyDifferentialFormatId(sheet, differentialFormatId, range, conditionalFormatting.Priority, ConditionalFormatValues.Expression);
                     break;
             }
         }
 
-        private static void ApplyDifferentialFormatId(ExcelSheet sheet, uint? differentialFormatId) {
+        private static void ApplyDifferentialFormatId(ExcelSheet sheet, uint? differentialFormatId, string range, int? priority, ConditionalFormatValues type) {
             if (differentialFormatId.HasValue) {
-                sheet.SetLastConditionalFormattingRuleDifferentialFormatId(differentialFormatId.Value);
+                sheet.SetConditionalFormattingRuleDifferentialFormatId(range, priority, type, differentialFormatId.Value);
             }
         }
 

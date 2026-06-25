@@ -22,6 +22,15 @@ namespace OfficeIMO.Tests {
                 return CreateWorkbookCompoundFile(workbookStream, includeVbaProjectStorage: false, includeOleObjectStorage: true);
             }
 
+            internal static byte[] CreateCompoundHeaderWithInvalidSectorChain() {
+                byte[] bytes = new byte[SectorSize];
+                byte[] signature = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };
+                Buffer.BlockCopy(signature, 0, bytes, 0, signature.Length);
+                bytes[30] = 9;
+                bytes[32] = 6;
+                return bytes;
+            }
+
             internal static byte[] CreateMiniStreamWorkbookCompoundFile(byte[] workbookStream) {
                 if (workbookStream.Length >= 4096) {
                     throw new ArgumentException("The workbook stream must be smaller than the compound file mini stream cutoff.", nameof(workbookStream));

@@ -155,6 +155,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
                 foreach (LegacyXlsHyperlink hyperlink in legacySheet.Hyperlinks) {
                     string reference = ToA1Range(hyperlink);
+                    if (!string.IsNullOrWhiteSpace(hyperlink.DisplayText)) {
+                        currentSheet.CellValue(hyperlink.StartRow, hyperlink.StartColumn, hyperlink.DisplayText!);
+                    }
+
                     if (hyperlink.IsExternal) {
                         currentSheet.AddExternalHyperlinkReference(reference, hyperlink.Target);
                     } else {
@@ -574,12 +578,8 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     save: false);
             }
 
-            uint? fitToWidth = pageSetup.FitToWidth.HasValue && pageSetup.FitToWidth.Value > 0
-                ? pageSetup.FitToWidth.Value
-                : null;
-            uint? fitToHeight = pageSetup.FitToHeight.HasValue && pageSetup.FitToHeight.Value > 0
-                ? pageSetup.FitToHeight.Value
-                : null;
+            uint? fitToWidth = pageSetup.FitToWidth.HasValue ? pageSetup.FitToWidth.Value : null;
+            uint? fitToHeight = pageSetup.FitToHeight.HasValue ? pageSetup.FitToHeight.Value : null;
             uint? scale = pageSetup.Scale.HasValue ? pageSetup.Scale.Value : null;
             if (fitToWidth.HasValue || fitToHeight.HasValue || scale.HasValue) {
                 sheet.SetPageSetup(fitToWidth, fitToHeight, scale);

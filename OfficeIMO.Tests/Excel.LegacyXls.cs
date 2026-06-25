@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Biff;
+using OfficeIMO.Excel.LegacyXls.Compound;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Globalization;
@@ -91,6 +92,19 @@ namespace OfficeIMO.Tests {
 
             Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string? header));
             Assert.Equal("Name", header);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ReportsCorruptCompoundSectorChainsAsDiagnostics() {
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateCompoundHeaderWithInvalidSectorChain();
+
+            bool result = LegacyCompoundFileReader.TryRead(compound, out LegacyCompoundFile? compoundFile, out List<LegacyXlsImportDiagnostic> diagnostics);
+
+            Assert.False(result);
+            Assert.Null(compoundFile);
+            LegacyXlsImportDiagnostic diagnostic = Assert.Single(diagnostics);
+            Assert.Equal("XLS-COMPOUND-CORRUPT", diagnostic.Code);
+            Assert.Equal(LegacyXlsDiagnosticSeverity.Error, diagnostic.Severity);
         }
 
         [Fact]
@@ -226,6 +240,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2 && cell.IsFormula && Equals(cell.Value, true));
             Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 3 && cell.IsFormula && Equals(cell.Value, "Formula text"));
             Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 4 && cell.IsFormula && cell.Kind == LegacyXlsCellValueKind.Error && Equals(cell.Value, "#VALUE!"));
+            Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 5 && cell.IsFormula && Equals(cell.Value, "Continued formula text"));
             LegacyXlsCell decodedFormula = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 3);
             Assert.True(decodedFormula.IsFormula);
             Assert.Equal(42d, decodedFormula.Value);
@@ -245,6 +260,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("1", boolean);
             Assert.True(document.Sheets[0].TryGetCellText(1, 3, out string? text));
             Assert.Equal("Formula text", text);
+            Assert.True(document.Sheets[0].TryGetCellText(1, 5, out string? continuedText));
+            Assert.Equal("Continued formula text", continuedText);
             Assert.True(document.Sheets[0].TryGetCellText(2, 3, out string? formulaCachedValue));
             Assert.Equal("42", formulaCachedValue);
             Assert.True(document.Sheets[0].TryGetCellText(2, 4, out string? sumFormulaCachedValue));
@@ -260,6 +277,10 @@ namespace OfficeIMO.Tests {
             Cell projectedSumFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "D2");
             Assert.Equal("SUM(A2:B2)", projectedSumFormula.CellFormula!.Text);
             Assert.Equal("42", projectedSumFormula.CellValue!.Text);
+            Cell projectedContinuedStringFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "E1");
+            Assert.Equal(CellValues.SharedString, projectedContinuedStringFormula.DataType!.Value);
+            int sharedStringIndex = int.Parse(projectedContinuedStringFormula.CellValue!.Text, CultureInfo.InvariantCulture);
+            Assert.Equal("Continued formula text", spreadsheet.WorkbookPart.SharedStringTablePart!.SharedStringTable.Elements<SharedStringItem>().ElementAt(sharedStringIndex).InnerText);
         }
 
         [Fact]
@@ -1565,6 +1586,10 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0006, BuildFormulaSpecialPayload(0, 2, valueType: 0x00, value: 0));
                 WriteRecord(stream, 0x0207, BuildFormulaStringPayload("Formula text"));
                 WriteRecord(stream, 0x0006, BuildFormulaSpecialPayload(0, 3, valueType: 0x02, value: 0x0f));
+                WriteRecord(stream, 0x0006, BuildFormulaSpecialPayload(0, 4, valueType: 0x00, value: 0));
+                (byte[] stringPayload, byte[] continuePayload) = BuildContinuedFormulaStringPayload("Continued formula text", firstCharacterCount: 10);
+                WriteRecord(stream, 0x0207, stringPayload);
+                WriteRecord(stream, 0x003c, continuePayload);
                 WriteRecord(stream, 0x0203, BuildNumberPayload(1, 0, 10d));
                 WriteRecord(stream, 0x0203, BuildNumberPayload(1, 1, 32d));
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(1, 2, 42d, formulaTokens: BuildReferenceAdditionFormulaTokens(1, 0, 1, 1)));
@@ -2007,6 +2032,23 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(0);
                 stream.Write(textBytes, 0, textBytes.Length);
                 return stream.ToArray();
+            }
+
+            private static (byte[] StringPayload, byte[] ContinuePayload) BuildContinuedFormulaStringPayload(string text, int firstCharacterCount) {
+                byte[] textBytes = Encoding.ASCII.GetBytes(text);
+                if (firstCharacterCount <= 0 || firstCharacterCount >= textBytes.Length) {
+                    throw new ArgumentOutOfRangeException(nameof(firstCharacterCount));
+                }
+
+                using var first = new MemoryStream();
+                WriteUInt16(first, checked((ushort)text.Length));
+                first.WriteByte(0);
+                first.Write(textBytes, 0, firstCharacterCount);
+
+                using var continued = new MemoryStream();
+                continued.WriteByte(0);
+                continued.Write(textBytes, firstCharacterCount, textBytes.Length - firstCharacterCount);
+                return (first.ToArray(), continued.ToArray());
             }
 
             private static byte[] BuildLabelSstPayload(ushort row, ushort column, uint sharedStringIndex) {

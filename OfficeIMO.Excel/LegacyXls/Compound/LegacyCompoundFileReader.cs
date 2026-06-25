@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
 
                 compoundFile = new LegacyCompoundFile(streams, BuildCompoundEntries(entries));
                 return true;
-            } catch (Exception ex) when (ex is IOException || ex is ArgumentException || ex is OverflowException || ex is IndexOutOfRangeException) {
+            } catch (Exception ex) when (ex is IOException || ex is ArgumentException || ex is InvalidDataException || ex is OverflowException || ex is IndexOutOfRangeException) {
                 compoundFile = null;
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,

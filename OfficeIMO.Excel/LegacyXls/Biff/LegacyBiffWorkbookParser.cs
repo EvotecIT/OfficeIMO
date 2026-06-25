@@ -155,7 +155,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
             }
 
-            MoveDialogSheetsToUnsupported(workbookStream, workbook, options);
+            int[] worksheetIndexMap = MoveDialogSheetsToUnsupported(workbookStream, workbook, options);
+            RemapDefinedNameLocalSheetIndexes(workbook, worksheetIndexMap);
             IReadOnlyList<string> sheetNames = boundSheetNames.Count == 0
                 ? workbook.Worksheets.Select(sheet => sheet.Name).ToArray()
                 : boundSheetNames.ToArray();
@@ -680,7 +681,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             LegacyXlsWorkbook workbook,
             IReadOnlyDictionary<ushort, string> numberFormatsById,
             List<LegacyXlsImportDiagnostic> diagnostics) {
-            if (record.Payload.Length < 4) {
+            if (record.Payload.Length < 6) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
                     "XLS-BIFF-XF-SHORT",
@@ -926,7 +927,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
         }
 
-        private static void MoveDialogSheetsToUnsupported(byte[] workbookStream, LegacyXlsWorkbook workbook, LegacyXlsImportOptions options) {
+        private static int[] MoveDialogSheetsToUnsupported(byte[] workbookStream, LegacyXlsWorkbook workbook, LegacyXlsImportOptions options) {
+            bool[] removedWorksheetIndexes = new bool[workbook.MutableWorksheets.Count];
             for (int i = workbook.MutableWorksheets.Count - 1; i >= 0; i--) {
                 LegacyXlsWorksheet sheet = workbook.MutableWorksheets[i];
                 if (!TryReadDialogSheetFlag(workbookStream, sheet, out bool isDialogSheet, out int wsBoolOffset) || !isDialogSheet) {
@@ -934,11 +936,40 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
 
                 workbook.MutableWorksheets.RemoveAt(i);
+                removedWorksheetIndexes[i] = true;
                 LegacyXlsUnsupportedSheet unsupportedSheet = ToUnsupportedSheet(sheet, LegacyXlsUnsupportedSheetKind.DialogSheet);
                 workbook.MutableUnsupportedSheets.Add(unsupportedSheet);
                 workbook.MutableUnsupportedFeatures.Add(BiffUnsupportedRecordDiagnostics.CreateUnsupportedDialogSheetFeature(wsBoolOffset, unsupportedSheet));
                 if (options.ReportUnsupportedRecords) {
                     BiffUnsupportedRecordDiagnostics.AddUnsupportedDialogSheetDiagnostic(workbook.MutableDiagnostics, wsBoolOffset, unsupportedSheet);
+                }
+            }
+
+            int[] worksheetIndexMap = new int[removedWorksheetIndexes.Length];
+            int nextWorksheetIndex = 0;
+            for (int i = 0; i < removedWorksheetIndexes.Length; i++) {
+                if (removedWorksheetIndexes[i]) {
+                    worksheetIndexMap[i] = -1;
+                } else {
+                    worksheetIndexMap[i] = nextWorksheetIndex++;
+                }
+            }
+
+            return worksheetIndexMap;
+        }
+
+        private static void RemapDefinedNameLocalSheetIndexes(LegacyXlsWorkbook workbook, int[] worksheetIndexMap) {
+            for (int i = workbook.MutableDefinedNames.Count - 1; i >= 0; i--) {
+                LegacyXlsDefinedName name = workbook.MutableDefinedNames[i];
+                if (!name.LocalSheetIndex.HasValue || name.LocalSheetIndex.Value < 0 || name.LocalSheetIndex.Value >= worksheetIndexMap.Length) {
+                    continue;
+                }
+
+                int remappedIndex = worksheetIndexMap[name.LocalSheetIndex.Value];
+                if (remappedIndex < 0) {
+                    workbook.MutableDefinedNames.RemoveAt(i);
+                } else if (remappedIndex != name.LocalSheetIndex.Value) {
+                    workbook.MutableDefinedNames[i] = new LegacyXlsDefinedName(name.Name, name.Reference, remappedIndex, name.Hidden, name.BuiltIn);
                 }
             }
         }

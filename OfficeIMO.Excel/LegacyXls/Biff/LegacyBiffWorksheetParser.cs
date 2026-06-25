@@ -139,7 +139,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ref bool frozenWindow,
             ref PendingFormulaString? pendingFormulaString) {
             try {
-                if (pendingFormulaString != null && type != (ushort)BiffRecordType.String) {
+                if (pendingFormulaString != null
+                    && type != (ushort)BiffRecordType.String
+                    && (type != (ushort)BiffRecordType.Continue || !pendingFormulaString.HasStringPayload)) {
                     FlushPendingFormulaString(sheet, sharedFormulaState, ref pendingFormulaString);
                 }
 
@@ -192,6 +194,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                         break;
                     case BiffRecordType.Continue:
+                        if (pendingFormulaString?.HasStringPayload == true) {
+                            pendingFormulaString.AddStringPayload(payload);
+                            break;
+                        }
+
                         commentState.TryReadContinue(payload);
                         break;
                     case BiffRecordType.DefColWidth:
@@ -422,8 +429,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     case BiffRecordType.String:
                         if (pendingFormulaString != null) {
-                            int stringOffset = 0;
-                            FlushPendingFormulaString(sheet, sharedFormulaState, ref pendingFormulaString, BiffStringReader.ReadUnicodeString(payload, ref stringOffset));
+                            pendingFormulaString.AddStringPayload(payload);
                         } else if (options.ReportUnsupportedRecords) {
                             diagnostics.Add(new LegacyXlsImportDiagnostic(
                                 LegacyXlsDiagnosticSeverity.Info,
@@ -837,7 +843,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             PendingFormulaString formulaString = pendingFormulaString;
-            sheet.AddCell(formulaString.ToCell(value));
+            sheet.AddCell(formulaString.ToCell(formulaString.GetValue(value)));
             sharedFormulaState.RegisterFormulaCell(formulaString.Row, formulaString.Column, formulaString.SharedFormulaReference, formulaString.RecordOffset);
             pendingFormulaString = null;
         }
@@ -1170,6 +1176,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         private sealed class PendingFormulaString {
+            private List<byte[]>? _stringPayloads;
+
             internal PendingFormulaString(
                 int row,
                 int column,
@@ -1196,6 +1204,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             internal BiffSharedFormulaReference? SharedFormulaReference { get; }
 
             internal int RecordOffset { get; }
+
+            internal bool HasStringPayload => _stringPayloads?.Count > 0;
+
+            internal void AddStringPayload(byte[] payload) {
+                _stringPayloads ??= new List<byte[]>();
+                _stringPayloads.Add(payload);
+            }
+
+            internal string GetValue(string fallback) {
+                return _stringPayloads == null || _stringPayloads.Count == 0
+                    ? fallback
+                    : BiffStringReader.ReadUnicodeString(_stringPayloads);
+            }
 
             internal LegacyXlsCell ToCell(string value) {
                 return new LegacyXlsCell(

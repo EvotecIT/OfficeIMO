@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
 
                 int sheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
-                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "OfficeIMO"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Original cell text"));
                 WriteRecord(stream, 0x01b8, BuildExternalUrlHLinkPayload(0, 0, 0, 0, "https://officeimo.net/legacy-xls", "OfficeIMO"));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
@@ -562,6 +562,8 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Dialog1"));
                 long dataBoundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Data"));
+                WriteRecord(stream, 0x0017, BuildExternSheetPayload((0, 1, 1)));
+                WriteRecord(stream, 0x0018, BuildDefinedNamePayload("DataLocal", BuildNameRef3dFormula(0, 0, 0), localSheetIndex: 2, hidden: false, builtIn: false));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int dialogSheetOffset = checked((int)stream.Position);
@@ -579,6 +581,69 @@ namespace OfficeIMO.Tests {
                 byte[] bytes = stream.ToArray();
                 Buffer.BlockCopy(BitConverter.GetBytes(dialogSheetOffset), 0, bytes, checked((int)dialogBoundSheetPosition + 4), 4);
                 Buffer.BlockCopy(BitConverter.GetBytes(dataSheetOffset), 0, bytes, checked((int)dataBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreatePhase5PrintPageSetupUnlimitedHeightWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Unlimited"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Printable"));
+                WriteRecord(stream, 0x00a1, BuildSetupPayload(scale: 100, fitToWidth: 1, fitToHeight: 0, landscape: true, header: 0.3d, footer: 0.3d));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreatePhase5ShortCellFormatWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ShortXf"));
+                WriteRecord(stream, 0x00e0, new byte[] { 0x00, 0x00, 0x00, 0x00 });
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Imported"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreatePhase5ConditionalFormattingPriorityDxfWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "PriorityDxf"));
+                WriteRecord(stream, (ushort)BiffRecordType.Dxf, BuildDifferentialFormatBackgroundColorPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Score"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 1, "Amount"));
+                WriteRecord(stream, 0x027e, BuildRkPayload(1, 0, 0, EncodeRkInteger(5)));
+                WriteRecord(stream, 0x027e, BuildRkPayload(1, 1, 0, EncodeRkInteger(15)));
+                WriteRecord(stream, 0x01b0, BuildConditionalFormattingRangePayload(0, 0, 2, 0, 1, headerId: 1));
+                WriteRecord(stream, 0x01b1, BuildCellIsGreaterThanConditionalFormattingRulePayload(10));
+                WriteRecord(stream, 0x087b, BuildConditionalFormattingExtensionPayload(headerId: 1, priority: 2, stopIfTrue: false));
+                WriteRecord(stream, 0x01b0, BuildConditionalFormattingRangePayload(0, 1, 2, 1, 1, headerId: 2));
+                WriteRecord(stream, 0x01b1, BuildCellIsGreaterThanConditionalFormattingRulePayload(10));
+                WriteRecord(stream, 0x087b, BuildConditionalFormattingExtensionPayload(headerId: 2, priority: 1, stopIfTrue: true, hasDxf: true));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
                 return bytes;
             }
 
