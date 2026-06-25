@@ -47,6 +47,7 @@ Worksheet future metadata records: 0
 Unsupported sheet metadata records: 8
 Unsupported sheet future metadata records: 0
 Unsupported features: 1488
+Unsupported projection gaps: 5
 Preserved feature records: 1483
 Errors: 0
 Warnings: 0
@@ -534,6 +535,26 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|maquis | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|wijn | 3 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED\|(workbook) | 1 |
+
+## Unsupported Projection Gaps By Kind
+
+| Key | Count |
+| --- | --- |
+| ChartSheet | 4 |
+| VbaProject | 1 |
+
+## Unsupported Projection Gap Record Types
+
+| Key | Count |
+| --- | --- |
+| ChartSheet\|XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|0x0085 | 4 |
+
+## Unsupported Projection Gap Details
+
+| Key | Count |
+| --- | --- |
+| ChartSheet\|XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|Sheet:ChartSheet | 4 |
+| VbaProject\|XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED\|Compound:VbaProjectStorage | 1 |
 
 ## File Format States
 

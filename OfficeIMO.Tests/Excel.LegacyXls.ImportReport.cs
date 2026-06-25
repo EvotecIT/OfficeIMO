@@ -548,6 +548,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.PivotChart]);
             Assert.Equal(2, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Additional]);
             Assert.DoesNotContain(report.PivotTableRecordsByKind, entry => entry.Key == LegacyXlsPivotTableRecordKind.PreserveOnly);
+            Assert.Equal(0, report.UnsupportedProjectionGapCount);
+            Assert.Empty(report.UnsupportedProjectionGapsByKind);
+            Assert.Empty(report.UnsupportedProjectionGapsByRecordType);
+            Assert.Empty(report.UnsupportedProjectionGapsByDetail);
             Assert.Equal(1, report.PivotTableRecordsByName["SxView"]);
             Assert.Equal(1, report.PivotTableRecordsByName["Sxvd"]);
             Assert.Equal(1, report.PivotTableRecordsByName["SxIvd"]);
@@ -993,6 +997,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Pivot Table Additional Class Transitions By Class Type", markdown);
             Assert.Contains("CacheId:1", markdown);
             Assert.Contains("SxcCache\\|SXDEnd\\|EndClass", markdown);
+            Assert.Contains("Unsupported projection gaps: 0", markdown);
             Assert.Contains("SxVdEx", markdown);
             Assert.Contains("SxAddl", markdown);
         }

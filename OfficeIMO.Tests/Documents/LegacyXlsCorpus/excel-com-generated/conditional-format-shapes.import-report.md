@@ -47,6 +47,7 @@ Worksheet future metadata records: 2
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
 Unsupported features: 134
+Unsupported projection gaps: 0
 Preserved feature records: 134
 Errors: 0
 Warnings: 0

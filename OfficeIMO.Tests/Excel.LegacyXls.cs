@@ -278,6 +278,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ErrorCount);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["EncryptedWorkbook|XLS-BIFF-FILEPASS-UNSUPPORTED|Encryption:FilePass:XorObfuscation"]);
+            Assert.Equal(1, report.UnsupportedProjectionGapCount);
+            Assert.Equal(1, report.UnsupportedProjectionGapsByKind[LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook]);
+            Assert.Equal(1, report.UnsupportedProjectionGapsByDetail["EncryptedWorkbook|XLS-BIFF-FILEPASS-UNSUPPORTED|Encryption:FilePass:XorObfuscation"]);
             Assert.Equal(1, report.FileFormatStates["WorkbookFormat:Encrypted"]);
             Assert.Equal(1, report.FileFormatStates["Encryption:Present"]);
             Assert.Equal(1, report.FileFormatStates["UnsupportedBiffVersion:Missing"]);

@@ -47,6 +47,7 @@ Worksheet future metadata records: 0
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
 Unsupported features: 1
+Unsupported projection gaps: 1
 Preserved feature records: 0
 Errors: 1
 Warnings: 0
@@ -92,6 +93,24 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-VERSION-UNSUPPORTED\|(workbook) | 1 |
+
+## Unsupported Projection Gaps By Kind
+
+| Key | Count |
+| --- | --- |
+| UnsupportedBiffVersion | 1 |
+
+## Unsupported Projection Gap Record Types
+
+| Key | Count |
+| --- | --- |
+| UnsupportedBiffVersion\|XLS-BIFF-VERSION-UNSUPPORTED\|0x0809 | 1 |
+
+## Unsupported Projection Gap Details
+
+| Key | Count |
+| --- | --- |
+| UnsupportedBiffVersion\|XLS-BIFF-VERSION-UNSUPPORTED\|BiffVersion:BIFF5:WorkbookGlobals | 1 |
 
 ## File Format States
 

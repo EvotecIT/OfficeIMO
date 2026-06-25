@@ -47,6 +47,7 @@ Worksheet future metadata records: 0
 Unsupported sheet metadata records: 8
 Unsupported sheet future metadata records: 0
 Unsupported features: 1210
+Unsupported projection gaps: 4
 Preserved feature records: 1206
 Errors: 0
 Warnings: 0
@@ -413,6 +414,24 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|RangeTable | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZPFCUM | 9 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZRAINCUM | 9 |
+
+## Unsupported Projection Gaps By Kind
+
+| Key | Count |
+| --- | --- |
+| ChartSheet | 4 |
+
+## Unsupported Projection Gap Record Types
+
+| Key | Count |
+| --- | --- |
+| ChartSheet\|XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|0x0085 | 4 |
+
+## Unsupported Projection Gap Details
+
+| Key | Count |
+| --- | --- |
+| ChartSheet\|XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|Sheet:ChartSheet | 4 |
 
 ## File Format States
 

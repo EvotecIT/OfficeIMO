@@ -47,6 +47,7 @@ Worksheet future metadata records: 0
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
 Unsupported features: 1
+Unsupported projection gaps: 1
 Preserved feature records: 0
 Errors: 1
 Warnings: 0
@@ -92,6 +93,24 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FILEPASS-UNSUPPORTED\|(workbook) | 1 |
+
+## Unsupported Projection Gaps By Kind
+
+| Key | Count |
+| --- | --- |
+| EncryptedWorkbook | 1 |
+
+## Unsupported Projection Gap Record Types
+
+| Key | Count |
+| --- | --- |
+| EncryptedWorkbook\|XLS-BIFF-FILEPASS-UNSUPPORTED\|0x002F | 1 |
+
+## Unsupported Projection Gap Details
+
+| Key | Count |
+| --- | --- |
+| EncryptedWorkbook\|XLS-BIFF-FILEPASS-UNSUPPORTED\|Encryption:FilePass:Rc4 | 1 |
 
 ## File Format States
 

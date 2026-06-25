@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .ToArray();
             LegacyXlsConditionalFormatting[] conditionalFormattings = workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattings).ToArray();
             LegacyXlsConditionalFormattingExtensionRecord[] conditionalFormattingExtensions = workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattingExtensions).ToArray();
+            LegacyXlsUnsupportedFeature[] unsupportedProjectionGaps = GetUnsupportedProjectionGaps(workbook);
             WorksheetCount = workbook.Worksheets.Count;
             UnsupportedSheetCount = workbook.UnsupportedSheets.Count;
             CellCount = workbook.Worksheets.Sum(sheet => sheet.Cells.Count);
@@ -301,6 +302,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             UnsupportedSheetMetadataRecordCount = workbook.UnsupportedSheets.Sum(sheet => sheet.MetadataRecords.Count);
             UnsupportedSheetFutureMetadataRecordCount = workbook.UnsupportedSheets.Sum(sheet => sheet.FutureMetadataRecords.Count);
             UnsupportedFeatureCount = workbook.UnsupportedFeatures.Count;
+            UnsupportedProjectionGapCount = unsupportedProjectionGaps.Length;
             PreservedFeatureRecordCount = workbook.PreservedFeatureRecords.Count;
             ErrorCount = workbook.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             WarningCount = workbook.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning);
@@ -383,6 +385,13 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(feature => $"{feature.Kind}|{feature.Code}|{feature.DetailCode}"));
             UnsupportedFeaturesByLocation = CountByCode(workbook.UnsupportedFeatures
                 .Select(GetFeatureLocationKey));
+            UnsupportedProjectionGapsByKind = CountByKind(unsupportedProjectionGaps);
+            UnsupportedProjectionGapsByRecordType = CountByCode(unsupportedProjectionGaps
+                .Where(feature => feature.RecordType.HasValue)
+                .Select(feature => $"{feature.Kind}|{feature.Code}|0x{feature.RecordType!.Value:X4}"));
+            UnsupportedProjectionGapsByDetail = CountByCode(unsupportedProjectionGaps
+                .Where(feature => !string.IsNullOrWhiteSpace(feature.DetailCode))
+                .Select(feature => $"{feature.Kind}|{feature.Code}|{feature.DetailCode}"));
             FileFormatStates = CountByCode(GetFileFormatStateKeys(workbook));
             FileFormatBlockers = CountByCode(workbook.UnsupportedFeatures
                 .Where(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook
@@ -1870,6 +1879,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of unsupported or preserve-only feature findings.</summary>
         public int UnsupportedFeatureCount { get; }
 
+        /// <summary>Gets the number of unsupported features after subtracting records that are already preserve-modeled.</summary>
+        public int UnsupportedProjectionGapCount { get; }
+
         /// <summary>Gets the number of preserve-only BIFF feature records with typed metadata.</summary>
         public int PreservedFeatureRecordCount { get; }
 
@@ -1980,6 +1992,15 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets unsupported/preserve-only feature counts grouped by code and workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedFeaturesByLocation { get; }
+
+        /// <summary>Gets unsupported feature counts after subtracting records that are already preserve-modeled.</summary>
+        public IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> UnsupportedProjectionGapsByKind { get; }
+
+        /// <summary>Gets unsupported feature counts after subtracting preserve-modeled records, grouped by kind, code, and BIFF record type.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedProjectionGapsByRecordType { get; }
+
+        /// <summary>Gets unsupported feature counts after subtracting preserve-modeled records, grouped by kind, code, and stable feature subtype.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedProjectionGapsByDetail { get; }
 
         /// <summary>Gets high-level workbook file-format states suitable for preflight and corpus comparison.</summary>
         public IReadOnlyDictionary<string, int> FileFormatStates { get; }
@@ -3340,6 +3361,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Unsupported sheet metadata records: {UnsupportedSheetMetadataRecordCount}");
             builder.AppendLine($"Unsupported sheet future metadata records: {UnsupportedSheetFutureMetadataRecordCount}");
             builder.AppendLine($"Unsupported features: {UnsupportedFeatureCount}");
+            builder.AppendLine($"Unsupported projection gaps: {UnsupportedProjectionGapCount}");
             builder.AppendLine($"Preserved feature records: {PreservedFeatureRecordCount}");
             builder.AppendLine($"Errors: {ErrorCount}");
             builder.AppendLine($"Warnings: {WarningCount}");
@@ -3469,6 +3491,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Unsupported Feature Record Types", UnsupportedFeaturesByRecordType);
             AppendDictionary(builder, "Unsupported Feature Details", UnsupportedFeaturesByDetail);
             AppendDictionary(builder, "Unsupported Feature Locations", UnsupportedFeaturesByLocation);
+            AppendDictionary(builder, "Unsupported Projection Gaps By Kind", UnsupportedProjectionGapsByKind.ToDictionary(
+                entry => entry.Key.ToString(),
+                entry => entry.Value,
+                StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "Unsupported Projection Gap Record Types", UnsupportedProjectionGapsByRecordType);
+            AppendDictionary(builder, "Unsupported Projection Gap Details", UnsupportedProjectionGapsByDetail);
             AppendDictionary(builder, "File Format States", FileFormatStates);
             AppendDictionary(builder, "File Format Blockers", FileFormatBlockers);
             AppendDictionary(builder, "Encrypted Workbooks By Method", EncryptedWorkbooksByMethod);
@@ -3993,6 +4021,36 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .GroupBy(feature => feature.Kind)
                 .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        private static LegacyXlsUnsupportedFeature[] GetUnsupportedProjectionGaps(LegacyXlsWorkbook workbook) {
+            var preservedFeatureKeys = new HashSet<string>(
+                workbook.PreservedFeatureRecords.Select(GetPreservedFeatureRecordKey),
+                StringComparer.Ordinal);
+
+            return workbook.UnsupportedFeatures
+                .Where(feature => !preservedFeatureKeys.Contains(GetUnsupportedFeatureKey(feature)))
+                .ToArray();
+        }
+
+        private static string GetUnsupportedFeatureKey(LegacyXlsUnsupportedFeature feature) {
+            return string.Join("|",
+                feature.Kind,
+                feature.Code,
+                feature.SheetName ?? string.Empty,
+                feature.RecordOffset?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                feature.RecordType?.ToString("X4", CultureInfo.InvariantCulture) ?? string.Empty,
+                feature.DetailCode ?? string.Empty);
+        }
+
+        private static string GetPreservedFeatureRecordKey(LegacyXlsPreservedFeatureRecord record) {
+            return string.Join("|",
+                record.Kind,
+                record.Code,
+                record.SheetName ?? string.Empty,
+                record.RecordOffset.ToString(CultureInfo.InvariantCulture),
+                record.RecordType.ToString("X4", CultureInfo.InvariantCulture),
+                record.DetailCode ?? string.Empty);
         }
 
         private static IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> CountPreservedRecordsByKind(IEnumerable<LegacyXlsPreservedFeatureRecord> records) {
