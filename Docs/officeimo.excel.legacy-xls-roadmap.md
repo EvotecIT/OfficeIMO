@@ -249,7 +249,9 @@ sequence indexes, and class/type payload-length buckets.
 Chart `CatSerRange` records now decode preserve-only category/series axis
 crossing and interval metadata, `AxcExt` records now decode preserve-only
 date-axis ranges, units, automatic flags, and reserved-byte state, `AxisLineFormat`
-records now decode the formatted axis component target, `PieFormat` records now decode preserve-only pie/doughnut
+records now decode the formatted axis component target, `Line` records now decode
+preserve-only line chart group stacking, percentage, shadow, and reserved-bit
+states, `PieFormat` records now decode preserve-only pie/doughnut
 explosion percentages, chart `SerFmt` records now decode preserve-only series-format
 smooth-line, 3-D bubble, shadow, and reserved-bit states, chart `ClrtClient` records
 now decode preserve-only client color palettes, and chart `AttachedLabel` records now decode preserve-only

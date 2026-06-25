@@ -68,6 +68,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartSheetProperties? sheetProperties = null,
             LegacyXlsChartValueRange? valueRange = null,
             LegacyXlsChartBarOptions? barOptions = null,
+            LegacyXlsChartLineOptions? lineOptions = null,
             LegacyXlsChartBopPopOptions? bopPopOptions = null,
             LegacyXlsChartBopPopCustomSplit? bopPopCustomSplit = null,
             LegacyXlsChart3DOptions? threeDimensionalOptions = null,
@@ -150,6 +151,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             SheetProperties = sheetProperties;
             ValueRange = valueRange;
             BarOptions = barOptions;
+            LineOptions = lineOptions;
             BopPopOptions = bopPopOptions;
             BopPopCustomSplit = bopPopCustomSplit;
             ThreeDimensionalOptions = threeDimensionalOptions;
@@ -363,6 +365,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded bar or column chart group options from Bar records, when present.</summary>
         public LegacyXlsChartBarOptions? BarOptions { get; }
+
+        /// <summary>Gets decoded line chart group options from Line records, when present.</summary>
+        public LegacyXlsChartLineOptions? LineOptions { get; }
 
         /// <summary>Gets decoded bar-of-pie or pie-of-pie chart group options from BopPop records, when present.</summary>
         public LegacyXlsChartBopPopOptions? BopPopOptions { get; }

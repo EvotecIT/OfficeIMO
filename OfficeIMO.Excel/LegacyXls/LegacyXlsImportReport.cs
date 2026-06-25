@@ -985,6 +985,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartBarStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.BarOptions != null)
                 .Select(GetChartBarStateKey));
+            ChartLineStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.LineOptions != null)
+                .Select(GetChartLineStateKey));
+            ChartLineReservedStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.LineOptions != null)
+                .Select(record => record.LineOptions!.HasZeroReservedBits ? "ReservedZero" : "ReservedNonZero"));
+            ChartLinePercentStackedStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.LineOptions != null)
+                .Select(record => record.LineOptions!.HasValidPercentStackedState ? "ValidPercentState" : "InvalidPercentWithoutStacking"));
             ChartBopPopSubtypes = CountByCode(workbook.ChartRecords
                 .Where(record => record.BopPopOptions != null)
                 .Select(record => record.BopPopOptions!.SubtypeName));
@@ -2887,6 +2896,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Bar records grouped by decoded orientation, stacking, percentage, and shadow flags.</summary>
         public IReadOnlyDictionary<string, int> ChartBarStates { get; }
 
+        /// <summary>Gets Line records grouped by decoded stacking, percentage, and shadow flags.</summary>
+        public IReadOnlyDictionary<string, int> ChartLineStates { get; }
+
+        /// <summary>Gets Line records grouped by reserved-bit state.</summary>
+        public IReadOnlyDictionary<string, int> ChartLineReservedStates { get; }
+
+        /// <summary>Gets Line records grouped by percentage-stacking validity.</summary>
+        public IReadOnlyDictionary<string, int> ChartLinePercentStackedStates { get; }
+
         /// <summary>Gets BopPop records grouped by decoded chart group subtype.</summary>
         public IReadOnlyDictionary<string, int> ChartBopPopSubtypes { get; }
 
@@ -4082,6 +4100,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Bar Overlap Percentages", ChartBarOverlapPercentages);
             AppendDictionary(builder, "Chart Bar Gap Widths", ChartBarGapWidths);
             AppendDictionary(builder, "Chart Bar States", ChartBarStates);
+            AppendDictionary(builder, "Chart Line States", ChartLineStates);
+            AppendDictionary(builder, "Chart Line Reserved States", ChartLineReservedStates);
+            AppendDictionary(builder, "Chart Line Percent Stacked States", ChartLinePercentStackedStates);
             AppendDictionary(builder, "Chart BopPop Subtypes", ChartBopPopSubtypes);
             AppendDictionary(builder, "Chart BopPop Split Types", ChartBopPopSplitTypes);
             AppendDictionary(builder, "Chart BopPop Split Values", ChartBopPopSplitValues);
@@ -4949,6 +4970,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartErrorBarStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartErrorBarOptions options = record.ErrorBarOptions!;
             return $"Direction:{options.DirectionName};Source:{options.ValueSourceName};Tee:{options.HasTeeTop};UsesValue:{options.UsesValue};UsesCustomCount:{options.UsesCustomValueCount}";
+        }
+
+        private static string GetChartLineStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartLineOptions options = record.LineOptions!;
+            return $"Stacked:{options.IsStacked};Percent:{options.IsPercentStacked};Shadow:{options.HasShadow}";
         }
 
         private static string GetChartBopPopStateKey(LegacyXlsChartRecord record) {

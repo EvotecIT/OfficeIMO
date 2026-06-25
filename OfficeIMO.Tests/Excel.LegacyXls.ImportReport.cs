@@ -1804,6 +1804,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsLineChartGroupMetadata() {
+            byte[] payload = {
+                0x07, 0x00
+            };
+
+            var chartRecords = new List<LegacyXlsChartRecord>();
+            Assert.True(BiffChartMetadataReader.TryRead(new BiffRecord(0x1018, offset: 572, payload), "LineChart", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            Assert.Equal("Line", record.ChartTypeName);
+            LegacyXlsChartLineOptions? line = record.LineOptions;
+            Assert.NotNull(line);
+            Assert.Equal(0x0007, line!.Flags);
+            Assert.True(line.IsStacked);
+            Assert.True(line.IsPercentStacked);
+            Assert.True(line.HasShadow);
+            Assert.True(line.HasValidPercentStackedState);
+            Assert.True(line.HasZeroReservedBits);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+            Assert.Equal(1, report.ChartRecordsByChartType["Line"]);
+            Assert.Equal(1, report.ChartLineStates["Stacked:True;Percent:True;Shadow:True"]);
+            Assert.Equal(1, report.ChartLineReservedStates["ReservedZero"]);
+            Assert.Equal(1, report.ChartLinePercentStackedStates["ValidPercentState"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart Line States", markdown);
+            Assert.Contains("Stacked:True;Percent:True;Shadow:True", markdown);
+            Assert.Contains("Chart Line Percent Stacked States", markdown);
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_GroupsChartGroupAndPivotViewReferences() {
             var chartRecords = new List<LegacyXlsChartRecord>();
             byte[] chartFormatPayload = {
