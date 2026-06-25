@@ -253,6 +253,9 @@ plot-area layout bounds, chart future-record version/range envelopes, and XmlTkC
 buckets for axis intervals, axis-line targets, chart-group state, series links,
 enabled data-label flags, full flag-state shapes, axis-label states, chart
 layout states, reserved unit states, plot-area layout states, future-record block scopes, future-record range states, XmlTkChain completion states, series-format states, and pie explosion percentages.
+Chart `BRAI` data-source formulas now also surface projected source-reference
+formula text in import reports, so chart category/title/value ranges are visible
+in corpus baselines without projecting legacy charts into `.xlsx` chart parts.
 Client color palette buckets capture declared and decoded color counts, expected-count
 state, completeness, and foreground/background/neutral colors.
 Drawing `ShapePropsStream`, `TextPropsStream`, and `RichTextStream` future-record

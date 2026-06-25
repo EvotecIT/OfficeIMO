@@ -858,6 +858,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartDataSourceFormulaProjectionStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.DataSource != null)
                 .Select(GetChartDataSourceFormulaProjectionStateKey));
+            ChartDataSourceFormulaTexts = CountByCode(workbook.ChartRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.DataSource?.FormulaText))
+                .Select(record => record.DataSource!.FormulaText!));
             ChartDataSourceFormulaProjectionFailures = CountByCode(workbook.ChartRecords
                 .Where(record => record.DataSource?.HasFormulaProjectionFailure == true)
                 .Select(record => record.DataSource!.FormulaProjectionFailureCode!));
@@ -2596,6 +2599,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets BRAI records grouped by ChartParsedFormula text projection state.</summary>
         public IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionStates { get; }
 
+        /// <summary>Gets BRAI records grouped by projected ChartParsedFormula text.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaTexts { get; }
+
         /// <summary>Gets BRAI formula projection failures grouped by stable failure code.</summary>
         public IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionFailures { get; }
 
@@ -3716,6 +3722,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart DataSource Number Format Ids", ChartDataSourceNumberFormatIds);
             AppendDictionary(builder, "Chart DataSource Formula Byte Counts", ChartDataSourceFormulaByteCounts);
             AppendDictionary(builder, "Chart DataSource Formula Projection States", ChartDataSourceFormulaProjectionStates);
+            AppendDictionary(builder, "Chart DataSource Formula Texts", ChartDataSourceFormulaTexts);
             AppendDictionary(builder, "Chart DataSource Formula Projection Failures", ChartDataSourceFormulaProjectionFailures);
             AppendDictionary(builder, "Chart DataSource Formula Projection Failures By Token", ChartDataSourceFormulaProjectionFailuresByToken);
             AppendDictionary(builder, "Chart DataSource Formula Projection Failures By Token Name", ChartDataSourceFormulaProjectionFailuresByTokenName);

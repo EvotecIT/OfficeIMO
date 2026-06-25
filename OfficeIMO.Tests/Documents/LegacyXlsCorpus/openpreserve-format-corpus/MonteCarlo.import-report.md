@@ -1204,6 +1204,39 @@ Warnings: 0
 | FormulaTextProjected | 72 |
 | NoFormulaBytes | 64 |
 
+## Chart DataSource Formula Texts
+
+| Key | Count |
+| --- | --- |
+| 'LB_MAQU_PF'!$D$2:$D$93 | 10 |
+| 'LB_MAQU_PF'!$E$1 | 2 |
+| 'LB_MAQU_PF'!$E$2:$E$93 | 2 |
+| 'LB_MAQU_PF'!$F$1 | 2 |
+| 'LB_MAQU_PF'!$F$2:$F$93 | 2 |
+| 'LB_MAQU_PF'!$G$1 | 2 |
+| 'LB_MAQU_PF'!$G$2:$G$93 | 2 |
+| 'LB_MAQU_PF'!$H$1 | 2 |
+| 'LB_MAQU_PF'!$H$2:$H$93 | 2 |
+| 'LB_MAQU_PF'!$I$1 | 2 |
+| 'LB_MAQU_PF'!$I$2:$I$93 | 2 |
+| 'LB_MAQU_RAIN'!$D$2:$D$93 | 10 |
+| 'LB_MAQU_RAIN'!$E$1 | 2 |
+| 'LB_MAQU_RAIN'!$E$2:$E$93 | 2 |
+| 'LB_MAQU_RAIN'!$F$1 | 2 |
+| 'LB_MAQU_RAIN'!$F$2:$F$93 | 2 |
+| 'LB_MAQU_RAIN'!$G$1 | 2 |
+| 'LB_MAQU_RAIN'!$G$2:$G$93 | 2 |
+| 'LB_MAQU_RAIN'!$H$1 | 2 |
+| 'LB_MAQU_RAIN'!$H$2:$H$93 | 2 |
+| 'LB_MAQU_RAIN'!$I$1 | 2 |
+| 'LB_MAQU_RAIN'!$I$2:$I$93 | 2 |
+| 'ZPFCUM'!$B$2:$B$257 | 2 |
+| 'ZPFCUM'!$D$1 | 2 |
+| 'ZPFCUM'!$D$2:$D$257 | 2 |
+| 'ZRAINCUM'!$B$2:$B$257 | 2 |
+| 'ZRAINCUM'!$D$1 | 2 |
+| 'ZRAINCUM'!$D$2:$D$257 | 2 |
+
 ## Chart DataSource States
 
 | Key | Count |

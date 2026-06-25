@@ -1600,6 +1600,14 @@ Warnings: 0
 | FormulaTextProjected | 6 |
 | NoFormulaBytes | 10 |
 
+## Chart DataSource Formula Texts
+
+| Key | Count |
+| --- | --- |
+| 'Objects'!$A$2:$A$6 | 2 |
+| 'Objects'!$B$1 | 2 |
+| 'Objects'!$B$2:$B$6 | 2 |
+
 ## Chart DataSource States
 
 | Key | Count |

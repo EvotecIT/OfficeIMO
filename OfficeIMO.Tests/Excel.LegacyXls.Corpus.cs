@@ -206,6 +206,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, result.ImportReport.ChartGelFrameShapePropertiesByName["fillColor"]);
             Assert.Equal(2, result.ImportReport.ChartGelFrameShapePropertiesByName["fillBackColor"]);
             Assert.Equal(2, result.ImportReport.ChartGelFrameShapePropertiesByName["FillStyleBooleanProperties"]);
+            Assert.Equal(2, result.ImportReport.ChartDataSourceFormulaTexts["'Objects'!$A$2:$A$6"]);
+            Assert.Equal(2, result.ImportReport.ChartDataSourceFormulaTexts["'Objects'!$B$1"]);
+            Assert.Equal(2, result.ImportReport.ChartDataSourceFormulaTexts["'Objects'!$B$2:$B$6"]);
             List<LegacyXlsChartRecord> gelFrameRecords = result.Workbook.ChartRecords
                 .Where(record => record.RecordName == "GelFrame")
                 .ToList();

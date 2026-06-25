@@ -1386,6 +1386,14 @@ Warnings: 0
 | FormulaTextProjected | 3 |
 | NoFormulaBytes | 5 |
 
+## Chart DataSource Formula Texts
+
+| Key | Count |
+| --- | --- |
+| 'Data'!$A$2:$A$5 | 1 |
+| 'Data'!$B$1 | 1 |
+| 'Data'!$B$2:$B$5 | 1 |
+
 ## Chart DataSource States
 
 | Key | Count |
