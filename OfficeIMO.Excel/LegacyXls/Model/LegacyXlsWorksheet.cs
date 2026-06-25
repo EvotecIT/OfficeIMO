@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsHyperlink> _hyperlinks = new();
         private readonly List<LegacyXlsMergedRange> _mergedRanges = new();
         private readonly List<LegacyXlsWorksheetMetadataRecord> _metadataRecords = new();
-        private readonly List<LegacyXlsWorksheetFutureMetadataRecord> _futureMetadataRecords = new();
+        private readonly List<LegacyXlsSheetFutureMetadataRecord> _futureMetadataRecords = new();
         private readonly List<LegacyXlsPageBreak> _rowPageBreaks = new();
         private readonly List<LegacyXlsRowLayout> _rows = new();
         private readonly List<LegacyXlsSelection> _selections = new();
@@ -143,7 +143,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>
         /// Gets preserve-only extended metadata records decoded from this worksheet or chart-sheet substream.
         /// </summary>
-        public IReadOnlyList<LegacyXlsWorksheetFutureMetadataRecord> FutureMetadataRecords => _futureMetadataRecords;
+        public IReadOnlyList<LegacyXlsSheetFutureMetadataRecord> FutureMetadataRecords => _futureMetadataRecords;
 
         /// <summary>
         /// Gets explicit manual row page breaks parsed for this worksheet.
@@ -360,7 +360,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             _metadataRecords.Add(new LegacyXlsWorksheetMetadataRecord(kind, recordOffset, recordType));
         }
 
-        internal void AddFutureMetadataRecord(LegacyXlsWorksheetFutureMetadataRecord record) {
+        internal void AddFutureMetadataRecord(LegacyXlsSheetFutureMetadataRecord record) {
             _futureMetadataRecords.Add(record);
             AddMetadataRecord(LegacyXlsWorksheetMetadataKind.FutureMetadata, record.RecordOffset, record.RecordType);
         }

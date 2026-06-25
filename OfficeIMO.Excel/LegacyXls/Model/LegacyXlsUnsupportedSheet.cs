@@ -4,6 +4,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// </summary>
     public sealed class LegacyXlsUnsupportedSheet {
         private readonly List<LegacyXlsUnsupportedSheetMetadataRecord> _metadataRecords = new();
+        private readonly List<LegacyXlsSheetFutureMetadataRecord> _futureMetadataRecords = new();
         private readonly Dictionary<LegacyXlsChartRecordKind, int> _chartRecordsByKind = new();
         private readonly Dictionary<string, int> _chartRecordsByChartType = new(StringComparer.OrdinalIgnoreCase);
 
@@ -69,6 +70,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<LegacyXlsUnsupportedSheetMetadataRecord> MetadataRecords => _metadataRecords;
 
         /// <summary>
+        /// Gets preserve-only extended metadata records decoded from this unsupported sheet substream.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsSheetFutureMetadataRecord> FutureMetadataRecords => _futureMetadataRecords;
+
+        /// <summary>
         /// Gets the chart printed-size mode from a PrintSize record, when this unsupported sheet is a chart sheet.
         /// </summary>
         public ushort? ChartPrintSize { get; private set; }
@@ -124,6 +130,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void AddMetadataRecord(LegacyXlsUnsupportedSheetMetadataKind kind, int recordOffset, ushort recordType) {
             _metadataRecords.Add(new LegacyXlsUnsupportedSheetMetadataRecord(kind, recordOffset, recordType));
+        }
+
+        internal void AddFutureMetadataRecord(LegacyXlsSheetFutureMetadataRecord record) {
+            _futureMetadataRecords.Add(record);
+            AddMetadataRecord(LegacyXlsUnsupportedSheetMetadataKind.FutureMetadata, record.RecordOffset, record.RecordType);
         }
 
         internal void AddChartRecord(LegacyXlsChartRecord record) {

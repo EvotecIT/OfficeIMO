@@ -7,6 +7,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         ChartPrintSize,
 
         /// <summary>Chart text object marker from a TxO record.</summary>
-        ChartTextObject
+        ChartTextObject,
+
+        /// <summary>Preserve-only extended metadata from a future metadata record in the sheet substream.</summary>
+        FutureMetadata
     }
 }

@@ -45,6 +45,7 @@ Workbook future metadata records: 0
 Worksheet metadata records: 0
 Worksheet future metadata records: 0
 Unsupported sheet metadata records: 0
+Unsupported sheet future metadata records: 0
 Unsupported features: 1
 Preserved feature records: 0
 Errors: 1

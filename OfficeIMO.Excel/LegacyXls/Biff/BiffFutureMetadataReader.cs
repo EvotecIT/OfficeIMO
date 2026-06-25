@@ -23,14 +23,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         internal static bool TryCreateWorksheetRecord(
             BiffRecord record,
-            out LegacyXlsWorksheetFutureMetadataRecord? futureRecord) {
+            out LegacyXlsSheetFutureMetadataRecord? futureRecord) {
             if (!TryGetKind(record.Type, out LegacyXlsWorkbookMetadataKind kind)) {
                 futureRecord = null;
                 return false;
             }
 
             (ushort? headerRecordType, ushort? headerFlags) = ReadHeader(record.Payload);
-            futureRecord = new LegacyXlsWorksheetFutureMetadataRecord(
+            futureRecord = new LegacyXlsSheetFutureMetadataRecord(
                 kind,
                 record.Offset,
                 record.Type,

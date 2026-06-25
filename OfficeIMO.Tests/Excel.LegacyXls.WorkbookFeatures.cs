@@ -451,7 +451,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("MetadataSheet", sheet.CodeName);
             Assert.Equal(1, sheet.MetadataRecords.Count(record => record.Kind == LegacyXlsWorksheetMetadataKind.CodeName));
             Assert.Equal(1, sheet.MetadataRecords.Count(record => record.Kind == LegacyXlsWorksheetMetadataKind.FutureMetadata));
-            LegacyXlsWorksheetFutureMetadataRecord sheetCompat12 = Assert.Single(sheet.FutureMetadataRecords, record => record.Kind == LegacyXlsWorkbookMetadataKind.Compatibility12);
+            LegacyXlsSheetFutureMetadataRecord sheetCompat12 = Assert.Single(sheet.FutureMetadataRecords, record => record.Kind == LegacyXlsWorkbookMetadataKind.Compatibility12);
             Assert.True(sheetCompat12.HasMatchingFutureRecordHeader);
             Assert.Equal((ushort)0x088b, sheetCompat12.RecordType);
             Assert.Equal((ushort)0x0005, sheetCompat12.HeaderFlags);

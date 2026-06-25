@@ -1,12 +1,12 @@
 namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
-    /// Describes a preserve-only extended metadata BIFF record found inside a worksheet or chart-sheet substream.
+    /// Describes a preserve-only extended metadata BIFF record found inside a sheet substream.
     /// </summary>
-    public sealed class LegacyXlsWorksheetFutureMetadataRecord {
+    public sealed class LegacyXlsSheetFutureMetadataRecord {
         /// <summary>
-        /// Creates worksheet future metadata record provenance.
+        /// Creates sheet future metadata record provenance.
         /// </summary>
-        public LegacyXlsWorksheetFutureMetadataRecord(
+        public LegacyXlsSheetFutureMetadataRecord(
             LegacyXlsWorkbookMetadataKind kind,
             int recordOffset,
             ushort recordType,

@@ -44,9 +44,10 @@ Workbook metadata records: 22
 Workbook future metadata records: 4
 Worksheet metadata records: 17
 Worksheet future metadata records: 6
-Unsupported sheet metadata records: 1
-Unsupported features: 540
-Preserved feature records: 539
+Unsupported sheet metadata records: 2
+Unsupported sheet future metadata records: 1
+Unsupported features: 539
+Preserved feature records: 538
 Errors: 0
 Warnings: 0
 
@@ -64,7 +65,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 115 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 1 |
 
 ## Formula Tokens By Name
 
@@ -254,7 +254,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 115 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 1 |
 
 ## Unsupported Features By Kind
 
@@ -270,7 +269,6 @@ Warnings: 0
 | StyleExtension | 115 |
 | TableStyle | 1 |
 | Theme | 1 |
-| WorkbookMetadata | 1 |
 
 ## Unsupported Feature Record Types
 
@@ -352,7 +350,6 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x0892 | 47 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|0x088E | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|0x0896 | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x089C | 1 |
 
 ## Unsupported Feature Details
 
@@ -434,7 +431,6 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 67 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:HeaderFooter | 1 |
 
 ## Unsupported Feature Locations
 
@@ -456,7 +452,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|(workbook) | 115 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|(workbook) | 1 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|ChartOnly | 1 |
 
 ## File Format States
 
@@ -3230,6 +3225,67 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | ChartPrintSize | 1 |
+| FutureMetadata | 1 |
+
+## Unsupported Sheet Future Metadata Records By Kind
+
+| Key | Count |
+| --- | --- |
+| HeaderFooter | 1 |
+
+## Unsupported Sheet Future Metadata Records By Sheet
+
+| Key | Count |
+| --- | --- |
+| ChartOnly | 1 |
+
+## Unsupported Sheet Future Metadata Records By Sheet And Kind
+
+| Key | Count |
+| --- | --- |
+| ChartOnly\|HeaderFooter | 1 |
+
+## Unsupported Sheet Future Metadata Records By Record Type
+
+| Key | Count |
+| --- | --- |
+| 0x089C | 1 |
+
+## Unsupported Sheet Future Metadata Records By Record Name
+
+| Key | Count |
+| --- | --- |
+| HeaderFooter | 1 |
+
+## Unsupported Sheet Future Metadata Records By Header State
+
+| Key | Count |
+| --- | --- |
+| MatchingFutureHeader | 1 |
+
+## Unsupported Sheet Future Metadata Records By Header Record Type
+
+| Key | Count |
+| --- | --- |
+| 0x089C | 1 |
+
+## Unsupported Sheet Future Metadata Records By Header Flags
+
+| Key | Count |
+| --- | --- |
+| Flags:0x0000 | 1 |
+
+## Unsupported Sheet Future Metadata Records By Payload Length
+
+| Key | Count |
+| --- | --- |
+| Bytes:38 | 1 |
+
+## Unsupported Sheet Future Metadata Records By Body Byte Count
+
+| Key | Count |
+| --- | --- |
+| Bytes:26 | 1 |
 
 ## Preserved Feature Records By Kind
 
@@ -3244,7 +3300,6 @@ Warnings: 0
 | StyleExtension | 115 |
 | TableStyle | 1 |
 | Theme | 1 |
-| WorkbookMetadata | 1 |
 
 ## Preserved Feature Record Details
 
@@ -3325,4 +3380,3 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 67 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:HeaderFooter | 1 |

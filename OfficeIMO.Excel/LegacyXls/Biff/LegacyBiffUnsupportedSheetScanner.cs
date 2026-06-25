@@ -103,6 +103,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
 
                 if (type != (ushort)BiffRecordType.Bof
+                    && TryReadFutureMetadata(workbookStream, sheet, type, offset, payloadOffset, length)) {
+                    offset = payloadOffset + length;
+                    continue;
+                }
+
+                if (type != (ushort)BiffRecordType.Bof
                     && BiffUnsupportedRecordDiagnostics.IsPreserveOnlyFeatureRecord(type)) {
                     byte[] payload = new byte[length];
                     Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, length);
@@ -134,6 +140,23 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                 offset = payloadOffset + length;
             }
+        }
+
+        private static bool TryReadFutureMetadata(
+            byte[] workbookStream,
+            LegacyXlsUnsupportedSheet sheet,
+            ushort type,
+            int recordOffset,
+            int payloadOffset,
+            ushort payloadLength) {
+            byte[] payload = new byte[payloadLength];
+            Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, payloadLength);
+            if (!BiffFutureMetadataReader.TryCreateWorksheetRecord(new BiffRecord(type, recordOffset, payload), out LegacyXlsSheetFutureMetadataRecord? futureMetadataRecord)) {
+                return false;
+            }
+
+            sheet.AddFutureMetadataRecord(futureMetadataRecord!);
+            return true;
         }
 
         private static bool TryReadUnsupportedSheetMetadata(

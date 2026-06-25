@@ -457,7 +457,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     default:
                         if (type != (ushort)BiffRecordType.Bof) {
-                            if (BiffFutureMetadataReader.TryCreateWorksheetRecord(new BiffRecord(type, offset, payload), out LegacyXlsWorksheetFutureMetadataRecord? futureMetadataRecord)) {
+                            if (BiffFutureMetadataReader.TryCreateWorksheetRecord(new BiffRecord(type, offset, payload), out LegacyXlsSheetFutureMetadataRecord? futureMetadataRecord)) {
                                 sheet.AddFutureMetadataRecord(futureMetadataRecord!);
                                 break;
                             }
