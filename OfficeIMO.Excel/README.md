@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Excel)](https://www.nuget.org/packages/OfficeIMO.Excel)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Excel?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Excel)
 
-`OfficeIMO.Excel` is the main Excel package in the OfficeIMO family. It creates, edits, reads, and saves `.xlsx` workbooks without COM automation and without Microsoft Excel installed.
+`OfficeIMO.Excel` is the main Excel package in the OfficeIMO family. It creates, edits, reads, and saves `.xlsx` workbooks without COM automation and without Microsoft Excel installed. It can also open legacy binary `.xls` workbooks and project supported content into the normal OfficeIMO Excel model; saving produces `.xlsx` content, and native `.xls` writing is not supported.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
@@ -53,6 +53,20 @@ foreach (var row in sheet.Rows()) {
     Console.WriteLine(row["Name"]);
 }
 ```
+
+### Convert a legacy XLS workbook
+
+```csharp
+using var document = ExcelDocument.Load("legacy.xls");
+ExcelFeatureReport report = document.InspectFeatures();
+
+document.Save("converted.xlsx");
+```
+
+Legacy `.xls` files load through the normal `ExcelDocument.Load` entry point.
+Unsupported or preserve-only legacy features are reported through
+`InspectFeatures()` and the legacy import diagnostics attached to the document.
+Saving back to `.xls` is intentionally blocked until native XLS writing exists.
 
 ### Map rows to objects
 

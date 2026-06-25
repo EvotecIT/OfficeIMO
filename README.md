@@ -19,7 +19,7 @@ PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/E
 | Package | Purpose |
 | --- | --- |
 | [OfficeIMO.Word](OfficeIMO.Word/README.md) | Create, edit, inspect, and convert `.docx` documents. |
-| [OfficeIMO.Excel](OfficeIMO.Excel/README.md) | Create and modify `.xlsx` workbooks, worksheets, tables, ranges, styles, and reports. |
+| [OfficeIMO.Excel](OfficeIMO.Excel/README.md) | Create and modify `.xlsx` workbooks, open legacy `.xls` workbooks, worksheets, tables, ranges, styles, and reports. |
 | [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md) | Generate `.pptx` presentations programmatically. |
 | [OfficeIMO.Visio](OfficeIMO.Visio/README.md) | Create, inspect, validate, and export `.vsdx` diagrams without Visio automation. |
 | [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md) | Dependency-free PDF creation, reading, inspection, page operations, and converter engine support. |
