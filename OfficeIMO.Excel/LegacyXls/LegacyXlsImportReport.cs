@@ -970,6 +970,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartBarStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.BarOptions != null)
                 .Select(GetChartBarStateKey));
+            ChartThreeDimensionalViewAngles = CountByCode(workbook.ChartRecords
+                .Where(record => record.ThreeDimensionalOptions != null)
+                .Select(record => $"Rotation:{record.ThreeDimensionalOptions!.RotationDegrees};Elevation:{record.ThreeDimensionalOptions.ElevationDegrees}"));
+            ChartThreeDimensionalScaleValues = CountByCode(workbook.ChartRecords
+                .Where(record => record.ThreeDimensionalOptions != null)
+                .Select(record => $"FieldOfView:{record.ThreeDimensionalOptions!.FieldOfViewDegrees};Height:{record.ThreeDimensionalOptions.HeightPercent};Depth:{record.ThreeDimensionalOptions.DepthPercent};Gap:{record.ThreeDimensionalOptions.GapWidthPercent}"));
+            ChartThreeDimensionalStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.ThreeDimensionalOptions != null)
+                .Select(GetChartThreeDimensionalStateKey));
+            ChartThreeDimensionalReservedStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.ThreeDimensionalOptions != null)
+                .Select(record => record.ThreeDimensionalOptions!.HasZeroReservedBits ? "ReservedZero" : "ReservedNonZero"));
             ChartThreeDimensionalBarShapeRisers = CountByCode(workbook.ChartRecords
                 .Where(record => record.ThreeDimensionalBarShapeOptions != null)
                 .Select(record => record.ThreeDimensionalBarShapeOptions!.RiserName));
@@ -2815,6 +2827,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Bar records grouped by decoded orientation, stacking, percentage, and shadow flags.</summary>
         public IReadOnlyDictionary<string, int> ChartBarStates { get; }
 
+        /// <summary>Gets Chart3d records grouped by rotation and elevation angles.</summary>
+        public IReadOnlyDictionary<string, int> ChartThreeDimensionalViewAngles { get; }
+
+        /// <summary>Gets Chart3d records grouped by field-of-view, height, depth, and gap values.</summary>
+        public IReadOnlyDictionary<string, int> ChartThreeDimensionalScaleValues { get; }
+
+        /// <summary>Gets Chart3d records grouped by decoded perspective, clustering, scaling, pie, and wall flags.</summary>
+        public IReadOnlyDictionary<string, int> ChartThreeDimensionalStates { get; }
+
+        /// <summary>Gets Chart3d records grouped by reserved-bit state.</summary>
+        public IReadOnlyDictionary<string, int> ChartThreeDimensionalReservedStates { get; }
+
         /// <summary>Gets Chart3DBarShape records grouped by decoded data-point base shape.</summary>
         public IReadOnlyDictionary<string, int> ChartThreeDimensionalBarShapeRisers { get; }
 
@@ -3963,6 +3987,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Bar Overlap Percentages", ChartBarOverlapPercentages);
             AppendDictionary(builder, "Chart Bar Gap Widths", ChartBarGapWidths);
             AppendDictionary(builder, "Chart Bar States", ChartBarStates);
+            AppendDictionary(builder, "Chart 3D View Angles", ChartThreeDimensionalViewAngles);
+            AppendDictionary(builder, "Chart 3D Scale Values", ChartThreeDimensionalScaleValues);
+            AppendDictionary(builder, "Chart 3D States", ChartThreeDimensionalStates);
+            AppendDictionary(builder, "Chart 3D Reserved States", ChartThreeDimensionalReservedStates);
             AppendDictionary(builder, "Chart 3D Bar Shape Risers", ChartThreeDimensionalBarShapeRisers);
             AppendDictionary(builder, "Chart 3D Bar Shape Tapers", ChartThreeDimensionalBarShapeTapers);
             AppendDictionary(builder, "Chart 3D Bar Shape States", ChartThreeDimensionalBarShapeStates);
@@ -4816,6 +4844,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartThreeDimensionalBarShapeStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChart3DBarShapeOptions options = record.ThreeDimensionalBarShapeOptions!;
             return $"Riser:{options.RiserName};Taper:{options.TaperName}";
+        }
+
+        private static string GetChartThreeDimensionalStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChart3DOptions options = record.ThreeDimensionalOptions!;
+            return $"Perspective:{options.UsesPerspective};Clustered:{options.IsClustered};AutoScale:{options.UsesAutomaticScaling};Shape:{options.ChartGroupShapeName};Walls2D:{options.UsesTwoDimensionalWalls}";
         }
 
         private static string GetChartScatterStateKey(LegacyXlsChartRecord record) {

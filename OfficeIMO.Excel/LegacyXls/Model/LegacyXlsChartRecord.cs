@@ -67,6 +67,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartSheetProperties? sheetProperties = null,
             LegacyXlsChartValueRange? valueRange = null,
             LegacyXlsChartBarOptions? barOptions = null,
+            LegacyXlsChart3DOptions? threeDimensionalOptions = null,
             LegacyXlsChart3DBarShapeOptions? threeDimensionalBarShapeOptions = null,
             LegacyXlsChartScatterOptions? scatterOptions = null,
             LegacyXlsChartFontBasisOptions? fontBasisOptions = null,
@@ -145,6 +146,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             SheetProperties = sheetProperties;
             ValueRange = valueRange;
             BarOptions = barOptions;
+            ThreeDimensionalOptions = threeDimensionalOptions;
             ThreeDimensionalBarShapeOptions = threeDimensionalBarShapeOptions;
             ScatterOptions = scatterOptions;
             FontBasisOptions = fontBasisOptions;
@@ -352,6 +354,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded bar or column chart group options from Bar records, when present.</summary>
         public LegacyXlsChartBarOptions? BarOptions { get; }
+
+        /// <summary>Gets decoded 3-D chart group options from Chart3d records, when present.</summary>
+        public LegacyXlsChart3DOptions? ThreeDimensionalOptions { get; }
 
         /// <summary>Gets decoded 3-D bar or column data-point shape options from Chart3DBarShape records, when present.</summary>
         public LegacyXlsChart3DBarShapeOptions? ThreeDimensionalBarShapeOptions { get; }

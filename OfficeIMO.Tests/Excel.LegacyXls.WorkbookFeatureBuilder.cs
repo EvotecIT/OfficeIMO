@@ -542,7 +542,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1066, Array.Empty<byte>());
                 WriteRecord(stream, 0x1067, Array.Empty<byte>());
                 WriteRecord(stream, 0x1068, BuildChartFontBasisPayload(640, 480, 220, scaleBasis: 0x0001, fontIndex: 3));
-                WriteRecord(stream, 0x103a, Array.Empty<byte>());
+                WriteRecord(stream, 0x103a, BuildChart3DPayload());
                 WriteRecord(stream, 0x105f, new byte[] { 0x01, 0x02 });
                 WriteRecord(stream, 0x101b, BuildScatterPayload(bubbleSizeRatio: 150, bubbleSizeRepresentation: 0x0002, flags: 0x0007));
                 WriteRecord(stream, 0x1034, Array.Empty<byte>());
@@ -1798,6 +1798,18 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, fontHeightTwips);
                 WriteUInt16(stream, scaleBasis);
                 WriteUInt16(stream, fontIndex);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildChart3DPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 30);
+                WriteUInt16(stream, 20);
+                WriteUInt16(stream, 45);
+                WriteUInt16(stream, 120);
+                WriteUInt16(stream, 100);
+                WriteUInt16(stream, 150);
+                WriteUInt16(stream, 0x0013);
                 return stream.ToArray();
             }
 

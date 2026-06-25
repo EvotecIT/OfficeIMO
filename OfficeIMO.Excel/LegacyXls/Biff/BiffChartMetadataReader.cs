@@ -51,6 +51,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadDataTableOptions(record, out LegacyXlsChartDataTableOptions? dataTableOptions);
             TryReadSheetProperties(record, out LegacyXlsChartSheetProperties? sheetProperties);
             TryReadBarOptions(record, out LegacyXlsChartBarOptions? barOptions);
+            TryReadThreeDimensionalOptions(record, out LegacyXlsChart3DOptions? threeDimensionalOptions);
             TryReadThreeDimensionalBarShapeOptions(record, out LegacyXlsChart3DBarShapeOptions? threeDimensionalBarShapeOptions);
             TryReadScatterOptions(record, out LegacyXlsChartScatterOptions? scatterOptions);
             TryReadFontBasisOptions(record, out LegacyXlsChartFontBasisOptions? fontBasisOptions);
@@ -123,6 +124,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 sheetProperties,
                 valueRange,
                 barOptions,
+                threeDimensionalOptions,
                 threeDimensionalBarShapeOptions,
                 scatterOptions,
                 fontBasisOptions,
@@ -696,6 +698,23 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 BiffRecordReader.ReadInt16(record.Payload, 0),
                 BiffRecordReader.ReadUInt16(record.Payload, 2),
                 BiffRecordReader.ReadUInt16(record.Payload, 4));
+            return true;
+        }
+
+        private static bool TryReadThreeDimensionalOptions(BiffRecord record, out LegacyXlsChart3DOptions? options) {
+            options = null;
+            if (record.Type != 0x103A || record.Payload.Length < 14) {
+                return false;
+            }
+
+            options = new LegacyXlsChart3DOptions(
+                BiffRecordReader.ReadInt16(record.Payload, 0),
+                BiffRecordReader.ReadInt16(record.Payload, 2),
+                BiffRecordReader.ReadInt16(record.Payload, 4),
+                BiffRecordReader.ReadUInt16(record.Payload, 6),
+                BiffRecordReader.ReadInt16(record.Payload, 8),
+                BiffRecordReader.ReadUInt16(record.Payload, 10),
+                BiffRecordReader.ReadUInt16(record.Payload, 12));
             return true;
         }
 

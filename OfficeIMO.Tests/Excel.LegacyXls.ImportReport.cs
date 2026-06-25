@@ -1261,6 +1261,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartNumberFormatIds["NumberFormatId:14"]);
             Assert.Equal(1, report.ChartFontIndexes["FontIndex:3"]);
             Assert.Equal(1, report.ChartDataTableOptions["HorizontalBorders:True;VerticalBorders:False;Outline:True;SeriesKeys:True"]);
+            Assert.Equal(1, report.ChartThreeDimensionalViewAngles["Rotation:30;Elevation:20"]);
+            Assert.Equal(1, report.ChartThreeDimensionalScaleValues["FieldOfView:45;Height:120;Depth:100;Gap:150"]);
+            Assert.Equal(1, report.ChartThreeDimensionalStates["Perspective:True;Clustered:True;AutoScale:False;Shape:NotPie;Walls2D:False"]);
+            Assert.Equal(1, report.ChartThreeDimensionalReservedStates["ReservedZero"]);
             Assert.Equal(1, report.ChartThreeDimensionalBarShapeRisers["Ellipse"]);
             Assert.Equal(1, report.ChartThreeDimensionalBarShapeTapers["ProjectedPoint"]);
             Assert.Equal(1, report.ChartThreeDimensionalBarShapeStates["Riser:Ellipse;Taper:ProjectedPoint"]);
@@ -1479,7 +1483,26 @@ namespace OfficeIMO.Tests {
                 && record.FontBasisOptions.ScaleBasisName == "PlotArea"
                 && record.FontBasisOptions.HasKnownScaleBasis
                 && record.FontBasisOptions.FontIndex == 3);
-            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Chart3d" && record.Kind == LegacyXlsChartRecordKind.ChartType && record.ChartTypeName == "ThreeDimensional");
+            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly"
+                && record.RecordName == "Chart3d"
+                && record.Kind == LegacyXlsChartRecordKind.ChartType
+                && record.ChartTypeName == "ThreeDimensional"
+                && record.ThreeDimensionalOptions != null
+                && record.ThreeDimensionalOptions.RotationDegrees == 30
+                && record.ThreeDimensionalOptions.ElevationDegrees == 20
+                && record.ThreeDimensionalOptions.FieldOfViewDegrees == 45
+                && record.ThreeDimensionalOptions.HeightOrThicknessPercent == 120
+                && record.ThreeDimensionalOptions.HeightPercent == 120
+                && record.ThreeDimensionalOptions.DepthPercent == 100
+                && record.ThreeDimensionalOptions.GapWidthPercent == 150
+                && record.ThreeDimensionalOptions.Flags == 0x0013
+                && record.ThreeDimensionalOptions.UsesPerspective
+                && record.ThreeDimensionalOptions.IsClustered
+                && !record.ThreeDimensionalOptions.UsesAutomaticScaling
+                && record.ThreeDimensionalOptions.IsNotPieChart
+                && record.ThreeDimensionalOptions.ChartGroupShapeName == "NotPie"
+                && !record.ThreeDimensionalOptions.UsesTwoDimensionalWalls
+                && record.ThreeDimensionalOptions.HasZeroReservedBits);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Chart3DBarShape" && record.Kind == LegacyXlsChartRecordKind.ChartType && record.ChartTypeName == "ThreeDimensionalBarShape" && record.ThreeDimensionalBarShapeOptions != null && record.ThreeDimensionalBarShapeOptions.Riser == 0x01 && record.ThreeDimensionalBarShapeOptions.RiserName == "Ellipse" && record.ThreeDimensionalBarShapeOptions.Taper == 0x02 && record.ThreeDimensionalBarShapeOptions.TaperName == "ProjectedPoint");
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Scatter" && record.Kind == LegacyXlsChartRecordKind.ChartType && record.ChartTypeName == "Scatter" && record.ScatterOptions != null && record.ScatterOptions.BubbleSizeRatio == 150 && record.ScatterOptions.BubbleSizeRepresentation == 0x0002 && record.ScatterOptions.BubbleSizeRepresentationName == "Width" && record.ScatterOptions.HasKnownBubbleSizeRepresentation && record.ScatterOptions.HasValidBubbleSizeRatio && record.ScatterOptions.Flags == 0x0007 && record.ScatterOptions.IsBubbleChart && record.ScatterOptions.ShowNegativeBubbles && record.ScatterOptions.HasShadow);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "End" && record.ContainerDepthBefore == 1 && record.ContainerDepthAfter == 0 && record.ContainerTransition == "End");
@@ -1524,6 +1547,10 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Chart Number Format Ids", markdown);
             Assert.Contains("Chart Font Indexes", markdown);
             Assert.Contains("Chart DataTable Options", markdown);
+            Assert.Contains("Chart 3D View Angles", markdown);
+            Assert.Contains("Chart 3D Scale Values", markdown);
+            Assert.Contains("Chart 3D States", markdown);
+            Assert.Contains("Chart 3D Reserved States", markdown);
             Assert.Contains("Chart 3D Bar Shape Risers", markdown);
             Assert.Contains("Chart 3D Bar Shape Tapers", markdown);
             Assert.Contains("Chart 3D Bar Shape States", markdown);
