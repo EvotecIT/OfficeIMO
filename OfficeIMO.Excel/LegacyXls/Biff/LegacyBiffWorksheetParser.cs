@@ -16,6 +16,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsPivotTableRecord> pivotTableRecords,
             List<LegacyXlsChartRecord> chartRecords,
             List<LegacyXlsDrawingRecord> drawingRecords,
+            List<LegacyXlsExternalQueryConnection> externalQueryConnections,
             IReadOnlyList<LegacyXlsDifferentialFormat> differentialFormats,
             LegacyXlsCalculationSettings calculationSettings,
             List<LegacyXlsFormulaTokenRecord> formulaTokenRecords,
@@ -100,7 +101,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return;
                 }
 
-                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, calculationSettings, formulaTokenRecords, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, chartMetadataState, pivotTableMetadataState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
+                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, externalQueryConnections, calculationSettings, formulaTokenRecords, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, chartMetadataState, pivotTableMetadataState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
                 offset = payloadOffset + length;
             }
 
@@ -122,6 +123,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsPivotTableRecord> pivotTableRecords,
             List<LegacyXlsChartRecord> chartRecords,
             List<LegacyXlsDrawingRecord> drawingRecords,
+            List<LegacyXlsExternalQueryConnection> externalQueryConnections,
             LegacyXlsCalculationSettings calculationSettings,
             List<LegacyXlsFormulaTokenRecord> formulaTokenRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
@@ -472,6 +474,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             }
 
                             if (BiffPivotTableMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, pivotTableRecords, diagnostics, pivotTableMetadataState)) {
+                                AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
+                                break;
+                            }
+
+                            if (BiffExternalQueryConnectionReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, diagnostics, out LegacyXlsExternalQueryConnection? externalQueryConnection)) {
+                                externalQueryConnections.Add(externalQueryConnection!);
                                 AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                                 break;
                             }

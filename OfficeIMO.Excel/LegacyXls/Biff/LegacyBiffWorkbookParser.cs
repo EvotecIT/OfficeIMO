@@ -110,6 +110,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     if (options.ReportUnsupportedRecords) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                     }
+                } else if (BiffExternalQueryConnectionReader.TryRead(record, sheetName: null, workbook.MutableDiagnostics, out LegacyXlsExternalQueryConnection? externalQueryConnection)) {
+                    workbook.MutableExternalQueryConnections.Add(externalQueryConnection!);
+                    AddUnsupportedRecordFeature(workbook, record, sheetName: null);
+                    if (options.ReportUnsupportedRecords) {
+                        BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
+                    }
                 } else if (BiffChartMetadataReader.TryRead(record, sheetName: null, workbook.MutableChartRecords, chartMetadataState, externSheets, workbook.ExternalReferences, boundSheetNames, definedNameTable)) {
                     BiffChartMetadataReader.ScanFormulaTokens(record, sheetName: null, workbook.MutableFormulaTokenRecords);
                     AddUnsupportedRecordFeature(workbook, record, sheetName: null);
@@ -152,6 +158,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 workbook.MutablePivotTableRecords,
                 workbook.MutableChartRecords,
                 workbook.MutableDrawingRecords,
+                workbook.MutableExternalQueryConnections,
                 workbook.MutableFormulaTokenRecords,
                 externSheets,
                 workbook.ExternalReferences,
@@ -161,7 +168,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 options);
 
             foreach (LegacyXlsWorksheet sheet in workbook.Worksheets) {
-                LegacyBiffWorksheetParser.Parse(workbookStream, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutablePivotTableRecords, workbook.MutableChartRecords, workbook.MutableDrawingRecords, workbook.DifferentialFormats, workbook.MutableCalculationSettings, workbook.MutableFormulaTokenRecords, workbook.MutableDiagnostics, options);
+                LegacyBiffWorksheetParser.Parse(workbookStream, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutablePivotTableRecords, workbook.MutableChartRecords, workbook.MutableDrawingRecords, workbook.MutableExternalQueryConnections, workbook.DifferentialFormats, workbook.MutableCalculationSettings, workbook.MutableFormulaTokenRecords, workbook.MutableDiagnostics, options);
             }
 
             return workbook;

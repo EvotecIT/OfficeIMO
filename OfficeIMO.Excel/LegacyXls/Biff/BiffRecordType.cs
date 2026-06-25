@@ -32,6 +32,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         CrtMlFrt = 0x089E,
         CrtMlFrtContinue = 0x089F,
         Date1904 = 0x0022,
+        DbQueryExt = 0x0802,
         DConRef = 0x0051,
         DefColWidth = 0x0055,
         DefaultRowHeight = 0x0225,

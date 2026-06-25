@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsCellStyleExtension> _cellStyleExtensions = new();
         private readonly List<LegacyXlsDefinedName> _definedNames = new();
         private readonly List<LegacyXlsExternalReference> _externalReferences = new();
+        private readonly List<LegacyXlsExternalQueryConnection> _externalQueryConnections = new();
         private readonly List<LegacyXlsDataConsolidationReference> _dataConsolidationReferences = new();
         private readonly List<LegacyXlsPivotTableRecord> _pivotTableRecords = new();
         private readonly List<LegacyXlsChartRecord> _chartRecords = new();
@@ -81,6 +82,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets supporting links discovered from SupBook records.
         /// </summary>
         public IReadOnlyList<LegacyXlsExternalReference> ExternalReferences => _externalReferences;
+
+        /// <summary>
+        /// Gets preserve-only DBQueryExt query connection metadata discovered during import.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsExternalQueryConnection> ExternalQueryConnections => _externalQueryConnections;
 
         /// <summary>
         /// Gets preserve-only DConRef source ranges discovered during import.
@@ -300,6 +306,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         internal List<LegacyXlsDefinedName> MutableDefinedNames => _definedNames;
 
         internal List<LegacyXlsExternalReference> MutableExternalReferences => _externalReferences;
+
+        internal List<LegacyXlsExternalQueryConnection> MutableExternalQueryConnections => _externalQueryConnections;
 
         internal List<LegacyXlsDataConsolidationReference> MutableDataConsolidationReferences => _dataConsolidationReferences;
 

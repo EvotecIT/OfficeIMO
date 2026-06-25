@@ -363,6 +363,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedRecord);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.WorkbookMetadata && feature.DetailCode == "WorkbookMetadata:RecalcId");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DConRef");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DbQueryExt");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PivotTable && feature.DetailCode == "PivotTable:Sxvs");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.FeatureExtension && feature.DetailCode == "FeatureExtension:Feat");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting && feature.DetailCode == "ConditionalFormatting:Dxf");
@@ -377,15 +378,50 @@ namespace OfficeIMO.Tests {
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Chart && feature.DetailCode == "Chart:CrtLayout12");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PhoneticGuide && feature.DetailCode == "PhoneticGuide:PhoneticInfo");
             Assert.Equal(legacy.UnsupportedFeatures.Count, legacy.PreservedFeatureRecords.Count);
+            LegacyXlsExternalQueryConnection queryConnection = Assert.Single(legacy.ExternalQueryConnections);
+            Assert.Equal((ushort)BiffRecordType.DbQueryExt, queryConnection.RecordType);
+            Assert.Equal(LegacyXlsExternalQueryConnectionSourceType.OleDb, queryConnection.SourceTypeKind);
+            Assert.Equal("OleDb", queryConnection.SourceTypeName);
+            Assert.True(queryConnection.MaintainConnection);
+            Assert.True(queryConnection.NewQuery);
+            Assert.True(queryConnection.SourceIsXml);
+            Assert.True(queryConnection.HasTextWizardQuery);
+            Assert.True(queryConnection.HasTableNames);
+            Assert.Equal(1, queryConnection.ParameterFlagCount);
+            Assert.Equal(2, queryConnection.ParameterFlagByteCount);
+            Assert.True(queryConnection.HasCompleteParameterFlags);
+            Assert.Equal(2, queryConnection.FutureByteCount);
+            Assert.Equal(15, queryConnection.RefreshIntervalMinutes);
+            Assert.Equal(1, queryConnection.OleDbConnectionCount);
 
             LegacyXlsImportReport report = legacy.CreateImportReport();
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:Dxf"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["TableStyle|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED|TableStyle:TableStyles"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["WorkbookMetadata|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED|WorkbookMetadata:Compat12"]);
+            Assert.Equal(1, report.ExternalQueryConnectionCount);
+            Assert.Equal(1, report.ExternalQueryConnectionsBySourceType["OleDb"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsByConnectionFlag["MaintainConnection"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsByConnectionFlag["NewQuery"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsByConnectionFlag["SourceIsXml"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsByQueryOption["TextWizardQuery"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsByQueryOption["TableNames"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsByParameterFlagCount["Parameters:1"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsByParameterFlagByteCount["Bytes:2"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsByParameterFlagState["Complete"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsByFutureByteCount["Bytes:2"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsByRefreshInterval["Minutes:15"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsByOleDbConnectionCount["OleDbConnections:1"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsByHtmlFormat["HtmlFormat:0x0003"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsByVersionTriplet["Edit:3;Refreshed:2;RefreshableMin:1"]);
+            Assert.Equal(1, report.ExternalQueryConnectionsBySourceSpecificFlags["Flags:0x010A"]);
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["ExternalReference|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED|ExternalReference:DbQueryExt"]);
             Assert.Equal(1, report.ThemeRecordsByVersion["Default"]);
             Assert.Equal(1, report.ThemeRecordsByRawVersion["Version:124226"]);
             Assert.Equal(1, report.ThemeRecordsByContentState["NoEmbeddedThemeBytes"]);
-            Assert.Contains("Preserved Feature Records By Kind", report.ToMarkdown(), StringComparison.Ordinal);
+            string markdown = report.ToMarkdown();
+            Assert.Contains("External query connections: 1", markdown, StringComparison.Ordinal);
+            Assert.Contains("External Query Connections By Source Type", markdown, StringComparison.Ordinal);
+            Assert.Contains("Preserved Feature Records By Kind", markdown, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -1189,6 +1225,7 @@ namespace OfficeIMO.Tests {
                 long boundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Extensions"));
                 WriteRecord(stream, 0x0051, new byte[12]);
+                WriteRecord(stream, 0x0802, BuildExternalQueryConnectionPayload());
                 WriteRecord(stream, 0x00e3, new byte[8]);
                 WriteRecord(stream, 0x01c0, new byte[4]);
                 WriteRecord(stream, 0x01c1, new byte[4]);
@@ -1765,6 +1802,31 @@ namespace OfficeIMO.Tests {
                 }
 
                 return payload;
+            }
+
+            private static byte[] BuildExternalQueryConnectionPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x0803);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0x0005);
+                stream.WriteByte(0x83);
+                stream.WriteByte(0);
+                WriteUInt16(stream, 0x010a);
+                WriteUInt16(stream, 0x0003);
+                stream.WriteByte(3);
+                stream.WriteByte(2);
+                stream.WriteByte(1);
+                stream.WriteByte(0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 2);
+                WriteUInt16(stream, 15);
+                WriteUInt16(stream, 3);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 0x000a);
+                stream.WriteByte(0xaa);
+                stream.WriteByte(0xbb);
+                return stream.ToArray();
             }
 
             private static byte[] BuildFormulaNumberPayload(ushort row, ushort column, double value, ushort styleIndex = 0, byte[]? formulaTokens = null) {

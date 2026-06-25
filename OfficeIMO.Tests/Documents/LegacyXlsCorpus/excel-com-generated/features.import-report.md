@@ -17,6 +17,7 @@ External sheet names: 0
 External names: 0
 External cell caches: 0
 External cached cells: 0
+External query connections: 0
 Data consolidation references: 0
 Pivot table records: 3
 Chart records: 148

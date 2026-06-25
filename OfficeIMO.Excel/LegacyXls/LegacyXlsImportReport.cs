@@ -191,6 +191,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalNameCount = workbook.ExternalReferences.Sum(reference => reference.ExternalNames.Count);
             ExternalCellCacheCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Count);
             ExternalCachedCellCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Sum(cache => cache.Cells.Count));
+            ExternalQueryConnectionCount = workbook.ExternalQueryConnections.Count;
             DataConsolidationReferenceCount = workbook.DataConsolidationReferences.Count;
             PivotTableRecordCount = workbook.PivotTableRecords.Count;
             ChartRecordCount = workbook.ChartRecords.Count;
@@ -393,6 +394,19 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(reference => reference.CachedCellCaches
                     .SelectMany(cache => cache.Cells
                         .Select(cell => $"{GetExternalReferenceTargetKey(reference)}!{GetExternalCellCacheSheetKey(cache)}|{cell.Kind}"))));
+            ExternalQueryConnectionsBySourceType = CountByCode(workbook.ExternalQueryConnections.Select(connection => connection.SourceTypeName));
+            ExternalQueryConnectionsByState = CountByCode(workbook.ExternalQueryConnections.Select(GetExternalQueryConnectionStateKey));
+            ExternalQueryConnectionsByConnectionFlag = CountByCode(workbook.ExternalQueryConnections.SelectMany(GetExternalQueryConnectionFlagKeys));
+            ExternalQueryConnectionsByQueryOption = CountByCode(workbook.ExternalQueryConnections.SelectMany(GetExternalQueryConnectionOptionKeys));
+            ExternalQueryConnectionsByParameterFlagCount = CountByCode(workbook.ExternalQueryConnections.Select(connection => $"Parameters:{connection.ParameterFlagCount}"));
+            ExternalQueryConnectionsByParameterFlagByteCount = CountByCode(workbook.ExternalQueryConnections.Select(connection => $"Bytes:{connection.ParameterFlagByteCount}"));
+            ExternalQueryConnectionsByParameterFlagState = CountByCode(workbook.ExternalQueryConnections.Select(connection => connection.HasCompleteParameterFlags ? "Complete" : "Mismatched"));
+            ExternalQueryConnectionsByFutureByteCount = CountByCode(workbook.ExternalQueryConnections.Select(connection => $"Bytes:{connection.FutureByteCount}"));
+            ExternalQueryConnectionsByRefreshInterval = CountByCode(workbook.ExternalQueryConnections.Select(connection => connection.RefreshIntervalMinutes == 0 ? "Off" : $"Minutes:{connection.RefreshIntervalMinutes}"));
+            ExternalQueryConnectionsByOleDbConnectionCount = CountByCode(workbook.ExternalQueryConnections.Select(connection => $"OleDbConnections:{connection.OleDbConnectionCount}"));
+            ExternalQueryConnectionsByHtmlFormat = CountByCode(workbook.ExternalQueryConnections.Select(connection => $"HtmlFormat:0x{connection.HtmlFormat:X4}"));
+            ExternalQueryConnectionsByVersionTriplet = CountByCode(workbook.ExternalQueryConnections.Select(connection => $"Edit:{connection.EditVersion};Refreshed:{connection.RefreshedVersion};RefreshableMin:{connection.RefreshableMinimumVersion}"));
+            ExternalQueryConnectionsBySourceSpecificFlags = CountByCode(workbook.ExternalQueryConnections.Select(connection => $"Flags:0x{connection.SourceSpecificFlags:X4}"));
             DataConsolidationReferencesBySourceKind = CountByCode(workbook.DataConsolidationReferences.Select(reference => reference.SourceKind.ToString()));
             DataConsolidationReferencesBySource = CountByCode(workbook.DataConsolidationReferences.Select(reference => reference.Source));
             DataConsolidationReferencesByRange = CountByCode(workbook.DataConsolidationReferences.Select(reference => reference.CellRange));
@@ -1476,6 +1490,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of preserved cached external cell values.</summary>
         public int ExternalCachedCellCount { get; }
 
+        /// <summary>Gets the number of preserve-only DBQueryExt external query connection records decoded during import.</summary>
+        public int ExternalQueryConnectionCount { get; }
+
         /// <summary>Gets the number of preserve-only DConRef source range records decoded during import.</summary>
         public int DataConsolidationReferenceCount { get; }
 
@@ -1826,6 +1843,45 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets cached external cell values grouped by normalized target, resolved external sheet name, and value kind.</summary>
         public IReadOnlyDictionary<string, int> ExternalCachedCellsByTargetSheetAndValueKind { get; }
+
+        /// <summary>Gets DBQueryExt records grouped by decoded data source type.</summary>
+        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsBySourceType { get; }
+
+        /// <summary>Gets DBQueryExt records grouped by shallow connection state.</summary>
+        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByState { get; }
+
+        /// <summary>Gets DBQueryExt records grouped by enabled connection flag.</summary>
+        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByConnectionFlag { get; }
+
+        /// <summary>Gets DBQueryExt records grouped by enabled query option flag.</summary>
+        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByQueryOption { get; }
+
+        /// <summary>Gets DBQueryExt records grouped by declared PBT parameter flag count.</summary>
+        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByParameterFlagCount { get; }
+
+        /// <summary>Gets DBQueryExt records grouped by decoded PBT parameter flag byte count.</summary>
+        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByParameterFlagByteCount { get; }
+
+        /// <summary>Gets DBQueryExt records grouped by whether decoded PBT bytes match the declared count.</summary>
+        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByParameterFlagState { get; }
+
+        /// <summary>Gets DBQueryExt records grouped by declared future-byte count.</summary>
+        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByFutureByteCount { get; }
+
+        /// <summary>Gets DBQueryExt records grouped by automatic refresh interval.</summary>
+        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByRefreshInterval { get; }
+
+        /// <summary>Gets DBQueryExt records grouped by declared OleDbConn follow-up record count.</summary>
+        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByOleDbConnectionCount { get; }
+
+        /// <summary>Gets DBQueryExt records grouped by Web query HTML formatting mode.</summary>
+        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByHtmlFormat { get; }
+
+        /// <summary>Gets DBQueryExt records grouped by data functionality version triplet.</summary>
+        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByVersionTriplet { get; }
+
+        /// <summary>Gets DBQueryExt records grouped by raw source-specific ConnGrbitDbt flags.</summary>
+        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsBySourceSpecificFlags { get; }
 
         /// <summary>Gets DConRef records grouped by decoded DConFile source kind.</summary>
         public IReadOnlyDictionary<string, int> DataConsolidationReferencesBySourceKind { get; }
@@ -2685,6 +2741,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"External names: {ExternalNameCount}");
             builder.AppendLine($"External cell caches: {ExternalCellCacheCount}");
             builder.AppendLine($"External cached cells: {ExternalCachedCellCount}");
+            builder.AppendLine($"External query connections: {ExternalQueryConnectionCount}");
             builder.AppendLine($"Data consolidation references: {DataConsolidationReferenceCount}");
             builder.AppendLine($"Pivot table records: {PivotTableRecordCount}");
             builder.AppendLine($"Chart records: {ChartRecordCount}");
@@ -2904,6 +2961,19 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "External Cached Cells By Target Sheet And Value Kind", ExternalCachedCellsByTargetSheetAndValueKind);
+            AppendDictionary(builder, "External Query Connections By Source Type", ExternalQueryConnectionsBySourceType);
+            AppendDictionary(builder, "External Query Connections By State", ExternalQueryConnectionsByState);
+            AppendDictionary(builder, "External Query Connections By Connection Flag", ExternalQueryConnectionsByConnectionFlag);
+            AppendDictionary(builder, "External Query Connections By Query Option", ExternalQueryConnectionsByQueryOption);
+            AppendDictionary(builder, "External Query Connections By Parameter Flag Count", ExternalQueryConnectionsByParameterFlagCount);
+            AppendDictionary(builder, "External Query Connections By Parameter Flag Byte Count", ExternalQueryConnectionsByParameterFlagByteCount);
+            AppendDictionary(builder, "External Query Connections By Parameter Flag State", ExternalQueryConnectionsByParameterFlagState);
+            AppendDictionary(builder, "External Query Connections By Future Byte Count", ExternalQueryConnectionsByFutureByteCount);
+            AppendDictionary(builder, "External Query Connections By Refresh Interval", ExternalQueryConnectionsByRefreshInterval);
+            AppendDictionary(builder, "External Query Connections By OleDb Connection Count", ExternalQueryConnectionsByOleDbConnectionCount);
+            AppendDictionary(builder, "External Query Connections By Html Format", ExternalQueryConnectionsByHtmlFormat);
+            AppendDictionary(builder, "External Query Connections By Version Triplet", ExternalQueryConnectionsByVersionTriplet);
+            AppendDictionary(builder, "External Query Connections By Source Specific Flags", ExternalQueryConnectionsBySourceSpecificFlags);
             AppendDictionary(builder, "Data Consolidation References By Source Kind", DataConsolidationReferencesBySourceKind);
             AppendDictionary(builder, "Data Consolidation References By Source", DataConsolidationReferencesBySource);
             AppendDictionary(builder, "Data Consolidation References By Range", DataConsolidationReferencesByRange);
@@ -3344,6 +3414,31 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .GroupBy(cell => cell.Kind)
                 .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        private static string GetExternalQueryConnectionStateKey(LegacyXlsExternalQueryConnection connection) {
+            return connection.SourceTypeName
+                + $"|Flags:{FormatJoinedState(connection.ConnectionFlagNames)}"
+                + $"|Options:{FormatJoinedState(connection.QueryOptionNames)}"
+                + $"|Parameters:{connection.ParameterFlagCount}"
+                + $"|ParameterBytes:{connection.ParameterFlagByteCount}"
+                + $"|FutureBytes:{connection.FutureByteCount}";
+        }
+
+        private static IEnumerable<string> GetExternalQueryConnectionFlagKeys(LegacyXlsExternalQueryConnection connection) {
+            return connection.ConnectionFlagNames.Count == 0
+                ? new[] { "None" }
+                : connection.ConnectionFlagNames;
+        }
+
+        private static IEnumerable<string> GetExternalQueryConnectionOptionKeys(LegacyXlsExternalQueryConnection connection) {
+            return connection.QueryOptionNames.Count == 0
+                ? new[] { "None" }
+                : connection.QueryOptionNames;
+        }
+
+        private static string FormatJoinedState(IReadOnlyList<string> values) {
+            return values.Count == 0 ? "None" : string.Join("+", values);
         }
 
         private static IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CountCalculationSettingsByKind(IEnumerable<LegacyXlsCalculationSettingRecord> records) {

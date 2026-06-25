@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsPivotTableRecord> pivotTableRecords,
             List<LegacyXlsChartRecord> chartRecords,
             List<LegacyXlsDrawingRecord> drawingRecords,
+            List<LegacyXlsExternalQueryConnection> externalQueryConnections,
             List<LegacyXlsFormulaTokenRecord> formulaTokenRecords,
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
@@ -26,7 +27,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     continue;
                 }
 
-                ScanSheet(workbookStream, sheet, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, formulaTokenRecords, externSheets, externalReferences, sheetNames, definedNames, diagnostics, options);
+                ScanSheet(workbookStream, sheet, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, externalQueryConnections, formulaTokenRecords, externSheets, externalReferences, sheetNames, definedNames, diagnostics, options);
             }
         }
 
@@ -43,6 +44,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsPivotTableRecord> pivotTableRecords,
             List<LegacyXlsChartRecord> chartRecords,
             List<LegacyXlsDrawingRecord> drawingRecords,
+            List<LegacyXlsExternalQueryConnection> externalQueryConnections,
             List<LegacyXlsFormulaTokenRecord> formulaTokenRecords,
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
@@ -115,6 +117,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     }
 
                     BiffPivotTableMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, pivotTableRecords, diagnostics, pivotTableMetadataState);
+                    if (BiffExternalQueryConnectionReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, diagnostics, out LegacyXlsExternalQueryConnection? externalQueryConnection)) {
+                        externalQueryConnections.Add(externalQueryConnection!);
+                    }
+
                     LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(type, offset, sheet.Name);
                     unsupportedFeatures.Add(feature);
                     if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, length, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
