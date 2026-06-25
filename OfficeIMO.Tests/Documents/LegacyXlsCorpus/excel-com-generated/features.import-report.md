@@ -1321,6 +1321,30 @@ Warnings: 0
 | --- | --- |
 | Between:True;MaxCross:False;Reversed:False | 1 |
 
+## Chart AxcExt Date Ranges
+
+| Key | Count |
+| --- | --- |
+| Min:0;Max:0;Cross:0 | 1 |
+
+## Chart AxcExt Date Units
+
+| Key | Count |
+| --- | --- |
+| Major:1 Days;Minor:1 Days;Base:Days | 1 |
+
+## Chart AxcExt States
+
+| Key | Count |
+| --- | --- |
+| AutoMin:True;AutoMax:True;AutoMajor:True;AutoMinor:True;DateAxis:False;AutoBase:True;AutoCross:True;AutoDate:True | 1 |
+
+## Chart AxcExt Reserved States
+
+| Key | Count |
+| --- | --- |
+| ReservedZero | 1 |
+
 ## Chart CatLab Alignments
 
 | Key | Count |

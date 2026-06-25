@@ -76,6 +76,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartPlotAreaLayout12? plotAreaLayout12 = null,
             LegacyXlsChartFutureBlock? futureBlock = null,
             LegacyXlsChartUnits? units = null,
+            LegacyXlsChartAxisExtension? axisExtension = null,
             LegacyXlsChartSeriesList? seriesList = null,
             LegacyXlsChartSeriesFormat? seriesFormat = null,
             LegacyXlsChartClientColorPalette? clientColorPalette = null,
@@ -153,6 +154,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             PlotAreaLayout12 = plotAreaLayout12;
             FutureBlock = futureBlock;
             Units = units;
+            AxisExtension = axisExtension;
             SeriesList = seriesList;
             SeriesFormat = seriesFormat;
             ClientColorPalette = clientColorPalette;
@@ -377,5 +379,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded preserve-only Units metadata, when present.</summary>
         public LegacyXlsChartUnits? Units { get; }
+
+        /// <summary>Gets decoded AxcExt date-axis metadata, when present.</summary>
+        public LegacyXlsChartAxisExtension? AxisExtension { get; }
     }
 }

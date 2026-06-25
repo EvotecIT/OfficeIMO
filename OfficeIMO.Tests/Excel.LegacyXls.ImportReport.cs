@@ -1231,6 +1231,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartRecordsByAxesUsedCount["AxesUsed:1"]);
             Assert.Equal(1, report.ChartCategorySeriesRangeIntervals["Cross:2;Labels:3;Ticks:4"]);
             Assert.Equal(1, report.ChartCategorySeriesRangeStates["Between:True;MaxCross:False;Reversed:True"]);
+            Assert.Equal(1, report.ChartAxisExtensionDateRanges["Min:10;Max:120;Cross:35"]);
+            Assert.Equal(1, report.ChartAxisExtensionDateUnits["Major:2 Months;Minor:7 Days;Base:Months"]);
+            Assert.Equal(1, report.ChartAxisExtensionStates["AutoMin:False;AutoMax:False;AutoMajor:True;AutoMinor:True;DateAxis:True;AutoBase:False;AutoCross:False;AutoDate:True"]);
+            Assert.Equal(1, report.ChartAxisExtensionReservedStates["ReservedZero"]);
             Assert.Equal(1, report.ChartAxisLineFormatTargets["AxisLine"]);
             Assert.Equal(1, report.ChartAxisLineFormatTargets["MajorGridlines"]);
             Assert.Equal(1, report.ChartAxisLineFormatTargets["MinorGridlines"]);
@@ -1432,7 +1436,28 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "AxisLineFormat" && record.AxisLineFormat != null && record.AxisLineFormat.TargetId == 0x0000 && record.AxisLineFormat.TargetName == "AxisLine");
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "AxisLineFormat" && record.AxisLineFormat != null && record.AxisLineFormat.TargetId == 0x0001 && record.AxisLineFormat.TargetName == "MajorGridlines");
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "AxisLineFormat" && record.AxisLineFormat != null && record.AxisLineFormat.TargetId == 0x0002 && record.AxisLineFormat.TargetName == "MinorGridlines");
-            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "AxcExt" && record.Kind == LegacyXlsChartRecordKind.Axis);
+            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly"
+                && record.RecordName == "AxcExt"
+                && record.Kind == LegacyXlsChartRecordKind.Axis
+                && record.AxisExtension != null
+                && record.AxisExtension.MinimumDate == 10
+                && record.AxisExtension.MaximumDate == 120
+                && record.AxisExtension.MajorInterval == 2
+                && record.AxisExtension.MajorUnitName == "Months"
+                && record.AxisExtension.MinorInterval == 7
+                && record.AxisExtension.MinorUnitName == "Days"
+                && record.AxisExtension.BaseUnitName == "Months"
+                && record.AxisExtension.CrossingDate == 35
+                && record.AxisExtension.Flags == 0x9c
+                && !record.AxisExtension.AutoMinimum
+                && !record.AxisExtension.AutoMaximum
+                && record.AxisExtension.AutoMajor
+                && record.AxisExtension.AutoMinor
+                && record.AxisExtension.DateAxis
+                && !record.AxisExtension.AutoBase
+                && !record.AxisExtension.AutoCrossing
+                && record.AxisExtension.AutoDateAxis
+                && record.AxisExtension.HasZeroReservedByte);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Dat" && record.DataTableOptions != null && record.DataTableOptions.Flags == 0x000d && record.DataTableOptions.HasHorizontalBorders && !record.DataTableOptions.HasVerticalBorders && record.DataTableOptions.HasOutlineBorder && record.DataTableOptions.ShowSeriesKeys);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Tick" && record.Tick != null && record.Tick.MajorTickLocationName == "Outside" && record.Tick.MinorTickLocationName == "Inside" && record.Tick.LabelLocationName == "NextToAxis" && record.Tick.BackgroundModeName == "Transparent" && record.Tick.RgbHex == "#998877" && record.Tick.Flags == 0x402d && record.Tick.RotationModeName == "RotatedClockwise" && record.Tick.AutoColor && !record.Tick.AutoBackground && record.Tick.AutoRotation && record.Tick.ReadingOrderName == "LeftToRight" && record.Tick.ColorIndex == 0x004d && record.Tick.Rotation == 30);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Pos" && record.Position != null && record.Position.TopLeftMode == 0x0005 && record.Position.TopLeftModeName == "MDCHART" && record.Position.BottomRightMode == 0x0001 && record.Position.BottomRightModeName == "MDABS" && record.Position.SemanticTypeName == "LegendManualSize" && record.Position.X1Y1MeaningName == "ChartAreaSprcOffset" && record.Position.X2Y2MeaningName == "PointSize" && record.Position.IgnoredCoordinateStateName == "None" && record.Position.HasKnownSemanticCombination && record.Position.X1 == 15 && record.Position.Y1 == 25 && record.Position.X2 == 300 && record.Position.Y2 == 120);
@@ -1461,6 +1486,10 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Chart Records By Axes Used Count", markdown);
             Assert.Contains("Chart CatSerRange Intervals", markdown);
             Assert.Contains("Chart CatSerRange States", markdown);
+            Assert.Contains("Chart AxcExt Date Ranges", markdown);
+            Assert.Contains("Chart AxcExt Date Units", markdown);
+            Assert.Contains("Chart AxcExt States", markdown);
+            Assert.Contains("Chart AxcExt Reserved States", markdown);
             Assert.Contains("Chart AxisLineFormat Targets", markdown);
             Assert.Contains("Chart Series Category Data Types", markdown);
             Assert.Contains("Chart Series Value Data Types", markdown);

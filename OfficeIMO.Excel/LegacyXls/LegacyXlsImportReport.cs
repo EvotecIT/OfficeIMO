@@ -840,6 +840,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartCategorySeriesRangeStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.CategorySeriesRange != null)
                 .Select(GetChartCategorySeriesRangeStateKey));
+            ChartAxisExtensionDateRanges = CountByCode(workbook.ChartRecords
+                .Where(record => record.AxisExtension != null)
+                .Select(GetChartAxisExtensionDateRangeKey));
+            ChartAxisExtensionDateUnits = CountByCode(workbook.ChartRecords
+                .Where(record => record.AxisExtension != null)
+                .Select(GetChartAxisExtensionDateUnitKey));
+            ChartAxisExtensionStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.AxisExtension != null)
+                .Select(GetChartAxisExtensionStateKey));
+            ChartAxisExtensionReservedStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.AxisExtension != null)
+                .Select(record => record.AxisExtension!.HasZeroReservedByte ? "ReservedZero" : "ReservedNonZero"));
             ChartCategoryLabelAlignments = CountByCode(workbook.ChartRecords
                 .Where(record => record.CategoryLabelOptions != null)
                 .Select(record => record.CategoryLabelOptions!.AlignmentName));
@@ -2677,6 +2689,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets CatSerRange records grouped by decoded axis state flags.</summary>
         public IReadOnlyDictionary<string, int> ChartCategorySeriesRangeStates { get; }
 
+        /// <summary>Gets AxcExt records grouped by decoded minimum, maximum, and crossing dates.</summary>
+        public IReadOnlyDictionary<string, int> ChartAxisExtensionDateRanges { get; }
+
+        /// <summary>Gets AxcExt records grouped by decoded major, minor, and base date units.</summary>
+        public IReadOnlyDictionary<string, int> ChartAxisExtensionDateUnits { get; }
+
+        /// <summary>Gets AxcExt records grouped by automatic date-axis flags.</summary>
+        public IReadOnlyDictionary<string, int> ChartAxisExtensionStates { get; }
+
+        /// <summary>Gets AxcExt records grouped by reserved byte state.</summary>
+        public IReadOnlyDictionary<string, int> ChartAxisExtensionReservedStates { get; }
+
         /// <summary>Gets CatLab records grouped by decoded axis-label alignment.</summary>
         public IReadOnlyDictionary<string, int> ChartCategoryLabelAlignments { get; }
 
@@ -3897,6 +3921,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Records By Axes Used Count", ChartRecordsByAxesUsedCount);
             AppendDictionary(builder, "Chart CatSerRange Intervals", ChartCategorySeriesRangeIntervals);
             AppendDictionary(builder, "Chart CatSerRange States", ChartCategorySeriesRangeStates);
+            AppendDictionary(builder, "Chart AxcExt Date Ranges", ChartAxisExtensionDateRanges);
+            AppendDictionary(builder, "Chart AxcExt Date Units", ChartAxisExtensionDateUnits);
+            AppendDictionary(builder, "Chart AxcExt States", ChartAxisExtensionStates);
+            AppendDictionary(builder, "Chart AxcExt Reserved States", ChartAxisExtensionReservedStates);
             AppendDictionary(builder, "Chart CatLab Alignments", ChartCategoryLabelAlignments);
             AppendDictionary(builder, "Chart CatLab Offsets", ChartCategoryLabelOffsets);
             AppendDictionary(builder, "Chart CatLab Count States", ChartCategoryLabelCountStates);
@@ -4744,6 +4772,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartCategorySeriesRangeStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartCategorySeriesRange range = record.CategorySeriesRange!;
             return $"Between:{range.CrossesBetweenTickMarks};MaxCross:{range.CrossesAtMaximum};Reversed:{range.Reversed}";
+        }
+
+        private static string GetChartAxisExtensionDateRangeKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartAxisExtension extension = record.AxisExtension!;
+            return $"Min:{extension.MinimumDate};Max:{extension.MaximumDate};Cross:{extension.CrossingDate}";
+        }
+
+        private static string GetChartAxisExtensionDateUnitKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartAxisExtension extension = record.AxisExtension!;
+            return $"Major:{extension.MajorInterval} {extension.MajorUnitName};Minor:{extension.MinorInterval} {extension.MinorUnitName};Base:{extension.BaseUnitName}";
+        }
+
+        private static string GetChartAxisExtensionStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartAxisExtension extension = record.AxisExtension!;
+            return $"AutoMin:{extension.AutoMinimum};AutoMax:{extension.AutoMaximum};AutoMajor:{extension.AutoMajor};AutoMinor:{extension.AutoMinor};DateAxis:{extension.DateAxis};AutoBase:{extension.AutoBase};AutoCross:{extension.AutoCrossing};AutoDate:{extension.AutoDateAxis}";
         }
 
         private static string GetChartDataSourceStateKey(LegacyXlsChartRecord record) {

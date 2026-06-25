@@ -60,6 +60,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadPlotAreaLayout12(record, out LegacyXlsChartPlotAreaLayout12? plotAreaLayout12);
             TryReadFutureBlock(record, out LegacyXlsChartFutureBlock? futureBlock);
             TryReadUnits(record, out LegacyXlsChartUnits? units);
+            TryReadAxisExtension(record, out LegacyXlsChartAxisExtension? axisExtension);
             TryReadGelFrame(record, out LegacyXlsChartGelFrame? gelFrame);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
@@ -131,6 +132,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 plotAreaLayout12,
                 futureBlock,
                 units,
+                axisExtension,
                 seriesList,
                 seriesFormat,
                 clientColorPalette,
@@ -205,6 +207,26 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             units = new LegacyXlsChartUnits(BiffRecordReader.ReadUInt16(record.Payload, 0));
+            return true;
+        }
+
+        private static bool TryReadAxisExtension(BiffRecord record, out LegacyXlsChartAxisExtension? extension) {
+            extension = null;
+            if (record.Type != 0x1062 || record.Payload.Length < 18) {
+                return false;
+            }
+
+            extension = new LegacyXlsChartAxisExtension(
+                BiffRecordReader.ReadUInt16(record.Payload, 0),
+                BiffRecordReader.ReadUInt16(record.Payload, 2),
+                BiffRecordReader.ReadUInt16(record.Payload, 4),
+                BiffRecordReader.ReadUInt16(record.Payload, 6),
+                BiffRecordReader.ReadUInt16(record.Payload, 8),
+                BiffRecordReader.ReadUInt16(record.Payload, 10),
+                BiffRecordReader.ReadUInt16(record.Payload, 12),
+                BiffRecordReader.ReadUInt16(record.Payload, 14),
+                record.Payload[16],
+                record.Payload[17]);
             return true;
         }
 
