@@ -56,7 +56,7 @@ public static class OfficeConditionalIconRenderer {
             case OfficeConditionalIconKind.RatingThree:
             case OfficeConditionalIconKind.RatingFour:
             case OfficeConditionalIconKind.RatingFive:
-                DrawRasterRatingBars(canvas, x, y, size, GetRatingBarCount(kind), fill, stroke, strokeWidth);
+                DrawRasterRatingStar(canvas, x, y, size, fill, stroke, strokeWidth);
                 break;
             case OfficeConditionalIconKind.QuarterEmpty:
             case OfficeConditionalIconKind.QuarterOne:
@@ -120,7 +120,7 @@ public static class OfficeConditionalIconRenderer {
             case OfficeConditionalIconKind.RatingThree:
             case OfficeConditionalIconKind.RatingFour:
             case OfficeConditionalIconKind.RatingFive:
-                AppendSvgRatingBars(builder, x, y, size, GetRatingBarCount(kind), fill, stroke, strokeWidth);
+                AppendSvgRatingStar(builder, x, y, size, fill, stroke, strokeWidth);
                 break;
             case OfficeConditionalIconKind.QuarterEmpty:
             case OfficeConditionalIconKind.QuarterOne:
@@ -156,21 +156,12 @@ public static class OfficeConditionalIconRenderer {
         canvas.DrawEllipse(x, y, size, size, stroke, strokeWidth);
     }
 
-    private static void DrawRasterRatingBars(OfficeRasterCanvas canvas, double x, double y, double size, int filledBars, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
-        double gap = Math.Max(1D, size * 0.055D);
-        double barWidth = Math.Max(1D, (size - (gap * 4D)) / 5D);
-        double baseY = y + size * 0.86D;
-        OfficeColor emptyFill = OfficeColor.FromRgb(226, 232, 240);
-        OfficeColor emptyStroke = OfficeColor.FromRgb(148, 163, 184);
-
-        for (int i = 0; i < 5; i++) {
-            double height = size * (0.28D + (i * 0.13D));
-            double barX = x + (i * (barWidth + gap));
-            double barY = baseY - height;
-            bool filled = i < filledBars;
-            canvas.FillRectangle(barX, barY, barWidth, height, filled ? fill : emptyFill);
-            canvas.DrawRectangle(barX, barY, barWidth, height, filled ? stroke : emptyStroke, Math.Max(1D, strokeWidth * 0.75D));
-        }
+    private static void DrawRasterRatingStar(OfficeRasterCanvas canvas, double x, double y, double size, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
+        IReadOnlyList<OfficePoint> points = CreateRatingStarPoints(x, y, size);
+        canvas.FillPolygon(OffsetPoints(points, size * 0.055D, size * 0.065D), IconShadowColor);
+        canvas.FillPolygon(points, fill);
+        canvas.FillEllipse(x + size * 0.28D, y + size * 0.22D, size * 0.18D, size * 0.12D, IconHighlightColor);
+        canvas.DrawPolygon(points, stroke, Math.Max(1D, strokeWidth));
     }
 
     private static void DrawRasterQuarterPie(OfficeRasterCanvas canvas, double x, double y, double size, int quarters, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
@@ -200,25 +191,20 @@ public static class OfficeConditionalIconRenderer {
         builder.AppendEllipseElement(x + size * 0.4D, y + size * 0.27D, size * 0.22D, size * 0.13D, IconHighlightColor);
     }
 
-    private static void AppendSvgRatingBars(StringBuilder builder, double x, double y, double size, int filledBars, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
-        double gap = Math.Max(1D, size * 0.055D);
-        double barWidth = Math.Max(1D, (size - (gap * 4D)) / 5D);
-        double baseY = y + size * 0.86D;
-        OfficeColor emptyFill = OfficeColor.FromRgb(226, 232, 240);
-        OfficeColor emptyStroke = OfficeColor.FromRgb(148, 163, 184);
-
-        for (int i = 0; i < 5; i++) {
-            double height = size * (0.28D + (i * 0.13D));
-            double barX = x + (i * (barWidth + gap));
-            double barY = baseY - height;
-            bool filled = i < filledBars;
-            var attributes = new StringBuilder()
-                .AppendPaintAttribute("fill", filled ? fill : emptyFill)
-                .AppendPaintAttribute("stroke", filled ? stroke : emptyStroke)
-                .AppendNumberAttribute("stroke-width", Math.Max(1D, strokeWidth * 0.75D))
-                .ToString();
-            builder.AppendRectElement(barX, barY, barWidth, height, Math.Max(0.5D, barWidth * 0.18D), Math.Max(0.5D, barWidth * 0.18D), attributes);
-        }
+    private static void AppendSvgRatingStar(StringBuilder builder, double x, double y, double size, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
+        IReadOnlyList<OfficePoint> points = CreateRatingStarPoints(x, y, size);
+        var shadowAttributes = new StringBuilder()
+            .AppendPaintAttribute("fill", IconShadowColor)
+            .ToString();
+        builder.AppendPolygonElement(OffsetPoints(points, size * 0.055D, size * 0.065D), shadowAttributes);
+        var attributes = new StringBuilder()
+            .AppendPaintAttribute("fill", fill)
+            .AppendPaintAttribute("stroke", stroke)
+            .AppendNumberAttribute("stroke-width", Math.Max(1D, strokeWidth))
+            .AppendAttribute("stroke-linejoin", "round")
+            .ToString();
+        builder.AppendPolygonElement(points, attributes);
+        builder.AppendEllipseElement(x + size * 0.37D, y + size * 0.28D, size * 0.09D, size * 0.06D, IconHighlightColor);
     }
 
     private static void AppendSvgQuarterPie(StringBuilder builder, double x, double y, double size, int quarters, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
@@ -314,15 +300,22 @@ public static class OfficeConditionalIconRenderer {
         return points;
     }
 
-    private static int GetRatingBarCount(OfficeConditionalIconKind kind) =>
-        kind switch {
-            OfficeConditionalIconKind.RatingOne => 1,
-            OfficeConditionalIconKind.RatingTwo => 2,
-            OfficeConditionalIconKind.RatingThree => 3,
-            OfficeConditionalIconKind.RatingFour => 4,
-            OfficeConditionalIconKind.RatingFive => 5,
-            _ => 0
-        };
+    private static IReadOnlyList<OfficePoint> CreateRatingStarPoints(double x, double y, double size) {
+        const int pointCount = 10;
+        double centerX = x + size * 0.5D;
+        double centerY = y + size * 0.52D;
+        double outerRadius = size * 0.44D;
+        double innerRadius = size * 0.205D;
+        double startAngle = -Math.PI / 2D;
+        var points = new OfficePoint[pointCount];
+        for (int i = 0; i < pointCount; i++) {
+            double radius = i % 2 == 0 ? outerRadius : innerRadius;
+            double angle = startAngle + (Math.PI * 2D * i / pointCount);
+            points[i] = new OfficePoint(centerX + Math.Cos(angle) * radius, centerY + Math.Sin(angle) * radius);
+        }
+
+        return points;
+    }
 
     private static int GetQuarterFillCount(OfficeConditionalIconKind kind) =>
         kind switch {

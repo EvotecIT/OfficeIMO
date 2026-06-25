@@ -186,10 +186,11 @@ namespace OfficeIMO.Tests {
 
             Assert.True(CountPixelsNear(circle, OfficeColor.FromRgb(220, 38, 38)) > 40);
             Assert.True(CountPixelsNear(arrow, OfficeColor.FromRgb(22, 163, 74)) > 30);
-            Assert.True(CountPixelsNear(rating, OfficeColor.FromRgb(22, 163, 74)) > 45);
+            Assert.True(CountPixelsNear(rating, OfficeColor.FromRgb(22, 163, 74)) > 30);
             Assert.True(CountPixelsNear(quarter, OfficeColor.FromRgb(249, 115, 22)) > 20);
             Assert.True(CountPixelsNearAlpha(circle, OfficeColor.FromRgb(15, 23, 42), 8, 10, 70) > 0);
             Assert.True(CountPixelsNearAlpha(arrow, OfficeColor.FromRgb(15, 23, 42), 8, 10, 70) > 0);
+            Assert.True(CountPixelsNearAlpha(rating, OfficeColor.FromRgb(15, 23, 42), 8, 10, 70) > 0);
             Assert.Equal(0, circle.GetPixel(0, 0).A);
             Assert.Equal(0, arrow.GetPixel(0, 0).A);
             Assert.Equal(0, rating.GetPixel(0, 0).A);
@@ -204,8 +205,8 @@ namespace OfficeIMO.Tests {
             OfficeConditionalIconRenderer.AppendSvg(builder, 24, 3, 18, OfficeConditionalIconKind.QuarterTwo, scale: 1D);
             string svg = builder.ToString();
 
-            Assert.Contains("<rect", svg, StringComparison.Ordinal);
-            Assert.Contains("<polygon", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("<rect", svg, StringComparison.Ordinal);
+            Assert.True(CountOccurrences(svg, "<polygon") >= 3, svg);
             Assert.Contains("#F59E0B", svg, StringComparison.OrdinalIgnoreCase);
         }
 

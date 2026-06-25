@@ -43,19 +43,19 @@ public enum OfficeConditionalIconKind {
     /// <summary>Red traffic-light circle.</summary>
     RedCircle,
 
-    /// <summary>One filled rating bar.</summary>
+    /// <summary>Lowest rating symbol.</summary>
     RatingOne,
 
-    /// <summary>Two filled rating bars.</summary>
+    /// <summary>Low rating symbol.</summary>
     RatingTwo,
 
-    /// <summary>Three filled rating bars.</summary>
+    /// <summary>Middle rating symbol.</summary>
     RatingThree,
 
-    /// <summary>Four filled rating bars.</summary>
+    /// <summary>High rating symbol.</summary>
     RatingFour,
 
-    /// <summary>Five filled rating bars.</summary>
+    /// <summary>Highest rating symbol.</summary>
     RatingFive,
 
     /// <summary>Empty quarter-pie indicator.</summary>
