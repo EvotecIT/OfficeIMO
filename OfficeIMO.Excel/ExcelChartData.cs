@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
 
             int count = Categories.Count;
             foreach (var item in Series) {
-                if (item.Values.Count != count) {
+                if (item.Values.Count != count && item.XValues == null) {
                     throw new ArgumentException("Each series must match the categories count.", nameof(series));
                 }
 

@@ -174,20 +174,24 @@ namespace OfficeIMO.Excel {
                 return ApplyNumericAffixes(normalized, fractionText);
             }
 
-            if (lower.Contains("e+")) {
+            if (lower.Contains("e+") || lower.Contains("e-")) {
                 int decimals = CountDecimalPlaces(lower);
                 double scientificValue = selectedSection == 1 ? Math.Abs(value) : value;
-                string scientificText = scientificValue.ToString("E" + decimals.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+                string scientificText = scientificValue.ToString(BuildScientificFormat(lower, decimals), CultureInfo.InvariantCulture);
                 return ApplyNumericAffixes(normalized, scientificText);
             }
 
-            bool percent = ContainsPercentPlaceholder(section);
+            int percentPlaceholders = CountPercentPlaceholders(section);
             bool thousands = lower.Contains("#,##") || lower.Contains(",##");
             bool currency = normalized.IndexOf('$') >= 0
                 || normalized.IndexOf('\u20AC') >= 0
                 || normalized.IndexOf('\u00A3') >= 0;
             DecimalPlaceInfo decimalPlaces = GetDecimalPlaceInfo(lower);
-            double displayValue = percent ? value * 100.0 : value;
+            double displayValue = value;
+            for (int i = 0; i < percentPlaceholders; i++) {
+                displayValue *= 100D;
+            }
+
             int scalingCommas = CountScalingCommas(normalized);
             for (int i = 0; i < scalingCommas; i++) {
                 displayValue /= 1000D;
@@ -416,6 +420,32 @@ namespace OfficeIMO.Excel {
             return GetDecimalPlaceInfo(formatCode).Maximum;
         }
 
+        private static string BuildScientificFormat(string formatCode, int decimals) {
+            int exponentIndex = formatCode.IndexOf('e');
+            int exponentDigits = 0;
+            if (exponentIndex >= 0) {
+                for (int i = exponentIndex + 1; i < formatCode.Length; i++) {
+                    char ch = formatCode[i];
+                    if (ch == '+' || ch == '-') {
+                        continue;
+                    }
+
+                    if (ch == '0') {
+                        exponentDigits++;
+                        continue;
+                    }
+
+                    break;
+                }
+            }
+
+            exponentDigits = Math.Max(1, exponentDigits);
+            return "0"
+                + (decimals > 0 ? "." + new string('0', decimals) : string.Empty)
+                + "E+"
+                + new string('0', exponentDigits);
+        }
+
         private static DecimalPlaceInfo GetDecimalPlaceInfo(string formatCode) {
             int dot = formatCode.IndexOf('.');
             if (dot < 0) {
@@ -614,7 +644,8 @@ namespace OfficeIMO.Excel {
         private static bool ContainsNumericPlaceholder(string formatCode)
             => formatCode.IndexOf('0') >= 0 || formatCode.IndexOf('#') >= 0 || formatCode.IndexOf('?') >= 0;
 
-        private static bool ContainsPercentPlaceholder(string formatCode) {
+        private static int CountPercentPlaceholders(string formatCode) {
+            int count = 0;
             bool inQuote = false;
             for (int i = 0; i < formatCode.Length; i++) {
                 char ch = formatCode[i];
@@ -636,11 +667,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (ch == '%') {
-                    return true;
+                    count++;
                 }
             }
 
-            return false;
+            return count;
         }
 
         private static bool ContainsElapsedToken(string? formatCode, string token) {
@@ -720,6 +751,8 @@ namespace OfficeIMO.Excel {
                         string token = formatCode.Substring(i + 1, close - i - 1);
                         if (token.All(c => c == 'h' || c == 'H' || c == 'm' || c == 'M' || c == 's' || c == 'S')) {
                             builder.Append('[').Append(token).Append(']');
+                        } else if (TryGetBracketedCurrencySymbol(token, out string? symbol)) {
+                            builder.Append(symbol);
                         }
 
                         i = close;
@@ -747,6 +780,26 @@ namespace OfficeIMO.Excel {
             }
 
             return builder.ToString();
+        }
+
+        private static bool TryGetBracketedCurrencySymbol(string token, out string? symbol) {
+            symbol = null;
+            if (token.Length < 2 || token[0] != '$') {
+                return false;
+            }
+
+            string candidate = token.Substring(1);
+            int cultureSeparator = candidate.IndexOf('-');
+            if (cultureSeparator >= 0) {
+                candidate = candidate.Substring(0, cultureSeparator);
+            }
+
+            if (candidate.Length == 0) {
+                return false;
+            }
+
+            symbol = candidate;
+            return true;
         }
 
         private readonly struct DecimalPlaceInfo {

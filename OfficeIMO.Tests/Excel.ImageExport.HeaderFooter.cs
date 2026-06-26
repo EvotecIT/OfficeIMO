@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
-                Range = "A1:D4",
+                Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
             });
