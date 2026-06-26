@@ -210,7 +210,7 @@ namespace OfficeIMO.Excel {
                     .GetFirstChild<C.Chart>()?
                     .GetFirstChild<C.PlotArea>()?
                     .GetFirstChild<C.ScatterChart>() != null;
-                targetSheet.WriteChartData(data, resolved.StartRow, resolved.StartColumn, includeHeaderRow: resolved.HasHeaderRow, numericCategories: numericCategories);
+                targetSheet.WriteChartData(data, resolved.StartRow, resolved.StartColumn, includeHeaderRow: resolved.HasHeaderRow, numericCategories: numericCategories, orientation: resolved.Orientation);
             }
 
             ExcelChartUtils.UpdateChartData(chartPart, data, resolved);

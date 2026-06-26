@@ -185,6 +185,99 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { 100D, 200D }, visualChart.Snapshot.Data.Series[1].XValues);
         }
 
+        [Fact]
+        public void ExcelRange_ImageExportReadsNumericCategoryReferences() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("NumericCats");
+            sheet.CellValue(1, 1, "Week");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, 1);
+            sheet.CellValue(3, 1, 2);
+            sheet.CellValue(4, 1, 3);
+            sheet.CellValue(2, 2, 10);
+            sheet.CellValue(3, 2, 20);
+            sheet.CellValue(4, 2, 30);
+            sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 260, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Numeric Cats");
+            ReplaceFirstChartCategoryWithNumberReference(document, "NumericCats!$A$2:$A$4", 1D, 2D, 3D);
+
+            ExcelVisualChart visualChart = Assert.Single(sheet.Range("A1:H10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false }).Charts);
+
+            Assert.Equal(new[] { "1", "2", "3" }, visualChart.Snapshot.Data.Categories);
+            ExcelChartSeries series = Assert.Single(visualChart.Snapshot.Data.Series);
+            Assert.Equal("Actual", series.Name);
+            Assert.Equal(new[] { 10D, 20D, 30D }, series.Values);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportReadsRowOrientedChartReferences() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("RowChart");
+            sheet.CellValue(1, 2, "Jan");
+            sheet.CellValue(1, 3, "Feb");
+            sheet.CellValue(1, 4, "Mar");
+            sheet.CellValue(2, 1, "Actual");
+            sheet.CellValue(2, 2, 10);
+            sheet.CellValue(2, 3, 20);
+            sheet.CellValue(2, 4, 30);
+            sheet.CellValue(5, 1, "Month");
+            sheet.CellValue(5, 2, "Placeholder");
+            sheet.CellValue(6, 1, "Jan");
+            sheet.CellValue(6, 2, 1);
+            sheet.CellValue(7, 1, "Feb");
+            sheet.CellValue(7, 2, 2);
+            sheet.CellValue(8, 1, "Mar");
+            sheet.CellValue(8, 2, 3);
+            sheet.AddChartFromRange("A5:B8", row: 1, column: 6, widthPixels: 260, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Row Chart");
+            PointFirstChartAtHorizontalData(document);
+
+            ExcelVisualChart visualChart = Assert.Single(sheet.Range("A1:J10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false }).Charts);
+
+            Assert.Equal(new[] { "Jan", "Feb", "Mar" }, visualChart.Snapshot.Data.Categories);
+            ExcelChartSeries series = Assert.Single(visualChart.Snapshot.Data.Series);
+            Assert.Equal("Actual", series.Name);
+            Assert.Equal(new[] { 10D, 20D, 30D }, series.Values);
+
+            ExcelChart chart = Assert.Single(sheet.Charts);
+            chart.UpdateData(new ExcelChartData(
+                new[] { "Apr", "May", "Jun" },
+                new[] { new ExcelChartSeries("Forecast", new[] { 40D, 50D, 60D }) }));
+
+            Assert.True(sheet.TryGetCellText(1, 2, out string? firstCategory));
+            Assert.Equal("Apr", firstCategory);
+            Assert.True(sheet.TryGetCellText(2, 1, out string? seriesName));
+            Assert.Equal("Forecast", seriesName);
+            Assert.True(sheet.TryGetCellText(2, 4, out string? lastValue));
+            Assert.Equal("60", lastValue);
+        }
+
+        private static void ReplaceFirstChartCategoryWithNumberReference(ExcelDocument document, string formula, params double[] values) {
+            ChartPart chartPart = GetFirstChartPart(document);
+            CategoryAxisData categoryAxisData = chartPart.ChartSpace!.Descendants<BarChartSeries>().First().GetFirstChild<CategoryAxisData>()!;
+            categoryAxisData.RemoveAllChildren<StringReference>();
+            categoryAxisData.RemoveAllChildren<NumberReference>();
+            categoryAxisData.Append(new NumberReference(new Formula(formula), CreateNumberingCache(values)));
+            chartPart.ChartSpace.Save();
+        }
+
+        private static void PointFirstChartAtHorizontalData(ExcelDocument document) {
+            ChartPart chartPart = GetFirstChartPart(document);
+            BarChartSeries series = chartPart.ChartSpace!.Descendants<BarChartSeries>().First();
+
+            SeriesText seriesText = series.GetFirstChild<SeriesText>()!;
+            seriesText.RemoveAllChildren<StringReference>();
+            seriesText.Append(new StringReference(new Formula("RowChart!$A$2")));
+
+            CategoryAxisData categoryAxisData = series.GetFirstChild<CategoryAxisData>()!;
+            StringReference categoryReference = categoryAxisData.GetFirstChild<StringReference>()!;
+            categoryReference.Formula = new Formula("RowChart!$B$1:$D$1");
+
+            NumberReference valueReference = series.GetFirstChild<Values>()!.GetFirstChild<NumberReference>()!;
+            valueReference.Formula = new Formula("RowChart!$B$2:$D$2");
+            chartPart.ChartSpace.Save();
+        }
+
         private static void SetScatterChartSeriesIndexes(ExcelDocument document, params uint[] indexes) {
             ChartPart chartPart = GetFirstChartPart(document);
             ScatterChartSeries[] series = chartPart.ChartSpace!.Descendants<ScatterChartSeries>().ToArray();

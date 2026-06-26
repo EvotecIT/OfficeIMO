@@ -29,9 +29,13 @@ namespace OfficeIMO.Excel {
                     .GetFirstChild<NumberReference>()?
                     .Formula?.Text;
             } else {
-                catFormula = series.GetFirstChild<CategoryAxisData>()?
+                CategoryAxisData? categoryAxisData = series.GetFirstChild<CategoryAxisData>();
+                catFormula = categoryAxisData?
                     .GetFirstChild<StringReference>()?
-                    .Formula?.Text;
+                    .Formula?.Text
+                    ?? categoryAxisData?
+                        .GetFirstChild<NumberReference>()?
+                        .Formula?.Text;
                 valFormula = series.GetFirstChild<Values>()?
                     .GetFirstChild<NumberReference>()?
                     .Formula?.Text;
@@ -41,39 +45,96 @@ namespace OfficeIMO.Excel {
             if (!TryParseSheetQualifiedRange(valFormula, out var sheetNameValues, out var valRange)) return null;
 
             if (!string.Equals(sheetName, sheetNameValues, StringComparison.OrdinalIgnoreCase)) return null;
-            if (!TryParseRange(catRange, out int r1, out int c1, out int r2, out _)) return null;
-            if (!TryParseRange(valRange, out _, out _, out _, out _)) return null;
+            if (!TryParseRange(catRange, out int r1, out int c1, out int r2, out int c2)) return null;
+            if (!TryParseRange(valRange, out int valR1, out int valC1, out int valR2, out int valC2)) return null;
 
-            int categoryCount = r2 - r1 + 1;
+            int categoryRows = r2 - r1 + 1;
+            int categoryColumns = c2 - c1 + 1;
+            int valueRows = valR2 - valR1 + 1;
+            int valueColumns = valC2 - valC1 + 1;
+            bool horizontal = categoryRows == 1 && categoryColumns > 1 && valueRows == 1 && valueColumns == categoryColumns && valC1 == c1 && valC2 == c2;
+            int categoryCount = horizontal ? categoryColumns : categoryRows;
             if (categoryCount <= 0) return null;
 
-            bool hasHeaderRow = false;
-            int headerRow = r1 - 1;
-            if (headerRow > 0) {
-                foreach (var seriesElement in seriesList) {
-                    string? nameFormula = seriesElement.GetFirstChild<SeriesText>()?
-                        .GetFirstChild<StringReference>()?
-                        .Formula?.Text;
-                    if (!TryParseSheetQualifiedRange(nameFormula, out var nameSheet, out var nameRange)) {
-                        continue;
-                    }
-                    if (!string.Equals(nameSheet, sheetName, StringComparison.OrdinalIgnoreCase)) {
-                        continue;
-                    }
-                    if (!TryParseRange(nameRange, out int nameR1, out _, out int nameR2, out _)) {
-                        continue;
-                    }
-                    if (nameR1 == nameR2 && nameR1 == headerRow) {
-                        hasHeaderRow = true;
-                        break;
-                    }
-                }
+            if (horizontal) {
+                bool hasHeaderColumn = HasHorizontalSeriesNameColumn(seriesList, sheetName, c1 - 1, valR1);
+                int horizontalStartColumn = hasHeaderColumn ? c1 - 1 : c1;
+                return new ExcelChartDataRange(
+                    sheetName,
+                    r1,
+                    horizontalStartColumn,
+                    categoryCount,
+                    seriesList.Count,
+                    hasHeaderColumn,
+                    ExcelChartDataOrientation.Horizontal);
             }
 
+            int headerRow = r1 - 1;
+            bool hasHeaderRow = HasVerticalSeriesNameRow(seriesList, sheetName, headerRow);
             int startRow = hasHeaderRow ? headerRow : r1;
             int startColumn = c1;
 
             return new ExcelChartDataRange(sheetName, startRow, startColumn, categoryCount, seriesList.Count, hasHeaderRow);
+        }
+
+        private static bool HasVerticalSeriesNameRow(IReadOnlyList<OpenXmlCompositeElement> seriesList, string sheetName, int headerRow) {
+            if (headerRow <= 0) {
+                return false;
+            }
+
+            foreach (var seriesElement in seriesList) {
+                if (!TryParseSeriesNameCell(seriesElement, sheetName, out int nameRow, out _)) {
+                    continue;
+                }
+
+                if (nameRow == headerRow) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasHorizontalSeriesNameColumn(IReadOnlyList<OpenXmlCompositeElement> seriesList, string sheetName, int headerColumn, int firstSeriesRow) {
+            if (headerColumn <= 0) {
+                return false;
+            }
+
+            foreach (var seriesElement in seriesList) {
+                if (!TryParseSeriesNameCell(seriesElement, sheetName, out int nameRow, out int nameColumn)) {
+                    continue;
+                }
+
+                if (nameColumn == headerColumn && nameRow >= firstSeriesRow && nameRow < firstSeriesRow + seriesList.Count) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryParseSeriesNameCell(OpenXmlCompositeElement seriesElement, string sheetName, out int row, out int column) {
+            row = 0;
+            column = 0;
+            string? nameFormula = seriesElement.GetFirstChild<SeriesText>()?
+                .GetFirstChild<StringReference>()?
+                .Formula?.Text;
+            if (!TryParseSheetQualifiedRange(nameFormula, out var nameSheet, out var nameRange)) {
+                return false;
+            }
+            if (!string.Equals(nameSheet, sheetName, StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+            if (!TryParseRange(nameRange, out int nameR1, out int nameC1, out int nameR2, out int nameC2)) {
+                return false;
+            }
+            if (nameR1 != nameR2 || nameC1 != nameC2) {
+                return false;
+            }
+
+            row = nameR1;
+            column = nameC1;
+            return true;
         }
 
         private static IReadOnlyList<OpenXmlCompositeElement> GetChartSeries(PlotArea plotArea) {
@@ -137,8 +198,9 @@ namespace OfficeIMO.Excel {
             try {
                 var categories = new List<string>(range.CategoryCount);
                 for (int i = 0; i < range.CategoryCount; i++) {
-                    int row = range.CategoryStartRow + i;
-                    if (sheet.TryGetCellText(row, range.StartColumn, out var text)) {
+                    int row = range.Orientation == ExcelChartDataOrientation.Vertical ? range.CategoryStartRow + i : range.CategoryStartRow;
+                    int column = range.Orientation == ExcelChartDataOrientation.Vertical ? range.CategoryStartColumn : range.CategoryStartColumn + i;
+                    if (sheet.TryGetCellText(row, column, out var text)) {
                         categories.Add(text ?? string.Empty);
                     } else {
                         categories.Add(string.Empty);
@@ -147,18 +209,20 @@ namespace OfficeIMO.Excel {
 
                 var series = new List<ExcelChartSeries>(range.SeriesCount);
                 for (int s = 0; s < range.SeriesCount; s++) {
-                    int col = range.SeriesStartColumn + s;
                     string name = $"Series {s + 1}";
                     if (range.HasHeaderRow) {
-                        if (sheet.TryGetCellText(range.StartRow, col, out var header) && !string.IsNullOrWhiteSpace(header)) {
+                        int headerRow = range.Orientation == ExcelChartDataOrientation.Vertical ? range.StartRow : range.SeriesStartRow + s;
+                        int headerColumn = range.Orientation == ExcelChartDataOrientation.Vertical ? range.SeriesStartColumn + s : range.StartColumn;
+                        if (sheet.TryGetCellText(headerRow, headerColumn, out var header) && !string.IsNullOrWhiteSpace(header)) {
                             name = header;
                         }
                     }
 
                     var values = new List<double>(range.CategoryCount);
                     for (int i = 0; i < range.CategoryCount; i++) {
-                        int row = range.CategoryStartRow + i;
-                        if (sheet.TryGetCellText(row, col, out var raw)
+                        int row = range.Orientation == ExcelChartDataOrientation.Vertical ? range.CategoryStartRow + i : range.SeriesStartRow + s;
+                        int column = range.Orientation == ExcelChartDataOrientation.Vertical ? range.SeriesStartColumn + s : range.CategoryStartColumn + i;
+                        if (sheet.TryGetCellText(row, column, out var raw)
                             && double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out var val)) {
                             values.Add(val);
                         } else {

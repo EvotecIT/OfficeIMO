@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
         /// Writes chart data into the worksheet and returns the corresponding data range.
         /// </summary>
         public ExcelChartDataRange WriteChartData(ExcelChartData data, int startRow = 1, int startColumn = 1, string? categoryHeader = null,
-            bool includeHeaderRow = true, bool numericCategories = false) {
+            bool includeHeaderRow = true, bool numericCategories = false, ExcelChartDataOrientation orientation = ExcelChartDataOrientation.Vertical) {
             if (data == null) throw new ArgumentNullException(nameof(data));
             if (startRow <= 0 || startColumn <= 0) throw new ArgumentOutOfRangeException(nameof(startRow));
 
@@ -53,29 +53,44 @@ namespace OfficeIMO.Excel {
             }
 
             var cells = new List<(int Row, int Column, object Value)>(cellCapacity);
-            int rowOffset = includeHeaderRow ? 1 : 0;
-            if (includeHeaderRow) {
-                string header = categoryHeader ?? string.Empty;
-                cells.Add((startRow, startColumn, header));
+            if (orientation == ExcelChartDataOrientation.Vertical) {
+                int rowOffset = includeHeaderRow ? 1 : 0;
+                if (includeHeaderRow) {
+                    string header = categoryHeader ?? string.Empty;
+                    cells.Add((startRow, startColumn, header));
 
-                for (int s = 0; s < seriesCount; s++) {
-                    cells.Add((startRow, startColumn + s + 1, series[s].Name));
-                }
-            }
-
-            for (int i = 0; i < categoryCount; i++) {
-                int row = startRow + i + rowOffset;
-                string categoryText = categories[i];
-                object categoryValue = categoryText;
-                if (numericCategories) {
-                    if (!double.TryParse(categoryText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var numeric)) {
-                        throw new ArgumentException($"Category '{categoryText}' is not numeric. Scatter charts require numeric X values. Use AddScatterChartFromRanges for non-numeric categories.");
+                    for (int s = 0; s < seriesCount; s++) {
+                        cells.Add((startRow, startColumn + s + 1, series[s].Name));
                     }
-                    categoryValue = numeric;
                 }
-                cells.Add((row, startColumn, categoryValue));
+
+                for (int i = 0; i < categoryCount; i++) {
+                    int row = startRow + i + rowOffset;
+                    object categoryValue = CoerceChartCategoryValue(categories[i], numericCategories);
+                    cells.Add((row, startColumn, categoryValue));
+                    for (int s = 0; s < seriesCount; s++) {
+                        cells.Add((row, startColumn + s + 1, series[s].Values[i]));
+                    }
+                }
+            } else {
+                int columnOffset = includeHeaderRow ? 1 : 0;
+                if (includeHeaderRow) {
+                    cells.Add((startRow, startColumn, categoryHeader ?? string.Empty));
+                }
+
+                for (int i = 0; i < categoryCount; i++) {
+                    cells.Add((startRow, startColumn + i + columnOffset, CoerceChartCategoryValue(categories[i], numericCategories)));
+                }
+
                 for (int s = 0; s < seriesCount; s++) {
-                    cells.Add((row, startColumn + s + 1, series[s].Values[i]));
+                    int row = startRow + s + 1;
+                    if (includeHeaderRow) {
+                        cells.Add((row, startColumn, series[s].Name));
+                    }
+
+                    for (int i = 0; i < categoryCount; i++) {
+                        cells.Add((row, startColumn + i + columnOffset, series[s].Values[i]));
+                    }
                 }
             }
 
@@ -85,7 +100,19 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return new ExcelChartDataRange(Name, startRow, startColumn, categoryCount, seriesCount, hasHeaderRow: includeHeaderRow);
+            return new ExcelChartDataRange(Name, startRow, startColumn, categoryCount, seriesCount, includeHeaderRow, orientation);
+        }
+
+        private static object CoerceChartCategoryValue(string categoryText, bool numericCategories) {
+            if (!numericCategories) {
+                return categoryText;
+            }
+
+            if (!double.TryParse(categoryText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var numeric)) {
+                throw new ArgumentException($"Category '{categoryText}' is not numeric. Scatter charts require numeric X values. Use AddScatterChartFromRanges for non-numeric categories.");
+            }
+
+            return numeric;
         }
 
         /// <summary>
