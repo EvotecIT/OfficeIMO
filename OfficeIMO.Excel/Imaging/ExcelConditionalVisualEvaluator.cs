@@ -367,7 +367,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            IReadOnlyList<double> values = GetRuleNumericValues(sheet, rule.Range, stoppedCells);
+            IReadOnlyList<double> values = GetRuleNumericValues(sheet, rule.Range, Array.Empty<string>());
             if (values.Count == 0) {
                 values = candidates.Select(candidate => candidate.Value).ToArray();
             }

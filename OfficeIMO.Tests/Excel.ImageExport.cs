@@ -589,6 +589,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportKeepsStoppedCellsInColorScaleThresholds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("StoppedColorScale");
+            sheet.CellValue(1, 1, 0);
+            sheet.CellValue(2, 1, 5);
+            sheet.CellValue(3, 1, 10);
+            sheet.AddConditionalFormulaRule("A1:A3", "A1=0", stopIfTrue: true);
+            sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Lime);
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A3").CreateVisualSnapshot();
+
+            Assert.Null(snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style.FillColorArgb);
+            Assert.Equal("FF808000", snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 1).Style.FillColorArgb);
+            Assert.Equal("FF00FF00", snapshot.Cells.Single(cell => cell.Row == 3 && cell.Column == 1).Style.FillColorArgb);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportHonorsThreeColorScaleMiddleStop() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
