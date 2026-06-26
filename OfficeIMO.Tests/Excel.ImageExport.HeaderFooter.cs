@@ -277,7 +277,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("clip-path=\"url(#xl-header-footer-footer-right)\"", svg);
             Assert.Contains(">Date ", svg);
             Assert.Contains(">Time ", svg);
-            Assert.Contains("...", svg);
+            Assert.Contains(">Printed ", svg);
         }
 
         [Fact]
