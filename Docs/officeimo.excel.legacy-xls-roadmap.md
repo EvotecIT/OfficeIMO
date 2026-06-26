@@ -21,18 +21,28 @@ projector owns mapping decisions into OfficeIMO's Open XML workbook model.
 
 ## Current Public API Shape
 
-Legacy `.xls` import is currently explicit. Callers use
-`ExcelDocument.LoadLegacyXls(...)` when they want the projected `ExcelDocument`,
-or `ExcelDocument.LoadLegacyXlsWithReport(...)` when they also want the parsed
-legacy workbook, diagnostics, and import report. Normal `ExcelDocument.Load(...)`
-continues to mean Open XML workbook loading.
+Legacy `.xls` import is part of the normal workbook loading flow. Callers use
+`ExcelDocument.Load(...)` for both Open XML workbooks and legacy binary `.xls`
+workbooks:
 
-That explicit surface is intentional for the current preview-quality import
-phase: it makes `.xls` conversion visible, keeps unsupported/preserve-only
-features easy to inspect, and avoids silently implying full `.xls` edit/save
-support. A future convenience API can be considered after the import model,
-diagnostics, and user expectations are settled, but native `.xls` save remains
-out of scope for this roadmap.
+```csharp
+using var document = ExcelDocument.Load("legacy.xls");
+document.Save("converted.xlsx");
+```
+
+OfficeIMO detects ZIP/Open XML packages and routes them through the existing
+Open XML loader. OLE compound legacy workbooks are routed through the first-party
+legacy XLS importer, then projected into the normal `ExcelDocument` model.
+Saving produces Open XML `.xlsx` content. Native `.xls` writing is not supported;
+attempts to save a legacy-loaded document to `.xls`, including implicit
+`Save()` back to the original `.xls` path, throw a clear exception.
+
+`ExcelDocument.LoadLegacyXls(...)` and `ExcelDocument.LoadLegacyXlsWithReport(...)`
+remain available for tests and advanced diagnostics. Normal callers should not
+need a separate method. Import diagnostics and preserve-only/unsupported legacy
+features are attached to the loaded `ExcelDocument` and surfaced through
+`InspectFeatures()`; hard blockers such as encrypted/password-protected legacy
+workbooks or unsupported BIFF versions fail the normal load.
 
 ## Phase 1 - Foundation
 
