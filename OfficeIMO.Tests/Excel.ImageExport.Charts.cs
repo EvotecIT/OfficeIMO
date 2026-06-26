@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -33,6 +34,7 @@ namespace OfficeIMO.Tests {
                 widthPixels: 260,
                 heightPixels: 170,
                 title: "Scatter");
+            SetScatterChartSeriesIndexes(document, 1U, 3U);
 
             ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:J10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
@@ -41,6 +43,26 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { 10D, 20D }, visualChart.Snapshot.Data.Series[0].Values);
             Assert.Equal(new[] { 100D, 200D }, visualChart.Snapshot.Data.Series[1].XValues);
             Assert.Equal(new[] { 30D, 40D }, visualChart.Snapshot.Data.Series[1].Values);
+        }
+
+        private static void SetScatterChartSeriesIndexes(ExcelDocument document, params uint[] indexes) {
+            ChartPart chartPart = GetFirstChartPart(document);
+            ScatterChartSeries[] series = chartPart.ChartSpace!.Descendants<ScatterChartSeries>().ToArray();
+            for (int i = 0; i < series.Length && i < indexes.Length; i++) {
+                DocumentFormat.OpenXml.Drawing.Charts.Index index = series[i].GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Index>() ?? new DocumentFormat.OpenXml.Drawing.Charts.Index();
+                index.Val = indexes[i];
+                if (index.Parent == null) {
+                    series[i].InsertAt(index, 0);
+                }
+
+                Order order = series[i].GetFirstChild<Order>() ?? new Order();
+                order.Val = indexes[i];
+                if (order.Parent == null) {
+                    series[i].InsertAfter(order, index);
+                }
+            }
+
+            chartPart.ChartSpace.Save();
         }
 
         [Fact]

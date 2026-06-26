@@ -223,10 +223,11 @@ namespace OfficeIMO.Excel {
             }
 
             var scatterValuesByIndex = new Dictionary<int, (IReadOnlyList<double>? XValues, IReadOnlyList<double>? YValues)>();
-            foreach (ScatterChartSeries scatterSeries in plotArea.Descendants<ScatterChartSeries>()) {
-                int index = (int)(scatterSeries.GetFirstChild<ChartIndex>()?.Val?.Value ?? uint.MaxValue);
-                if (index < 0 || index >= data.Series.Count) {
-                    continue;
+            int seriesOrder = 0;
+            foreach (ScatterChartSeries scatterSeries in GetChartSeries(plotArea).OfType<ScatterChartSeries>()) {
+                int index = seriesOrder++;
+                if (index >= data.Series.Count) {
+                    break;
                 }
 
                 NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
