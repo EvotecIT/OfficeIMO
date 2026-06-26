@@ -416,10 +416,9 @@ namespace OfficeIMO.Excel {
             if (section.HasFormatting) {
                 AppendHeaderFooterSvgRichLine(builder, section, zone, baseline, fontSize, fontFamily, lineHeight, alignment, measure);
             } else {
-                string displayText = ResolveHeaderFooterZoneText(section.Text, fontSize, zone.Width, (text, size) => measure(text, size, fontFamily), alignment);
-                if (!string.IsNullOrWhiteSpace(displayText)) {
+                if (!string.IsNullOrWhiteSpace(section.Text)) {
                     builder.AppendSvgTextElement(
-                        displayText,
+                        section.Text,
                         zone.AnchorX,
                         baseline,
                         lineHeight,
@@ -449,7 +448,10 @@ namespace OfficeIMO.Excel {
                 Math.Max(lineHeight, section.GetMaxResolvedFontSize(fontSize) * 1.2D),
                 1.2D,
                 measure,
-                wrap: false);
+                wrap: false,
+                shrinkToFit: false,
+                minimumFontSize: 1D,
+                OfficeTextOverflowBehavior.Clip);
             if (layout.Lines.Count == 0) {
                 return;
             }
