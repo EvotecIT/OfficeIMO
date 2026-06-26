@@ -99,6 +99,7 @@ namespace OfficeIMO.Excel {
                                 Width = column.Width?.Value,
                                 Hidden = column.Hidden?.Value == true,
                                 CustomWidth = column.CustomWidth?.Value == true,
+                                StyleIndex = column.Style?.Value,
                                 OutlineLevel = column.OutlineLevel?.Value,
                                 Collapsed = column.Collapsed?.Value == true,
                             });
@@ -109,19 +110,20 @@ namespace OfficeIMO.Excel {
                     if (sheetData != null) {
                         foreach (var row in sheetData.Elements<Row>()) {
                             var rowIndex = checked((int)(row.RowIndex?.Value ?? 0U));
-                            if (rowIndex > 0
-                                && (row.Hidden?.Value == true
-                                    || row.CustomHeight?.Value == true
-                                    || row.Height != null
-                                    || row.OutlineLevel != null
-                                    || row.Collapsed?.Value == true)) {
+                            bool customFormat = row.CustomFormat?.Value == true;
+                            uint? styleIndex = row.StyleIndex?.Value;
+                            byte? outlineLevel = row.OutlineLevel?.Value;
+                            bool collapsed = row.Collapsed?.Value == true;
+                            if (rowIndex > 0 && (row.Hidden?.Value == true || row.CustomHeight?.Value == true || row.Height != null || customFormat || styleIndex != null || outlineLevel != null || collapsed)) {
                                 worksheetSnapshot.AddRow(new ExcelRowSnapshot {
                                     Index = rowIndex,
                                     Height = row.Height?.Value,
                                     Hidden = row.Hidden?.Value == true,
                                     CustomHeight = row.CustomHeight?.Value == true,
-                                    OutlineLevel = row.OutlineLevel?.Value,
-                                    Collapsed = row.Collapsed?.Value == true,
+                                    CustomFormat = customFormat,
+                                    StyleIndex = styleIndex,
+                                    OutlineLevel = outlineLevel,
+                                    Collapsed = collapsed,
                                 });
                             }
 

@@ -160,7 +160,7 @@ public class DrawingArchitectureTests {
         return normalized.Contains("/OfficeIMO.Tests/", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains("/OfficeIMO.VerifyTests/", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains(".Tests/", StringComparison.OrdinalIgnoreCase) ||
-            normalized.Contains(".Benchmarks/", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Contains(".Benchmarks", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains("/OfficeIMO.Examples/", StringComparison.OrdinalIgnoreCase);
     }
 

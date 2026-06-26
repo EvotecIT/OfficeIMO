@@ -172,6 +172,10 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        internal void AppendLegacyDataValidation(DataValidation dataValidation) {
+            AppendDataValidation(dataValidation);
+        }
+
         private static void InsertDataValidations(Worksheet worksheet, DataValidations dataValidations) {
             var tableParts = worksheet.GetFirstChild<TableParts>();
             if (tableParts != null) {

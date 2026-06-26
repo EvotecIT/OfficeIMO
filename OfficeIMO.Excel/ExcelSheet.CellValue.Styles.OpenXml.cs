@@ -149,6 +149,16 @@ namespace OfficeIMO.Excel {
             font.Underline = underline ? new Underline() : null;
         }
 
+        private static void SetStrike(DocumentFormat.OpenXml.Spreadsheet.Font font, bool strike) {
+            font.Strike = strike ? new Strike() : null;
+        }
+
+        private static void SetVerticalTextAlignment(DocumentFormat.OpenXml.Spreadsheet.Font font, VerticalAlignmentRunValues? verticalTextAlignment) {
+            font.VerticalTextAlignment = verticalTextAlignment.HasValue
+                ? new VerticalTextAlignment { Val = verticalTextAlignment.Value }
+                : null;
+        }
+
         private static void SetFontColor(DocumentFormat.OpenXml.Spreadsheet.Font font, string argb) {
             font.Color = new DocumentFormat.OpenXml.Spreadsheet.Color {
                 Rgb = argb
@@ -173,6 +183,10 @@ namespace OfficeIMO.Excel {
             border.RightBorder = CreateBorderSide<RightBorder>(style, argb);
             border.TopBorder = CreateBorderSide<TopBorder>(style, argb);
             border.BottomBorder = CreateBorderSide<BottomBorder>(style, argb);
+        }
+
+        private static string? NormalizeOptionalHexColor(string? hexColor) {
+            return string.IsNullOrWhiteSpace(hexColor) ? null : NormalizeHexColor(hexColor!);
         }
 
         private static void SetDiagonalBorder(Border border, BorderStyleValues style, string? hexColor, bool diagonalUp, bool diagonalDown) {

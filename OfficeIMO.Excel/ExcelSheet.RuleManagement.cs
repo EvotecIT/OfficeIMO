@@ -224,21 +224,28 @@ namespace OfficeIMO.Excel {
         /// Adds a formula-based conditional formatting rule.
         /// </summary>
         public void AddConditionalFormulaRule(string range, string formula) {
-            AddConditionalFormulaRule(range, formula, stopIfTrue: false, fillColor: null);
+            AddConditionalFormulaRule(range, formula, stopIfTrue: false, fillColor: null, priority: null);
         }
 
         /// <summary>
         /// Adds a formula-based conditional formatting rule.
         /// </summary>
         public void AddConditionalFormulaRule(string range, string formula, bool stopIfTrue) {
-            AddConditionalFormulaRule(range, formula, stopIfTrue, fillColor: null);
+            AddConditionalFormulaRule(range, formula, stopIfTrue, fillColor: null, priority: null);
         }
 
         /// <summary>
         /// Adds a formula-based conditional formatting rule.
         /// </summary>
-        public void AddConditionalFormulaRule(string range, string formula, bool stopIfTrue = false, string? fillColor = null) {
-            AddConditionalRuleCore(range, ConditionalFormatValues.Expression, null, new[] { formula }, stopIfTrue, fillColor);
+        public void AddConditionalFormulaRule(string range, string formula, bool stopIfTrue, int? priority) {
+            AddConditionalFormulaRule(range, formula, stopIfTrue, fillColor: null, priority);
+        }
+
+        /// <summary>
+        /// Adds a formula-based conditional formatting rule.
+        /// </summary>
+        public void AddConditionalFormulaRule(string range, string formula, bool stopIfTrue = false, string? fillColor = null, int? priority = null) {
+            AddConditionalRuleCore(range, ConditionalFormatValues.Expression, null, new[] { formula }, stopIfTrue, fillColor, priority);
         }
 
         /// <summary>
@@ -252,7 +259,7 @@ namespace OfficeIMO.Excel {
         /// Adds a duplicate-values conditional formatting rule with an optional solid fill differential format.
         /// </summary>
         public void AddConditionalDuplicateValuesRule(string range, string? fillColor) {
-            AddConditionalRuleCore(range, ConditionalFormatValues.DuplicateValues, null, Array.Empty<string>(), stopIfTrue: false, fillColor: fillColor);
+            AddConditionalRuleCore(range, ConditionalFormatValues.DuplicateValues, null, Array.Empty<string>(), stopIfTrue: false, fillColor: fillColor, priority: null);
         }
 
         /// <summary>
@@ -266,7 +273,7 @@ namespace OfficeIMO.Excel {
         /// Adds a unique-values conditional formatting rule with an optional solid fill differential format.
         /// </summary>
         public void AddConditionalUniqueValuesRule(string range, string? fillColor) {
-            AddConditionalRuleCore(range, ConditionalFormatValues.UniqueValues, null, Array.Empty<string>(), stopIfTrue: false, fillColor: fillColor);
+            AddConditionalRuleCore(range, ConditionalFormatValues.UniqueValues, null, Array.Empty<string>(), stopIfTrue: false, fillColor: fillColor, priority: null);
         }
 
         /// <summary>
@@ -454,9 +461,13 @@ namespace OfficeIMO.Excel {
 
                 result.Add(new ExcelDataValidationInfo {
                     Range = range,
-                    Type = validation.Type?.Value.ToString() ?? string.Empty,
-                    Operator = validation.Operator?.Value.ToString(),
+                    Type = validation.Type?.InnerText ?? string.Empty,
+                    Operator = validation.Operator?.InnerText,
                     AllowBlank = validation.AllowBlank?.Value ?? false,
+                    SuppressDropDown = validation.ShowDropDown?.Value ?? false,
+                    ErrorStyle = validation.ErrorStyle?.InnerText,
+                    ShowInputMessage = validation.ShowInputMessage?.Value ?? false,
+                    ShowErrorMessage = validation.ShowErrorMessage?.Value ?? false,
                     Formula1 = validation.GetFirstChild<Formula1>()?.Text,
                     Formula2 = validation.GetFirstChild<Formula2>()?.Text,
                     PromptTitle = validation.PromptTitle?.Value,
@@ -486,8 +497,12 @@ namespace OfficeIMO.Excel {
                 var validations = WorksheetRoot.GetFirstChild<DataValidations>();
                 if (validations == null) return;
                 bool changed = false;
-                bool showInputMessage = options.ShowInputMessage || !string.IsNullOrEmpty(options.Prompt) || !string.IsNullOrEmpty(options.PromptTitle);
-                bool showErrorMessage = options.ShowErrorMessage || !string.IsNullOrEmpty(options.Error) || !string.IsNullOrEmpty(options.ErrorTitle);
+                bool showInputMessage = options.PreserveShowMessageFlags
+                    ? options.ShowInputMessage
+                    : options.ShowInputMessage || !string.IsNullOrEmpty(options.Prompt) || !string.IsNullOrEmpty(options.PromptTitle);
+                bool showErrorMessage = options.PreserveShowMessageFlags
+                    ? options.ShowErrorMessage
+                    : options.ShowErrorMessage || !string.IsNullOrEmpty(options.Error) || !string.IsNullOrEmpty(options.ErrorTitle);
                 foreach (var validation in validations.Elements<DataValidation>()) {
                     string range = validation.SequenceOfReferences?.InnerText ?? string.Empty;
                     if (!ReferenceListOverlaps(range, filter)) continue;
@@ -498,7 +513,9 @@ namespace OfficeIMO.Excel {
                         || !string.Equals(validation.ErrorTitle?.Value, options.ErrorTitle, StringComparison.Ordinal)
                         || !string.Equals(validation.Error?.Value, options.Error, StringComparison.Ordinal)
                         || validation.ShowInputMessage?.Value != showInputMessage
-                        || validation.ShowErrorMessage?.Value != showErrorMessage;
+                        || validation.ShowErrorMessage?.Value != showErrorMessage
+                        || (options.ErrorStyle.HasValue && validation.ErrorStyle?.Value != options.ErrorStyle.Value)
+                        || (options.SuppressDropDown.HasValue && validation.ShowDropDown?.Value != options.SuppressDropDown.Value);
 
                     if (!validationChanged) continue;
 
@@ -508,6 +525,14 @@ namespace OfficeIMO.Excel {
                     validation.Error = options.Error;
                     validation.ShowInputMessage = showInputMessage;
                     validation.ShowErrorMessage = showErrorMessage;
+                    if (options.ErrorStyle.HasValue) {
+                        validation.ErrorStyle = options.ErrorStyle.Value;
+                    }
+
+                    if (options.SuppressDropDown.HasValue) {
+                        validation.ShowDropDown = options.SuppressDropDown.Value;
+                    }
+
                     changed = true;
                 }
 
@@ -517,7 +542,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private void AddConditionalRuleCore(string range, ConditionalFormatValues type, Action<ConditionalFormattingRule>? configure, IReadOnlyList<string> formulas, bool stopIfTrue, string? fillColor) {
+        private void AddConditionalRuleCore(string range, ConditionalFormatValues type, Action<ConditionalFormattingRule>? configure, IReadOnlyList<string> formulas, bool stopIfTrue, string? fillColor = null, int? priority = null) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
             WriteLockWorksheetPreparationOnly(() => {
@@ -528,7 +553,7 @@ namespace OfficeIMO.Excel {
                 };
                 var rule = new ConditionalFormattingRule {
                     Type = type,
-                    Priority = GetNextConditionalFormattingPriority(),
+                    Priority = priority ?? GetNextConditionalFormattingPriority(),
                     StopIfTrue = stopIfTrue
                 };
                 configure?.Invoke(rule);
@@ -590,6 +615,45 @@ namespace OfficeIMO.Excel {
 
             return ExcelThemeColorResolver.Resolve(pattern.ForegroundColor, workbookPart)
                 ?? ExcelThemeColorResolver.Resolve(pattern.BackgroundColor, workbookPart);
+        }
+
+        internal uint AppendConditionalDifferentialFormat(DifferentialFormat differentialFormat) {
+            if (differentialFormat == null) throw new ArgumentNullException(nameof(differentialFormat));
+            WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            WorkbookStylesPart stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            stylesheet.DifferentialFormats ??= new DifferentialFormats();
+            uint id = (uint)stylesheet.DifferentialFormats.Elements<DifferentialFormat>().Count();
+            stylesheet.DifferentialFormats.Append(differentialFormat);
+            stylesheet.DifferentialFormats.Count = (uint)stylesheet.DifferentialFormats.Elements<DifferentialFormat>().Count();
+            stylesPart.Stylesheet.Save();
+            return id;
+        }
+
+        internal void SetLastConditionalFormattingRuleDifferentialFormatId(uint differentialFormatId) {
+            ConditionalFormattingRule? rule = WorksheetRoot.Elements<ConditionalFormatting>()
+                .LastOrDefault()?
+                .Elements<ConditionalFormattingRule>()
+                .LastOrDefault();
+            if (rule == null) {
+                return;
+            }
+
+            rule.FormatId = differentialFormatId;
+        }
+
+        internal void SetConditionalFormattingRuleDifferentialFormatId(string range, int? priority, ConditionalFormatValues type, uint differentialFormatId) {
+            ConditionalFormattingRule? rule = WorksheetRoot.Elements<ConditionalFormatting>()
+                .Where(formatting => string.Equals(formatting.SequenceOfReferences?.InnerText, range, StringComparison.Ordinal))
+                .SelectMany(formatting => formatting.Elements<ConditionalFormattingRule>())
+                .Where(rule => rule.Type?.Value == type)
+                .Where(rule => !priority.HasValue || rule.Priority?.Value == priority.Value)
+                .LastOrDefault();
+            if (rule == null) {
+                return;
+            }
+
+            rule.FormatId = differentialFormatId;
         }
 
         private static string GetFirstCellReference(string range) {

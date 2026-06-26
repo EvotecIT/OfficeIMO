@@ -563,6 +563,10 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrEmpty(text)) return string.Empty;
             bool IsTokenStarter(char c) {
                 // Recognize common Excel header/footer tokens following '&' to avoid escaping them
+                if (c >= '0' && c <= '9') {
+                    return true;
+                }
+
                 switch (c) {
                     case 'L':
                     case 'C':
@@ -578,8 +582,11 @@ namespace OfficeIMO.Excel {
                     case 'K': // color: &Krrggbb
                     case 'B':
                     case 'I':
+                    case 'E':
                     case 'U':
                     case 'S': // bold, italic, underline, strike
+                    case 'X':
+                    case 'Y': // superscript, subscript
                     case '[': // bracketed fields such as &[Page], &[Pages], &[Tab]
                         return true;
                 }

@@ -34,6 +34,33 @@ namespace OfficeIMO.Excel {
         /// <param name="formula2">Optional secondary formula or value.</param>
         /// <param name="fillColor">Optional fill color applied when the condition is true.</param>
         public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null, string? fillColor = null) {
+            AddConditionalRule(range, @operator, formula1, formula2, fillColor, stopIfTrue: false, priority: null);
+        }
+
+        /// <summary>
+        /// Adds a conditional formatting rule to the specified range.
+        /// </summary>
+        /// <param name="range">A1-style range to apply the rule to.</param>
+        /// <param name="operator">Comparison operator for the rule.</param>
+        /// <param name="formula1">Primary formula or value.</param>
+        /// <param name="formula2">Optional secondary formula or value.</param>
+        /// <param name="stopIfTrue">Whether lower-priority rules should stop when this rule evaluates to true.</param>
+        /// <param name="priority">Optional explicit rule priority.</param>
+        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2, bool stopIfTrue, int? priority = null) {
+            AddConditionalRule(range, @operator, formula1, formula2, fillColor: null, stopIfTrue, priority);
+        }
+
+        /// <summary>
+        /// Adds a conditional formatting rule to the specified range.
+        /// </summary>
+        /// <param name="range">A1-style range to apply the rule to.</param>
+        /// <param name="operator">Comparison operator for the rule.</param>
+        /// <param name="formula1">Primary formula or value.</param>
+        /// <param name="formula2">Optional secondary formula or value.</param>
+        /// <param name="fillColor">Optional fill color applied when the condition is true.</param>
+        /// <param name="stopIfTrue">Whether lower-priority rules should stop when this rule evaluates to true.</param>
+        /// <param name="priority">Optional explicit rule priority.</param>
+        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2, string? fillColor, bool stopIfTrue = false, int? priority = null) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -50,7 +77,8 @@ namespace OfficeIMO.Excel {
                 ConditionalFormattingRule rule = new ConditionalFormattingRule {
                     Type = ConditionalFormatValues.CellIs,
                     Operator = @operator,
-                    Priority = GetNextConditionalFormattingPriority()
+                    Priority = priority ?? GetNextConditionalFormattingPriority(),
+                    StopIfTrue = stopIfTrue
                 };
 
                 rule.Append(new Formula(formula1));

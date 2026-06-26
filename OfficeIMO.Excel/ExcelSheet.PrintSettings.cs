@@ -66,6 +66,23 @@ namespace OfficeIMO.Excel {
     }
 
     /// <summary>
+    /// Worksheet print options that are stored in the Open XML printOptions element.
+    /// </summary>
+    public sealed class ExcelSheetPrintOptions {
+        /// <summary>Gets whether worksheet gridlines are printed, when configured.</summary>
+        public bool? PrintGridLines { get; internal set; }
+
+        /// <summary>Gets whether row and column headings are printed, when configured.</summary>
+        public bool? PrintHeadings { get; internal set; }
+
+        /// <summary>Gets whether the sheet is centered horizontally when printed, when configured.</summary>
+        public bool? HorizontalCentered { get; internal set; }
+
+        /// <summary>Gets whether the sheet is centered vertically when printed, when configured.</summary>
+        public bool? VerticalCentered { get; internal set; }
+    }
+
+    /// <summary>
     /// Worksheet print title rows and columns.
     /// </summary>
     public sealed class ExcelPrintTitles {
@@ -125,6 +142,60 @@ namespace OfficeIMO.Excel {
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Reads worksheet print options.
+        /// </summary>
+        public ExcelSheetPrintOptions GetPrintOptions() {
+            PrintOptions? printOptions = WorksheetRoot.GetFirstChild<PrintOptions>();
+            return new ExcelSheetPrintOptions {
+                PrintGridLines = printOptions?.GridLines?.Value,
+                PrintHeadings = printOptions?.Headings?.Value,
+                HorizontalCentered = printOptions?.HorizontalCentered?.Value,
+                VerticalCentered = printOptions?.VerticalCentered?.Value
+            };
+        }
+
+        /// <summary>
+        /// Sets worksheet print options. Null values leave the current option unchanged.
+        /// </summary>
+        public void SetPrintOptions(
+            bool? printGridLines = null,
+            bool? printHeadings = null,
+            bool? horizontalCentered = null,
+            bool? verticalCentered = null,
+            bool save = true) {
+            if (!printGridLines.HasValue
+                && !printHeadings.HasValue
+                && !horizontalCentered.HasValue
+                && !verticalCentered.HasValue) {
+                return;
+            }
+
+            WriteLock(() => {
+                PrintOptions printOptions = GetOrCreatePrintOptions();
+                if (printGridLines.HasValue) {
+                    printOptions.GridLines = printGridLines.Value;
+                    printOptions.GridLinesSet = true;
+                }
+
+                if (printHeadings.HasValue) {
+                    printOptions.Headings = printHeadings.Value;
+                }
+
+                if (horizontalCentered.HasValue) {
+                    printOptions.HorizontalCentered = horizontalCentered.Value;
+                }
+
+                if (verticalCentered.HasValue) {
+                    printOptions.VerticalCentered = verticalCentered.Value;
+                }
+
+                if (save) {
+                    WorksheetRoot.Save();
+                }
+            });
         }
 
         /// <summary>
@@ -360,6 +431,29 @@ namespace OfficeIMO.Excel {
             breaks = new ColumnBreaks();
             InsertAfterPrintSetupElement(breaks);
             return breaks;
+        }
+
+        private PrintOptions GetOrCreatePrintOptions() {
+            PrintOptions? printOptions = WorksheetRoot.GetFirstChild<PrintOptions>();
+            if (printOptions != null) {
+                return printOptions;
+            }
+
+            printOptions = new PrintOptions();
+            PageMargins? pageMargins = WorksheetRoot.GetFirstChild<PageMargins>();
+            if (pageMargins != null) {
+                WorksheetRoot.InsertBefore(printOptions, pageMargins);
+                return printOptions;
+            }
+
+            Hyperlinks? hyperlinks = WorksheetRoot.GetFirstChild<Hyperlinks>();
+            if (hyperlinks != null) {
+                WorksheetRoot.InsertAfter(printOptions, hyperlinks);
+                return printOptions;
+            }
+
+            WorksheetRoot.Append(printOptions);
+            return printOptions;
         }
 
         private void InsertAfterPrintSetupElement(OpenXmlElement element) {

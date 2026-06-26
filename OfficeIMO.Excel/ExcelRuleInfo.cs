@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Spreadsheet;
+
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Read-only snapshot of a conditional formatting rule.
@@ -87,6 +89,14 @@ namespace OfficeIMO.Excel {
         public string? Operator { get; set; }
         /// <summary>Gets or sets whether blank values are allowed.</summary>
         public bool AllowBlank { get; set; }
+        /// <summary>Gets or sets whether Excel should hide the in-cell dropdown for list validations.</summary>
+        public bool SuppressDropDown { get; set; }
+        /// <summary>Gets or sets the OpenXML validation error style.</summary>
+        public string? ErrorStyle { get; set; }
+        /// <summary>Gets or sets whether Excel should show the input prompt.</summary>
+        public bool ShowInputMessage { get; set; }
+        /// <summary>Gets or sets whether Excel should show the validation error.</summary>
+        public bool ShowErrorMessage { get; set; }
         /// <summary>Gets or sets the first validation formula.</summary>
         public string? Formula1 { get; set; }
         /// <summary>Gets or sets the second validation formula.</summary>
@@ -117,5 +127,10 @@ namespace OfficeIMO.Excel {
         public bool ShowInputMessage { get; set; }
         /// <summary>Gets or sets whether Excel should show the validation error.</summary>
         public bool ShowErrorMessage { get; set; }
+        internal bool PreserveShowMessageFlags { get; set; }
+        /// <summary>Gets or sets the validation error alert style.</summary>
+        public DataValidationErrorStyleValues? ErrorStyle { get; set; }
+        /// <summary>Gets or sets whether Excel should hide the in-cell dropdown for list validations. Leave null to preserve the existing value.</summary>
+        public bool? SuppressDropDown { get; set; }
     }
 }
