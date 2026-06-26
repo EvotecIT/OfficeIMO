@@ -307,9 +307,7 @@ namespace OfficeIMO.Excel {
                 throw new InvalidDataException("Legacy XLS import failed: " + FormatLegacyXlsDiagnostics(errors));
             }
 
-            ExcelDocument document = workbook.ToExcelDocument();
-            document.MarkLoadedFromLegacyXls(filePath, workbook);
-            return document;
+            return ProjectLoadedLegacyXlsWorkbook(workbook, filePath);
         }
 
         private static string FormatLegacyXlsDiagnostics(IEnumerable<LegacyXlsImportDiagnostic> diagnostics) {

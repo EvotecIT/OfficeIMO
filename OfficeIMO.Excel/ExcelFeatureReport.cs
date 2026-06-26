@@ -654,12 +654,12 @@ namespace OfficeIMO.Excel {
                 "Legacy XLS import warnings should be reviewed before relying on full fidelity.",
                 warnings.Select(FormatLegacyXlsDiagnostic).ToArray());
 
-            Add(features, "Compatibility", "Legacy XLS preserve-only features", ExcelFeatureSupportLevel.Preserved, _legacyXlsUnsupportedFeatures.Length, null,
-                "Some legacy XLS features were detected as unsupported or preserve-only import metadata.",
+            Add(features, "Compatibility", "Legacy XLS unsupported features", ExcelFeatureSupportLevel.Unsupported, _legacyXlsUnsupportedFeatures.Length, null,
+                "Some legacy XLS features were detected as unsupported import metadata and are not written to the converted .xlsx package.",
                 _legacyXlsUnsupportedFeatures.Select(FormatLegacyXlsUnsupportedFeature).ToArray());
 
-            Add(features, "Compatibility", "Legacy XLS unsupported sheets", ExcelFeatureSupportLevel.Preserved, _legacyXlsUnsupportedSheets.Length, null,
-                "Some legacy XLS sheet entries were discovered but not projected as normal worksheets.",
+            Add(features, "Compatibility", "Legacy XLS unsupported sheets", ExcelFeatureSupportLevel.Unsupported, _legacyXlsUnsupportedSheets.Length, null,
+                "Some legacy XLS sheet entries were discovered but not projected as normal worksheets and are not written to the converted .xlsx package.",
                 _legacyXlsUnsupportedSheets.Select(FormatLegacyXlsUnsupportedSheet).ToArray());
         }
 
