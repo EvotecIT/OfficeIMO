@@ -137,6 +137,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal("(1,234)", ExcelNumberFormatDisplay.FormatNumericText(-1234D, 37U, null, "-1234"));
             Assert.Equal("6/24/2026", ExcelNumberFormatDisplay.FormatNumericText(new DateTime(2026, 6, 24).ToOADate(), 14U, null, "46200"));
             Assert.Equal("36:00:00", ExcelNumberFormatDisplay.FormatNumericText(1.5D, 46U, null, "1.5"));
+            Assert.Equal("1/2", ExcelNumberFormatDisplay.FormatNumericText(0.5D, 12U, null, "0.5"));
+            Assert.Equal("1 1/4", ExcelNumberFormatDisplay.FormatNumericText(1.25D, 12U, null, "1.25"));
+            Assert.Equal("-1/2", ExcelNumberFormatDisplay.FormatNumericText(-0.5D, 12U, null, "-0.5"));
+            Assert.Equal("1/10", ExcelNumberFormatDisplay.FormatNumericText(0.1D, 13U, null, "0.1"));
+            Assert.Equal("(1/2)", ExcelNumberFormatDisplay.FormatNumericText(-0.5D, 1U, "# ?/?;(# ?/?)", "-0.5"));
         }
 
         [Fact]
@@ -604,6 +609,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportHonorsConditionalIconSetStrictThresholds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("IconThresholds");
+                sheet.CellValue(1, 1, 0);
+                sheet.CellValue(2, 1, 50);
+                sheet.CellValue(3, 1, 100);
+                sheet.AddConditionalIconSet("A1:A3", IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                IconSet iconSet = worksheet.Elements<ConditionalFormatting>().First().Elements<ConditionalFormattingRule>().First().GetFirstChild<IconSet>()!;
+                ConditionalFormatValueObject[] thresholds = iconSet.Elements<ConditionalFormatValueObject>().ToArray();
+                thresholds[1].Type = ConditionalFormatValueObjectValues.Number;
+                thresholds[1].Val = "50";
+                thresholds[1].GreaterThanOrEqual = false;
+                thresholds[2].Type = ConditionalFormatValueObjectValues.Number;
+                thresholds[2].Val = "100";
+                thresholds[2].GreaterThanOrEqual = true;
+                worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A3").CreateVisualSnapshot();
+
+                ExcelConditionalFormattingInfo info = Assert.Single(sheet.GetConditionalFormattingRules("A1:A3"));
+                Assert.False(info.IconSetThresholds[1].GreaterThanOrEqual);
+                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Kind == ExcelConditionalIconKind.RedCircle);
+                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Kind == ExcelConditionalIconKind.RedCircle);
+                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Kind == ExcelConditionalIconKind.GreenCircle);
+            }
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportHonorsConditionalDataBarHiddenValues() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -954,6 +996,24 @@ namespace OfficeIMO.Tests {
                 belowCell,
                 OfficeColor.FromRgb(219, 234, 254),
                 tolerance: 3);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportCalculatesAboveAverageBeforeStopIfTrueSuppression() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("StoppedAverage");
+            sheet.CellValue(1, 1, 1);
+            sheet.CellValue(2, 1, 2);
+            sheet.CellValue(3, 1, 100);
+            sheet.AddConditionalFormulaRule("A3:A3", "=A3>0", stopIfTrue: true, fillColor: "FCE4D6");
+            sheet.Range("A1:A3").ConditionalFormatting.AboveAverage("C6EFCE");
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A3").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+
+            Assert.Null(snapshot.Cells.Single(cell => cell.Row == 1).Style.FillColorArgb);
+            Assert.Null(snapshot.Cells.Single(cell => cell.Row == 2).Style.FillColorArgb);
+            Assert.Equal("FFFCE4D6", snapshot.Cells.Single(cell => cell.Row == 3).Style.FillColorArgb);
         }
 
         [Fact]

@@ -106,7 +106,13 @@ namespace OfficeIMO.Excel {
             int resolved = 0;
             for (int i = 1; i < iconCount; i++) {
                 double threshold = ResolveIconThreshold(min, max, iconCount, thresholds, i);
-                if (value >= threshold) {
+                ExcelConditionalIconSetThreshold? thresholdInfo = thresholds.Count == iconCount && i < thresholds.Count
+                    ? thresholds[i]
+                    : null;
+                bool matches = thresholdInfo?.GreaterThanOrEqual == false
+                    ? value > threshold
+                    : value >= threshold;
+                if (matches) {
                     resolved = i;
                 }
             }

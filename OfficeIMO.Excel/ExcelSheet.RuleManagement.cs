@@ -208,7 +208,8 @@ namespace OfficeIMO.Excel {
             return iconSet.Elements<ConditionalFormatValueObject>()
                 .Select(threshold => new ExcelConditionalIconSetThreshold {
                     Type = threshold.Type?.InnerText ?? string.Empty,
-                    Value = threshold.Val?.Value
+                    Value = threshold.Val?.Value,
+                    GreaterThanOrEqual = threshold.GreaterThanOrEqual?.Value ?? true
                 })
                 .ToArray();
         }

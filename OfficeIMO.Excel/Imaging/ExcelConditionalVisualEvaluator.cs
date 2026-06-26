@@ -456,15 +456,18 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            List<ConditionalNumericCell> candidates = GetNumericCandidates(sheet, cells, rule.Range)
-                .Where(candidate => !stoppedCells.Contains(Key(candidate.Cell.Row, candidate.Cell.Column)))
-                .ToList();
+            List<ConditionalNumericCell> candidates = GetNumericCandidates(sheet, cells, rule.Range);
             if (candidates.Count == 0) {
                 return;
             }
 
             double average = candidates.Average(candidate => candidate.Value);
             foreach (ConditionalNumericCell candidate in candidates) {
+                string key = Key(candidate.Cell.Row, candidate.Cell.Column);
+                if (stoppedCells.Contains(key)) {
+                    continue;
+                }
+
                 bool selected = rule.AboveAverageAbove
                     ? rule.AboveAverageEqual ? candidate.Value >= average : candidate.Value > average
                     : rule.AboveAverageEqual ? candidate.Value <= average : candidate.Value < average;
@@ -472,7 +475,6 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string key = Key(candidate.Cell.Row, candidate.Cell.Column);
                 if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) && !fills.ContainsKey(key)) {
                     fills[key] = rule.DifferentialFillColorArgb!;
                 }

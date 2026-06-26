@@ -144,6 +144,12 @@ public static class OfficePngWriter {
         if (colorType == 3) {
             throw new ArgumentOutOfRangeException(nameof(colorType), "Indexed-color PNGs require a palette (PLTE), which this writer does not emit.");
         }
+
+        bool validForColorType = colorType == 0
+            || bitDepth is 8 or 16;
+        if (!validForColorType) {
+            throw new ArgumentOutOfRangeException(nameof(bitDepth), "Bit depth is not valid for the PNG color type.");
+        }
     }
 
     private static byte[] BuildIhdr(int width, int height, int bitDepth, int colorType) {

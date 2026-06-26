@@ -261,6 +261,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("0", info.IconSetThresholds[0].Value);
                 Assert.Equal("33", info.IconSetThresholds[1].Value);
                 Assert.Equal("67", info.IconSetThresholds[2].Value);
+                Assert.All(info.IconSetThresholds, threshold => Assert.True(threshold.GreaterThanOrEqual));
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

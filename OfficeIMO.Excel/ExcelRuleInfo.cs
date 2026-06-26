@@ -75,6 +75,8 @@ namespace OfficeIMO.Excel {
         public string Type { get; set; } = string.Empty;
         /// <summary>Gets or sets the raw threshold value, when present.</summary>
         public string? Value { get; set; }
+        /// <summary>Gets or sets whether values equal to the threshold are included in the higher icon bucket.</summary>
+        public bool GreaterThanOrEqual { get; set; } = true;
     }
 
     /// <summary>
