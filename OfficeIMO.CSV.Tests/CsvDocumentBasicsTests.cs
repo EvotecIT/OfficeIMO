@@ -328,6 +328,18 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Skip_Comment_Rows_Before_Header_Keeps_Delimiterless_Header_After_Unmatched_Quote_Comment()
+    {
+        var parsed = CsvDocument.Parse(
+            "# generated \"by tool\nName\nAlpha\n",
+            new CsvLoadOptions());
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal(new[] { "Name" }, parsed.Header);
+        Assert.Equal("Alpha", row.AsString("Name"));
+    }
+
+    [Fact]
     public void Delimiter_Detection_Skips_Unmatched_Quote_Comments_Before_Sampling()
     {
         var parsed = CsvDocument.Parse(

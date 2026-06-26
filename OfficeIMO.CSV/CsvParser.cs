@@ -611,22 +611,15 @@ internal static class CsvParser
                 return true;
             }
 
-            if (firstLine.IndexOf(options.Delimiter) < 0 && next.IndexOf(options.Delimiter) >= 0)
+            var candidate = string.Concat(logicalRecord.ToString(), pendingSeparator, next);
+            if (TryParseQuotedRecord(candidate, options.Delimiter, options.TrimWhitespace, out _))
             {
-                pendingLines.Enqueue(new CsvLine(next, nextSeparator));
+                lineNumber++;
                 return true;
             }
 
-            logicalRecord.Append(pendingSeparator);
-            logicalRecord.Append(next);
-            lineNumber++;
-
-            if (TryParseQuotedRecord(logicalRecord.ToString(), options.Delimiter, options.TrimWhitespace, out _))
-            {
-                return true;
-            }
-
-            pendingSeparator = nextSeparator;
+            pendingLines.Enqueue(new CsvLine(next, nextSeparator));
+            return true;
         }
     }
 
