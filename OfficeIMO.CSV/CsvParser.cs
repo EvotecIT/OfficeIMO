@@ -603,31 +603,41 @@ internal static class CsvParser
 
         var logicalRecord = new StringBuilder(firstLine);
         var pendingSeparator = firstLineSeparator;
+        var continuations = new List<CsvLine>();
         while (true)
         {
             var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
             if (next == null)
             {
+                EnqueueContinuations(pendingLines, continuations);
                 return true;
             }
 
+            continuations.Add(new CsvLine(next, nextSeparator));
             var candidate = string.Concat(logicalRecord.ToString(), pendingSeparator, next);
             if (TryParseQuotedRecord(candidate, options.Delimiter, options.TrimWhitespace, out _))
             {
-                lineNumber++;
+                lineNumber += continuations.Count;
                 return true;
             }
 
-            if (!LooksLikeDelimitedRawComment(firstLine, options.Delimiter))
+            if (!LooksLikeDelimitedRawComment(firstLine, options.Delimiter) && LooksLikeDelimitedRawComment(next, options.Delimiter))
             {
-                pendingLines.Enqueue(new CsvLine(next, nextSeparator));
+                EnqueueContinuations(pendingLines, continuations);
                 return true;
             }
 
             logicalRecord.Append(pendingSeparator);
             logicalRecord.Append(next);
-            lineNumber++;
             pendingSeparator = nextSeparator;
+        }
+    }
+
+    private static void EnqueueContinuations(Queue<CsvLine> pendingLines, List<CsvLine> continuations)
+    {
+        foreach (var continuation in continuations)
+        {
+            pendingLines.Enqueue(continuation);
         }
     }
 

@@ -367,6 +367,19 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Skip_Comment_Rows_Before_Header_Skips_Delimiterless_Comment_Closing_After_Multiple_Continuation_Lines()
+    {
+        var parsed = CsvDocument.Parse(
+            "#note \"one\ntwo\nthree\"\nName,Value\nA,1\n",
+            new CsvLoadOptions());
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
+        Assert.Equal("A", row.AsString("Name"));
+        Assert.Equal("1", row.AsString("Value"));
+    }
+
+    [Fact]
     public void Skip_Comment_Rows_Before_Header_Skips_Complete_Multiline_Quoted_Comment_Record()
     {
         var parsed = CsvDocument.Parse(
@@ -384,6 +397,20 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#note,\"a\nstill,has,commas\nend\"\nName;Value\nA;1\n",
+            new CsvLoadOptions { DetectDelimiter = true });
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal(';', parsed.Delimiter);
+        Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
+        Assert.Equal("A", row.AsString("Name"));
+        Assert.Equal("1", row.AsString("Value"));
+    }
+
+    [Fact]
+    public void Delimiter_Detection_Skips_Delimiterless_Multiline_Comment_Record_With_Candidate_Delimiters()
+    {
+        var parsed = CsvDocument.Parse(
+            "#note \"ignored\nstill,has,commas\"\nName;Value\nA;1\n",
             new CsvLoadOptions { DetectDelimiter = true });
 
         var row = Assert.Single(parsed.AsEnumerable());

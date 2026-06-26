@@ -180,21 +180,33 @@ public sealed partial class CsvDocument
         string firstLine,
         Func<string, bool> isHeaderCandidate)
     {
+        var continuations = new List<string>();
         while (reader.ReadLine() is { } next)
         {
-            if (!isHeaderCandidate(firstLine))
-            {
-                pendingLines.Enqueue(next);
-                return;
-            }
-
+            continuations.Add(next);
             var candidate = string.Concat(firstLine, "\n", next);
             if (IsLogicalDelimiterDetectionRecordComplete(candidate))
             {
                 return;
             }
 
+            if (!isHeaderCandidate(firstLine) && isHeaderCandidate(next))
+            {
+                EnqueueDelimiterDetectionContinuations(pendingLines, continuations);
+                return;
+            }
+
             firstLine = candidate;
+        }
+
+        EnqueueDelimiterDetectionContinuations(pendingLines, continuations);
+    }
+
+    private static void EnqueueDelimiterDetectionContinuations(Queue<string> pendingLines, List<string> continuations)
+    {
+        foreach (var continuation in continuations)
+        {
+            pendingLines.Enqueue(continuation);
         }
     }
 
