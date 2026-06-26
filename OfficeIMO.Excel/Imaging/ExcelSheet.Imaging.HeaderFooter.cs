@@ -42,10 +42,7 @@ namespace OfficeIMO.Excel {
             double scale = options.Scale;
             int headerHeight = chrome.HasHeader ? ResolveHeaderFooterBandHeight(chrome.HeaderImageHeightPoints, scale) : 0;
             int footerHeight = chrome.HasFooter ? ResolveHeaderFooterBandHeight(chrome.FooterImageHeightPoints, scale) : 0;
-            ExcelPrintTitles printTitles = GetPrintTitles();
-            bool pageSetupCanvasApplied = ShouldApplyPageSetupCanvas(GetPageSetup()) &&
-                !printTitles.HasRows &&
-                !printTitles.HasColumns;
+            bool pageSetupCanvasApplied = ShouldApplyPageSetupCanvas(GetPageSetup());
             int width = Math.Max(1, content.Width);
             int height = pageSetupCanvasApplied
                 ? Math.Max(1, content.Height)

@@ -197,12 +197,15 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            string chartSvg = OfficeDrawingSvgExporter.ToSvg(OfficeChartDrawingRenderer.Render(officeSnapshot));
+            OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(officeSnapshot);
+            string chartSvg = OfficeDrawingSvgExporter.ToSvg(drawing);
             builder.AppendNestedSvg(
                 chart.X * scale,
                 chart.Y * scale,
                 chart.Width * scale,
                 chart.Height * scale,
+                drawing.Width,
+                drawing.Height,
                 OfficeSvgFormatting.ExtractSvgInner(chartSvg));
         }
 

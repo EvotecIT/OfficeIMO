@@ -105,12 +105,27 @@ public static partial class OfficeSvgFormatting {
     /// <param name="height">Nested viewport height.</param>
     /// <returns>The supplied builder for call chaining.</returns>
     public static StringBuilder AppendNestedSvgStart(this StringBuilder builder, double x, double y, double width, double height) {
+        return builder.AppendNestedSvgStart(x, y, width, height, width, height);
+    }
+
+    /// <summary>
+    /// Appends the start tag for a nested SVG viewport with an explicit local coordinate space.
+    /// </summary>
+    /// <param name="builder">Markup builder.</param>
+    /// <param name="x">Nested viewport x-coordinate.</param>
+    /// <param name="y">Nested viewport y-coordinate.</param>
+    /// <param name="width">Nested viewport width.</param>
+    /// <param name="height">Nested viewport height.</param>
+    /// <param name="viewBoxWidth">Nested viewport local coordinate width.</param>
+    /// <param name="viewBoxHeight">Nested viewport local coordinate height.</param>
+    /// <returns>The supplied builder for call chaining.</returns>
+    public static StringBuilder AppendNestedSvgStart(this StringBuilder builder, double x, double y, double width, double height, double viewBoxWidth, double viewBoxHeight) {
         builder.Append("<svg")
             .AppendNumberAttribute("x", x)
             .AppendNumberAttribute("y", y)
             .AppendNumberAttribute("width", width)
             .AppendNumberAttribute("height", height)
-            .AppendAttribute("viewBox", "0 0 " + FormatNumber(width) + " " + FormatNumber(height))
+            .AppendAttribute("viewBox", "0 0 " + FormatNumber(viewBoxWidth) + " " + FormatNumber(viewBoxHeight))
             .Append(">");
         return builder;
     }
@@ -137,6 +152,24 @@ public static partial class OfficeSvgFormatting {
     /// <returns>The supplied builder for call chaining.</returns>
     public static StringBuilder AppendNestedSvg(this StringBuilder builder, double x, double y, double width, double height, string innerContent) {
         builder.AppendNestedSvgStart(x, y, width, height);
+        builder.Append(innerContent);
+        return builder.AppendNestedSvgEnd();
+    }
+
+    /// <summary>
+    /// Appends a nested SVG viewport with explicit local coordinate bounds and the supplied inner content.
+    /// </summary>
+    /// <param name="builder">Markup builder.</param>
+    /// <param name="x">Nested viewport x-coordinate.</param>
+    /// <param name="y">Nested viewport y-coordinate.</param>
+    /// <param name="width">Nested viewport width.</param>
+    /// <param name="height">Nested viewport height.</param>
+    /// <param name="viewBoxWidth">Nested viewport local coordinate width.</param>
+    /// <param name="viewBoxHeight">Nested viewport local coordinate height.</param>
+    /// <param name="innerContent">SVG content to place inside the nested viewport.</param>
+    /// <returns>The supplied builder for call chaining.</returns>
+    public static StringBuilder AppendNestedSvg(this StringBuilder builder, double x, double y, double width, double height, double viewBoxWidth, double viewBoxHeight, string innerContent) {
+        builder.AppendNestedSvgStart(x, y, width, height, viewBoxWidth, viewBoxHeight);
         builder.Append(innerContent);
         return builder.AppendNestedSvgEnd();
     }

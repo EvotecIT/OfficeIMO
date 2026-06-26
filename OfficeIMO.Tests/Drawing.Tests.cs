@@ -1323,6 +1323,9 @@ public class DrawingTests {
         nestedBuilder.AppendNestedSvg(1.25D, 2.5D, 30.125D, 40.75D, inner);
         Assert.Equal("<rect width=\"10\"/>", inner);
         Assert.Equal("<svg x=\"1.25\" y=\"2.5\" width=\"30.125\" height=\"40.75\" viewBox=\"0 0 30.125 40.75\"><rect width=\"10\"/></svg>", nestedBuilder.ToString());
+        var scaledNestedBuilder = new StringBuilder();
+        scaledNestedBuilder.AppendNestedSvg(1D, 2D, 100D, 50D, 240D, 150D, inner);
+        Assert.Equal("<svg x=\"1\" y=\"2\" width=\"100\" height=\"50\" viewBox=\"0 0 240 150\"><rect width=\"10\"/></svg>", scaledNestedBuilder.ToString());
         Assert.Equal("<g/>", OfficeSvgFormatting.ExtractSvgInner("<g/>"));
 
         Assert.Equal("rotate(12.346)", OfficeSvgFormatting.FormatRotateTransform(12.34567D));

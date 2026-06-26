@@ -88,7 +88,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddUnrenderedDrawingShapes(WorksheetPart worksheetPart, string sheetName, ref int count, List<string> details) {
-            IReadOnlyList<ExcelWorksheetDrawingObjectInfo> drawings = ExcelWorksheetDrawingObjectResolver.FindUnsupportedDrawingObjects(worksheetPart);
+            IReadOnlyList<ExcelWorksheetDrawingObjectInfo> drawings = ExcelWorksheetDrawingObjectResolver.FindDrawingObjects(worksheetPart);
             if (drawings.Count == 0) {
                 return;
             }
