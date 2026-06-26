@@ -1059,6 +1059,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeDrawingRasterRenderer_FillsRoundedRectangleGradientsInsideRoundedContour() {
+            OfficeDrawing drawing = new OfficeDrawing(48, 36);
+            OfficeShape shape = OfficeShape.RoundedRectangle(28, 18, 7);
+            shape.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
+            drawing.AddShape(shape, 4, 4);
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+
+            Assert.Equal(0, image.GetPixel(4, 4).A);
+            OfficeColor middle = image.GetPixel(18, 13);
+            Assert.True(middle.A > 200);
+            Assert.True(middle.R > 20 || middle.B > 20);
+        }
+
+        [Fact]
         public void OfficeDrawingRasterRenderer_RendersRoundedRectanglesAndShapeShadows() {
             OfficeDrawing drawing = new OfficeDrawing(48, 36);
             OfficeShape shape = OfficeShape.RoundedRectangle(24, 16, 6);

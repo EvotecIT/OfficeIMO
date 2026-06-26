@@ -1890,6 +1890,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportDoesNotInventLineChartMarkersWhenSourceHasNoMarkerElement() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("NoMarkers");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(2, 2, 120);
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(3, 2, 180);
+            sheet.CellValue(4, 1, "Mar");
+            sheet.CellValue(4, 2, 160);
+            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "No Markers");
+            chart.SetSeriesLineColor(0, "2563EB");
+            GetFirstChartPart(document).ChartSpace.Descendants<C.LineChartSeries>().First().RemoveAllChildren<C.Marker>();
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:H9").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+
+            Assert.False(visualChart.Snapshot.Data.Series[0].ShowMarkers);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportCarriesChartSeriesNoLineIntoSharedRenderer() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("NoSeriesLine");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(2, 2, 120);
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(3, 2, 180);
+            sheet.CellValue(4, 1, "Mar");
+            sheet.CellValue(4, 2, 160);
+            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "No Series Line");
+            chart.SetSeriesLineColor(0, "2563EB");
+            SetFirstChartSeriesNoLine(document);
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:H9").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+
+            Assert.False(visualChart.Snapshot.Data.Series[0].ConnectLine);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportCarriesChartMarkerSizeIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -3037,6 +3083,24 @@ namespace OfficeIMO.Tests {
             }
 
             SetPresetDash(properties, dashStyle);
+            chartPart.ChartSpace.Save();
+        }
+
+        private static void SetFirstChartSeriesNoLine(ExcelDocument document) {
+            ChartPart chartPart = GetFirstChartPart(document);
+            C.LineChartSeries series = chartPart.ChartSpace.Descendants<C.LineChartSeries>().First();
+            C.ChartShapeProperties properties = series.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
+            if (properties.Parent == null) {
+                series.Append(properties);
+            }
+
+            A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
+            outline.RemoveAllChildren();
+            outline.Append(new A.NoFill());
+            if (outline.Parent == null) {
+                properties.Append(outline);
+            }
+
             chartPart.ChartSpace.Save();
         }
 

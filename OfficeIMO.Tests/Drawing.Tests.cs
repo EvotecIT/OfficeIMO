@@ -1881,7 +1881,15 @@ public class DrawingTests {
         Assert.NotNull(presetLine);
         Assert.Equal(OfficeShapeKind.Line, presetLine!.Kind);
         Assert.Equal(new OfficePoint(0, 0), presetLine.Points[0]);
-        Assert.Equal(new OfficePoint(120, 0), presetLine.Points[1]);
+        Assert.Equal(new OfficePoint(120, 40), presetLine.Points[1]);
+
+        Assert.True(OfficeShapePresets.TryCreate("line", 120, 0, out OfficeShape? horizontalLine));
+        Assert.NotNull(horizontalLine);
+        Assert.Equal(new OfficePoint(120, 0), horizontalLine!.Points[1]);
+
+        Assert.True(OfficeShapePresets.TryCreate("line", 0, 40, out OfficeShape? verticalLine));
+        Assert.NotNull(verticalLine);
+        Assert.Equal(new OfficePoint(0, 40), verticalLine!.Points[1]);
 
         Assert.True(OfficeShapePresets.TryCreate("straightConnector1", 120, 40, out OfficeShape? straightConnector));
         Assert.NotNull(straightConnector);

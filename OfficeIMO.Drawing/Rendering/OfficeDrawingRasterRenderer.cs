@@ -87,7 +87,14 @@ public static class OfficeDrawingRasterRenderer {
                 break;
             case OfficeShapeKind.RoundedRectangle:
                 IReadOnlyList<OfficePoint> rounded = OffsetPoints(CreateRoundedRectangleContour(width, height, shape.CornerRadius * scale, 8), x, y, 1D);
-                if (fill.HasValue) canvas.FillPolygon(rounded, fill.Value);
+                if (shape.FillGradient != null) {
+                    using (canvas.PushClipPolygon(rounded)) {
+                        canvas.FillLinearGradientRectangle(x, y, width, height, ApplyOpacity(shape.FillGradient, shape.FillOpacity));
+                    }
+                } else if (fill.HasValue) {
+                    canvas.FillPolygon(rounded, fill.Value);
+                }
+
                 if (stroke.HasValue && strokeWidth > 0D) canvas.DrawStyledPolygon(rounded, stroke.Value, strokeWidth, shape.StrokeDashStyle);
                 break;
             case OfficeShapeKind.Ellipse:

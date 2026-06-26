@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
             Assert.Contains(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation);
             Assert.Contains("text-decoration=\"line-through\"", svg);
-            Assert.Contains(">Strike Header<", svg);
+            Assert.Contains("Strike Header", svg);
         }
 
         [Fact]

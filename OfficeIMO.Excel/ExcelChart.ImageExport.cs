@@ -341,7 +341,7 @@ namespace OfficeIMO.Excel {
             for (int i = 0; i < data.Series.Count; i++) {
                 ExcelChartSeries current = data.Series[i];
                 if (styles.TryGetValue(i, out ImageExportSeriesStyle? style)) {
-                    series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.MarkerSize, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth));
+                    series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.ConnectLine, style.MarkerSize, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth));
                     changed = true;
                 } else {
                     series.Add(current);
@@ -362,6 +362,9 @@ namespace OfficeIMO.Excel {
                     style.SeriesColorArgb = GetImageExportSeriesColor(properties, workbookPart);
                     style.SeriesLineWidth = GetImageExportSeriesLineWidth(properties);
                     style.SeriesLineDashStyle = GetImageExportSeriesLineDashStyle(properties);
+                    if (HasNoLine(properties)) {
+                        style.ConnectLine = false;
+                    }
                 }
 
                 int valueCount = index >= 0 && index < data.Series.Count ? data.Series[index].Values.Count : 0;
@@ -551,6 +554,10 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool GetImageExportShowMarkers(C.Marker? marker) {
+            if (marker == null) {
+                return false;
+            }
+
             C.MarkerStyleValues? symbol = marker?.Symbol?.Val?.Value;
             return symbol == null || symbol.Value != C.MarkerStyleValues.None;
         }
@@ -1458,6 +1465,8 @@ namespace OfficeIMO.Excel {
 
             internal bool ShowMarkers { get; set; } = true;
 
+            internal bool? ConnectLine { get; set; }
+
             internal int? MarkerSize { get; set; }
 
             internal OfficeChartMarkerShape? MarkerShape { get; set; }
@@ -1466,7 +1475,7 @@ namespace OfficeIMO.Excel {
 
             internal double? MarkerOutlineWidth { get; set; }
 
-            internal bool HasAny => SeriesColorArgb != null || SeriesLineWidth != null || SeriesLineDashStyle != null || PointColorArgb != null || !ShowMarkers || MarkerSize != null || MarkerShape != null || MarkerOutlineColorArgb != null || MarkerOutlineWidth != null;
+            internal bool HasAny => SeriesColorArgb != null || SeriesLineWidth != null || SeriesLineDashStyle != null || PointColorArgb != null || !ShowMarkers || ConnectLine.HasValue || MarkerSize != null || MarkerShape != null || MarkerOutlineColorArgb != null || MarkerOutlineWidth != null;
         }
     }
 }

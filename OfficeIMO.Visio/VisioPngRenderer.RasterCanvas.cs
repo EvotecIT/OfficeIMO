@@ -103,7 +103,7 @@ namespace OfficeIMO.Visio {
                 _canvas.FillRectangle(x, y, width, height, color);
             }
 
-            private static double RadiansToCanvasDegrees(double radians) => -OfficeGeometry.RadiansToDegrees(radians);
+            private static double RadiansToCanvasDegrees(double radians) => OfficeGeometry.RadiansToDegrees(radians);
 
         }
     }
