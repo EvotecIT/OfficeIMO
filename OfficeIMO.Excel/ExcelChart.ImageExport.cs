@@ -229,6 +229,8 @@ namespace OfficeIMO.Excel {
             bool hasAxisCrossingPosition = horizontalAxisCrossingPosition != OfficeChartAxisCrossingPosition.AutoZero ||
                 verticalAxisCrossingPosition != OfficeChartAxisCrossingPosition.AutoZero;
             bool hasCategoryAxisOrientation = reverseCategoryAxis;
+            bool fillRadarSeries = GetImageExportFillRadarSeries(plotArea);
+            bool hasRadarFillLayout = !fillRadarSeries;
             bool hasTextFont = legendFontSize != null ||
                 legendFontFamily != null ||
                 legendFontStyle != null ||
@@ -257,6 +259,7 @@ namespace OfficeIMO.Excel {
                 hasAxisLabelPosition ||
                 hasAxisCrossingPosition ||
                 hasCategoryAxisOrientation ||
+                hasRadarFillLayout ||
                 hasTextFont;
             if (!hasLayout) {
                 return null;
@@ -316,6 +319,7 @@ namespace OfficeIMO.Excel {
                 horizontalAxisCrossingPosition: horizontalAxisCrossingPosition,
                 verticalAxisCrossingPosition: verticalAxisCrossingPosition,
                 reverseCategoryAxis: reverseCategoryAxis,
+                fillRadarSeries: fillRadarSeries,
                 showCategoryAxisLine: showCategoryAxisLine,
                 showValueAxisLine: showValueAxisLine,
                 showCategoryAxisLabels: showCategoryAxisLabels,
@@ -353,8 +357,9 @@ namespace OfficeIMO.Excel {
 
         private static Dictionary<int, ImageExportSeriesStyle> GetImageExportSeriesStyles(C.PlotArea plotArea, ExcelChartData data, WorkbookPart workbookPart) {
             var styles = new Dictionary<int, ImageExportSeriesStyle>();
+            int seriesOrder = 0;
             foreach (OpenXmlCompositeElement series in plotArea.Descendants<OpenXmlCompositeElement>().Where(IsSeriesElement)) {
-                int index = GetSeriesIndex(series);
+                int index = seriesOrder++;
                 ImageExportSeriesStyle style = new ImageExportSeriesStyle();
 
                 C.ChartShapeProperties? properties = series.GetFirstChild<C.ChartShapeProperties>();
@@ -383,6 +388,12 @@ namespace OfficeIMO.Excel {
             }
 
             return styles;
+        }
+
+        private static bool GetImageExportFillRadarSeries(C.PlotArea plotArea) {
+            C.RadarChart? radarChart = plotArea.GetFirstChild<C.RadarChart>();
+            C.RadarStyleValues? radarStyle = radarChart?.GetFirstChild<C.RadarStyle>()?.Val?.Value;
+            return radarStyle == null || radarStyle.Value != C.RadarStyleValues.Standard;
         }
 
         private static string? GetImageExportSeriesColor(C.ChartShapeProperties properties, WorkbookPart workbookPart) {

@@ -561,7 +561,8 @@ namespace OfficeIMO.Excel {
                     diagnostics.Add(diagnostic);
                 }
 
-                if (!options.IncludeHidden && IsHiddenAnchorInRange(chartSnapshot.RowIndex, chartSnapshot.ColumnIndex, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, columnDefinitions)) {
+                bool absoluteAnchor = chart.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight);
+                if (!absoluteAnchor && !options.IncludeHidden && IsHiddenAnchorInRange(chartSnapshot.RowIndex, chartSnapshot.ColumnIndex, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, columnDefinitions)) {
                     diagnostics.Add(new OfficeImageExportDiagnostic(
                         OfficeImageExportDiagnosticSeverity.Warning,
                         ExcelImageExportDiagnosticCodes.ChartAnchorHidden,
@@ -578,12 +579,12 @@ namespace OfficeIMO.Excel {
                     columnDefinitions,
                     columnsByIndex,
                     rowsByIndex,
-                    chartSnapshot.ColumnIndex,
-                    chartSnapshot.RowIndex,
-                    0,
-                    0,
-                    chartSnapshot.WidthPixels,
-                    chartSnapshot.HeightPixels,
+                    absoluteAnchor ? 1 : chartSnapshot.ColumnIndex,
+                    absoluteAnchor ? 1 : chartSnapshot.RowIndex,
+                    absoluteAnchor ? absoluteX : 0,
+                    absoluteAnchor ? absoluteY : 0,
+                    absoluteAnchor ? absoluteWidth : chartSnapshot.WidthPixels,
+                    absoluteAnchor ? absoluteHeight : chartSnapshot.HeightPixels,
                     toColumnIndex: null,
                     toRowIndex: null,
                     toOffsetXPixels: 0,

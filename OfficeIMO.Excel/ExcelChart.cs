@@ -52,6 +52,23 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public int DrawingOrder => GetDrawingOrder();
 
+        internal bool TryGetAbsoluteAnchorBounds(out int xPixels, out int yPixels, out int widthPixels, out int heightPixels) {
+            xPixels = 0;
+            yPixels = 0;
+            widthPixels = 0;
+            heightPixels = 0;
+            Xdr.AbsoluteAnchor? absoluteAnchor = _frame.Ancestors<Xdr.AbsoluteAnchor>().FirstOrDefault();
+            if (absoluteAnchor == null) {
+                return false;
+            }
+
+            xPixels = EmuOffsetToPixels(absoluteAnchor.Position?.X?.Value ?? 0L);
+            yPixels = EmuOffsetToPixels(absoluteAnchor.Position?.Y?.Value ?? 0L);
+            widthPixels = EmuToPixels(absoluteAnchor.Extent?.Cx?.Value, GetAnchorWidthPixels());
+            heightPixels = EmuToPixels(absoluteAnchor.Extent?.Cy?.Value, GetAnchorHeightPixels());
+            return widthPixels > 0 && heightPixels > 0;
+        }
+
         /// <summary>
         /// Gets the detected chart type.
         /// </summary>
@@ -412,7 +429,8 @@ namespace OfficeIMO.Excel {
 
         private int GetDrawingOrder() {
             OpenXmlElement? anchor = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()
-                ?? (OpenXmlElement?)_frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault();
+                ?? (OpenXmlElement?)_frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()
+                ?? _frame.Ancestors<Xdr.AbsoluteAnchor>().FirstOrDefault();
             Xdr.WorksheetDrawing? worksheetDrawing = _drawingsPart.WorksheetDrawing;
             if (anchor == null || worksheetDrawing == null) {
                 return 0;

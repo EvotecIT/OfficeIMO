@@ -57,6 +57,17 @@ namespace OfficeIMO.Excel {
             return upper < lower ? (upper, lower) : (lower, upper);
         }
 
+        internal static bool HasUnsupportedFormulaThresholds(IReadOnlyList<ExcelConditionalFormatThreshold> thresholds) {
+            foreach (ExcelConditionalFormatThreshold threshold in thresholds) {
+                if (string.Equals(threshold.Type, "formula", StringComparison.OrdinalIgnoreCase) &&
+                    !TryParseThresholdNumber(threshold.Value, out _)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         internal static bool TryGetColorScaleRgb(
             IReadOnlyList<double> values,
             IReadOnlyList<string> colors,
@@ -186,7 +197,7 @@ namespace OfficeIMO.Excel {
             return sorted[lower] + ((sorted[upper] - sorted[lower]) * ratio);
         }
 
-        private static bool TryParseThresholdNumber(string? value, out double number) {
+        internal static bool TryParseThresholdNumber(string? value, out double number) {
             number = 0D;
             return !string.IsNullOrWhiteSpace(value) &&
                 double.TryParse(value!.Trim(), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number) &&

@@ -1936,6 +1936,133 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportAppliesChartSeriesStyleByElementOrderWhenIndexesAreNonContiguous() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("SeriesOrder");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(2, 2, 120);
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(3, 2, 180);
+            sheet.CellValue(4, 1, "Mar");
+            sheet.CellValue(4, 2, 160);
+            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "Series Order");
+            chart.SetSeriesLineColor(0, "2563EB");
+            SetFirstChartSeriesIndex(document, 1U);
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:H9").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+
+            Assert.Equal("2563EB", visualChart.Snapshot.Data.Series[0].SeriesColorArgb);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportReportsFormulaConditionalFormatThresholds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("FormulaThresholds");
+            for (int row = 1; row <= 3; row++) {
+                sheet.CellValue(row, 1, row * 10);
+                sheet.CellValue(row, 2, row * 10);
+            }
+
+            sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
+            sheet.AddConditionalColorScale("B1:B3", OfficeColor.Red, OfficeColor.Green);
+            SetFirstDataBarThresholdFormula(sheet, "A1");
+            SetFirstColorScaleThresholdFormula(sheet, "B1");
+
+            OfficeImageExportResult png = sheet.Range("A1:B3").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+
+            Assert.Equal(
+                2,
+                png.Diagnostics.Count(diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ConditionalFormulaUnsupported));
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportResolvesAbsoluteAnchorChartCoordinates() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("AbsoluteChart");
+                sheet.CellValue(1, 1, "Month");
+                sheet.CellValue(1, 2, "Actual");
+                sheet.CellValue(2, 1, "Jan");
+                sheet.CellValue(2, 2, 120);
+                sheet.CellValue(3, 1, "Feb");
+                sheet.CellValue(3, 2, 180);
+                sheet.AddChartFromRange("A1:B3", row: 4, column: 6, widthPixels: 260, heightPixels: 160, type: ExcelChartType.ColumnClustered, title: "Absolute Chart");
+                document.Save(false);
+            }
+
+            MoveFirstChartToAbsoluteAnchor(filePath, xPixels: 40, yPixels: 30, widthPixels: 220, heightPixels: 120);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:J12").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+                ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+
+                Assert.Equal(40D, visualChart.X);
+                Assert.Equal(30D, visualChart.Y);
+                Assert.Equal(220D, visualChart.Width);
+                Assert.Equal(120D, visualChart.Height);
+            }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportPreservesStandardRadarChartsWithoutFill() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("RadarStandard");
+            sheet.CellValue(1, 1, "Metric");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "Quality");
+            sheet.CellValue(2, 2, 7);
+            sheet.CellValue(3, 1, "Speed");
+            sheet.CellValue(3, 2, 5);
+            sheet.CellValue(4, 1, "Cost");
+            sheet.CellValue(4, 2, 8);
+            sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Radar, title: "Radar");
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:H9").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+
+            Assert.NotNull(visualChart.Snapshot.Layout);
+            Assert.False(visualChart.Snapshot.Layout!.FillRadarSeries);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportKeepsNoFillChartsTransparentInPng() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("TransparentChart");
+            for (int row = 1; row <= 10; row++) {
+                for (int column = 1; column <= 8; column++) {
+                    sheet.CellValue(row, column, row + column);
+                }
+            }
+
+            sheet.Range("A1:H10").SetFillColor("22C55E");
+            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "Transparent");
+            chart.SetPlotAreaStyle(fillColor: "FFFFFF");
+            SetFirstChartAreaNoFill(document);
+
+            var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:H10").CreateVisualSnapshot(options);
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+            OfficeImageExportResult png = sheet.Range("A1:H10").ExportImage(OfficeImageExportFormat.Png, options);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+            AssertPixelNear(
+                rendered!,
+                (int)((visualChart.X + 4D) * options.Scale),
+                (int)((visualChart.Y + 4D) * options.Scale),
+                OfficeColor.FromRgb(34, 197, 94),
+                tolerance: 8);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportCarriesChartMarkerSizeIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -3102,6 +3229,80 @@ namespace OfficeIMO.Tests {
             }
 
             chartPart.ChartSpace.Save();
+        }
+
+        private static void SetFirstChartSeriesIndex(ExcelDocument document, uint index) {
+            ChartPart chartPart = GetFirstChartPart(document);
+            OpenXmlCompositeElement series = chartPart.ChartSpace.Descendants<C.LineChartSeries>().Cast<OpenXmlCompositeElement>().First();
+            C.Index indexElement = series.GetFirstChild<C.Index>() ?? new C.Index();
+            indexElement.Val = index;
+            if (indexElement.Parent == null) {
+                series.InsertAt(indexElement, 0);
+            }
+
+            C.Order orderElement = series.GetFirstChild<C.Order>() ?? new C.Order();
+            orderElement.Val = index;
+            if (orderElement.Parent == null) {
+                series.InsertAfter(orderElement, indexElement);
+            }
+
+            chartPart.ChartSpace.Save();
+        }
+
+        private static void SetFirstDataBarThresholdFormula(ExcelSheet sheet, string formula) {
+            DataBar dataBar = sheet.WorksheetPart.Worksheet.Descendants<DataBar>().First();
+            ConditionalFormatValueObject threshold = dataBar.Elements<ConditionalFormatValueObject>().First();
+            threshold.Type = ConditionalFormatValueObjectValues.Formula;
+            threshold.Val = formula;
+            sheet.WorksheetPart.Worksheet.Save();
+        }
+
+        private static void SetFirstColorScaleThresholdFormula(ExcelSheet sheet, string formula) {
+            ColorScale colorScale = sheet.WorksheetPart.Worksheet.Descendants<ColorScale>().First();
+            ConditionalFormatValueObject threshold = colorScale.Elements<ConditionalFormatValueObject>().First();
+            threshold.Type = ConditionalFormatValueObjectValues.Formula;
+            threshold.Val = formula;
+            sheet.WorksheetPart.Worksheet.Save();
+        }
+
+        private static void SetFirstChartAreaNoFill(ExcelDocument document) {
+            ChartPart chartPart = GetFirstChartPart(document);
+            C.ShapeProperties properties = chartPart.ChartSpace.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
+            if (properties.Parent == null) {
+                chartPart.ChartSpace.Append(properties);
+            }
+
+            properties.RemoveAllChildren<A.SolidFill>();
+            properties.RemoveAllChildren<A.NoFill>();
+            properties.PrependChild(new A.NoFill());
+            A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
+            outline.RemoveAllChildren();
+            outline.Append(new A.NoFill());
+            if (outline.Parent == null) {
+                properties.Append(outline);
+            }
+
+            chartPart.ChartSpace.Save();
+        }
+
+        private static void MoveFirstChartToAbsoluteAnchor(string filePath, int xPixels, int yPixels, int widthPixels, int heightPixels) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? throw new InvalidOperationException("Worksheet has no drawings part.");
+            Xdr.WorksheetDrawing worksheetDrawing = drawingsPart.WorksheetDrawing ?? throw new InvalidOperationException("Worksheet has no drawing.");
+            OpenXmlCompositeElement anchor = worksheetDrawing.ChildElements
+                .OfType<OpenXmlCompositeElement>()
+                .First(element => element.GetFirstChild<Xdr.GraphicFrame>() != null);
+            Xdr.GraphicFrame frame = (Xdr.GraphicFrame)anchor.GetFirstChild<Xdr.GraphicFrame>()!.CloneNode(true);
+            Xdr.ClientData clientData = (Xdr.ClientData?)anchor.GetFirstChild<Xdr.ClientData>()?.CloneNode(true) ?? new Xdr.ClientData();
+            var absoluteAnchor = new Xdr.AbsoluteAnchor(
+                new Xdr.Position { X = xPixels * 9525L, Y = yPixels * 9525L },
+                new Xdr.Extent { Cx = widthPixels * 9525L, Cy = heightPixels * 9525L },
+                frame,
+                clientData);
+            worksheetDrawing.ReplaceChild(absoluteAnchor, anchor);
+            worksheetDrawing.Save();
+            worksheetPart.Worksheet.Save();
         }
 
         private static void SetFirstChartAreaDash(ExcelDocument document, A.PresetLineDashValues dashStyle) {

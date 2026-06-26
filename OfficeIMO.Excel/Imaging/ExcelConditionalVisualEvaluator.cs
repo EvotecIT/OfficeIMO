@@ -92,6 +92,14 @@ namespace OfficeIMO.Excel {
                             source));
                     }
 
+                    if (ExcelConditionalFormatThresholds.HasUnsupportedFormulaThresholds(rule.ColorScaleThresholds)) {
+                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Warning,
+                            ExcelImageExportDiagnosticCodes.ConditionalFormulaUnsupported,
+                            "Conditional formatting color-scale formula thresholds are not evaluated by image export; threshold fallback positions were used.",
+                            source));
+                    }
+
                     continue;
                 }
 
@@ -101,6 +109,14 @@ namespace OfficeIMO.Excel {
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.ConditionalDataBarUnsupported,
                             "Conditional formatting data bar could not be rendered because its fill color is missing or unsupported.",
+                            source));
+                    }
+
+                    if (ExcelConditionalFormatThresholds.HasUnsupportedFormulaThresholds(rule.DataBarThresholds)) {
+                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Warning,
+                            ExcelImageExportDiagnosticCodes.ConditionalFormulaUnsupported,
+                            "Conditional formatting data-bar formula thresholds are not evaluated by image export; threshold fallback positions were used.",
                             source));
                     }
 

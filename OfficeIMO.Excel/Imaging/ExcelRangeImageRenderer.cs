@@ -186,7 +186,8 @@ namespace OfficeIMO.Excel {
             }
 
             OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(officeSnapshot);
-            OfficeRasterImage chartImage = OfficeDrawingRasterRenderer.Render(drawing, scale, OfficeColor.White);
+            OfficeColor chartBackground = officeSnapshot.Style?.ShowBackground == false ? OfficeColor.Transparent : OfficeColor.White;
+            OfficeRasterImage chartImage = OfficeDrawingRasterRenderer.Render(drawing, scale, chartBackground);
             canvas.DrawImage(chartImage, chart.X * scale, chart.Y * scale, chart.Width * scale, chart.Height * scale);
         }
 

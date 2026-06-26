@@ -346,7 +346,9 @@ namespace OfficeIMO.Excel {
             if (options.IncludeCharts) {
                 foreach (ExcelChart chart in Charts) {
                     if (chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
-                        if (options.IncludeHidden || !IsHiddenAnchor(snapshot.RowIndex, snapshot.ColumnIndex, rows, columns)) {
+                        if (chart.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight)) {
+                            ExpandAbsoluteVisualAnchor(absoluteX, absoluteY, absoluteWidth, absoluteHeight, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                        } else if (options.IncludeHidden || !IsHiddenAnchor(snapshot.RowIndex, snapshot.ColumnIndex, rows, columns)) {
                             ExpandVisualAnchor(snapshot.RowIndex, snapshot.ColumnIndex, snapshot.WidthPixels, snapshot.HeightPixels, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
                         }
                     }
