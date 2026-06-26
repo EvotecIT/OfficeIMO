@@ -618,10 +618,25 @@ internal static class CsvParser
                 return true;
             }
 
-            pendingLines.Enqueue(new CsvLine(next, nextSeparator));
-            return true;
+            if (!LooksLikeDelimitedRawComment(firstLine, options.Delimiter))
+            {
+                pendingLines.Enqueue(new CsvLine(next, nextSeparator));
+                return true;
+            }
+
+            logicalRecord.Append(pendingSeparator);
+            logicalRecord.Append(next);
+            lineNumber++;
+            pendingSeparator = nextSeparator;
         }
     }
+
+    private static bool LooksLikeDelimitedRawComment(string line, char delimiter) =>
+        line.IndexOf(delimiter) >= 0 ||
+        line.IndexOf(',') >= 0 ||
+        line.IndexOf(';') >= 0 ||
+        line.IndexOf('|') >= 0 ||
+        line.IndexOf('\t') >= 0;
 
     private static bool ShouldSkipCommentRecordBeforeParsing(bool startsWithCommentCharacter, string firstLine, CsvLoadOptions options, int emittedRecordCount)
     {

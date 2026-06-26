@@ -65,6 +65,21 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void WriteObjects_QuotesBooleanValuesWhenCustomDelimiterAppearsInLiteral()
+    {
+        var items = new object?[]
+        {
+            new { Name = "A", Enabled = true },
+            new { Name = "B", Enabled = false }
+        };
+
+        using var writer = new StringWriter();
+        CsvDocument.WriteObjects(writer, items, new CsvSaveOptions { Delimiter = 'r', NewLine = "\n" });
+
+        Assert.Equal("NamerEnabled\nAr\"True\"\nBrFalse\n", writer.ToString());
+    }
+
+    [Fact]
     public void WriteObjects_ProjectsDictionaryRowsByFirstRowColumns()
     {
         var items = new object?[]

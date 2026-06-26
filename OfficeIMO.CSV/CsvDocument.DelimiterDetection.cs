@@ -182,17 +182,19 @@ public sealed partial class CsvDocument
     {
         while (reader.ReadLine() is { } next)
         {
-            if (isHeaderCandidate(next))
+            if (!isHeaderCandidate(firstLine))
             {
                 pendingLines.Enqueue(next);
                 return;
             }
 
-            firstLine = string.Concat(firstLine, "\n", next);
-            if (IsLogicalDelimiterDetectionRecordComplete(firstLine))
+            var candidate = string.Concat(firstLine, "\n", next);
+            if (IsLogicalDelimiterDetectionRecordComplete(candidate))
             {
                 return;
             }
+
+            firstLine = candidate;
         }
     }
 

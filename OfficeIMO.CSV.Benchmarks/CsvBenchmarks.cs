@@ -3,7 +3,8 @@
 using System.Globalization;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
-using CsvHelper;
+using CsvHelperReader = CsvHelper.CsvReader;
+using CsvHelperWriter = CsvHelper.CsvWriter;
 
 namespace OfficeIMO.CSV.Benchmarks;
 
@@ -81,7 +82,7 @@ public class CsvBenchmarks
     public int CsvHelper_WriteTypedRecords()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
+        using var csv = new CsvHelperWriter(writer, CultureInfo.InvariantCulture);
         csv.WriteRecords(_rows);
         return writer.GetStringBuilder().Length;
     }
@@ -90,7 +91,7 @@ public class CsvBenchmarks
     public int CsvHelper_WriteProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
+        using var csv = new CsvHelperWriter(writer, CultureInfo.InvariantCulture);
         foreach (string header in Headers)
         {
             csv.WriteField(header);
@@ -167,7 +168,7 @@ public class CsvBenchmarks
     public int CsvHelper_ReadFields()
     {
         using var reader = new StringReader(_csvText);
-        using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+        using var csv = new CsvHelperReader(reader, CultureInfo.InvariantCulture);
         var fieldCount = 0;
         if (!csv.Read())
         {
@@ -191,7 +192,7 @@ public class CsvBenchmarks
     public int CsvHelper_ReadTypedRecords()
     {
         using var reader = new StringReader(_csvText);
-        using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+        using var csv = new CsvHelperReader(reader, CultureInfo.InvariantCulture);
         var count = 0;
         foreach (CsvBenchmarkRow _ in csv.GetRecords<CsvBenchmarkRow>())
         {

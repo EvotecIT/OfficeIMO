@@ -465,7 +465,7 @@ internal static class CsvWriter
 #if NET6_0_OR_GREATER
         if (value is bool boolValue)
         {
-            buffer.Append(boolValue ? "True" : "False");
+            WriteEscapedDefault(buffer, boolValue ? "True" : "False", delimiter);
             return;
         }
 
