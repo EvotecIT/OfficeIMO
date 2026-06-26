@@ -530,6 +530,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PngRendererPreservesVisioShapeAngleDirection() {
+            RgbaPng image = DecodeRgbaPng(RenderEllipseShape(Math.PI / 4D));
+
+            Assert.True(HasRedPixelNear(image, 105, 55, radius: 3), "Expected positive Visio shape.Angle to rotate the ellipse toward the upper-left.");
+            Assert.True(HasRedPixelNear(image, 195, 145, radius: 3), "Expected positive Visio shape.Angle to rotate the ellipse toward the lower-right.");
+            Assert.True(IsWhitePixel(image, 195, 55), "Expected the opposite upper-right diagonal to remain background.");
+            Assert.True(IsWhitePixel(image, 105, 145), "Expected the opposite lower-left diagonal to remain background.");
+        }
+
+        [Fact]
         public void PngRendererCentersEllipseOnGeometryCenterWhenLocPinIsOffset() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
@@ -2109,6 +2119,22 @@ namespace OfficeIMO.Tests {
                    image.Pixels[offset + 1] < 80 &&
                    image.Pixels[offset + 2] < 80 &&
                    image.Pixels[offset + 3] > 200;
+        }
+
+        private static bool HasRedPixelNear(RgbaPng image, int x, int y, int radius) {
+            int minX = Math.Max(0, x - radius);
+            int maxX = Math.Min(image.Width - 1, x + radius);
+            int minY = Math.Max(0, y - radius);
+            int maxY = Math.Min(image.Height - 1, y + radius);
+            for (int py = minY; py <= maxY; py++) {
+                for (int px = minX; px <= maxX; px++) {
+                    if (IsRedPixel(image, px, py)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static bool IsGreenPixel(RgbaPng image, int x, int y) {

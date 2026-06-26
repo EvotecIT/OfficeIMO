@@ -639,6 +639,16 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                if (!inQuote && ch == '\\') {
+                    builder.Append(ch);
+                    if (i + 1 < formatCode.Length) {
+                        builder.Append(formatCode[i + 1]);
+                        i++;
+                    }
+
+                    continue;
+                }
+
                 if (!inQuote && ch == ';') {
                     sections.Add(builder.ToString());
                     builder.Clear();
@@ -766,6 +776,11 @@ namespace OfficeIMO.Excel {
 
         private static int FindFirstNumericPlaceholder(string formatCode) {
             for (int i = 0; i < formatCode.Length; i++) {
+                if (formatCode[i] == LiteralPunctuationMarker && i + 1 < formatCode.Length) {
+                    i++;
+                    continue;
+                }
+
                 if (IsNumericPlaceholder(formatCode[i])) {
                     return i;
                 }
@@ -776,6 +791,11 @@ namespace OfficeIMO.Excel {
 
         private static int FindLastNumericPlaceholder(string formatCode) {
             for (int i = formatCode.Length - 1; i >= 0; i--) {
+                if (i > 0 && formatCode[i - 1] == LiteralPunctuationMarker) {
+                    i--;
+                    continue;
+                }
+
                 if (IsNumericPlaceholder(formatCode[i])) {
                     return i;
                 }
@@ -822,6 +842,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (inQuote && (ch == ',' || ch == '.')) {
+                    builder.Append(LiteralPunctuationMarker).Append(ch);
+                    continue;
+                }
+
+                if (inQuote && IsNumericPlaceholder(ch)) {
                     builder.Append(LiteralPunctuationMarker).Append(ch);
                     continue;
                 }

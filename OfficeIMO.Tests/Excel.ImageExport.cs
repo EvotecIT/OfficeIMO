@@ -159,8 +159,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal("1234%%", ExcelNumberFormatDisplay.FormatNumericText(0.1234D, 1U, "0%%", "0.1234"));
             Assert.Equal("1.23E-02", ExcelNumberFormatDisplay.FormatNumericText(0.0123D, 1U, "0.00E-00", "0.0123"));
             Assert.Equal("ver. 1", ExcelNumberFormatDisplay.FormatNumericText(1D, 1U, "\"ver. \"0", "1"));
+            Assert.Equal("v0 1", ExcelNumberFormatDisplay.FormatNumericText(1D, 1U, "\"v0 \"0", "1"));
+            Assert.Equal("10", ExcelNumberFormatDisplay.FormatNumericText(1D, 1U, "0\"0\"", "1"));
             Assert.Equal("1.", ExcelNumberFormatDisplay.FormatNumericText(1D, 1U, "0\".\"", "1"));
             Assert.Equal("1.", ExcelNumberFormatDisplay.FormatNumericText(1D, 1U, "0\\.", "1"));
+            Assert.Equal("1;", ExcelNumberFormatDisplay.FormatNumericText(1D, 1U, "0\\;", "1"));
             Assert.Equal("$1,234.50", ExcelNumberFormatDisplay.FormatNumericText(1234.5D, 1U, "[$$-409]#,##0.00", "1234.5"));
             Assert.Equal("\u20AC1,234.50", ExcelNumberFormatDisplay.FormatNumericText(1234.5D, 1U, "[$\u20AC-407]#,##0.00", "1234.5"));
             Assert.Equal("90:00", ExcelNumberFormatDisplay.FormatNumericText(TimeSpan.FromMinutes(90).TotalDays, 1U, "[mm]:ss", "0.0625"));
