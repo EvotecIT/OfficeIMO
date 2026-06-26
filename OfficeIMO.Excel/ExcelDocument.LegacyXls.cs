@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static LegacyXlsLoadResult LoadLegacyXlsWithReport(string path, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(path, options);
-            return new LegacyXlsLoadResult(ProjectLoadedLegacyXlsWorkbook(workbook, path), workbook);
+            return CreateLegacyXlsLoadResult(workbook, path);
         }
 
         /// <summary>
@@ -36,7 +36,15 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static LegacyXlsLoadResult LoadLegacyXlsWithReport(Stream stream, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(stream, options);
-            return new LegacyXlsLoadResult(ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null), workbook);
+            return CreateLegacyXlsLoadResult(workbook, sourcePath: null);
+        }
+
+        private static LegacyXlsLoadResult CreateLegacyXlsLoadResult(LegacyXlsWorkbook workbook, string? sourcePath) {
+            try {
+                return new LegacyXlsLoadResult(ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath), workbook);
+            } catch (InvalidDataException exception) {
+                return new LegacyXlsLoadResult(document: null, workbook, exception);
+            }
         }
     }
 }

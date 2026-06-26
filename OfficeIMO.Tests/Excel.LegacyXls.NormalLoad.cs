@@ -177,6 +177,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_LoadLegacyXlsWithReport_ReturnsReportWhenNoSupportedWorksheetsAreProjected() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateChartOnlyWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound));
+
+            Assert.False(result.HasDocument);
+            Assert.NotNull(result.ProjectionException);
+            Assert.IsType<InvalidDataException>(result.ProjectionException);
+            Assert.Equal(0, result.ImportReport.WorksheetCount);
+            Assert.Equal(1, result.ImportReport.UnsupportedSheetCount);
+            Assert.False(result.HasImportErrors);
+
+            InvalidOperationException documentException = Assert.Throws<InvalidOperationException>(() => result.Document);
+            Assert.Contains("No OfficeIMO Excel document", documentException.Message, StringComparison.Ordinal);
+            Assert.Same(result.ProjectionException, documentException.InnerException);
+        }
+
+        [Fact]
+        public void LegacyXls_LoadLegacyXlsWithReport_ReturnsDiagnosticsForHardImportErrors() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateEncryptedWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string sourcePath = WriteTempWorkbook(compound, ".xls");
+
+            try {
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(sourcePath);
+
+                Assert.False(result.HasDocument);
+                Assert.NotNull(result.ProjectionException);
+                Assert.True(result.HasImportErrors);
+                Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FILEPASS-UNSUPPORTED");
+                Assert.Equal(0, result.ImportReport.WorksheetCount);
+
+                InvalidOperationException documentException = Assert.Throws<InvalidOperationException>(() => result.Document);
+                Assert.Contains("No OfficeIMO Excel document", documentException.Message, StringComparison.Ordinal);
+                Assert.Same(result.ProjectionException, documentException.InnerException);
+            } finally {
+                TryDelete(sourcePath);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_NormalLoad_ThrowsForHardImportErrors() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateEncryptedWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
