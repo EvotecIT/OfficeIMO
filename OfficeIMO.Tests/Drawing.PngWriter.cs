@@ -35,6 +35,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeColor.FromRgba(255, 0, 0, 128), decoded!.GetPixel(0, 0));
         }
 
+        [Fact]
+        public void OfficePngWriter_RejectsIndexedColorWithoutPalette() {
+            byte[] scanlines = { 0, 0 };
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => OfficePngWriter.EncodeScanlines(1, 1, 8, 3, scanlines));
+            Assert.Throws<ArgumentOutOfRangeException>(() => OfficePngWriter.CreateFromCompressedScanlines(1, 1, 8, 3, Array.Empty<byte>()));
+        }
+
         private static byte[] ExtractChunk(byte[] png, string type) {
             int offset = 8;
             while (offset + 8 <= png.Length) {

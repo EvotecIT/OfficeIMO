@@ -140,6 +140,10 @@ public static class OfficePngWriter {
         if (colorType is not (0 or 2 or 3 or 4 or 6)) {
             throw new ArgumentOutOfRangeException(nameof(colorType), "Color type must be a valid PNG color type.");
         }
+
+        if (colorType == 3) {
+            throw new ArgumentOutOfRangeException(nameof(colorType), "Indexed-color PNGs require a palette (PLTE), which this writer does not emit.");
+        }
     }
 
     private static byte[] BuildIhdr(int width, int height, int bitDepth, int colorType) {

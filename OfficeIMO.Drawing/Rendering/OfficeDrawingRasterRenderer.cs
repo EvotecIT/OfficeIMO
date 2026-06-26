@@ -98,7 +98,15 @@ public static class OfficeDrawingRasterRenderer {
                 if (stroke.HasValue && strokeWidth > 0D) canvas.DrawStyledPolygon(rounded, stroke.Value, strokeWidth, shape.StrokeDashStyle);
                 break;
             case OfficeShapeKind.Ellipse:
-                if (fill.HasValue) canvas.FillEllipse(x, y, width, height, fill.Value);
+                if (shape.FillGradient != null) {
+                    IReadOnlyList<OfficePoint> ellipse = OffsetPoints(CreateEllipseContour(width, height, 96), x, y, 1D);
+                    using (canvas.PushClipPolygon(ellipse)) {
+                        canvas.FillLinearGradientRectangle(x, y, width, height, ApplyOpacity(shape.FillGradient, shape.FillOpacity));
+                    }
+                } else if (fill.HasValue) {
+                    canvas.FillEllipse(x, y, width, height, fill.Value);
+                }
+
                 if (stroke.HasValue && strokeWidth > 0D) {
                     if (shape.StrokeDashStyle == OfficeStrokeDashStyle.Solid) {
                         canvas.DrawEllipse(x, y, width, height, stroke.Value, strokeWidth);
