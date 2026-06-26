@@ -86,13 +86,32 @@ public static class OfficeImageComposer {
         backgroundAttributes.AppendPaintAttribute("fill", backgroundColor);
         builder.AppendRectElement(0D, 0D, width, height, backgroundAttributes.ToString());
         beforeLayers?.Invoke(builder);
-        int svgLayerIndex = 0;
+        var svgLayers = new List<OfficeImageLayer>();
+        var svgLayerIds = new List<HashSet<string>>();
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+        var duplicateIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (OfficeImageLayer layer in layers) {
             if (layer.SvgInnerContent != null) {
-                svgLayerIndex++;
-                string layerContent = NamespaceSvgLayerIds(layer.SvgInnerContent, "officeimo-layer-" + svgLayerIndex + "-");
-                builder.AppendNestedSvg(layer.X, layer.Y, layer.Width, layer.Height, layerContent);
+                HashSet<string> ids = GetSvgIds(layer.SvgInnerContent);
+                foreach (string id in ids) {
+                    if (!seenIds.Add(id)) {
+                        duplicateIds.Add(id);
+                    }
+                }
+
+                svgLayers.Add(layer);
+                svgLayerIds.Add(ids);
             }
+        }
+
+        for (int index = 0; index < svgLayers.Count; index++) {
+            OfficeImageLayer layer = svgLayers[index];
+            string layerContent = layer.SvgInnerContent!;
+            if (duplicateIds.Count > 0 && svgLayerIds[index].Overlaps(duplicateIds)) {
+                layerContent = NamespaceSvgLayerIds(layerContent, "officeimo-layer-" + (index + 1) + "-", duplicateIds);
+            }
+
+            builder.AppendNestedSvg(layer.X, layer.Y, layer.Width, layer.Height, layerContent);
         }
 
         afterLayers?.Invoke(builder);
@@ -110,10 +129,10 @@ public static class OfficeImageComposer {
         }
     }
 
-    private static string NamespaceSvgLayerIds(string svg, string prefix) {
+    private static string NamespaceSvgLayerIds(string svg, string prefix, HashSet<string> idsToNamespace) {
         var ids = new Dictionary<string, string>(StringComparer.Ordinal);
-        CollectSvgIds(svg, '"', prefix, ids);
-        CollectSvgIds(svg, '\'', prefix, ids);
+        CollectSvgIds(svg, '"', prefix, idsToNamespace, ids);
+        CollectSvgIds(svg, '\'', prefix, idsToNamespace, ids);
         if (ids.Count == 0) {
             return svg;
         }
@@ -133,7 +152,14 @@ public static class OfficeImageComposer {
         return namespaced;
     }
 
-    private static void CollectSvgIds(string svg, char quote, string prefix, Dictionary<string, string> ids) {
+    private static HashSet<string> GetSvgIds(string svg) {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        CollectSvgIds(svg, '"', ids);
+        CollectSvgIds(svg, '\'', ids);
+        return ids;
+    }
+
+    private static void CollectSvgIds(string svg, char quote, HashSet<string> ids) {
         string marker = "id=" + quote;
         int searchStart = 0;
         while (searchStart < svg.Length) {
@@ -154,7 +180,36 @@ public static class OfficeImageComposer {
             }
 
             string id = svg.Substring(valueStart, valueEnd - valueStart);
-            if (id.Length > 0 && !ids.ContainsKey(id)) {
+            if (id.Length > 0) {
+                ids.Add(id);
+            }
+
+            searchStart = valueEnd + 1;
+        }
+    }
+
+    private static void CollectSvgIds(string svg, char quote, string prefix, HashSet<string> idsToNamespace, Dictionary<string, string> ids) {
+        string marker = "id=" + quote;
+        int searchStart = 0;
+        while (searchStart < svg.Length) {
+            int markerIndex = svg.IndexOf(marker, searchStart, StringComparison.Ordinal);
+            if (markerIndex < 0) {
+                return;
+            }
+
+            searchStart = markerIndex + marker.Length;
+            if (markerIndex > 0 && IsSvgNameChar(svg[markerIndex - 1])) {
+                continue;
+            }
+
+            int valueStart = markerIndex + marker.Length;
+            int valueEnd = svg.IndexOf(quote, valueStart);
+            if (valueEnd < 0) {
+                return;
+            }
+
+            string id = svg.Substring(valueStart, valueEnd - valueStart);
+            if (id.Length > 0 && idsToNamespace.Contains(id) && !ids.ContainsKey(id)) {
                 ids.Add(id, prefix + id);
             }
 

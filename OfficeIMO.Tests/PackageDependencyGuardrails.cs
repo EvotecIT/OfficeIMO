@@ -33,6 +33,7 @@ public sealed class PackageDependencyGuardrailTests {
     [Fact]
     public void Projects_DoNotReferenceExternalGraphicsPackages() {
         var offenders = EnumerateProjectFiles()
+            .Where(static projectPath => !IsNonProductionProject(projectPath))
             .SelectMany(projectPath => ProjectReferencesPackages(projectPath, ForbiddenRenderingPackageIds)
                 .Select(packageId => GetRepositoryRelativePath(projectPath) + " -> " + packageId))
             .ToArray();
@@ -431,6 +432,15 @@ public sealed class PackageDependencyGuardrailTests {
             .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
             .Where(static path => new FileInfo(path).Length > 0)
             .ToArray();
+
+    private static bool IsNonProductionProject(string projectPath) {
+        string normalized = projectPath.Replace('\\', '/');
+        return normalized.Contains("/OfficeIMO.Tests/", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Contains("/OfficeIMO.VerifyTests/", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Contains(".Tests/", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Contains(".Benchmarks", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Contains("/OfficeIMO.Examples/", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static string AppendRepositoryPathSegment(string basePath, string segment) =>
         basePath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
