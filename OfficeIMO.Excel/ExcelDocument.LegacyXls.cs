@@ -9,9 +9,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static ExcelDocument LoadLegacyXls(string path, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(path, options);
-            ExcelDocument document = workbook.ToExcelDocument();
-            document.MarkLoadedFromLegacyXls(path, workbook);
-            return document;
+            return ProjectLoadedLegacyXlsWorkbook(workbook, path);
         }
 
         /// <summary>
@@ -20,9 +18,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static LegacyXlsLoadResult LoadLegacyXlsWithReport(string path, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(path, options);
-            ExcelDocument document = workbook.ToExcelDocument();
-            document.MarkLoadedFromLegacyXls(path, workbook);
-            return new LegacyXlsLoadResult(document, workbook);
+            return new LegacyXlsLoadResult(ProjectLoadedLegacyXlsWorkbook(workbook, path), workbook);
         }
 
         /// <summary>
@@ -31,9 +27,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static ExcelDocument LoadLegacyXls(Stream stream, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(stream, options);
-            ExcelDocument document = workbook.ToExcelDocument();
-            document.MarkLoadedFromLegacyXls(sourcePath: null, workbook);
-            return document;
+            return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null);
         }
 
         /// <summary>
@@ -42,9 +36,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static LegacyXlsLoadResult LoadLegacyXlsWithReport(Stream stream, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(stream, options);
-            ExcelDocument document = workbook.ToExcelDocument();
-            document.MarkLoadedFromLegacyXls(sourcePath: null, workbook);
-            return new LegacyXlsLoadResult(document, workbook);
+            return new LegacyXlsLoadResult(ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null), workbook);
         }
     }
 }

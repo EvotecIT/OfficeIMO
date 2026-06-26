@@ -20,6 +20,19 @@ namespace OfficeIMO.Excel {
                 && string.Equals(Path.GetExtension(filePath), ".xls", StringComparison.OrdinalIgnoreCase);
         }
 
+        internal static bool HasLegacyBinaryExcelExtension(string? filePath) {
+            if (string.IsNullOrWhiteSpace(filePath)) {
+                return false;
+            }
+
+            string extension = Path.GetExtension(filePath);
+            return string.Equals(extension, ".xls", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".xlt", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".xla", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".xlm", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".xlw", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static bool HasZipSignature(byte[] bytes) {
             return bytes.Length >= ZipSignature.Length
                 && bytes[0] == ZipSignature[0]

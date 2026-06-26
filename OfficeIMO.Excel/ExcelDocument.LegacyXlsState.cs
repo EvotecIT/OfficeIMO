@@ -42,12 +42,24 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal static ExcelDocument ProjectLoadedLegacyXlsWorkbook(LegacyXlsWorkbook workbook, string? sourcePath) {
+            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+
+            if (workbook.Worksheets.Count == 0) {
+                throw new InvalidDataException("Legacy XLS import failed: no supported worksheets were projected. Unsupported legacy sheet content cannot be saved as a normal .xlsx workbook.");
+            }
+
+            ExcelDocument document = workbook.ToExcelDocument();
+            document.MarkLoadedFromLegacyXls(sourcePath, workbook);
+            return document;
+        }
+
         private void EnsureLegacyXlsCanSaveToPath(string path) {
             if (!WasLoadedFromLegacyXls) {
                 return;
             }
 
-            if (!ExcelDocumentLoadRouting.HasLegacyXlsExtension(path)) {
+            if (!ExcelDocumentLoadRouting.HasLegacyBinaryExcelExtension(path)) {
                 return;
             }
 

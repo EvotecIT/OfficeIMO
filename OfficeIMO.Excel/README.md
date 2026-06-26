@@ -64,9 +64,10 @@ document.Save("converted.xlsx");
 ```
 
 Legacy `.xls` files load through the normal `ExcelDocument.Load` entry point.
-Unsupported or preserve-only legacy features are reported through
-`InspectFeatures()` and the legacy import diagnostics attached to the document.
-Saving back to `.xls` is intentionally blocked until native XLS writing exists.
+Unsupported legacy features are reported through `InspectFeatures()` and the
+legacy import diagnostics attached to the document. Saving back to legacy binary
+formats such as `.xls` or `.xlt` is intentionally blocked until native XLS
+writing exists.
 
 ### Map rows to objects
 

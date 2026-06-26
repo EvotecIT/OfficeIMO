@@ -112,6 +112,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NormalLoad_RejectsLegacyTemplateSaveTargets() {
+            byte[] compound = CreateMinimalLegacyXlsCompound();
+            string sourcePath = WriteTempWorkbook(compound, ".xlt");
+            string xltOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlt");
+
+            try {
+                using ExcelDocument document = ExcelDocument.Load(sourcePath);
+
+                Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.Equal(sourcePath, document.FilePath);
+                Assert.Throws<NotSupportedException>(() => document.Save());
+                Assert.Throws<NotSupportedException>(() => document.Save(xltOutputPath));
+            } finally {
+                TryDelete(sourcePath);
+                TryDelete(xltOutputPath);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_ExplicitLoad_RejectsNativeXlsSaveTargets() {
             byte[] compound = CreateMinimalLegacyXlsCompound();
             string sourcePath = WriteTempWorkbook(compound, ".xls");
@@ -146,6 +165,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NormalAndExplicitLoad_ThrowWhenNoSupportedWorksheetsAreProjected() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateChartOnlyWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            InvalidDataException normalException = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(new MemoryStream(compound)));
+            InvalidDataException explicitException = Assert.Throws<InvalidDataException>(() => ExcelDocument.LoadLegacyXls(new MemoryStream(compound)));
+
+            Assert.Contains("no supported worksheets", normalException.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("no supported worksheets", explicitException.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void LegacyXls_NormalLoad_ThrowsForHardImportErrors() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateEncryptedWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -172,11 +203,12 @@ namespace OfficeIMO.Tests {
             Assert.NotEmpty(document.LegacyXlsUnsupportedFeatures);
 
             ExcelFeatureReport report = document.InspectFeatures();
-            ExcelFeatureFinding finding = Assert.Single(report.FindFeatures("Legacy XLS preserve-only features"));
+            ExcelFeatureFinding finding = Assert.Single(report.FindFeatures("Legacy XLS unsupported features"));
 
-            Assert.Equal(ExcelFeatureSupportLevel.Preserved, finding.SupportLevel);
+            Assert.Equal(ExcelFeatureSupportLevel.Unsupported, finding.SupportLevel);
             Assert.NotEmpty(finding.Details);
             Assert.True(report.HasAdvancedFeatures);
+            Assert.Throws<InvalidOperationException>(() => report.EnsureNoUnsupportedFeatures());
             Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
         }
 
@@ -194,6 +226,24 @@ namespace OfficeIMO.Tests {
         private static void TryDelete(string path) {
             if (File.Exists(path)) {
                 File.Delete(path);
+            }
+        }
+
+        private static partial class LegacyXlsTestWorkbookBuilder {
+            internal static byte[] CreateChartOnlyWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long chartBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ChartOnly", sheetType: 0x02));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int chartSheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x20, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(chartSheetOffset), 0, bytes, checked((int)chartBoundSheetPosition + 4), 4);
+                return bytes;
             }
         }
     }
