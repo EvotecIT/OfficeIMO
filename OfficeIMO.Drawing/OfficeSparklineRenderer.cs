@@ -106,6 +106,10 @@ public static class OfficeSparklineRenderer {
         double barWidth = Math.Max(1D, slot * ClampPositiveRatio(style.ColumnWidthRatio, 0.62D));
 
         for (int i = 0; i < values.Count; i++) {
+            if (IsZero(values[i])) {
+                continue;
+            }
+
             ColumnBar bar = ResolveColumnBar(bounds, range, baseline, values[i], winLoss, style);
             double barX = bounds.Left + (slot * i) + ((slot - barWidth) / 2D);
             canvas.FillRectangle(barX, bar.Y, barWidth, bar.Height, ResolvePointStyle(style, i).Color);
@@ -153,6 +157,10 @@ public static class OfficeSparklineRenderer {
         double barWidth = Math.Max(1D, slot * ClampPositiveRatio(style.ColumnWidthRatio, 0.62D));
 
         for (int i = 0; i < values.Count; i++) {
+            if (IsZero(values[i])) {
+                continue;
+            }
+
             ColumnBar bar = ResolveColumnBar(bounds, range, baseline, values[i], winLoss, style);
             double barX = bounds.Left + (slot * i) + ((slot - barWidth) / 2D);
             var attributes = new StringBuilder();
@@ -274,6 +282,8 @@ public static class OfficeSparklineRenderer {
 
     private static double ClampPositiveRatio(double value, double fallback) =>
         double.IsNaN(value) || double.IsInfinity(value) || value <= 0D ? fallback : value;
+
+    private static bool IsZero(double value) => Math.Abs(value) < 0.0000000001D;
 
     private readonly struct ColumnBar {
         internal ColumnBar(double y, double height) {

@@ -35,6 +35,32 @@ public class DrawingSparklineTests {
         Assert.Equal(4D, bars[1].Height, precision: 6);
     }
 
+    [Theory]
+    [InlineData(OfficeSparklineKind.Column)]
+    [InlineData(OfficeSparklineKind.WinLoss)]
+    public void OfficeSparklineRendererSkipsZeroColumnBars(OfficeSparklineKind kind) {
+        var builder = new StringBuilder();
+        OfficeSparklineRenderer.AppendSvg(
+            builder,
+            x: 0D,
+            y: 0D,
+            width: 30D,
+            height: 16D,
+            values: new[] { 1D, 0D, -1D },
+            kind: kind,
+            style: new OfficeSparklineStyle {
+                DisplayAxis = true,
+                Padding = 0D,
+                AxisInset = 0D,
+                ColumnWidthRatio = 1D,
+                SeriesColor = OfficeColor.Black
+            });
+
+        IReadOnlyList<SvgRect> bars = ParseSvgRects(builder.ToString());
+
+        Assert.Equal(2, bars.Count);
+    }
+
     private static IReadOnlyList<SvgRect> ParseSvgRects(string svg) {
         MatchCollection matches = Regex.Matches(svg, "<rect\\b[^>]*>");
         var rectangles = new List<SvgRect>(matches.Count);

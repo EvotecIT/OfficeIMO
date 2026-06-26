@@ -3,6 +3,8 @@ using System.Text;
 
 namespace OfficeIMO.Excel {
     internal static class ExcelNumberFormatDisplay {
+        private const char LiteralPunctuationMarker = '\u0001';
+
         internal static string FormatNumericText(
             double value,
             uint numberFormatId,
@@ -140,6 +142,7 @@ namespace OfficeIMO.Excel {
             if (lower.Contains("m/d/yy") && lower.Contains("h:mm:ss")) return "M/d/yy H:mm:ss";
             if (lower.Contains("m/d/yy") && lower.Contains("h:mm")) return "M/d/yy H:mm";
             if (lower.Contains("m/d/yy")) return "M/d/yy";
+            if (HasNamedDateToken(lower)) return TranslateNamedDateFormat(normalized);
             if (lower.Contains("d-mmm-yy")) return "d-MMM-yy";
             if (lower.Contains("mmm-yy")) return "MMM-yy";
             if (lower.Contains("h:mm:ss") && lower.Contains("am/pm")) return "h:mm:ss tt";
@@ -149,6 +152,73 @@ namespace OfficeIMO.Excel {
             if (lower.Contains("hh:mm")) return "HH:mm";
             if (lower.Contains("h:mm")) return "H:mm";
             return "M/d/yyyy";
+        }
+
+        private static bool HasNamedDateToken(string formatCode) =>
+            formatCode.IndexOf("mmm", StringComparison.OrdinalIgnoreCase) >= 0
+            || formatCode.IndexOf("dddd", StringComparison.OrdinalIgnoreCase) >= 0
+            || formatCode.IndexOf("ddd", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static string TranslateNamedDateFormat(string formatCode) {
+            string lower = formatCode.ToLowerInvariant();
+            bool twelveHour = lower.Contains("am/pm");
+            var builder = new StringBuilder(formatCode.Length);
+            for (int i = 0; i < formatCode.Length;) {
+                if (i + 5 <= formatCode.Length && string.Equals(formatCode.Substring(i, 5), "am/pm", StringComparison.OrdinalIgnoreCase)) {
+                    builder.Append("tt");
+                    i += 5;
+                    continue;
+                }
+
+                char ch = formatCode[i];
+                char token = char.ToLowerInvariant(ch);
+                if (token is 'd' or 'm' or 'y' or 'h' or 's') {
+                    int start = i;
+                    while (i < formatCode.Length && char.ToLowerInvariant(formatCode[i]) == token) {
+                        i++;
+                    }
+
+                    int length = i - start;
+                    builder.Append(TranslateDateToken(formatCode, start, length, token, twelveHour));
+                    continue;
+                }
+
+                if (ch != LiteralPunctuationMarker) {
+                    builder.Append(ch);
+                }
+
+                i++;
+            }
+
+            return builder.ToString();
+        }
+
+        private static string TranslateDateToken(string formatCode, int start, int length, char token, bool twelveHour) =>
+            token switch {
+                'd' => length >= 4 ? "dddd" : length == 3 ? "ddd" : length == 2 ? "dd" : "d",
+                'm' when length >= 4 => "MMMM",
+                'm' when length == 3 => "MMM",
+                'm' when IsMinuteToken(formatCode, start, length) => length == 1 ? "m" : "mm",
+                'm' => length == 1 ? "M" : "MM",
+                'y' => length >= 4 ? "yyyy" : "yy",
+                'h' => twelveHour ? length == 1 ? "h" : "hh" : length == 1 ? "H" : "HH",
+                's' => length == 1 ? "s" : "ss",
+                _ => new string(token, length)
+            };
+
+        private static bool IsMinuteToken(string formatCode, int start, int length) {
+            int before = start - 1;
+            while (before >= 0 && char.IsWhiteSpace(formatCode[before])) {
+                before--;
+            }
+
+            int after = start + length;
+            while (after < formatCode.Length && char.IsWhiteSpace(formatCode[after])) {
+                after++;
+            }
+
+            return (before >= 0 && formatCode[before] == ':')
+                || (after < formatCode.Length && formatCode[after] == ':');
         }
 
         private static string? FormatNumberValue(double value, uint numberFormatId, string formatCode) {
@@ -724,6 +794,12 @@ namespace OfficeIMO.Excel {
             var builder = new StringBuilder(value.Length);
             for (int i = 0; i < value.Length; i++) {
                 char ch = value[i];
+                if (ch == LiteralPunctuationMarker && i + 1 < value.Length) {
+                    builder.Append(value[i + 1]);
+                    i++;
+                    continue;
+                }
+
                 if (ch == ',' || ch == '.') {
                     continue;
                 }
@@ -745,6 +821,11 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                if (inQuote && (ch == ',' || ch == '.')) {
+                    builder.Append(LiteralPunctuationMarker).Append(ch);
+                    continue;
+                }
+
                 if (!inQuote && ch == '[') {
                     int close = formatCode.IndexOf(']', i + 1);
                     if (close >= 0) {
@@ -762,7 +843,12 @@ namespace OfficeIMO.Excel {
 
                 if (!inQuote && ch == '\\') {
                     if (i + 1 < formatCode.Length) {
-                        builder.Append(formatCode[i + 1]);
+                        char escaped = formatCode[i + 1];
+                        if (escaped == ',' || escaped == '.') {
+                            builder.Append(LiteralPunctuationMarker);
+                        }
+
+                        builder.Append(escaped);
                         i++;
                     }
 

@@ -744,6 +744,14 @@ namespace OfficeIMO.Excel {
                     source));
             }
 
+            if (HasImageExportSecondaryAxis(chartSpace)) {
+                diagnostics.Add(new OfficeImageExportDiagnostic(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ChartSecondaryAxisUnsupported,
+                    "Excel secondary-axis series are not scaled independently yet; image export renders them against the primary value axis.",
+                    source));
+            }
+
             if (HasUnsupportedImageExportAxisNumberFormat(chartSpace)) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
@@ -797,6 +805,14 @@ namespace OfficeIMO.Excel {
 
         private string GetImageExportSource() =>
             _sheetName + "!" + (string.IsNullOrWhiteSpace(Name) ? ChartType.ToString() : Name);
+
+        private static bool HasImageExportSecondaryAxis(C.ChartSpace chartSpace) =>
+            chartSpace.Descendants<C.ValueAxis>()
+                .Any(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Right)
+            || chartSpace.Descendants<C.CategoryAxis>()
+                .Any(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Top)
+            || chartSpace.Descendants<C.DateAxis>()
+                .Any(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Top);
 
         private static bool HasAnyVisibleDataLabelPart(C.DataLabels labels) =>
             IsEnabled(labels.GetFirstChild<C.ShowValue>()) ||

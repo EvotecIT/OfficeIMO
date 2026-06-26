@@ -679,6 +679,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportReportsSecondaryAxisChartSeriesApproximation() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("SecondaryAxis");
+            ExcelChartData data = new(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new ExcelChartSeries("Sales", new[] { 120D, 180D, 160D }, ExcelChartType.ColumnClustered, ExcelChartAxisGroup.Primary),
+                    new ExcelChartSeries("Margin", new[] { 0.12D, 0.18D, 0.16D }, ExcelChartType.Line, ExcelChartAxisGroup.Secondary)
+                });
+            ExcelChart chart = sheet.AddChart(data, row: 1, column: 4, widthPixels: 265, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Combo");
+
+            OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
+
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartSecondaryAxisUnsupported);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal("SecondaryAxis!" + chart.Name, diagnostic.Source);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReportsUnsupportedChartAxisNumberFormat() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

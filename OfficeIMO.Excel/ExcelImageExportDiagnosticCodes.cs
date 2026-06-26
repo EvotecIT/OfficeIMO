@@ -168,6 +168,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Chart axis number formatting is approximate.</summary>
     public const string ChartAxisNumberFormatApproximation = "ExcelChartAxisNumberFormatApproximation";
 
+    /// <summary>Chart secondary-axis series are rendered against the primary axis by the shared image renderer.</summary>
+    public const string ChartSecondaryAxisUnsupported = "ExcelChartSecondaryAxisUnsupported";
+
     /// <summary>Category/date-axis number formatting is not supported yet.</summary>
     public const string ChartCategoryAxisNumberFormatUnsupported = "ExcelChartCategoryAxisNumberFormatUnsupported";
 

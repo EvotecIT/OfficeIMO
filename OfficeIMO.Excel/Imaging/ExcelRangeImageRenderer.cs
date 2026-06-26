@@ -233,6 +233,14 @@ namespace OfficeIMO.Excel {
                     sheetName + "!" + snapshot.Name));
             }
 
+            if (snapshot.Data.Series.Any(series => series.AxisGroup == ExcelChartAxisGroup.Secondary)) {
+                diagnostics?.Add(new OfficeImageExportDiagnostic(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ChartSecondaryAxisUnsupported,
+                    "Excel secondary-axis series are not scaled independently yet; image export renders them against the primary value axis.",
+                    sheetName + "!" + snapshot.Name));
+            }
+
             OfficeChartData data = new OfficeChartData(
                 snapshot.Data.Categories,
                 snapshot.Data.Series.Select(series => new OfficeChartSeries(
