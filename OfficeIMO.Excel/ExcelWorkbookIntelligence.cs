@@ -144,6 +144,7 @@ namespace OfficeIMO.Excel {
     public sealed class ExcelDelimitedImportOptions {
         public char? Delimiter { get; set; }
         public bool HeadersInFirstRow { get; set; } = true;
+        public int SkipInitialRecords { get; set; }
         public CultureInfo Culture { get; set; } = CultureInfo.InvariantCulture;
         public bool ConvertNumbersAndDates { get; set; } = true;
         public bool CreateTable { get; set; } = true;
@@ -381,34 +382,6 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Imports normalized CSV/TSV content into a worksheet using OfficeIMO's tabular writer.
-        /// </summary>
-        public ExcelDelimitedImportResult ImportDelimitedText(string text, ExcelDelimitedImportOptions? options = null) {
-            if (text == null) throw new ArgumentNullException(nameof(text));
-            options ??= new ExcelDelimitedImportOptions();
-            char delimiter = options.Delimiter ?? DetectDelimiter(text);
-            var warnings = new List<string>();
-            DataTable table = ParseDelimitedText(text, delimiter, options, warnings);
-            table.TableName = string.IsNullOrWhiteSpace(options.SheetName) ? "Import" : options.SheetName!.Trim();
-
-            var dataSet = new DataSet();
-            dataSet.Tables.Add(table);
-            IReadOnlyList<ExcelDataSetImportResult> results = InsertDataSet(dataSet, createTables: false, tableStyle: options.TableStyle, includeHeaders: true, includeAutoFilter: true, autoFit: false);
-            ExcelDataSetImportResult result = results[0];
-            if (options.CreateTable && !string.IsNullOrWhiteSpace(result.Range)) {
-                ExcelSheet sheet = this[result.SheetName];
-                string requestedTableName = string.IsNullOrWhiteSpace(options.TableName) ? result.SheetName : options.TableName!.Trim();
-                sheet.AddTable(result.Range, hasHeader: true, requestedTableName, options.TableStyle, includeAutoFilter: true);
-                string? actualTableName = sheet.WorksheetPart.TableDefinitionParts
-                    .Select(part => part.Table?.Name?.Value ?? part.Table?.DisplayName?.Value)
-                    .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
-                result = new ExcelDataSetImportResult(result.SheetName, actualTableName, result.Range, result.RowCount, result.ColumnCount);
-            }
-
-            return new ExcelDelimitedImportResult(result, delimiter, "UTF-16 string", warnings);
-        }
-
-        /// <summary>
         /// Compares this workbook with another workbook by sheets, dimensions, formulas, and visible cell text.
         /// </summary>
         public ExcelWorkbookDiffReport CompareWorkbook(ExcelDocument other, int maxDifferences = 200) {
@@ -568,105 +541,6 @@ namespace OfficeIMO.Excel {
                     yield return child;
                 }
             }
-        }
-
-        private static char DetectDelimiter(string text) {
-            string firstLine = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None).FirstOrDefault() ?? string.Empty;
-            var candidates = new[] { ',', ';', '\t', '|' };
-            return candidates
-                .Select(candidate => new { Delimiter = candidate, Count = CountUnquoted(firstLine, candidate) })
-                .OrderByDescending(item => item.Count)
-                .First().Delimiter;
-        }
-
-        private static int CountUnquoted(string text, char delimiter) {
-            int count = 0;
-            bool quoted = false;
-            for (int i = 0; i < text.Length; i++) {
-                char ch = text[i];
-                if (ch == '"') {
-                    if (quoted && i + 1 < text.Length && text[i + 1] == '"') {
-                        i++;
-                    } else {
-                        quoted = !quoted;
-                    }
-                } else if (ch == delimiter && !quoted) {
-                    count++;
-                }
-            }
-
-            return count;
-        }
-
-        private static DataTable ParseDelimitedText(string text, char delimiter, ExcelDelimitedImportOptions options, ICollection<string> warnings) {
-            var rows = ParseDelimitedRows(text, delimiter).ToList();
-            var table = new DataTable { Locale = options.Culture };
-            if (rows.Count == 0) return table;
-
-            int columnCount = rows.Max(row => row.Count);
-            int dataStart = options.HeadersInFirstRow ? 1 : 0;
-            for (int i = 0; i < columnCount; i++) {
-                string name = options.HeadersInFirstRow && i < rows[0].Count && !string.IsNullOrWhiteSpace(rows[0][i])
-                    ? rows[0][i]
-                    : "Column" + (i + 1).ToString(CultureInfo.InvariantCulture);
-                if (table.Columns.Contains(name)) name += "_" + (i + 1).ToString(CultureInfo.InvariantCulture);
-                table.Columns.Add(name, typeof(object));
-            }
-
-            for (int rowIndex = dataStart; rowIndex < rows.Count; rowIndex++) {
-                DataRow row = table.NewRow();
-                for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                    string value = columnIndex < rows[rowIndex].Count ? rows[rowIndex][columnIndex] : string.Empty;
-                    row[columnIndex] = ConvertDelimitedValue(value, options, warnings);
-                }
-                table.Rows.Add(row);
-            }
-
-            return table;
-        }
-
-        private static object ConvertDelimitedValue(string value, ExcelDelimitedImportOptions options, ICollection<string> warnings) {
-            if (value.Length == 0) return DBNull.Value;
-            if (!options.ConvertNumbersAndDates) return value;
-            if (decimal.TryParse(value, NumberStyles.Number, options.Culture, out decimal number)) return number;
-            if (DateTime.TryParse(value, options.Culture, DateTimeStyles.None, out DateTime date)) return date;
-            return value;
-        }
-
-        private static IEnumerable<List<string>> ParseDelimitedRows(string text, char delimiter) {
-            var row = new List<string>();
-            var field = new StringBuilder();
-            bool quoted = false;
-            for (int i = 0; i < text.Length; i++) {
-                char ch = text[i];
-                if (quoted) {
-                    if (ch == '"' && i + 1 < text.Length && text[i + 1] == '"') {
-                        field.Append('"');
-                        i++;
-                    } else if (ch == '"') {
-                        quoted = false;
-                    } else {
-                        field.Append(ch);
-                    }
-                    continue;
-                }
-
-                if (ch == '"') { quoted = true; continue; }
-                if (ch == delimiter) { row.Add(field.ToString()); field.Clear(); continue; }
-                if (ch == '\r') continue;
-                if (ch == '\n') {
-                    row.Add(field.ToString());
-                    field.Clear();
-                    yield return row;
-                    row = new List<string>();
-                    continue;
-                }
-
-                field.Append(ch);
-            }
-
-            row.Add(field.ToString());
-            if (row.Count > 1 || row[0].Length > 0) yield return row;
         }
 
         private static void CompareSheetValues(ExcelSheet left, ExcelSheet right, ICollection<ExcelWorkbookDifference> differences, int maxDifferences) {

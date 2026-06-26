@@ -6,28 +6,27 @@ internal sealed class CsvStreamingSource
 {
     private readonly Func<TextReader> _readerFactory;
     private readonly CsvLoadOptions _options;
-    private readonly bool _skipFirstRecord;
+    private readonly int _skipRecordCount;
 
-    public CsvStreamingSource(Func<TextReader> readerFactory, CsvLoadOptions options, bool skipFirstRecord)
+    public CsvStreamingSource(Func<TextReader> readerFactory, CsvLoadOptions options, int skipRecordCount)
     {
         _readerFactory = readerFactory;
         _options = options.Clone();
-        _skipFirstRecord = skipFirstRecord;
+        _skipRecordCount = skipRecordCount;
     }
 
     public IEnumerable<object?[]> ReadRows()
     {
         using var reader = _readerFactory();
-        var first = true;
+        var skipped = 0;
         foreach (var record in CsvParser.Parse(reader, _options))
         {
-            if (_skipFirstRecord && first)
+            if (skipped < _skipRecordCount)
             {
-                first = false;
+                skipped++;
                 continue;
             }
 
-            first = false;
             yield return record.Cast<object?>().ToArray();
         }
     }

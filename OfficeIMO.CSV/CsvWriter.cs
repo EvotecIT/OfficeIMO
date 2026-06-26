@@ -7,6 +7,11 @@ namespace OfficeIMO.CSV;
 
 internal static class CsvWriter
 {
+#if NET8_0_OR_GREATER
+    private static readonly System.Buffers.SearchValues<char> DefaultCommaQuoteCharacters =
+        System.Buffers.SearchValues.Create(new[] { '"', ',', '\r', '\n' });
+#endif
+
     public static void Write(TextWriter writer, CsvDocument document, CsvSaveOptions options)
     {
         var delimiter = options.Delimiter;
@@ -14,27 +19,52 @@ internal static class CsvWriter
         var includeHeader = options.IncludeHeader;
         var newLine = options.NewLine;
         var formulaInjectionPolicy = options.FormulaInjectionPolicy;
+        var quoteMode = options.QuoteMode;
+        var quoteFields = CreateQuoteFieldSet(options.QuoteFields);
 
         if (includeHeader && document.Header.Count > 0)
         {
-            WriteRecord(writer, document.Header, delimiter, newLine, CultureInfo.InvariantCulture, formulaInjectionPolicy);
+            WriteRecord(writer, document.Header, delimiter, newLine, CultureInfo.InvariantCulture, formulaInjectionPolicy, quoteMode, quoteFields, document.Header);
         }
 
         foreach (var row in document.AsEnumerable())
         {
-            WriteRecord(writer, row.Values, delimiter, newLine, culture, formulaInjectionPolicy);
+            WriteRecord(writer, row.Values, delimiter, newLine, culture, formulaInjectionPolicy, quoteMode, quoteFields, document.Header);
         }
     }
 
-    private static void WriteRecord(
+    internal static HashSet<string>? CreateQuoteFieldSet(string[]? quoteFields)
+    {
+        if (quoteFields == null || quoteFields.Length == 0)
+        {
+            return null;
+        }
+
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var field in quoteFields)
+        {
+            if (!string.IsNullOrWhiteSpace(field))
+            {
+                set.Add(field);
+            }
+        }
+
+        return set.Count == 0 ? null : set;
+    }
+
+    internal static void WriteRecord(
         TextWriter writer,
         IEnumerable<object?> values,
         char delimiter,
         string newLine,
         CultureInfo culture,
-        CsvFormulaInjectionPolicy formulaInjectionPolicy)
+        CsvFormulaInjectionPolicy formulaInjectionPolicy,
+        CsvQuoteMode quoteMode,
+        ISet<string>? quoteFields,
+        IReadOnlyList<string>? fieldNames)
     {
         var first = true;
+        var index = 0;
         foreach (var value in values)
         {
             if (!first)
@@ -46,11 +76,266 @@ internal static class CsvWriter
                 first = false;
             }
 
-            var text = ApplyFormulaInjectionPolicy(FormatValue(value, culture), formulaInjectionPolicy);
-            WriteEscaped(writer, text, delimiter);
+            var text = FormatValue(value, culture);
+            if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+            {
+                text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
+            }
+
+            WriteEscaped(writer, text, delimiter, quoteMode, ShouldQuoteField(quoteFields, fieldNames, index));
+            index++;
         }
 
         writer.Write(newLine);
+    }
+
+    internal static void WriteRecord<T>(
+        TextWriter writer,
+        IReadOnlyList<T> values,
+        char delimiter,
+        string newLine,
+        CultureInfo culture,
+        CsvFormulaInjectionPolicy formulaInjectionPolicy,
+        CsvQuoteMode quoteMode,
+        ISet<string>? quoteFields,
+        IReadOnlyList<string>? fieldNames)
+    {
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (i > 0)
+            {
+                writer.Write(delimiter);
+            }
+
+            var text = FormatValue(values[i], culture);
+            if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+            {
+                text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
+            }
+
+            WriteEscaped(writer, text, delimiter, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i));
+        }
+
+        writer.Write(newLine);
+    }
+
+    internal static void WriteRecordBuffered<T>(
+        TextWriter writer,
+        StringBuilder buffer,
+        IReadOnlyList<T> values,
+        char delimiter,
+        string newLine,
+        CultureInfo culture,
+        CsvFormulaInjectionPolicy formulaInjectionPolicy,
+        CsvQuoteMode quoteMode,
+        ISet<string>? quoteFields,
+        IReadOnlyList<string>? fieldNames)
+    {
+        if (buffer == null)
+        {
+            throw new ArgumentNullException(nameof(buffer));
+        }
+
+        buffer.Clear();
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendEscapedValue(buffer, values[i], delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i));
+        }
+
+        WriteBufferedRecordLine(writer, buffer, newLine);
+    }
+
+    internal static void WriteRecordBuffered(
+        TextWriter writer,
+        StringBuilder buffer,
+        object?[] values,
+        char delimiter,
+        string newLine,
+        CultureInfo culture,
+        CsvFormulaInjectionPolicy formulaInjectionPolicy,
+        CsvQuoteMode quoteMode,
+        ISet<string>? quoteFields,
+        IReadOnlyList<string>? fieldNames)
+    {
+        if (buffer == null)
+        {
+            throw new ArgumentNullException(nameof(buffer));
+        }
+
+        buffer.Clear();
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendEscapedValue(buffer, values[i], delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i));
+        }
+
+        WriteBufferedRecordLine(writer, buffer, newLine);
+    }
+
+    internal static void WriteRecordBufferedDefault(
+        TextWriter writer,
+        StringBuilder buffer,
+        object?[] values,
+        char delimiter,
+        string newLine,
+        CultureInfo culture)
+    {
+        if (buffer == null)
+        {
+            throw new ArgumentNullException(nameof(buffer));
+        }
+
+        buffer.Clear();
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendEscapedValueDefault(buffer, values[i], delimiter, culture);
+        }
+
+        WriteBufferedRecordLine(writer, buffer, newLine);
+    }
+
+    internal static void WriteRecordBufferedAlwaysQuoted(
+        TextWriter writer,
+        StringBuilder buffer,
+        object?[] values,
+        char delimiter,
+        string newLine,
+        CultureInfo culture)
+    {
+        if (buffer == null)
+        {
+            throw new ArgumentNullException(nameof(buffer));
+        }
+
+        buffer.Clear();
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendAlwaysQuotedValue(buffer, values[i], culture);
+        }
+
+        WriteBufferedRecordLine(writer, buffer, newLine);
+    }
+
+    internal static void WriteRecordBufferedAlwaysQuoted(
+        TextWriter writer,
+        StringBuilder buffer,
+        IReadOnlyList<string> values,
+        char delimiter,
+        string newLine,
+        CultureInfo culture)
+    {
+        if (buffer == null)
+        {
+            throw new ArgumentNullException(nameof(buffer));
+        }
+
+        buffer.Clear();
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendAlwaysQuotedValue(buffer, values[i], culture);
+        }
+
+        WriteBufferedRecordLine(writer, buffer, newLine);
+    }
+
+
+    internal static void WriteRecord<TState>(
+        TextWriter writer,
+        int valueCount,
+        TState state,
+        Func<TState, int, object?> valueAccessor,
+        char delimiter,
+        string newLine,
+        CultureInfo culture,
+        CsvFormulaInjectionPolicy formulaInjectionPolicy,
+        CsvQuoteMode quoteMode,
+        ISet<string>? quoteFields,
+        IReadOnlyList<string>? fieldNames)
+    {
+        if (valueAccessor == null)
+        {
+            throw new ArgumentNullException(nameof(valueAccessor));
+        }
+
+        for (var i = 0; i < valueCount; i++)
+        {
+            if (i > 0)
+            {
+                writer.Write(delimiter);
+            }
+
+            var text = FormatValue(valueAccessor(state, i), culture);
+            if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+            {
+                text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
+            }
+
+            WriteEscaped(writer, text, delimiter, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i));
+        }
+
+        writer.Write(newLine);
+    }
+
+    internal static void WriteRecordBuffered<TState>(
+        TextWriter writer,
+        StringBuilder buffer,
+        int valueCount,
+        TState state,
+        Func<TState, int, object?> valueAccessor,
+        char delimiter,
+        string newLine,
+        CultureInfo culture,
+        CsvFormulaInjectionPolicy formulaInjectionPolicy,
+        CsvQuoteMode quoteMode,
+        ISet<string>? quoteFields,
+        IReadOnlyList<string>? fieldNames)
+    {
+        if (buffer == null)
+        {
+            throw new ArgumentNullException(nameof(buffer));
+        }
+
+        if (valueAccessor == null)
+        {
+            throw new ArgumentNullException(nameof(valueAccessor));
+        }
+
+        buffer.Clear();
+        for (var i = 0; i < valueCount; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendEscapedValue(buffer, valueAccessor(state, i), delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i));
+        }
+
+        WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
     private static string FormatValue(object? value, CultureInfo culture)
@@ -66,6 +351,243 @@ internal static class CsvWriter
         }
 
         return value.ToString() ?? string.Empty;
+    }
+
+    private static bool IsKnownCsvSafeSpanFormattedValue(object value)
+    {
+        return value is byte
+            or sbyte
+            or short
+            or ushort
+            or int
+            or uint
+            or long
+            or ulong
+            or float
+            or double
+            or decimal
+            or DateTime
+            or DateTimeOffset
+            or TimeSpan
+            or Guid;
+    }
+
+    private static void WriteBufferedRecordLine(TextWriter writer, StringBuilder buffer, string newLine)
+    {
+#if NET6_0_OR_GREATER
+        if (string.Equals(newLine, writer.NewLine, StringComparison.Ordinal))
+        {
+            writer.WriteLine(buffer);
+            return;
+        }
+#endif
+
+        buffer.Append(newLine);
+        writer.Write(buffer);
+    }
+
+    private static void AppendEscapedValue(
+        StringBuilder buffer,
+        object? value,
+        char delimiter,
+        CultureInfo culture,
+        CsvFormulaInjectionPolicy formulaInjectionPolicy,
+        CsvQuoteMode quoteMode,
+        bool forceQuote)
+    {
+        if (value is null)
+        {
+            if (quoteMode == CsvQuoteMode.Always || forceQuote)
+            {
+                buffer.Append("\"\"");
+            }
+
+            return;
+        }
+
+        if (value is string text)
+        {
+            if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+            {
+                text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
+            }
+
+            WriteEscaped(buffer, text, delimiter, quoteMode, forceQuote);
+            return;
+        }
+
+#if NET6_0_OR_GREATER
+        if (value is bool boolValue)
+        {
+            AppendEscapedSpan(buffer, boolValue ? "True" : "False", delimiter, prefixApostrophe: false, quoteMode, forceQuote);
+            return;
+        }
+
+        if (value is ISpanFormattable spanFormattable)
+        {
+            Span<char> destination = stackalloc char[128];
+            if (spanFormattable.TryFormat(destination, out var charsWritten, default, culture))
+            {
+                var formattedSpan = destination[..charsWritten];
+                var prefixApostrophe = formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape && StartsWithFormulaTrigger(formattedSpan);
+                AppendEscapedSpan(buffer, formattedSpan, delimiter, prefixApostrophe, quoteMode, forceQuote);
+                return;
+            }
+        }
+#endif
+
+        var formatted = FormatValue(value, culture);
+        if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+        {
+            formatted = ApplyFormulaInjectionPolicy(formatted, formulaInjectionPolicy);
+        }
+
+        WriteEscaped(buffer, formatted, delimiter, quoteMode, forceQuote);
+    }
+
+    private static void AppendEscapedValueDefault(
+        StringBuilder buffer,
+        object? value,
+        char delimiter,
+        CultureInfo culture)
+    {
+        if (value is null)
+        {
+            return;
+        }
+
+        if (value is string text)
+        {
+            WriteEscapedDefault(buffer, text, delimiter);
+            return;
+        }
+
+#if NET6_0_OR_GREATER
+        if (value is bool boolValue)
+        {
+            WriteEscapedDefault(buffer, boolValue ? "True" : "False", delimiter);
+            return;
+        }
+
+        if (value is ISpanFormattable spanFormattable)
+        {
+            Span<char> destination = stackalloc char[128];
+            if (spanFormattable.TryFormat(destination, out var charsWritten, default, culture))
+            {
+                var formatted = destination[..charsWritten];
+                if (delimiter == ',' && ReferenceEquals(culture, CultureInfo.InvariantCulture) && IsKnownCsvSafeSpanFormattedValue(value))
+                {
+                    buffer.Append(formatted);
+                }
+                else
+                {
+                    AppendEscapedSpanDefault(buffer, formatted, delimiter);
+                }
+
+                return;
+            }
+        }
+#endif
+
+        WriteEscapedDefault(buffer, FormatValue(value, culture), delimiter);
+    }
+
+    private static void AppendAlwaysQuotedValue(
+        StringBuilder buffer,
+        object? value,
+        CultureInfo culture)
+    {
+        buffer.Append('"');
+        if (value is null)
+        {
+            buffer.Append('"');
+            return;
+        }
+
+        if (value is string text)
+        {
+            AppendQuotedText(buffer, text);
+            return;
+        }
+
+#if NET6_0_OR_GREATER
+        if (value is bool boolValue)
+        {
+            buffer.Append(boolValue ? "True\"" : "False\"");
+            return;
+        }
+
+        if (value is ISpanFormattable spanFormattable)
+        {
+            Span<char> destination = stackalloc char[128];
+            if (spanFormattable.TryFormat(destination, out var charsWritten, default, culture))
+            {
+                AppendQuotedSpan(buffer, destination[..charsWritten]);
+                return;
+            }
+        }
+#endif
+
+        AppendQuotedText(buffer, FormatValue(value, culture));
+    }
+
+    private static void AppendQuotedText(StringBuilder buffer, string text)
+    {
+        if (text.IndexOf('"') < 0)
+        {
+            buffer.Append(text);
+            buffer.Append('"');
+            return;
+        }
+
+        foreach (var ch in text)
+        {
+            if (ch == '\"')
+            {
+                buffer.Append("\"\"");
+            }
+            else
+            {
+                buffer.Append(ch);
+            }
+        }
+
+        buffer.Append('"');
+    }
+
+#if NET6_0_OR_GREATER
+    private static void AppendQuotedSpan(StringBuilder buffer, ReadOnlySpan<char> text)
+    {
+        if (text.IndexOf('"') < 0)
+        {
+            buffer.Append(text);
+            buffer.Append('"');
+            return;
+        }
+
+        foreach (var ch in text)
+        {
+            if (ch == '\"')
+            {
+                buffer.Append("\"\"");
+            }
+            else
+            {
+                buffer.Append(ch);
+            }
+        }
+
+        buffer.Append('"');
+    }
+#endif
+
+    private static bool ShouldQuoteField(ISet<string>? quoteFields, IReadOnlyList<string>? fieldNames, int index)
+    {
+        return quoteFields != null &&
+            fieldNames != null &&
+            index >= 0 &&
+            index < fieldNames.Count &&
+            quoteFields.Contains(fieldNames[index]);
     }
 
     private static string ApplyFormulaInjectionPolicy(string text, CsvFormulaInjectionPolicy policy)
@@ -105,9 +627,44 @@ internal static class CsvWriter
             || text[index] == '\n';
     }
 
-    private static void WriteEscaped(TextWriter writer, string text, char delimiter)
+#if NET6_0_OR_GREATER
+    private static bool StartsWithFormulaTrigger(ReadOnlySpan<char> text)
     {
-        var needsQuotes = text.IndexOfAny(new[] { '\"', '\n', '\r', delimiter }) >= 0;
+        if (text.IsEmpty)
+        {
+            return false;
+        }
+
+        var index = 0;
+        while (index < text.Length && text[index] == ' ')
+        {
+            index++;
+        }
+
+        if (index >= text.Length)
+        {
+            return false;
+        }
+
+        return text[index] == '='
+            || text[index] == '+'
+            || text[index] == '-'
+            || text[index] == '@'
+            || text[index] == '\t'
+            || text[index] == '\r'
+            || text[index] == '\n';
+    }
+#endif
+
+    private static void WriteEscaped(TextWriter writer, string text, char delimiter, CsvQuoteMode quoteMode, bool forceQuote)
+    {
+        if (quoteMode == CsvQuoteMode.Never)
+        {
+            writer.Write(text);
+            return;
+        }
+
+        var needsQuotes = quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter);
         if (!needsQuotes)
         {
             writer.Write(text);
@@ -115,6 +672,13 @@ internal static class CsvWriter
         }
 
         writer.Write('"');
+        if (text.IndexOf('"') < 0)
+        {
+            writer.Write(text);
+            writer.Write('"');
+            return;
+        }
+
         foreach (var ch in text)
         {
             if (ch == '\"')
@@ -129,4 +693,201 @@ internal static class CsvWriter
 
         writer.Write('"');
     }
+
+    private static void WriteEscaped(StringBuilder writer, string text, char delimiter, CsvQuoteMode quoteMode, bool forceQuote)
+    {
+        if (quoteMode == CsvQuoteMode.Never)
+        {
+            writer.Append(text);
+            return;
+        }
+
+        var needsQuotes = quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter);
+        if (!needsQuotes)
+        {
+            writer.Append(text);
+            return;
+        }
+
+        writer.Append('"');
+        if (text.IndexOf('"') < 0)
+        {
+            writer.Append(text);
+            writer.Append('"');
+            return;
+        }
+
+        foreach (var ch in text)
+        {
+            if (ch == '\"')
+            {
+                writer.Append("\"\"");
+            }
+            else
+            {
+                writer.Append(ch);
+            }
+        }
+
+        writer.Append('"');
+    }
+
+    private static void WriteEscapedDefault(StringBuilder writer, string text, char delimiter)
+    {
+        if (!NeedsQuotes(text, delimiter))
+        {
+            writer.Append(text);
+            return;
+        }
+
+        writer.Append('"');
+        if (text.IndexOf('"') < 0)
+        {
+            writer.Append(text);
+            writer.Append('"');
+            return;
+        }
+
+        foreach (var ch in text)
+        {
+            if (ch == '\"')
+            {
+                writer.Append("\"\"");
+            }
+            else
+            {
+                writer.Append(ch);
+            }
+        }
+
+        writer.Append('"');
+    }
+
+#if NET6_0_OR_GREATER
+    private static void AppendEscapedSpan(StringBuilder writer, ReadOnlySpan<char> text, char delimiter, bool prefixApostrophe, CsvQuoteMode quoteMode, bool forceQuote)
+    {
+        if (quoteMode == CsvQuoteMode.Never)
+        {
+            if (prefixApostrophe)
+            {
+                writer.Append('\'');
+            }
+
+            writer.Append(text);
+            return;
+        }
+
+        var needsQuotes = quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter);
+        if (!needsQuotes)
+        {
+            if (prefixApostrophe)
+            {
+                writer.Append('\'');
+            }
+
+            writer.Append(text);
+            return;
+        }
+
+        writer.Append('"');
+        if (prefixApostrophe)
+        {
+            writer.Append('\'');
+        }
+
+        if (text.IndexOf('"') < 0)
+        {
+            writer.Append(text);
+            writer.Append('"');
+            return;
+        }
+
+        foreach (var ch in text)
+        {
+            if (ch == '\"')
+            {
+                writer.Append("\"\"");
+            }
+            else
+            {
+                writer.Append(ch);
+            }
+        }
+
+        writer.Append('"');
+    }
+
+    private static void AppendEscapedSpanDefault(StringBuilder writer, ReadOnlySpan<char> text, char delimiter)
+    {
+        if (!NeedsQuotes(text, delimiter))
+        {
+            writer.Append(text);
+            return;
+        }
+
+        writer.Append('"');
+        if (text.IndexOf('"') < 0)
+        {
+            writer.Append(text);
+            writer.Append('"');
+            return;
+        }
+
+        foreach (var ch in text)
+        {
+            if (ch == '\"')
+            {
+                writer.Append("\"\"");
+            }
+            else
+            {
+                writer.Append(ch);
+            }
+        }
+
+        writer.Append('"');
+    }
+#endif
+
+    private static bool NeedsQuotes(string text, char delimiter)
+    {
+#if NET8_0_OR_GREATER
+        if (delimiter == ',')
+        {
+            return text.AsSpan().IndexOfAny(DefaultCommaQuoteCharacters) >= 0;
+        }
+#endif
+
+        foreach (var ch in text)
+        {
+            if (ch == '"' || ch == '\n' || ch == '\r' || ch == delimiter)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+#if NET6_0_OR_GREATER
+    private static bool NeedsQuotes(ReadOnlySpan<char> text, char delimiter)
+    {
+#if NET8_0_OR_GREATER
+        if (delimiter == ',')
+        {
+            return text.IndexOfAny(DefaultCommaQuoteCharacters) >= 0;
+        }
+#endif
+
+        foreach (var ch in text)
+        {
+            if (ch == '"' || ch == '\n' || ch == '\r' || ch == delimiter)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+#endif
 }

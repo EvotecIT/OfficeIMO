@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -11,6 +12,8 @@ namespace OfficeIMO.Shared;
 /// </summary>
 internal static class ObjectDataHelpers
 {
+    private static readonly ConcurrentDictionary<Type, ObjectPropertyPlan> PropertyPlans = new();
+
     /// <summary>
     /// Resolves column names from a dictionary or public readable properties.
     /// </summary>
@@ -54,15 +57,24 @@ internal static class ObjectDataHelpers
             return names;
         }
 
-        var props = item.GetType()
-            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
-            .OrderBy(p => p.MetadataToken)
-            .Select(p => p.Name)
-            .Where(n => !string.IsNullOrWhiteSpace(n))
-            .ToList();
+        return GetPropertyPlan(item.GetType()).ColumnNames;
+    }
 
-        return props;
+    /// <summary>
+    /// Returns whether the item exposes dictionary keys rather than fixed CLR properties.
+    /// </summary>
+    public static bool IsDictionaryLike(object item)
+    {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(item);
+#else
+        if (item == null) throw new ArgumentNullException(nameof(item));
+#endif
+
+        return item is Dictionary<string, object?>
+            || item is IReadOnlyDictionary<string, object?>
+            || item is IDictionary<string, object?>
+            || item is IDictionary;
     }
 
     /// <summary>
@@ -115,7 +127,52 @@ internal static class ObjectDataHelpers
             return null;
         }
 
-        var prop = item.GetType().GetProperty(column, BindingFlags.Public | BindingFlags.Instance);
-        return prop?.GetValue(item);
+        return GetPropertyPlan(item.GetType()).TryGetValue(item, column, out var propertyValue) ? propertyValue : null;
+    }
+
+    private static ObjectPropertyPlan GetPropertyPlan(Type type) => PropertyPlans.GetOrAdd(type, CreatePropertyPlan);
+
+    private static ObjectPropertyPlan CreatePropertyPlan(Type type)
+    {
+        var properties = type
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(static p => p.CanRead && p.GetIndexParameters().Length == 0 && !string.IsNullOrWhiteSpace(p.Name))
+            .OrderBy(static p => p.MetadataToken)
+            .ToArray();
+
+        return new ObjectPropertyPlan(properties);
+    }
+
+    private sealed class ObjectPropertyPlan
+    {
+        private readonly Dictionary<string, PropertyInfo> _propertiesByName;
+
+        public ObjectPropertyPlan(IReadOnlyList<PropertyInfo> properties)
+        {
+            var columnNames = new string[properties.Count];
+            _propertiesByName = new Dictionary<string, PropertyInfo>(properties.Count, StringComparer.Ordinal);
+            for (var i = 0; i < properties.Count; i++)
+            {
+                var property = properties[i];
+                columnNames[i] = property.Name;
+                _propertiesByName[property.Name] = property;
+            }
+
+            ColumnNames = columnNames;
+        }
+
+        public IReadOnlyList<string> ColumnNames { get; }
+
+        public bool TryGetValue(object item, string column, out object? value)
+        {
+            if (_propertiesByName.TryGetValue(column, out var property))
+            {
+                value = property.GetValue(item);
+                return true;
+            }
+
+            value = null;
+            return false;
+        }
     }
 }

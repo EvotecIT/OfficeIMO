@@ -104,6 +104,50 @@ public sealed class ReaderCsvModularTests {
     }
 
     [Fact]
+    public void DocumentReaderCsv_ReadCsvStream_PreservesExtraFieldsBeyondHeader() {
+        var csv =
+            "Name\n" +
+            "Alice,10\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
+
+        var chunk = Assert.Single(DocumentReaderCsvExtensions.ReadCsv(
+            stream,
+            sourceName: "users.csv",
+            csvOptions: new CsvReadOptions {
+                ChunkRows = 10,
+                IncludeMarkdown = true
+            }));
+
+        var table = Assert.Single(chunk.Tables!);
+        Assert.Equal(new[] { "Name", "Column2" }, table.Columns);
+        var row = Assert.Single(table.Rows);
+        Assert.Equal(new[] { "Alice", "10" }, row);
+        Assert.Contains("Alice | 10", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderCsv_ReadCsvStream_PreservesHashPrefixedHeader() {
+        var csv =
+            "#ID,Value\n" +
+            "A,1\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
+
+        var chunk = Assert.Single(DocumentReaderCsvExtensions.ReadCsv(
+            stream,
+            sourceName: "users.csv",
+            csvOptions: new CsvReadOptions {
+                ChunkRows = 10,
+                IncludeMarkdown = true
+            }));
+
+        var table = Assert.Single(chunk.Tables!);
+        Assert.Equal(new[] { "#ID", "Value" }, table.Columns);
+        var row = Assert.Single(table.Rows);
+        Assert.Equal(new[] { "A", "1" }, row);
+        Assert.Contains("#ID | Value", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderCsv_ReadCsvStream_HeaderOnly_EmitsSchemaChunk() {
         const string csv = "Name,Role\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
