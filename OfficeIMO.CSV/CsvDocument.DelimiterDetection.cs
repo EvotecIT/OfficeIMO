@@ -52,9 +52,15 @@ public sealed partial class CsvDocument
 
     private static IEnumerable<string> ReadDelimiterDetectionSamples(TextReader reader, CsvLoadOptions options, bool useHeaderDiscovery)
     {
+        var candidates = options.DelimiterCandidates is { Length: > 0 }
+            ? options.DelimiterCandidates
+            : DefaultDelimiterCandidates;
         var recordsToSkip = GetInitialRecordsToSkip(options);
-        using var records = ReadLogicalDelimiterDetectionRecords(reader).GetEnumerator();
         var allowPreHeaderCommentSkip = true;
+        using var records = ReadLogicalDelimiterDetectionRecords(
+            reader,
+            line => ShouldSkipCommentDuringDelimiterDetection(line, options, useHeaderDiscovery, allowPreHeaderCommentSkip),
+            line => IsDelimiterDetectionHeaderCandidate(line, options, candidates)).GetEnumerator();
         while (records.MoveNext())
         {
             var record = records.Current;
@@ -114,11 +120,20 @@ public sealed partial class CsvDocument
     private static bool IsBlankDelimiterDetectionRecord(string record, CsvLoadOptions options) =>
         record.Length == 0 || (options.TrimWhitespace && record.Trim().Length == 0);
 
-    private static IEnumerable<string> ReadLogicalDelimiterDetectionRecords(TextReader reader)
+    private static IEnumerable<string> ReadLogicalDelimiterDetectionRecords(
+        TextReader reader,
+        Func<string, bool> shouldSkipRawCommentRecord,
+        Func<string, bool> isHeaderCandidate)
     {
-        string? line;
-        while ((line = reader.ReadLine()) is not null)
+        var pendingLines = new Queue<string>();
+        while (TryReadDelimiterDetectionLine(reader, pendingLines, out var line))
         {
+            if (shouldSkipRawCommentRecord(line) && !IsLogicalDelimiterDetectionRecordComplete(line))
+            {
+                SkipRawDelimiterDetectionCommentRecord(reader, pendingLines, line, isHeaderCandidate);
+                continue;
+            }
+
             if (IsLogicalDelimiterDetectionRecordComplete(line))
             {
                 yield return line;
@@ -126,7 +141,7 @@ public sealed partial class CsvDocument
             }
 
             var record = new StringBuilder(line);
-            while ((line = reader.ReadLine()) is not null)
+            while (TryReadDelimiterDetectionLine(reader, pendingLines, out line))
             {
                 record.Append('\n');
                 record.Append(line);
@@ -137,6 +152,47 @@ public sealed partial class CsvDocument
             }
 
             yield return record.ToString();
+        }
+    }
+
+    private static bool TryReadDelimiterDetectionLine(TextReader reader, Queue<string> pendingLines, out string line)
+    {
+        if (pendingLines.Count > 0)
+        {
+            line = pendingLines.Dequeue();
+            return true;
+        }
+
+        var next = reader.ReadLine();
+        if (next is null)
+        {
+            line = string.Empty;
+            return false;
+        }
+
+        line = next;
+        return true;
+    }
+
+    private static void SkipRawDelimiterDetectionCommentRecord(
+        TextReader reader,
+        Queue<string> pendingLines,
+        string firstLine,
+        Func<string, bool> isHeaderCandidate)
+    {
+        while (reader.ReadLine() is { } next)
+        {
+            if (isHeaderCandidate(next))
+            {
+                pendingLines.Enqueue(next);
+                return;
+            }
+
+            firstLine = string.Concat(firstLine, "\n", next);
+            if (IsLogicalDelimiterDetectionRecordComplete(firstLine))
+            {
+                return;
+            }
         }
     }
 
@@ -170,6 +226,7 @@ public sealed partial class CsvDocument
         }
 
         var canReadW3CFieldsHeader = useHeaderDiscovery &&
+            allowPreHeaderCommentSkip &&
             options.HasHeaderRow &&
             options.Header is null &&
             options.RecognizeW3CFieldsHeader;
@@ -190,6 +247,9 @@ public sealed partial class CsvDocument
 
     private static bool IsW3CFieldsLine(string line, CsvLoadOptions options) =>
         options.RecognizeW3CFieldsHeader && line.StartsWith("#Fields:", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsDelimiterDetectionHeaderCandidate(string line, CsvLoadOptions options, IReadOnlyList<char> candidates) =>
+        IsW3CFieldsLine(line, options) || candidates.Any(line.Contains);
 
     private static DelimiterScore ScoreDelimiter(IReadOnlyList<string> samples, char delimiter)
     {

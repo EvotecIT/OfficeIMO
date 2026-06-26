@@ -328,6 +328,20 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Delimiter_Detection_Skips_Unmatched_Quote_Comments_Before_Sampling()
+    {
+        var parsed = CsvDocument.Parse(
+            "# generated \"by tool\nName;Value\nA;1\n",
+            new CsvLoadOptions { DetectDelimiter = true });
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal(';', parsed.Delimiter);
+        Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
+        Assert.Equal("A", row.AsString("Name"));
+        Assert.Equal("1", row.AsString("Value"));
+    }
+
+    [Fact]
     public void Skip_Comment_Rows_Before_Header_Skips_Delimiterless_Multiline_Comment_Record()
     {
         var parsed = CsvDocument.Parse(
@@ -560,6 +574,21 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Delimiter_Detection_Skips_W3C_Markers_After_Normal_Header()
+    {
+        var parsed = CsvDocument.Parse(
+            "A,B;C\n#Fields: old,value\n1;2;3\n",
+            new CsvLoadOptions
+            {
+                DetectDelimiter = true,
+                SkipCommentRows = true
+            });
+
+        Assert.Equal(';', parsed.Delimiter);
+        Assert.Equal(new[] { "A,B", "C" }, parsed.Header);
+    }
+
+    [Fact]
     public void Delimiter_Detection_Skips_W3C_Markers_Only_When_Header_Can_Consume_Them()
     {
         var parsed = CsvDocument.Parse(
@@ -614,6 +643,20 @@ public class CsvDocumentBasicsTests
         Assert.Equal(new[] { "date", "time", "cs-uri" }, parsed.Header);
         Assert.Single(parsed.AsEnumerable());
         Assert.Equal("/index", parsed.AsEnumerable().Single().AsString("cs-uri"));
+    }
+
+    [Fact]
+    public void Recognizes_W3C_Fields_Header_With_Repeated_Whitespace()
+    {
+        var parsed = CsvDocument.Parse(
+            "#Fields: date  time cs-uri\n2026-06-24 12:00 /index\n",
+            new CsvLoadOptions { Delimiter = ' ' });
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal(new[] { "date", "time", "cs-uri" }, parsed.Header);
+        Assert.Equal("2026-06-24", row.AsString("date"));
+        Assert.Equal("12:00", row.AsString("time"));
+        Assert.Equal("/index", row.AsString("cs-uri"));
     }
 
     [Fact]

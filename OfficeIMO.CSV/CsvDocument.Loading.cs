@@ -489,8 +489,12 @@ public sealed partial class CsvDocument
 
         if (string.Equals(record[0], prefix, StringComparison.OrdinalIgnoreCase) && record.Count > 1)
         {
-            header = record.Skip(1).ToArray();
-            return true;
+            var fields = record.Skip(1).Where(field => field.Length > 0).ToArray();
+            if (fields.Length > 0)
+            {
+                header = fields;
+                return true;
+            }
         }
 
         return false;
