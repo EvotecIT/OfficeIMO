@@ -145,6 +145,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("1,235", ExcelNumberFormatDisplay.FormatNumericText(1234567D, 1U, "#,##0,", "1234567"));
             Assert.Equal("1 K", ExcelNumberFormatDisplay.FormatNumericText(1234D, 1U, "#,##0, \"K\"", "1234"));
             Assert.Equal("1", ExcelNumberFormatDisplay.FormatNumericText(1234567D, 1U, "#,##0,,", "1234567"));
+            Assert.Equal("50 low", ExcelNumberFormatDisplay.FormatNumericText(50D, 1U, "[>=100]0 \"high\";0 \"low\"", "50"));
+            Assert.Equal("150 high", ExcelNumberFormatDisplay.FormatNumericText(150D, 1U, "[>=100]0 \"high\";0 \"low\"", "150"));
+            Assert.Equal("6/24/26 13:45", ExcelNumberFormatDisplay.FormatNumericText(new DateTime(2026, 6, 24, 13, 45, 0).ToOADate(), 1U, "m/d/yy h:mm", "46200.5729"));
         }
 
         [Fact]
@@ -1150,6 +1153,25 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("FFFCE4D6", Assert.Single(duplicateSnapshot.Cells).Style.FillColorArgb);
             Assert.Null(Assert.Single(uniqueSnapshot.Cells).Style.FillColorArgb);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportComparesDuplicateRulesUsingRawCellValues() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("RawDistinct");
+            sheet.Cell(1, 1, 1, numberFormat: "0.00");
+            sheet.Cell(2, 1, 1, numberFormat: "0");
+            sheet.Cell(3, 1, 2, numberFormat: "0.00");
+            sheet.Range("A1:A3").ConditionalFormatting.DuplicateValues("FCE4D6");
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A3").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+
+            Assert.Equal("1.00", snapshot.Cells.Single(cell => cell.Row == 1).Text);
+            Assert.Equal("1", snapshot.Cells.Single(cell => cell.Row == 2).Text);
+            Assert.Equal("FFFCE4D6", snapshot.Cells.Single(cell => cell.Row == 1).Style.FillColorArgb);
+            Assert.Equal("FFFCE4D6", snapshot.Cells.Single(cell => cell.Row == 2).Style.FillColorArgb);
+            Assert.Null(snapshot.Cells.Single(cell => cell.Row == 3).Style.FillColorArgb);
         }
 
         [Fact]

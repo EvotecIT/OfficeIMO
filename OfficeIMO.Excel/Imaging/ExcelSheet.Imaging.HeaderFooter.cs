@@ -42,14 +42,21 @@ namespace OfficeIMO.Excel {
             double scale = options.Scale;
             int headerHeight = chrome.HasHeader ? ResolveHeaderFooterBandHeight(chrome.HeaderImageHeightPoints, scale) : 0;
             int footerHeight = chrome.HasFooter ? ResolveHeaderFooterBandHeight(chrome.FooterImageHeightPoints, scale) : 0;
+            ExcelPrintTitles printTitles = GetPrintTitles();
+            bool pageSetupCanvasApplied = ShouldApplyPageSetupCanvas(GetPageSetup()) &&
+                !printTitles.HasRows &&
+                !printTitles.HasColumns;
             int width = Math.Max(1, content.Width);
-            int height = Math.Max(1, content.Height + headerHeight + footerHeight);
+            int height = pageSetupCanvasApplied
+                ? Math.Max(1, content.Height)
+                : Math.Max(1, content.Height + headerHeight + footerHeight);
+            int contentY = pageSetupCanvasApplied ? 0 : headerHeight;
 
             if (format == OfficeImageExportFormat.Svg) {
                 OfficeImageLayer layer = OfficeImageLayer.FromSvgInner(
                     OfficeSvgFormatting.ExtractSvgInner(Encoding.UTF8.GetString(content.Bytes)),
                     0D,
-                    headerHeight,
+                    contentY,
                     content.Width,
                     content.Height);
                 return new OfficeImageExportResult(
@@ -61,7 +68,8 @@ namespace OfficeIMO.Excel {
                         height,
                         options.BackgroundColor,
                         new[] { layer },
-                        beforeLayers: builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, options.Scale)),
+                        beforeLayers: pageSetupCanvasApplied ? null : builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, options.Scale),
+                        afterLayers: pageSetupCanvasApplied ? builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, options.Scale) : null),
                     content.Name,
                     content.Source,
                     diagnostics);
@@ -71,7 +79,7 @@ namespace OfficeIMO.Excel {
                 return content;
             }
 
-            OfficeImageLayer contentLayer = OfficeImageLayer.FromRaster(contentImage, 0D, headerHeight, content.Width, content.Height);
+            OfficeImageLayer contentLayer = OfficeImageLayer.FromRaster(contentImage, 0D, contentY, content.Width, content.Height);
             return new OfficeImageExportResult(
                 format,
                 width,
@@ -81,7 +89,8 @@ namespace OfficeIMO.Excel {
                     height,
                     options.BackgroundColor,
                     new[] { contentLayer },
-                    beforeLayers: canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale)),
+                    beforeLayers: pageSetupCanvasApplied ? null : canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale),
+                    afterLayers: pageSetupCanvasApplied ? canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale) : null),
                 content.Name,
                 content.Source,
                 diagnostics);

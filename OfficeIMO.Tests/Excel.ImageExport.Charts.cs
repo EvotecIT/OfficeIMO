@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using A = DocumentFormat.OpenXml.Drawing;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -117,6 +118,34 @@ namespace OfficeIMO.Tests {
                 diagnostic.Message.Contains("combo chart", StringComparison.OrdinalIgnoreCase));
         }
 
+        [Fact]
+        public void ExcelRange_ImageExportPreservesScatterCacheOrderInMixedCharts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("ComboScatter");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Sales");
+            sheet.CellValue(1, 3, "Trend");
+            sheet.CellValue(1, 4, "Trend X");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(2, 2, 10);
+            sheet.CellValue(3, 2, 20);
+            sheet.CellValue(2, 3, 30);
+            sheet.CellValue(3, 3, 40);
+            sheet.CellValue(2, 4, 100);
+            sheet.CellValue(3, 4, 200);
+            sheet.AddChartFromRange("A1:C3", row: 1, column: 6, widthPixels: 260, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Combo Scatter");
+            ConvertSecondBarSeriesToScatter(document);
+
+            ExcelVisualChart visualChart = Assert.Single(sheet.Range("A1:J10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false }).Charts);
+
+            Assert.Equal(new[] { 10D, 20D }, visualChart.Snapshot.Data.Series[0].Values);
+            Assert.Null(visualChart.Snapshot.Data.Series[0].XValues);
+            Assert.Equal(new[] { 30D, 40D }, visualChart.Snapshot.Data.Series[1].Values);
+            Assert.Equal(new[] { 100D, 200D }, visualChart.Snapshot.Data.Series[1].XValues);
+        }
+
         private static void SetScatterChartSeriesIndexes(ExcelDocument document, params uint[] indexes) {
             ChartPart chartPart = GetFirstChartPart(document);
             ScatterChartSeries[] series = chartPart.ChartSpace!.Descendants<ScatterChartSeries>().ToArray();
@@ -149,6 +178,50 @@ namespace OfficeIMO.Tests {
             chartPart.ChartSpace.Save();
         }
 
+        private static void SetFirstChartAnchorOffset(ExcelDocument document, int offsetXPixels, int offsetYPixels) {
+            DrawingsPart drawingsPart = document.WorkbookPartRoot.WorksheetParts.Select(part => part.DrawingsPart).First(part => part != null)!;
+            Xdr.OneCellAnchor anchor = drawingsPart.WorksheetDrawing!.Descendants<Xdr.OneCellAnchor>().First(item => item.GetFirstChild<Xdr.GraphicFrame>() != null);
+            anchor.FromMarker!.ColumnOffset = new Xdr.ColumnOffset((offsetXPixels * 9525L).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            anchor.FromMarker.RowOffset = new Xdr.RowOffset((offsetYPixels * 9525L).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            drawingsPart.WorksheetDrawing.Save();
+        }
+
+        private static void ConvertSecondBarSeriesToScatter(ExcelDocument document) {
+            ChartPart chartPart = GetFirstChartPart(document);
+            PlotArea plotArea = chartPart.ChartSpace!.Descendants<PlotArea>().First();
+            BarChart barChart = plotArea.GetFirstChild<BarChart>()!;
+            BarChartSeries secondSeries = barChart.Elements<BarChartSeries>().ElementAt(1);
+            secondSeries.Remove();
+
+            var scatterChart = new ScatterChart(new ScatterStyle { Val = ScatterStyleValues.LineMarker });
+            scatterChart.Append(new ScatterChartSeries(
+                new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = 1U },
+                new Order { Val = 1U },
+                new SeriesText(new NumericValue("Trend")),
+                new XValues(new NumberReference(
+                    new Formula("ComboScatter!$D$2:$D$3"),
+                    CreateNumberingCache(100D, 200D))),
+                new YValues(new NumberReference(
+                    new Formula("ComboScatter!$C$2:$C$3"),
+                    CreateNumberingCache(30D, 40D)))));
+
+            foreach (AxisId axisId in barChart.Elements<AxisId>()) {
+                scatterChart.Append((AxisId)axisId.CloneNode(true));
+            }
+
+            plotArea.InsertAfter(scatterChart, barChart);
+            chartPart.ChartSpace.Save();
+        }
+
+        private static NumberingCache CreateNumberingCache(params double[] values) {
+            var cache = new NumberingCache(new FormatCode("General"), new PointCount { Val = (uint)values.Length });
+            for (int i = 0; i < values.Length; i++) {
+                cache.Append(new NumericPoint(new NumericValue(values[i].ToString(System.Globalization.CultureInfo.InvariantCulture))) { Index = (uint)i });
+            }
+
+            return cache;
+        }
+
         [Fact]
         public void ExcelRange_ImageExportIncludesChartsThatOverlapSelectedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
@@ -167,6 +240,28 @@ namespace OfficeIMO.Tests {
 
             Assert.True(visualChart.X < 0D);
             Assert.True(visualChart.X + visualChart.Width > 0D);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportHonorsChartAnchorOffsets() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("ChartOffset");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(2, 2, 10);
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(3, 2, 20);
+            sheet.AddChartFromRange("A1:B3", row: 1, column: 2, widthPixels: 160, heightPixels: 90, type: ExcelChartType.ColumnClustered, title: "Offset");
+            SetFirstChartAnchorOffset(document, offsetXPixels: 23, offsetYPixels: 17);
+
+            ExcelVisualChart visualChart = Assert.Single(sheet.Range("A1:D8").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false }).Charts);
+
+            Assert.Equal(23, visualChart.Snapshot.OffsetXPixels);
+            Assert.Equal(17, visualChart.Snapshot.OffsetYPixels);
+            Assert.True(visualChart.X > 80D, $"Expected the chart X coordinate to include the from-marker offset. X={visualChart.X}");
+            Assert.Equal(17D, visualChart.Y, precision: 0);
         }
 
         [Fact]

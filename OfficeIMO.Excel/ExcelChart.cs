@@ -131,6 +131,8 @@ namespace OfficeIMO.Excel {
                 data,
                 GetAnchorRow(),
                 GetAnchorColumn(),
+                GetAnchorOffsetXPixels(),
+                GetAnchorOffsetYPixels(),
                 GetAnchorWidthPixels(),
                 GetAnchorHeightPixels(),
                 CreateImageExportStyle(),
@@ -403,6 +405,18 @@ namespace OfficeIMO.Excel {
             Xdr.FromMarker? marker = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.FromMarker
                 ?? _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()?.FromMarker;
             return ParseOneBasedMarker(marker?.ColumnId?.Text);
+        }
+
+        private int GetAnchorOffsetXPixels() {
+            Xdr.FromMarker? marker = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.FromMarker
+                ?? _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()?.FromMarker;
+            return EmuOffsetToPixels(ParseEmuOffset(marker?.ColumnOffset?.Text));
+        }
+
+        private int GetAnchorOffsetYPixels() {
+            Xdr.FromMarker? marker = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.FromMarker
+                ?? _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()?.FromMarker;
+            return EmuOffsetToPixels(ParseEmuOffset(marker?.RowOffset?.Text));
         }
 
         private int GetAnchorWidthPixels() {

@@ -127,6 +127,11 @@ namespace OfficeIMO.Excel {
             if (lower.Contains("dd/mm/yyyy")) return "dd/MM/yyyy";
             if (lower.Contains("mm/dd/yyyy")) return "MM/dd/yyyy";
             if (lower.Contains("m/d/yyyy")) return "M/d/yyyy";
+            if (lower.Contains("m/d/yy") && lower.Contains("h:mm:ss") && lower.Contains("am/pm")) return "M/d/yy h:mm:ss tt";
+            if (lower.Contains("m/d/yy") && lower.Contains("h:mm") && lower.Contains("am/pm")) return "M/d/yy h:mm tt";
+            if (lower.Contains("m/d/yy") && lower.Contains("h:mm:ss")) return "M/d/yy H:mm:ss";
+            if (lower.Contains("m/d/yy") && lower.Contains("h:mm")) return "M/d/yy H:mm";
+            if (lower.Contains("m/d/yy")) return "M/d/yy";
             if (lower.Contains("d-mmm-yy")) return "d-MMM-yy";
             if (lower.Contains("mmm-yy")) return "MMM-yy";
             if (lower.Contains("h:mm:ss") && lower.Contains("am/pm")) return "h:mm:ss tt";
@@ -140,7 +145,7 @@ namespace OfficeIMO.Excel {
 
         private static string? FormatNumberValue(double value, uint numberFormatId, string formatCode) {
             int preferredSection = value < 0 ? 1 : value == 0 ? 2 : 0;
-            string section = SelectNumberFormatSection(formatCode, preferredSection, out int selectedSection);
+            string section = SelectNumberFormatSection(formatCode, preferredSection, value, out int selectedSection);
             string normalized = StripNumberFormatDecorations(section);
             string lower = normalized.ToLowerInvariant();
 
@@ -383,11 +388,37 @@ namespace OfficeIMO.Excel {
         private static string SelectNumberFormatSection(string formatCode, int preferredSection) =>
             SelectNumberFormatSection(formatCode, preferredSection, out _);
 
-        private static string SelectNumberFormatSection(string formatCode, int preferredSection, out int selectedSection) {
-            string[] sections = formatCode.Split(';');
+        private static string SelectNumberFormatSection(string formatCode, int preferredSection, out int selectedSection) =>
+            SelectNumberFormatSection(formatCode, preferredSection, value: null, out selectedSection);
+
+        private static string SelectNumberFormatSection(string formatCode, int preferredSection, double? value, out int selectedSection) {
+            string[] sections = SplitNumberFormatSections(formatCode);
             selectedSection = 0;
             if (sections.Length == 0) {
                 return formatCode;
+            }
+
+            if (value.HasValue && sections.Any(section => TryGetSectionCondition(section, out _, out _))) {
+                int fallbackSection = -1;
+                for (int i = 0; i < sections.Length; i++) {
+                    if (string.IsNullOrWhiteSpace(sections[i])) {
+                        continue;
+                    }
+
+                    if (TryGetSectionCondition(sections[i], out string? op, out double threshold)) {
+                        if (MatchesSectionCondition(value.Value, op!, threshold)) {
+                            selectedSection = i;
+                            return sections[i];
+                        }
+                    } else if (fallbackSection < 0) {
+                        fallbackSection = i;
+                    }
+                }
+
+                if (fallbackSection >= 0) {
+                    selectedSection = fallbackSection;
+                    return sections[fallbackSection];
+                }
             }
 
             if (preferredSection >= 0 && preferredSection < sections.Length && !string.IsNullOrWhiteSpace(sections[preferredSection])) {
@@ -397,6 +428,90 @@ namespace OfficeIMO.Excel {
 
             return sections[0];
         }
+
+        private static string[] SplitNumberFormatSections(string formatCode) {
+            var sections = new List<string>();
+            var builder = new StringBuilder(formatCode.Length);
+            bool inQuote = false;
+            for (int i = 0; i < formatCode.Length; i++) {
+                char ch = formatCode[i];
+                if (ch == '"') {
+                    inQuote = !inQuote;
+                    builder.Append(ch);
+                    continue;
+                }
+
+                if (!inQuote && ch == ';') {
+                    sections.Add(builder.ToString());
+                    builder.Clear();
+                    continue;
+                }
+
+                builder.Append(ch);
+            }
+
+            sections.Add(builder.ToString());
+            return sections.ToArray();
+        }
+
+        private static bool TryGetSectionCondition(string section, out string? op, out double threshold) {
+            op = null;
+            threshold = 0D;
+            int index = 0;
+            while (index < section.Length) {
+                while (index < section.Length && char.IsWhiteSpace(section[index])) {
+                    index++;
+                }
+
+                if (index >= section.Length || section[index] != '[') {
+                    return false;
+                }
+
+                int close = section.IndexOf(']', index + 1);
+                if (close < 0) {
+                    return false;
+                }
+
+                string token = section.Substring(index + 1, close - index - 1).Trim();
+                if (TryParseSectionConditionToken(token, out op, out threshold)) {
+                    return true;
+                }
+
+                index = close + 1;
+            }
+
+            return false;
+        }
+
+        private static bool TryParseSectionConditionToken(string token, out string? op, out double threshold) {
+            op = null;
+            threshold = 0D;
+            string[] operators = { ">=", "<=", "<>", ">", "<", "=" };
+            foreach (string candidate in operators) {
+                if (!token.StartsWith(candidate, StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                string number = token.Substring(candidate.Length).Trim();
+                if (double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out threshold)) {
+                    op = candidate;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool MatchesSectionCondition(double value, string op, double threshold) =>
+            op switch {
+                ">=" => value >= threshold,
+                "<=" => value <= threshold,
+                "<>" => Math.Abs(value - threshold) > 0.0000000001D,
+                ">" => value > threshold,
+                "<" => value < threshold,
+                "=" => Math.Abs(value - threshold) <= 0.0000000001D,
+                _ => false
+            };
 
         private static bool ContainsNumericPlaceholder(string formatCode)
             => formatCode.IndexOf('0') >= 0 || formatCode.IndexOf('#') >= 0 || formatCode.IndexOf('?') >= 0;

@@ -215,6 +215,32 @@ public static partial class OfficeChartDrawingRenderer {
         return hasSeriesXValues ? GetFiniteRange(values) : GetFiniteRange(sharedXValues);
     }
 
+    private static (ValueRange XRange, ValueRange YRange) GetScatterPointRanges(IReadOnlyList<OfficeChartSeries> series, IReadOnlyList<double> sharedXValues) {
+        var xValues = new List<double>();
+        var yValues = new List<double>();
+        for (int s = 0; s < series.Count; s++) {
+            IReadOnlyList<double> seriesXValues = series[s].XValues ?? sharedXValues;
+            int pointCount = Math.Min(seriesXValues.Count, series[s].Values.Count);
+            for (int i = 0; i < pointCount; i++) {
+                if (!TryGetSeriesValue(series[s], i, out double yValue)) {
+                    continue;
+                }
+
+                double xValue = seriesXValues[i];
+                if (!IsFiniteChartValue(xValue)) {
+                    continue;
+                }
+
+                xValues.Add(xValue);
+                yValues.Add(yValue);
+            }
+        }
+
+        return xValues.Count == 0 || yValues.Count == 0
+            ? (GetScatterXRange(series, sharedXValues), GetFiniteSeriesRange(series))
+            : (GetFiniteRange(xValues), GetFiniteRange(yValues));
+    }
+
     private static IReadOnlyList<OfficePoint> CreateRadarPoints(int count, double centerX, double centerY, double radius) {
         var points = new List<OfficePoint>(count);
         for (int i = 0; i < count; i++) {

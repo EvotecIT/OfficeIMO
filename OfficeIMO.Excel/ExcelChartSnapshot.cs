@@ -14,6 +14,8 @@ namespace OfficeIMO.Excel {
             ExcelChartData data,
             int rowIndex,
             int columnIndex,
+            int offsetXPixels,
+            int offsetYPixels,
             int widthPixels,
             int heightPixels,
             OfficeChartStyle? style = null,
@@ -25,6 +27,8 @@ namespace OfficeIMO.Excel {
             Data = data ?? throw new ArgumentNullException(nameof(data));
             RowIndex = rowIndex;
             ColumnIndex = columnIndex;
+            OffsetXPixels = offsetXPixels;
+            OffsetYPixels = offsetYPixels;
             WidthPixels = widthPixels;
             HeightPixels = heightPixels;
             Style = style;
@@ -49,6 +53,12 @@ namespace OfficeIMO.Excel {
 
         /// <summary>One-based worksheet column where the chart is anchored when known.</summary>
         public int ColumnIndex { get; }
+
+        /// <summary>Horizontal offset from the anchor column in pixels.</summary>
+        public int OffsetXPixels { get; }
+
+        /// <summary>Vertical offset from the anchor row in pixels.</summary>
+        public int OffsetYPixels { get; }
 
         /// <summary>Chart width in pixels when known.</summary>
         public int WidthPixels { get; }

@@ -110,10 +110,25 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
-        private static OfficeShape? CreateNativeDrawingPresetShape(string? presetName, double width, double height) =>
-            OfficeShapePresets.TryCreate(presetName, width, height, out OfficeShape? shape)
+        private static OfficeShape? CreateNativeDrawingPresetShape(string? presetName, double width, double height) {
+            if (IsNativeDrawingLinePreset(presetName)) {
+                double y = height / 2D;
+                return OfficeShape.Line(0D, y, width, y);
+            }
+
+            return OfficeShapePresets.TryCreate(presetName, width, height, out OfficeShape? shape)
                 ? shape
                 : null;
+        }
+
+        private static bool IsNativeDrawingLinePreset(string? presetName) {
+            if (string.IsNullOrWhiteSpace(presetName)) {
+                return false;
+            }
+
+            string normalized = presetName!.Trim();
+            return string.Equals(normalized, "line", StringComparison.OrdinalIgnoreCase);
+        }
 
         private static bool TryCreateNativePolygonShape(string? pointsText, out OfficeShape? shape) {
             shape = null;

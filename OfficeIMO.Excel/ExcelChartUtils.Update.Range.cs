@@ -224,8 +224,12 @@ namespace OfficeIMO.Excel {
 
             var scatterValuesByIndex = new Dictionary<int, (IReadOnlyList<double>? XValues, IReadOnlyList<double>? YValues)>();
             int seriesOrder = 0;
-            foreach (ScatterChartSeries scatterSeries in GetChartSeries(plotArea).OfType<ScatterChartSeries>()) {
+            foreach (OpenXmlElement seriesElement in GetChartSeries(plotArea)) {
                 int index = seriesOrder++;
+                if (seriesElement is not ScatterChartSeries scatterSeries) {
+                    continue;
+                }
+
                 if (index >= data.Series.Count) {
                     break;
                 }

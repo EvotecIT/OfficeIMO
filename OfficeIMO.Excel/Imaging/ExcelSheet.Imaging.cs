@@ -338,7 +338,18 @@ namespace OfficeIMO.Excel {
                     if (image.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight)) {
                         ExpandAbsoluteVisualAnchor(absoluteX, absoluteY, absoluteWidth, absoluteHeight, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
                     } else if (options.IncludeHidden || !IsHiddenAnchor(image.RowIndex, image.ColumnIndex, rows, columns)) {
-                        ExpandVisualAnchor(image.RowIndex, image.ColumnIndex, image.WidthPixels, image.HeightPixels, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                        ExpandVisualAnchor(
+                            image.RowIndex,
+                            image.ColumnIndex,
+                            Math.Max(1, image.WidthPixels + Math.Max(0, image.OffsetXPixels)),
+                            Math.Max(1, image.HeightPixels + Math.Max(0, image.OffsetYPixels)),
+                            columns,
+                            rows,
+                            options,
+                            ref firstRow,
+                            ref firstColumn,
+                            ref lastRow,
+                            ref lastColumn);
                     }
                 }
             }
@@ -349,7 +360,18 @@ namespace OfficeIMO.Excel {
                         if (chart.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight)) {
                             ExpandAbsoluteVisualAnchor(absoluteX, absoluteY, absoluteWidth, absoluteHeight, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
                         } else if (options.IncludeHidden || !IsHiddenAnchor(snapshot.RowIndex, snapshot.ColumnIndex, rows, columns)) {
-                            ExpandVisualAnchor(snapshot.RowIndex, snapshot.ColumnIndex, snapshot.WidthPixels, snapshot.HeightPixels, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                            ExpandVisualAnchor(
+                                snapshot.RowIndex,
+                                snapshot.ColumnIndex,
+                                Math.Max(1, snapshot.WidthPixels + Math.Max(0, snapshot.OffsetXPixels)),
+                                Math.Max(1, snapshot.HeightPixels + Math.Max(0, snapshot.OffsetYPixels)),
+                                columns,
+                                rows,
+                                options,
+                                ref firstRow,
+                                ref firstColumn,
+                                ref lastRow,
+                                ref lastColumn);
                         }
                     }
                 }

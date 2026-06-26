@@ -75,4 +75,28 @@ public class DrawingChartAxisLayoutTests {
         Assert.Contains("1.0", labels);
         Assert.Contains("2.0", labels);
     }
+
+    [Fact]
+    public void OfficeChartDrawingRenderer_ScatterAxesIgnoreSkippedPointPairs() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Scatter skipped pairs",
+            "Scatter Skipped Pairs",
+            OfficeChartKind.Scatter,
+            new OfficeChartData(
+                new[] { "1", "999" },
+                new[] {
+                    new OfficeChartSeries("Points", new[] { 10D, double.NaN }, new[] { 1D, 999D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(showLegend: false)));
+
+        string[] labels = drawing.Elements
+            .OfType<OfficeDrawingText>()
+            .Select(label => label.Text)
+            .ToArray();
+
+        Assert.DoesNotContain("999", labels);
+        Assert.DoesNotContain("NaN", labels);
+    }
 }

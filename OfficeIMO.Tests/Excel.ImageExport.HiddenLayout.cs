@@ -97,6 +97,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_DefaultImageExportIncludesImageAnchorOffsetsWhenExpandingUsedRange() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("OffsetImage");
+            sheet.CellValue(1, 1, "Visible");
+            sheet.SetColumnWidth(1, 8);
+            sheet.SetColumnWidth(2, 8);
+            sheet.AddImage(1, 1, CreateSolidPng(70, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 70, heightPixels: 18, offsetXPixels: 58, name: "OffsetLogo");
+
+            OfficeImageExportResult result = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });
+
+            Assert.Equal("OffsetImage!A1:C1", result.Source);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportEvaluatesConditionalFormattingForMergeOriginOutsideSelectedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

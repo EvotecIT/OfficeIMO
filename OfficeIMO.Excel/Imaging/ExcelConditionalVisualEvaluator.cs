@@ -544,7 +544,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                candidates.Add((cell, cell.Text.Trim()));
+                string value = TryGetCellTextValue(sheet, cell.Row, cell.Column, out string rawValue)
+                    ? rawValue
+                    : cell.Text.Trim();
+                candidates.Add((cell, value));
             }
 
             if (candidates.Count == 0) {

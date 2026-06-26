@@ -437,10 +437,10 @@ public static partial class OfficeChartDrawingRenderer {
                     valueAxisUsesPercentDefaults);
             }
 
-            if (layout.ShowCategoryAxis && layout.ShowCategoryAxisLabels) {
-                if (IsScatterChart(snapshot.ChartKind)) {
-                    IReadOnlyList<double> sharedXValues = GetScatterXValues(snapshot.Data.Categories);
-                    ValueRange scatterXRange = ApplyValueAxisScale(GetScatterXRange(snapshot.Data.Series, sharedXValues), layout, horizontal: true);
+                if (layout.ShowCategoryAxis && layout.ShowCategoryAxisLabels) {
+                    if (IsScatterChart(snapshot.ChartKind)) {
+                        IReadOnlyList<double> sharedXValues = GetScatterXValues(snapshot.Data.Categories);
+                    ValueRange scatterXRange = ApplyValueAxisScale(GetScatterPointRanges(snapshot.Data.Series, sharedXValues).XRange, layout, horizontal: true);
                     AddHorizontalValueAxisLabels(
                         drawing,
                         scatterXRange,
@@ -1248,8 +1248,9 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         IReadOnlyList<double> sharedXValues = GetScatterXValues(categories);
-        ValueRange xRange = ApplyValueAxisScale(GetScatterXRange(series, sharedXValues), layout, horizontal: true);
-        ValueRange yRange = ApplyValueAxisScale(GetFiniteSeriesRange(series), layout, horizontal: false);
+        (ValueRange pairedXRange, ValueRange pairedYRange) = GetScatterPointRanges(series, sharedXValues);
+        ValueRange xRange = ApplyValueAxisScale(pairedXRange, layout, horizontal: true);
+        ValueRange yRange = ApplyValueAxisScale(pairedYRange, layout, horizontal: false);
         for (int s = 0; s < series.Count; s++) {
             OfficeColor color = GetSeriesColor(style, series, s);
             double strokeWidth = GetSeriesStrokeWidth(series[s], 1.25D);
