@@ -6,15 +6,28 @@ namespace OfficeIMO.Excel.LegacyXls {
     /// Contains the projected OfficeIMO document and the legacy XLS import report produced from the same parse.
     /// </summary>
     public sealed class LegacyXlsLoadResult : IDisposable {
-        internal LegacyXlsLoadResult(ExcelDocument document, LegacyXlsWorkbook workbook) {
-            Document = document ?? throw new ArgumentNullException(nameof(document));
+        private readonly ExcelDocument? _document;
+
+        internal LegacyXlsLoadResult(ExcelDocument? document, LegacyXlsWorkbook workbook, Exception? projectionException = null) {
+            _document = document;
             Workbook = workbook ?? throw new ArgumentNullException(nameof(workbook));
+            ProjectionException = projectionException;
         }
 
         /// <summary>
         /// Gets the normal OfficeIMO Excel document projected from supported legacy XLS content.
         /// </summary>
-        public ExcelDocument Document { get; }
+        public ExcelDocument Document => _document ?? throw new InvalidOperationException("No OfficeIMO Excel document was projected from the legacy XLS workbook. Inspect Workbook, Diagnostics, ImportReport, and ProjectionException for import details.", ProjectionException);
+
+        /// <summary>
+        /// Gets whether supported legacy XLS content was projected into a normal OfficeIMO Excel document.
+        /// </summary>
+        public bool HasDocument => _document != null;
+
+        /// <summary>
+        /// Gets the projection failure captured while preserving parser diagnostics for report callers.
+        /// </summary>
+        public Exception? ProjectionException { get; }
 
         /// <summary>
         /// Gets the neutral legacy XLS workbook model produced by the parser.
@@ -72,7 +85,7 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// Disposes the projected OfficeIMO document.
         /// </summary>
         public void Dispose() {
-            Document.Dispose();
+            _document?.Dispose();
         }
 
         private static string FormatDiagnostics(IEnumerable<LegacyXlsImportDiagnostic> diagnostics) {

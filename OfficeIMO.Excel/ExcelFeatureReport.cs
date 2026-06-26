@@ -1,4 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Excel.LegacyXls.Diagnostics;
+using OfficeIMO.Excel.LegacyXls.Model;
 using System.Text;
 
 namespace OfficeIMO.Excel {
@@ -632,7 +634,49 @@ namespace OfficeIMO.Excel {
             Add(features, "Compatibility", "Embedded packages", ExcelFeatureSupportLevel.Preserved, embeddedPackageDetails.Count, null,
                 "Embedded packages are preserve-only package content.", embeddedPackageDetails);
 
+            AddLegacyXlsImportFeatures(features);
+
             return new ExcelFeatureReport(features);
+        }
+
+        private void AddLegacyXlsImportFeatures(List<ExcelFeatureFinding> features) {
+            if (!WasLoadedFromLegacyXls) {
+                return;
+            }
+
+            Add(features, "Compatibility", "Legacy XLS source", ExcelFeatureSupportLevel.Editable, 1, null,
+                "Legacy binary XLS content was projected into the normal OfficeIMO Excel model. Saving writes Open XML .xlsx content; native .xls writing is not supported.");
+
+            LegacyXlsImportDiagnostic[] warnings = _legacyXlsImportDiagnostics
+                .Where(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning)
+                .ToArray();
+            Add(features, "Compatibility", "Legacy XLS import diagnostics", ExcelFeatureSupportLevel.Preserved, warnings.Length, null,
+                "Legacy XLS import warnings should be reviewed before relying on full fidelity.",
+                warnings.Select(FormatLegacyXlsDiagnostic).ToArray());
+
+            Add(features, "Compatibility", "Legacy XLS unsupported features", ExcelFeatureSupportLevel.Unsupported, _legacyXlsUnsupportedFeatures.Length, null,
+                "Some legacy XLS features were detected as unsupported import metadata and are not written to the converted .xlsx package.",
+                _legacyXlsUnsupportedFeatures.Select(FormatLegacyXlsUnsupportedFeature).ToArray());
+
+            Add(features, "Compatibility", "Legacy XLS unsupported sheets", ExcelFeatureSupportLevel.Unsupported, _legacyXlsUnsupportedSheets.Length, null,
+                "Some legacy XLS sheet entries were discovered but not projected as normal worksheets and are not written to the converted .xlsx package.",
+                _legacyXlsUnsupportedSheets.Select(FormatLegacyXlsUnsupportedSheet).ToArray());
+        }
+
+        private static string FormatLegacyXlsDiagnostic(LegacyXlsImportDiagnostic diagnostic) {
+            string scope = diagnostic.SheetName == null ? "(workbook)" : diagnostic.SheetName;
+            string detail = string.IsNullOrWhiteSpace(diagnostic.DetailCode) ? diagnostic.Code : diagnostic.DetailCode!;
+            return $"{scope}: {diagnostic.Code} ({detail}) - {diagnostic.Message}";
+        }
+
+        private static string FormatLegacyXlsUnsupportedFeature(LegacyXlsUnsupportedFeature feature) {
+            string scope = feature.SheetName == null ? "(workbook)" : feature.SheetName;
+            string detail = string.IsNullOrWhiteSpace(feature.DetailCode) ? feature.Code : feature.DetailCode!;
+            return $"{scope}: {feature.Kind} ({detail}) - {feature.Description}";
+        }
+
+        private static string FormatLegacyXlsUnsupportedSheet(LegacyXlsUnsupportedSheet sheet) {
+            return $"{sheet.Name}: {sheet.Kind} ({sheet.VisibilityName})";
         }
 
         private static void Add(List<ExcelFeatureFinding> features, string category, string name, ExcelFeatureSupportLevel supportLevel, int count,

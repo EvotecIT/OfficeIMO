@@ -323,7 +323,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_LoadLegacyXlsWithReport_ReturnsValidWorkbookWhenLegacyWorkbookHasNoSheets() {
+        public void LegacyXls_LoadLegacyXlsWithReport_ReturnsReportWhenLegacyWorkbookHasNoSheets() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateEncryptedWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
@@ -331,15 +331,15 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedRecords = true
             });
 
-            Assert.Single(result.Document.Sheets);
-            Assert.Equal("Sheet1", result.Document.Sheets[0].Name);
+            Assert.False(result.HasDocument);
+            Assert.NotNull(result.ProjectionException);
+            Assert.True(result.HasImportErrors);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FILEPASS-UNSUPPORTED");
             Assert.Equal(0, result.ImportReport.WorksheetCount);
 
-            using var output = new MemoryStream();
-            result.Document.Save(output);
-            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
-            Sheet sheet = Assert.Single(spreadsheet.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>());
-            Assert.Equal("Sheet1", sheet.Name!.Value);
+            InvalidOperationException documentException = Assert.Throws<InvalidOperationException>(() => result.Document);
+            Assert.Contains("No OfficeIMO Excel document", documentException.Message, StringComparison.Ordinal);
+            Assert.Same(result.ProjectionException, documentException.InnerException);
         }
 
         [Fact]

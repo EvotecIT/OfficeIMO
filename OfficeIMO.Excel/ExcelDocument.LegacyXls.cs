@@ -8,7 +8,8 @@ namespace OfficeIMO.Excel {
         /// The resulting document saves as Open XML `.xlsx`; native `.xls` save is intentionally out of scope.
         /// </summary>
         public static ExcelDocument LoadLegacyXls(string path, LegacyXlsImportOptions? options = null) {
-            return LegacyXlsWorkbook.Load(path, options).ToExcelDocument();
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(path, options);
+            return ProjectLoadedLegacyXlsWorkbook(workbook, path);
         }
 
         /// <summary>
@@ -17,7 +18,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static LegacyXlsLoadResult LoadLegacyXlsWithReport(string path, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(path, options);
-            return new LegacyXlsLoadResult(workbook.ToExcelDocument(), workbook);
+            return CreateLegacyXlsLoadResult(workbook, path);
         }
 
         /// <summary>
@@ -25,7 +26,8 @@ namespace OfficeIMO.Excel {
         /// The resulting document saves as Open XML `.xlsx`; native `.xls` save is intentionally out of scope.
         /// </summary>
         public static ExcelDocument LoadLegacyXls(Stream stream, LegacyXlsImportOptions? options = null) {
-            return LegacyXlsWorkbook.Load(stream, options).ToExcelDocument();
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(stream, options);
+            return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null);
         }
 
         /// <summary>
@@ -34,7 +36,15 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static LegacyXlsLoadResult LoadLegacyXlsWithReport(Stream stream, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(stream, options);
-            return new LegacyXlsLoadResult(workbook.ToExcelDocument(), workbook);
+            return CreateLegacyXlsLoadResult(workbook, sourcePath: null);
+        }
+
+        private static LegacyXlsLoadResult CreateLegacyXlsLoadResult(LegacyXlsWorkbook workbook, string? sourcePath) {
+            try {
+                return new LegacyXlsLoadResult(ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath), workbook);
+            } catch (InvalidDataException exception) {
+                return new LegacyXlsLoadResult(document: null, workbook, exception);
+            }
         }
     }
 }

@@ -2,6 +2,9 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Excel.LegacyXls;
+using OfficeIMO.Excel.LegacyXls.Diagnostics;
+using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.Utilities;
 using OfficeIMO.Shared;
 using System.IO.Packaging;
@@ -167,6 +170,10 @@ namespace OfficeIMO.Excel {
             bool leaveOriginalStreamOpen = true) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
+            if (ExcelDocumentLoadRouting.IsLegacyXls(bytes, filePath)) {
+                return LoadLegacyXlsFromNormalFlow(bytes, readOnly, autoSave, filePath, openSettings);
+            }
+
             var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
             bool shouldCopyBack = copyBackToSource && originalStream != null;
             bool shouldCopyBackToFilePath = !shouldCopyBack && !string.IsNullOrEmpty(filePath) && ShouldCopyBackToSource(readOnly, autoSave, openSettings);
@@ -278,6 +285,40 @@ namespace OfficeIMO.Excel {
             }
 
             return openSettings?.AutoSave == true;
+        }
+
+        private static ExcelDocument LoadLegacyXlsFromNormalFlow(
+            byte[] bytes,
+            bool readOnly,
+            bool autoSave,
+            string? filePath,
+            OpenSettings? openSettings) {
+            if (ShouldCopyBackToSource(readOnly, autoSave, openSettings)) {
+                throw new NotSupportedException("Auto-save is not supported when loading legacy binary .xls files. Save to a new .xlsx path instead.");
+            }
+
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+            LegacyXlsImportDiagnostic[] errors = workbook.Diagnostics
+                .Where(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error)
+                .ToArray();
+            if (errors.Length > 0) {
+                throw new InvalidDataException("Legacy XLS import failed: " + FormatLegacyXlsDiagnostics(errors));
+            }
+
+            return ProjectLoadedLegacyXlsWorkbook(workbook, filePath);
+        }
+
+        private static string FormatLegacyXlsDiagnostics(IEnumerable<LegacyXlsImportDiagnostic> diagnostics) {
+            const int maxDiagnostics = 6;
+            LegacyXlsImportDiagnostic[] selected = diagnostics.Take(maxDiagnostics + 1).ToArray();
+            string message = string.Join("; ", selected.Take(maxDiagnostics).Select(diagnostic => diagnostic.ToString()));
+            if (selected.Length > maxDiagnostics) {
+                message += $"; +{selected.Length - maxDiagnostics} more";
+            }
+
+            return message;
         }
 
         /// <summary>
