@@ -228,6 +228,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.Rtf", "Off
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Rtf.Markdown", "OfficeIMO.Rtf.Markdown\OfficeIMO.Rtf.Markdown.csproj", "{E3D528A8-5B59-4B37-956E-35B404E4E1D8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Excel.Html", "OfficeIMO.Excel.Html\OfficeIMO.Excel.Html.csproj", "{8B4F1269-A1F1-4307-A846-1169F99A65C6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.PowerPoint.Html", "OfficeIMO.PowerPoint.Html\OfficeIMO.PowerPoint.Html.csproj", "{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -886,6 +890,30 @@ Global
 		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Release|x64.Build.0 = Release|Any CPU
 		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Release|x86.ActiveCfg = Release|Any CPU
 		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Release|x86.Build.0 = Release|Any CPU
+		{8B4F1269-A1F1-4307-A846-1169F99A65C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B4F1269-A1F1-4307-A846-1169F99A65C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B4F1269-A1F1-4307-A846-1169F99A65C6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8B4F1269-A1F1-4307-A846-1169F99A65C6}.Debug|x64.Build.0 = Debug|Any CPU
+		{8B4F1269-A1F1-4307-A846-1169F99A65C6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8B4F1269-A1F1-4307-A846-1169F99A65C6}.Debug|x86.Build.0 = Debug|Any CPU
+		{8B4F1269-A1F1-4307-A846-1169F99A65C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B4F1269-A1F1-4307-A846-1169F99A65C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B4F1269-A1F1-4307-A846-1169F99A65C6}.Release|x64.ActiveCfg = Release|Any CPU
+		{8B4F1269-A1F1-4307-A846-1169F99A65C6}.Release|x64.Build.0 = Release|Any CPU
+		{8B4F1269-A1F1-4307-A846-1169F99A65C6}.Release|x86.ActiveCfg = Release|Any CPU
+		{8B4F1269-A1F1-4307-A846-1169F99A65C6}.Release|x86.Build.0 = Release|Any CPU
+		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Debug|x64.Build.0 = Debug|Any CPU
+		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Debug|x86.Build.0 = Debug|Any CPU
+		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Release|x64.ActiveCfg = Release|Any CPU
+		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Release|x64.Build.0 = Release|Any CPU
+		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Release|x86.ActiveCfg = Release|Any CPU
+		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

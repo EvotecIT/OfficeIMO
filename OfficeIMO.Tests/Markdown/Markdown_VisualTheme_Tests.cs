@@ -31,5 +31,41 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Equal(11, theme.Table.CellPaddingX);
             Assert.False(theme.Table.UseRowStripes);
         }
+
+        [Fact]
+        public void MarkdownVisualTheme_Default_Uses_WordLike_Document_Profile() {
+            MarkdownVisualTheme theme = MarkdownVisualTheme.Default();
+
+            Assert.Equal(MarkdownVisualThemeKind.WordLike, theme.Kind);
+            Assert.Equal(HtmlStyle.Word, theme.HtmlStyle);
+            Assert.Equal("1f2937", theme.Palette.Text.ToRgbHex());
+            Assert.Equal("111827", theme.Palette.Heading.ToRgbHex());
+        }
+
+        [Fact]
+        public void MarkdownVisualTheme_Presets_List_Stable_Theme_Choices() {
+            Assert.Collection(
+                MarkdownVisualTheme.Presets,
+                preset => Assert.Equal(MarkdownVisualThemeKind.Plain, preset.Kind),
+                preset => Assert.Equal(MarkdownVisualThemeKind.WordLike, preset.Kind),
+                preset => Assert.Equal(MarkdownVisualThemeKind.TechnicalDocument, preset.Kind),
+                preset => Assert.Equal(MarkdownVisualThemeKind.GitHubLike, preset.Kind),
+                preset => Assert.Equal(MarkdownVisualThemeKind.Compact, preset.Kind),
+                preset => Assert.Equal(MarkdownVisualThemeKind.Report, preset.Kind));
+
+            Assert.Contains(MarkdownColorSchemeKind.Emerald, MarkdownVisualTheme.ColorSchemes);
+            Assert.Contains(MarkdownColorSchemeKind.Slate, MarkdownVisualTheme.ColorSchemes);
+        }
+
+        [Fact]
+        public void MarkdownVisualTheme_Creates_Named_Preset_With_Color_Scheme() {
+            Assert.True(MarkdownVisualTheme.TryCreate("business report", MarkdownColorSchemeKind.Emerald, out MarkdownVisualTheme? theme));
+
+            Assert.NotNull(theme);
+            Assert.Equal(MarkdownVisualThemeKind.Report, theme!.Kind);
+            Assert.Equal("059669", theme.Palette.Accent.ToRgbHex());
+            Assert.Equal("064e3b", theme.Palette.Heading.ToRgbHex());
+            Assert.Equal(HtmlStyle.Word, theme.HtmlStyle);
+        }
     }
 }

@@ -4,6 +4,55 @@ namespace OfficeIMO.Markdown;
 /// Shared visual profile used to keep Markdown exports visually consistent across HTML, PDF, and Word.
 /// </summary>
 public sealed class MarkdownVisualTheme {
+    private static readonly IReadOnlyList<MarkdownVisualThemePreset> BuiltInPresets = Array.AsReadOnly(new[] {
+        new MarkdownVisualThemePreset(
+            MarkdownVisualThemeKind.Plain,
+            "Plain",
+            "Minimal styling that leaves renderers close to their plain defaults.",
+            HtmlStyle.Clean,
+            "none"),
+        new MarkdownVisualThemePreset(
+            MarkdownVisualThemeKind.WordLike,
+            "WordLike",
+            "Clean document styling for general Word, HTML, and PDF exports.",
+            HtmlStyle.Word,
+            "word", "word-document"),
+        new MarkdownVisualThemePreset(
+            MarkdownVisualThemeKind.TechnicalDocument,
+            "TechnicalDocument",
+            "Polished technical-document styling for guides, READMEs, and specifications.",
+            HtmlStyle.GithubAuto,
+            "technical", "docs", "documentation"),
+        new MarkdownVisualThemePreset(
+            MarkdownVisualThemeKind.GitHubLike,
+            "GitHubLike",
+            "GitHub-inspired Markdown styling for README-style exports.",
+            HtmlStyle.GithubAuto,
+            "github"),
+        new MarkdownVisualThemePreset(
+            MarkdownVisualThemeKind.Compact,
+            "Compact",
+            "Dense document styling for technical notes and command output.",
+            HtmlStyle.Clean,
+            "dense"),
+        new MarkdownVisualThemePreset(
+            MarkdownVisualThemeKind.Report,
+            "Report",
+            "Report-oriented styling with stronger tables and section hierarchy.",
+            HtmlStyle.Word,
+            "business-report")
+    });
+
+    private static readonly IReadOnlyList<MarkdownColorSchemeKind> BuiltInColorSchemes = Array.AsReadOnly(new[] {
+        MarkdownColorSchemeKind.Default,
+        MarkdownColorSchemeKind.Blue,
+        MarkdownColorSchemeKind.Emerald,
+        MarkdownColorSchemeKind.Indigo,
+        MarkdownColorSchemeKind.Rose,
+        MarkdownColorSchemeKind.Amber,
+        MarkdownColorSchemeKind.Slate
+    });
+
     private MarkdownVisualPalette _palette = new MarkdownVisualPalette();
     private MarkdownTableVisualStyle _table = new MarkdownTableVisualStyle();
 
@@ -42,6 +91,12 @@ public sealed class MarkdownVisualTheme {
 
     internal MarkdownTableVisualStyle TableSnapshot => _table;
 
+    /// <summary>Built-in visual theme presets callers can offer as stable choices.</summary>
+    public static IReadOnlyList<MarkdownVisualThemePreset> Presets => BuiltInPresets;
+
+    /// <summary>Built-in accent color schemes that can be applied to any preset.</summary>
+    public static IReadOnlyList<MarkdownColorSchemeKind> ColorSchemes => BuiltInColorSchemes;
+
     /// <summary>Creates one of the built-in shared visual themes.</summary>
     public static MarkdownVisualTheme Create(MarkdownVisualThemeKind kind) {
         switch (kind) {
@@ -62,45 +117,32 @@ public sealed class MarkdownVisualTheme {
         }
     }
 
+    /// <summary>Creates one of the built-in shared visual themes and applies a built-in color scheme.</summary>
+    public static MarkdownVisualTheme Create(MarkdownVisualThemeKind kind, MarkdownColorSchemeKind colorScheme) {
+        MarkdownVisualTheme theme = Create(kind);
+        return colorScheme == MarkdownColorSchemeKind.Default ? theme : theme.WithColorScheme(colorScheme);
+    }
+
+    /// <summary>Default shared visual theme used when exporters are asked to produce styled output without an explicit theme.</summary>
+    public static MarkdownVisualTheme Default() => WordLike();
+
+    /// <summary>Returns a copy of the requested theme, or the default shared theme when enabled.</summary>
+    public static MarkdownVisualTheme? ResolveOrDefault(MarkdownVisualTheme? theme, bool applyDefaultTheme = true) =>
+        theme?.Clone() ?? (applyDefaultTheme ? Default() : null);
+
     /// <summary>Tries to create a built-in shared visual theme from an API or front-matter name.</summary>
-    public static bool TryCreate(string? name, out MarkdownVisualTheme? theme) {
+    public static bool TryCreate(string? name, out MarkdownVisualTheme? theme) =>
+        TryCreate(name, MarkdownColorSchemeKind.Default, out theme);
+
+    /// <summary>Tries to create a built-in shared visual theme from an API or front-matter name and applies a built-in color scheme.</summary>
+    public static bool TryCreate(string? name, MarkdownColorSchemeKind colorScheme, out MarkdownVisualTheme? theme) {
         theme = null;
-        string normalized = NormalizeName(name);
-        if (normalized.Length == 0) {
+        if (!TryResolveThemeKind(name, out MarkdownVisualThemeKind kind)) {
             return false;
         }
 
-        switch (normalized) {
-            case "plain":
-            case "none":
-                theme = Plain();
-                return true;
-            case "word":
-            case "wordlike":
-            case "worddocument":
-                theme = WordLike();
-                return true;
-            case "technical":
-            case "technicaldocument":
-            case "docs":
-            case "documentation":
-                theme = TechnicalDocument();
-                return true;
-            case "github":
-            case "githublike":
-                theme = GitHubLike();
-                return true;
-            case "compact":
-            case "dense":
-                theme = Compact();
-                return true;
-            case "report":
-            case "businessreport":
-                theme = Report();
-                return true;
-            default:
-                return false;
-        }
+        theme = Create(kind, colorScheme);
+        return true;
     }
 
     /// <summary>Plain profile with minimal visual opinions.</summary>
@@ -299,5 +341,29 @@ public sealed class MarkdownVisualTheme {
         }
 
         return builder.ToString();
+    }
+
+    private static bool TryResolveThemeKind(string? name, out MarkdownVisualThemeKind kind) {
+        kind = default;
+        string normalized = NormalizeName(name);
+        if (normalized.Length == 0) {
+            return false;
+        }
+
+        foreach (MarkdownVisualThemePreset preset in BuiltInPresets) {
+            if (NormalizeName(preset.Name) == normalized) {
+                kind = preset.Kind;
+                return true;
+            }
+
+            foreach (string alias in preset.Aliases) {
+                if (NormalizeName(alias) == normalized) {
+                    kind = preset.Kind;
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

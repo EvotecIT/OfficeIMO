@@ -31,7 +31,16 @@ public static class HtmlConversionProfileContracts {
             new[] { "print sections", "positioning hints", "backgrounds", "page-breaks", "complex tables", "media-heavy content" },
             new[] { "computed-style capture", "media intent metadata", "layout-affecting declarations", "resource dependency graph" },
             new[] { "complete resource inventory", "policy outcome per resource", "external dependency diagnostics" },
-            new[] { "fidelity score", "layout fallback diagnostics", "unsupported high-fidelity feature diagnostics" })
+            new[] { "fidelity score", "layout fallback diagnostics", "unsupported high-fidelity feature diagnostics" }),
+        new HtmlConversionProfileContract(
+            HtmlConversionProfile.PositionedReview,
+            "Positioned Review",
+            "PDF readback, page previews, and diagnostic review lanes where source geometry needs to remain inspectable in HTML.",
+            "Preserve review geometry and source anchors while clearly avoiding editable document reconstruction claims.",
+            new[] { "page wrappers", "positioned text blocks", "positioned images", "link frames", "form field frames", "source anchors" },
+            new[] { "absolute positioning", "page dimensions", "safe overlay styles", "review-only visual hints" },
+            new[] { "resource inventory", "safe link handling", "image placeholder or embedding policy", "source coordinate reporting" },
+            new[] { "geometry simplification diagnostics", "unsafe link diagnostics", "missing resource diagnostics", "no-editable-reconstruction boundary" })
     }.AsReadOnly();
 
     /// <summary>

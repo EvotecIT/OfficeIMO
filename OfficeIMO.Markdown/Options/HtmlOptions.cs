@@ -201,6 +201,9 @@ public sealed class HtmlOptions {
     /// <summary>Shared visual theme used to keep Markdown HTML, PDF, and Word exports visually aligned.</summary>
     public MarkdownVisualTheme? VisualTheme { get; set; }
 
+    /// <summary>Applies the shared default visual theme when <see cref="VisualTheme"/> is omitted and the selected HTML style supports document theming.</summary>
+    public bool ApplyDefaultVisualTheme { get; set; } = true;
+
     /// <summary>
     /// Optional additional color overrides for links, headings, and TOC.
     /// Values set here override colors derived from <see cref="VisualTheme"/> and <see cref="Theme"/>.

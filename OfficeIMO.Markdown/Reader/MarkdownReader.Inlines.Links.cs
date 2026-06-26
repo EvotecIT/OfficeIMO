@@ -73,6 +73,11 @@ public static partial class MarkdownReader {
         return sb.ToString();
     }
 
+    private static string UnescapeMarkdownDestination(string value) {
+        if (IsWindowsDriveLike(value)) return value.Replace("\\\\", "\\");
+        return UnescapeMarkdownBackslashEscapes(value);
+    }
+
     private static bool TryParseRefLink(string text, int start, out int consumed, out string label, out string refLabel) {
         consumed = 0; label = refLabel = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
@@ -179,7 +184,7 @@ public static partial class MarkdownReader {
             if (gt >= start + 1 && gt < endExclusive) {
                 urlStart = start + 1;
                 urlLength = gt - urlStart;
-                url = UnescapeMarkdownBackslashEscapes(inner.Substring(urlStart, urlLength).Trim());
+                url = UnescapeMarkdownDestination(inner.Substring(urlStart, urlLength).Trim());
 
                 int restStart = gt + 1;
                 while (restStart < endExclusive && char.IsWhiteSpace(inner[restStart])) {
@@ -212,14 +217,14 @@ public static partial class MarkdownReader {
         if (ws < 0) {
             urlStart = start;
             urlLength = endExclusive - start;
-            url = UnescapeMarkdownBackslashEscapes(inner.Substring(urlStart, urlLength));
+            url = UnescapeMarkdownDestination(inner.Substring(urlStart, urlLength));
             title = null;
             return true;
         }
 
         urlStart = start;
         urlLength = ws - start;
-        url = UnescapeMarkdownBackslashEscapes(inner.Substring(urlStart, urlLength).Trim());
+        url = UnescapeMarkdownDestination(inner.Substring(urlStart, urlLength).Trim());
 
         int remainingStart = ws;
         while (remainingStart < endExclusive && char.IsWhiteSpace(inner[remainingStart])) {
@@ -256,7 +261,7 @@ public static partial class MarkdownReader {
             trimmedEndExclusive--;
         }
 
-        destination = UnescapeMarkdownBackslashEscapes(trimmed);
+        destination = UnescapeMarkdownDestination(trimmed);
         destinationStart = trimmedStart;
         destinationLength = Math.Max(0, trimmedEndExclusive - trimmedStart);
         return true;

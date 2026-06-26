@@ -341,7 +341,8 @@ internal static class HtmlRenderer {
     private static string? BuildCss(HtmlOptions options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks) {
         cssLinkTag = null; cssToWrite = null; extraHeadLinks = null;
         // Cache scoped base CSS (style preset + common extras) by (style|scopeSelector)
-        HtmlStyle effectiveStyle = GetEffectiveStyle(options);
+        MarkdownVisualTheme? effectiveVisualTheme = ResolveVisualTheme(options);
+        HtmlStyle effectiveStyle = GetEffectiveStyle(options, effectiveVisualTheme);
         string cacheKey = ((int)effectiveStyle).ToString() + "|" + (options.CssScopeSelector ?? string.Empty);
         if (!_scopedBaseCssCache.TryGetValue(cacheKey, out var baseCss)) {
             baseCss = ScopeCss(HtmlResources.GetStyleCss(effectiveStyle) + HtmlResources.CommonExtraCss, options.CssScopeSelector);
@@ -394,7 +395,7 @@ internal static class HtmlRenderer {
         extraHeadLinks = headLinks.ToString();
 
         // Theme overrides appended last so they win
-        var overrides = BuildThemeOverrides(options);
+        var overrides = BuildThemeOverrides(options, effectiveVisualTheme);
         if (!string.IsNullOrEmpty(overrides)) cssBuilder.Append(overrides);
         var aggregatedCss = cssBuilder.ToString();
         if (options.CssDelivery == CssDelivery.ExternalFile) {
@@ -408,17 +409,26 @@ internal static class HtmlRenderer {
         return aggregatedCss;
     }
 
-    private static HtmlStyle GetEffectiveStyle(HtmlOptions options) {
-        if (options.VisualTheme != null && options.Style == HtmlStyle.Clean) {
-            return options.VisualTheme.HtmlStyle;
+    private static MarkdownVisualTheme? ResolveVisualTheme(HtmlOptions options) {
+        if (options.VisualTheme != null) {
+            return options.VisualTheme.Clone();
+        }
+
+        bool useDefaultTheme = options.ApplyDefaultVisualTheme
+            && (options.Style == HtmlStyle.Clean || options.Style == HtmlStyle.Word);
+        return MarkdownVisualTheme.ResolveOrDefault(null, useDefaultTheme);
+    }
+
+    private static HtmlStyle GetEffectiveStyle(HtmlOptions options, MarkdownVisualTheme? visualTheme) {
+        if (visualTheme != null && options.Style == HtmlStyle.Clean) {
+            return visualTheme.HtmlStyle;
         }
 
         return options.Style;
     }
 
-    private static string BuildThemeOverrides(HtmlOptions options) {
-        ThemeColors t = BuildEffectiveThemeColors(options);
-        MarkdownVisualTheme? theme = options.VisualTheme;
+    private static string BuildThemeOverrides(HtmlOptions options, MarkdownVisualTheme? theme) {
+        ThemeColors t = BuildEffectiveThemeColors(options, theme);
         bool any = theme != null
                  || !string.IsNullOrWhiteSpace(t.AccentLight) || !string.IsNullOrWhiteSpace(t.AccentDark)
                  || !string.IsNullOrWhiteSpace(t.HeadingLight) || !string.IsNullOrWhiteSpace(t.HeadingDark)
@@ -483,10 +493,10 @@ internal static class HtmlRenderer {
         return sb.ToString();
     }
 
-    private static ThemeColors BuildEffectiveThemeColors(HtmlOptions options) {
+    private static ThemeColors BuildEffectiveThemeColors(HtmlOptions options, MarkdownVisualTheme? visualTheme) {
         var colors = new ThemeColors();
-        if (options.VisualTheme != null) {
-            MarkdownVisualPalette palette = options.VisualTheme.PaletteSnapshot;
+        if (visualTheme != null) {
+            MarkdownVisualPalette palette = visualTheme.PaletteSnapshot;
             colors.AccentLight = palette.Accent.ToCssColor();
             colors.AccentDark = palette.Accent.ToCssColor();
             colors.HeadingLight = palette.Heading.ToCssColor();

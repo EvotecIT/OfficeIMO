@@ -26,7 +26,7 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static Omd.MarkdownVisualTheme? ResolveTheme(MarkdownToWordOptions options) =>
-            options.ThemeSnapshot;
+            Omd.MarkdownVisualTheme.ResolveOrDefault(options.ThemeSnapshot, options.ApplyDefaultTheme);
 
         private static void ApplyHeadingTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
