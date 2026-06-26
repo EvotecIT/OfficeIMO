@@ -294,6 +294,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_PreservesWhitespaceRunsWhenWrappedTextStillFits() {
+            static double Measure(string? value, double size) => (value?.Length ?? 0) * size;
+
+            IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines("  A  B\tC", 1D, 20D, Measure);
+
+            OfficeTextLine line = Assert.Single(lines);
+            Assert.Equal("  A  B\tC", line.Text);
+            Assert.Equal(8D, line.Width);
+        }
+
+        [Fact]
         public void OfficeTextLayoutEngine_BreaksLongWordsAndReturnsEmptyLineForBlankText() {
             double Measure(string? value, double size) => (value?.Length ?? 0) * size;
 

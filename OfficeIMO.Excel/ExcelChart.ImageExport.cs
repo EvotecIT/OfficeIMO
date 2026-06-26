@@ -364,7 +364,8 @@ namespace OfficeIMO.Excel {
             var styles = new Dictionary<int, ImageExportSeriesStyle>();
             int seriesOrder = 0;
             foreach (OpenXmlCompositeElement series in plotArea.Descendants<OpenXmlCompositeElement>().Where(IsSeriesElement)) {
-                int index = seriesOrder++;
+                int documentOrder = seriesOrder++;
+                int index = (int)(series.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)documentOrder);
                 ImageExportSeriesStyle style = new ImageExportSeriesStyle();
 
                 C.ChartShapeProperties? properties = series.GetFirstChild<C.ChartShapeProperties>();

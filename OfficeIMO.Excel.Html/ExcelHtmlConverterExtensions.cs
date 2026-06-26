@@ -128,17 +128,18 @@ public static class ExcelHtmlConverterExtensions {
                 string tag = row == 0 ? "th" : "td";
                 int cellRow = firstRow + row;
                 int cellColumn = firstColumn + column;
+                string cellText = ReadCellText(sheet, cellRow, cellColumn, options.EmptyCellText);
                 body.Append('<').Append(tag);
                 if (sheet.TryGetCellValueSnapshot(cellRow, cellColumn, out ExcelCellValueSnapshot? snapshot) && snapshot != null) {
                     body.Append(" data-officeimo-value-kind=\"")
-                        .Append(OfficeHtmlText.EscapeAttribute(ToHtmlValueKind(snapshot.Kind)))
+                        .Append(OfficeHtmlText.EscapeAttribute(ToHtmlValueKind(snapshot, cellText)))
                         .Append("\" data-officeimo-value=\"")
-                        .Append(OfficeHtmlText.EscapeAttribute(snapshot.RawValue))
+                        .Append(OfficeHtmlText.EscapeAttribute(ToHtmlRawValue(snapshot, cellText)))
                         .Append('"');
                 }
 
                 body.Append('>');
-                body.Append(OfficeHtmlText.Escape(ReadCellText(sheet, cellRow, cellColumn, options.EmptyCellText)));
+                body.Append(OfficeHtmlText.Escape(cellText));
                 body.Append("</").Append(tag).Append('>');
             }
 
@@ -307,9 +308,16 @@ public static class ExcelHtmlConverterExtensions {
             body.Append("<tr><th>")
                 .Append(OfficeHtmlText.Escape(series.Name))
                 .Append("</th>");
-            foreach (double value in series.Values) {
-                body.Append("<td>")
-                    .Append(value.ToString("G17", CultureInfo.InvariantCulture))
+            for (int i = 0; i < series.Values.Count; i++) {
+                body.Append("<td");
+                if (series.XValues != null && i < series.XValues.Count) {
+                    body.Append(" data-officeimo-x=\"")
+                        .Append(OfficeHtmlText.EscapeAttribute(series.XValues[i].ToString("G17", CultureInfo.InvariantCulture)))
+                        .Append('"');
+                }
+
+                body.Append('>')
+                    .Append(series.Values[i].ToString("G17", CultureInfo.InvariantCulture))
                     .Append("</td>");
             }
 
@@ -462,6 +470,24 @@ public static class ExcelHtmlConverterExtensions {
             ExcelCellValueKind.Other => "other",
             _ => "text"
         };
+
+    private static string ToHtmlValueKind(ExcelCellValueSnapshot snapshot, string cellText) =>
+        ShouldUseDisplayTextRawValue(snapshot, cellText) ? "text" : ToHtmlValueKind(snapshot.Kind);
+
+    private static string ToHtmlRawValue(ExcelCellValueSnapshot snapshot, string cellText) =>
+        ShouldUseDisplayTextRawValue(snapshot, cellText) ? cellText : snapshot.RawValue;
+
+    private static bool ShouldUseDisplayTextRawValue(ExcelCellValueSnapshot snapshot, string cellText) =>
+        snapshot.Kind == ExcelCellValueKind.Text ||
+        (HasSignificantWhitespace(cellText) &&
+            !string.Equals(cellText, snapshot.RawValue, StringComparison.Ordinal) &&
+            int.TryParse(snapshot.RawValue, NumberStyles.None, CultureInfo.InvariantCulture, out _));
+
+    private static bool HasSignificantWhitespace(string text) =>
+        text.IndexOf('\n') >= 0 ||
+        text.IndexOf('\r') >= 0 ||
+        text.IndexOf('\t') >= 0 ||
+        text.Contains("  ");
 
     private static void ParseUsedRange(string usedRange, out int firstRow, out int firstColumn, out int rowCount, out int columnCount) {
         if (string.IsNullOrWhiteSpace(usedRange)) {

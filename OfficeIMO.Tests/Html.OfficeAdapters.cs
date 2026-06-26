@@ -330,6 +330,57 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_LoadPreservesRawTextCellWhitespace() {
+        string value = "A  B\n C";
+        string html = """
+            <main>
+              <section class="officeimo-sheet" data-officeimo-sheet="Whitespace" data-officeimo-range="A1:A1">
+                <table>
+                  <tr><td data-officeimo-value-kind="text" data-officeimo-value="A  B&#10; C">A B C</td></tr>
+                </table>
+              </section>
+            </main>
+            """;
+
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        using var stream = new MemoryStream();
+        imported.Save(stream);
+        stream.Position = 0;
+        using ExcelDocument persisted = ExcelDocument.Load(stream, readOnly: true);
+        ExcelSheet importedSheet = Assert.Single(persisted.Sheets);
+
+        Assert.True(importedSheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.Equal(ExcelCellValueKind.Text, snapshot!.Kind);
+        Assert.Equal(value, snapshot.Text);
+    }
+
+    [Fact]
+    public void ExcelHtml_RoundTripsScatterChartXValuesInSemanticChartData() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorkSheet("Scatter");
+        var data = new ExcelChartData(
+            new[] { "1.5", "2.5" },
+            new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1.5D, 2.5D }, ExcelChartType.Scatter) });
+        sheet.AddChart(data, row: 1, column: 1, widthPixels: 320, heightPixels: 180, type: ExcelChartType.Scatter, title: "Scatter");
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+
+        Assert.Contains("data-officeimo-x=\"1.5\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-x=\"2.5\"", html, StringComparison.Ordinal);
+
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelChart chart = Assert.Single(imported.Sheets.Single(sheet => sheet.Name == "Scatter").Charts);
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
+        Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
+        Assert.Equal(new[] { 10D, 20D }, series.Values);
+    }
+
+    [Fact]
     public void PowerPointHtml_ExportsSemanticSlidesWithExtractionProof() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.Slides[0];

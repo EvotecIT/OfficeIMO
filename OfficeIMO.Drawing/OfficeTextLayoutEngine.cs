@@ -25,46 +25,88 @@ public static partial class OfficeTextLayoutEngine {
         string[] sourceLines = value.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         var output = new List<OfficeTextLine>();
         foreach (string sourceLine in sourceLines) {
-            string line = sourceLine.Trim();
-            if (line.Length == 0) {
+            string line = sourceLine;
+            if (line.Length == 0 || IsWhitespaceRun(line)) {
                 output.Add(new OfficeTextLine(string.Empty, 0D));
                 continue;
             }
 
-            string[] words = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
             string current = string.Empty;
-            for (int i = 0; i < words.Length; i++) {
-                string word = words[i];
-                if (Measure(word, fontSize, measure) > width) {
-                    if (current.Length > 0) {
-                        output.Add(new OfficeTextLine(current, Measure(current, fontSize, measure)));
-                        current = string.Empty;
-                    }
-
-                    foreach (OfficeTextLine part in BreakWord(word, fontSize, width, measure)) {
+            foreach (string token in TokenizeWhitespaceRuns(line)) {
+                bool whitespace = IsWhitespaceRun(token);
+                if (!whitespace && current.Length == 0 && Measure(token, fontSize, measure) > width) {
+                    foreach (OfficeTextLine part in BreakWord(token, fontSize, width, measure)) {
                         output.Add(part);
                     }
 
                     continue;
                 }
 
-                string candidate = current.Length == 0 ? word : current + " " + word;
+                string candidate = current + token;
                 if (current.Length > 0 && Measure(candidate, fontSize, measure) > width) {
-                    output.Add(new OfficeTextLine(current, Measure(current, fontSize, measure)));
-                    current = word;
+                    string emitted = TrimTrailingSoftWrapWhitespace(current);
+                    output.Add(new OfficeTextLine(emitted, Measure(emitted, fontSize, measure)));
+                    current = whitespace ? string.Empty : token;
+                    if (!whitespace && Measure(current, fontSize, measure) > width) {
+                        foreach (OfficeTextLine part in BreakWord(current, fontSize, width, measure)) {
+                            output.Add(part);
+                        }
+
+                        current = string.Empty;
+                    }
                 } else {
                     current = candidate;
                 }
             }
 
             if (current.Length > 0) {
-                output.Add(new OfficeTextLine(current, Measure(current, fontSize, measure)));
+                string emitted = TrimTrailingSoftWrapWhitespace(current);
+                if (emitted.Length > 0) {
+                    output.Add(new OfficeTextLine(emitted, Measure(emitted, fontSize, measure)));
+                }
             }
         }
 
         return output.Count == 0
             ? new[] { new OfficeTextLine(string.Empty, 0D) }
             : output;
+    }
+
+    private static IEnumerable<string> TokenizeWhitespaceRuns(string text) {
+        int start = 0;
+        bool whitespace = IsSoftWrapWhitespace(text[0]);
+        for (int i = 1; i < text.Length; i++) {
+            bool currentWhitespace = IsSoftWrapWhitespace(text[i]);
+            if (currentWhitespace != whitespace) {
+                yield return text.Substring(start, i - start);
+                start = i;
+                whitespace = currentWhitespace;
+            }
+        }
+
+        yield return text.Substring(start);
+    }
+
+    private static bool IsWhitespaceRun(string text) {
+        for (int i = 0; i < text.Length; i++) {
+            if (!IsSoftWrapWhitespace(text[i])) {
+                return false;
+            }
+        }
+
+        return text.Length > 0;
+    }
+
+    private static bool IsSoftWrapWhitespace(char value) =>
+        value == ' ' || value == '\t';
+
+    private static string TrimTrailingSoftWrapWhitespace(string text) {
+        int end = text.Length;
+        while (end > 0 && IsSoftWrapWhitespace(text[end - 1])) {
+            end--;
+        }
+
+        return end == text.Length ? text : text.Substring(0, end);
     }
 
     /// <summary>

@@ -2571,6 +2571,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCharts_ImageExportStylesFollowSeriesIndexNotXmlOrder() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SeriesStyleIndexOrder.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Summary");
+                var data = new ExcelChartData(
+                    new[] { "Q1", "Q2" },
+                    new[] {
+                        new ExcelChartSeries("First", new[] { 10d, 20d }),
+                        new ExcelChartSeries("Second", new[] { 30d, 40d })
+                    });
+
+                ExcelChart chart = sheet.AddChart(data, row: 1, column: 4, widthPixels: 480, heightPixels: 320,
+                    type: ExcelChartType.ColumnClustered, title: "Series Style Index");
+                chart.SetSeriesFillColor(0, "FF0000")
+                     .SetSeriesFillColor(1, "0000FF");
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = GetWorksheetPartWithCharts(spreadsheet);
+                ChartPart chartPart = worksheetPart.DrawingsPart!.ChartParts.First();
+                C.BarChartSeries[] series = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                    .GetFirstChild<C.PlotArea>()!
+                    .GetFirstChild<C.BarChart>()!
+                    .Elements<C.BarChartSeries>()
+                    .ToArray();
+                Assert.Equal(2, series.Length);
+                series[0].GetFirstChild<C.Index>()!.Val = 1U;
+                series[0].GetFirstChild<C.Order>()!.Val = 1U;
+                series[1].GetFirstChild<C.Index>()!.Val = 0U;
+                series[1].GetFirstChild<C.Order>()!.Val = 0U;
+                chartPart.ChartSpace.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelChart chart = Assert.Single(document.Sheets.Single(sheet => sheet.Name == "Summary").Charts);
+                Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+                Assert.Equal("0000FF", snapshot.Data.Series[0].SeriesColorArgb);
+                Assert.Equal("FF0000", snapshot.Data.Series[1].SeriesColorArgb);
+            }
+        }
+
+        [Fact]
         public void Test_ExcelCharts_SeriesTrendline() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Trendline.xlsx");
 

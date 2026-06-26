@@ -71,7 +71,7 @@ public static class ExcelHtmlLoadExtensions {
             int columnIndex = firstColumn;
             foreach (IElement cell in row.Children.Where(child => IsElement(child, "th") || IsElement(child, "td"))) {
                 string text = NormalizeText(cell.TextContent);
-                if (text.Length > 0) {
+                if (text.Length > 0 || cell.GetAttribute("data-officeimo-value") != null) {
                     SetCellValue(sheet, rowIndex, columnIndex, cell, text, result);
                     result.Cells++;
                 }
@@ -140,6 +140,9 @@ public static class ExcelHtmlLoadExtensions {
             }
 
             result.Diagnostics.Add("Cell " + BuildCellReference(row, column) + " contained a semantic boolean value that could not be parsed and was imported as text.");
+        } else if (kind.Equals("text", StringComparison.OrdinalIgnoreCase)) {
+            sheet.CellValue(row, column, rawValue);
+            return;
         }
 
         sheet.CellValue(row, column, fallbackText);
@@ -240,13 +243,25 @@ public static class ExcelHtmlLoadExtensions {
 
             string name = NormalizeText(cells[0].TextContent);
             var values = new double[categories.Count];
+            var xValues = new double[categories.Count];
+            bool hasXValues = cells.Skip(1).Any(cell => cell.GetAttribute("data-officeimo-x") != null);
             for (int i = 0; i < categories.Count; i++) {
-                if (!double.TryParse(NormalizeText(cells[i + 1].TextContent), NumberStyles.Float, CultureInfo.InvariantCulture, out values[i])) {
+                IElement valueCell = cells[i + 1];
+                if (!double.TryParse(NormalizeText(valueCell.TextContent), NumberStyles.Float, CultureInfo.InvariantCulture, out values[i])) {
                     return false;
+                }
+
+                if (hasXValues) {
+                    string? rawXValue = valueCell.GetAttribute("data-officeimo-x");
+                    if (rawXValue == null || !double.TryParse(rawXValue, NumberStyles.Float, CultureInfo.InvariantCulture, out xValues[i])) {
+                        return false;
+                    }
                 }
             }
 
-            series.Add(new ExcelChartSeries(name, values));
+            series.Add(hasXValues
+                ? new ExcelChartSeries(name, values, xValues)
+                : new ExcelChartSeries(name, values));
         }
 
         if (series.Count == 0) {
@@ -296,7 +311,7 @@ public static class ExcelHtmlLoadExtensions {
         const string marker = "Type:";
         int index = meta.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
         if (index >= 0) {
-            string value = meta.Substring(index + marker.Length).Split(';')[0].Trim();
+            string value = meta.Substring(index + marker.Length).Split(new[] { ';', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
             if (Enum.TryParse(value, ignoreCase: true, out ExcelChartType type)) {
                 return type;
             }
