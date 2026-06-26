@@ -54,6 +54,7 @@ public sealed partial class CsvDocument
     {
         var recordsToSkip = GetInitialRecordsToSkip(options);
         using var records = ReadLogicalDelimiterDetectionRecords(reader).GetEnumerator();
+        var allowPreHeaderCommentSkip = true;
         while (records.MoveNext())
         {
             var record = records.Current;
@@ -61,14 +62,21 @@ public sealed partial class CsvDocument
             {
                 if (options.AllowEmptyLines)
                 {
+                    if (recordsToSkip > 0)
+                    {
+                        recordsToSkip--;
+                        continue;
+                    }
+
                     yield return record;
+                    allowPreHeaderCommentSkip = false;
                     break;
                 }
 
                 continue;
             }
 
-            if (ShouldSkipCommentDuringDelimiterDetection(record, options, useHeaderDiscovery))
+            if (ShouldSkipCommentDuringDelimiterDetection(record, options, useHeaderDiscovery, allowPreHeaderCommentSkip))
             {
                 continue;
             }
@@ -80,6 +88,7 @@ public sealed partial class CsvDocument
             }
 
             yield return record;
+            allowPreHeaderCommentSkip = false;
             break;
         }
 
@@ -92,7 +101,7 @@ public sealed partial class CsvDocument
                 continue;
             }
 
-            if (ShouldSkipCommentDuringDelimiterDetection(record, options, useHeaderDiscovery))
+            if (ShouldSkipCommentDuringDelimiterDetection(record, options, useHeaderDiscovery, allowPreHeaderCommentSkip))
             {
                 continue;
             }
@@ -153,7 +162,7 @@ public sealed partial class CsvDocument
         return !inQuotes;
     }
 
-    private static bool ShouldSkipCommentDuringDelimiterDetection(string line, CsvLoadOptions options, bool useHeaderDiscovery)
+    private static bool ShouldSkipCommentDuringDelimiterDetection(string line, CsvLoadOptions options, bool useHeaderDiscovery, bool allowPreHeaderCommentSkip)
     {
         if (line.Length == 0 || line[0] != options.CommentCharacter)
         {
@@ -165,7 +174,8 @@ public sealed partial class CsvDocument
             options.Header is null &&
             options.RecognizeW3CFieldsHeader;
 
-        var skipPreHeaderComment = useHeaderDiscovery &&
+        var skipPreHeaderComment = allowPreHeaderCommentSkip &&
+            useHeaderDiscovery &&
             options.HasHeaderRow &&
             options.Header is null &&
             options.SkipCommentRowsBeforeHeader;

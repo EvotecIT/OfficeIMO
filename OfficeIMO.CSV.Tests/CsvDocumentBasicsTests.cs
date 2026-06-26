@@ -102,6 +102,14 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Preserves_Surrounding_Whitespace_Around_Quoted_Fields_By_Default()
+    {
+        var parsed = CsvDocument.Parse("Name\n  \"Alpha\"  \n");
+
+        Assert.Equal("  Alpha  ", parsed.AsEnumerable().Single().AsString("Name"));
+    }
+
+    [Fact]
     public void Delimiter_Detection_Skips_Trimmed_Blank_Records()
     {
         var parsed = CsvDocument.Parse(
@@ -114,6 +122,25 @@ public class CsvDocumentBasicsTests
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(';', parsed.Delimiter);
+        Assert.Equal("Alpha", row.AsString("Name"));
+        Assert.Equal("1", row.AsString("Value"));
+    }
+
+    [Fact]
+    public void Delimiter_Detection_Applies_Skip_Before_Preserved_Blank_Records()
+    {
+        var parsed = CsvDocument.Parse(
+            "\nName;Value\nAlpha;1\n",
+            new CsvLoadOptions
+            {
+                DetectDelimiter = true,
+                AllowEmptyLines = true,
+                SkipInitialRecords = 1
+            });
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal(';', parsed.Delimiter);
+        Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
         Assert.Equal("Alpha", row.AsString("Name"));
         Assert.Equal("1", row.AsString("Value"));
     }
@@ -137,12 +164,25 @@ public class CsvDocumentBasicsTests
     }
 
     [Theory]
+    [InlineData("Alpha, \"Beta\" ", " Beta ")]
+    [InlineData("Alpha, \"Be,ta\" ", " Be,ta ")]
+    [InlineData("Alpha,\"Be\"  ", "Be  ")]
+    public void Preserves_Padding_Around_Quoted_Fields_By_Default(string row, string expected)
+    {
+        var parsed = CsvDocument.Parse($"Name,Value\n{row}\n");
+
+        Assert.Equal(expected, parsed.AsEnumerable().Single().AsString("Value"));
+    }
+
+    [Theory]
     [InlineData("Alpha, \"Beta\" ", "Beta")]
     [InlineData("Alpha, \"Be,ta\" ", "Be,ta")]
     [InlineData("Alpha,\"Be\"  ", "Be")]
-    public void Ignores_Padding_Around_Quoted_Fields(string row, string expected)
+    public void TrimWhitespace_Removes_Padding_Around_Quoted_Fields(string row, string expected)
     {
-        var parsed = CsvDocument.Parse($"Name,Value\n{row}\n");
+        var parsed = CsvDocument.Parse(
+            $"Name,Value\n{row}\n",
+            new CsvLoadOptions { TrimWhitespace = true });
 
         Assert.Equal(expected, parsed.AsEnumerable().Single().AsString("Value"));
     }
@@ -288,6 +328,19 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Skip_Comment_Rows_Before_Header_Skips_Delimiterless_Multiline_Comment_Record()
+    {
+        var parsed = CsvDocument.Parse(
+            "#note \"ignored\nstill ignored\"\nName,Value\nA,1\n",
+            new CsvLoadOptions());
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
+        Assert.Equal("A", row.AsString("Name"));
+        Assert.Equal("1", row.AsString("Value"));
+    }
+
+    [Fact]
     public void Delimiter_Detection_Keeps_Comment_Looking_Data_When_No_Header_Is_Discovered()
     {
         var parsed = CsvDocument.Parse(
@@ -320,6 +373,21 @@ public class CsvDocumentBasicsTests
         Assert.Equal("#Alpha", rows[0].AsString("Name"));
         Assert.Equal("1", rows[0].AsString("Value"));
         Assert.Equal("Beta;2", rows[1].AsString("Name"));
+    }
+
+    [Fact]
+    public void Delimiter_Detection_Keeps_Post_Header_Comment_Looking_Data()
+    {
+        var parsed = CsvDocument.Parse(
+            "A,B;C\n#x,y,z\n1;2;3\n",
+            new CsvLoadOptions { DetectDelimiter = true });
+
+        var rows = parsed.AsEnumerable().ToArray();
+        Assert.Equal(',', parsed.Delimiter);
+        Assert.Equal(new[] { "A", "B;C" }, parsed.Header);
+        Assert.Equal("#x", rows[0].AsString("A"));
+        Assert.Equal("y", rows[0].AsString("B;C"));
+        Assert.Equal("1;2;3", rows[1].AsString("A"));
     }
 
     [Fact]

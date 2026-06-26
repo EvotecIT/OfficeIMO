@@ -6,6 +6,19 @@ namespace OfficeIMO.CSV;
 
 internal static class CsvParser
 {
+    private readonly struct CsvLine
+    {
+        public CsvLine(string text, string separator)
+        {
+            Text = text;
+            Separator = separator;
+        }
+
+        public string Text { get; }
+
+        public string Separator { get; }
+    }
+
     internal readonly struct CsvParsedRecord
     {
         public CsvParsedRecord(IReadOnlyList<string> values, bool startsWithCommentCharacter)
@@ -79,11 +92,12 @@ internal static class CsvParser
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
         var emittedRecordCount = 0;
+        var pendingLines = new Queue<CsvLine>();
 
-        while (ReadLineWithSeparator(reader, out var lineSeparator) is { } line)
+        while (ReadLineWithSeparator(reader, pendingLines, out var lineSeparator) is { } line)
         {
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
-            if (TrySkipCommentRecordBeforeParsing(reader, startsWithCommentCharacter, line, lineSeparator, options, emittedRecordCount, ref lineNumber))
+            if (TrySkipCommentRecordBeforeParsing(reader, pendingLines, startsWithCommentCharacter, line, lineSeparator, options, emittedRecordCount, ref lineNumber))
             {
                 lineNumber++;
                 continue;
@@ -109,7 +123,7 @@ internal static class CsvParser
                 var pendingSeparator = lineSeparator;
                 while (true)
                 {
-                    var next = ReadLineWithSeparator(reader, out var nextSeparator);
+                    var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
                     if (next == null)
                     {
                         throw new CsvParseException("Unterminated quoted field.", lineNumber);
@@ -159,11 +173,12 @@ internal static class CsvParser
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
         var emittedRecordCount = 0;
+        var pendingLines = new Queue<CsvLine>();
 
-        while (ReadLineWithSeparator(reader, out var lineSeparator) is { } line)
+        while (ReadLineWithSeparator(reader, pendingLines, out var lineSeparator) is { } line)
         {
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
-            if (TrySkipCommentRecordBeforeParsing(reader, startsWithCommentCharacter, line, lineSeparator, options, emittedRecordCount, ref lineNumber))
+            if (TrySkipCommentRecordBeforeParsing(reader, pendingLines, startsWithCommentCharacter, line, lineSeparator, options, emittedRecordCount, ref lineNumber))
             {
                 lineNumber++;
                 continue;
@@ -189,7 +204,7 @@ internal static class CsvParser
                 var pendingSeparator = lineSeparator;
                 while (true)
                 {
-                    var next = ReadLineWithSeparator(reader, out var nextSeparator);
+                    var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
                     if (next == null)
                     {
                         throw new CsvParseException("Unterminated quoted field.", lineNumber);
@@ -234,11 +249,12 @@ internal static class CsvParser
         var lineNumber = 1;
         var reusableRecord = new List<string>(16);
         var emittedRecordCount = 0;
+        var pendingLines = new Queue<CsvLine>();
 
-        while (ReadLineWithSeparator(reader, out var lineSeparator) is { } line)
+        while (ReadLineWithSeparator(reader, pendingLines, out var lineSeparator) is { } line)
         {
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
-            if (TrySkipCommentRecordBeforeParsing(reader, startsWithCommentCharacter, line, lineSeparator, options, emittedRecordCount, ref lineNumber))
+            if (TrySkipCommentRecordBeforeParsing(reader, pendingLines, startsWithCommentCharacter, line, lineSeparator, options, emittedRecordCount, ref lineNumber))
             {
                 lineNumber++;
                 continue;
@@ -264,7 +280,7 @@ internal static class CsvParser
                 var pendingSeparator = lineSeparator;
                 while (true)
                 {
-                    var next = ReadLineWithSeparator(reader, out var nextSeparator);
+                    var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
                     if (next == null)
                     {
                         throw new CsvParseException("Unterminated quoted field.", lineNumber);
@@ -440,7 +456,7 @@ internal static class CsvParser
                     continue;
                 }
 
-                if (IsWhitespaceOnly(buffer))
+                if (trim && IsWhitespaceOnly(buffer))
                 {
                     buffer.Clear();
                 }
@@ -457,7 +473,7 @@ internal static class CsvParser
                 continue;
             }
 
-            if (afterClosingQuote && char.IsWhiteSpace(c))
+            if (afterClosingQuote && char.IsWhiteSpace(c) && trim)
             {
                 continue;
             }
@@ -573,15 +589,14 @@ internal static class CsvParser
         return !CanReadW3CFieldsHeader(options, emittedRecordCount) || !IsW3CFieldsLine(firstLine, options);
     }
 
-    private static bool TrySkipCommentRecordBeforeParsing(TextReader reader, bool startsWithCommentCharacter, string firstLine, string firstLineSeparator, CsvLoadOptions options, int emittedRecordCount, ref int lineNumber)
+    private static bool TrySkipCommentRecordBeforeParsing(TextReader reader, Queue<CsvLine> pendingLines, bool startsWithCommentCharacter, string firstLine, string firstLineSeparator, CsvLoadOptions options, int emittedRecordCount, ref int lineNumber)
     {
         if (!ShouldSkipCommentRecordBeforeParsing(startsWithCommentCharacter, firstLine, options, emittedRecordCount))
         {
             return false;
         }
 
-        if (firstLine.IndexOf(options.Delimiter) < 0 ||
-            TryParseQuotedRecord(firstLine, options.Delimiter, options.TrimWhitespace, out _))
+        if (TryParseQuotedRecord(firstLine, options.Delimiter, options.TrimWhitespace, out _))
         {
             return true;
         }
@@ -590,9 +605,15 @@ internal static class CsvParser
         var pendingSeparator = firstLineSeparator;
         while (true)
         {
-            var next = ReadLineWithSeparator(reader, out var nextSeparator);
+            var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
             if (next == null)
             {
+                return true;
+            }
+
+            if (firstLine.IndexOf(options.Delimiter) < 0 && next.IndexOf(options.Delimiter) >= 0)
+            {
+                pendingLines.Enqueue(new CsvLine(next, nextSeparator));
                 return true;
             }
 
@@ -687,6 +708,18 @@ internal static class CsvParser
 
             builder.Append(ch);
         }
+    }
+
+    private static string? ReadLineWithSeparator(TextReader reader, Queue<CsvLine> pendingLines, out string separator)
+    {
+        if (pendingLines.Count > 0)
+        {
+            var pending = pendingLines.Dequeue();
+            separator = pending.Separator;
+            return pending.Text;
+        }
+
+        return ReadLineWithSeparator(reader, out separator);
     }
 
     private static void AddField(List<string> fields, StringBuilder buffer, bool trim, ref bool fieldWasQuoted)
