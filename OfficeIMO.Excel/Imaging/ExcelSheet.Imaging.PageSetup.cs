@@ -108,8 +108,13 @@ namespace OfficeIMO.Excel {
             double width = Math.Max(1D, content.Width * geometry.ContentScale);
             double height = Math.Max(1D, content.Height * geometry.ContentScale);
             if (format == OfficeImageExportFormat.Svg) {
+                string svgInner = OfficeSvgFormatting.ExtractSvgInner(Encoding.UTF8.GetString(content.Bytes));
+                if (Math.Abs(geometry.ContentScale - 1D) > 0.0000001D) {
+                    svgInner = "<g transform=\"scale(" + OfficeSvgFormatting.FormatNumber(geometry.ContentScale) + ")\">" + svgInner + "</g>";
+                }
+
                 return OfficeImageLayer.FromSvgInner(
-                    OfficeSvgFormatting.ExtractSvgInner(Encoding.UTF8.GetString(content.Bytes)),
+                    svgInner,
                     geometry.ContentX,
                     geometry.ContentY,
                     width,

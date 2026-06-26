@@ -540,6 +540,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportScalesDataBarsAgainstFullRuleRange() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("PartialDataBar");
+            for (int row = 1; row <= 10; row++) {
+                sheet.CellValue(row, 1, row);
+            }
+
+            sheet.AddConditionalDataBar("A1:A10", OfficeColor.Blue);
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A5:A5").CreateVisualSnapshot();
+
+            ExcelVisualConditionalDataBar bar = Assert.Single(snapshot.ConditionalDataBars);
+            Assert.Equal(5, bar.Row);
+            Assert.Equal(4D / 9D, bar.Ratio, precision: 3);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportHonorsThreeColorScaleMiddleStop() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -733,6 +751,26 @@ namespace OfficeIMO.Tests {
             ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:B1").CreateVisualSnapshot();
 
             Assert.Null(snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 2).Style.FillColorArgb);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportStopIfTrueSuppressesLowerIconsAndDataBars() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("StopVisuals");
+            sheet.CellValue(1, 1, 1);
+            sheet.CellValue(2, 1, 2);
+            sheet.CellValue(3, 1, 3);
+            sheet.AddConditionalFormulaRule("A2:A2", "=A2>0", stopIfTrue: true, fillColor: null);
+            sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
+            sheet.AddConditionalIconSet("A1:A3", IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A3").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+
+            Assert.Equal(2, snapshot.ConditionalDataBars.Count);
+            Assert.DoesNotContain(snapshot.ConditionalDataBars, bar => bar.Row == 2);
+            Assert.Equal(2, snapshot.ConditionalIcons.Count);
+            Assert.DoesNotContain(snapshot.ConditionalIcons, icon => icon.Row == 2);
         }
 
         [Fact]

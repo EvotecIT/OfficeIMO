@@ -211,6 +211,8 @@ namespace OfficeIMO.Excel {
             bool showValueAxisLine = IsImageExportAxisLineVisible(valueAxis);
             bool showCategoryAxisLabels = IsImageExportAxisLabelsVisible(categoryAxis);
             bool showValueAxisLabels = IsImageExportAxisLabelsVisible(valueAxis);
+            C.ScatterStyleValues? scatterStyle = GetImageExportScatterStyle(plotArea);
+            bool connectScatterPoints = GetImageExportConnectScatterPoints(scatterStyle);
             bool hasAxisLineVisibility = !showCategoryAxisLine || !showValueAxisLine;
             bool hasAxisNumberFormat = horizontalAxisNumberFormat != null || verticalAxisNumberFormat != null || categoryAxisNumberFormat != null;
             bool hasAxisDisplayUnit = horizontalAxisDisplayUnit.Divisor != null || verticalAxisDisplayUnit.Divisor != null;
@@ -231,6 +233,7 @@ namespace OfficeIMO.Excel {
             bool hasCategoryAxisOrientation = reverseCategoryAxis;
             bool fillRadarSeries = GetImageExportFillRadarSeries(plotArea);
             bool hasRadarFillLayout = !fillRadarSeries;
+            bool hasScatterStyleLayout = !connectScatterPoints;
             bool hasTextFont = legendFontSize != null ||
                 legendFontFamily != null ||
                 legendFontStyle != null ||
@@ -260,6 +263,7 @@ namespace OfficeIMO.Excel {
                 hasAxisCrossingPosition ||
                 hasCategoryAxisOrientation ||
                 hasRadarFillLayout ||
+                hasScatterStyleLayout ||
                 hasTextFont;
             if (!hasLayout) {
                 return null;
@@ -324,6 +328,7 @@ namespace OfficeIMO.Excel {
                 showValueAxisLine: showValueAxisLine,
                 showCategoryAxisLabels: showCategoryAxisLabels,
                 showValueAxisLabels: showValueAxisLabels,
+                connectScatterPoints: connectScatterPoints,
                 overlayTitle: IsEnabled(title?.GetFirstChild<C.Overlay>()));
         }
 
@@ -374,7 +379,8 @@ namespace OfficeIMO.Excel {
 
                 int valueCount = index >= 0 && index < data.Series.Count ? data.Series[index].Values.Count : 0;
                 C.Marker? marker = series.GetFirstChild<C.Marker>();
-                style.ShowMarkers = GetImageExportShowMarkers(marker);
+                C.ScatterStyleValues? scatterStyle = (series.Parent as C.ScatterChart)?.GetFirstChild<C.ScatterStyle>()?.Val?.Value;
+                style.ShowMarkers = GetImageExportShowMarkers(marker, scatterStyle);
                 style.MarkerSize = GetImageExportMarkerSize(marker);
                 style.MarkerShape = GetImageExportMarkerShape(marker);
                 style.MarkerOutlineColorArgb = GetImageExportMarkerOutlineColor(marker, workbookPart);
@@ -395,6 +401,12 @@ namespace OfficeIMO.Excel {
             C.RadarStyleValues? radarStyle = radarChart?.GetFirstChild<C.RadarStyle>()?.Val?.Value;
             return radarStyle == null || radarStyle.Value != C.RadarStyleValues.Standard;
         }
+
+        private static C.ScatterStyleValues? GetImageExportScatterStyle(C.PlotArea plotArea) =>
+            plotArea.GetFirstChild<C.ScatterChart>()?.GetFirstChild<C.ScatterStyle>()?.Val?.Value;
+
+        private static bool GetImageExportConnectScatterPoints(C.ScatterStyleValues? style) =>
+            style == null || style.Value != C.ScatterStyleValues.Marker;
 
         private static string? GetImageExportSeriesColor(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
             if (TryGetSolidFill(properties, workbookPart, out OfficeColor fill)) {
@@ -564,13 +576,23 @@ namespace OfficeIMO.Excel {
             return any ? colors : null;
         }
 
-        private static bool GetImageExportShowMarkers(C.Marker? marker) {
+        private static bool GetImageExportShowMarkers(C.Marker? marker, C.ScatterStyleValues? scatterStyle) {
             if (marker == null) {
-                return false;
+                return GetImageExportScatterStyleShowMarkers(scatterStyle);
             }
 
             C.MarkerStyleValues? symbol = marker?.Symbol?.Val?.Value;
             return symbol == null || symbol.Value != C.MarkerStyleValues.None;
+        }
+
+        private static bool GetImageExportScatterStyleShowMarkers(C.ScatterStyleValues? style) {
+            if (style == null) {
+                return true;
+            }
+
+            return style.Value == C.ScatterStyleValues.Marker ||
+                style.Value == C.ScatterStyleValues.LineMarker ||
+                style.Value == C.ScatterStyleValues.SmoothMarker;
         }
 
         private static int? GetImageExportMarkerSize(C.Marker? marker) {

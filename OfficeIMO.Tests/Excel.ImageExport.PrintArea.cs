@@ -351,6 +351,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("width=\"816\"", svg);
             Assert.Contains("height=\"1056\"", svg);
             Assert.Contains("<svg x=\"24\" y=\"48\"", svg);
+            Assert.Contains("transform=\"scale(0.75)\"", svg);
             Assert.Contains(">A3<", svg);
         }
 

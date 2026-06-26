@@ -45,6 +45,58 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { 30D, 40D }, visualChart.Snapshot.Data.Series[1].Values);
         }
 
+        [Fact]
+        public void ExcelRange_ImageExportPreservesChartLevelScatterMarkers() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("ScatterMarkers");
+            sheet.CellValue(1, 1, "X");
+            sheet.CellValue(1, 2, "Y");
+            sheet.CellValue(2, 1, 1);
+            sheet.CellValue(3, 1, 2);
+            sheet.CellValue(2, 2, 10);
+            sheet.CellValue(3, 2, 20);
+            sheet.AddScatterChartFromRanges(
+                new[] { new ExcelChartSeriesRange("Points", "A2:A3", "B2:B3") },
+                row: 1,
+                column: 4,
+                widthPixels: 260,
+                heightPixels: 170,
+                title: "Markers");
+
+            ExcelVisualChart visualChart = Assert.Single(sheet.Range("A1:H10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false }).Charts);
+
+            Assert.True(visualChart.Snapshot.Data.Series[0].ShowMarkers);
+            Assert.True(visualChart.Snapshot.Data.Series[0].ConnectLine);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportHonorsMarkerOnlyScatterStyle() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("ScatterMarkerOnly");
+            sheet.CellValue(1, 1, "X");
+            sheet.CellValue(1, 2, "Y");
+            sheet.CellValue(2, 1, 1);
+            sheet.CellValue(3, 1, 2);
+            sheet.CellValue(2, 2, 10);
+            sheet.CellValue(3, 2, 20);
+            sheet.AddScatterChartFromRanges(
+                new[] { new ExcelChartSeriesRange("Points", "A2:A3", "B2:B3") },
+                row: 1,
+                column: 4,
+                widthPixels: 260,
+                heightPixels: 170,
+                title: "Marker Only");
+            SetFirstScatterStyle(document, ScatterStyleValues.Marker);
+
+            ExcelVisualChart visualChart = Assert.Single(sheet.Range("A1:H10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false }).Charts);
+
+            Assert.True(visualChart.Snapshot.Data.Series[0].ShowMarkers);
+            Assert.NotNull(visualChart.Snapshot.Layout);
+            Assert.False(visualChart.Snapshot.Layout!.ConnectScatterPoints);
+        }
+
         private static void SetScatterChartSeriesIndexes(ExcelDocument document, params uint[] indexes) {
             ChartPart chartPart = GetFirstChartPart(document);
             ScatterChartSeries[] series = chartPart.ChartSpace!.Descendants<ScatterChartSeries>().ToArray();
@@ -60,6 +112,18 @@ namespace OfficeIMO.Tests {
                 if (order.Parent == null) {
                     series[i].InsertAfter(order, index);
                 }
+            }
+
+            chartPart.ChartSpace.Save();
+        }
+
+        private static void SetFirstScatterStyle(ExcelDocument document, ScatterStyleValues styleValue) {
+            ChartPart chartPart = GetFirstChartPart(document);
+            ScatterChart scatterChart = chartPart.ChartSpace!.Descendants<ScatterChart>().First();
+            ScatterStyle style = scatterChart.GetFirstChild<ScatterStyle>() ?? new ScatterStyle();
+            style.Val = styleValue;
+            if (style.Parent == null) {
+                scatterChart.InsertAt(style, 0);
             }
 
             chartPart.ChartSpace.Save();

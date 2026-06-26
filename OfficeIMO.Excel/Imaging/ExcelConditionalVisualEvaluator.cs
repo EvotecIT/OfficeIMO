@@ -16,10 +16,21 @@ namespace OfficeIMO.Excel {
 
             ReportUnsupportedConditionalRules(sheet, cells, rules, conditionalFormattingDate, diagnostics);
 
-            var fills = BuildConditionalFills(sheet, cells, rules, conditionalFormattingDate);
-            var dataBars = new List<ExcelVisualConditionalDataBar>();
-            var icons = BuildConditionalIcons(sheet, cells, rules, diagnostics);
+            var stoppedCells = new HashSet<string>(StringComparer.Ordinal);
+            var fills = BuildConditionalFills(sheet, cells, rules, conditionalFormattingDate, stoppedCells);
+            var dataBars = BuildConditionalDataBars(sheet, cells, rules, stoppedCells);
+            var icons = BuildConditionalIcons(sheet, cells, rules, stoppedCells, diagnostics);
+            return fills.Count == 0 && dataBars.Count == 0 && icons.Count == 0
+                ? ExcelConditionalVisualState.Empty
+                : new ExcelConditionalVisualState(fills, dataBars, icons);
+        }
 
+        private static List<ExcelVisualConditionalDataBar> BuildConditionalDataBars(
+            ExcelSheet sheet,
+            IReadOnlyList<ExcelVisualCell> cells,
+            IReadOnlyList<ExcelConditionalFormattingInfo> rules,
+            HashSet<string> stoppedCells) {
+            var dataBars = new List<ExcelVisualConditionalDataBar>();
             foreach (ExcelConditionalFormattingInfo rule in rules
                 .Where(rule => string.Equals(rule.Type, "DataBar", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(rule.DataBarColor))
                 .OrderBy(rule => NormalizePriority(rule.Priority))) {
@@ -27,12 +38,18 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                List<ConditionalNumericCell> candidates = GetNumericCandidates(sheet, cells, rule.Range);
+                List<ConditionalNumericCell> candidates = GetNumericCandidates(sheet, cells, rule.Range)
+                    .Where(candidate => !stoppedCells.Contains(Key(candidate.Cell.Row, candidate.Cell.Column)))
+                    .ToList();
                 if (candidates.Count == 0) {
                     continue;
                 }
 
-                IReadOnlyList<double> values = candidates.Select(candidate => candidate.Value).ToArray();
+                IReadOnlyList<double> values = GetRuleNumericValues(sheet, rule.Range);
+                if (values.Count == 0) {
+                    values = candidates.Select(candidate => candidate.Value).ToArray();
+                }
+
                 (double min, double max) = ExcelConditionalFormatThresholds.ResolveDataBarRange(values, rule.DataBarThresholds);
                 foreach (ConditionalNumericCell candidate in candidates) {
                     (double startRatio, double ratio) = ExcelConditionalFormatThresholds.GetDataBarGeometry(candidate.Value, min, max);
@@ -50,9 +67,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return fills.Count == 0 && dataBars.Count == 0 && icons.Count == 0
-                ? ExcelConditionalVisualState.Empty
-                : new ExcelConditionalVisualState(fills, dataBars, icons);
+            return dataBars;
         }
 
         private static void ReportUnsupportedConditionalRules(
@@ -262,9 +277,9 @@ namespace OfficeIMO.Excel {
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             IReadOnlyList<ExcelConditionalFormattingInfo> rules,
-            DateTime conditionalFormattingDate) {
+            DateTime conditionalFormattingDate,
+            HashSet<string> stoppedCells) {
             var fills = new Dictionary<string, string>(StringComparer.Ordinal);
-            var stoppedCells = new HashSet<string>(StringComparer.Ordinal);
             foreach (ExcelConditionalFormattingInfo rule in rules.OrderBy(rule => NormalizePriority(rule.Priority))) {
                 if (string.Equals(rule.Type, "ColorScale", StringComparison.OrdinalIgnoreCase)) {
                     ApplyColorScaleFill(sheet, cells, rule, fills, stoppedCells);
@@ -754,6 +769,44 @@ namespace OfficeIMO.Excel {
             }
 
             return candidates;
+        }
+
+        private static List<double> GetRuleNumericValues(ExcelSheet sheet, string referenceList) {
+            var values = new List<double>();
+            foreach ((int row, int column) in EnumerateReferenceCells(referenceList)) {
+                if (TryGetCellNumericValue(sheet, row, column, out double value)) {
+                    values.Add(value);
+                }
+            }
+
+            return values;
+        }
+
+        private static IEnumerable<(int Row, int Column)> EnumerateReferenceCells(string referenceList) {
+            if (string.IsNullOrWhiteSpace(referenceList)) {
+                yield break;
+            }
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string rawToken in referenceList.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+                string token = StripSheetPrefix(rawToken).Replace("$", string.Empty);
+                if (A1.TryParseRange(token, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                    for (int row = firstRow; row <= lastRow; row++) {
+                        for (int column = firstColumn; column <= lastColumn; column++) {
+                            if (seen.Add(Key(row, column))) {
+                                yield return (row, column);
+                            }
+                        }
+                    }
+
+                    continue;
+                }
+
+                if (A1.TryParseCellReferenceFast(token, out int singleRow, out int singleColumn) &&
+                    seen.Add(Key(singleRow, singleColumn))) {
+                    yield return (singleRow, singleColumn);
+                }
+            }
         }
 
         private static bool IsCellInReferenceList(int row, int column, string referenceList) {
