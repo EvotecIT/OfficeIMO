@@ -7,7 +7,9 @@ public static partial class MarkdownReader {
         url = url.Trim();
 
         if (IsWindowsDriveLike(url)) {
-            return options?.DisallowFileUrls == true ? null : url;
+            if (options?.DisallowFileUrls == true) return null;
+            if (options?.RestrictUrlSchemes == true && !IsAllowedScheme("file", options.AllowedUrlSchemes)) return null;
+            return url;
         }
 
         // Block scriptable schemes by default.

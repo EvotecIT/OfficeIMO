@@ -210,6 +210,32 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_LoadHonorsSemanticRangeOrigin() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorkSheet("Offset");
+        sheet.CellValue(2, 2, "Region");
+        sheet.CellValue(2, 3, "Amount");
+        sheet.CellValue(3, 2, "North");
+        sheet.CellValue(3, 3, 123);
+        sheet.SetComment(3, 3, "Aligned comment", "OfficeIMO");
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelSheet importedSheet = imported.Sheets.Single(importedSheet => importedSheet.Name == "Offset");
+
+        Assert.True(importedSheet.TryGetCellText(2, 2, out string header));
+        Assert.Equal("Region", header);
+        Assert.True(importedSheet.TryGetCellText(3, 3, out string amount));
+        Assert.Equal("123", amount);
+        Assert.False(importedSheet.TryGetCellText(1, 1, out _));
+        Assert.Contains(importedSheet.GetComments(), comment => comment.CellReference == "C3" && comment.Text == "Aligned comment");
+    }
+
+    [Fact]
     public void PowerPointHtml_ExportsSemanticSlidesWithExtractionProof() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.Slides[0];
@@ -423,6 +449,95 @@ public class HtmlOfficeAdapters {
         Assert.Contains("<td>18</td>", roundTripHtml, StringComparison.Ordinal);
         Assert.Contains("Presenter reminder", roundTripHtml, StringComparison.Ordinal);
         Assert.Contains("data:image/png;base64", roundTripHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PowerPointHtml_LoadCreatesDistinctSlidesForEachSemanticSection() {
+        string html = """
+            <main>
+              <section class="officeimo-slide"><p>First slide</p></section>
+              <section class="officeimo-slide"><p>Second slide</p></section>
+            </main>
+            """;
+
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+
+        Assert.Equal(2, result.Slides);
+        Assert.Equal(2, imported.Slides.Count);
+        Assert.Contains(imported.Slides[0].TextBoxes, textBox => textBox.Text.Contains("First slide", StringComparison.Ordinal));
+        Assert.Contains(imported.Slides[1].TextBoxes, textBox => textBox.Text.Contains("Second slide", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void PowerPointHtml_LoadPreservesChartKindFromSemanticInventory() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointChartData chartData = new(
+            new[] { "Q1", "Q2" },
+            new[] { new PowerPointChartSeries("Actual", new[] { 10D, 12D }) });
+        slide.AddLineChartPoints(chartData, 72, 96, 240, 140).SetTitle("Trend");
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        });
+
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+        PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
+
+        Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
+        Assert.Equal(PowerPointChartSnapshotKind.Line, snapshot!.ChartKind);
+    }
+
+    [Fact]
+    public void PowerPointHtml_LoadPreservesHeadingLikePresenterNotes() {
+        string html = """
+            <main>
+              <section class="officeimo-slide">
+                <p>Notes slide</p>
+                <pre class="officeimo-source-markdown"># Notes slide
+
+            ### Notes
+            # Follow up
+            Keep this line</pre>
+              </section>
+            </main>
+            """;
+
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+
+        Assert.Equal(1, result.Notes);
+        Assert.Contains("# Follow up", imported.Slides[0].Notes.Text, StringComparison.Ordinal);
+        Assert.Contains("Keep this line", imported.Slides[0].Notes.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PowerPointHtml_LoadPreservesNonPngImageMediaTypes() {
+        string image = Convert.ToBase64String(OnePixelPng);
+        string html = $"""
+            <main>
+              <section class="officeimo-slide">
+                <section class="officeimo-feature officeimo-images">
+                  <ul class="officeimo-feature-list">
+                    <li class="officeimo-feature-item">
+                      <span class="officeimo-feature-label">Tiff marker</span>
+                      <div class="officeimo-feature-meta">Size: 24pt x 24pt; Type: image/tif</div>
+                      <img src="data:image/tif;base64,{image}" alt="Tiff marker" />
+                    </li>
+                  </ul>
+                </section>
+              </section>
+            </main>
+            """;
+
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+        PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
+
+        Assert.Equal(1, result.Pictures);
+        Assert.Equal("image/tiff", picture.ContentType);
     }
 
     [Fact]

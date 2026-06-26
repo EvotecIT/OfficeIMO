@@ -33,9 +33,9 @@ public static class PowerPointHtmlLoadExtensions {
             return result;
         }
 
-        for (int i = 0; i < slideSections.Count; i++) {
-            PptCore.PowerPointSlide slide = i == 0 ? presentation.Slides[0] : presentation.AddSlide();
-            ImportSlide(slideSections[i], slide, options, result);
+        foreach (IElement slideSection in slideSections) {
+            PptCore.PowerPointSlide slide = presentation.AddSlide();
+            ImportSlide(slideSection, slide, options, result);
         }
 
         return result;
@@ -110,9 +110,14 @@ public static class PowerPointHtmlLoadExtensions {
                 continue;
             }
 
+            if (!TryGetImagePartType(dataUri.MediaType, out PptCore.ImagePartType imagePartType)) {
+                result.Diagnostics.Add("Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' used unsupported media type '" + dataUri.MediaType + "' and was not imported.");
+                continue;
+            }
+
             ReadPictureSize(item, out double width, out double height);
             using var stream = new MemoryStream(bytes);
-            PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, ToImagePartType(dataUri.MediaType), 720, top, width, height);
+            PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, 720, top, width, height);
             string label = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
             string alt = NormalizeText(image.GetAttribute("alt"));
             if (label.Length > 0) {
@@ -134,7 +139,9 @@ public static class PowerPointHtmlLoadExtensions {
             string title = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
             bool restoredFromSemanticData = TryReadChartData(item, out PptCore.PowerPointChartData? semanticData);
             PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
-            slide.AddChartPoints(data, 500, top, 320, 180).SetTitle(title.Length == 0 ? "Imported chart" : title);
+            string chartKind = ReadChartKind(item);
+            AddChartByKind(slide, chartKind, data, 500, top, 320, 180)
+                .SetTitle(title.Length == 0 ? "Imported chart" : title);
             result.Charts++;
             if (!restoredFromSemanticData) {
                 result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' was restored as a native chart with reconstructed placeholder values; exact source chart data was not present in semantic HTML.");
@@ -276,33 +283,96 @@ public static class PowerPointHtmlLoadExtensions {
         string tail = normalized.Substring(marker + "### Notes".Length);
         string[] lines = tail.Split('\n')
             .Select(line => line.Trim())
-            .Where(line => line.Length > 0 && !line.StartsWith("#", StringComparison.Ordinal))
+            .Where(line => line.Length > 0)
             .ToArray();
         return string.Join(Environment.NewLine, lines);
     }
 
-    private static PptCore.ImagePartType ToImagePartType(string mediaType) {
+    private static PptCore.PowerPointChart AddChartByKind(PptCore.PowerPointSlide slide, string chartKind, PptCore.PowerPointChartData data, double left, double top, double width, double height) {
+        if (chartKind.Equals("Line", StringComparison.OrdinalIgnoreCase) ||
+            chartKind.Equals("StackedLine", StringComparison.OrdinalIgnoreCase) ||
+            chartKind.Equals("StackedLine100", StringComparison.OrdinalIgnoreCase)) {
+            return slide.AddLineChartPoints(data, left, top, width, height);
+        }
+
+        if (chartKind.Equals("Pie", StringComparison.OrdinalIgnoreCase)) {
+            return slide.AddPieChartPoints(data, left, top, width, height);
+        }
+
+        if (chartKind.Equals("Doughnut", StringComparison.OrdinalIgnoreCase)) {
+            return slide.AddDoughnutChartPoints(data, left, top, width, height);
+        }
+
+        return slide.AddChartPoints(data, left, top, width, height);
+    }
+
+    private static string ReadChartKind(IElement item) {
+        string meta = string.Join(" ", item.QuerySelectorAll(".officeimo-feature-meta").Select(element => element.TextContent));
+        const string marker = "Type:";
+        int index = meta.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (index < 0) {
+            return "ClusteredColumn";
+        }
+
+        string value = meta.Substring(index + marker.Length).Split(';')[0].Trim();
+        return value.Length == 0 ? "ClusteredColumn" : value;
+    }
+
+    private static bool TryGetImagePartType(string mediaType, out PptCore.ImagePartType imagePartType) {
         if (mediaType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/jpg", StringComparison.OrdinalIgnoreCase)) {
-            return PptCore.ImagePartType.Jpeg;
+            imagePartType = PptCore.ImagePartType.Jpeg;
+            return true;
         }
 
         if (mediaType.Equals("image/gif", StringComparison.OrdinalIgnoreCase)) {
-            return PptCore.ImagePartType.Gif;
+            imagePartType = PptCore.ImagePartType.Gif;
+            return true;
         }
 
         if (mediaType.Equals("image/bmp", StringComparison.OrdinalIgnoreCase)) {
-            return PptCore.ImagePartType.Bmp;
+            imagePartType = PptCore.ImagePartType.Bmp;
+            return true;
         }
 
-        if (mediaType.Equals("image/tiff", StringComparison.OrdinalIgnoreCase)) {
-            return PptCore.ImagePartType.Tiff;
+        if (mediaType.Equals("image/tiff", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/tif", StringComparison.OrdinalIgnoreCase)) {
+            imagePartType = PptCore.ImagePartType.Tiff;
+            return true;
         }
 
         if (mediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
-            return PptCore.ImagePartType.Svg;
+            imagePartType = PptCore.ImagePartType.Svg;
+            return true;
         }
 
-        return PptCore.ImagePartType.Png;
+        if (mediaType.Equals("image/x-emf", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/emf", StringComparison.OrdinalIgnoreCase)) {
+            imagePartType = PptCore.ImagePartType.Emf;
+            return true;
+        }
+
+        if (mediaType.Equals("image/x-wmf", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/wmf", StringComparison.OrdinalIgnoreCase)) {
+            imagePartType = PptCore.ImagePartType.Wmf;
+            return true;
+        }
+
+        if (mediaType.Equals("image/x-icon", StringComparison.OrdinalIgnoreCase) ||
+            mediaType.Equals("image/vnd.microsoft.icon", StringComparison.OrdinalIgnoreCase) ||
+            mediaType.Equals("image/ico", StringComparison.OrdinalIgnoreCase)) {
+            imagePartType = PptCore.ImagePartType.Icon;
+            return true;
+        }
+
+        if (mediaType.Equals("image/x-pcx", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/pcx", StringComparison.OrdinalIgnoreCase)) {
+            imagePartType = PptCore.ImagePartType.Pcx;
+            return true;
+        }
+
+        if (mediaType.Equals("image/png", StringComparison.OrdinalIgnoreCase) || mediaType.Equals("image/x-png", StringComparison.OrdinalIgnoreCase)) {
+            imagePartType = PptCore.ImagePartType.Png;
+            return true;
+        }
+
+        imagePartType = PptCore.ImagePartType.Png;
+        return false;
     }
 
     private static bool IsElement(IElement element, string name) =>

@@ -64,9 +64,10 @@ public static class ExcelHtmlLoadExtensions {
             return;
         }
 
-        int rowIndex = 1;
+        ReadRangeOrigin(section.GetAttribute("data-officeimo-range"), out int firstRow, out int firstColumn);
+        int rowIndex = firstRow;
         foreach (IElement row in table.QuerySelectorAll("tr")) {
-            int columnIndex = 1;
+            int columnIndex = firstColumn;
             foreach (IElement cell in row.Children.Where(child => IsElement(child, "th") || IsElement(child, "td"))) {
                 string text = NormalizeText(cell.TextContent);
                 if (text.Length > 0) {
@@ -78,6 +79,20 @@ public static class ExcelHtmlLoadExtensions {
             }
 
             rowIndex++;
+        }
+    }
+
+    private static void ReadRangeOrigin(string? range, out int row, out int column) {
+        row = 1;
+        column = 1;
+        if (string.IsNullOrWhiteSpace(range)) {
+            return;
+        }
+
+        string firstReference = range!.Split(':')[0].Trim();
+        if (TryParseCellReference(firstReference, out int parsedRow, out int parsedColumn)) {
+            row = parsedRow;
+            column = parsedColumn;
         }
     }
 
