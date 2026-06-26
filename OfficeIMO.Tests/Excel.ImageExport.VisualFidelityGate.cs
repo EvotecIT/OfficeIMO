@@ -2,6 +2,7 @@ using OfficeIMO.Excel;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    [Trait("Category", "ExcelImageVisualGate")]
     public class ExcelImageExportVisualFidelityGateTests {
         private static readonly IReadOnlyList<ExcelImageBaselineFidelityRecord> Baselines = new[] {
             Clean("officeimo-excel-image-aligned-shape-text"),
