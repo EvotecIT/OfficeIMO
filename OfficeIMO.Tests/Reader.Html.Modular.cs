@@ -6,6 +6,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
+[Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderHtmlModularTests {
     [Fact]
     public void DocumentReaderHtml_ReadHtmlString_EmitsChunks() {

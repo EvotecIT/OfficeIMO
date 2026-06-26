@@ -5,6 +5,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
+[Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderTextModularTests {
     [Fact]
     public void DocumentReaderText_ReadStructuredText_ParsesJsonIntoStructuredChunks() {
