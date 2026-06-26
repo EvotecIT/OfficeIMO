@@ -380,7 +380,18 @@ namespace OfficeIMO.Excel {
             if (options.IncludeDrawingObjects) {
                 foreach (ExcelWorksheetDrawingObjectInfo drawing in ExcelWorksheetDrawingObjectResolver.FindDrawingObjects(WorksheetPart)) {
                     if (options.IncludeHidden || !IsHiddenAnchor(drawing.Row, drawing.Column, rows, columns)) {
-                        ExpandVisualAnchor(drawing.Row, drawing.Column, drawing.WidthPixels, drawing.HeightPixels, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                        ExpandVisualAnchor(
+                            drawing.Row,
+                            drawing.Column,
+                            Math.Max(1, drawing.WidthPixels + Math.Max(0, drawing.OffsetXPixels)),
+                            Math.Max(1, drawing.HeightPixels + Math.Max(0, drawing.OffsetYPixels)),
+                            columns,
+                            rows,
+                            options,
+                            ref firstRow,
+                            ref firstColumn,
+                            ref lastRow,
+                            ref lastColumn);
                     }
                 }
             }

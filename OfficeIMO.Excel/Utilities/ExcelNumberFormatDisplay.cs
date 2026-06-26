@@ -146,6 +146,10 @@ namespace OfficeIMO.Excel {
         private static string? FormatNumberValue(double value, uint numberFormatId, string formatCode) {
             int preferredSection = value < 0 ? 1 : value == 0 ? 2 : 0;
             string section = SelectNumberFormatSection(formatCode, preferredSection, value, out int selectedSection);
+            if (section.Length == 0) {
+                return string.Empty;
+            }
+
             string normalized = StripNumberFormatDecorations(section);
             string lower = normalized.ToLowerInvariant();
 
@@ -401,10 +405,6 @@ namespace OfficeIMO.Excel {
             if (value.HasValue && sections.Any(section => TryGetSectionCondition(section, out _, out _))) {
                 int fallbackSection = -1;
                 for (int i = 0; i < sections.Length; i++) {
-                    if (string.IsNullOrWhiteSpace(sections[i])) {
-                        continue;
-                    }
-
                     if (TryGetSectionCondition(sections[i], out string? op, out double threshold)) {
                         if (MatchesSectionCondition(value.Value, op!, threshold)) {
                             selectedSection = i;
@@ -421,7 +421,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (preferredSection >= 0 && preferredSection < sections.Length && !string.IsNullOrWhiteSpace(sections[preferredSection])) {
+            if (preferredSection >= 0 && preferredSection < sections.Length) {
                 selectedSection = preferredSection;
                 return sections[preferredSection];
             }

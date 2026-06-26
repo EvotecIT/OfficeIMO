@@ -148,6 +148,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("50 low", ExcelNumberFormatDisplay.FormatNumericText(50D, 1U, "[>=100]0 \"high\";0 \"low\"", "50"));
             Assert.Equal("150 high", ExcelNumberFormatDisplay.FormatNumericText(150D, 1U, "[>=100]0 \"high\";0 \"low\"", "150"));
             Assert.Equal("6/24/26 13:45", ExcelNumberFormatDisplay.FormatNumericText(new DateTime(2026, 6, 24, 13, 45, 0).ToOADate(), 1U, "m/d/yy h:mm", "46200.5729"));
+            Assert.Equal(string.Empty, ExcelNumberFormatDisplay.FormatNumericText(0D, 1U, "0;-0;;@", "0"));
         }
 
         [Fact]

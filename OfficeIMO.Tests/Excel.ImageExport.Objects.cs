@@ -304,6 +304,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_ImageExportIncludesDrawingObjectAnchorOffsetsWhenExpandingUsedRange() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("OffsetShape");
+                sheet.SetColumnWidth(1, 8D);
+                sheet.SetColumnWidth(2, 8D);
+                sheet.SetColumnWidth(3, 8D);
+                sheet.CellValue(1, 1, "Only cell");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(filePath, "Offset shape", "Offset shape", offsetXPixels: 90, toColumn: 3, toRow: 3);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                var options = new ExcelWorksheetImageExportOptions { ShowGridlines = false };
+                OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, options);
+
+                Assert.Equal("OffsetShape!A1:D3", png.Source);
+                Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+            }
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportResolvesAbsoluteAnchorDrawingShapeCoordinates() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -990,7 +1014,9 @@ namespace OfficeIMO.Tests {
             int? textInsetRightEmu = null,
             int? textInsetBottomEmu = null,
             int toColumn = 3,
-            int toRow = 3) {
+            int toRow = 3,
+            int offsetXPixels = 0,
+            int offsetYPixels = 0) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
             WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
@@ -1000,7 +1026,7 @@ namespace OfficeIMO.Tests {
 
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
-                CreateSupportedShapeAnchor(1, 1, toColumn, toRow, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, fillSchemeColor, fillLuminanceModulation, fillLuminanceOffset, strokeSchemeColor, textSchemeColor, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textShrinkToFit, textResizeShapeToFit, textOrientation, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu));
+                CreateSupportedShapeAnchor(1, 1, toColumn, toRow, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, fillSchemeColor, fillLuminanceModulation, fillLuminanceOffset, strokeSchemeColor, textSchemeColor, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textShrinkToFit, textResizeShapeToFit, textOrientation, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu, offsetXPixels, offsetYPixels));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
@@ -1097,7 +1123,9 @@ namespace OfficeIMO.Tests {
             int? textInsetLeftEmu = null,
             int? textInsetTopEmu = null,
             int? textInsetRightEmu = null,
-            int? textInsetBottomEmu = null) {
+            int? textInsetBottomEmu = null,
+            int offsetXPixels = 0,
+            int offsetYPixels = 0) {
             var transform = new A.Transform2D {
                 HorizontalFlip = horizontalFlip,
                 VerticalFlip = verticalFlip
@@ -1172,9 +1200,9 @@ namespace OfficeIMO.Tests {
             return new Xdr.TwoCellAnchor(
                 new Xdr.FromMarker(
                     new Xdr.ColumnId(fromColumn.ToString()),
-                    new Xdr.ColumnOffset("0"),
+                    new Xdr.ColumnOffset(((long)offsetXPixels * 9525L).ToString(System.Globalization.CultureInfo.InvariantCulture)),
                     new Xdr.RowId(fromRow.ToString()),
-                    new Xdr.RowOffset("0")),
+                    new Xdr.RowOffset(((long)offsetYPixels * 9525L).ToString(System.Globalization.CultureInfo.InvariantCulture))),
                 new Xdr.ToMarker(
                     new Xdr.ColumnId(toColumn.ToString()),
                     new Xdr.ColumnOffset("0"),

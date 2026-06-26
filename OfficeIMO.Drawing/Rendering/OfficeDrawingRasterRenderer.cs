@@ -120,10 +120,10 @@ public static class OfficeDrawingRasterRenderer {
                 if (strokeWidth > 0D) RenderLine(canvas, shape, x, y, scale, stroke ?? fill ?? OfficeColor.Black, strokeWidth);
                 break;
             case OfficeShapeKind.Polygon:
-                RenderPolygon(canvas, shape, x, y, scale, fill, stroke, strokeWidth);
+                RenderPolygon(canvas, shape, x, y, scale, fill, shape.FillGradient == null ? null : ApplyOpacity(shape.FillGradient, shape.FillOpacity), stroke, strokeWidth);
                 break;
             case OfficeShapeKind.Path:
-                RenderPath(canvas, shape, x, y, scale, fill, stroke, strokeWidth, shape.StrokeDashStyle);
+                RenderPath(canvas, shape, x, y, scale, fill, shape.FillGradient == null ? null : ApplyOpacity(shape.FillGradient, shape.FillOpacity), stroke, strokeWidth, shape.StrokeDashStyle);
                 break;
         }
     }
@@ -222,7 +222,7 @@ public static class OfficeDrawingRasterRenderer {
                 RenderTransformedClosedContour(canvas, drawingShape, scale, shape.Points, fill, fillGradient, stroke, strokeWidth);
                 break;
             case OfficeShapeKind.Path:
-                RenderTransformedPath(canvas, drawingShape, scale, fill, stroke, strokeWidth, shape.StrokeDashStyle);
+                RenderTransformedPath(canvas, drawingShape, scale, fill, fillGradient, stroke, strokeWidth, shape.StrokeDashStyle);
                 break;
         }
     }
@@ -247,10 +247,10 @@ public static class OfficeDrawingRasterRenderer {
         if (stroke.HasValue && strokeWidth > 0D) canvas.DrawStyledPolygon(points, stroke.Value, strokeWidth, drawingShape.Shape.StrokeDashStyle);
     }
 
-    private static void RenderTransformedPath(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale, OfficeColor? fill, OfficeColor? stroke, double strokeWidth, OfficeStrokeDashStyle dashStyle) {
+    private static void RenderTransformedPath(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeColor? stroke, double strokeWidth, OfficeStrokeDashStyle dashStyle) {
         OfficeShape shape = drawingShape.Shape;
         IReadOnlyList<OfficeFlattenedPathContour> contours = OfficePathFlattener.Flatten(shape.PathCommands, 0D, 0D, 1D);
-        if (fill.HasValue) {
+        if (fillGradient != null || fill.HasValue) {
             List<IReadOnlyList<OfficePoint>> closedContours = new List<IReadOnlyList<OfficePoint>>();
             for (int i = 0; i < contours.Count; i++) {
                 if (contours[i].Closed && contours[i].Points.Count >= 3) {
@@ -259,7 +259,13 @@ public static class OfficeDrawingRasterRenderer {
             }
 
             if (closedContours.Count > 0) {
-                canvas.FillPolygonsEvenOdd(closedContours, fill.Value);
+                if (fillGradient != null) {
+                    for (int i = 0; i < closedContours.Count; i++) {
+                        canvas.FillLinearGradientPolygon(closedContours[i], fillGradient);
+                    }
+                } else {
+                    canvas.FillPolygonsEvenOdd(closedContours, fill!.Value);
+                }
             }
         }
 
@@ -281,15 +287,16 @@ public static class OfficeDrawingRasterRenderer {
         }
     }
 
-    private static void RenderPolygon(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor? fill, OfficeColor? stroke, double strokeWidth) {
+    private static void RenderPolygon(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeColor? stroke, double strokeWidth) {
         List<OfficePoint> points = OffsetPoints(shape.Points, x, y, scale);
-        if (fill.HasValue) canvas.FillPolygon(points, fill.Value);
+        if (fillGradient != null) canvas.FillLinearGradientPolygon(points, fillGradient);
+        else if (fill.HasValue) canvas.FillPolygon(points, fill.Value);
         if (stroke.HasValue && strokeWidth > 0D) canvas.DrawStyledPolygon(points, stroke.Value, strokeWidth, shape.StrokeDashStyle);
     }
 
-    private static void RenderPath(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor? fill, OfficeColor? stroke, double strokeWidth, OfficeStrokeDashStyle dashStyle) {
+    private static void RenderPath(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeColor? stroke, double strokeWidth, OfficeStrokeDashStyle dashStyle) {
         IReadOnlyList<OfficeFlattenedPathContour> contours = OfficePathFlattener.Flatten(shape.PathCommands, x, y, scale);
-        if (fill.HasValue) {
+        if (fillGradient != null || fill.HasValue) {
             List<IReadOnlyList<OfficePoint>> closedContours = new List<IReadOnlyList<OfficePoint>>();
             for (int i = 0; i < contours.Count; i++) {
                 if (contours[i].Closed && contours[i].Points.Count >= 3) {
@@ -298,7 +305,13 @@ public static class OfficeDrawingRasterRenderer {
             }
 
             if (closedContours.Count > 0) {
-                canvas.FillPolygonsEvenOdd(closedContours, fill.Value);
+                if (fillGradient != null) {
+                    for (int i = 0; i < closedContours.Count; i++) {
+                        canvas.FillLinearGradientPolygon(closedContours[i], fillGradient);
+                    }
+                } else {
+                    canvas.FillPolygonsEvenOdd(closedContours, fill!.Value);
+                }
             }
         }
 

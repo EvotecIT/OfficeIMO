@@ -1089,6 +1089,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeDrawingRasterRenderer_FillsPolygonGradients() {
+            OfficeDrawing drawing = new OfficeDrawing(48, 28);
+            OfficeShape shape = OfficeShape.Polygon(
+                new OfficePoint(0, 0),
+                new OfficePoint(32, 0),
+                new OfficePoint(32, 18),
+                new OfficePoint(0, 18));
+            shape.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
+            drawing.AddShape(shape, 4, 4);
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+
+            OfficeColor left = image.GetPixel(8, 12);
+            OfficeColor right = image.GetPixel(32, 12);
+            Assert.True(left.R > left.B, $"Expected polygon gradient left side to keep the red stop, got {left}.");
+            Assert.True(right.B > right.R, $"Expected polygon gradient right side to keep the blue stop, got {right}.");
+        }
+
+        [Fact]
+        public void OfficeDrawingRasterRenderer_FillsPathGradients() {
+            OfficeDrawing drawing = new OfficeDrawing(48, 28);
+            OfficeShape shape = OfficeShape.Path(
+                OfficePathCommand.MoveTo(0, 0),
+                OfficePathCommand.LineTo(32, 0),
+                OfficePathCommand.LineTo(32, 18),
+                OfficePathCommand.LineTo(0, 18),
+                OfficePathCommand.Close());
+            shape.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
+            drawing.AddShape(shape, 4, 4);
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+
+            OfficeColor left = image.GetPixel(8, 12);
+            OfficeColor right = image.GetPixel(32, 12);
+            Assert.True(left.R > left.B, $"Expected path gradient left side to keep the red stop, got {left}.");
+            Assert.True(right.B > right.R, $"Expected path gradient right side to keep the blue stop, got {right}.");
+        }
+
+        [Fact]
         public void OfficeDrawingRasterRenderer_PreservesGradientOnTransformedShapes() {
             OfficeDrawing drawing = new OfficeDrawing(64, 48);
             OfficeShape shape = OfficeShape.Rectangle(34, 20);
