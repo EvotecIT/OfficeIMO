@@ -83,6 +83,11 @@ internal static class CsvParser
         while (ReadLineWithSeparator(reader, out var lineSeparator) is { } line)
         {
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
+            if (TrySkipCommentRecordBeforeParsing(reader, startsWithCommentCharacter, line, lineSeparator, options, emittedRecordCount, ref lineNumber))
+            {
+                lineNumber++;
+                continue;
+            }
 
             if (TrySplitUnquotedRecord(line, delimiter, trim, out var record))
             {
@@ -158,6 +163,11 @@ internal static class CsvParser
         while (ReadLineWithSeparator(reader, out var lineSeparator) is { } line)
         {
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
+            if (TrySkipCommentRecordBeforeParsing(reader, startsWithCommentCharacter, line, lineSeparator, options, emittedRecordCount, ref lineNumber))
+            {
+                lineNumber++;
+                continue;
+            }
 
             if (TrySplitUnquotedRecord(line, delimiter, trim, out var record))
             {
@@ -228,6 +238,11 @@ internal static class CsvParser
         while (ReadLineWithSeparator(reader, out var lineSeparator) is { } line)
         {
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
+            if (TrySkipCommentRecordBeforeParsing(reader, startsWithCommentCharacter, line, lineSeparator, options, emittedRecordCount, ref lineNumber))
+            {
+                lineNumber++;
+                continue;
+            }
 
             if (TrySplitUnquotedRecord(line, delimiter, trim, reusableRecord))
             {
@@ -556,6 +571,62 @@ internal static class CsvParser
         }
 
         return !CanReadW3CFieldsHeader(options, emittedRecordCount) || !IsW3CFieldsLine(firstLine, options);
+    }
+
+    private static bool TrySkipCommentRecordBeforeParsing(TextReader reader, bool startsWithCommentCharacter, string firstLine, string firstLineSeparator, CsvLoadOptions options, int emittedRecordCount, ref int lineNumber)
+    {
+        if (!ShouldSkipCommentRecordBeforeParsing(startsWithCommentCharacter, firstLine, options, emittedRecordCount))
+        {
+            return false;
+        }
+
+        if (firstLine.IndexOf(options.Delimiter) < 0 ||
+            TryParseQuotedRecord(firstLine, options.Delimiter, options.TrimWhitespace, out _))
+        {
+            return true;
+        }
+
+        var logicalRecord = new StringBuilder(firstLine);
+        var pendingSeparator = firstLineSeparator;
+        while (true)
+        {
+            var next = ReadLineWithSeparator(reader, out var nextSeparator);
+            if (next == null)
+            {
+                return true;
+            }
+
+            logicalRecord.Append(pendingSeparator);
+            logicalRecord.Append(next);
+            lineNumber++;
+
+            if (TryParseQuotedRecord(logicalRecord.ToString(), options.Delimiter, options.TrimWhitespace, out _))
+            {
+                return true;
+            }
+
+            pendingSeparator = nextSeparator;
+        }
+    }
+
+    private static bool ShouldSkipCommentRecordBeforeParsing(bool startsWithCommentCharacter, string firstLine, CsvLoadOptions options, int emittedRecordCount)
+    {
+        if (!startsWithCommentCharacter)
+        {
+            return false;
+        }
+
+        var canReadW3CFieldsHeader = CanReadW3CFieldsHeader(options, emittedRecordCount) && IsW3CFieldsLine(firstLine, options);
+        if (canReadW3CFieldsHeader)
+        {
+            return false;
+        }
+
+        return options.SkipCommentRows ||
+            (options.HasHeaderRow &&
+                options.Header is null &&
+                options.SkipCommentRowsBeforeHeader &&
+                emittedRecordCount <= GetParserInitialRecordsToSkip(options));
     }
 
     private static bool IsRawCommentLine(string line, CsvLoadOptions options) =>

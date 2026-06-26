@@ -101,6 +101,23 @@ public class CsvDocumentBasicsTests
         Assert.Equal("  spaced  ", parsed.AsEnumerable().Single().AsString("Value"));
     }
 
+    [Fact]
+    public void Delimiter_Detection_Skips_Trimmed_Blank_Records()
+    {
+        var parsed = CsvDocument.Parse(
+            "   \nName;Value\nAlpha;1\n",
+            new CsvLoadOptions
+            {
+                DetectDelimiter = true,
+                TrimWhitespace = true
+            });
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal(';', parsed.Delimiter);
+        Assert.Equal("Alpha", row.AsString("Name"));
+        Assert.Equal("1", row.AsString("Value"));
+    }
+
     [Theory]
     [InlineData(',')]
     [InlineData(';')]
@@ -255,6 +272,19 @@ public class CsvDocumentBasicsTests
         Assert.Equal(new[] { "date", "time" }, parsed.Header);
         Assert.Equal("2026-06-25", row.AsString("date"));
         Assert.Equal("12:00", row.AsString("time"));
+    }
+
+    [Fact]
+    public void Skip_Comment_Rows_Before_Header_Skips_Unmatched_Quote_Comments_Before_Parsing()
+    {
+        var parsed = CsvDocument.Parse(
+            "# generated \"by tool\nName,Value\nA,1\n",
+            new CsvLoadOptions());
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
+        Assert.Equal("A", row.AsString("Name"));
+        Assert.Equal("1", row.AsString("Value"));
     }
 
     [Fact]

@@ -57,7 +57,7 @@ public sealed partial class CsvDocument
         while (records.MoveNext())
         {
             var record = records.Current;
-            if (record.Length == 0)
+            if (IsBlankDelimiterDetectionRecord(record, options))
             {
                 if (options.AllowEmptyLines)
                 {
@@ -87,7 +87,7 @@ public sealed partial class CsvDocument
         while (count < DelimiterDetectionSampleLimit && records.MoveNext())
         {
             var record = records.Current;
-            if (record.Length == 0 && !options.AllowEmptyLines)
+            if (IsBlankDelimiterDetectionRecord(record, options) && !options.AllowEmptyLines)
             {
                 continue;
             }
@@ -101,6 +101,9 @@ public sealed partial class CsvDocument
             count++;
         }
     }
+
+    private static bool IsBlankDelimiterDetectionRecord(string record, CsvLoadOptions options) =>
+        record.Length == 0 || (options.TrimWhitespace && record.Trim().Length == 0);
 
     private static IEnumerable<string> ReadLogicalDelimiterDetectionRecords(TextReader reader)
     {

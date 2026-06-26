@@ -183,10 +183,12 @@ public sealed partial class CsvDocument
 
             if (File.Exists(fullPath))
             {
-                File.Delete(fullPath);
+                File.Replace(temporaryPath, fullPath, destinationBackupFileName: null, ignoreMetadataErrors: true);
             }
-
-            File.Move(temporaryPath, fullPath);
+            else
+            {
+                File.Move(temporaryPath, fullPath);
+            }
         }
         catch
         {

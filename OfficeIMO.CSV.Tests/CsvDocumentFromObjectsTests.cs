@@ -303,6 +303,27 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void SaveObjects_ReplacesExistingFileWithCompletedOutput()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.SaveObjects.Replace." + Guid.NewGuid().ToString("N") + ".csv");
+        File.WriteAllText(path, "existing");
+
+        try
+        {
+            CsvDocument.SaveObjects(path, new object?[] { new { Name = "B", Value = 2 } }, new CsvSaveOptions { NewLine = "\n" });
+
+            Assert.Equal("Name,Value\nB,2\n", File.ReadAllText(path));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public void FromObjects_ThrowsOnNullItems()
     {
         var ex = Assert.Throws<ArgumentNullException>(() => CsvDocument.FromObjects(null!));

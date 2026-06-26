@@ -199,6 +199,10 @@ namespace OfficeIMO.Excel {
 
         private static string ReadFirstDelimitedImportRecord(TextReader reader, int recordsToSkip) {
             foreach (var record in ReadDelimitedImportLogicalRecords(reader)) {
+                if (record.Length == 0) {
+                    continue;
+                }
+
                 if (recordsToSkip > 0) {
                     recordsToSkip--;
                     continue;
