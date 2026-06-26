@@ -153,7 +153,7 @@ namespace OfficeIMO.Excel {
             ExcelVisualCell cell,
             ExcelRangeVisualSnapshot snapshot,
             ExcelImageExportOptions options,
-            OfficeRasterCanvas textMeasureCanvas,
+            OfficeTextMeasurer textMeasurer,
             IReadOnlyDictionary<string, ExcelVisualCell> cellsByAddress,
             List<OfficeImageExportDiagnostic>? diagnostics) {
             if (string.IsNullOrEmpty(cell.Text)) {
@@ -204,14 +204,14 @@ namespace OfficeIMO.Excel {
                 minimumFontSize,
                 rotationDegrees,
                 stacked,
-                (text, size) => textMeasureCanvas.MeasureText(text, size, fontFamily));
+                (text, size) => MeasureSvgText(textMeasurer, text, size, fontFamily));
             OfficeTextBlockLayout layout = plan.Layout;
             if (layout.Lines.Count == 0) {
                 return;
             }
 
             if (cell.RichTextRuns.Count > 0) {
-                if (richTextSupported && TryAppendSvgRichText(builder, cell, options, x, y, w, h, paddingX, paddingY, availableWidth, availableHeight, rotationDegrees, stacked, (text, size, family) => textMeasureCanvas.MeasureText(text, size, family), out OfficeRichTextBlockLayout richLayout)) {
+                if (richTextSupported && TryAppendSvgRichText(builder, cell, options, x, y, w, h, paddingX, paddingY, availableWidth, availableHeight, rotationDegrees, stacked, (text, size, family) => MeasureSvgText(textMeasurer, text, size, family), out OfficeRichTextBlockLayout richLayout)) {
                     AddRichTextFontFamilyFallbackDiagnostics(snapshot, cell, diagnostics);
                     AddTextClippingDiagnosticIfNeeded(richLayout, snapshot, cell, diagnostics);
                     if (rotated || stacked) {
@@ -504,6 +504,11 @@ namespace OfficeIMO.Excel {
                 minimumFontSize: Math.Max(1D, scale),
                 overflowBehavior: OfficeTextOverflowBehavior.Clip);
             return layout.Lines.Count > 0;
+        }
+
+        private static double MeasureSvgText(OfficeTextMeasurer measurer, string? text, double fontSize, string? fontFamily) {
+            OfficeTextMeasurementStyle style = measurer.CreateStyle(new OfficeFontInfo(fontFamily, fontSize));
+            return measurer.MeasureWidth(text, style);
         }
 
         private static OfficeTextBlockRenderPlan CreateCenteredRotatedCellTextPlan(

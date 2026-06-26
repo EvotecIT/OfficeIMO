@@ -896,7 +896,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("FFC6EFCE", snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 1).Style.FillColorArgb);
             Assert.Equal("FFC6EFCE", snapshot.Cells.Single(cell => cell.Row == 3 && cell.Column == 1).Style.FillColorArgb);
             Assert.Equal("FFFEE2E2", snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 2).Style.FillColorArgb);
-            Assert.Equal("FFFF0000", snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 2).Style.FillColorArgb);
+            Assert.Equal("FF808000", snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 2).Style.FillColorArgb);
             Assert.Equal("FF00FF00", snapshot.Cells.Single(cell => cell.Row == 3 && cell.Column == 2).Style.FillColorArgb);
             Assert.Contains("#C6EFCE", svg, StringComparison.Ordinal);
             Assert.Contains("#FEE2E2", svg, StringComparison.Ordinal);

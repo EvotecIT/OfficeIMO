@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void AppendSvgDrawingLayers(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, OfficeRasterCanvas textMeasureCanvas) {
+        private static void AppendSvgDrawingLayers(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, OfficeTextMeasurer textMeasurer) {
             int imageIndex = 0;
             foreach (ExcelVisualDrawingLayer layer in snapshot.DrawingLayers) {
                 switch (layer.Kind) {
@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel {
                         break;
                     case ExcelVisualDrawingLayerKind.CommentBody:
                         if (layer.CommentBody != null) {
-                            AppendSvgCommentBody(builder, layer.CommentBody, options, textMeasureCanvas);
+                            AppendSvgCommentBody(builder, layer.CommentBody, options, textMeasurer);
                         }
 
                         break;

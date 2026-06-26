@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel {
             var backgroundAttributes = new StringBuilder();
             backgroundAttributes.AppendPaintAttribute("fill", options.BackgroundColor);
             builder.AppendRectElement(0D, 0D, width, height, backgroundAttributes.ToString());
-            OfficeRasterCanvas textMeasureCanvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1, OfficeColor.Transparent));
+            OfficeTextMeasurer textMeasurer = OfficeTextMeasurer.Create();
             Dictionary<string, ExcelVisualConditionalDataBar> dataBars = BuildDataBarMap(snapshot.ConditionalDataBars);
             Dictionary<string, ExcelVisualCell> cellsByAddress = BuildCellMap(snapshot.Cells);
 
@@ -109,13 +109,13 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                AppendSvgCellText(builder, cell, snapshot, options, textMeasureCanvas, cellsByAddress, diagnostics);
+                AppendSvgCellText(builder, cell, snapshot, options, textMeasurer, cellsByAddress, diagnostics);
             }
 
             AppendSvgConditionalIcons(builder, snapshot, options);
             AppendSvgSparklines(builder, snapshot, options);
             AppendSvgCommentIndicators(builder, snapshot, options);
-            AppendSvgDrawingLayers(builder, snapshot, options, diagnostics, textMeasureCanvas);
+            AppendSvgDrawingLayers(builder, snapshot, options, diagnostics, textMeasurer);
 
             builder.Append("</svg>");
             return builder.ToString();

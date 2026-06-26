@@ -47,12 +47,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void AppendSvgCommentBody(StringBuilder builder, ExcelVisualCommentBody body, ExcelImageExportOptions options, OfficeRasterCanvas textMeasureCanvas) {
+        private static void AppendSvgCommentBody(StringBuilder builder, ExcelVisualCommentBody body, ExcelImageExportOptions options, OfficeTextMeasurer textMeasurer) {
             OfficeCalloutRenderer.AppendSvg(
                 builder,
                 CreateCommentBodyCallout(body),
                 CreateCommentBodyStyle(body.Threaded),
-                textMeasureCanvas.MeasureText,
+                (text, size, family) => MeasureSvgText(textMeasurer, text, size, family),
                 options.Scale,
                 "xl-comment-" + body.Row.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-" + body.Column.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
