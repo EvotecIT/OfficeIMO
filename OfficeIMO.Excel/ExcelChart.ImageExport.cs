@@ -207,12 +207,15 @@ namespace OfficeIMO.Excel {
             string? axisTitleFontFamily = TryGetImageExportAxisTitleFontFamily(plotArea, out string? resolvedAxisTitleFontFamily) ? resolvedAxisTitleFontFamily : null;
             OfficeFontStyle? axisTextFontStyle = TryGetImageExportAxisTextFontStyle(plotArea, out OfficeFontStyle resolvedAxisTextFontStyle) ? resolvedAxisTextFontStyle : null;
             OfficeFontStyle? axisTitleFontStyle = TryGetImageExportAxisTitleFontStyle(plotArea, out OfficeFontStyle resolvedAxisTitleFontStyle) ? resolvedAxisTitleFontStyle : null;
+            bool showCategoryAxis = IsImageExportAxisVisible(categoryAxis);
+            bool showValueAxis = IsImageExportAxisVisible(valueAxis);
             bool showCategoryAxisLine = IsImageExportAxisLineVisible(categoryAxis);
             bool showValueAxisLine = IsImageExportAxisLineVisible(valueAxis);
             bool showCategoryAxisLabels = IsImageExportAxisLabelsVisible(categoryAxis);
             bool showValueAxisLabels = IsImageExportAxisLabelsVisible(valueAxis);
             C.ScatterStyleValues? scatterStyle = GetImageExportScatterStyle(plotArea);
             bool connectScatterPoints = GetImageExportConnectScatterPoints(scatterStyle);
+            bool hasAxisVisibility = !showCategoryAxis || !showValueAxis;
             bool hasAxisLineVisibility = !showCategoryAxisLine || !showValueAxisLine;
             bool hasAxisNumberFormat = horizontalAxisNumberFormat != null || verticalAxisNumberFormat != null || categoryAxisNumberFormat != null;
             bool hasAxisDisplayUnit = horizontalAxisDisplayUnit.Divisor != null || verticalAxisDisplayUnit.Divisor != null;
@@ -234,6 +237,9 @@ namespace OfficeIMO.Excel {
             bool fillRadarSeries = GetImageExportFillRadarSeries(plotArea);
             bool hasRadarFillLayout = !fillRadarSeries;
             bool hasScatterStyleLayout = !connectScatterPoints;
+            bool hasLegendLayout = legend == null ||
+                legend.GetFirstChild<C.LegendPosition>() != null ||
+                legend.GetFirstChild<C.Overlay>() != null;
             bool hasTextFont = legendFontSize != null ||
                 legendFontFamily != null ||
                 legendFontStyle != null ||
@@ -248,10 +254,11 @@ namespace OfficeIMO.Excel {
                 axisTitleFontStyle != null;
             bool hasLayout =
                 dataLabels != null ||
-                legend != null ||
+                hasLegendLayout ||
                 title?.GetFirstChild<C.Overlay>() != null ||
                 categoryAxisTitle != null ||
                 valueAxisTitle != null ||
+                hasAxisVisibility ||
                 hasAxisLineVisibility ||
                 hasAxisNumberFormat ||
                 hasAxisDisplayUnit ||
@@ -324,6 +331,8 @@ namespace OfficeIMO.Excel {
                 verticalAxisCrossingPosition: verticalAxisCrossingPosition,
                 reverseCategoryAxis: reverseCategoryAxis,
                 fillRadarSeries: fillRadarSeries,
+                showCategoryAxis: showCategoryAxis,
+                showValueAxis: showValueAxis,
                 showCategoryAxisLine: showCategoryAxisLine,
                 showValueAxisLine: showValueAxisLine,
                 showCategoryAxisLabels: showCategoryAxisLabels,
@@ -538,11 +547,14 @@ namespace OfficeIMO.Excel {
         private static OpenXmlCompositeElement? ResolveImageExportValueAxis(C.PlotArea plotArea) =>
             (OpenXmlCompositeElement?)ResolveValueAxis(plotArea, ExcelChartAxisGroup.Primary) ?? ResolveScatterYAxis(plotArea);
 
+        private static bool IsImageExportAxisVisible(OpenXmlCompositeElement? axis) =>
+            axis == null || !IsEnabled(axis.GetFirstChild<C.Delete>());
+
         private static bool IsImageExportAxisLineVisible(OpenXmlCompositeElement? axis) =>
-            axis == null || !HasNoLine(axis.GetFirstChild<C.ShapeProperties>());
+            axis == null || (IsImageExportAxisVisible(axis) && !HasNoLine(axis.GetFirstChild<C.ShapeProperties>()));
 
         private static bool IsImageExportAxisLabelsVisible(OpenXmlCompositeElement? axis) =>
-            axis == null || axis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value != C.TickLabelPositionValues.None;
+            axis == null || (IsImageExportAxisVisible(axis) && axis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value != C.TickLabelPositionValues.None);
 
         private static IReadOnlyList<string?>? GetImageExportPointColors(OpenXmlCompositeElement series, int valueCount, string? markerFill, WorkbookPart workbookPart) {
             if (valueCount <= 0 && string.IsNullOrWhiteSpace(markerFill)) {

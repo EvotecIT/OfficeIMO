@@ -207,21 +207,32 @@ public static class PowerPointHtmlLoadExtensions {
                 name = "Series " + (series.Count + 1).ToString(CultureInfo.InvariantCulture);
             }
 
-            var values = new List<double>();
-            foreach (IElement cell in row.QuerySelectorAll("td")) {
+            List<IElement> valueCells = row.QuerySelectorAll("td").ToList();
+            var values = new double[valueCells.Count];
+            var xValues = new double[valueCells.Count];
+            bool hasXValues = valueCells.Any(cell => cell.GetAttribute("data-officeimo-x") != null);
+            for (int i = 0; i < valueCells.Count; i++) {
+                IElement cell = valueCells[i];
                 string text = NormalizeText(cell.TextContent);
-                if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
+                if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out values[i])) {
                     return false;
                 }
 
-                values.Add(value);
+                if (hasXValues) {
+                    string? rawXValue = cell.GetAttribute("data-officeimo-x");
+                    if (rawXValue == null || !double.TryParse(rawXValue, NumberStyles.Float, CultureInfo.InvariantCulture, out xValues[i])) {
+                        return false;
+                    }
+                }
             }
 
-            if (values.Count != categories.Count) {
+            if (values.Length != categories.Count) {
                 return false;
             }
 
-            series.Add(new PptCore.PowerPointChartSeries(name, values));
+            series.Add(hasXValues
+                ? new PptCore.PowerPointChartSeries(name, values, xValues)
+                : new PptCore.PowerPointChartSeries(name, values));
         }
 
         if (series.Count == 0) {
@@ -317,7 +328,35 @@ public static class PowerPointHtmlLoadExtensions {
             return true;
         }
 
+        if (chartKind.Equals("Scatter", StringComparison.OrdinalIgnoreCase)) {
+            if (!TryCreateScatterChartData(data, out PptCore.PowerPointScatterChartData? scatterData) || scatterData == null) {
+                return false;
+            }
+
+            chart = slide.AddScatterChartPoints(scatterData, left, top, width, height);
+            return true;
+        }
+
         return false;
+    }
+
+    private static bool TryCreateScatterChartData(PptCore.PowerPointChartData data, out PptCore.PowerPointScatterChartData? scatterData) {
+        scatterData = null;
+        var series = new List<PptCore.PowerPointScatterChartSeries>();
+        foreach (PptCore.PowerPointChartSeries item in data.Series) {
+            if (item.XValues == null || item.XValues.Count != item.Values.Count) {
+                return false;
+            }
+
+            series.Add(new PptCore.PowerPointScatterChartSeries(item.Name, item.XValues, item.Values));
+        }
+
+        if (series.Count == 0) {
+            return false;
+        }
+
+        scatterData = new PptCore.PowerPointScatterChartData(series);
+        return true;
     }
 
     private static string ReadChartKind(IElement item) {

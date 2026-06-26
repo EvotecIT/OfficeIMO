@@ -399,9 +399,16 @@ public static class PowerPointHtmlConverterExtensions {
             body.Append("<tr><th>")
                 .Append(OfficeHtmlText.Escape(series.Name))
                 .Append("</th>");
-            foreach (double value in series.Values) {
-                body.Append("<td>")
-                    .Append(value.ToString("G17", CultureInfo.InvariantCulture))
+            for (int i = 0; i < series.Values.Count; i++) {
+                body.Append("<td");
+                if (series.XValues != null && i < series.XValues.Count) {
+                    body.Append(" data-officeimo-x=\"")
+                        .Append(OfficeHtmlText.EscapeAttribute(series.XValues[i].ToString("G17", CultureInfo.InvariantCulture)))
+                        .Append('"');
+                }
+
+                body.Append('>')
+                    .Append(series.Values[i].ToString("G17", CultureInfo.InvariantCulture))
                     .Append("</td>");
             }
 

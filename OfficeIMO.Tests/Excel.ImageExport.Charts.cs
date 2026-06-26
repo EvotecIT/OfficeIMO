@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
@@ -940,6 +941,68 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportCarriesHiddenLegendIntoSharedRenderer() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("NoLegend");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(2, 2, 120);
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(3, 2, 180);
+            sheet.CellValue(4, 1, "Mar");
+            sheet.CellValue(4, 2, 160);
+            sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 265, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "No Legend")
+                .HideLegend();
+
+            ExcelRange range = sheet.Range("D1:H9");
+            var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+            string svg = range.ToSvg(options);
+
+            Assert.NotNull(visualChart.Snapshot.Layout);
+            Assert.False(visualChart.Snapshot.Layout!.ShowLegend);
+            Assert.DoesNotContain(">Actual<", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportHonorsDeletedChartAxes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("DeletedAxes");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(2, 2, 120);
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(3, 2, 180);
+            sheet.CellValue(4, 1, "Mar");
+            sheet.CellValue(4, 2, 160);
+            sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 265, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Deleted Axes");
+            SetFirstChartAxisDeleted<CategoryAxis>(document);
+            SetFirstChartAxisDeleted<ValueAxis>(document);
+
+            ExcelRange range = sheet.Range("D1:H9");
+            var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+            string svg = range.ToSvg(options);
+
+            Assert.NotNull(visualChart.Snapshot.Layout);
+            Assert.False(visualChart.Snapshot.Layout!.ShowCategoryAxis);
+            Assert.False(visualChart.Snapshot.Layout.ShowValueAxis);
+            Assert.False(visualChart.Snapshot.Layout.ShowCategoryAxisLine);
+            Assert.False(visualChart.Snapshot.Layout.ShowValueAxisLine);
+            Assert.False(visualChart.Snapshot.Layout.ShowCategoryAxisLabels);
+            Assert.False(visualChart.Snapshot.Layout.ShowValueAxisLabels);
+            Assert.DoesNotContain("Jan", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("Feb", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("Mar", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportCarriesHighChartAxisTickLabelPositionIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -1368,6 +1431,18 @@ namespace OfficeIMO.Tests {
             minorTickMark.Val = value;
             if (minorTickMark.Parent == null) {
                 valueAxis.Append(minorTickMark);
+            }
+
+            chartPart.ChartSpace.Save();
+        }
+
+        private static void SetFirstChartAxisDeleted<TAxis>(ExcelDocument document) where TAxis : OpenXmlCompositeElement {
+            var chartPart = GetFirstChartPart(document);
+            TAxis axis = chartPart.ChartSpace.Descendants<TAxis>().First();
+            Delete delete = axis.GetFirstChild<Delete>() ?? new Delete();
+            delete.Val = true;
+            if (delete.Parent == null) {
+                axis.InsertAt(delete, 0);
             }
 
             chartPart.ChartSpace.Save();

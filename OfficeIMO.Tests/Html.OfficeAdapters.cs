@@ -381,6 +381,31 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void PowerPointHtml_RoundTripsScatterChartXValuesInSemanticChartData() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.Slides[0];
+        var data = new PowerPointScatterChartData(new[] {
+            new PowerPointScatterChartSeries("Forecast", new[] { 1.5D, 2.5D }, new[] { 10D, 20D })
+        });
+        slide.AddScatterChartPoints(data, 72, 96, 240, 140).SetTitle("Scatter");
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        });
+
+        Assert.Contains("data-officeimo-x=\"1.5\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-x=\"2.5\"", html, StringComparison.Ordinal);
+
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+        PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
+        Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
+        PowerPointChartSeries series = Assert.Single(snapshot!.Data.Series);
+        Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
+        Assert.Equal(new[] { 10D, 20D }, series.Values);
+    }
+
+    [Fact]
     public void PowerPointHtml_ExportsSemanticSlidesWithExtractionProof() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.Slides[0];
