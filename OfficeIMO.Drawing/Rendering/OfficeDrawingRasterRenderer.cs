@@ -204,9 +204,7 @@ public static class OfficeDrawingRasterRenderer {
     private static void RenderTransformedShape(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale) {
         OfficeShape shape = drawingShape.Shape;
         OfficeColor? fill = ApplyOpacity(shape.FillColor, shape.FillOpacity);
-        if (!fill.HasValue && shape.FillGradient != null && shape.FillGradient.Stops.Count > 0) {
-            fill = ApplyOpacity(shape.FillGradient.Stops[0].Color, shape.FillOpacity);
-        }
+        OfficeLinearGradient? fillGradient = shape.FillGradient == null ? null : ApplyOpacity(shape.FillGradient, shape.FillOpacity);
 
         OfficeColor? stroke = ApplyOpacity(shape.StrokeColor, shape.StrokeOpacity);
         double strokeWidth = shape.StrokeWidth * scale;
@@ -215,13 +213,13 @@ public static class OfficeDrawingRasterRenderer {
             case OfficeShapeKind.Rectangle:
             case OfficeShapeKind.RoundedRectangle:
             case OfficeShapeKind.Ellipse:
-                RenderTransformedClosedContour(canvas, drawingShape, scale, CreateShapeContour(shape), fill, stroke, strokeWidth);
+                RenderTransformedClosedContour(canvas, drawingShape, scale, CreateShapeContour(shape), fill, fillGradient, stroke, strokeWidth);
                 break;
             case OfficeShapeKind.Line:
                 if (strokeWidth > 0D) RenderTransformedLine(canvas, drawingShape, scale, stroke ?? fill ?? OfficeColor.Black, strokeWidth);
                 break;
             case OfficeShapeKind.Polygon:
-                RenderTransformedClosedContour(canvas, drawingShape, scale, shape.Points, fill, stroke, strokeWidth);
+                RenderTransformedClosedContour(canvas, drawingShape, scale, shape.Points, fill, fillGradient, stroke, strokeWidth);
                 break;
             case OfficeShapeKind.Path:
                 RenderTransformedPath(canvas, drawingShape, scale, fill, stroke, strokeWidth, shape.StrokeDashStyle);
@@ -238,13 +236,14 @@ public static class OfficeDrawingRasterRenderer {
         }
     }
 
-    private static void RenderTransformedClosedContour(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale, IReadOnlyList<OfficePoint> contour, OfficeColor? fill, OfficeColor? stroke, double strokeWidth) {
+    private static void RenderTransformedClosedContour(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale, IReadOnlyList<OfficePoint> contour, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeColor? stroke, double strokeWidth) {
         if (contour.Count < 3) {
             return;
         }
 
         List<OfficePoint> points = TransformShapePoints(drawingShape, contour, scale);
-        if (fill.HasValue) canvas.FillPolygon(points, fill.Value);
+        if (fillGradient != null) canvas.FillLinearGradientPolygon(points, fillGradient);
+        else if (fill.HasValue) canvas.FillPolygon(points, fill.Value);
         if (stroke.HasValue && strokeWidth > 0D) canvas.DrawStyledPolygon(points, stroke.Value, strokeWidth, drawingShape.Shape.StrokeDashStyle);
     }
 

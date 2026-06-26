@@ -97,6 +97,26 @@ namespace OfficeIMO.Tests {
             Assert.False(visualChart.Snapshot.Layout!.ConnectScatterPoints);
         }
 
+        [Fact]
+        public void ExcelRange_ImageExportReportsComboChartSeriesTypeApproximation() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Combo");
+            var data = new ExcelChartData(
+                new[] { "Jan", "Feb", "Mar" },
+                new[] {
+                    new ExcelChartSeries("Sales", new[] { 10D, 20D, 30D }, ExcelChartType.ColumnClustered),
+                    new ExcelChartSeries("Trend", new[] { 12D, 18D, 28D }, ExcelChartType.Line)
+                });
+            sheet.AddChart(data, row: 1, column: 4, widthPixels: 260, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Combo");
+
+            OfficeImageExportResult png = sheet.Range("A1:H10").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+
+            Assert.Contains(png.Diagnostics, diagnostic =>
+                diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartKindApproximated &&
+                diagnostic.Message.Contains("combo chart", StringComparison.OrdinalIgnoreCase));
+        }
+
         private static void SetScatterChartSeriesIndexes(ExcelDocument document, params uint[] indexes) {
             ChartPart chartPart = GetFirstChartPart(document);
             ScatterChartSeries[] series = chartPart.ChartSpace!.Descendants<ScatterChartSeries>().ToArray();

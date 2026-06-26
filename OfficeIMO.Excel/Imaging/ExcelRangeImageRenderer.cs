@@ -225,6 +225,14 @@ namespace OfficeIMO.Excel {
                     sheetName + "!" + snapshot.Name));
             }
 
+            if (snapshot.Data.Series.Any(series => series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType)) {
+                diagnostics?.Add(new OfficeImageExportDiagnostic(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ChartKindApproximated,
+                    "Excel combo chart series types are not rendered independently yet; image export uses the chart's primary kind for all series.",
+                    sheetName + "!" + snapshot.Name));
+            }
+
             OfficeChartData data = new OfficeChartData(
                 snapshot.Data.Categories,
                 snapshot.Data.Series.Select(series => new OfficeChartSeries(

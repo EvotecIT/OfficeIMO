@@ -171,6 +171,11 @@ namespace OfficeIMO.Excel {
                 || normalized.IndexOf('\u00A3') >= 0;
             int decimalPlaces = CountDecimalPlaces(lower);
             double displayValue = percent ? value * 100.0 : value;
+            int scalingCommas = CountScalingCommas(normalized);
+            for (int i = 0; i < scalingCommas; i++) {
+                displayValue /= 1000D;
+            }
+
             if (selectedSection == 1) {
                 displayValue = Math.Abs(displayValue);
             }
@@ -341,6 +346,30 @@ namespace OfficeIMO.Excel {
             for (int i = dot + 1; i < formatCode.Length; i++) {
                 char ch = formatCode[i];
                 if (ch == '0' || ch == '#') {
+                    count++;
+                    continue;
+                }
+
+                break;
+            }
+
+            return count;
+        }
+
+        private static int CountScalingCommas(string formatCode) {
+            int last = FindLastNumericPlaceholder(formatCode);
+            if (last < 0 || last + 1 >= formatCode.Length) {
+                return 0;
+            }
+
+            int count = 0;
+            for (int i = last + 1; i < formatCode.Length; i++) {
+                char ch = formatCode[i];
+                if (char.IsWhiteSpace(ch)) {
+                    continue;
+                }
+
+                if (ch == ',') {
                     count++;
                     continue;
                 }

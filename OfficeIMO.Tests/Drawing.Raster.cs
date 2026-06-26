@@ -1089,6 +1089,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeDrawingRasterRenderer_PreservesGradientOnTransformedShapes() {
+            OfficeDrawing drawing = new OfficeDrawing(64, 48);
+            OfficeShape shape = OfficeShape.Rectangle(34, 20);
+            shape.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
+            shape.Transform = OfficeTransform.RotateDegrees(20D, 17D, 10D);
+            drawing.AddShape(shape, 14, 12);
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+
+            OfficeColor left = image.GetPixel(20, 25);
+            OfficeColor right = image.GetPixel(45, 23);
+            Assert.True(left.R > left.B, $"Expected transformed gradient left side to keep the red stop, got {left}.");
+            Assert.True(right.B > right.R, $"Expected transformed gradient right side to keep the blue stop, got {right}.");
+        }
+
+        [Fact]
         public void OfficeDrawingRasterRenderer_RendersRoundedRectanglesAndShapeShadows() {
             OfficeDrawing drawing = new OfficeDrawing(48, 36);
             OfficeShape shape = OfficeShape.RoundedRectangle(24, 16, 6);

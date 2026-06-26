@@ -142,6 +142,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("-1/2", ExcelNumberFormatDisplay.FormatNumericText(-0.5D, 12U, null, "-0.5"));
             Assert.Equal("1/10", ExcelNumberFormatDisplay.FormatNumericText(0.1D, 13U, null, "0.1"));
             Assert.Equal("(1/2)", ExcelNumberFormatDisplay.FormatNumericText(-0.5D, 1U, "# ?/?;(# ?/?)", "-0.5"));
+            Assert.Equal("1,235", ExcelNumberFormatDisplay.FormatNumericText(1234567D, 1U, "#,##0,", "1234567"));
+            Assert.Equal("1 K", ExcelNumberFormatDisplay.FormatNumericText(1234D, 1U, "#,##0, \"K\"", "1234"));
+            Assert.Equal("1", ExcelNumberFormatDisplay.FormatNumericText(1234567D, 1U, "#,##0,,", "1234567"));
         }
 
         [Fact]
@@ -555,6 +558,22 @@ namespace OfficeIMO.Tests {
             ExcelVisualConditionalDataBar bar = Assert.Single(snapshot.ConditionalDataBars);
             Assert.Equal(5, bar.Row);
             Assert.Equal(4D / 9D, bar.Ratio, precision: 3);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportScalesColorScaleAgainstFullRuleRange() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("PartialColorScale");
+            for (int row = 1; row <= 10; row++) {
+                sheet.CellValue(row, 1, row);
+            }
+
+            sheet.AddConditionalColorScale("A1:A10", OfficeColor.Red, OfficeColor.Lime);
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A5:A5").CreateVisualSnapshot();
+
+            Assert.Equal("FF8E7100", Assert.Single(snapshot.Cells).Style.FillColorArgb);
         }
 
         [Fact]
@@ -1117,6 +1136,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportEvaluatesDuplicateRulesAgainstFullRuleRange() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("PartialDistinct");
+            sheet.CellValue(1, 1, "Alpha");
+            sheet.CellValue(2, 1, "Alpha");
+            sheet.CellValue(3, 1, "Beta");
+            sheet.Range("A1:A3").ConditionalFormatting.DuplicateValues("FCE4D6");
+
+            ExcelRangeVisualSnapshot duplicateSnapshot = sheet.Range("A1:A1").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelRangeVisualSnapshot uniqueSnapshot = sheet.Range("A3:A3").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+
+            Assert.Equal("FFFCE4D6", Assert.Single(duplicateSnapshot.Cells).Style.FillColorArgb);
+            Assert.Null(Assert.Single(uniqueSnapshot.Cells).Style.FillColorArgb);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportAppliesTopBottomConditionalFillsIncludingPercentVariants() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -1189,6 +1225,24 @@ namespace OfficeIMO.Tests {
                 bottomPercentCell,
                 OfficeColor.FromRgb(219, 234, 254),
                 tolerance: 3);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRanksTopBottomAgainstFullRuleRange() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("PartialTop");
+            for (int row = 1; row <= 10; row++) {
+                sheet.CellValue(row, 1, row);
+            }
+
+            sheet.Range("A1:A10").ConditionalFormatting.Top(1, "C6EFCE");
+
+            ExcelRangeVisualSnapshot middleSnapshot = sheet.Range("A5:A5").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelRangeVisualSnapshot topSnapshot = sheet.Range("A10:A10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+
+            Assert.Null(Assert.Single(middleSnapshot.Cells).Style.FillColorArgb);
+            Assert.Equal("FFC6EFCE", Assert.Single(topSnapshot.Cells).Style.FillColorArgb);
         }
 
         [Fact]

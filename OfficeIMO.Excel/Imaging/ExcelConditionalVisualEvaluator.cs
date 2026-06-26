@@ -303,12 +303,12 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (string.Equals(rule.Type, "DuplicateValues", StringComparison.OrdinalIgnoreCase)) {
-                    ApplyDistinctValueFill(cells, rule, fills, stoppedCells, selectDuplicates: true);
+                    ApplyDistinctValueFill(sheet, cells, rule, fills, stoppedCells, selectDuplicates: true);
                     continue;
                 }
 
                 if (string.Equals(rule.Type, "UniqueValues", StringComparison.OrdinalIgnoreCase)) {
-                    ApplyDistinctValueFill(cells, rule, fills, stoppedCells, selectDuplicates: false);
+                    ApplyDistinctValueFill(sheet, cells, rule, fills, stoppedCells, selectDuplicates: false);
                     continue;
                 }
 
@@ -367,7 +367,11 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            IReadOnlyList<double> values = candidates.Select(candidate => candidate.Value).ToArray();
+            IReadOnlyList<double> values = GetRuleNumericValues(sheet, rule.Range);
+            if (values.Count == 0) {
+                values = candidates.Select(candidate => candidate.Value).ToArray();
+            }
+
             foreach (ConditionalNumericCell candidate in candidates) {
                 string key = Key(candidate.Cell.Row, candidate.Cell.Column);
                 if (fills.ContainsKey(key)) {
@@ -391,10 +395,18 @@ namespace OfficeIMO.Excel {
                 result;
         }
 
-        private static bool CanEvaluateTopBottomRule(ExcelSheet sheet, IReadOnlyList<ExcelVisualCell> cells, ExcelConditionalFormattingInfo rule) =>
-            rule.TopBottomRank.HasValue &&
-            rule.TopBottomRank.Value > 0U &&
-            CalculateTopBottomSelectionCount(rule, GetNumericCandidates(sheet, cells, rule.Range).Count) > 0;
+        private static bool CanEvaluateTopBottomRule(ExcelSheet sheet, IReadOnlyList<ExcelVisualCell> cells, ExcelConditionalFormattingInfo rule) {
+            if (!rule.TopBottomRank.HasValue || rule.TopBottomRank.Value == 0U) {
+                return false;
+            }
+
+            int count = GetRuleNumericValues(sheet, rule.Range).Count;
+            if (count == 0) {
+                count = GetNumericCandidates(sheet, cells, rule.Range).Count;
+            }
+
+            return CalculateTopBottomSelectionCount(rule, count) > 0;
+        }
 
         private static void ApplyTopBottomFill(
             ExcelSheet sheet,
@@ -414,13 +426,17 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            int rank = CalculateTopBottomSelectionCount(rule, candidates.Count);
+            IReadOnlyList<double> values = GetRuleNumericValues(sheet, rule.Range);
+            if (values.Count == 0) {
+                values = candidates.Select(candidate => candidate.Value).ToArray();
+            }
+
+            int rank = CalculateTopBottomSelectionCount(rule, values.Count);
             if (rank == 0) {
                 return;
             }
 
-            List<double> orderedValues = candidates
-                .Select(candidate => candidate.Value)
+            List<double> orderedValues = values
                 .OrderBy(value => rule.TopBottomBottom ? value : -value)
                 .ToList();
             double cutoff = orderedValues[rank - 1];
@@ -457,9 +473,18 @@ namespace OfficeIMO.Excel {
             return Math.Max(1, Math.Min(candidateCount, count));
         }
 
-        private static bool CanEvaluateAboveAverageRule(ExcelSheet sheet, IReadOnlyList<ExcelVisualCell> cells, ExcelConditionalFormattingInfo rule) =>
-            !rule.AboveAverageStdDev.HasValue &&
-            GetNumericCandidates(sheet, cells, rule.Range).Count > 0;
+        private static bool CanEvaluateAboveAverageRule(ExcelSheet sheet, IReadOnlyList<ExcelVisualCell> cells, ExcelConditionalFormattingInfo rule) {
+            if (rule.AboveAverageStdDev.HasValue) {
+                return false;
+            }
+
+            int count = GetRuleNumericValues(sheet, rule.Range).Count;
+            if (count == 0) {
+                count = GetNumericCandidates(sheet, cells, rule.Range).Count;
+            }
+
+            return count > 0;
+        }
 
         private static void ApplyAboveAverageFill(
             ExcelSheet sheet,
@@ -476,7 +501,12 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            double average = candidates.Average(candidate => candidate.Value);
+            IReadOnlyList<double> values = GetRuleNumericValues(sheet, rule.Range);
+            if (values.Count == 0) {
+                values = candidates.Select(candidate => candidate.Value).ToArray();
+            }
+
+            double average = values.Average();
             foreach (ConditionalNumericCell candidate in candidates) {
                 string key = Key(candidate.Cell.Row, candidate.Cell.Column);
                 if (stoppedCells.Contains(key)) {
@@ -501,6 +531,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ApplyDistinctValueFill(
+            ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             ExcelConditionalFormattingInfo rule,
             Dictionary<string, string> fills,
@@ -520,9 +551,14 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            IReadOnlyList<string> values = GetRuleTextValues(sheet, rule.Range);
+            if (values.Count == 0) {
+                values = candidates.Select(candidate => candidate.Value).ToArray();
+            }
+
             var selectedValues = new HashSet<string>(
-                candidates
-                    .GroupBy(candidate => candidate.Value, StringComparer.OrdinalIgnoreCase)
+                values
+                    .GroupBy(value => value, StringComparer.OrdinalIgnoreCase)
                     .Where(group => selectDuplicates ? group.Count() > 1 : group.Count() == 1)
                     .Select(group => group.Key),
                 StringComparer.OrdinalIgnoreCase);
@@ -780,6 +816,33 @@ namespace OfficeIMO.Excel {
             }
 
             return values;
+        }
+
+        private static List<string> GetRuleTextValues(ExcelSheet sheet, string referenceList) {
+            var values = new List<string>();
+            foreach ((int row, int column) in EnumerateReferenceCells(referenceList)) {
+                if (TryGetCellTextValue(sheet, row, column, out string value)) {
+                    values.Add(value);
+                }
+            }
+
+            return values;
+        }
+
+        private static bool TryGetCellTextValue(ExcelSheet sheet, int row, int column, out string value) {
+            ExcelCellData data = sheet.GetCellValueSnapshot(row, column);
+            string? text = data.CachedText;
+            if (string.IsNullOrWhiteSpace(text) && data.Value != null) {
+                text = Convert.ToString(data.Value, CultureInfo.InvariantCulture);
+            }
+
+            if (!string.IsNullOrWhiteSpace(text)) {
+                value = text!.Trim();
+                return true;
+            }
+
+            value = string.Empty;
+            return false;
         }
 
         private static IEnumerable<(int Row, int Column)> EnumerateReferenceCells(string referenceList) {
