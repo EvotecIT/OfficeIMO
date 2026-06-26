@@ -305,6 +305,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_DropsSoftWrapWhitespaceInsteadOfEmittingEmptyLine() {
+            static double Measure(string? value, double size) => (value?.Length ?? 0) * size;
+
+            IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines("No old unsupported diagnostic", 1D, 10D, Measure);
+
+            Assert.DoesNotContain(lines, line => line.Text.Length == 0);
+            Assert.Equal("diagnostic", lines[lines.Count - 1].Text);
+        }
+
+        [Fact]
         public void OfficeTextLayoutEngine_BreaksLongWordsAndReturnsEmptyLineForBlankText() {
             double Measure(string? value, double size) => (value?.Length ?? 0) * size;
 

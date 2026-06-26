@@ -365,7 +365,12 @@ namespace OfficeIMO.Excel {
             int seriesOrder = 0;
             foreach (OpenXmlCompositeElement series in plotArea.Descendants<OpenXmlCompositeElement>().Where(IsSeriesElement)) {
                 int documentOrder = seriesOrder++;
-                int index = (int)(series.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)documentOrder);
+                int rawIndex = (int)(series.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)documentOrder);
+                int index = rawIndex >= 0 && rawIndex < data.Series.Count ? rawIndex : documentOrder;
+                if (index < 0 || index >= data.Series.Count) {
+                    continue;
+                }
+
                 ImageExportSeriesStyle style = new ImageExportSeriesStyle();
 
                 C.ChartShapeProperties? properties = series.GetFirstChild<C.ChartShapeProperties>();
@@ -378,7 +383,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                int valueCount = index >= 0 && index < data.Series.Count ? data.Series[index].Values.Count : 0;
+                int valueCount = data.Series[index].Values.Count;
                 C.Marker? marker = series.GetFirstChild<C.Marker>();
                 C.ScatterStyleValues? scatterStyle = (series.Parent as C.ScatterChart)?.GetFirstChild<C.ScatterStyle>()?.Val?.Value;
                 style.ShowMarkers = GetImageExportShowMarkers(marker, scatterStyle);

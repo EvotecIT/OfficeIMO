@@ -45,7 +45,10 @@ public static partial class OfficeTextLayoutEngine {
                 string candidate = current + token;
                 if (current.Length > 0 && Measure(candidate, fontSize, measure) > width) {
                     string emitted = TrimTrailingSoftWrapWhitespace(current);
-                    output.Add(new OfficeTextLine(emitted, Measure(emitted, fontSize, measure)));
+                    if (emitted.Length > 0) {
+                        output.Add(new OfficeTextLine(emitted, Measure(emitted, fontSize, measure)));
+                    }
+
                     current = whitespace ? string.Empty : token;
                     if (!whitespace && Measure(current, fontSize, measure) > width) {
                         foreach (OfficeTextLine part in BreakWord(current, fontSize, width, measure)) {
