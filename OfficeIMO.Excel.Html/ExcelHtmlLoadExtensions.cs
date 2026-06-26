@@ -29,6 +29,7 @@ public static class ExcelHtmlLoadExtensions {
         List<IElement> sheetSections = document.QuerySelectorAll("section.officeimo-sheet").ToList();
         if (sheetSections.Count == 0) {
             result.Diagnostics.Add("No semantic Excel sheet sections were found.");
+            workbook.AddWorkSheet("Imported");
             return result;
         }
 
@@ -71,7 +72,7 @@ public static class ExcelHtmlLoadExtensions {
             foreach (IElement cell in row.Children.Where(child => IsElement(child, "th") || IsElement(child, "td"))) {
                 string text = NormalizeText(cell.TextContent);
                 if (text.Length > 0) {
-                    sheet.CellValue(rowIndex, columnIndex, text);
+                    SetCellValue(sheet, rowIndex, columnIndex, cell, text, result);
                     result.Cells++;
                 }
 
@@ -102,7 +103,7 @@ public static class ExcelHtmlLoadExtensions {
                 continue;
             }
 
-            string formula = NormalizeText(item.QuerySelector("code")?.TextContent);
+            string formula = item.QuerySelector("code")?.TextContent ?? string.Empty;
             if (formula.Length == 0) {
                 continue;
             }
@@ -110,6 +111,38 @@ public static class ExcelHtmlLoadExtensions {
             sheet.CellFormula(row, column, formula);
             result.Formulas++;
         }
+    }
+
+    private static void SetCellValue(ExcelSheet sheet, int row, int column, IElement cell, string fallbackText, ExcelHtmlLoadResult result) {
+        string? kind = cell.GetAttribute("data-officeimo-value-kind");
+        string? rawValue = cell.GetAttribute("data-officeimo-value");
+        if (string.IsNullOrWhiteSpace(kind) || rawValue == null) {
+            sheet.CellValue(row, column, fallbackText);
+            return;
+        }
+
+        if (kind!.Equals("number", StringComparison.OrdinalIgnoreCase)) {
+            if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                sheet.CellValue(row, column, number);
+                return;
+            }
+
+            result.Diagnostics.Add("Cell " + BuildCellReference(row, column) + " contained a semantic number value that could not be parsed and was imported as text.");
+        } else if (kind.Equals("boolean", StringComparison.OrdinalIgnoreCase)) {
+            if (rawValue.Equals("1", StringComparison.OrdinalIgnoreCase) || rawValue.Equals("true", StringComparison.OrdinalIgnoreCase)) {
+                sheet.CellValue(row, column, true);
+                return;
+            }
+
+            if (rawValue.Equals("0", StringComparison.OrdinalIgnoreCase) || rawValue.Equals("false", StringComparison.OrdinalIgnoreCase)) {
+                sheet.CellValue(row, column, false);
+                return;
+            }
+
+            result.Diagnostics.Add("Cell " + BuildCellReference(row, column) + " contained a semantic boolean value that could not be parsed and was imported as text.");
+        }
+
+        sheet.CellValue(row, column, fallbackText);
     }
 
     private static void ImportComments(IElement section, ExcelSheet sheet, ExcelHtmlLoadResult result) {
@@ -330,6 +363,18 @@ public static class ExcelHtmlLoadExtensions {
             && index < reference.Length
             && int.TryParse(reference.Substring(index), NumberStyles.Integer, CultureInfo.InvariantCulture, out row)
             && row > 0;
+    }
+
+    private static string BuildCellReference(int row, int column) {
+        var letters = new StringBuilder();
+        int current = column;
+        while (current > 0) {
+            current--;
+            letters.Insert(0, (char)('A' + current % 26));
+            current /= 26;
+        }
+
+        return letters.Append(row.ToString(CultureInfo.InvariantCulture)).ToString();
     }
 
     private static bool IsElement(IElement element, string name) =>

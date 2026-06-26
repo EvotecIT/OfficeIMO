@@ -204,6 +204,66 @@ namespace OfficeIMO.Excel {
             } catch { return false; }
         }
 
+        /// <summary>
+        /// Tries to read the native value metadata of a cell at the given position.
+        /// </summary>
+        /// <param name="row">The 1-based row index of the cell to inspect.</param>
+        /// <param name="column">The 1-based column index of the cell to inspect.</param>
+        /// <param name="snapshot">When this method returns, contains the cell value metadata if successful; otherwise, <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> when the cell exists and carries a value, inline string, or formula.</returns>
+        public bool TryGetCellValueSnapshot(int row, int column, out ExcelCellValueSnapshot? snapshot) {
+            snapshot = null;
+            try {
+                if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                    if (_excelDocument.HasDeferredDirectDataSetImport) {
+                        _excelDocument.MaterializeDeferredDataSetImportPreservingFastSaveModel();
+                    } else {
+                        MaterializeDeferredDataSetImportIfNeeded();
+                    }
+                }
+
+                Cell? cell = TryGetCell(row, column);
+                if (cell == null) {
+                    return false;
+                }
+
+                string text = GetCellText(cell);
+                if (string.IsNullOrEmpty(text) && cell.CellFormula != null && cell.CellValue == null && cell.InlineString == null) {
+                    text = cell.CellFormula.Text ?? string.Empty;
+                }
+
+                if (cell.CellValue == null && cell.InlineString == null && string.IsNullOrEmpty(text)) {
+                    return false;
+                }
+
+                DocumentFormat.OpenXml.Spreadsheet.CellValues? dataType = cell.DataType?.Value;
+                ExcelCellValueKind kind;
+                if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString ||
+                    dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.String ||
+                    dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
+                    kind = ExcelCellValueKind.Text;
+                } else if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {
+                    kind = ExcelCellValueKind.Number;
+                } else if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean) {
+                    kind = ExcelCellValueKind.Boolean;
+                } else if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error) {
+                    kind = ExcelCellValueKind.Error;
+                } else if (cell.CellFormula != null) {
+                    kind = ExcelCellValueKind.Formula;
+                } else {
+                    kind = dataType == null ? ExcelCellValueKind.Number : ExcelCellValueKind.Other;
+                }
+
+                string rawValue = kind == ExcelCellValueKind.Formula
+                    ? cell.CellFormula?.Text ?? string.Empty
+                    : cell.CellValue?.InnerText ?? text;
+                snapshot = new ExcelCellValueSnapshot(kind, text, rawValue, dataType);
+                return true;
+            } catch {
+                return false;
+            }
+        }
+
         private void ApplyWrapText(int row, int column) {
             var cell = GetCell(row, column);
             ApplyWrapText(cell);

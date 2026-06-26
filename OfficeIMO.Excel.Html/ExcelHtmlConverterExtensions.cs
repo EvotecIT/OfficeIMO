@@ -114,7 +114,7 @@ public static class ExcelHtmlConverterExtensions {
         int maxRows = options.MaxRowsPerSheet.HasValue
             ? Math.Min(rowCount, options.MaxRowsPerSheet.Value)
             : rowCount;
-        if (rowCount == 0 || columnCount == 0 || maxRows == 0) {
+        if (rowCount == 0 || columnCount == 0 || maxRows == 0 || !SheetHasUsedCells(sheet, firstRow, firstColumn, rowCount, columnCount)) {
             body.Append("<p class=\"officeimo-muted\">No used cells.</p>");
             AppendSheetFeatureInventory(body, sheet);
             body.Append("</section>");
@@ -126,8 +126,19 @@ public static class ExcelHtmlConverterExtensions {
             body.Append("<tr>");
             for (int column = 0; column < columnCount; column++) {
                 string tag = row == 0 ? "th" : "td";
-                body.Append('<').Append(tag).Append('>');
-                body.Append(OfficeHtmlText.Escape(ReadCellText(sheet, firstRow + row, firstColumn + column, options.EmptyCellText)));
+                int cellRow = firstRow + row;
+                int cellColumn = firstColumn + column;
+                body.Append('<').Append(tag);
+                if (sheet.TryGetCellValueSnapshot(cellRow, cellColumn, out ExcelCellValueSnapshot? snapshot) && snapshot != null) {
+                    body.Append(" data-officeimo-value-kind=\"")
+                        .Append(OfficeHtmlText.EscapeAttribute(ToHtmlValueKind(snapshot.Kind)))
+                        .Append("\" data-officeimo-value=\"")
+                        .Append(OfficeHtmlText.EscapeAttribute(snapshot.RawValue))
+                        .Append('"');
+                }
+
+                body.Append('>');
+                body.Append(OfficeHtmlText.Escape(ReadCellText(sheet, cellRow, cellColumn, options.EmptyCellText)));
                 body.Append("</").Append(tag).Append('>');
             }
 
@@ -145,6 +156,18 @@ public static class ExcelHtmlConverterExtensions {
 
         AppendSheetFeatureInventory(body, sheet);
         body.Append("</section>");
+    }
+
+    private static bool SheetHasUsedCells(ExcelSheet sheet, int firstRow, int firstColumn, int rowCount, int columnCount) {
+        for (int row = 0; row < rowCount; row++) {
+            for (int column = 0; column < columnCount; column++) {
+                if (sheet.TryGetCellValueSnapshot(firstRow + row, firstColumn + column, out _)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static void AppendSheetFeatureInventory(StringBuilder body, ExcelSheet sheet) {
@@ -429,6 +452,16 @@ public static class ExcelHtmlConverterExtensions {
 
         return string.IsNullOrEmpty(text) ? emptyCellText : text;
     }
+
+    private static string ToHtmlValueKind(ExcelCellValueKind kind) =>
+        kind switch {
+            ExcelCellValueKind.Number => "number",
+            ExcelCellValueKind.Boolean => "boolean",
+            ExcelCellValueKind.Error => "error",
+            ExcelCellValueKind.Formula => "formula",
+            ExcelCellValueKind.Other => "other",
+            _ => "text"
+        };
 
     private static void ParseUsedRange(string usedRange, out int firstRow, out int firstColumn, out int rowCount, out int columnCount) {
         if (string.IsNullOrWhiteSpace(usedRange)) {

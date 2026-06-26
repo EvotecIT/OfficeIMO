@@ -140,8 +140,12 @@ public static class PowerPointHtmlLoadExtensions {
             bool restoredFromSemanticData = TryReadChartData(item, out PptCore.PowerPointChartData? semanticData);
             PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
             string chartKind = ReadChartKind(item);
-            AddChartByKind(slide, chartKind, data, 500, top, 320, 180)
-                .SetTitle(title.Length == 0 ? "Imported chart" : title);
+            if (!TryAddChartByKind(slide, chartKind, data, 500, top, 320, 180, out PptCore.PowerPointChart? chart) || chart == null) {
+                result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' used unsupported chart kind '" + chartKind + "' and was not imported.");
+                continue;
+            }
+
+            chart.SetTitle(title.Length == 0 ? "Imported chart" : title);
             result.Charts++;
             if (!restoredFromSemanticData) {
                 result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' was restored as a native chart with reconstructed placeholder values; exact source chart data was not present in semantic HTML.");
@@ -288,22 +292,32 @@ public static class PowerPointHtmlLoadExtensions {
         return string.Join(Environment.NewLine, lines);
     }
 
-    private static PptCore.PowerPointChart AddChartByKind(PptCore.PowerPointSlide slide, string chartKind, PptCore.PowerPointChartData data, double left, double top, double width, double height) {
+    private static bool TryAddChartByKind(PptCore.PowerPointSlide slide, string chartKind, PptCore.PowerPointChartData data, double left, double top, double width, double height, out PptCore.PowerPointChart? chart) {
+        chart = null;
+        if (chartKind.Equals("ClusteredColumn", StringComparison.OrdinalIgnoreCase) ||
+            chartKind.Equals("ColumnClustered", StringComparison.OrdinalIgnoreCase)) {
+            chart = slide.AddChartPoints(data, left, top, width, height);
+            return true;
+        }
+
         if (chartKind.Equals("Line", StringComparison.OrdinalIgnoreCase) ||
             chartKind.Equals("StackedLine", StringComparison.OrdinalIgnoreCase) ||
             chartKind.Equals("StackedLine100", StringComparison.OrdinalIgnoreCase)) {
-            return slide.AddLineChartPoints(data, left, top, width, height);
+            chart = slide.AddLineChartPoints(data, left, top, width, height);
+            return true;
         }
 
         if (chartKind.Equals("Pie", StringComparison.OrdinalIgnoreCase)) {
-            return slide.AddPieChartPoints(data, left, top, width, height);
+            chart = slide.AddPieChartPoints(data, left, top, width, height);
+            return true;
         }
 
         if (chartKind.Equals("Doughnut", StringComparison.OrdinalIgnoreCase)) {
-            return slide.AddDoughnutChartPoints(data, left, top, width, height);
+            chart = slide.AddDoughnutChartPoints(data, left, top, width, height);
+            return true;
         }
 
-        return slide.AddChartPoints(data, left, top, width, height);
+        return false;
     }
 
     private static string ReadChartKind(IElement item) {

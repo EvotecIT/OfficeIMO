@@ -35,17 +35,18 @@ public class HtmlOfficeAdapters {
         });
 
         Assert.Contains("data-officeimo-profile=\"ExcelSemanticTables\"", html, StringComparison.Ordinal);
-        Assert.Contains("<th>Region</th>", html, StringComparison.Ordinal);
-        Assert.Contains("<td>North</td>", html, StringComparison.Ordinal);
+        Assert.Contains(">Region</th>", html, StringComparison.Ordinal);
+        Assert.Contains(">North</td>", html, StringComparison.Ordinal);
         Assert.Contains("123.45", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-value-kind=\"number\" data-officeimo-value=\"123.45\"", html, StringComparison.Ordinal);
         Assert.Contains("--officeimo-accent", html, StringComparison.Ordinal);
         Assert.Contains("officeimo-formulas", html, StringComparison.Ordinal);
         Assert.Contains("SUM(B2:B4)", html, StringComparison.Ordinal);
         Assert.Contains("Reviewed with finance", html, StringComparison.Ordinal);
         Assert.Contains("Revenue Trend", html, StringComparison.Ordinal);
         Assert.Contains("officeimo-chart-data", html, StringComparison.Ordinal);
-        Assert.Contains("<th>South</th>", html, StringComparison.Ordinal);
-        Assert.Contains("<th>Amount</th>", html, StringComparison.Ordinal);
+        Assert.Contains(">South</th>", html, StringComparison.Ordinal);
+        Assert.Contains(">Amount</th>", html, StringComparison.Ordinal);
         Assert.Contains("Inline status marker", html, StringComparison.Ordinal);
         Assert.Contains("data:image/png;base64", html, StringComparison.Ordinal);
     }
@@ -122,8 +123,8 @@ public class HtmlOfficeAdapters {
         string semanticHtml = File.ReadAllText(semanticPath);
         Assert.Contains("Gallery comment", semanticHtml, StringComparison.Ordinal);
         Assert.Contains("officeimo-chart-data", semanticHtml, StringComparison.Ordinal);
-        Assert.Contains("<th>South</th>", semanticHtml, StringComparison.Ordinal);
-        Assert.Contains("<td>57</td>", semanticHtml, StringComparison.Ordinal);
+        Assert.Contains(">South</th>", semanticHtml, StringComparison.Ordinal);
+        Assert.Contains(">57</td>", semanticHtml, StringComparison.Ordinal);
         string visualHtml = File.ReadAllText(visualPath);
         Assert.Contains("Gallery Chart", visualHtml, StringComparison.Ordinal);
         Assert.Contains("Gallery comment", visualHtml, StringComparison.Ordinal);
@@ -203,8 +204,8 @@ public class HtmlOfficeAdapters {
         Assert.Contains("Reviewed with finance", roundTripHtml, StringComparison.Ordinal);
         Assert.Contains("Revenue Trend", roundTripHtml, StringComparison.Ordinal);
         Assert.Contains("officeimo-chart-data", roundTripHtml, StringComparison.Ordinal);
-        Assert.Contains("<th>South</th>", roundTripHtml, StringComparison.Ordinal);
-        Assert.Contains("<th>Amount</th>", roundTripHtml, StringComparison.Ordinal);
+        Assert.Contains(">South</th>", roundTripHtml, StringComparison.Ordinal);
+        Assert.Contains(">Amount</th>", roundTripHtml, StringComparison.Ordinal);
         Assert.Contains("Inline status marker", roundTripHtml, StringComparison.Ordinal);
         Assert.Contains("data:image/png;base64", roundTripHtml, StringComparison.Ordinal);
     }
@@ -233,6 +234,99 @@ public class HtmlOfficeAdapters {
         Assert.Equal("123", amount);
         Assert.False(importedSheet.TryGetCellText(1, 1, out _));
         Assert.Contains(importedSheet.GetComments(), comment => comment.CellReference == "C3" && comment.Text == "Aligned comment");
+    }
+
+    [Fact]
+    public void ExcelHtml_ExportsEmptySheetWithoutCreatingPlaceholderCell() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        workbook.AddWorkSheet("Empty");
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
+            EmptyCellText = "(empty)"
+        });
+
+        Assert.Contains("No used cells.", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("(empty)", html, StringComparison.Ordinal);
+
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelSheet importedSheet = Assert.Single(imported.Sheets);
+
+        Assert.Equal("Empty", importedSheet.Name);
+        Assert.Equal(0, result.Cells);
+        Assert.False(importedSheet.TryGetCellText(1, 1, out _));
+    }
+
+    [Fact]
+    public void ExcelHtml_LoadCreatesValidWorkbookWhenNoSheetSectionsExist() {
+        ExcelHtmlLoadResult result = "<main><p>No workbook markup</p></main>".LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+
+        ExcelSheet importedSheet = Assert.Single(imported.Sheets);
+        imported.Save();
+
+        Assert.Equal("Imported", importedSheet.Name);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Contains("No semantic Excel sheet sections", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ExcelHtml_LoadPreservesFormulaWhitespaceFromSemanticInventory() {
+        string formula = "CONCAT(\"A  B\",\" C\")";
+        string html = """
+            <main>
+              <section class="officeimo-sheet" data-officeimo-sheet="Formulas" data-officeimo-range="A1:A1">
+                <table><tr><td>seed</td></tr></table>
+                <section class="officeimo-feature officeimo-formulas">
+                  <ul class="officeimo-feature-list">
+                    <li class="officeimo-feature-item" data-officeimo-cell="A2">
+                      <span class="officeimo-feature-label">A2</span><code>CONCAT("A  B"," C")</code>
+                    </li>
+                  </ul>
+                </section>
+              </section>
+            </main>
+            """;
+
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelSheet importedSheet = Assert.Single(imported.Sheets);
+
+        Assert.Contains(importedSheet.GetFormulaCells(), cell => cell.CellReference == "A2" && cell.Formula == formula);
+    }
+
+    [Fact]
+    public void ExcelHtml_RoundTripsSemanticCellValueKinds() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorkSheet("Typed");
+        sheet.CellValue(1, 1, "Label");
+        sheet.CellValue(1, 2, "Value");
+        sheet.CellValue(2, 1, "Numeric text");
+        sheet.CellValue(2, 2, "123");
+        sheet.CellValue(3, 1, "Amount");
+        sheet.CellValue(3, 2, 123.45D);
+        sheet.CellValue(4, 1, "Flag");
+        sheet.CellValue(4, 2, true);
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+
+        Assert.Contains("data-officeimo-value-kind=\"number\" data-officeimo-value=\"123.45\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-value-kind=\"boolean\" data-officeimo-value=\"1\"", html, StringComparison.Ordinal);
+
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelSheet importedSheet = Assert.Single(imported.Sheets);
+
+        Assert.True(importedSheet.TryGetCellValueSnapshot(2, 2, out ExcelCellValueSnapshot? textSnapshot));
+        Assert.Equal(ExcelCellValueKind.Text, textSnapshot!.Kind);
+        Assert.True(importedSheet.TryGetCellValueSnapshot(3, 2, out ExcelCellValueSnapshot? numberSnapshot));
+        Assert.Equal(ExcelCellValueKind.Number, numberSnapshot!.Kind);
+        Assert.Equal("123.45", numberSnapshot.RawValue);
+        Assert.True(importedSheet.TryGetCellValueSnapshot(4, 2, out ExcelCellValueSnapshot? boolSnapshot));
+        Assert.Equal(ExcelCellValueKind.Boolean, boolSnapshot!.Kind);
+        Assert.Equal("1", boolSnapshot.RawValue);
     }
 
     [Fact]
@@ -488,6 +582,35 @@ public class HtmlOfficeAdapters {
 
         Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
         Assert.Equal(PowerPointChartSnapshotKind.Line, snapshot!.ChartKind);
+    }
+
+    [Fact]
+    public void PowerPointHtml_LoadReportsUnsupportedChartKindsInsteadOfColumnFallback() {
+        string html = """
+            <main>
+              <section class="officeimo-slide">
+                <section class="officeimo-feature officeimo-charts">
+                  <ul class="officeimo-feature-list">
+                    <li class="officeimo-feature-item">
+                      <span class="officeimo-feature-label">Bar chart</span>
+                      <div class="officeimo-feature-meta">Type: ClusteredBar; Series: 1; Categories: 2</div>
+                      <table class="officeimo-chart-data">
+                        <tr><th></th><th>Q1</th><th>Q2</th></tr>
+                        <tr><th>Actual</th><td>10</td><td>12</td></tr>
+                      </table>
+                    </li>
+                  </ul>
+                </section>
+              </section>
+            </main>
+            """;
+
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+
+        Assert.Equal(0, result.Charts);
+        Assert.Empty(imported.Slides[0].Charts);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Contains("unsupported chart kind 'ClusteredBar'", StringComparison.Ordinal));
     }
 
     [Fact]
