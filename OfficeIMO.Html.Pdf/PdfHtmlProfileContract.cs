@@ -10,6 +10,7 @@ namespace OfficeIMO.Html.Pdf;
 public sealed class PdfHtmlProfileContract {
     internal PdfHtmlProfileContract(
         PdfHtmlProfile profile,
+        HtmlConversionProfile sharedProfile,
         string id,
         string displayName,
         string pipeline,
@@ -22,6 +23,7 @@ public sealed class PdfHtmlProfileContract {
         IReadOnlyList<string> diagnosticGuarantees,
         IReadOnlyList<string> rendererBoundaries) {
         Profile = profile;
+        SharedProfile = sharedProfile;
         Id = id;
         DisplayName = displayName;
         Pipeline = pipeline;
@@ -37,6 +39,9 @@ public sealed class PdfHtmlProfileContract {
 
     /// <summary>Adapter profile represented by this contract.</summary>
     public PdfHtmlProfile Profile { get; }
+
+    /// <summary>Shared OfficeIMO HTML conversion profile represented by this adapter profile.</summary>
+    public HtmlConversionProfile SharedProfile { get; }
 
     /// <summary>Stable profile identifier for wrappers, manifests, and documentation.</summary>
     public string Id { get; }
@@ -79,6 +84,7 @@ public static class PdfHtmlProfileContracts {
     private static readonly IReadOnlyList<PdfHtmlProfileContract> Contracts = new ReadOnlyCollection<PdfHtmlProfileContract>(new[] {
         new PdfHtmlProfileContract(
             PdfHtmlProfile.Semantic,
+            HtmlConversionProfile.Semantic,
             "pdf-html-semantic",
             "Semantic PDF to HTML",
             "PDF -> OfficeIMO.Pdf logical model -> semantic HTML",
@@ -92,6 +98,7 @@ public static class PdfHtmlProfileContracts {
             new[] { "no-ocr", "no-pixel-perfect-rendering", "no-editable-office-reconstruction" }),
         new PdfHtmlProfileContract(
             PdfHtmlProfile.PositionedReview,
+            HtmlConversionProfile.PositionedReview,
             "pdf-html-positioned-review",
             "Positioned Review PDF to HTML",
             "PDF -> OfficeIMO.Pdf logical model -> page wrappers with positioned review hints",

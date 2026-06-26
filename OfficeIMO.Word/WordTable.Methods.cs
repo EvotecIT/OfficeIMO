@@ -250,12 +250,13 @@ namespace OfficeIMO.Word {
                             if (tc.TableCellProperties == null) tc.TableCellProperties = new TableCellProperties();
                             var gridSpan = tc.TableCellProperties.GetFirstChild<GridSpan>();
                             if (gridSpan == null) {
-                                tc.TableCellProperties.InsertAt(new GridSpan() { Val = span }, 0);
+                                tc.TableCellProperties.AppendChild(new GridSpan() { Val = span });
                             } else {
                                 gridSpan.Val = span;
                             }
                             // Remove hMerge properties from the restart cell for clarity
                             tc.TableCellProperties.HorizontalMerge?.Remove();
+                            WordTableCell.NormalizeTableCellPropertiesOrder(tc.TableCellProperties);
                         }
                     }
                 }

@@ -24,7 +24,12 @@ namespace OfficeIMO.Word {
         private TableCellBorders? BordersOrNull => TcPr?.TableCellBorders;
         private TableCellBorders EnsureBorders() {
             var pr = EnsurePr();
-            return pr.TableCellBorders ??= new TableCellBorders();
+            if (pr.TableCellBorders == null) {
+                pr.TableCellBorders = new TableCellBorders();
+                _wordTableCell.NormalizeTableCellPropertiesOrder();
+            }
+
+            return pr.TableCellBorders;
         }
         private LeftBorder EnsureLeft() { var b = EnsureBorders(); return b.LeftBorder ??= new LeftBorder(); }
         private RightBorder EnsureRight() { var b = EnsureBorders(); return b.RightBorder ??= new RightBorder(); }

@@ -1,9 +1,6 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Html;
-using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
-using System.Text;
+using System.Text.Json;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -11,7 +8,8 @@ namespace OfficeIMO.Tests;
 public partial class Html {
     [Fact]
     public void HtmlArtifactGallery_GeneratesValidDocxAndRoundTripHtml() {
-        const string html = """
+        const string imageDataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABFSURBVEhLY1BNfv2flpgBXYDaeBhaILCzkSKMbt6oBRgY3bxRCzAwunmjFmBgdPNGLcDA6OaNWoCB0c3DsIDaeNQCghgAFxBXzP1LTe4AAAAASUVORK5CYII=";
+        string html = """
             <!doctype html>
             <html lang="en">
             <head>
@@ -45,11 +43,12 @@ public partial class Html {
                     </table>
                     <label>Owner <input name="owner" value="Ada Lovelace"></label>
                     <label>Status <select name="status"><option>Draft</option><option selected>Approved</option></select></label>
+                    <figure><img src="IMAGE_DATA_URI" alt="Roundtrip badge" width="48" height="48"><figcaption>Embedded image proof</figcaption></figure>
                     <!-- skipped comments are diagnostic evidence, not visible document content -->
                 </article>
             </body>
             </html>
-            """;
+            """.Replace("IMAGE_DATA_URI", imageDataUri);
 
         string artifactDirectory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlArtifactGallery");
         Directory.CreateDirectory(artifactDirectory);
@@ -57,78 +56,64 @@ public partial class Html {
         string docxPath = Path.Combine(artifactDirectory, "quarterly-report.docx");
         string roundTripPath = Path.Combine(artifactDirectory, "quarterly-report.roundtrip.html");
         string manifestPath = Path.Combine(artifactDirectory, "quarterly-report.manifest.md");
+        string manifestJsonPath = Path.Combine(artifactDirectory, "quarterly-report.manifest.json");
 
-        var importOptions = HtmlToWordOptions.CreateTrustedDocumentProfile();
-        importOptions.EnableAccessibilityDiagnostics = true;
-        importOptions.ConversionReport.Clear();
-        using var document = html.LoadFromHtml(importOptions);
-        using MemoryStream packageStream = document.SaveAsMemoryStream();
-
-        File.WriteAllText(inputPath, html);
-        File.WriteAllBytes(docxPath, packageStream.ToArray());
-        packageStream.Position = 0;
-        using WordprocessingDocument package = WordprocessingDocument.Open(packageStream, false);
-        var errors = new OpenXmlValidator().Validate(package).ToList();
-        Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
-
-        string roundTripHtml = document.ToHtml(new WordToHtmlOptions {
-            IncludeListStyles = true,
-            IncludeTableColumnGroups = true,
-            IncludeDefaultCss = true
+        HtmlCapabilityGalleryManifest manifest = html.SaveHtmlCapabilityGallery(artifactDirectory, new WordHtmlCapabilityGalleryOptions {
+            ScenarioId = "quarterly-report",
+            Title = "Quarterly Report"
         });
-        File.WriteAllText(roundTripPath, roundTripHtml);
-
-        var scenario = new HtmlCapabilityGalleryScenario(
-            "quarterly-report",
-            "Quarterly Report",
-            "Word HTML",
-            "Validates HTML import, DOCX package validity, round-trip HTML export, form controls, tables, and diagnostics.");
-        var result = new HtmlCapabilityGalleryResult(scenario);
-        result.AddArtifact(HtmlCapabilityGalleryArtifact.FromFile("source", "input-html", inputPath, "text/html"));
-        result.AddArtifact(HtmlCapabilityGalleryArtifact.FromFile("docx", "docx", docxPath, "application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
-        result.AddArtifact(HtmlCapabilityGalleryArtifact.FromFile("roundtrip", "roundtrip-html", roundTripPath, "text/html"));
-        result.Diagnostics.AddRange(importOptions.ConversionReport.Diagnostics);
-        File.WriteAllText(manifestPath, BuildManifest(result));
+        string roundTripHtml = File.ReadAllText(roundTripPath);
+        string manifestMarkdown = File.ReadAllText(manifestPath);
+        string manifestJson = File.ReadAllText(manifestJsonPath);
 
         Assert.Contains("<h1>Quarterly Report</h1>", roundTripHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<thead>", roundTripHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<tfoot>", roundTripHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("type=\"checkbox\"", roundTripHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<select", roundTripHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<img", roundTripHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Roundtrip badge", roundTripHtml, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("skipped comments are diagnostic evidence", roundTripHtml, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(importOptions.Diagnostics, diagnostic => string.Equals(diagnostic.Code, "HtmlCommentSkipped", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(importOptions.ConversionReport.Diagnostics, diagnostic => string.Equals(diagnostic.Code, "HtmlCommentSkipped", StringComparison.OrdinalIgnoreCase));
-        Assert.Equal("quarterly-report", result.Scenario.Id);
-        Assert.Equal(3, result.Artifacts.Count);
-        Assert.Contains(result.Artifacts, artifact => artifact.Kind == "docx" && artifact.Length > 0 && artifact.Sha256.Length == 64);
-        Assert.Contains(result.Diagnostics.Diagnostics, diagnostic => diagnostic.Component == "OfficeIMO.Word.Html" && diagnostic.Code == "HtmlCommentSkipped");
+        Assert.Equal("quarterly-report", manifest.Result.Scenario.Id);
+        Assert.Equal(3, manifest.Result.Artifacts.Count);
+        Assert.Contains(manifest.Result.Artifacts, artifact => artifact.Kind == "docx" && artifact.Length > 0 && artifact.Sha256.Length == 64);
+        Assert.Contains(manifest.Result.Diagnostics.Diagnostics, diagnostic => diagnostic.Component == "OfficeIMO.Word.Html" && diagnostic.Code == "HtmlCommentSkipped");
+        Assert.Contains(manifest.Result.Diagnostics.Diagnostics, diagnostic => diagnostic.Component == "OfficeIMO.Word.Html" && diagnostic.Code == "WordOpenXmlPackageValid");
+        Assert.DoesNotContain(manifest.Result.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == "WordOpenXmlValidationError");
+        Assert.DoesNotContain(manifest.Result.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
+        Assert.Equal(1, manifest.ResourceManifest.AllowedCount);
+        Assert.Equal(0, manifest.ResourceManifest.BlockedCount);
+        Assert.Equal(new[] { OfficeHtmlConversionProfile.WordDocumentRoundTrip }, manifest.OfficeProfiles);
         Assert.True(File.Exists(inputPath));
         Assert.True(File.Exists(docxPath));
         Assert.True(File.Exists(roundTripPath));
         Assert.True(File.Exists(manifestPath));
-        Assert.Contains("HtmlCommentSkipped", File.ReadAllText(manifestPath), StringComparison.OrdinalIgnoreCase);
-    }
+        Assert.True(File.Exists(manifestJsonPath));
+        Assert.Contains("Profile: Document", manifestMarkdown);
+        Assert.Contains("Profile Contract", manifestMarkdown);
+        Assert.Contains("Office Profile Contracts", manifestMarkdown);
+        Assert.Contains("Word Document Roundtrip (Word -> Document)", manifestMarkdown);
+        Assert.Contains("Roundtrip Expectations", manifestMarkdown);
+        Assert.Contains("Preserved: form controls => roundtrip HTML contains form control elements", manifestMarkdown);
+        Assert.Contains("Preserved: images => roundtrip HTML contains image or SVG evidence", manifestMarkdown);
+        Assert.Contains("Preserved: docx package => generated DOCX passes OpenXML validation", manifestMarkdown);
+        Assert.Contains("HtmlCommentSkipped", manifestMarkdown, StringComparison.OrdinalIgnoreCase);
 
-    private static string BuildManifest(HtmlCapabilityGalleryResult result) {
-        var builder = new StringBuilder();
-        builder.AppendLine("# HTML Capability Gallery Scenario");
-        builder.AppendLine();
-        builder.AppendLine($"Id: {result.Scenario.Id}");
-        builder.AppendLine($"Title: {result.Scenario.Title}");
-        builder.AppendLine($"Category: {result.Scenario.Category}");
-        builder.AppendLine($"Description: {result.Scenario.Description}");
-        builder.AppendLine();
-        builder.AppendLine("## Artifacts");
-        foreach (HtmlCapabilityGalleryArtifact artifact in result.Artifacts) {
-            builder.AppendLine($"- {artifact.Kind}: {Path.GetFileName(artifact.Path)} ({artifact.MediaType}, {artifact.Length} bytes, sha256={artifact.Sha256})");
-        }
-
-        builder.AppendLine();
-        builder.AppendLine("## Diagnostics");
-        foreach (HtmlDiagnostic diagnostic in result.Diagnostics.Diagnostics) {
-            builder.AppendLine($"- {diagnostic.Component}:{diagnostic.Code}:{diagnostic.Severity}: {diagnostic.Message}");
-        }
-
-        return builder.ToString();
+        using JsonDocument manifestJsonDocument = JsonDocument.Parse(File.ReadAllText(manifestJsonPath));
+        JsonElement manifestRoot = manifestJsonDocument.RootElement;
+        Assert.Equal("officeimo.html.capability-gallery", manifestRoot.GetProperty("schemaId").GetString());
+        Assert.Equal("quarterly-report", manifestRoot.GetProperty("scenario").GetProperty("id").GetString());
+        Assert.Equal("Document", manifestRoot.GetProperty("profile").GetProperty("id").GetString());
+        JsonElement officeProfiles = manifestRoot.GetProperty("officeProfiles");
+        Assert.Equal(1, officeProfiles.GetArrayLength());
+        Assert.Equal("WordDocumentRoundTrip", officeProfiles[0].GetProperty("id").GetString());
+        Assert.Equal("Word", officeProfiles[0].GetProperty("sourceFormat").GetString());
+        Assert.Equal("Document", officeProfiles[0].GetProperty("sharedProfile").GetString());
+        Assert.Equal(7, manifestRoot.GetProperty("expectations").GetArrayLength());
+        Assert.Equal(3, manifestRoot.GetProperty("artifacts").GetArrayLength());
+        Assert.Equal("roundtrip-html", manifestRoot.GetProperty("artifacts")[2].GetProperty("kind").GetString());
+        Assert.True(manifestRoot.GetProperty("roundTripScore").GetProperty("score").GetDouble() >= 0D);
+        Assert.Contains("HtmlCommentSkipped", manifestJson, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("WordOpenXmlPackageValid", manifestJson, StringComparison.OrdinalIgnoreCase);
     }
 }
