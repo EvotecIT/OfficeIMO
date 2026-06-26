@@ -578,7 +578,7 @@ namespace OfficeIMO.Excel {
 
         private static bool GetImageExportShowMarkers(C.Marker? marker, C.ScatterStyleValues? scatterStyle) {
             if (marker == null) {
-                return GetImageExportScatterStyleShowMarkers(scatterStyle);
+                return scatterStyle.HasValue && GetImageExportScatterStyleShowMarkers(scatterStyle);
             }
 
             C.MarkerStyleValues? symbol = marker?.Symbol?.Val?.Value;

@@ -367,7 +367,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            IReadOnlyList<double> values = GetRuleNumericValues(sheet, rule.Range);
+            IReadOnlyList<double> values = GetRuleNumericValues(sheet, rule.Range, stoppedCells);
             if (values.Count == 0) {
                 values = candidates.Select(candidate => candidate.Value).ToArray();
             }
@@ -400,7 +400,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            int count = GetRuleNumericValues(sheet, rule.Range).Count;
+            int count = GetRuleNumericValues(sheet, rule.Range, Array.Empty<string>()).Count;
             if (count == 0) {
                 count = GetNumericCandidates(sheet, cells, rule.Range).Count;
             }
@@ -426,7 +426,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            IReadOnlyList<double> values = GetRuleNumericValues(sheet, rule.Range);
+            IReadOnlyList<double> values = GetRuleNumericValues(sheet, rule.Range, Array.Empty<string>());
             if (values.Count == 0) {
                 values = candidates.Select(candidate => candidate.Value).ToArray();
             }
@@ -478,7 +478,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            int count = GetRuleNumericValues(sheet, rule.Range).Count;
+            int count = GetRuleNumericValues(sheet, rule.Range, Array.Empty<string>()).Count;
             if (count == 0) {
                 count = GetNumericCandidates(sheet, cells, rule.Range).Count;
             }
@@ -501,7 +501,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            IReadOnlyList<double> values = GetRuleNumericValues(sheet, rule.Range);
+            IReadOnlyList<double> values = GetRuleNumericValues(sheet, rule.Range, Array.Empty<string>());
             if (values.Count == 0) {
                 values = candidates.Select(candidate => candidate.Value).ToArray();
             }
@@ -807,9 +807,16 @@ namespace OfficeIMO.Excel {
             return candidates;
         }
 
-        private static List<double> GetRuleNumericValues(ExcelSheet sheet, string referenceList) {
+        private static List<double> GetRuleNumericValues(ExcelSheet sheet, string referenceList) =>
+            GetRuleNumericValues(sheet, referenceList, Array.Empty<string>());
+
+        private static List<double> GetRuleNumericValues(ExcelSheet sheet, string referenceList, IReadOnlyCollection<string> excludedKeys) {
             var values = new List<double>();
             foreach ((int row, int column) in EnumerateReferenceCells(referenceList)) {
+                if (excludedKeys.Contains(Key(row, column))) {
+                    continue;
+                }
+
                 if (TryGetCellNumericValue(sheet, row, column, out double value)) {
                     values.Add(value);
                 }
