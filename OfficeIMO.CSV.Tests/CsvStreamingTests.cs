@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -39,6 +40,100 @@ public class CsvStreamingTests
         var csv = "Id,Value\n1,A\n2,B\n";
         var doc = CsvDocument.Parse(csv, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         Assert.Throws<InvalidOperationException>(() => doc.Filter(_ => true));
+    }
+
+    [Fact]
+    public void ReadRowsReusable_PreservesDelimiterOnlyRows()
+    {
+        var rows = new List<string[]>();
+        using var reader = new StringReader("Name,Value\n,\n\nAlpha,1\n");
+
+        CsvDocument.ReadRowsReusable(reader, (_, values) => rows.Add(values.ToArray()));
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(new[] { string.Empty, string.Empty }, rows[0]);
+        Assert.Equal(new[] { "Alpha", "1" }, rows[1]);
+    }
+
+    [Fact]
+    public void ReadRowsReusable_CanSkipInitialRecords()
+    {
+        var rows = new List<string[]>();
+        using var reader = new StringReader("metadata\nName,Value\nAlpha,1\n");
+
+        CsvDocument.ReadRowsReusable(
+            reader,
+            (_, values) => rows.Add(values.ToArray()),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        var row = Assert.Single(rows);
+        Assert.Equal(new[] { "Alpha", "1" }, row);
+    }
+
+    [Fact]
+    public void ReadRowsReusable_SkipsInitialRecordsAfterLeadingComments()
+    {
+        var headers = new List<string[]>();
+        var rows = new List<string[]>();
+        using var reader = new StringReader("#note\nmetadata,with,commas\nName;Value\nAlpha;1\n");
+
+        CsvDocument.ReadRowsReusable(
+            reader,
+            (header, values) =>
+            {
+                headers.Add(header.ToArray());
+                rows.Add(values.ToArray());
+            },
+            new CsvLoadOptions {
+                DetectDelimiter = true,
+                SkipInitialRecords = 1
+            });
+
+        var header = Assert.Single(headers);
+        var row = Assert.Single(rows);
+        Assert.Equal(new[] { "Name", "Value" }, header);
+        Assert.Equal(new[] { "Alpha", "1" }, row);
+    }
+
+    [Fact]
+    public void ReadRowsReusable_DetectDelimiterSkipsQuotedMultilineInitialRecord()
+    {
+        var headers = new List<string[]>();
+        var rows = new List<string[]>();
+        using var reader = new StringReader("\"metadata\nstill,has,commas\"\nName;Value\nAlpha;1\n");
+
+        CsvDocument.ReadRowsReusable(
+            reader,
+            (header, values) =>
+            {
+                headers.Add(header.ToArray());
+                rows.Add(values.ToArray());
+            },
+            new CsvLoadOptions {
+                DetectDelimiter = true,
+                SkipInitialRecords = 1
+            });
+
+        var parsedHeader = Assert.Single(headers);
+        var row = Assert.Single(rows);
+        Assert.Equal(new[] { "Name", "Value" }, parsedHeader);
+        Assert.Equal(new[] { "Alpha", "1" }, row);
+    }
+
+    [Fact]
+    public void ReadRecordsReusable_CanSkipInitialRecords()
+    {
+        var records = new List<string[]>();
+        using var reader = new StringReader("metadata\nName,Value\nAlpha,1\n");
+
+        CsvDocument.ReadRecordsReusable(
+            reader,
+            values => records.Add(values.ToArray()),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(2, records.Count);
+        Assert.Equal(new[] { "Name", "Value" }, records[0]);
+        Assert.Equal(new[] { "Alpha", "1" }, records[1]);
     }
 
     [Fact]

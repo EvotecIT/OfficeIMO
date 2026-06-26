@@ -41,4 +41,14 @@ public sealed class CsvSaveOptions
     /// Gets or sets how formula-like values are handled before writing CSV output. Default preserves values exactly.
     /// </summary>
     public CsvFormulaInjectionPolicy FormulaInjectionPolicy { get; set; } = CsvFormulaInjectionPolicy.Preserve;
+
+    /// <summary>
+    /// Gets or sets when fields are quoted. Default quotes only fields that need quoting.
+    /// </summary>
+    public CsvQuoteMode QuoteMode { get; set; } = CsvQuoteMode.AsNeeded;
+
+    /// <summary>
+    /// Gets or sets field names that should always be quoted when <see cref="QuoteMode"/> is <see cref="CsvQuoteMode.AsNeeded"/>.
+    /// </summary>
+    public string[]? QuoteFields { get; set; }
 }

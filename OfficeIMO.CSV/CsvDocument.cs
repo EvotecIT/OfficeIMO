@@ -10,8 +10,9 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Represents a CSV document with a fluent, document-centric API. Thread-safe for independent read enumeration; not thread-safe for concurrent mutations on the same instance.
 /// </summary>
-public sealed class CsvDocument
+public sealed partial class CsvDocument
 {
+    private const int FileBufferSize = 256 * 1024;
     private readonly List<string> _header = new();
     private List<CsvRow> _rows = new();
     private CsvLoadMode _mode;
@@ -19,6 +20,7 @@ public sealed class CsvDocument
     private char _delimiter;
     private CultureInfo _culture;
     private Encoding _encoding;
+    private CsvColumnCountMismatchPolicy _columnCountMismatchPolicy;
     private CsvSchema? _schema;
 
     /// <summary>
@@ -30,14 +32,16 @@ public sealed class CsvDocument
         _delimiter = ',';
         _culture = CultureInfo.InvariantCulture;
         _encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        _columnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict;
     }
 
-    private CsvDocument(CsvLoadMode mode, char delimiter, CultureInfo culture, Encoding encoding)
+    private CsvDocument(CsvLoadMode mode, char delimiter, CultureInfo culture, Encoding encoding, CsvColumnCountMismatchPolicy columnCountMismatchPolicy)
     {
         _mode = mode;
         _delimiter = delimiter;
         _culture = culture;
         _encoding = encoding;
+        _columnCountMismatchPolicy = columnCountMismatchPolicy;
     }
 
     /// <summary>
@@ -106,6 +110,98 @@ public sealed class CsvDocument
     }
 
     /// <summary>
+    /// Writes a sequence of objects directly as CSV without materializing a <see cref="CsvDocument"/>.
+    /// </summary>
+    /// <param name="writer">Destination text writer.</param>
+    /// <param name="items">Sequence of objects to convert into CSV rows.</param>
+    /// <param name="options">Optional save settings.</param>
+    public static void WriteObjects(TextWriter writer, IEnumerable<object?> items, CsvSaveOptions? options = null)
+    {
+        if (writer == null)
+        {
+            throw new ArgumentNullException(nameof(writer));
+        }
+
+        if (items == null)
+        {
+            throw new ArgumentNullException(nameof(items));
+        }
+
+        options ??= new CsvSaveOptions();
+
+        using var objectWriter = new CsvObjectWriter(writer, options, leaveOpen: true);
+        var wroteAny = false;
+        foreach (var item in items)
+        {
+            objectWriter.WriteObject(item);
+            wroteAny = true;
+        }
+
+        if (!wroteAny)
+        {
+            throw new ArgumentException("Provide at least one data row.", nameof(items));
+        }
+    }
+
+    /// <summary>
+    /// Saves a sequence of objects directly as CSV without materializing a <see cref="CsvDocument"/>.
+    /// </summary>
+    /// <param name="path">Destination CSV path.</param>
+    /// <param name="items">Sequence of objects to convert into CSV rows.</param>
+    /// <param name="options">Optional save settings.</param>
+    public static void SaveObjects(string path, IEnumerable<object?> items, CsvSaveOptions? options = null)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new ArgumentException("File path cannot be empty.", nameof(path));
+        }
+
+        if (items == null)
+        {
+            throw new ArgumentNullException(nameof(items));
+        }
+
+        options ??= new CsvSaveOptions();
+        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        var fullPath = Path.GetFullPath(path);
+        var directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var temporaryPath = Path.Combine(
+            string.IsNullOrEmpty(directory) ? Environment.CurrentDirectory : directory,
+            "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+
+        try
+        {
+            using (var writer = new StreamWriter(temporaryPath, append: false, encoding, bufferSize: 256 * 1024))
+            {
+                WriteObjects(writer, items, options);
+            }
+
+            if (File.Exists(fullPath))
+            {
+                File.Replace(temporaryPath, fullPath, destinationBackupFileName: null, ignoreMetadataErrors: true);
+            }
+            else
+            {
+                File.Move(temporaryPath, fullPath);
+            }
+        }
+        catch
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Gets the document header columns.
     /// </summary>
     public IReadOnlyList<string> Header => _header;
@@ -131,130 +227,6 @@ public sealed class CsvDocument
     public CsvLoadMode Mode => _mode;
 
     /// <summary>
-    /// Loads a CSV document from disk.
-    /// </summary>
-    public static CsvDocument Load(string path, CsvLoadOptions? options = null)
-    {
-        options ??= new CsvLoadOptions();
-        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        return LoadInternal(() => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true), options, encoding);
-    }
-
-    /// <summary>
-    /// Loads a CSV document from a stream.
-    /// </summary>
-    /// <param name="stream">Source stream.</param>
-    /// <param name="options">Load options.</param>
-    /// <param name="leaveOpen">Whether to leave the source stream open after loading.</param>
-    public static CsvDocument Load(Stream stream, CsvLoadOptions? options = null, bool leaveOpen = true)
-    {
-        if (stream == null)
-        {
-            throw new ArgumentNullException(nameof(stream));
-        }
-
-        if (!stream.CanRead)
-        {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
-
-        options ??= new CsvLoadOptions();
-        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-
-        if (options.Mode == CsvLoadMode.Stream)
-        {
-            // Streaming mode requires a re-openable source for subsequent enumerations.
-            // For arbitrary streams (including non-seekable), snapshot once into memory.
-            var snapshot = ReadAllBytes(stream, leaveOpen);
-            return LoadInternal(
-                () => new StreamReader(
-                    new MemoryStream(snapshot, writable: false),
-                    encoding,
-                    detectEncodingFromByteOrderMarks: true,
-                    bufferSize: 1024,
-                    leaveOpen: false),
-                options,
-                encoding);
-        }
-
-        return LoadInternal(
-            () => new StreamReader(
-                stream,
-                encoding,
-                detectEncodingFromByteOrderMarks: true,
-                bufferSize: 1024,
-                leaveOpen: leaveOpen),
-            options,
-            encoding);
-    }
-
-    /// <summary>
-    /// Parses a CSV document from text.
-    /// </summary>
-    public static CsvDocument Parse(string text, CsvLoadOptions? options = null)
-    {
-        options ??= new CsvLoadOptions();
-        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        return LoadInternal(() => new StringReader(text), options, encoding);
-    }
-
-    private static CsvDocument LoadInternal(Func<TextReader> readerFactory, CsvLoadOptions options, Encoding encoding)
-    {
-        var document = new CsvDocument(options.Mode, options.Delimiter, options.Culture, encoding);
-
-        using var reader = readerFactory();
-        using var enumerator = CsvParser.Parse(reader, options).GetEnumerator();
-
-        if (!enumerator.MoveNext())
-        {
-            return document;
-        }
-
-        var firstRecord = enumerator.Current;
-
-        if (options.HasHeaderRow)
-        {
-            document.SetHeader(firstRecord);
-        }
-        else
-        {
-            document.SetHeader(GenerateDefaultHeader(firstRecord.Length));
-            document.AddRowInternal(firstRecord.Cast<object?>().ToArray());
-        }
-
-        if (options.Mode == CsvLoadMode.InMemory)
-        {
-            while (enumerator.MoveNext())
-            {
-                document.AddRowInternal(enumerator.Current.Cast<object?>().ToArray());
-            }
-        }
-        else
-        {
-            document._streamingSource = new CsvStreamingSource(readerFactory, options, skipFirstRecord: options.HasHeaderRow);
-        }
-
-        return document;
-    }
-
-    private static byte[] ReadAllBytes(Stream stream, bool leaveOpen)
-    {
-        try
-        {
-            using var ms = new MemoryStream();
-            stream.CopyTo(ms);
-            return ms.ToArray();
-        }
-        finally
-        {
-            if (!leaveOpen)
-            {
-                stream.Dispose();
-            }
-        }
-    }
-
-    /// <summary>
     /// Saves the document to the specified path.
     /// </summary>
     public CsvDocument Save(string path, CsvSaveOptions? options = null)
@@ -267,7 +239,7 @@ public sealed class CsvDocument
         };
 
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        using var writer = new StreamWriter(path, append: false, encoding);
+        using var writer = new StreamWriter(path, append: false, encoding, bufferSize: FileBufferSize);
         CsvWriter.Write(writer, this, options);
         return this;
     }
@@ -313,7 +285,7 @@ public sealed class CsvDocument
         {
             foreach (var values in _streamingSource.ReadRows())
             {
-                var aligned = NormalizeValuesLength(values);
+                var aligned = AlignParsedObjectValues(values, _header.Count, _columnCountMismatchPolicy);
                 yield return new CsvRow(this, aligned);
             }
         }
@@ -594,27 +566,22 @@ public sealed class CsvDocument
         _rows.Add(new CsvRow(this, aligned));
     }
 
+    private void AddParsedRowInternal(IReadOnlyList<string> values, CsvColumnCountMismatchPolicy policy)
+    {
+        var alignedStrings = AlignParsedStringValues(values, _header.Count, policy);
+        var aligned = new object?[alignedStrings.Count];
+        for (var i = 0; i < alignedStrings.Count; i++)
+        {
+            aligned[i] = alignedStrings[i];
+        }
+
+        _rows.Add(new CsvRow(this, aligned));
+    }
+
     private void SetHeader(IEnumerable<string> headers)
     {
         _header.Clear();
         _header.AddRange(headers);
-    }
-
-    private object?[] NormalizeValuesLength(IEnumerable<object?> values)
-    {
-        var array = values.ToArray();
-        if (_header.Count == 0)
-        {
-            _header.AddRange(GenerateDefaultHeader(array.Length));
-            return array;
-        }
-
-        if (array.Length != _header.Count)
-        {
-            throw new CsvException($"Row contains {array.Length} values but header defines {_header.Count} columns.");
-        }
-
-        return array;
     }
 
     private void ValidateExistingRows(int expectedColumns)
@@ -633,16 +600,6 @@ public sealed class CsvDocument
         }
     }
 
-    private static IReadOnlyList<string> GenerateDefaultHeader(int count)
-    {
-        var result = new List<string>(count);
-        for (var i = 0; i < count; i++)
-        {
-            result.Add($"Column{i + 1}");
-        }
-
-        return result;
-    }
 
     private static object?[] AppendValue(IReadOnlyList<object?> source, object? value)
     {

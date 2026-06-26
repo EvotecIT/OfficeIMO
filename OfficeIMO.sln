@@ -232,6 +232,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Excel.Html", "Off
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.PowerPoint.Html", "OfficeIMO.PowerPoint.Html\OfficeIMO.PowerPoint.Html.csproj", "{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.CSV.Benchmarks", "OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj", "{D6814081-2B1F-40BF-A55D-194C4B701E5D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -914,6 +916,18 @@ Global
 		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Release|x64.Build.0 = Release|Any CPU
 		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Release|x86.ActiveCfg = Release|Any CPU
 		{CBDB7561-EC3E-4ED4-97DB-9CE69AF5F421}.Release|x86.Build.0 = Release|Any CPU
+		{D6814081-2B1F-40BF-A55D-194C4B701E5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6814081-2B1F-40BF-A55D-194C4B701E5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6814081-2B1F-40BF-A55D-194C4B701E5D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D6814081-2B1F-40BF-A55D-194C4B701E5D}.Debug|x64.Build.0 = Debug|Any CPU
+		{D6814081-2B1F-40BF-A55D-194C4B701E5D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D6814081-2B1F-40BF-A55D-194C4B701E5D}.Debug|x86.Build.0 = Debug|Any CPU
+		{D6814081-2B1F-40BF-A55D-194C4B701E5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6814081-2B1F-40BF-A55D-194C4B701E5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6814081-2B1F-40BF-A55D-194C4B701E5D}.Release|x64.ActiveCfg = Release|Any CPU
+		{D6814081-2B1F-40BF-A55D-194C4B701E5D}.Release|x64.Build.0 = Release|Any CPU
+		{D6814081-2B1F-40BF-A55D-194C4B701E5D}.Release|x86.ActiveCfg = Release|Any CPU
+		{D6814081-2B1F-40BF-A55D-194C4B701E5D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
