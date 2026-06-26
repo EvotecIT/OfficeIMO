@@ -258,6 +258,25 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        internal void SetLegacyArrayFormula(string a1Range, string formula) {
+            if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
+            if (!A1.TryParseRange(a1Range, out int r1, out int c1, out _, out _)) {
+                (r1, c1) = A1.ParseCellRef(a1Range);
+                if (r1 <= 0 || c1 <= 0) {
+                    throw new ArgumentException($"Invalid A1 range '{a1Range}'.", nameof(a1Range));
+                }
+            }
+
+            WriteLock(() => {
+                var topLeft = GetCell(r1, c1);
+                topLeft.CellFormula = new CellFormula(Utilities.ExcelSanitizer.SanitizeFormula(formula)) {
+                    FormulaType = CellFormulaValues.Array,
+                    Reference = a1Range
+                };
+                WorksheetRoot.Save();
+            });
+        }
+
         /// <summary>
         /// Clears an array formula whose reference overlaps the supplied range or cell.
         /// </summary>

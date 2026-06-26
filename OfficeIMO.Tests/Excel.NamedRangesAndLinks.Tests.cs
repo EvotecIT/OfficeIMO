@@ -61,6 +61,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NamedRange_StrictAcceptsAbsoluteReferences() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                doc.AddWorkSheet("Data");
+                doc.SetNamedRange("AbsoluteRange", "'Data'!$A$1:$B$2", save: false, hidden: false, validationMode: NameValidationMode.Strict);
+
+                Assert.Equal("'Data'!$A$1:$B$2", doc.GetNamedRange("AbsoluteRange"));
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
         public void NamedRange_LocalScope_PreservesAlreadyQualifiedRange() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {

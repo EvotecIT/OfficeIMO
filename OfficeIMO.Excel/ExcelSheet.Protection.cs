@@ -42,6 +42,8 @@ namespace OfficeIMO.Excel {
                 protection.Sort = !opts.AllowSort;
                 protection.AutoFilter = !opts.AllowAutoFilter;
                 protection.PivotTables = !opts.AllowPivotTables;
+                SetOptionalProtectionFlag(protection, "objects", opts.ProtectObjects, value => protection.Objects = value);
+                SetOptionalProtectionFlag(protection, "scenarios", opts.ProtectScenarios, value => protection.Scenarios = value);
                 string? hash = ExcelProtectionHash.ResolveLegacyHash(opts.Password, opts.LegacyPasswordHash);
                 if (hash != null) {
                     protection.Password = hash;
@@ -60,6 +62,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void ProtectTableEditing(string? password = null) {
             Protect(ExcelSheetProtectionOptions.TableEditing(password));
+        }
+
+        private static void SetOptionalProtectionFlag(SheetProtection protection, string attributeName, bool? value, Action<bool> assign) {
+            if (value.HasValue) {
+                assign(value.Value);
+            } else {
+                protection.RemoveAttribute(attributeName, string.Empty);
+            }
         }
 
         /// <summary>

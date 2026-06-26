@@ -135,9 +135,29 @@ namespace OfficeIMO.Excel {
             }
 
             string sqref = selection.SequenceOfReferences?.InnerText ?? string.Empty;
-            if (!IsValidCellReference(sqref)) {
+            if (!IsValidSelectionReferenceList(sqref)) {
                 selection.SequenceOfReferences = new ListValue<StringValue> { InnerText = selection.ActiveCell?.Value ?? defaultCell };
             }
+        }
+
+        private static bool IsValidSelectionReferenceList(string? referenceList) {
+            if (string.IsNullOrWhiteSpace(referenceList)) {
+                return false;
+            }
+
+            foreach (string reference in referenceList!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+                if (IsValidCellReference(reference)) {
+                    continue;
+                }
+
+                if (A1.TryParseRange(reference, out _, out _, out _, out _)) {
+                    continue;
+                }
+
+                return false;
+            }
+
+            return true;
         }
 
         private static Selection CreateSelection(PaneValues? paneValue, string cellReference) {

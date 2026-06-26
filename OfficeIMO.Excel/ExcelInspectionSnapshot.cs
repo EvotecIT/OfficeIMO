@@ -550,6 +550,11 @@ namespace OfficeIMO.Excel {
         public bool CustomWidth { get; internal set; }
 
         /// <summary>
+        /// Open XML style index assigned to the column definition, when present.
+        /// </summary>
+        public uint? StyleIndex { get; internal set; }
+
+        /// <summary>
         /// Excel outline level for grouped columns, when set.
         /// </summary>
         public byte? OutlineLevel { get; internal set; }
@@ -583,6 +588,16 @@ namespace OfficeIMO.Excel {
         /// Whether the height was explicitly customized.
         /// </summary>
         public bool CustomHeight { get; internal set; }
+
+        /// <summary>
+        /// Whether the row has an explicit row style.
+        /// </summary>
+        public bool CustomFormat { get; internal set; }
+
+        /// <summary>
+        /// Open XML style index assigned to the row definition, when present.
+        /// </summary>
+        public uint? StyleIndex { get; internal set; }
 
         /// <summary>
         /// Excel outline level for grouped rows, when set.

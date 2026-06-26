@@ -45,6 +45,8 @@ The comparison suite is intentionally scenario-shaped rather than forcing every 
 - Read scenarios compare `OfficeIMO.Excel` with `ClosedXML`, current `EPPlus`, legacy `EPPlus 4.5.3.3`, `MiniExcel`, `ExcelDataReader`, and `Sylvan.Data.Excel` where the library exposes a matching read path.
 - Libraries that do not expose a natural worksheet-copy or workbook-edit API are omitted from that specific scenario instead of being represented by an artificial row-by-row workaround.
 
+NPOI is intentionally not a default comparison package. Benchmark-only local comparison is fine, but normal solution restore/build should not pull NPOI and OfficeIMO runtime code must not depend on it. Use the opt-in [OfficeIMO.Excel.Benchmarks.NPOI](../OfficeIMO.Excel.Benchmarks.NPOI/README.md) runner for NPOI evidence. Natural NPOI lanes are plain row/cell write and read, DataTable/DataSet-style import/export, formula text/cached value reads, conditional-formatting rule reads, and a separate `.xls` compatibility lane; do not force it into OfficeIMO-specific template, feature-preflight, PDF, package-copy, or fast-package scenarios.
+
 For release-style evidence:
 
 ```powershell

@@ -47,6 +47,68 @@ namespace OfficeIMO.Excel {
         /// sheet.SetHyperlink(2, 1, "https://example.org", display: "Example", style: true);
         /// </example>
 
+        internal void AddExternalHyperlinkReference(string reference, string url, bool style = true) {
+            if (string.IsNullOrWhiteSpace(reference)) throw new ArgumentNullException(nameof(reference));
+            if (string.IsNullOrWhiteSpace(url)) throw new ArgumentNullException(nameof(url));
+            Uri uri = CreateExternalHyperlinkUri(url);
+
+            WriteLock(() => {
+                var ws = WorksheetRoot;
+                var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
+                if (hyperlinks == null) {
+                    hyperlinks = new Hyperlinks();
+                    var tableParts = ws.Elements<TableParts>().FirstOrDefault();
+                    if (tableParts != null) ws.InsertBefore(hyperlinks, tableParts); else ws.Append(hyperlinks);
+                } else {
+                    RemoveHyperlinksByReference(hyperlinks, reference);
+                }
+
+                var rel = _worksheetPart.AddHyperlinkRelationship(uri, true);
+                hyperlinks.Append(new Hyperlink { Reference = reference, Id = rel.Id });
+                if (style) {
+                    ApplyHyperlinkStyle(reference);
+                }
+            });
+        }
+
+        private static Uri CreateExternalHyperlinkUri(string url) {
+            if (Uri.TryCreate(url, UriKind.Absolute, out Uri? absoluteUri)) {
+                return absoluteUri;
+            }
+
+            string normalizedRelativeTarget = url.Replace('\\', '/');
+            if (Uri.TryCreate(normalizedRelativeTarget, UriKind.Relative, out Uri? relativeUri)) {
+                return relativeUri;
+            }
+
+            throw new ArgumentException("Hyperlink URL must be an absolute URI or relative external target.", nameof(url));
+        }
+
+        internal void AddInternalHyperlinkReference(string reference, string location, bool style = true, bool normalizeLocation = true) {
+            if (string.IsNullOrWhiteSpace(reference)) throw new ArgumentNullException(nameof(reference));
+            if (string.IsNullOrWhiteSpace(location)) throw new ArgumentNullException(nameof(location));
+            string normalizedLocation = normalizeLocation
+                ? SheetNameLookup.NormalizeExistingInternalLocation(_excelDocument.Sheets, location)
+                : location;
+
+            WriteLock(() => {
+                var ws = WorksheetRoot;
+                var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
+                if (hyperlinks == null) {
+                    hyperlinks = new Hyperlinks();
+                    var tableParts = ws.Elements<TableParts>().FirstOrDefault();
+                    if (tableParts != null) ws.InsertBefore(hyperlinks, tableParts); else ws.Append(hyperlinks);
+                } else {
+                    RemoveHyperlinksByReference(hyperlinks, reference);
+                }
+
+                hyperlinks.Append(new Hyperlink { Reference = reference, Location = normalizedLocation });
+                if (style) {
+                    ApplyHyperlinkStyle(reference);
+                }
+            });
+        }
+
         /// <summary>
         /// Gets worksheet hyperlinks keyed by their A1 cell or range reference.
         /// </summary>
@@ -228,6 +290,23 @@ namespace OfficeIMO.Excel {
             }
 
             cell.StyleIndex = (uint)hyperlinkFormatIndex;
+        }
+
+        private void ApplyHyperlinkStyle(string reference) {
+            if (A1.TryParseCellReferenceFast(reference, out int row, out int column)) {
+                ApplyHyperlinkStyle(GetCell(row, column));
+                return;
+            }
+
+            if (!A1.TryParseRange(reference, out int startRow, out int startColumn, out int endRow, out int endColumn)) {
+                return;
+            }
+
+            for (int rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
+                for (int columnIndex = startColumn; columnIndex <= endColumn; columnIndex++) {
+                    ApplyHyperlinkStyle(GetCell(rowIndex, columnIndex));
+                }
+            }
         }
 
         private void RemoveHyperlinksByReference(Hyperlinks hyperlinks, string reference) {
