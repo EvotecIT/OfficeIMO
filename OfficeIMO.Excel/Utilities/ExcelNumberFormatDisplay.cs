@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel {
 
         internal static bool TryGetDateSample(uint numberFormatId, string? formatCode, out string sample) {
             sample = string.Empty;
-            if (numberFormatId == 46U || (formatCode?.IndexOf("[h]", StringComparison.OrdinalIgnoreCase) ?? -1) >= 0) {
+            if (IsElapsedDurationFormat(numberFormatId, formatCode)) {
                 return false;
             }
 
@@ -86,10 +86,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static string FormatDateValue(double value, uint numberFormatId, string formatCode, ExcelDateSystem dateSystem) {
-            if (numberFormatId == 46U || formatCode.IndexOf("[h]", StringComparison.OrdinalIgnoreCase) >= 0) {
-                TimeSpan duration = TimeSpan.FromDays(value);
-                int totalHours = (int)Math.Floor(duration.TotalHours);
-                return string.Format(CultureInfo.InvariantCulture, "{0}:{1:00}:{2:00}", totalHours, Math.Abs(duration.Minutes), Math.Abs(duration.Seconds));
+            if (TryFormatElapsedDuration(value, numberFormatId, formatCode, out string durationText)) {
+                return durationText;
             }
 
             DateTime date;
@@ -126,6 +124,16 @@ namespace OfficeIMO.Excel {
             if (lower.Contains("yyyy-mm-dd")) return "yyyy-MM-dd";
             if (lower.Contains("dd/mm/yyyy")) return "dd/MM/yyyy";
             if (lower.Contains("mm/dd/yyyy")) return "MM/dd/yyyy";
+            if (lower.Contains("dd/mm/yy") && lower.Contains("h:mm:ss") && lower.Contains("am/pm")) return "dd/MM/yy h:mm:ss tt";
+            if (lower.Contains("dd/mm/yy") && lower.Contains("h:mm") && lower.Contains("am/pm")) return "dd/MM/yy h:mm tt";
+            if (lower.Contains("dd/mm/yy") && lower.Contains("h:mm:ss")) return "dd/MM/yy H:mm:ss";
+            if (lower.Contains("dd/mm/yy") && lower.Contains("h:mm")) return "dd/MM/yy H:mm";
+            if (lower.Contains("dd/mm/yy")) return "dd/MM/yy";
+            if (lower.Contains("mm/dd/yy") && lower.Contains("h:mm:ss") && lower.Contains("am/pm")) return "MM/dd/yy h:mm:ss tt";
+            if (lower.Contains("mm/dd/yy") && lower.Contains("h:mm") && lower.Contains("am/pm")) return "MM/dd/yy h:mm tt";
+            if (lower.Contains("mm/dd/yy") && lower.Contains("h:mm:ss")) return "MM/dd/yy H:mm:ss";
+            if (lower.Contains("mm/dd/yy") && lower.Contains("h:mm")) return "MM/dd/yy H:mm";
+            if (lower.Contains("mm/dd/yy")) return "MM/dd/yy";
             if (lower.Contains("m/d/yyyy")) return "M/d/yyyy";
             if (lower.Contains("m/d/yy") && lower.Contains("h:mm:ss") && lower.Contains("am/pm")) return "M/d/yy h:mm:ss tt";
             if (lower.Contains("m/d/yy") && lower.Contains("h:mm") && lower.Contains("am/pm")) return "M/d/yy h:mm tt";
@@ -173,12 +181,12 @@ namespace OfficeIMO.Excel {
                 return ApplyNumericAffixes(normalized, scientificText);
             }
 
-            bool percent = lower.Contains("%");
+            bool percent = ContainsPercentPlaceholder(section);
             bool thousands = lower.Contains("#,##") || lower.Contains(",##");
             bool currency = normalized.IndexOf('$') >= 0
                 || normalized.IndexOf('\u20AC') >= 0
                 || normalized.IndexOf('\u00A3') >= 0;
-            int decimalPlaces = CountDecimalPlaces(lower);
+            DecimalPlaceInfo decimalPlaces = GetDecimalPlaceInfo(lower);
             double displayValue = percent ? value * 100.0 : value;
             int scalingCommas = CountScalingCommas(normalized);
             for (int i = 0; i < scalingCommas; i++) {
@@ -190,11 +198,70 @@ namespace OfficeIMO.Excel {
             }
 
             string numericFormat = thousands || currency
-                ? "N" + decimalPlaces.ToString(CultureInfo.InvariantCulture)
-                : "F" + decimalPlaces.ToString(CultureInfo.InvariantCulture);
+                ? "N" + decimalPlaces.Maximum.ToString(CultureInfo.InvariantCulture)
+                : "F" + decimalPlaces.Maximum.ToString(CultureInfo.InvariantCulture);
             string text = displayValue.ToString(numericFormat, CultureInfo.InvariantCulture);
+            if (decimalPlaces.Optional > 0) {
+                text = TrimOptionalDecimalPlaces(text, decimalPlaces.Required);
+            }
 
             return ApplyNumericAffixes(normalized, text);
+        }
+
+        private static bool IsElapsedDurationFormat(uint numberFormatId, string? formatCode)
+            => numberFormatId == 46U
+            || ContainsElapsedToken(formatCode, "h")
+            || ContainsElapsedToken(formatCode, "hh")
+            || ContainsElapsedToken(formatCode, "m")
+            || ContainsElapsedToken(formatCode, "mm")
+            || ContainsElapsedToken(formatCode, "s")
+            || ContainsElapsedToken(formatCode, "ss");
+
+        private static bool TryFormatElapsedDuration(double value, uint numberFormatId, string formatCode, out string text) {
+            text = string.Empty;
+            string section = SelectNumberFormatSection(formatCode, 0);
+            string normalized = StripNumberFormatDecorations(section);
+            string lower = normalized.ToLowerInvariant();
+
+            bool hasHours = numberFormatId == 46U || ContainsElapsedToken(lower, "h") || ContainsElapsedToken(lower, "hh");
+            bool hasMinutes = ContainsElapsedToken(lower, "m") || ContainsElapsedToken(lower, "mm");
+            bool hasSeconds = ContainsElapsedToken(lower, "s") || ContainsElapsedToken(lower, "ss");
+            if (!hasHours && !hasMinutes && !hasSeconds) {
+                return false;
+            }
+
+            TimeSpan duration = TimeSpan.FromDays(value);
+            bool negative = duration.Ticks < 0;
+            TimeSpan absolute = duration.Duration();
+            string sign = negative ? "-" : string.Empty;
+
+            if (hasHours) {
+                long totalHours = (long)Math.Floor(absolute.TotalHours);
+                if (lower.Contains(":mm:ss")) {
+                    text = string.Format(CultureInfo.InvariantCulture, "{0}{1}:{2:00}:{3:00}", sign, totalHours, absolute.Minutes, absolute.Seconds);
+                } else if (lower.Contains(":mm")) {
+                    text = string.Format(CultureInfo.InvariantCulture, "{0}{1}:{2:00}", sign, totalHours, absolute.Minutes);
+                } else {
+                    text = sign + totalHours.ToString(CultureInfo.InvariantCulture);
+                }
+
+                return true;
+            }
+
+            if (hasMinutes) {
+                long totalMinutes = (long)Math.Floor(absolute.TotalMinutes);
+                if (lower.Contains(":ss")) {
+                    text = string.Format(CultureInfo.InvariantCulture, "{0}{1}:{2:00}", sign, totalMinutes, absolute.Seconds);
+                } else {
+                    text = sign + totalMinutes.ToString(CultureInfo.InvariantCulture);
+                }
+
+                return true;
+            }
+
+            long totalSeconds = (long)Math.Floor(absolute.TotalSeconds);
+            text = sign + totalSeconds.ToString(CultureInfo.InvariantCulture);
+            return true;
         }
 
         private static bool TryFormatFraction(double value, string formatCode, int selectedSection, out string text) {
@@ -346,23 +413,54 @@ namespace OfficeIMO.Excel {
         }
 
         private static int CountDecimalPlaces(string formatCode) {
+            return GetDecimalPlaceInfo(formatCode).Maximum;
+        }
+
+        private static DecimalPlaceInfo GetDecimalPlaceInfo(string formatCode) {
             int dot = formatCode.IndexOf('.');
             if (dot < 0) {
-                return 0;
+                return new DecimalPlaceInfo(0, 0);
             }
 
-            int count = 0;
+            int required = 0;
+            int maximum = 0;
             for (int i = dot + 1; i < formatCode.Length; i++) {
                 char ch = formatCode[i];
-                if (ch == '0' || ch == '#') {
-                    count++;
+                if (ch == '0') {
+                    required++;
+                    maximum++;
+                    continue;
+                }
+
+                if (ch == '#' || ch == '?') {
+                    maximum++;
                     continue;
                 }
 
                 break;
             }
 
-            return count;
+            return new DecimalPlaceInfo(required, maximum);
+        }
+
+        private static string TrimOptionalDecimalPlaces(string text, int requiredDecimalPlaces) {
+            int dot = text.IndexOf('.');
+            if (dot < 0) {
+                return text;
+            }
+
+            int end = text.Length - 1;
+            while (end > dot + requiredDecimalPlaces && text[end] == '0') {
+                end--;
+            }
+
+            if (end == dot) {
+                return text.Substring(0, dot);
+            }
+
+            return end == text.Length - 1
+                ? text
+                : text.Substring(0, end + 1);
         }
 
         private static int CountScalingCommas(string formatCode) {
@@ -516,6 +614,43 @@ namespace OfficeIMO.Excel {
         private static bool ContainsNumericPlaceholder(string formatCode)
             => formatCode.IndexOf('0') >= 0 || formatCode.IndexOf('#') >= 0 || formatCode.IndexOf('?') >= 0;
 
+        private static bool ContainsPercentPlaceholder(string formatCode) {
+            bool inQuote = false;
+            for (int i = 0; i < formatCode.Length; i++) {
+                char ch = formatCode[i];
+                if (ch == '"') {
+                    inQuote = !inQuote;
+                    continue;
+                }
+
+                if (inQuote) {
+                    continue;
+                }
+
+                if (ch == '\\' || ch == '_' || ch == '*') {
+                    if (i + 1 < formatCode.Length) {
+                        i++;
+                    }
+
+                    continue;
+                }
+
+                if (ch == '%') {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ContainsElapsedToken(string? formatCode, string token) {
+            if (string.IsNullOrEmpty(formatCode)) {
+                return false;
+            }
+
+            return formatCode!.IndexOf("[" + token + "]", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
         private static string ApplyNumericAffixes(string formatCode, string numericText) {
             int first = FindFirstNumericPlaceholder(formatCode);
             int last = FindLastNumericPlaceholder(formatCode);
@@ -612,6 +747,19 @@ namespace OfficeIMO.Excel {
             }
 
             return builder.ToString();
+        }
+
+        private readonly struct DecimalPlaceInfo {
+            internal DecimalPlaceInfo(int required, int maximum) {
+                Required = required;
+                Maximum = maximum;
+            }
+
+            internal int Required { get; }
+
+            internal int Maximum { get; }
+
+            internal int Optional => Maximum - Required;
         }
     }
 }

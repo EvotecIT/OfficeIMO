@@ -145,9 +145,17 @@ namespace OfficeIMO.Tests {
             Assert.Equal("1,235", ExcelNumberFormatDisplay.FormatNumericText(1234567D, 1U, "#,##0,", "1234567"));
             Assert.Equal("1 K", ExcelNumberFormatDisplay.FormatNumericText(1234D, 1U, "#,##0, \"K\"", "1234"));
             Assert.Equal("1", ExcelNumberFormatDisplay.FormatNumericText(1234567D, 1U, "#,##0,,", "1234567"));
+            Assert.Equal("1", ExcelNumberFormatDisplay.FormatNumericText(1D, 1U, "0.##", "1"));
+            Assert.Equal("1.5", ExcelNumberFormatDisplay.FormatNumericText(1.5D, 1U, "0.##", "1.5"));
+            Assert.Equal("1,234.5", ExcelNumberFormatDisplay.FormatNumericText(1234.5D, 1U, "#,##0.##", "1234.5"));
             Assert.Equal("50 low", ExcelNumberFormatDisplay.FormatNumericText(50D, 1U, "[>=100]0 \"high\";0 \"low\"", "50"));
             Assert.Equal("150 high", ExcelNumberFormatDisplay.FormatNumericText(150D, 1U, "[>=100]0 \"high\";0 \"low\"", "150"));
             Assert.Equal("6/24/26 13:45", ExcelNumberFormatDisplay.FormatNumericText(new DateTime(2026, 6, 24, 13, 45, 0).ToOADate(), 1U, "m/d/yy h:mm", "46200.5729"));
+            Assert.Equal("01/05/26", ExcelNumberFormatDisplay.FormatNumericText(new DateTime(2026, 1, 5).ToOADate(), 1U, "mm/dd/yy", "46027"));
+            Assert.Equal("5%", ExcelNumberFormatDisplay.FormatNumericText(5D, 1U, "0\"%\"", "5"));
+            Assert.Equal("500%", ExcelNumberFormatDisplay.FormatNumericText(5D, 1U, "0%", "5"));
+            Assert.Equal("90:00", ExcelNumberFormatDisplay.FormatNumericText(TimeSpan.FromMinutes(90).TotalDays, 1U, "[mm]:ss", "0.0625"));
+            Assert.Equal("5400", ExcelNumberFormatDisplay.FormatNumericText(TimeSpan.FromMinutes(90).TotalDays, 1U, "[ss]", "0.0625"));
             Assert.Equal(string.Empty, ExcelNumberFormatDisplay.FormatNumericText(0D, 1U, "0;-0;;@", "0"));
         }
 
