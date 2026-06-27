@@ -3428,6 +3428,35 @@ Lead[^1]
     }
 
     [Fact]
+    public void Table_Block_Public_ChildBlocks_Expose_Cell_Block_Projection() {
+        var markdown = """
+| Name | Value |
+| --- | --- |
+| One | 1 |
+""";
+
+        var document = MarkdownReader.Parse(markdown);
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        var nameHeader = table.GetHeaderCell(0);
+        var valueHeader = table.GetHeaderCell(1);
+        var nameBody = table.GetCell(0, 0);
+        var valueBody = table.GetCell(0, 1);
+        Assert.NotNull(nameHeader);
+        Assert.NotNull(valueHeader);
+        Assert.NotNull(nameBody);
+        Assert.NotNull(valueBody);
+        var childBlocks = table.ChildBlocks;
+
+        Assert.Equal(4, childBlocks.Count);
+        Assert.Same(Assert.Single(nameHeader!.Blocks), childBlocks[0]);
+        Assert.Same(Assert.Single(valueHeader!.Blocks), childBlocks[1]);
+        Assert.Same(Assert.Single(nameBody!.Blocks), childBlocks[2]);
+        Assert.Same(Assert.Single(valueBody!.Blocks), childBlocks[3]);
+        Assert.Equal(childBlocks, ((IChildMarkdownBlockContainer)table).ChildBlocks);
+    }
+
+    [Fact]
     public void Document_Can_Enumerate_Descendant_Tables_And_Table_Cells() {
         var markdown = """
 > | Name | Value |

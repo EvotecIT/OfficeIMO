@@ -28,6 +28,8 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     public List<IReadOnlyList<string>> Rows { get; } = new List<IReadOnlyList<string>>();
     /// <summary>Typed row cell content.</summary>
     public IReadOnlyList<IReadOnlyList<TableCell>> RowCells => GetOrBuildRowCells();
+    /// <summary>Structured child blocks flattened from header and body cells in table order.</summary>
+    public IReadOnlyList<IMarkdownBlock> ChildBlocks => BuildChildBlocks();
     /// <summary>Enumerates header and body cells in document order, preserving row/column metadata on each cell.</summary>
     public IEnumerable<TableCell> EnumerateCells() {
         var headers = HeaderCells;
@@ -272,7 +274,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         return Math.Min(preparedCount, structuredCells.Count);
     }
 
-    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => BuildChildBlocks();
+    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
 
     private void AppendColumnGroupHtml(StringBuilder sb, int columnCount) {
         if (!HasColumnWidthHints(columnCount)) {
