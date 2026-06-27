@@ -30,6 +30,12 @@ public static partial class MarkdownReader {
         var markdown = string.Join("\n", sourceLines.Select(line => line.Text ?? string.Empty));
         var nestedOptions = CloneOptionsWithoutFrontMatter(options);
         var nestedState = CloneState(state);
+        nestedState.LazyQuoteContinuationLines.Clear();
+        for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
+            if (sourceLines[lineIndex].IsLazyQuoteContinuation) {
+                nestedState.LazyQuoteContinuationLines.Add(lineIndex);
+            }
+        }
         var syntaxChildren = new List<MarkdownSyntaxNode>();
         var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, out _, syntaxChildren, lineOffset: 0, applyDocumentTransforms: false);
         var remappedSyntaxChildren = RemapNestedSyntaxNodes(sourceLines, syntaxChildren);

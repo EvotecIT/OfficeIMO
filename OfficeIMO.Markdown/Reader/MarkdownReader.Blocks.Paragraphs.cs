@@ -51,15 +51,17 @@ public static partial class MarkdownReader {
     }
 
     private readonly struct MarkdownSourceLineSlice {
-        public MarkdownSourceLineSlice(string text, int absoluteLine, int startColumn) {
+        public MarkdownSourceLineSlice(string text, int absoluteLine, int startColumn, bool isLazyQuoteContinuation = false) {
             Text = text ?? string.Empty;
             AbsoluteLine = absoluteLine;
             StartColumn = startColumn < 1 ? 1 : startColumn;
+            IsLazyQuoteContinuation = isLazyQuoteContinuation;
         }
 
         public string Text { get; }
         public int AbsoluteLine { get; }
         public int StartColumn { get; }
+        public bool IsLazyQuoteContinuation { get; }
     }
 
     private readonly struct ParagraphLineJoinInfo {
@@ -678,7 +680,7 @@ public static partial class MarkdownReader {
         if (lines == null || lines.Count < 2 || options == null || !options.Headings) return false;
 
         var underline = lines[lines.Count - 1]?.Trim() ?? string.Empty;
-        if (underline.Length < 3) return false;
+        if (underline.Length < 1) return false;
 
         char marker = '\0';
         for (int i = 0; i < underline.Length; i++) {

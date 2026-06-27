@@ -169,6 +169,7 @@ public static partial class MarkdownReader {
         clone.SourceLineOffset = state.SourceLineOffset;
         clone.SourceTextMap = state.SourceTextMap;
         clone.ListMarkerIndentOffset = state.ListMarkerIndentOffset;
+        foreach (var line in state.LazyQuoteContinuationLines) clone.LazyQuoteContinuationLines.Add(line);
         return clone;
     }
 

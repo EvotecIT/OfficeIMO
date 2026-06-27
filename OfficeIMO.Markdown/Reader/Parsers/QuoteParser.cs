@@ -81,7 +81,8 @@ public static partial class MarkdownReader {
                             innerSourceLines.Add(new MarkdownSourceLineSlice(
                                 normalizedLazyLine,
                                 state.SourceLineOffset + j + 1,
-                                CountLeadingIndentColumns(ln) + 1));
+                                CountLeadingIndentColumns(ln) + 1,
+                                isLazyQuoteContinuation: true));
                             j++;
                             continue;
                         }
@@ -91,7 +92,8 @@ public static partial class MarkdownReader {
                             innerSourceLines.Add(new MarkdownSourceLineSlice(
                                 normalizedListLazyLine,
                                 state.SourceLineOffset + j + 1,
-                                CountLeadingIndentColumns(ln) + 1));
+                                CountLeadingIndentColumns(ln) + 1,
+                                isLazyQuoteContinuation: true));
                             j++;
                             continue;
                         }
@@ -101,7 +103,8 @@ public static partial class MarkdownReader {
                             innerSourceLines.Add(new MarkdownSourceLineSlice(
                                 normalizedNestedLazyLine,
                                 state.SourceLineOffset + j + 1,
-                                CountLeadingIndentColumns(ln) + 1));
+                                CountLeadingIndentColumns(ln) + 1,
+                                isLazyQuoteContinuation: true));
                             j++;
                             continue;
                         }

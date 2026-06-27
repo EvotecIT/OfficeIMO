@@ -48,6 +48,21 @@ public static partial class MarkdownReader {
                 paragraphLines.Add(lines[lineIndex]);
             }
 
+            int setextUnderlineLineIndex = i + paragraphLines.Count - 1;
+            if (!state.LazyQuoteContinuationLines.Contains(setextUnderlineLineIndex)
+                && TryParseSetextHeadingParagraphLines(paragraphLines, options, out int level, out string headingText)) {
+                var contentLines = paragraphLines.GetRange(0, paragraphLines.Count - 1);
+                var (headingInlineText, headingSourceMap) = JoinParagraphLinesWithSourceMap(contentLines, state.SourceLineOffset + i, options, state);
+                var heading = new HeadingBlock(level, ParseInlines(headingInlineText, options, state, headingSourceMap));
+                var underline = paragraphLines[paragraphLines.Count - 1] ?? string.Empty;
+                var trimmedUnderline = underline.Trim();
+                var markerStartColumn = underline.IndexOf(trimmedUnderline, StringComparison.Ordinal) + 1;
+                heading.SetLevelSourceInfo(paragraphLines.Count - 1, markerStartColumn, markerStartColumn + trimmedUnderline.Length - 1);
+                doc.Add(heading);
+                i = j;
+                return true;
+            }
+
             var (text, sourceMap) = JoinParagraphLinesWithSourceMap(paragraphLines, state.SourceLineOffset + i, options, state);
             doc.Add(new ParagraphBlock(ParseInlines(text, options, state, sourceMap)));
             i = j; return true;

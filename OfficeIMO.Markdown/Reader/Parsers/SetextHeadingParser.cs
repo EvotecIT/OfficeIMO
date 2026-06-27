@@ -7,7 +7,7 @@ public static partial class MarkdownReader {
     ///   =====  (level 1)
     ///   Title
     ///   -----  (level 2)
-    /// Requires at least 3 underline characters and no other content on the underline line.
+    /// Requires one or more underline characters and no other content on the underline line.
     /// </summary>
     internal sealed class SetextHeadingParser : IMarkdownBlockParser {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
@@ -17,13 +17,13 @@ public static partial class MarkdownReader {
             var next = lines[i + 1];
             if (string.IsNullOrWhiteSpace(line) || string.IsNullOrWhiteSpace(next)) return false;
             var t = next.Trim();
-            // must be only '=' or '-' with length >= 3
+            // must be only '=' or '-' with length >= 1
             char ch = '\0';
             foreach (var c in t) {
                 if (c == '=' || c == '-') { if (ch == '\0') ch = c; if (c != ch) return false; continue; }
                 return false;
             }
-            if (t.Length < 3) return false;
+            if (t.Length < 1) return false;
             int level = ch == '=' ? 1 : 2;
             var headingText = line.Trim();
             var contentStart = line.IndexOf(headingText, StringComparison.Ordinal);

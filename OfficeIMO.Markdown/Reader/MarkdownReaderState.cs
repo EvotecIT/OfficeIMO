@@ -55,4 +55,5 @@ public sealed class MarkdownReaderState {
     internal int SourceLineOffset { get; set; }
     internal MarkdownSourceTextMap? SourceTextMap { get; set; }
     internal int ListMarkerIndentOffset { get; set; }
+    internal HashSet<int> LazyQuoteContinuationLines { get; } = new HashSet<int>();
 }
