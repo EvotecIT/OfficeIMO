@@ -137,6 +137,12 @@ public sealed partial class MarkdownNativeDocument {
                 }
 
                 break;
+            case MarkdownNativeFrontMatterBlock frontMatter:
+                foreach (var field in EnumerateFrontMatterFields(frontMatter)) {
+                    yield return field;
+                }
+
+                break;
         }
     }
 
@@ -209,6 +215,19 @@ public sealed partial class MarkdownNativeDocument {
 
         if (image.LinkTitleSourceSpan.HasValue) {
             yield return new MarkdownNativeBlockSourceField("linkTitle", image.LinkTitle, image.LinkTitleSourceSpan.Value, image);
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateFrontMatterFields(MarkdownNativeFrontMatterBlock frontMatter) {
+        for (var i = 0; i < frontMatter.Entries.Count; i++) {
+            var entry = frontMatter.Entries[i];
+            if (entry.KeySourceSpan.HasValue) {
+                yield return new MarkdownNativeBlockSourceField("frontMatterKey", entry.Key, entry.KeySourceSpan.Value, frontMatter, i);
+            }
+
+            if (entry.ValueSourceSpan.HasValue) {
+                yield return new MarkdownNativeBlockSourceField("frontMatterValue", FrontMatterBlock.FormatSyntaxValue(entry.Value), entry.ValueSourceSpan.Value, frontMatter, i);
+            }
         }
     }
 

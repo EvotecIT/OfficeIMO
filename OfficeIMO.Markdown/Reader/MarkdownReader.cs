@@ -164,9 +164,8 @@ public static partial class MarkdownReader {
                 int end = -1;
                 for (int j = start; j < lines.Length; j++) { if (lines[j].Trim() == "---") { end = j; break; } }
                 if (end > start) {
-                    var dict = ParseFrontMatter(lines, start, end - 1);
-                    if (dict.Count > 0) {
-                        var frontMatter = FrontMatterBlock.FromObject(dict);
+                    var frontMatter = ParseFrontMatterBlock(lines, start, end - 1, state);
+                    if (frontMatter.Entries.Count > 0) {
                         doc.Add(frontMatter);
                         if (syntaxNodes != null) {
                             syntaxNodes.Add(((ISyntaxMarkdownBlock)frontMatter).BuildSyntaxNode(

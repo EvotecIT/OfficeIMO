@@ -272,6 +272,83 @@ _Caption_
     }
 
     [Fact]
+    public void FrontMatter_SourceFields_Use_Entry_Key_And_Value_Token_Spans() {
+        var markdown = """
+---
+title: Doc
+published: true
+tags: [a, b]
+summary: |
+  First line
+  Second line
+---
+
+# Heading
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var frontMatter = Assert.IsType<MarkdownNativeFrontMatterBlock>(native.Blocks[0]);
+
+        Assert.Collection(frontMatter.Entries,
+            entry => {
+                Assert.Equal("title", entry.Key);
+                Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 5), entry.KeySourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(2, 8, 2, 10), entry.ValueSourceSpan);
+            },
+            entry => {
+                Assert.Equal("published", entry.Key);
+                Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 9), entry.KeySourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(3, 12, 3, 15), entry.ValueSourceSpan);
+            },
+            entry => {
+                Assert.Equal("tags", entry.Key);
+                Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 4), entry.KeySourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(4, 7, 4, 12), entry.ValueSourceSpan);
+            },
+            entry => {
+                Assert.Equal("summary", entry.Key);
+                Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 7), entry.KeySourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(6, 3, 7, 13), entry.ValueSourceSpan);
+            });
+
+        var keys = native.EnumerateBlockSourceFields("frontMatterKey").ToArray();
+        Assert.Equal(4, keys.Length);
+        Assert.Equal("published", keys[1].Value);
+        Assert.Equal(1, keys[1].Index);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 9), keys[1].SourceSpan);
+
+        var values = native.EnumerateBlockSourceFields("frontMatterValue").ToArray();
+        Assert.Equal(4, values.Length);
+        Assert.Equal("true", values[1].Value);
+        Assert.Equal("a, b", values[2].Value);
+        Assert.Equal("First line\nSecond line", values[3].Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(6, 3, 7, 13), values[3].SourceSpan);
+
+        var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(4, 8));
+        Assert.Equal("frontMatterValue", found.Name);
+        Assert.Equal(2, found.Index);
+        Assert.Equal("a, b", found.Value);
+
+        var snapshot = native.ToSnapshot().Blocks[0];
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "frontMatterKey"
+            && field.Value == "summary"
+            && field.Index == 3
+            && field.SourceSpan.StartLine == 5
+            && field.SourceSpan.EndColumn == 7);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "frontMatterValue"
+            && field.Value!.Replace("\r\n", "\n") == "First line\nSecond line"
+            && field.Index == 3
+            && field.SourceSpan.StartLine == 6
+            && field.SourceSpan.StartColumn == 3);
+
+        var edited = native.CreateReplaceEdit(values[0], "Better").Apply(native.SourceMarkdown);
+        Assert.Contains("title: Better", edited, StringComparison.Ordinal);
+        Assert.Contains("published: true", edited, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToSnapshot_Projects_SourceFields_From_The_Same_Native_Block_Field_Enumeration() {
         var markdown = """
 # Title

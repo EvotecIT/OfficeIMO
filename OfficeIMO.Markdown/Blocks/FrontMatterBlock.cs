@@ -14,10 +14,16 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
         public string Key { get; }
         /// <summary>Entry value.</summary>
         public object? Value { get; }
+        /// <summary>Source span for the key token when parsed from markdown.</summary>
+        public MarkdownSourceSpan? KeySourceSpan { get; }
+        /// <summary>Source span for the value token or literal-block payload when parsed from markdown.</summary>
+        public MarkdownSourceSpan? ValueSourceSpan { get; }
 
-        internal Entry(string key, object? value) {
+        internal Entry(string key, object? value, MarkdownSourceSpan? keySourceSpan = null, MarkdownSourceSpan? valueSourceSpan = null) {
             Key = key;
             Value = value;
+            KeySourceSpan = keySourceSpan;
+            ValueSourceSpan = valueSourceSpan;
         }
     }
 
@@ -89,6 +95,19 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
         return fm;
     }
 
+    internal static FrontMatterBlock FromEntries(IEnumerable<Entry> entries) {
+        var fm = new FrontMatterBlock();
+        foreach (var entry in entries) {
+            if (entry == null) {
+                continue;
+            }
+
+            fm._entries.Add(entry);
+        }
+
+        return fm;
+    }
+
     /// <summary>Renders the front matter including '---' fences.</summary>
     public string Render() {
         StringBuilder sb = new StringBuilder();
@@ -150,6 +169,41 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
     string IMarkdownBlock.RenderMarkdown() => Render();
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() => string.Empty;
-    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatter, span, Render(), associatedObject: this);
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
+        var children = new List<MarkdownSyntaxNode>();
+        for (int i = 0; i < Entries.Count; i++) {
+            var entry = Entries[i];
+            if (entry.KeySourceSpan.HasValue) {
+                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterKey, entry.KeySourceSpan, entry.Key, associatedObject: entry));
+            }
+
+            if (entry.ValueSourceSpan.HasValue) {
+                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterValue, entry.ValueSourceSpan, FormatSyntaxValue(entry.Value), associatedObject: entry));
+            }
+        }
+
+        return new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatter, span, Render(), children, this);
+    }
+
+    internal static string? FormatSyntaxValue(object? value) {
+        switch (value) {
+            case null:
+                return null;
+            case bool boolean:
+                return boolean ? "true" : "false";
+            case IFormattable formattable:
+                return formattable.ToString(null, CultureInfo.InvariantCulture);
+            case IEnumerable<string> strings:
+                return string.Join(", ", strings);
+            case System.Collections.IEnumerable values when value is not string:
+                var items = new List<string>();
+                foreach (object? item in values) {
+                    items.Add(item?.ToString() ?? string.Empty);
+                }
+
+                return string.Join(", ", items);
+            default:
+                return value.ToString();
+        }
+    }
 }

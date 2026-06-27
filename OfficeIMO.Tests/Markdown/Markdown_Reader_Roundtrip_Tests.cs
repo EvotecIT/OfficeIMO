@@ -114,15 +114,21 @@ tags: [a, b]
                 entry => {
                     Assert.Equal("title", entry.Key);
                     Assert.Equal("Doc", Assert.IsType<string>(entry.Value));
+                    Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 5), entry.KeySourceSpan);
+                    Assert.Equal(new MarkdownSourceSpan(2, 8, 2, 10), entry.ValueSourceSpan);
                 },
                 entry => {
                     Assert.Equal("published", entry.Key);
                     Assert.True(Assert.IsType<bool>(entry.Value));
+                    Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 9), entry.KeySourceSpan);
+                    Assert.Equal(new MarkdownSourceSpan(3, 12, 3, 15), entry.ValueSourceSpan);
                 },
                 entry => {
                     Assert.Equal("tags", entry.Key);
                     var tags = Assert.IsAssignableFrom<IEnumerable<string>>(entry.Value);
                     Assert.Equal(new[] { "a", "b" }, tags.ToArray());
+                    Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 4), entry.KeySourceSpan);
+                    Assert.Equal(new MarkdownSourceSpan(4, 7, 4, 12), entry.ValueSourceSpan);
                 });
 
             var published = frontMatter.FindEntry("published");

@@ -4378,6 +4378,18 @@ title: Sample
         Assert.Equal(1, frontMatter.SourceSpan!.Value.StartLine);
         Assert.Equal(3, frontMatter.SourceSpan!.Value.EndLine);
         Assert.Equal("---\ntitle: Sample\n---", frontMatter.Literal!.Replace("\r\n", "\n"));
+        Assert.Collection(frontMatter.Children,
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.FrontMatterKey, node.Kind);
+                Assert.Equal("title", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 5), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.FrontMatterValue, node.Kind);
+                Assert.Equal("Sample", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(2, 8, 2, 13), node.SourceSpan);
+            });
+        Assert.Equal(MarkdownSyntaxKind.FrontMatterValue, result.FindDeepestNodeAtPosition(2, 9)!.Kind);
     }
 
     [Fact]

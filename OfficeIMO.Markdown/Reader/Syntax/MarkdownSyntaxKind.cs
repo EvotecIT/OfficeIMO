@@ -138,6 +138,10 @@ public enum MarkdownSyntaxKind {
     Summary,
     /// <summary>Front matter block.</summary>
     FrontMatter,
+    /// <summary>Front matter entry key.</summary>
+    FrontMatterKey,
+    /// <summary>Front matter entry value.</summary>
+    FrontMatterValue,
     /// <summary>Raw HTML block.</summary>
     HtmlRaw,
     /// <summary>HTML comment block.</summary>
