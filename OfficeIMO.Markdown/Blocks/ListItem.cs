@@ -170,6 +170,7 @@ public sealed class ListItem : MarkdownObject {
         var incoming = blocks?
             .Where(block => block != null)
             .ToList();
+        var preserveSyntaxChildren = HasSameBlockChildren(incoming);
         IMarkdownInline[]? leadInlines = null;
         var additionalParagraphs = new List<InlineSequence>();
         var childBlocks = new List<IMarkdownBlock>();
@@ -191,7 +192,10 @@ public sealed class ListItem : MarkdownObject {
             }
         }
 
-        SyntaxChildren.Clear();
+        if (!preserveSyntaxChildren) {
+            SyntaxChildren.Clear();
+        }
+
         Content.ReplaceItems(Array.Empty<IMarkdownInline>());
         AdditionalParagraphs.Clear();
         Children.Clear();
@@ -211,6 +215,25 @@ public sealed class ListItem : MarkdownObject {
         for (int i = 0; i < childBlocks.Count; i++) {
             Children.Add(childBlocks[i]);
         }
+    }
+
+    private bool HasSameBlockChildren(IReadOnlyList<IMarkdownBlock>? blocks) {
+        if (blocks == null) {
+            return BlockChildren.Count == 0;
+        }
+
+        var current = BlockChildren;
+        if (current.Count != blocks.Count) {
+            return false;
+        }
+
+        for (int i = 0; i < current.Count; i++) {
+            if (!ReferenceEquals(current[i], blocks[i])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     internal bool RequiresLooseListRendering() => ForceLoose || AdditionalParagraphs.Count > 0;

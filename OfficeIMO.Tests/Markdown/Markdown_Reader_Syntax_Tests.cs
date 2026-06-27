@@ -1208,6 +1208,47 @@ Lead {{core}} tail
     }
 
     [Fact]
+    public void MarkdownRewriter_Preserves_ListItem_SyntaxChildren_When_BlockProjection_Is_Unchanged() {
+        var result = MarkdownReader.ParseWithSyntaxTree("""
+- lead
+
+  second
+
+  > quoted
+""");
+        var document = result.Document;
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        var item = Assert.Single(list.Items);
+        var syntaxChildren = item.SyntaxChildren.ToArray();
+
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.Quote
+        }, syntaxChildren.Select(child => child.Kind).ToArray());
+
+        document.Rewrite(new IdentityMarkdownRewriter());
+
+        Assert.Equal(syntaxChildren.Length, item.SyntaxChildren.Count);
+        for (int i = 0; i < syntaxChildren.Length; i++) {
+            Assert.Same(syntaxChildren[i], item.SyntaxChildren[i]);
+        }
+
+        var finalTree = MarkdownReader.BuildFinalSyntaxTree(document, result.SyntaxTree);
+        var finalList = Assert.Single(finalTree.Children);
+        var finalItem = Assert.Single(finalList.Children);
+
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.Quote
+        }, finalItem.Children.Select(child => child.Kind).ToArray());
+        Assert.Same(item.ParagraphBlocks[0], finalItem.Children[0].AssociatedObject);
+        Assert.Same(item.ParagraphBlocks[1], finalItem.Children[1].AssociatedObject);
+        Assert.Same(item.ChildBlocks[0], finalItem.Children[2].AssociatedObject);
+    }
+
+    [Fact]
     public void MarkdownSourceSpan_Uses_ColumnAware_Equality_Containment_And_Overlap() {
         var outer = new MarkdownSourceSpan(3, 5, 3, 20);
         var inner = new MarkdownSourceSpan(3, 8, 3, 12);
@@ -4260,6 +4301,9 @@ Term: Definition
             block is ParagraphBlock
                 ? new ParagraphBlock(new InlineSequence().Text(text))
                 : block;
+    }
+
+    private sealed class IdentityMarkdownRewriter : MarkdownRewriter {
     }
 
     private sealed class DoubleBraceInline(InlineSequence inlines) : MarkdownInline, IRenderableMarkdownInline, IContextualHtmlMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, ISyntaxMarkdownInline {
