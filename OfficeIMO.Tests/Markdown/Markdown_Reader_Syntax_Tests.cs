@@ -218,6 +218,38 @@ Paragraph text
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Final_AssociatedObject_Lookup_Finds_Nearest_Typed_Object() {
+        const string markdown = "Lead [docs](https://example.com) tail";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
+        var link = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
+
+        Assert.Same(link, result.FindFinalAssociatedObjectAtPosition(1, 16));
+        Assert.Same(link, result.FindFinalAssociatedObjectAtPosition<LinkInline>(1, 16));
+        Assert.Same(paragraph, result.FindFinalAssociatedObjectAtPosition<ParagraphBlock>(1, 16));
+        Assert.Same(link, result.FindFinalAssociatedObjectContainingSpan<LinkInline>(new MarkdownSourceSpan(1, 14, 1, 20)));
+        Assert.Same(link, result.FindFinalAssociatedObjectOverlappingSpan<LinkInline>(new MarkdownSourceSpan(1, 14, 1, 40)));
+        Assert.Null(result.FindFinalAssociatedObjectAtLine<LinkInline>(99));
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTreeAndDiagnostics_Final_AssociatedObject_Lookup_Uses_Final_Tree_After_Document_Rewrite() {
+        var options = new MarkdownReaderOptions();
+        options.DocumentTransforms.Add(new RewriteFirstParagraphTransform("rewritten"));
+
+        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("hello", options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
+
+        Assert.Null(result.SyntaxTree.AssociatedObject);
+        Assert.Same(paragraph, result.FindFinalAssociatedObjectAtLine<ParagraphBlock>(1));
+        Assert.Same(paragraph, result.FindFinalAssociatedObjectContainingSpan<ParagraphBlock>(new MarkdownSourceSpan(1, 1)));
+        Assert.Same(paragraph, result.FindFinalAssociatedObjectOverlappingSpan<ParagraphBlock>(new MarkdownSourceSpan(1, 1)));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Detaches_Original_Syntax_Associations_When_Transform_Replaces_Document() {
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteFirstParagraphTransform("rewritten"));

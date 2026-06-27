@@ -191,8 +191,24 @@ public sealed class MarkdownParseResult {
     /// <summary>Finds the syntax node path from the final document root to the deepest node containing the given 1-based line number.</summary>
     public IReadOnlyList<MarkdownSyntaxNode> FindFinalNodePathAtLine(int lineNumber) => FinalSyntaxTree.FindNodePathAtLine(lineNumber);
 
+    /// <summary>Finds the nearest associated object in the final syntax tree at the given 1-based line number.</summary>
+    public object? FindFinalAssociatedObjectAtLine(int lineNumber) => FindAssociatedObject(FindFinalNodePathAtLine(lineNumber));
+
+    /// <summary>Finds the nearest associated object of the requested type in the final syntax tree at the given 1-based line number.</summary>
+    public TAssociatedObject? FindFinalAssociatedObjectAtLine<TAssociatedObject>(int lineNumber)
+        where TAssociatedObject : class =>
+        FindAssociatedObject<TAssociatedObject>(FindFinalNodePathAtLine(lineNumber));
+
     /// <summary>Finds the syntax node path from the final document root to the deepest node containing the given 1-based line and column.</summary>
     public IReadOnlyList<MarkdownSyntaxNode> FindFinalNodePathAtPosition(int lineNumber, int columnNumber) => FinalSyntaxTree.FindNodePathAtPosition(lineNumber, columnNumber);
+
+    /// <summary>Finds the nearest associated object in the final syntax tree at the given 1-based line and column.</summary>
+    public object? FindFinalAssociatedObjectAtPosition(int lineNumber, int columnNumber) => FindAssociatedObject(FindFinalNodePathAtPosition(lineNumber, columnNumber));
+
+    /// <summary>Finds the nearest associated object of the requested type in the final syntax tree at the given 1-based line and column.</summary>
+    public TAssociatedObject? FindFinalAssociatedObjectAtPosition<TAssociatedObject>(int lineNumber, int columnNumber)
+        where TAssociatedObject : class =>
+        FindAssociatedObject<TAssociatedObject>(FindFinalNodePathAtPosition(lineNumber, columnNumber));
 
     /// <summary>Finds the nearest block-like syntax node in the final document tree whose source span contains the given 1-based line number.</summary>
     public MarkdownSyntaxNode? FindNearestFinalBlockAtLine(int lineNumber) => FinalSyntaxTree.FindNearestBlockAtLine(lineNumber);
@@ -206,6 +222,14 @@ public sealed class MarkdownParseResult {
     /// <summary>Finds the syntax node path from the final document root to the deepest node whose source span fully contains the given span.</summary>
     public IReadOnlyList<MarkdownSyntaxNode> FindFinalNodePathContainingSpan(MarkdownSourceSpan span) => FinalSyntaxTree.FindNodePathContainingSpan(span);
 
+    /// <summary>Finds the nearest associated object in the final syntax tree whose source span fully contains the given span.</summary>
+    public object? FindFinalAssociatedObjectContainingSpan(MarkdownSourceSpan span) => FindAssociatedObject(FindFinalNodePathContainingSpan(span));
+
+    /// <summary>Finds the nearest associated object of the requested type in the final syntax tree whose source span fully contains the given span.</summary>
+    public TAssociatedObject? FindFinalAssociatedObjectContainingSpan<TAssociatedObject>(MarkdownSourceSpan span)
+        where TAssociatedObject : class =>
+        FindAssociatedObject<TAssociatedObject>(FindFinalNodePathContainingSpan(span));
+
     /// <summary>Finds the nearest block-like syntax node in the final document tree whose source span fully contains the given span.</summary>
     public MarkdownSyntaxNode? FindNearestFinalBlockContainingSpan(MarkdownSourceSpan span) => FinalSyntaxTree.FindNearestBlockContainingSpan(span);
 
@@ -215,8 +239,37 @@ public sealed class MarkdownParseResult {
     /// <summary>Finds the syntax node path from the final document root to the deepest node whose source span overlaps the given span.</summary>
     public IReadOnlyList<MarkdownSyntaxNode> FindFinalNodePathOverlappingSpan(MarkdownSourceSpan span) => FinalSyntaxTree.FindNodePathOverlappingSpan(span);
 
+    /// <summary>Finds the nearest associated object in the final syntax tree whose source span overlaps the given span.</summary>
+    public object? FindFinalAssociatedObjectOverlappingSpan(MarkdownSourceSpan span) => FindAssociatedObject(FindFinalNodePathOverlappingSpan(span));
+
+    /// <summary>Finds the nearest associated object of the requested type in the final syntax tree whose source span overlaps the given span.</summary>
+    public TAssociatedObject? FindFinalAssociatedObjectOverlappingSpan<TAssociatedObject>(MarkdownSourceSpan span)
+        where TAssociatedObject : class =>
+        FindAssociatedObject<TAssociatedObject>(FindFinalNodePathOverlappingSpan(span));
+
     /// <summary>Finds the nearest block-like syntax node in the final document tree whose source span overlaps the given span.</summary>
     public MarkdownSyntaxNode? FindNearestFinalBlockOverlappingSpan(MarkdownSourceSpan span) => FinalSyntaxTree.FindNearestBlockOverlappingSpan(span);
+
+    private static object? FindAssociatedObject(IReadOnlyList<MarkdownSyntaxNode> path) {
+        for (int i = path.Count - 1; i >= 0; i--) {
+            if (path[i].AssociatedObject != null) {
+                return path[i].AssociatedObject;
+            }
+        }
+
+        return null;
+    }
+
+    private static TAssociatedObject? FindAssociatedObject<TAssociatedObject>(IReadOnlyList<MarkdownSyntaxNode> path)
+        where TAssociatedObject : class {
+        for (int i = path.Count - 1; i >= 0; i--) {
+            if (path[i].AssociatedObject is TAssociatedObject associatedObject) {
+                return associatedObject;
+            }
+        }
+
+        return null;
+    }
 
     private static bool LineEndingsAreEquivalent(string originalMarkdown, string sourceMarkdown) =>
         string.Equals(NormalizeLineEndings(originalMarkdown), sourceMarkdown, StringComparison.Ordinal);

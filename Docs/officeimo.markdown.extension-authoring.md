@@ -236,6 +236,8 @@ Use:
 
 `HtmlOptions.BlockRenderExtensions` also supports context-aware override registrations now. When you need an external override to win before the block's own `IContextualHtmlMarkdownBlock` implementation, register a `MarkdownBlockHtmlRenderExtension` with `MarkdownBlockHtmlRenderExtension.CreateContextual(...)`.
 
+Parsed results expose final-tree lookup helpers such as `FindFinalAssociatedObjectAtPosition<T>(...)`, `FindFinalAssociatedObjectContainingSpan<T>(...)`, and `FindFinalAssociatedObjectOverlappingSpan<T>(...)`. Use these when editor or renderer extensions need to resolve a caret or source span back to the nearest live semantic object after document transforms.
+
 `HtmlOptions.InlineRenderExtensions` provides the matching seam for inline HTML output. Register a `MarkdownInlineHtmlRenderExtension` for the inline type you want to override. Later registrations win when several extensions match the same inline object, and returning `null` from the delegate falls back to the inline's own contextual/default HTML rendering. Use `MarkdownInlineHtmlRenderExtension.CreateContextual(...)` when the inline renderer needs the active `HtmlOptions`, top-level body context helpers, or source-span-aware semantic object tree.
 
 `MarkdownWriteOptions.BlockRenderExtensions` now has the same pattern through `MarkdownBlockMarkdownRenderExtension.CreateContextual(...)`, with `MarkdownWriteContext` exposing:

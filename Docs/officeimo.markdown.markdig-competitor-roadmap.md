@@ -155,6 +155,7 @@ Recent progress:
 - headings now expose source-addressable level and text spans through syntax nodes, native projections, and snapshots, with source-edit coverage for replacing only those tokens
 - GFM pipe-table alignment rows now have a dedicated syntax node and native snapshot field span, with source-edit coverage for replacing the separator row without replacing the full table
 - source-mapping coverage now includes a representative mixed semantic object graph, including heading, blockquote/list, definition-list group/value, table-cell nested blocks, code fence, semantic fenced block, paragraph, and footnote semantic objects
+- parsed results now expose final syntax-tree associated-object lookup helpers for line, position, containing-span, and overlapping-span navigation, including typed overloads that resolve the nearest live semantic object after transforms
 - sequence inline wrapper coverage now proves grouped strong, emphasis, strong-emphasis, strikethrough, and highlight syntax nodes map to wrapper objects rather than nested inline sequences
 - native source-edit coverage now proves span-backed fenced code blocks and inline tokens can be replaced while preserving surrounding normalized source
 - native source-edit helpers now cover source-backed list-item content spans, including nested list edits that preserve marker tokens and surrounding original trivia
