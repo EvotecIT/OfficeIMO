@@ -58,6 +58,7 @@ public static partial class MarkdownReader {
                 }
 
                 if (itemStart >= lines.Length
+                    || LooksLikeHr(lines[itemStart])
                     || !IsUnorderedListLine(lines[itemStart], out var lvlAbs, out var isTask2, out var done2, out var content2)
                     || lvlAbs < level0Abs
                     || !TryGetUnorderedListMarkerInfo(lines[itemStart], out int markerIndent, out _, out char marker)

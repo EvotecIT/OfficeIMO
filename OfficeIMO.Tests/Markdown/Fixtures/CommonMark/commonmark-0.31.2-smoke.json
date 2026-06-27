@@ -206,6 +206,65 @@
     "html": "<hr />\n"
   },
   {
+    "example": 55,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Paragraph", "Paragraph", "Paragraph"],
+    "markdown": "_ _ _ _ a\n\na------\n\n---a---\n",
+    "html": "<p>_ _ _ _ a</p>\n<p>a------</p>\n<p>---a---</p>\n"
+  },
+  {
+    "example": 56,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": " *-*\n",
+    "html": "<p><em>-</em></p>\n"
+  },
+  {
+    "example": 57,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["UnorderedList", "HorizontalRule", "UnorderedList"],
+    "markdown": "- foo\n***\n- bar\n",
+    "html": "<ul>\n<li>foo</li>\n</ul>\n<hr />\n<ul>\n<li>bar</li>\n</ul>\n"
+  },
+  {
+    "example": 58,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Paragraph", "HorizontalRule", "Paragraph"],
+    "markdown": "Foo\n***\nbar\n",
+    "html": "<p>Foo</p>\n<hr />\n<p>bar</p>\n"
+  },
+  {
+    "example": 59,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Heading", "Paragraph"],
+    "markdown": "Foo\n---\nbar\n",
+    "html": "<h2>Foo</h2>\n<p>bar</p>\n"
+  },
+  {
+    "example": 60,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["UnorderedList", "HorizontalRule", "UnorderedList"],
+    "markdown": "* Foo\n* * *\n* Bar\n",
+    "html": "<ul>\n<li>Foo</li>\n</ul>\n<hr />\n<ul>\n<li>Bar</li>\n</ul>\n"
+  },
+  {
+    "example": 61,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- Foo\n- * * *\n",
+    "html": "<ul>\n<li>Foo</li>\n<li>\n<hr />\n</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "thematic break can appear as the block content of a list item",
+        "line": 2,
+        "column": 4,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "HorizontalRule"],
+        "expectedDeepestLiteral": "---",
+        "expectedNearestBlockKind": "HorizontalRule"
+      }
+    ]
+  },
+  {
     "example": 62,
     "section": "ATX headings",
     "topLevelKinds": ["Heading", "Heading", "Heading", "Heading", "Heading", "Heading"],

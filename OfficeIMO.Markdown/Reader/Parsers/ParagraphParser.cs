@@ -8,6 +8,7 @@ public static partial class MarkdownReader {
             if (IsAtxHeading(lines[i], out _, out _) ||
                 IsCodeFenceOpen(lines[i], out _, out _, out _) ||
                 StartsTable(lines, i, options) ||
+                IsParagraphInterruptingThematicBreakLine(lines[i]) ||
                 IsParagraphInterruptingUnorderedListLine(lines[i]) ||
                 IsOrderedListLine(lines[i], out _, out _) ||
                 (options.Callouts && IsCalloutHeader(lines[i], out _, out _)) ||
@@ -24,6 +25,7 @@ public static partial class MarkdownReader {
                    !IsAtxHeading(lines[j], out _, out _) &&
                    !IsCodeFenceOpen(lines[j], out _, out _, out _) &&
                    !StartsTable(lines, j, options) &&
+                   !IsParagraphInterruptingThematicBreakLine(lines[j]) &&
                    !IsParagraphInterruptingUnorderedListLine(lines[j]) &&
                    !IsParagraphInterruptingOrderedListLine(lines[j]) &&
                    (!options.Callouts || !IsCalloutHeader(lines[j], out _, out _)) &&

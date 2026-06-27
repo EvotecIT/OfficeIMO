@@ -27,4 +27,20 @@ public static partial class MarkdownReader {
         }
         return count >= 3;
     }
+
+    private static bool IsParagraphInterruptingThematicBreakLine(string line) =>
+        LooksLikeHr(line) && !LooksLikeSetextHeadingUnderline(line);
+
+    private static bool LooksLikeSetextHeadingUnderline(string line) {
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        if (CountLeadingIndentColumns(line) > 3) return false;
+
+        var trimmed = line.Trim();
+        if (trimmed.Length == 0 || trimmed[0] != '-') return false;
+        for (int i = 0; i < trimmed.Length; i++) {
+            if (trimmed[i] != '-') return false;
+        }
+
+        return true;
+    }
 }
