@@ -334,6 +334,57 @@ Lead[^note]
     }
 
     [Fact]
+    public void Source_Edit_Helpers_Replace_Definition_List_Parts_And_Table_Cells() {
+        var markdown = """
+**Term**: Intro
+
+  - first
+  - second
+
+| Name | Value |
+| --- | --- |
+| CPU | 42 |
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var definitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(native.Blocks[0]);
+        var group = Assert.Single(definitionList.Groups);
+        var term = Assert.Single(group.Terms);
+        var definition = Assert.Single(group.Definitions);
+        var table = Assert.IsType<MarkdownNativeTableBlock>(native.Blocks[1]);
+        var valueCell = table.Rows[0][1];
+
+        Assert.Equal("**Topic**: Intro", native.CreateReplaceEdit(term, "**Topic**").Apply(native.SourceMarkdown).Split('\n')[0]);
+        Assert.Equal("Updated", native.CreateReplaceEdit(definition, "Updated").Apply(native.SourceMarkdown).Split('\n')[0].Substring("**Term**: ".Length));
+        Assert.StartsWith("New: Body", native.CreateReplaceEdit(group, "New: Body").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Equal("| CPU | 84 |", native.CreateReplaceEdit(valueCell, "84").Apply(native.SourceMarkdown).Split('\n')[7]);
+    }
+
+    [Fact]
+    public void Source_Edit_Helpers_Roundtrip_Definition_List_And_Table_Cell_Edits_Against_Original_Source() {
+        const string markdown = "**Term**: Intro\r\n\r\n  - first\r\n  - second\r\n\r\n| Name | Value |\r\n| --- | --- |\r\n| CPU | 42 |\r\n";
+        var native = MarkdownNativeDocument.Parse(
+            markdown,
+            new MarkdownReaderOptions { PreserveTrivia = true });
+        var definitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(native.Blocks[0]);
+        var group = Assert.Single(definitionList.Groups);
+        var term = Assert.Single(group.Terms);
+        var definition = Assert.Single(group.Definitions);
+        var table = Assert.IsType<MarkdownNativeTableBlock>(native.Blocks[1]);
+        var valueCell = table.Rows[0][1];
+
+        var roundtrip = native.WriteWithSourceEdits(new[] {
+            native.CreateReplaceEdit(term, "**Topic**"),
+            native.CreateReplaceEdit(definition, "Updated\r\n\r\n  - keep"),
+            native.CreateReplaceEdit(valueCell, "84")
+        });
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("**Topic**: Updated\r\n\r\n  - keep\r\n\r\n| Name | Value |\r\n| --- | --- |\r\n| CPU | 84 |\r\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void ToSnapshot_Projects_Definition_List_Groups_Terms_And_Definition_Children() {
         var native = MarkdownNativeDocument.Parse("""
 Term: Intro

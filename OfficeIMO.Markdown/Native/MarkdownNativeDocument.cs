@@ -270,6 +270,58 @@ public sealed class MarkdownNativeDocument {
         return CreateReplaceEdit(referenceDefinition.SourceSpan.Value, replacementMarkdown);
     }
 
+    /// <summary>Creates a non-mutating source edit that replaces a native table cell.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeTableCell tableCell, string replacementMarkdown) {
+        if (tableCell == null) {
+            throw new ArgumentNullException(nameof(tableCell));
+        }
+
+        if (!tableCell.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native table cell does not have a source span.");
+        }
+
+        return CreateReplaceEdit(tableCell.SourceSpan.Value, replacementMarkdown);
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces a native definition-list group.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeDefinitionListGroup definitionGroup, string replacementMarkdown) {
+        if (definitionGroup == null) {
+            throw new ArgumentNullException(nameof(definitionGroup));
+        }
+
+        if (!definitionGroup.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native definition-list group does not have a source span.");
+        }
+
+        return CreateReplaceEdit(definitionGroup.SourceSpan.Value, replacementMarkdown);
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces a native definition-list term.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeDefinitionListTerm definitionTerm, string replacementMarkdown) {
+        if (definitionTerm == null) {
+            throw new ArgumentNullException(nameof(definitionTerm));
+        }
+
+        if (!definitionTerm.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native definition-list term does not have a source span.");
+        }
+
+        return CreateReplaceEdit(definitionTerm.SourceSpan.Value, replacementMarkdown);
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces a native definition-list definition body.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeDefinitionListDefinition definition, string replacementMarkdown) {
+        if (definition == null) {
+            throw new ArgumentNullException(nameof(definition));
+        }
+
+        if (!definition.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native definition-list definition does not have a source span.");
+        }
+
+        return CreateReplaceEdit(definition.SourceSpan.Value, replacementMarkdown);
+    }
+
     /// <summary>Creates a non-mutating source edit that replaces source-backed inline metadata.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeInlineMetadata metadata, string replacementMarkdown) {
         if (metadata == null) {
