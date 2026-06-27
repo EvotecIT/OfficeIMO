@@ -75,6 +75,12 @@ public sealed partial class MarkdownNativeDocument {
                 }
 
                 break;
+            case MarkdownNativeDefinitionListBlock definitionList:
+                foreach (var field in EnumerateDefinitionListFields(definitionList)) {
+                    yield return field;
+                }
+
+                break;
             case MarkdownNativeQuoteBlock quote:
                 for (var i = 0; i < quote.MarkerSourceSpans.Count; i++) {
                     yield return new MarkdownNativeBlockSourceField("quoteMarker", ">", quote.MarkerSourceSpans[i], quote, i);
@@ -153,6 +159,31 @@ public sealed partial class MarkdownNativeDocument {
 
         if (visual.ClosingFenceSourceSpan.HasValue) {
             yield return new MarkdownNativeBlockSourceField("closingFence", null, visual.ClosingFenceSourceSpan.Value, visual);
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateDefinitionListFields(MarkdownNativeDefinitionListBlock definitionList) {
+        var termIndex = 0;
+        var definitionIndex = 0;
+        for (var groupIndex = 0; groupIndex < definitionList.Groups.Count; groupIndex++) {
+            var group = definitionList.Groups[groupIndex];
+            for (var termOffset = 0; termOffset < group.Terms.Count; termOffset++) {
+                var term = group.Terms[termOffset];
+                if (term.SourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("definitionTerm", term.Text, term.SourceSpan.Value, definitionList, termIndex);
+                }
+
+                termIndex++;
+            }
+
+            for (var definitionOffset = 0; definitionOffset < group.Definitions.Count; definitionOffset++) {
+                var definition = group.Definitions[definitionOffset];
+                if (definition.SourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("definitionBody", definition.Markdown, definition.SourceSpan.Value, definitionList, definitionIndex);
+                }
+
+                definitionIndex++;
+            }
         }
     }
 }
