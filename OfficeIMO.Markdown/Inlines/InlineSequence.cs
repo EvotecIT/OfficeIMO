@@ -119,12 +119,47 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     }
 
     private static string RenderMarkdown(IMarkdownInline node, MarkdownInlineMarkdownRenderContext? context) {
-        var overridden = TryRenderInlineMarkdownOverride(node, context);
+        var overridden = TryRenderInlineSyntaxMarkdownOverride(node, context);
+        if (overridden != null) {
+            return overridden;
+        }
+
+        overridden = TryRenderInlineMarkdownOverride(node, context);
         if (overridden != null) {
             return overridden;
         }
 
         return GetRenderable(node).RenderMarkdown();
+    }
+
+    private static string? TryRenderInlineSyntaxMarkdownOverride(IMarkdownInline node, MarkdownInlineMarkdownRenderContext? context) {
+        if (context == null) {
+            return null;
+        }
+
+        var extensions = context.Options.SyntaxInlineRenderExtensions;
+        if (extensions == null || extensions.Count == 0) {
+            return null;
+        }
+
+        var syntaxNode = context.FindSyntaxNode(node);
+        if (syntaxNode == null) {
+            return null;
+        }
+
+        for (int i = extensions.Count - 1; i >= 0; i--) {
+            var extension = extensions[i];
+            if (extension == null || !extension.Matches(syntaxNode)) {
+                continue;
+            }
+
+            var rendered = extension.RenderMarkdown(node, syntaxNode, context);
+            if (rendered != null) {
+                return rendered;
+            }
+        }
+
+        return null;
     }
 
     private static string? TryRenderInlineMarkdownOverride(IMarkdownInline node, MarkdownInlineMarkdownRenderContext? context) {
@@ -153,7 +188,12 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     }
 
     private static string RenderHtml(IMarkdownInline node, HtmlOptions? options, MarkdownInlineHtmlRenderContext? context) {
-        var overridden = TryRenderInlineOverride(node, context);
+        var overridden = TryRenderInlineSyntaxOverride(node, context);
+        if (overridden != null) {
+            return overridden;
+        }
+
+        overridden = TryRenderInlineOverride(node, context);
         if (overridden != null) {
             return overridden;
         }
@@ -163,6 +203,36 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
         }
 
         return GetRenderable(node).RenderHtml();
+    }
+
+    private static string? TryRenderInlineSyntaxOverride(IMarkdownInline node, MarkdownInlineHtmlRenderContext? context) {
+        if (context == null) {
+            return null;
+        }
+
+        var extensions = context.Options.SyntaxInlineRenderExtensions;
+        if (extensions == null || extensions.Count == 0) {
+            return null;
+        }
+
+        var syntaxNode = context.FindSyntaxNode(node);
+        if (syntaxNode == null) {
+            return null;
+        }
+
+        for (int i = extensions.Count - 1; i >= 0; i--) {
+            var extension = extensions[i];
+            if (extension == null || !extension.Matches(syntaxNode)) {
+                continue;
+            }
+
+            var rendered = extension.RenderHtml(node, syntaxNode, context);
+            if (rendered != null) {
+                return rendered;
+            }
+        }
+
+        return null;
     }
 
     private static string? TryRenderInlineOverride(IMarkdownInline node, MarkdownInlineHtmlRenderContext? context) {

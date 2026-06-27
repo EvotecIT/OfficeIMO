@@ -90,6 +90,19 @@ public sealed class MarkdownBodyRenderContext {
     }
 
     /// <summary>
+    /// Creates a normalized source slice for the supplied final syntax node.
+    /// </summary>
+    public bool TryCreateSourceSlice(MarkdownSyntaxNode syntaxNode, out MarkdownSourceSlice slice) {
+        var parseResult = Document.ParseResult;
+        if (parseResult == null) {
+            slice = default;
+            return false;
+        }
+
+        return parseResult.TryCreateSourceSlice(syntaxNode, out slice);
+    }
+
+    /// <summary>
     /// Creates an original-input source slice for the final syntax node associated with a parsed model object.
     /// </summary>
     public bool TryCreateOriginalSourceSlice(object associatedObject, out MarkdownSourceSlice slice) {
@@ -100,5 +113,18 @@ public sealed class MarkdownBodyRenderContext {
         }
 
         return parseResult.TryCreateOriginalSourceSlice(associatedObject, out slice);
+    }
+
+    /// <summary>
+    /// Creates an original-input source slice for the supplied final syntax node.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(MarkdownSyntaxNode syntaxNode, out MarkdownSourceSlice slice) {
+        var parseResult = Document.ParseResult;
+        if (parseResult == null) {
+            slice = default;
+            return false;
+        }
+
+        return parseResult.TryCreateOriginalSourceSlice(syntaxNode, out slice);
     }
 }

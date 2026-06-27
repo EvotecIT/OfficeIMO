@@ -730,6 +730,24 @@ public class MarkdownDoc : MarkdownObject {
     }
 
     private static string RenderMarkdownBlock(IMarkdownBlock block, MarkdownWriteContext context) {
+        var syntaxExtensions = context.Options.SyntaxBlockRenderExtensions;
+        if (syntaxExtensions != null && syntaxExtensions.Count > 0) {
+            var syntaxNode = context.FindSyntaxNode(block);
+            if (syntaxNode != null) {
+                for (int i = syntaxExtensions.Count - 1; i >= 0; i--) {
+                    var extension = syntaxExtensions[i];
+                    if (extension == null || !extension.Matches(syntaxNode)) {
+                        continue;
+                    }
+
+                    var rendered = extension.RenderMarkdown(block, syntaxNode, context);
+                    if (rendered != null) {
+                        return rendered;
+                    }
+                }
+            }
+        }
+
         var extensions = context.Options.BlockRenderExtensions;
         if (extensions != null && extensions.Count > 0) {
             for (int i = extensions.Count - 1; i >= 0; i--) {

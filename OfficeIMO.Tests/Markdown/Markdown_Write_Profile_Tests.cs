@@ -185,6 +185,118 @@ Lead[^1]
     }
 
     [Fact]
+    public void Markdown_Syntax_Block_Render_Extension_Can_Read_Final_Syntax_Node_And_Source_Slices() {
+        const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
+        var readerOptions = new MarkdownReaderOptions { PreserveTrivia = true };
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
+        MarkdownSyntaxNode? seenSyntax = null;
+        MarkdownSourceSlice originalSlice = default;
+        var originalOk = false;
+
+        var options = new MarkdownWriteOptions { OutputLineEnding = "\n" };
+        options.SyntaxBlockRenderExtensions.Add(MarkdownSyntaxBlockMarkdownRenderExtension.CreateContextual(
+            "quote-syntax-source-aware",
+            MarkdownSyntaxKind.Quote,
+            (block, syntaxNode, context) => {
+                seenSyntax = syntaxNode;
+                originalOk = context.TryCreateOriginalSourceSlice(syntaxNode, out originalSlice);
+                return $"<!-- syntax:{syntaxNode.Kind}; source:{originalSlice.Text.Replace("\r\n", "|")} -->";
+            }));
+
+        var rendered = document.ToMarkdown(options);
+
+        Assert.Contains("<!-- syntax:Quote; source:> Alpha|> Beta -->", rendered, StringComparison.Ordinal);
+        Assert.Contains("Tail", rendered, StringComparison.Ordinal);
+        Assert.NotNull(seenSyntax);
+        Assert.Equal(MarkdownSyntaxKind.Quote, seenSyntax!.Kind);
+        Assert.True(originalOk);
+        Assert.Equal(MarkdownSourceTextKind.Original, originalSlice.TextKind);
+    }
+
+    [Fact]
+    public void Markdown_Syntax_Inline_Render_Extension_Runs_Before_Type_Extension_And_Can_Read_Source_Slice() {
+        const string markdown = "Use `code` now.";
+        var readerOptions = new MarkdownReaderOptions { PreserveTrivia = true };
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
+        MarkdownSourceSlice sourceSlice = default;
+        var sourceOk = false;
+
+        var options = new MarkdownWriteOptions { OutputLineEnding = "\n" };
+        options.InlineRenderExtensions.Add(MarkdownInlineMarkdownRenderExtension.CreateContextual(
+            "code-type",
+            typeof(CodeSpanInline),
+            static (_, _) => "`type`"));
+        options.SyntaxInlineRenderExtensions.Add(MarkdownSyntaxInlineMarkdownRenderExtension.CreateContextual(
+            "code-syntax",
+            MarkdownSyntaxKind.InlineCodeSpan,
+            (inline, syntaxNode, context) => {
+                sourceOk = context.TryCreateSourceSlice(syntaxNode, out sourceSlice);
+                return $"`{syntaxNode.Kind}:{sourceSlice.Text}`";
+            }));
+
+        var rendered = document.ToMarkdown(options).Trim();
+
+        Assert.Equal("Use `InlineCodeSpan:`code`` now.", rendered);
+        Assert.True(sourceOk);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, sourceSlice.TextKind);
+        Assert.Equal("`code`", sourceSlice.Text);
+    }
+
+    [Fact]
+    public void Html_Syntax_Block_Render_Extension_Can_Read_Final_Syntax_Node_And_Source_Slices() {
+        const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
+        var readerOptions = new MarkdownReaderOptions { PreserveTrivia = true };
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
+        MarkdownSourceSlice originalSlice = default;
+        var originalOk = false;
+
+        var options = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
+        options.SyntaxBlockRenderExtensions.Add(MarkdownSyntaxBlockHtmlRenderExtension.CreateContextual(
+            "quote-syntax-html",
+            MarkdownSyntaxKind.Quote,
+            (block, syntaxNode, context) => {
+                originalOk = context.TryCreateOriginalSourceSlice(syntaxNode, out originalSlice);
+                return $"<aside data-kind=\"{syntaxNode.Kind}\" data-source=\"{System.Net.WebUtility.HtmlEncode(originalSlice.Text.Replace("\r\n", "|"))}\"></aside>";
+            }));
+
+        var html = document.ToHtmlFragment(options);
+
+        Assert.Contains("<aside data-kind=\"Quote\" data-source=\"&gt; Alpha|&gt; Beta\"></aside>", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Tail</p>", html, StringComparison.Ordinal);
+        Assert.True(originalOk);
+        Assert.Equal(MarkdownSourceTextKind.Original, originalSlice.TextKind);
+    }
+
+    [Fact]
+    public void Html_Syntax_Inline_Render_Extension_Runs_Before_Type_Extension_And_Can_Read_Source_Slice() {
+        const string markdown = "Use `code` now.";
+        var readerOptions = new MarkdownReaderOptions { PreserveTrivia = true };
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
+        MarkdownSourceSlice sourceSlice = default;
+        var sourceOk = false;
+
+        var options = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
+        options.InlineRenderExtensions.Add(MarkdownInlineHtmlRenderExtension.CreateContextual(
+            "code-type",
+            typeof(CodeSpanInline),
+            static (_, _) => "<code>type</code>"));
+        options.SyntaxInlineRenderExtensions.Add(MarkdownSyntaxInlineHtmlRenderExtension.CreateContextual(
+            "code-syntax",
+            MarkdownSyntaxKind.InlineCodeSpan,
+            (inline, syntaxNode, context) => {
+                sourceOk = context.TryCreateSourceSlice(syntaxNode, out sourceSlice);
+                return $"<kbd data-kind=\"{syntaxNode.Kind}\">{System.Net.WebUtility.HtmlEncode(sourceSlice.Text)}</kbd>";
+            }));
+
+        var html = document.ToHtmlFragment(options);
+
+        Assert.Contains("<p>Use <kbd data-kind=\"InlineCodeSpan\">`code`</kbd> now.</p>", html, StringComparison.Ordinal);
+        Assert.True(sourceOk);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, sourceSlice.TextKind);
+        Assert.Equal("`code`", sourceSlice.Text);
+    }
+
+    [Fact]
     public void Markdown_Block_Render_Extension_Legacy_Constructor_Still_Uses_Options_And_Applies() {
         var doc = MarkdownReader.Parse("""
 > [!NOTE] Example

@@ -29,9 +29,13 @@ The package now has public seams for:
   - `IContextualHtmlMarkdownInline`
   - `HtmlOptions.BlockRenderExtensions`
   - `HtmlOptions.InlineRenderExtensions`
+  - `HtmlOptions.SyntaxBlockRenderExtensions`
+  - `HtmlOptions.SyntaxInlineRenderExtensions`
 - Markdown rendering with:
   - `MarkdownBlockMarkdownRenderExtension`
   - `MarkdownInlineMarkdownRenderExtension`
+  - `MarkdownSyntaxBlockMarkdownRenderExtension`
+  - `MarkdownSyntaxInlineMarkdownRenderExtension`
   - `MarkdownWriteContext`
 - markdown/html inline participation with:
   - `IRenderableMarkdownInline`
@@ -240,6 +244,15 @@ Parsed results expose final-tree lookup helpers such as `FindFinalAssociatedObje
 
 `HtmlOptions.InlineRenderExtensions` provides the matching seam for inline HTML output. Register a `MarkdownInlineHtmlRenderExtension` for the inline type you want to override. Later registrations win when several extensions match the same inline object, and returning `null` from the delegate falls back to the inline's own contextual/default HTML rendering. Use `MarkdownInlineHtmlRenderExtension.CreateContextual(...)` when the inline renderer needs the active `HtmlOptions`, top-level body context helpers, or source-span-aware semantic object tree.
 
+When an extension needs to target the parsed syntax shape instead of the semantic CLR type, use the syntax-kind override lists:
+
+- `HtmlOptions.SyntaxBlockRenderExtensions`
+- `HtmlOptions.SyntaxInlineRenderExtensions`
+- `MarkdownWriteOptions.SyntaxBlockRenderExtensions`
+- `MarkdownWriteOptions.SyntaxInlineRenderExtensions`
+
+Register `MarkdownSyntaxBlockHtmlRenderExtension`, `MarkdownSyntaxInlineHtmlRenderExtension`, `MarkdownSyntaxBlockMarkdownRenderExtension`, or `MarkdownSyntaxInlineMarkdownRenderExtension` with the `MarkdownSyntaxKind` to handle. Later registrations win, returning `null` falls back to the next extension/default renderer, and syntax-kind overrides run before type-targeted overrides. The callback receives the matched final `MarkdownSyntaxNode`, so extension authors can inspect `SourceSpan`, `CustomKind`, parent/child syntax shape, and source slices through the render context.
+
 `MarkdownWriteOptions.BlockRenderExtensions` now has the same pattern through `MarkdownBlockMarkdownRenderExtension.CreateContextual(...)`, with `MarkdownWriteContext` exposing:
 
 - `GetBlockIndex(...)`
@@ -326,9 +339,8 @@ Recommended practice:
 The extension surface is much stronger than before, but a few things are still intentionally limited:
 
 - `MarkdownSyntaxKind` remains a fixed enum, so extension node identity should flow through `CustomKind`
-- block HTML override extensions still operate by block type, not by syntax-node shape
-- inline HTML and Markdown override extensions now support contextual semantic inline rendering, but still operate by semantic inline type rather than raw syntax-node shape
-- the syntax tree is semantic-friendly, but it is still not a fully lossless token stream
+- block and inline syntax-kind render overrides use the final syntax node for the semantic object being rendered; nested block rendering still follows the existing block renderer traversal, so broad nested-block override traversal is not complete yet
+- full lossless token/trivia extension points are not available yet; syntax-kind renderers can read captured source slices only when spans are present and trivia was preserved
 
 ## Suggested Pattern For Real Packages
 

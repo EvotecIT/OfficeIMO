@@ -108,6 +108,16 @@ public sealed class HtmlOptions {
     /// Later registrations win when inline types overlap.
     /// </summary>
     public List<MarkdownInlineHtmlRenderExtension> InlineRenderExtensions { get; } = new();
+    /// <summary>
+    /// Optional block render extensions that can override HTML emitted for parsed blocks with specific final syntax kinds.
+    /// Later registrations win when syntax kinds overlap. These extensions run before type-based block extensions.
+    /// </summary>
+    public List<MarkdownSyntaxBlockHtmlRenderExtension> SyntaxBlockRenderExtensions { get; } = new();
+    /// <summary>
+    /// Optional inline render extensions that can override HTML emitted for parsed inlines with specific final syntax kinds.
+    /// Later registrations win when syntax kinds overlap. These extensions run before type-based inline extensions.
+    /// </summary>
+    public List<MarkdownSyntaxInlineHtmlRenderExtension> SyntaxInlineRenderExtensions { get; } = new();
     /// <summary>Prefix selectors in emitted CSS with this scope selector to avoid collisions. Default: "article.markdown-body".</summary>
     public string? CssScopeSelector { get; set; } = "article.markdown-body";
 
