@@ -13,6 +13,7 @@ public sealed class MarkdownNativeQuoteBlock : MarkdownNativeBlock {
         Lines = quote.Lines;
         MarkerSourceSpans = quote.MarkerSourceSpans;
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
+        BodySourceSpan = MarkdownNativeContainerSourceSpans.GetAggregateChildSourceSpan(Children);
     }
 
     /// <summary>Source quote block.</summary>
@@ -23,6 +24,9 @@ public sealed class MarkdownNativeQuoteBlock : MarkdownNativeBlock {
 
     /// <summary>Source spans for parsed quote marker tokens.</summary>
     public IReadOnlyList<MarkdownSourceSpan> MarkerSourceSpans { get; }
+
+    /// <summary>Source span for the structured quote body when available.</summary>
+    public MarkdownSourceSpan? BodySourceSpan { get; }
 
     /// <summary>Nested native blocks in quote order.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Children { get; }

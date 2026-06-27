@@ -458,6 +458,7 @@ Console.WriteLine();
         var info = Assert.Single(native.EnumerateBlockSourceFields("infoString"));
         var content = Assert.Single(native.EnumerateBlockSourceFields("content"));
         var quoteMarker = Assert.Single(native.EnumerateBlockSourceFields("quoteMarker"));
+        var quoteBody = Assert.Single(native.EnumerateBlockSourceFields("quoteBody"));
         var alignment = Assert.Single(native.EnumerateBlockSourceFields("alignmentRow"));
         var thematicMarker = Assert.Single(native.EnumerateBlockSourceFields("marker"));
 
@@ -473,6 +474,7 @@ Console.WriteLine();
         Assert.Equal("cs", info.Value);
         Assert.Equal("Console.WriteLine();", content.Value!.Trim());
         Assert.Equal(0, quoteMarker.Index);
+        Assert.Null(quoteBody.Value);
         Assert.Empty(native.EnumerateBlockSourceFields("missing"));
 
         AssertEquivalentField(text, native.FindBlockSourceFieldAtPosition(1, 3));
@@ -486,6 +488,7 @@ Console.WriteLine();
         AssertEquivalentField(info, native.FindBlockSourceFieldAtPosition(14, 5));
         AssertEquivalentField(content, native.FindBlockSourceFieldAtPosition(15, 3));
         AssertEquivalentField(quoteMarker, native.FindBlockSourceFieldAtPosition(18, 1));
+        AssertEquivalentField(quoteBody, native.FindBlockSourceFieldAtPosition(18, 3));
         AssertEquivalentField(alignment, native.FindBlockSourceFieldAtPosition(21, 3));
         AssertEquivalentField(thematicMarker, native.FindBlockSourceFieldAtPosition(24, 2));
         Assert.Null(native.FindBlockSourceFieldAtPosition(2, 1));
@@ -497,6 +500,7 @@ Console.WriteLine();
         Assert.Contains("Updated details", native.CreateReplaceEdit(detailsBody, "Updated details").Apply(native.SourceMarkdown), StringComparison.Ordinal);
         Assert.Contains("[^note]: Updated footnote", native.CreateReplaceEdit(footnoteBody, "Updated footnote").Apply(native.SourceMarkdown), StringComparison.Ordinal);
         Assert.Contains("```powershell", native.CreateReplaceEdit(info, "powershell").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("> Updated quote", native.CreateReplaceEdit(quoteBody, "Updated quote").Apply(native.SourceMarkdown), StringComparison.Ordinal);
         Assert.Contains("| :---: | --- |", native.CreateReplaceEdit(alignment, "| :---: | --- |").Apply(native.SourceMarkdown), StringComparison.Ordinal);
 
         static void AssertEquivalentField(MarkdownNativeBlockSourceField expected, MarkdownNativeBlockSourceField? actual) {

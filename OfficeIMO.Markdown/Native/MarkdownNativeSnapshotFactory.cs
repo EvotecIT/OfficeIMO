@@ -88,6 +88,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.Markdown = RenderBlock(quote.Quote);
                 snapshot.MarkerSourceSpans = ToSpanSnapshots(quote.MarkerSourceSpans);
                 snapshot.Children = FromBlocks(quote.Children);
+                snapshot.FieldSourceSpans = FieldSpans(("quoteBody", quote.BodySourceSpan));
                 break;
             case MarkdownNativeCalloutBlock callout:
                 snapshot.Text = callout.Title;

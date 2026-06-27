@@ -86,6 +86,10 @@ public sealed partial class MarkdownNativeDocument {
                     yield return new MarkdownNativeBlockSourceField("quoteMarker", ">", quote.MarkerSourceSpans[i], quote, i);
                 }
 
+                if (quote.BodySourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("quoteBody", null, quote.BodySourceSpan.Value, quote);
+                }
+
                 break;
             case MarkdownNativeCalloutBlock callout:
                 if (callout.KindSourceSpan.HasValue) {

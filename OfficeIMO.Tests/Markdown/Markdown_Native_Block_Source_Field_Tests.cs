@@ -124,6 +124,37 @@ Inside
     }
 
     [Fact]
+    public void Quote_Body_SourceField_Uses_Structured_Child_Block_Span() {
+        const string markdown = "> Old quote\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var quote = Assert.IsType<MarkdownNativeQuoteBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 11), quote.BodySourceSpan);
+
+        var body = Assert.Single(native.EnumerateBlockSourceFields("quoteBody"));
+        Assert.Same(quote, body.Block);
+        Assert.Null(body.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 11), body.SourceSpan);
+
+        var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 5));
+        Assert.Equal("quoteBody", found.Name);
+        Assert.Equal(body.SourceSpan, found.SourceSpan);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal(3, snapshot.FieldSourceSpans["quoteBody"]!.StartColumn);
+        Assert.Equal(11, snapshot.FieldSourceSpans["quoteBody"]!.EndColumn);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "quoteBody"
+            && field.Value == null
+            && field.SourceSpan.StartColumn == 3
+            && field.SourceSpan.EndColumn == 11);
+
+        var edited = native.CreateReplaceEdit(body, "New quote").Apply(native.SourceMarkdown);
+        Assert.Equal("> New quote", edited.TrimEnd('\r', '\n'));
+    }
+
+    [Fact]
     public void ToSnapshot_Projects_SourceFields_From_The_Same_Native_Block_Field_Enumeration() {
         var markdown = """
 # Title
@@ -182,6 +213,7 @@ Console.WriteLine();
         var allFields = snapshots.SelectMany(block => block.SourceFields).ToArray();
         Assert.Contains(allFields, field => field.Name == "quoteMarker" && field.Index == 0 && field.SourceSpan.StartLine == 23);
         Assert.Contains(allFields, field => field.Name == "quoteMarker" && field.Index == 1 && field.SourceSpan.StartLine == 24);
+        Assert.Contains(allFields, field => field.Name == "quoteBody" && field.SourceSpan.StartLine == 23);
         Assert.Contains(allFields, field => field.Name == "calloutBody" && field.Value!.Replace("\r\n", "\n") == "Body\n\n> Nested");
         Assert.Contains(allFields, field => field.Name == "detailsBody");
         Assert.Contains(allFields, field => field.Name == "label" && field.Value == "note");
