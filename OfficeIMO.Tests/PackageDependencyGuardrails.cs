@@ -5,9 +5,10 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class PackageDependencyGuardrailTests {
+    private const string CurrentMarkdigVersion = "1.3.2";
+
     [Fact]
     public void MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline() {
-        const string expectedMarkdigVersion = "1.3.2";
         string[] projectPaths = [
             "OfficeIMO.Tests/OfficeIMO.Tests.csproj",
             "OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj"
@@ -17,8 +18,23 @@ public sealed class PackageDependencyGuardrailTests {
             var projectPath = GetRepositoryPath(relativeProjectPath);
             Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
 
-            Assert.Equal(expectedMarkdigVersion, GetPackageReferenceVersion(projectPath, "Markdig"));
+            Assert.Equal(CurrentMarkdigVersion, GetPackageReferenceVersion(projectPath, "Markdig"));
         }
+    }
+
+    [Fact]
+    public void MarkdownCompatibilityDocs_TrackCurrentMarkdigBaselineVersion() {
+        string compatibilityMatrix = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.compatibility-matrix.md"));
+        Assert.Contains($"| External comparison package | Markdig `{CurrentMarkdigVersion}`", compatibilityMatrix, StringComparison.Ordinal);
+
+        string competitorRoadmap = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.markdig-competitor-roadmap.md"));
+        Assert.Contains($"external parity baseline: Markdig `{CurrentMarkdigVersion}`", competitorRoadmap, StringComparison.Ordinal);
+
+        string correctnessBacklog = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.correctness-backlog.md"));
+        Assert.Contains($"`OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks` both reference Markdig `{CurrentMarkdigVersion}`", correctnessBacklog, StringComparison.Ordinal);
+
+        string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown/COMPATIBILITY.md"));
+        Assert.Contains($"curated Markdig {CurrentMarkdigVersion} parity cases", packageCompatibility, StringComparison.Ordinal);
     }
 
     [Fact]

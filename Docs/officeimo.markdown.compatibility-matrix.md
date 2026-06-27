@@ -14,7 +14,7 @@ Status values:
 
 | Area | Current baseline |
 | --- | --- |
-| External comparison package | Markdig `1.3.2` in `OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks`; guarded by `PackageDependencyGuardrailTests.MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline`; verified current with `dotnet list ... package --outdated` on 2026-06-27 |
+| External comparison package | Markdig `1.3.2` in `OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks`; guarded by `PackageDependencyGuardrailTests.MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline` and `MarkdownCompatibilityDocs_TrackCurrentMarkdigBaselineVersion`; verified current against NuGet and `dotnet list ... package --outdated` on 2026-06-27 |
 | CommonMark reference | 172 CommonMark `0.31.2` smoke fixtures |
 | GFM reference | 33 cmark-gfm extension smoke fixtures plus a focused upstream ignored-autolink crash regression |
 | OfficeIMO core package | `OfficeIMO.Markdown` owns parsing, semantic AST, syntax tree, writing, and HTML projection |
