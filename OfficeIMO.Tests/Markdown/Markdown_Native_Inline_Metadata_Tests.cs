@@ -74,6 +74,49 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Inline_Html_Tag_Marker_Metadata_And_Nested_Inlines_Are_Source_Addressable() {
+        const string markdown = "Use <u>under **bold**</u> now\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var htmlTag = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.HtmlTag);
+        var strong = Assert.Single(htmlTag.Children, inline => inline.Kind == MarkdownNativeInlineKind.Strong);
+        var opening = Assert.Single(htmlTag.Metadata, metadata => metadata.Name == "openingMarker");
+        var closing = Assert.Single(htmlTag.Metadata, metadata => metadata.Name == "closingMarker");
+        var strongOpening = Assert.Single(strong.Metadata, metadata => metadata.Name == "openingMarker");
+        var strongClosing = Assert.Single(strong.Metadata, metadata => metadata.Name == "closingMarker");
+
+        Assert.Equal("under bold", htmlTag.Text);
+        Assert.Equal("<u>under **bold**</u>", htmlTag.Markdown);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 25), htmlTag.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 19), strong.SourceSpan);
+        Assert.Equal("<u>", opening.Value);
+        Assert.Equal("</u>", closing.Value);
+        Assert.Equal("**", strongOpening.Value);
+        Assert.Equal("**", strongClosing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 7), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 22, 1, 25), closing.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 14, 1, 15), strongOpening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 20, 1, 21), strongClosing.SourceSpan);
+
+        var edited = native.CreateReplaceEdit(closing, "</ins>").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(opening, "<ins>").Apply(edited);
+        Assert.Equal("Use <ins>under **bold**</ins> now\n", edited);
+
+        var snapshotHtmlTag = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.HtmlTag);
+        var snapshotStrong = Assert.Single(snapshotHtmlTag.Children, inline => inline.Kind == MarkdownNativeInlineKind.Strong);
+
+        Assert.Equal("<u>", snapshotHtmlTag.Metadata["openingMarker"]);
+        Assert.Equal("</u>", snapshotHtmlTag.Metadata["closingMarker"]);
+        Assert.Equal("**", snapshotStrong.Metadata["openingMarker"]);
+        Assert.Equal("**", snapshotStrong.Metadata["closingMarker"]);
+        Assert.Equal(5, snapshotHtmlTag.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(25, snapshotHtmlTag.MetadataSourceSpans["closingMarker"]!.EndColumn);
+        Assert.Equal(14, snapshotStrong.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(21, snapshotStrong.MetadataSourceSpans["closingMarker"]!.EndColumn);
+    }
+
+    [Fact]
     public void Linked_Image_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "Paragraph [![Alt](img.png \"Img\")](https://example.com \"Link title\").";
 

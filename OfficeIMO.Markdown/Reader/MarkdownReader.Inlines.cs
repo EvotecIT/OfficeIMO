@@ -579,7 +579,7 @@ public static partial class MarkdownReader {
             }
 
             if (options.InlineHtml && text[pos] == '<') {
-                if (TryParseSupportedInlineHtmlTag(text, pos, options, state, allowLinks, allowImages, out int consumedHtmlTag, out var htmlNode)) {
+                if (TryParseSupportedInlineHtmlTag(text, pos, options, state, sourceMap, allowLinks, allowImages, out int consumedHtmlTag, out var htmlNode)) {
                     AddRawNode(htmlNode, pos, consumedHtmlTag);
                     pos += consumedHtmlTag;
                     continue;

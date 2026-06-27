@@ -6,6 +6,7 @@ public static partial class MarkdownReader {
         int start,
         MarkdownReaderOptions options,
         MarkdownReaderState? state,
+        MarkdownInlineSourceMap? sourceMap,
         bool allowLinks,
         bool allowImages,
         out int consumed,
@@ -19,11 +20,13 @@ public static partial class MarkdownReader {
 
         string[] tags = { "u", "sup", "sub", "ins", "q" };
         for (int i = 0; i < tags.Length; i++) {
-            if (!TryParseInlineHtmlWrapper(text, start, tags[i], options, state, allowLinks, allowImages, out consumed, out var inlines)) {
+            if (!TryParseInlineHtmlWrapper(text, start, tags[i], options, state, sourceMap, allowLinks, allowImages, out consumed, out var inlines)) {
                 continue;
             }
 
-            htmlNode = new HtmlTagSequenceInline(tags[i], inlines);
+            var htmlTag = new HtmlTagSequenceInline(tags[i], inlines);
+            SetInlineHtmlTagMarkerSpans(htmlTag, sourceMap, start, consumed);
+            htmlNode = htmlTag;
             return true;
         }
 
@@ -36,6 +39,7 @@ public static partial class MarkdownReader {
         string tagName,
         MarkdownReaderOptions options,
         MarkdownReaderState? state,
+        MarkdownInlineSourceMap? sourceMap,
         bool allowLinks,
         bool allowImages,
         out int consumed,
@@ -56,7 +60,13 @@ public static partial class MarkdownReader {
                 depth--;
                 if (depth == 0) {
                     string inner = text.Substring(start + openLength, scan - (start + openLength));
-                    inlines = ParseInlinesInternal(inner, options, state, allowLinks, allowImages);
+                    inlines = ParseInlinesInternal(
+                        inner,
+                        options,
+                        state,
+                        allowLinks,
+                        allowImages,
+                        sourceMap?.Slice(start + openLength, inner.Length));
                     DecodeHtmlEntitiesInTextRuns(inlines);
                     consumed = (scan - start) + tagName.Length + 3;
                     return true;
@@ -76,6 +86,25 @@ public static partial class MarkdownReader {
         }
 
         return false;
+    }
+
+    private static void SetInlineHtmlTagMarkerSpans(
+        HtmlTagSequenceInline htmlTag,
+        MarkdownInlineSourceMap? sourceMap,
+        int start,
+        int consumed) {
+        if (htmlTag == null || sourceMap == null || consumed <= 0) {
+            return;
+        }
+
+        var openingMarker = "<" + htmlTag.TagName + ">";
+        var closingMarker = "</" + htmlTag.TagName + ">";
+        MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
+            htmlTag,
+            openingMarker,
+            sourceMap.GetSpan(start, openingMarker.Length),
+            closingMarker,
+            sourceMap.GetSpan(start + consumed - closingMarker.Length, closingMarker.Length));
     }
 
     private static bool DecodeHtmlEntitiesInTextRuns(InlineSequence sequence) {
