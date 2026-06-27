@@ -429,6 +429,142 @@ Lead[^1]
     }
 
     [Fact]
+    public void Markdown_Block_Render_Extension_Can_Create_Source_Slices_From_Token_Source_Spans() {
+        const string markdown = "> [!TIP] Heads up\r\n> Body\r\n";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        MarkdownSourceSlice kindSlice = default;
+        MarkdownSourceSlice titleSlice = default;
+        var kindOk = false;
+        var titleOk = false;
+
+        var options = new MarkdownWriteOptions { OutputLineEnding = "\n" };
+        options.BlockRenderExtensions.Add(MarkdownBlockMarkdownRenderExtension.CreateContextual(
+            "callout-token-source-markdown",
+            typeof(CalloutBlock),
+            (block, context) => {
+                if (block is not CalloutBlock callout
+                    || !callout.KindSourceSpan.HasValue
+                    || !callout.TitleSourceSpan.HasValue) {
+                    return null;
+                }
+
+                kindOk = context.TryCreateOriginalSourceSlice(callout.KindSourceSpan.Value, out kindSlice);
+                titleOk = context.TryCreateOriginalSourceSlice(callout.TitleSourceSpan.Value, out titleSlice);
+                return $"<!-- kind:{kindSlice.Text}; title:{titleSlice.Text} -->";
+            }));
+
+        var rendered = document.ToMarkdown(options);
+
+        Assert.Contains("<!-- kind:TIP; title:Heads up -->", rendered, StringComparison.Ordinal);
+        Assert.True(kindOk);
+        Assert.True(titleOk);
+        Assert.Equal(MarkdownSourceTextKind.Original, kindSlice.TextKind);
+        Assert.Equal(MarkdownSourceTextKind.Original, titleSlice.TextKind);
+    }
+
+    [Fact]
+    public void Html_Block_Render_Extension_Can_Create_Source_Slices_From_Token_Source_Spans() {
+        const string markdown = "> [!TIP] Heads up\r\n> Body\r\n";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        MarkdownSourceSlice kindSlice = default;
+        MarkdownSourceSlice titleSlice = default;
+        var kindOk = false;
+        var titleOk = false;
+
+        var options = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
+        options.BlockRenderExtensions.Add(MarkdownBlockHtmlRenderExtension.CreateContextual(
+            "callout-token-source-html",
+            typeof(CalloutBlock),
+            (block, context) => {
+                if (block is not CalloutBlock callout
+                    || !callout.KindSourceSpan.HasValue
+                    || !callout.TitleSourceSpan.HasValue) {
+                    return null;
+                }
+
+                kindOk = context.TryCreateOriginalSourceSlice(callout.KindSourceSpan.Value, out kindSlice);
+                titleOk = context.TryCreateOriginalSourceSlice(callout.TitleSourceSpan.Value, out titleSlice);
+                return $"<aside data-kind-token=\"{kindSlice.Text}\" data-title-token=\"{System.Net.WebUtility.HtmlEncode(titleSlice.Text)}\"></aside>";
+            }));
+
+        var html = document.ToHtmlFragment(options);
+
+        Assert.Contains("<aside data-kind-token=\"TIP\" data-title-token=\"Heads up\"></aside>", html, StringComparison.Ordinal);
+        Assert.True(kindOk);
+        Assert.True(titleOk);
+        Assert.Equal(MarkdownSourceTextKind.Original, kindSlice.TextKind);
+        Assert.Equal(MarkdownSourceTextKind.Original, titleSlice.TextKind);
+    }
+
+    [Fact]
+    public void Markdown_Inline_Render_Extension_Can_Create_Source_Slices_From_Metadata_Source_Spans() {
+        const string markdown = "Go [there](https://example.com \"Example\") now.";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        MarkdownSourceSlice targetSlice = default;
+        MarkdownSourceSlice titleSlice = default;
+        var targetOk = false;
+        var titleOk = false;
+
+        var options = new MarkdownWriteOptions { OutputLineEnding = "\n" };
+        options.SyntaxInlineRenderExtensions.Add(MarkdownSyntaxInlineMarkdownRenderExtension.CreateContextual(
+            "link-token-source-markdown",
+            MarkdownSyntaxKind.InlineLink,
+            (inline, syntaxNode, context) => {
+                var targetNode = syntaxNode.Children.FirstOrDefault(child => child.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+                var titleNode = syntaxNode.Children.FirstOrDefault(child => child.Kind == MarkdownSyntaxKind.InlineLinkTitle);
+                if (targetNode?.SourceSpan == null || titleNode?.SourceSpan == null) {
+                    return null;
+                }
+
+                targetOk = context.TryCreateSourceSlice(targetNode.SourceSpan.Value, out targetSlice);
+                titleOk = context.TryCreateSourceSlice(titleNode.SourceSpan.Value, out titleSlice);
+                return $"[{targetSlice.Text}|{titleSlice.Text}]";
+            }));
+
+        var rendered = document.ToMarkdown(options).Trim();
+
+        Assert.Equal("Go [https://example.com|Example] now.", rendered);
+        Assert.True(targetOk);
+        Assert.True(titleOk);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, targetSlice.TextKind);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, titleSlice.TextKind);
+    }
+
+    [Fact]
+    public void Html_Inline_Render_Extension_Can_Create_Source_Slices_From_Metadata_Source_Spans() {
+        const string markdown = "Go [there](https://example.com \"Example\") now.";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        MarkdownSourceSlice targetSlice = default;
+        MarkdownSourceSlice titleSlice = default;
+        var targetOk = false;
+        var titleOk = false;
+
+        var options = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
+        options.SyntaxInlineRenderExtensions.Add(MarkdownSyntaxInlineHtmlRenderExtension.CreateContextual(
+            "link-token-source-html",
+            MarkdownSyntaxKind.InlineLink,
+            (inline, syntaxNode, context) => {
+                var targetNode = syntaxNode.Children.FirstOrDefault(child => child.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+                var titleNode = syntaxNode.Children.FirstOrDefault(child => child.Kind == MarkdownSyntaxKind.InlineLinkTitle);
+                if (targetNode?.SourceSpan == null || titleNode?.SourceSpan == null) {
+                    return null;
+                }
+
+                targetOk = context.TryCreateSourceSlice(targetNode.SourceSpan.Value, out targetSlice);
+                titleOk = context.TryCreateSourceSlice(titleNode.SourceSpan.Value, out titleSlice);
+                return $"<a data-target-token=\"{System.Net.WebUtility.HtmlEncode(targetSlice.Text)}\" data-title-token=\"{System.Net.WebUtility.HtmlEncode(titleSlice.Text)}\">token</a>";
+            }));
+
+        var html = document.ToHtmlFragment(options);
+
+        Assert.Contains("<p>Go <a data-target-token=\"https://example.com\" data-title-token=\"Example\">token</a> now.</p>", html, StringComparison.Ordinal);
+        Assert.True(targetOk);
+        Assert.True(titleOk);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, targetSlice.TextKind);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, titleSlice.TextKind);
+    }
+
+    [Fact]
     public void Markdown_Block_Render_Extension_Legacy_Constructor_Still_Uses_Options_And_Applies() {
         var doc = MarkdownReader.Parse("""
 > [!NOTE] Example

@@ -255,6 +255,8 @@ When an extension needs to target the parsed syntax shape instead of the semanti
 
 Register `MarkdownSyntaxBlockHtmlRenderExtension`, `MarkdownSyntaxInlineHtmlRenderExtension`, `MarkdownSyntaxBlockMarkdownRenderExtension`, or `MarkdownSyntaxInlineMarkdownRenderExtension` with the `MarkdownSyntaxKind` to handle. Later registrations win, returning `null` falls back to the next extension/default renderer, and syntax-kind overrides run before type-targeted overrides. The callback receives the matched final `MarkdownSyntaxNode`, so extension authors can inspect `SourceSpan`, `CustomKind`, parent/child syntax shape, and source slices through the render context.
 
+Render and write contexts expose `TryCreateSourceSlice(...)` and `TryCreateOriginalSourceSlice(...)` overloads for semantic objects, final syntax nodes, and raw `MarkdownSourceSpan` values. Use the span overloads when a block or inline exposes token-level spans such as callout kind/title tokens or link target/title syntax children.
+
 `MarkdownWriteOptions.BlockRenderExtensions` now has the same pattern through `MarkdownBlockMarkdownRenderExtension.CreateContextual(...)`, with `MarkdownWriteContext` exposing:
 
 - `GetBlockIndex(...)`
@@ -343,7 +345,7 @@ The extension surface is much stronger than before, but a few things are still i
 
 - `MarkdownSyntaxKind` remains a fixed enum, so extension node identity should flow through `CustomKind`
 - block and inline syntax-kind render overrides use the final syntax node for the semantic object being rendered; built-in nested containers route child blocks through the active dispatcher, and custom contextual containers should call `RenderBlock(...)` on the render/write context for the same behavior
-- full lossless token/trivia extension points are not available yet; syntax-kind renderers can read captured source slices only when spans are present and trivia was preserved
+- full lossless token/trivia extension points are not available yet; syntax-kind renderers can read captured source slices when token/source spans are present and original trivia was preserved
 
 ## Suggested Pattern For Real Packages
 

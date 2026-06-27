@@ -110,6 +110,19 @@ public sealed class MarkdownBodyRenderContext {
     }
 
     /// <summary>
+    /// Creates a normalized source slice for a token or field source span captured during parsing.
+    /// </summary>
+    public bool TryCreateSourceSlice(MarkdownSourceSpan sourceSpan, out MarkdownSourceSlice slice) {
+        var parseResult = Document.ParseResult;
+        if (parseResult == null) {
+            slice = default;
+            return false;
+        }
+
+        return parseResult.TryCreateSourceSlice(sourceSpan, out slice);
+    }
+
+    /// <summary>
     /// Creates an original-input source slice for the final syntax node associated with a parsed model object.
     /// </summary>
     public bool TryCreateOriginalSourceSlice(object associatedObject, out MarkdownSourceSlice slice) {
@@ -133,5 +146,18 @@ public sealed class MarkdownBodyRenderContext {
         }
 
         return parseResult.TryCreateOriginalSourceSlice(syntaxNode, out slice);
+    }
+
+    /// <summary>
+    /// Creates an original-input source slice for a token or field source span captured during parsing.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(MarkdownSourceSpan sourceSpan, out MarkdownSourceSlice slice) {
+        var parseResult = Document.ParseResult;
+        if (parseResult == null) {
+            slice = default;
+            return false;
+        }
+
+        return parseResult.TryCreateOriginalSourceSlice(sourceSpan, out slice);
     }
 }
