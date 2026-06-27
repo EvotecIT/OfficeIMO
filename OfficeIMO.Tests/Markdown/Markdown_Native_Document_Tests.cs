@@ -183,6 +183,54 @@ After
     }
 
     [Fact]
+    public void Parse_Projects_Nested_Quote_And_NonOne_Ordered_List_SourceSpans_Into_Native_Snapshots_And_Edits() {
+        var markdown = """
+- outer
+  > alpha
+  10. beta
+      gamma
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var list = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(native.Blocks));
+        var item = Assert.Single(list.Items);
+        var quote = Assert.Single(item.Children.OfType<MarkdownNativeQuoteBlock>());
+        var ordered = Assert.Single(item.Children.OfType<MarkdownNativeListBlock>());
+        var orderedItem = Assert.Single(ordered.Items);
+
+        Assert.False(list.IsOrdered);
+        Assert.Equal("outer", item.Text);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), item.MarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 3), Assert.Single(quote.MarkerSourceSpans));
+        Assert.True(ordered.IsOrdered);
+        Assert.Equal(10, ordered.Start);
+        Assert.Equal("beta gamma", orderedItem.Text);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 5), orderedItem.MarkerSourceSpan);
+        Assert.Same(quote, native.FindBlockAtPosition(2, 3));
+        Assert.Same(ordered, native.FindBlockAtPosition(3, 3));
+
+        var snapshot = native.ToSnapshot();
+        var snapshotItem = Assert.Single(Assert.Single(snapshot.Blocks).Items);
+        Assert.Equal(1, snapshotItem.MarkerSourceSpan!.StartColumn);
+        var snapshotQuote = Assert.Single(snapshotItem.Children, child => child.Kind == MarkdownNativeBlockKind.Quote);
+        Assert.Equal(3, snapshotQuote.MarkerSourceSpans[0].StartColumn);
+        var snapshotOrdered = Assert.Single(snapshotItem.Children, child =>
+            child.Kind == MarkdownNativeBlockKind.List &&
+            string.Equals(child.Fields["isOrdered"], "true", StringComparison.Ordinal) &&
+            string.Equals(child.Fields["start"], "10", StringComparison.Ordinal));
+        Assert.Equal(3, snapshotOrdered.Items[0].MarkerSourceSpan!.StartColumn);
+        Assert.Equal(5, snapshotOrdered.Items[0].MarkerSourceSpan!.EndColumn);
+
+        var withOuterMarker = native.CreateReplaceEdit(item.MarkerSourceSpan!.Value, "*").Apply(native.SourceMarkdown);
+        Assert.StartsWith("* outer", withOuterMarker, StringComparison.Ordinal);
+        Assert.Contains("  10. beta", withOuterMarker, StringComparison.Ordinal);
+
+        var withOrderedMarker = native.CreateReplaceEdit(orderedItem.MarkerSourceSpan!.Value, "11.").Apply(native.SourceMarkdown);
+        Assert.Contains("  11. beta", withOrderedMarker, StringComparison.Ordinal);
+        Assert.Contains("  > alpha", withOrderedMarker, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Parse_Projects_Footnote_Definitions_With_Label_SourceSpan_And_Children() {
         var markdown = """
 Body[^shape]

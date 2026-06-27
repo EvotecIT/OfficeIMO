@@ -13,6 +13,14 @@ internal static class MarkdownObjectTreeBinder {
         }
     }
 
+    internal static void BindSourceSpans(MarkdownSyntaxNode syntaxNode) {
+        if (syntaxNode == null) {
+            throw new ArgumentNullException(nameof(syntaxNode));
+        }
+
+        MapSourceSpans(syntaxNode);
+    }
+
     internal static IReadOnlyList<MarkdownObject> GetChildObjects(MarkdownObject parent) {
         if (parent == null) {
             return Array.Empty<MarkdownObject>();

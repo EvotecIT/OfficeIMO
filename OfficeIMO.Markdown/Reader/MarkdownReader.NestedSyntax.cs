@@ -64,6 +64,16 @@ public static partial class MarkdownReader {
                 .ToArray());
         }
 
+        if (node.AssociatedObject is ListItem listItem) {
+            if (listItem.MarkerSourceSpan.HasValue) {
+                listItem.MarkerSourceSpan = RemapNestedSourceSpan(sourceLines, listItem.MarkerSourceSpan) ?? listItem.MarkerSourceSpan;
+            }
+
+            if (listItem.TaskMarkerSourceSpan.HasValue) {
+                listItem.TaskMarkerSourceSpan = RemapNestedSourceSpan(sourceLines, listItem.TaskMarkerSourceSpan) ?? listItem.TaskMarkerSourceSpan;
+            }
+        }
+
         IReadOnlyList<MarkdownSyntaxNode> children = node.Children;
         if (node.Children.Count > 0) {
             var remappedChildren = new List<MarkdownSyntaxNode>(node.Children.Count);

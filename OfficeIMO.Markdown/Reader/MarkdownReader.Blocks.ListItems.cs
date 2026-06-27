@@ -71,7 +71,7 @@ public static partial class MarkdownReader {
             tmp = k;
             if (TryParseNestedQuoteBlock(lines, ref tmp, itemLevelAbs, continuationIndent, options, state, out var quote) && quote != null) {
                 item.Children.Add(quote);
-                AddListItemChildSyntaxNode(item, quote, k, tmp, state);
+                AddListItemChildSyntaxNode(item, quote, lines, continuationIndent, k, tmp, state);
                 if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
                 continue;
@@ -103,9 +103,13 @@ public static partial class MarkdownReader {
                 && CountLeadingIndentColumns(lines[k] ?? string.Empty) >= continuationIndent
                 && IsOrderedListLine(lines[k], out int lvlAbsO2, out _, out _)
                 && lvlAbsO2 >= itemLevelAbs + 1) {
-                if (TryParseNestedListBlock(lines, k, options, state, new OrderedListParser(), out var orderedList, out var orderedEndIndex)) {
+                if (TryParseNestedListBlock(lines, k, continuationIndent, options, state, new OrderedListParser(), out var orderedList, out var orderedEndIndex, out var orderedSyntaxNode)) {
                     item.Children.Add(orderedList);
-                    AddListItemChildSyntaxNode(item, orderedList, k, orderedEndIndex, state);
+                    if (orderedSyntaxNode != null) {
+                        item.SyntaxChildren.Add(orderedSyntaxNode);
+                    } else {
+                        AddListItemChildSyntaxNode(item, orderedList, lines, continuationIndent, k, orderedEndIndex, state);
+                    }
                     if (sawBlankLine) item.ForceLoose = true;
                     index = orderedEndIndex;
                     continue;
@@ -118,9 +122,13 @@ public static partial class MarkdownReader {
                 && CountLeadingIndentColumns(lines[k] ?? string.Empty) >= continuationIndent
                 && IsUnorderedListLine(lines[k], out int lvlAbsU2, out _, out _, out _)
                 && lvlAbsU2 >= itemLevelAbs + 1) {
-                if (TryParseNestedListBlock(lines, k, options, state, new UnorderedListParser(), out var unorderedList, out var unorderedEndIndex)) {
+                if (TryParseNestedListBlock(lines, k, continuationIndent, options, state, new UnorderedListParser(), out var unorderedList, out var unorderedEndIndex, out var unorderedSyntaxNode)) {
                     item.Children.Add(unorderedList);
-                    AddListItemChildSyntaxNode(item, unorderedList, k, unorderedEndIndex, state);
+                    if (unorderedSyntaxNode != null) {
+                        item.SyntaxChildren.Add(unorderedSyntaxNode);
+                    } else {
+                        AddListItemChildSyntaxNode(item, unorderedList, lines, continuationIndent, k, unorderedEndIndex, state);
+                    }
                     if (sawBlankLine) item.ForceLoose = true;
                     index = unorderedEndIndex;
                     continue;
@@ -155,11 +163,13 @@ public static partial class MarkdownReader {
     private static bool TryParseNestedListBlock(
         string[] lines,
         int startIndex,
+        int continuationIndent,
         MarkdownReaderOptions options,
         MarkdownReaderState? state,
         IMarkdownBlockParser parser,
         out IMarkdownListBlock list,
-        out int endIndex) {
+        out int endIndex,
+        out MarkdownSyntaxNode? syntaxNode) {
         int idx = startIndex;
         var tempDoc = MarkdownDoc.Create();
         var effectiveState = state ?? new MarkdownReaderState();
@@ -169,8 +179,20 @@ public static partial class MarkdownReader {
             if (parser.TryParse(lines, ref idx, options, tempDoc, effectiveState) &&
                 tempDoc.Blocks.Count == 1 &&
                 tempDoc.Blocks[0] is IMarkdownListBlock parsedList) {
+                var slices = BuildListItemNestedSourceLines(lines, continuationIndent, startIndex, idx, effectiveState);
+                var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(slices, options, effectiveState);
+                if (blocks.Count == 1 &&
+                    blocks[0] is IMarkdownListBlock sourceMappedList &&
+                    syntaxChildren.Count == 1) {
+                    list = sourceMappedList;
+                    syntaxNode = syntaxChildren[0];
+                    endIndex = idx;
+                    return true;
+                }
+
                 list = parsedList;
                 endIndex = idx;
+                syntaxNode = null;
                 return true;
             }
         } finally {
@@ -179,6 +201,7 @@ public static partial class MarkdownReader {
 
         list = null!;
         endIndex = startIndex;
+        syntaxNode = null;
         return false;
     }
 

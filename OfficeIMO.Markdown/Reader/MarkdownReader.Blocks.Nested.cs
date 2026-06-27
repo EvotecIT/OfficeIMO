@@ -345,6 +345,7 @@ public static partial class MarkdownReader {
 
         int j = index;
         var collected = new List<string>();
+        var collectedSourceLines = new List<MarkdownSourceLineSlice>();
         bool sawQuotedLine = false;
         string? lastQuoteContent = null;
         while (j < lines.Length) {
@@ -357,6 +358,7 @@ public static partial class MarkdownReader {
                 string nextPart = StripLeadingIndentColumns(next, continuationIndent);
                 if (!nextPart.TrimStart().StartsWith(">")) break;
                 collected.Add(string.Empty);
+                collectedSourceLines.Add(new MarkdownSourceLineSlice(string.Empty, state.SourceLineOffset + j + 1, 1));
                 j++;
                 continue;
             }
@@ -372,11 +374,13 @@ public static partial class MarkdownReader {
                 string nextPart = StripLeadingIndentColumns(next, continuationIndent);
                 if (!nextPart.TrimStart().StartsWith(">")) break;
                 collected.Add(string.Empty);
+                collectedSourceLines.Add(new MarkdownSourceLineSlice(string.Empty, state.SourceLineOffset + j + 1, 1));
                 j++;
                 continue;
             }
 
             if (part.TrimStart().StartsWith(">")) {
+                int markerStartColumn = continuationIndent + CountLeadingIndentColumns(part) + 1;
                 string quoteContent = StripSingleQuoteMarker(part);
                 if (TryNormalizeQuotedListContinuationLine(lastQuoteContent, quoteContent, options, out var normalizedQuotedLine)) {
                     quoteContent = normalizedQuotedLine;
@@ -384,7 +388,12 @@ public static partial class MarkdownReader {
                     quoteContent = normalizedQuotedParagraphLine;
                 }
 
-                collected.Add("> " + quoteContent);
+                string collectedLine = "> " + quoteContent;
+                collected.Add(collectedLine);
+                collectedSourceLines.Add(new MarkdownSourceLineSlice(
+                    collectedLine,
+                    state.SourceLineOffset + j + 1,
+                    markerStartColumn));
                 sawQuotedLine = true;
                 lastQuoteContent = quoteContent;
                 j++;
@@ -400,14 +409,19 @@ public static partial class MarkdownReader {
             if (!LooksLikeParagraphLine(quoteContext, 0, options) ||
                 !TryNormalizeQuoteLazyContinuationLine(quoteContext, 1, options, out var normalizedLazyLine)) break;
 
-            collected.Add("> " + normalizedLazyLine);
+            collected.Add(normalizedLazyLine);
+            collectedSourceLines.Add(new MarkdownSourceLineSlice(
+                normalizedLazyLine,
+                state.SourceLineOffset + j + 1,
+                CountLeadingIndentColumns(raw) + 1));
             lastQuoteContent = normalizedLazyLine;
             j++;
         }
 
         if (collected.Count == 0) return false;
 
-        if (TryParseCollectedNestedBlock(collected, options, state, index, out QuoteBlock? parsedQuote)) {
+        var (blocks, _) = ParseNestedMarkdownBlocks(collectedSourceLines, options, state);
+        if (blocks.Count > 0 && blocks[0] is QuoteBlock parsedQuote) {
             quote = parsedQuote;
             index = j;
             return true;

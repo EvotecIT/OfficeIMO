@@ -1061,12 +1061,12 @@
       {
         "description": "nested block quote content stays under the same list item",
         "line": 6,
-        "column": 5,
+        "column": 7,
         "expectedPathKinds": ["Document", "OrderedList", "ListItem", "Quote", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "A block quote.",
-        "expectedDeepestSpan": { "startLine": 6, "startColumn": 3, "endLine": 6, "endColumn": 16 },
+        "expectedDeepestSpan": { "startLine": 6, "startColumn": 7, "endLine": 6, "endColumn": 20 },
         "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 6, "startColumn": 3, "endLine": 6, "endColumn": 16 }
+        "expectedNearestBlockSpan": { "startLine": 6, "startColumn": 7, "endLine": 6, "endColumn": 20 }
       }
     ]
   },
@@ -1661,24 +1661,24 @@
       {
         "description": "blockquote content inside a tight list item remains reachable through the quote and paragraph path",
         "line": 2,
-        "column": 3,
+        "column": 5,
         "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Quote", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "b",
-        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 },
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 },
         "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 }
       }
     ],
     "finalSyntaxAssertions": [
       {
         "description": "the rebuilt syntax tree keeps quoted paragraph content under the same list item",
         "line": 2,
-        "column": 3,
+        "column": 5,
         "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Quote", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "b",
-        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 },
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 },
         "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 }
       }
     ]
   },
@@ -1692,12 +1692,12 @@
       {
         "description": "mixed quote-plus-code list items expose the quoted paragraph path in the original syntax tree",
         "line": 2,
-        "column": 3,
+        "column": 5,
         "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Quote", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "b",
-        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 },
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 },
         "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 }
       }
     ],
     "finalSyntaxAssertions": [

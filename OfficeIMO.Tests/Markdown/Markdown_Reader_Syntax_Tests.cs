@@ -981,6 +981,41 @@ Heading Title
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Keeps_Nested_Quote_And_NonOne_Ordered_List_As_Separate_ListItem_Blocks() {
+        const string markdown = """
+- outer
+  > alpha
+  10. beta
+      gamma
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
+        var item = Assert.Single(list.Items);
+        var quote = Assert.IsType<QuoteBlock>(item.ChildBlocks[0]);
+        var ordered = Assert.IsType<OrderedListBlock>(item.ChildBlocks[1]);
+        var nestedItem = Assert.Single(ordered.Items);
+        var listSyntax = Assert.Single(result.FinalSyntaxTree.Children);
+        var itemSyntax = Assert.Single(listSyntax.Children);
+
+        Assert.Equal("outer", item.Content.RenderMarkdown());
+        Assert.Equal("alpha", Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks)).Inlines.RenderMarkdown());
+        Assert.Equal(10, ordered.Start);
+        Assert.Equal("beta gamma", nestedItem.Content.RenderMarkdown());
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.Quote,
+            MarkdownSyntaxKind.OrderedList
+        }, itemSyntax.Children.Select(child => child.Kind).ToArray());
+        Assert.Same(item.ParagraphBlocks[0], itemSyntax.Children[0].AssociatedObject);
+        Assert.Same(quote, itemSyntax.Children[1].AssociatedObject);
+        Assert.Same(ordered, itemSyntax.Children[2].AssociatedObject);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 9), quote.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 4, 11), ordered.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 5), nestedItem.MarkerSourceSpan);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Assigns_SourceSpans_To_TableCell_Ast_Objects() {
         const string markdown = """
 | Name | Value |

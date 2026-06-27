@@ -319,11 +319,20 @@ public static partial class MarkdownReader {
             return;
         }
 
+        if (block is QuoteBlock quoteBlock && quoteBlock.SourceSpan.HasValue) {
+            var mappedNode = BuildSyntaxNode(quoteBlock, quoteBlock.SourceSpan);
+            SynchronizeOwnedSyntaxCaches(mappedNode);
+            MarkdownObjectTreeBinder.BindSourceSpans(mappedNode);
+            item.SyntaxChildren.Add(mappedNode);
+            return;
+        }
+
         var lastLine = slices[slices.Count - 1].Text;
         var localSpan = new MarkdownSourceSpan(1, 1, slices.Count, Math.Max(1, lastLine.Length));
         var localNode = BuildSyntaxNode(block, localSpan);
         var remappedNode = RemapNestedSyntaxNode(slices, localNode);
         SynchronizeOwnedSyntaxCaches(remappedNode);
+        MarkdownObjectTreeBinder.BindSourceSpans(remappedNode);
         item.SyntaxChildren.Add(remappedNode);
     }
 
