@@ -284,6 +284,27 @@
     ]
   },
   {
+    "example": 63,
+    "section": "ATX headings",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "####### foo\n",
+    "html": "<p>####### foo</p>\n"
+  },
+  {
+    "example": 64,
+    "section": "ATX headings",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "#5 bolt\n\n#hashtag\n",
+    "html": "<p>#5 bolt</p>\n<p>#hashtag</p>\n"
+  },
+  {
+    "example": 65,
+    "section": "ATX headings",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "\\## foo\n",
+    "html": "<p>## foo</p>\n"
+  },
+  {
     "example": 66,
     "section": "ATX headings",
     "topLevelKinds": ["Heading"],
@@ -300,6 +321,62 @@
         "expectedNearestBlockKind": "Heading"
       }
     ]
+  },
+  {
+    "example": 67,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "#                  foo                     \n",
+    "html": "<h1>foo</h1>\n"
+  },
+  {
+    "example": 68,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading", "Heading", "Heading"],
+    "markdown": " ### foo\n  ## foo\n   # foo\n",
+    "html": "<h3>foo</h3>\n<h2>foo</h2>\n<h1>foo</h1>\n"
+  },
+  {
+    "example": 69,
+    "section": "ATX headings",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    # foo\n",
+    "html": "<pre><code># foo\n</code></pre>\n"
+  },
+  {
+    "example": 70,
+    "section": "ATX headings",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo\n    # bar\n",
+    "html": "<p>foo\n# bar</p>\n"
+  },
+  {
+    "example": 71,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading", "Heading"],
+    "markdown": "## foo ##\n  ###   bar    ###\n",
+    "html": "<h2>foo</h2>\n<h3>bar</h3>\n"
+  },
+  {
+    "example": 72,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading", "Heading"],
+    "markdown": "# foo ##################################\n##### foo ##\n",
+    "html": "<h1>foo</h1>\n<h5>foo</h5>\n"
+  },
+  {
+    "example": 73,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "### foo ###     \n",
+    "html": "<h3>foo</h3>\n"
+  },
+  {
+    "example": 74,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "### foo ### b\n",
+    "html": "<h3>foo ### b</h3>\n"
   },
   {
     "example": 75,
@@ -335,6 +412,27 @@
         "expectedNearestBlockKind": "Heading"
       }
     ]
+  },
+  {
+    "example": 77,
+    "section": "ATX headings",
+    "topLevelKinds": ["HorizontalRule", "Heading", "HorizontalRule"],
+    "markdown": "****\n## foo\n****\n",
+    "html": "<hr />\n<h2>foo</h2>\n<hr />\n"
+  },
+  {
+    "example": 78,
+    "section": "ATX headings",
+    "topLevelKinds": ["Paragraph", "Heading", "Paragraph"],
+    "markdown": "Foo bar\n# baz\nBar foo\n",
+    "html": "<p>Foo bar</p>\n<h1>baz</h1>\n<p>Bar foo</p>\n"
+  },
+  {
+    "example": 79,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading", "Heading", "Heading"],
+    "markdown": "## \n#\n### ###\n",
+    "html": "<h2></h2>\n<h1></h1>\n<h3></h3>\n"
   },
   {
     "example": 80,

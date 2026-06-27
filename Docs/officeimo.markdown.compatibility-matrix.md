@@ -15,7 +15,7 @@ Status values:
 | Area | Current baseline |
 | --- | --- |
 | External comparison package | Markdig `1.3.2` in `OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks`; guarded by `PackageDependencyGuardrailTests.MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline` and `MarkdownCompatibilityDocs_TrackCurrentMarkdigBaselineVersion`; verified current against NuGet and `dotnet list ... package --outdated` on 2026-06-27 |
-| CommonMark reference | 217 CommonMark `0.31.2` smoke fixtures |
+| CommonMark reference | 231 CommonMark `0.31.2` smoke fixtures |
 | GFM reference | 36 cmark-gfm extension smoke fixtures plus a focused upstream ignored-autolink crash regression |
 | OfficeIMO core package | `OfficeIMO.Markdown` owns parsing, semantic AST, syntax tree, writing, and HTML projection |
 | Host renderer package | `OfficeIMO.MarkdownRenderer` owns WebView/browser shell rendering and incremental updates |
@@ -25,9 +25,9 @@ Status values:
 
 | Capability | CommonMark profile | GFM profile | OfficeIMO profile | Evidence | Status | Next action |
 | --- | --- | --- | --- | --- | --- | --- |
-| ATX headings | Yes | Yes | Yes | `Markdown_CommonMark_Examples_Tests`, `Markdown_Reader_Profile_Tests` | Covered | Expand from smoke cases to full spec import |
+| ATX headings | Yes | Yes | Yes | Full official CommonMark `0.31.2` ATX heading example set; `Markdown_CommonMark_Examples_Tests`, `Markdown_Reader_Profile_Tests` | Covered | Keep source-span and lossless-trivia coverage aligned with the full spec cases |
 | Setext headings | Yes | Yes | Yes | Markdig parity cases, profile tests, official CommonMark setext/container interaction fixtures including multiline paragraph promotion, one-character `=` underlines, and lazy-blockquote non-promotion | Partial | Add remaining full-spec list/blockquote interaction cases |
-| Paragraphs, entities, and breaks | Yes | Yes | Yes | 217 CommonMark smoke fixtures, including official paragraph blank-line/indentation, thematic-break, hard-break, soft-break, list-interruption, legal/illegal ordered-marker, nested-list, multiline setext, backslash-escape, and entity examples; renderer tests; hard-break/entity fixtures; native hard-break marker metadata/source-edit coverage for two-space, backslash, and inline HTML break spellings; decoded entity source-text metadata/source-edit coverage; fence info-string entity fixtures | Partial | Classify remaining entity and inline-break edge cases in full matrix |
+| Paragraphs, entities, and breaks | Yes | Yes | Yes | 231 CommonMark smoke fixtures, including official paragraph blank-line/indentation, ATX heading, thematic-break, hard-break, soft-break, list-interruption, legal/illegal ordered-marker, nested-list, multiline setext, backslash-escape, and entity examples; renderer tests; hard-break/entity fixtures; native hard-break marker metadata/source-edit coverage for two-space, backslash, and inline HTML break spellings; decoded entity source-text metadata/source-edit coverage; fence info-string entity fixtures | Partial | Classify remaining entity and inline-break edge cases in full matrix |
 | Thematic breaks | Yes | Yes | Yes | Full official CommonMark `0.31.2` thematic-break example set, including positive marker-family, spaced-marker, invalid-marker, paragraph-boundary, list-boundary, nested-list-item, indentation, and indented-code boundary examples; reader tests; native thematic-break projection tests | Covered | Keep source-span/native projection coverage aligned |
 | Fenced code blocks | Yes | Yes | Yes, plus semantic fenced blocks | Markdig parity cases, semantic fenced block tests, native opening/info/content/closing source-span and source-edit tests including blockquote/list container remapping, 29 CommonMark fence delimiter/indentation/container/info-string smoke fixtures | Partial | Add remaining full-spec inventory |
 | Indented code blocks | Yes | Yes | Yes | Markdig parity cases, profile tests, official CommonMark list/code-boundary fixtures | Partial | Expand deeper list-item and blockquote indentation fixtures |

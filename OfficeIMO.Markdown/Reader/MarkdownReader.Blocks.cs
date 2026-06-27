@@ -45,8 +45,8 @@ public static partial class MarkdownReader {
         while (closingStart > contentStart && line[closingStart - 1] == '#') closingStart--;
         if (closingStart < contentEnd) {
             int beforeClosing = closingStart - 1;
-            if (beforeClosing >= contentStart && char.IsWhiteSpace(line[beforeClosing])) {
-                contentEnd = beforeClosing;
+            if (beforeClosing < contentStart || char.IsWhiteSpace(line[beforeClosing])) {
+                contentEnd = beforeClosing < contentStart ? contentStart : beforeClosing;
                 while (contentEnd > contentStart && char.IsWhiteSpace(line[contentEnd - 1])) contentEnd--;
             }
         }
