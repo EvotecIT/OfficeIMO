@@ -70,6 +70,7 @@ Current coverage:
 - inline links, reference-style links, images, reference-style images, and linked images now expose target/title and alt/source/title-style metadata spans in native snapshots, and their inline wrappers also expose source-backed opening/separator/closing delimiter marker metadata with native source-edit coverage for replacing those tokens without replacing the whole paragraph
 - parsed formatting sequence inlines now expose native `openingMarker` and `closingMarker` metadata with source spans, snapshot coverage, and metadata source-edit coverage for nested emphasis/strong runs
 - parsed code spans now expose native `content`, `openingMarker`, and `closingMarker` metadata for the original inner token and backtick fence runs, including multi-backtick spans, snapshots, and metadata source-edit coverage
+- backslash-escaped punctuation text runs now expose native `escapeMarker` and `escapedCharacter` metadata for the original two-token spelling, with source spans, snapshots, and metadata source-edit coverage while leaving ordinary non-escapable backslashes as plain text
 - supported inline HTML tag wrappers now preserve source-map slices for nested inlines and expose opening/closing tag marker metadata with source spans, snapshots, and metadata source-edit coverage
 - hard-break inlines now expose native `marker` metadata for two-space, backslash, and inline HTML break spellings, with source spans, snapshots, and metadata source-edit coverage
 - bare and angle autolinks now expose source-backed target metadata in syntax/native projections, and angle autolinks expose native opening/closing marker metadata with snapshot and source-edit coverage
@@ -331,6 +332,7 @@ Current coverage:
 - native source edit helpers can address reference-style link and image opening/separator/closing delimiter marker metadata without replacing the full inline content
 - native source edit helpers can address linked-image outer opening/separator/closing delimiter marker metadata without replacing the full inline content
 - native source edit helpers can address parsed formatting opening/closing marker metadata without replacing the full inline content
+- native source edit helpers can address backslash escape markers and escaped characters without replacing surrounding inline text
 - native source edit helpers can address supported inline HTML opening/closing tag markers without replacing the full inline content
 - native source edit helpers can address hard-break marker spellings without replacing surrounding inline text
 - native source edit helpers can address autolink targets and angle autolink markers without replacing surrounding inline text

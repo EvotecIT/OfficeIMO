@@ -54,6 +54,17 @@ internal static class MarkdownInlineMetadataSourceSpans {
         public CodeSpanState? State;
     }
 
+    private sealed class EscapedTextState {
+        public string EscapeMarker = string.Empty;
+        public MarkdownSourceSpan? EscapeMarkerSpan;
+        public string EscapedCharacter = string.Empty;
+        public MarkdownSourceSpan? EscapedCharacterSpan;
+    }
+
+    private sealed class EscapedTextHolder {
+        public EscapedTextState? State;
+    }
+
     private sealed class HardBreakMarkerState {
         public string Marker = string.Empty;
         public MarkdownSourceSpan? MarkerSpan;
@@ -70,6 +81,7 @@ internal static class MarkdownInlineMetadataSourceSpans {
     private static readonly ConditionalWeakTable<ImageLinkInline, ImageLinkHolder> _imageLinkSpans = new();
     private static readonly ConditionalWeakTable<MarkdownInline, FormattingMarkerHolder> _formattingMarkerSpans = new();
     private static readonly ConditionalWeakTable<CodeSpanInline, CodeSpanHolder> _codeSpanSpans = new();
+    private static readonly ConditionalWeakTable<TextRun, EscapedTextHolder> _escapedTextSpans = new();
     private static readonly ConditionalWeakTable<HardBreakInline, HardBreakMarkerHolder> _hardBreakMarkerSpans = new();
 
     internal static void SetLinkParts(
@@ -246,6 +258,44 @@ internal static class MarkdownInlineMetadataSourceSpans {
 
     internal static MarkdownSourceSpan? GetCodeSpanContentSpan(CodeSpanInline? inline) =>
         inline != null && _codeSpanSpans.TryGetValue(inline, out var holder) ? holder.State?.ContentSpan : null;
+
+    internal static void SetEscapedText(
+        TextRun? inline,
+        string escapeMarker,
+        MarkdownSourceSpan? escapeMarkerSpan,
+        string escapedCharacter,
+        MarkdownSourceSpan? escapedCharacterSpan) {
+        if (inline == null) {
+            return;
+        }
+
+        if (string.IsNullOrEmpty(escapeMarker) &&
+            string.IsNullOrEmpty(escapedCharacter) &&
+            !escapeMarkerSpan.HasValue &&
+            !escapedCharacterSpan.HasValue) {
+            return;
+        }
+
+        var holder = _escapedTextSpans.GetValue(inline, static _ => new EscapedTextHolder());
+        holder.State = new EscapedTextState {
+            EscapeMarker = escapeMarker ?? string.Empty,
+            EscapeMarkerSpan = escapeMarkerSpan,
+            EscapedCharacter = escapedCharacter ?? string.Empty,
+            EscapedCharacterSpan = escapedCharacterSpan
+        };
+    }
+
+    internal static string? GetEscapeMarker(TextRun? inline) =>
+        inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapeMarker : null;
+
+    internal static MarkdownSourceSpan? GetEscapeMarkerSpan(TextRun? inline) =>
+        inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapeMarkerSpan : null;
+
+    internal static string? GetEscapedCharacter(TextRun? inline) =>
+        inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapedCharacter : null;
+
+    internal static MarkdownSourceSpan? GetEscapedCharacterSpan(TextRun? inline) =>
+        inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapedCharacterSpan : null;
 
     internal static void SetHardBreakMarker(
         HardBreakInline? inline,

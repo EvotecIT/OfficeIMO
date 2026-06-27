@@ -81,6 +81,52 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Backslash_Escape_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
+        const string markdown = "Use \\*literal\\* and C:\\Temp\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var escaped = paragraph.InlineRuns
+            .Where(inline => inline.Kind == MarkdownNativeInlineKind.Text && inline.GetMetadata("escapeMarker") != null)
+            .ToArray();
+
+        Assert.Equal(2, escaped.Length);
+        Assert.All(escaped, inline => Assert.Equal("*", inline.Text));
+        Assert.DoesNotContain(
+            paragraph.InlineRuns,
+            inline => inline.Kind == MarkdownNativeInlineKind.Text && inline.Text == "\\" && inline.GetMetadata("escapeMarker") != null);
+
+        var firstMarker = Assert.Single(escaped[0].Metadata, metadata => metadata.Name == "escapeMarker");
+        var firstCharacter = Assert.Single(escaped[0].Metadata, metadata => metadata.Name == "escapedCharacter");
+        var secondMarker = Assert.Single(escaped[1].Metadata, metadata => metadata.Name == "escapeMarker");
+        var secondCharacter = Assert.Single(escaped[1].Metadata, metadata => metadata.Name == "escapedCharacter");
+
+        Assert.Equal("\\", firstMarker.Value);
+        Assert.Equal("*", firstCharacter.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 5), firstMarker.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 6), firstCharacter.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 14, 1, 14), secondMarker.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 15, 1, 15), secondCharacter.SourceSpan);
+
+        Assert.Equal("Use *literal\\* and C:\\Temp\n", native.CreateReplaceEdit(firstMarker, string.Empty).Apply(native.SourceMarkdown));
+        Assert.Equal("Use \\_literal\\* and C:\\Temp\n", native.CreateReplaceEdit(firstCharacter, "_").Apply(native.SourceMarkdown));
+        Assert.Equal("Use \\*literal* and C:\\Temp\n", native.CreateReplaceEdit(secondMarker, string.Empty).Apply(native.SourceMarkdown));
+        Assert.Equal("Use \\*literal\\_ and C:\\Temp\n", native.CreateReplaceEdit(secondCharacter, "_").Apply(native.SourceMarkdown));
+
+        var snapshotEscaped = native.ToSnapshot().Blocks[0].Inlines
+            .Where(inline => inline.Kind == MarkdownNativeInlineKind.Text && inline.Metadata.ContainsKey("escapeMarker"))
+            .ToArray();
+
+        Assert.Equal(2, snapshotEscaped.Length);
+        Assert.Equal("\\", snapshotEscaped[0].Metadata["escapeMarker"]);
+        Assert.Equal("*", snapshotEscaped[0].Metadata["escapedCharacter"]);
+        Assert.Equal(5, snapshotEscaped[0].MetadataSourceSpans["escapeMarker"]!.StartColumn);
+        Assert.Equal(6, snapshotEscaped[0].MetadataSourceSpans["escapedCharacter"]!.StartColumn);
+        Assert.Equal(14, snapshotEscaped[1].MetadataSourceSpans["escapeMarker"]!.StartColumn);
+        Assert.Equal(15, snapshotEscaped[1].MetadataSourceSpans["escapedCharacter"]!.StartColumn);
+    }
+
+    [Fact]
     public void Inline_Html_Tag_Marker_Metadata_And_Nested_Inlines_Are_Source_Addressable() {
         const string markdown = "Use <u>under **bold**</u> now\n";
 

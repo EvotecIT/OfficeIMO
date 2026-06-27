@@ -209,6 +209,7 @@ internal static class MarkdownNativeInlineProjection {
 
         AddFormattingMarkerMetadata(node, metadata);
         AddCodeSpanContentMetadata(node, metadata);
+        AddEscapedTextMetadata(node, metadata);
         AddHardBreakMarkerMetadata(node, metadata);
 
         if (metadata.Count == 0) {
@@ -263,6 +264,30 @@ internal static class MarkdownNativeInlineProjection {
                 codeSpan.Text,
                 node,
                 contentSpan));
+        }
+    }
+
+    private static void AddEscapedTextMetadata(MarkdownSyntaxNode node, List<MarkdownNativeInlineMetadata> metadata) {
+        if (node.AssociatedObject is not TextRun text) {
+            return;
+        }
+
+        var escapeMarkerSpan = MarkdownInlineMetadataSourceSpans.GetEscapeMarkerSpan(text);
+        if (escapeMarkerSpan.HasValue) {
+            metadata.Add(new MarkdownNativeInlineMetadata(
+                "escapeMarker",
+                MarkdownInlineMetadataSourceSpans.GetEscapeMarker(text) ?? string.Empty,
+                node,
+                escapeMarkerSpan));
+        }
+
+        var escapedCharacterSpan = MarkdownInlineMetadataSourceSpans.GetEscapedCharacterSpan(text);
+        if (escapedCharacterSpan.HasValue) {
+            metadata.Add(new MarkdownNativeInlineMetadata(
+                "escapedCharacter",
+                MarkdownInlineMetadataSourceSpans.GetEscapedCharacter(text) ?? string.Empty,
+                node,
+                escapedCharacterSpan));
         }
     }
 

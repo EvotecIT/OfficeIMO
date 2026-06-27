@@ -47,6 +47,16 @@ public static partial class MarkdownReader {
             AddRawNode(node, start, closingStart + fenceLength - start);
         }
         void AddTextNode(string literal, int start, int length) => AddRawNode(new TextRun(literal), start, length);
+        void AddEscapedTextNode(char escapedCharacter, int start) {
+            var node = new TextRun(escapedCharacter.ToString());
+            MarkdownInlineMetadataSourceSpans.SetEscapedText(
+                node,
+                "\\",
+                sourceMap?.GetSpan(start, 1),
+                escapedCharacter.ToString(),
+                sourceMap?.GetSpan(start + 1, 1));
+            AddRawNode(node, start, 2);
+        }
         void AddDecodedHtmlEntityNode(string literal, int start, int length) => AddRawNode(new DecodedHtmlEntityTextRun(literal), start, length);
         void AddHardBreakNode(int start, int length) {
             var node = new HardBreakInline();
@@ -276,7 +286,7 @@ public static partial class MarkdownReader {
                 if (pos + 1 < text.Length) {
                     char next = text[pos + 1];
                     if (IsBackslashEscapable(next)) {
-                        AddTextNode(next.ToString(), pos, 2);
+                        AddEscapedTextNode(next, pos);
                         pos += 2;
                         continue;
                     }
