@@ -124,7 +124,15 @@ namespace OfficeIMO.Excel {
             if (lower.Contains("yyyy-mm-dd") && lower.Contains("hh:mm:ss")) return "yyyy-MM-dd HH:mm:ss";
             if (lower.Contains("yyyy-mm-dd") && lower.Contains("hh:mm")) return "yyyy-MM-dd HH:mm";
             if (lower.Contains("yyyy-mm-dd")) return "yyyy-MM-dd";
+            if (lower.Contains("dd/mm/yyyy") && lower.Contains("h:mm:ss") && lower.Contains("am/pm")) return "dd/MM/yyyy h:mm:ss tt";
+            if (lower.Contains("dd/mm/yyyy") && lower.Contains("h:mm") && lower.Contains("am/pm")) return "dd/MM/yyyy h:mm tt";
+            if (lower.Contains("dd/mm/yyyy") && lower.Contains("h:mm:ss")) return "dd/MM/yyyy H:mm:ss";
+            if (lower.Contains("dd/mm/yyyy") && lower.Contains("h:mm")) return "dd/MM/yyyy H:mm";
             if (lower.Contains("dd/mm/yyyy")) return "dd/MM/yyyy";
+            if (lower.Contains("mm/dd/yyyy") && lower.Contains("h:mm:ss") && lower.Contains("am/pm")) return "MM/dd/yyyy h:mm:ss tt";
+            if (lower.Contains("mm/dd/yyyy") && lower.Contains("h:mm") && lower.Contains("am/pm")) return "MM/dd/yyyy h:mm tt";
+            if (lower.Contains("mm/dd/yyyy") && lower.Contains("h:mm:ss")) return "MM/dd/yyyy H:mm:ss";
+            if (lower.Contains("mm/dd/yyyy") && lower.Contains("h:mm")) return "MM/dd/yyyy H:mm";
             if (lower.Contains("mm/dd/yyyy")) return "MM/dd/yyyy";
             if (lower.Contains("dd/mm/yy") && lower.Contains("h:mm:ss") && lower.Contains("am/pm")) return "dd/MM/yy h:mm:ss tt";
             if (lower.Contains("dd/mm/yy") && lower.Contains("h:mm") && lower.Contains("am/pm")) return "dd/MM/yy h:mm tt";
@@ -136,6 +144,10 @@ namespace OfficeIMO.Excel {
             if (lower.Contains("mm/dd/yy") && lower.Contains("h:mm:ss")) return "MM/dd/yy H:mm:ss";
             if (lower.Contains("mm/dd/yy") && lower.Contains("h:mm")) return "MM/dd/yy H:mm";
             if (lower.Contains("mm/dd/yy")) return "MM/dd/yy";
+            if (lower.Contains("m/d/yyyy") && lower.Contains("h:mm:ss") && lower.Contains("am/pm")) return "M/d/yyyy h:mm:ss tt";
+            if (lower.Contains("m/d/yyyy") && lower.Contains("h:mm") && lower.Contains("am/pm")) return "M/d/yyyy h:mm tt";
+            if (lower.Contains("m/d/yyyy") && lower.Contains("h:mm:ss")) return "M/d/yyyy H:mm:ss";
+            if (lower.Contains("m/d/yyyy") && lower.Contains("h:mm")) return "M/d/yyyy H:mm";
             if (lower.Contains("m/d/yyyy")) return "M/d/yyyy";
             if (lower.Contains("m/d/yy") && lower.Contains("h:mm:ss") && lower.Contains("am/pm")) return "M/d/yy h:mm:ss tt";
             if (lower.Contains("m/d/yy") && lower.Contains("h:mm") && lower.Contains("am/pm")) return "M/d/yy h:mm tt";
@@ -238,6 +250,10 @@ namespace OfficeIMO.Excel {
             if (!ContainsNumericPlaceholder(normalized)) {
                 string literal = CleanLiteralAffix(normalized);
                 return string.IsNullOrEmpty(literal) ? null : literal;
+            }
+
+            if (IsZeroValue(value) && HasOnlyOptionalDigitPlaceholders(normalized)) {
+                return string.Empty;
             }
 
             if (TryFormatFraction(value, normalized, selectedSection, out string fractionText)) {
@@ -723,6 +739,29 @@ namespace OfficeIMO.Excel {
 
         private static bool ContainsNumericPlaceholder(string formatCode)
             => formatCode.IndexOf('0') >= 0 || formatCode.IndexOf('#') >= 0 || formatCode.IndexOf('?') >= 0;
+
+        private static bool IsZeroValue(double value) => Math.Abs(value) <= 0.0000000001D;
+
+        private static bool HasOnlyOptionalDigitPlaceholders(string formatCode) {
+            bool hasOptionalPlaceholder = false;
+            for (int i = 0; i < formatCode.Length; i++) {
+                if (formatCode[i] == LiteralPunctuationMarker && i + 1 < formatCode.Length) {
+                    i++;
+                    continue;
+                }
+
+                char ch = formatCode[i];
+                if (ch == '0') {
+                    return false;
+                }
+
+                if (ch == '#' || ch == '?') {
+                    hasOptionalPlaceholder = true;
+                }
+            }
+
+            return hasOptionalPlaceholder;
+        }
 
         private static int CountPercentPlaceholders(string formatCode) {
             int count = 0;

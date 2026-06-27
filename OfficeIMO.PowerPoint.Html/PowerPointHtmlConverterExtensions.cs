@@ -74,7 +74,9 @@ public static class PowerPointHtmlConverterExtensions {
     private static void AppendSemanticSlide(StringBuilder body, PptCore.PowerPointSlide slide, int slideNumber, int visibleIndex, string? extractionProof, PowerPointHtmlSaveOptions options) {
         body.Append("<section class=\"officeimo-slide\" data-officeimo-slide=\"")
             .Append(slideNumber.ToString(CultureInfo.InvariantCulture))
-            .Append("\">");
+            .Append('"');
+        AppendHiddenSlideAttribute(body, slide);
+        body.Append('>');
         body.Append("<h2>Slide ").Append(visibleIndex.ToString(CultureInfo.InvariantCulture)).Append("</h2>");
 
         foreach (PptCore.PowerPointTextBox textBox in slide.TextBoxes) {
@@ -102,7 +104,9 @@ public static class PowerPointHtmlConverterExtensions {
         double height = Math.Max(1D, presentation.SlideSize.HeightPoints);
         body.Append("<section class=\"officeimo-slide\" data-officeimo-slide=\"")
             .Append(slideNumber.ToString(CultureInfo.InvariantCulture))
-            .Append("\">");
+            .Append('"');
+        AppendHiddenSlideAttribute(body, slide);
+        body.Append('>');
         body.Append("<h2>Slide ").Append(slideNumber.ToString(CultureInfo.InvariantCulture)).Append("</h2>");
         body.Append("<div class=\"officeimo-visual-page\" data-officeimo-visual-owner=\"OfficeIMO.PowerPoint\" data-officeimo-visual-boundary=\"positioned-review\">");
         body.Append("<div class=\"officeimo-slide-canvas\" style=\"width:")
@@ -122,6 +126,12 @@ public static class PowerPointHtmlConverterExtensions {
         body.Append("</div></div>");
         AppendExtractionProof(body, extractionProof, options);
         body.Append("</section>");
+    }
+
+    private static void AppendHiddenSlideAttribute(StringBuilder body, PptCore.PowerPointSlide slide) {
+        if (slide.Hidden) {
+            body.Append(" data-officeimo-hidden=\"true\"");
+        }
     }
 
     private static void AppendPositionedShape(StringBuilder body, PptCore.PowerPointShape shape, PowerPointHtmlSaveOptions options) {

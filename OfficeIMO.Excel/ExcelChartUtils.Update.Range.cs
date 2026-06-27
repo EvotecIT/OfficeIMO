@@ -269,7 +269,7 @@ namespace OfficeIMO.Excel {
             for (int i = 0; i < data.Series.Count; i++) {
                 ExcelChartSeries current = data.Series[i];
                 ExcelChartType? seriesType = current.ChartType;
-                if (seriesTypes.TryGetValue(i, out ExcelChartType chartType) && chartType != defaultType) {
+                if (seriesTypes.TryGetValue(i, out ExcelChartType chartType)) {
                     seriesType = chartType;
                 }
 

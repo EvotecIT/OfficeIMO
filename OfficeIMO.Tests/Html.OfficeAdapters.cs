@@ -478,6 +478,35 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_RoundTripsComboChartSeriesTypesInSemanticChartData() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorkSheet("Combo");
+        var data = new ExcelChartData(
+            new[] { "Q1", "Q2" },
+            new[] {
+                new ExcelChartSeries("Sales", new[] { 10D, 20D }, ExcelChartType.ColumnClustered),
+                new ExcelChartSeries("Trend", new[] { 12D, 22D }, ExcelChartType.Line)
+            });
+        sheet.AddChart(data, row: 1, column: 1, widthPixels: 320, heightPixels: 180, type: ExcelChartType.ColumnClustered, title: "Combo");
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+
+        Assert.Contains("data-officeimo-chart-type=\"ColumnClustered\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-chart-type=\"Line\"", html, StringComparison.Ordinal);
+
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelChart chart = Assert.Single(imported.Sheets.Single(sheet => sheet.Name == "Combo").Charts);
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.Collection(
+            snapshot.Data.Series,
+            series => Assert.Equal(ExcelChartType.ColumnClustered, series.ChartType),
+            series => Assert.Equal(ExcelChartType.Line, series.ChartType));
+    }
+
+    [Fact]
     public void PowerPointHtml_RoundTripsScatterChartXValuesInSemanticChartData() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.Slides[0];
@@ -734,6 +763,27 @@ public class HtmlOfficeAdapters {
         Assert.Equal(2, imported.Slides.Count);
         Assert.Contains(imported.Slides[0].TextBoxes, textBox => textBox.Text.Contains("First slide", StringComparison.Ordinal));
         Assert.Contains(imported.Slides[1].TextBoxes, textBox => textBox.Text.Contains("Second slide", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void PowerPointHtml_RoundTripsHiddenSlideStateWhenIncluded() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.AddTextBox("Hidden briefing");
+        slide.Hidden = true;
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides,
+            IncludeHiddenSlides = true
+        });
+
+        Assert.Contains("data-officeimo-hidden=\"true\"", html, StringComparison.Ordinal);
+
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+        PowerPointSlide importedSlide = Assert.Single(imported.Slides);
+        Assert.True(importedSlide.Hidden);
+        Assert.Contains(importedSlide.TextBoxes, textBox => textBox.Text.Contains("Hidden briefing", StringComparison.Ordinal));
     }
 
     [Fact]

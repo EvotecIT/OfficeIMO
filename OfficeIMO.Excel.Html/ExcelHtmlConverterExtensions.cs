@@ -288,7 +288,7 @@ public static class ExcelHtmlConverterExtensions {
                     .Append("; Categories: ")
                     .Append(snapshot.Data.Categories.Count.ToString(CultureInfo.InvariantCulture))
                     .Append("</div>");
-                AppendChartDataTable(body, snapshot.Data);
+                AppendChartDataTable(body, snapshot.Data, snapshot.ChartType);
             } else {
                 body.Append("<div class=\"officeimo-diagnostic\">Chart data snapshot unavailable; visual review may still render drawing geometry.</div>");
             }
@@ -299,7 +299,7 @@ public static class ExcelHtmlConverterExtensions {
         body.Append("</ul></section>");
     }
 
-    private static void AppendChartDataTable(StringBuilder body, ExcelChartData data) {
+    private static void AppendChartDataTable(StringBuilder body, ExcelChartData data, ExcelChartType defaultChartType) {
         body.Append("<table class=\"officeimo-chart-data\"><thead><tr><th>Series</th>");
         foreach (string category in data.Categories) {
             body.Append("<th>")
@@ -309,7 +309,13 @@ public static class ExcelHtmlConverterExtensions {
 
         body.Append("</tr></thead><tbody>");
         foreach (ExcelChartSeries series in data.Series) {
-            body.Append("<tr><th>")
+            ExcelChartType chartType = series.ChartType ?? defaultChartType;
+            body.Append("<tr");
+            body.Append(" data-officeimo-chart-type=\"")
+                .Append(OfficeHtmlText.EscapeAttribute(chartType.ToString()))
+                .Append('"');
+
+            body.Append("><th>")
                 .Append(OfficeHtmlText.Escape(series.Name))
                 .Append("</th>");
             for (int i = 0; i < series.Values.Count; i++) {

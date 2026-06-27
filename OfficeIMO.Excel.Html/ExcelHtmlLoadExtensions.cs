@@ -268,9 +268,16 @@ public static class ExcelHtmlLoadExtensions {
                 }
             }
 
+            ExcelChartType? chartType = null;
+            string? rawChartType = row.GetAttribute("data-officeimo-chart-type");
+            if (!string.IsNullOrWhiteSpace(rawChartType) &&
+                Enum.TryParse(rawChartType, ignoreCase: true, out ExcelChartType parsedChartType)) {
+                chartType = parsedChartType;
+            }
+
             series.Add(hasXValues
-                ? new ExcelChartSeries(name, values, xValues)
-                : new ExcelChartSeries(name, values));
+                ? new ExcelChartSeries(name, values, xValues, chartType)
+                : new ExcelChartSeries(name, values, chartType));
         }
 
         if (series.Count == 0) {

@@ -37,6 +37,9 @@ public static class PowerPointHtmlLoadExtensions {
         foreach (IElement slideSection in slideSections) {
             PptCore.PowerPointSlide slide = presentation.AddSlide();
             ImportSlide(slideSection, slide, options, result);
+            if (IsTrueAttribute(slideSection.GetAttribute("data-officeimo-hidden"))) {
+                slide.Hidden = true;
+            }
         }
 
         return result;
@@ -74,6 +77,10 @@ public static class PowerPointHtmlLoadExtensions {
             ImportNotes(section, slide, result);
         }
     }
+
+    private static bool IsTrueAttribute(string? value) =>
+        string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(value, "1", StringComparison.Ordinal);
 
     private static double ImportTable(IElement tableElement, PptCore.PowerPointSlide slide, double top, PowerPointHtmlLoadResult result) {
         List<IElement> rows = tableElement.QuerySelectorAll("tr").ToList();
