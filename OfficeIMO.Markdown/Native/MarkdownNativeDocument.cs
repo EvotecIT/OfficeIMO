@@ -205,6 +205,23 @@ public sealed class MarkdownNativeDocument {
     /// <summary>Creates a UI-safe snapshot of this document without parser object references.</summary>
     public MarkdownNativeDocumentSnapshot ToSnapshot() => MarkdownNativeSnapshotFactory.FromDocument(this);
 
+    /// <summary>
+    /// Emits the original markdown when this native document was parsed with trivia preservation and no transforms changed it.
+    /// </summary>
+    public MarkdownRoundtripResult WriteUnchanged() => MarkdownRoundtripWriter.WriteUnchanged(ParseResult);
+
+    /// <summary>
+    /// Applies one native source edit while preserving original markdown around it when the edit can be remapped safely.
+    /// </summary>
+    public MarkdownRoundtripResult WriteWithSourceEdit(MarkdownNativeSourceEdit edit) =>
+        MarkdownRoundtripWriter.WriteWithSourceEdit(ParseResult, edit);
+
+    /// <summary>
+    /// Applies native source edits while preserving original markdown around them when every edit can be remapped safely.
+    /// </summary>
+    public MarkdownRoundtripResult WriteWithSourceEdits(IEnumerable<MarkdownNativeSourceEdit> edits) =>
+        MarkdownRoundtripWriter.WriteWithSourceEdits(ParseResult, edits);
+
     /// <summary>Creates a non-mutating source edit that replaces a source span.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownSourceSpan sourceSpan, string replacementMarkdown) {
         if (!TryResolveOffsets(sourceSpan, out var startOffset, out var endOffsetInclusive)) {

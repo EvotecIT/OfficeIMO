@@ -34,6 +34,7 @@ The target design for editor-grade source preservation lives in `officeimo.markd
 
 Treat `ToMarkdown()` as semantic markdown generation until that design is implemented. Lossless work should preserve original source slices for unchanged syntax nodes and report diagnostics whenever it falls back to generated markdown.
 `MarkdownRoundtripWriter.WriteUnchanged` now covers the narrow unchanged-document case for trivia-preserved parse results, and `WriteWithSourceEdit` / `WriteWithSourceEdits` apply explicit native source edits back to original input when source spans remap safely. The writer reports fallback diagnostics when it cannot claim byte preservation.
+`MarkdownNativeDocument` exposes thin helpers over the same writer so AST consumers can create span-backed edits from native blocks, inlines, and metadata, then write them without reaching back into the parse result. Current coverage includes shuffled multi-edit replacement across a heading and link metadata while preserving original CRLF and untouched trivia.
 
 ## Workstream A: Tree Invariants
 

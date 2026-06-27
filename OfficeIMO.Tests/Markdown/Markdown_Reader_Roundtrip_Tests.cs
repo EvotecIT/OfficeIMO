@@ -447,6 +447,31 @@ Paragraph
         }
 
         [Fact]
+        public void MarkdownNativeDocument_Applies_Shuffled_SourceEdits_To_OriginalMarkdown() {
+            const string markdown = "# Old **Title**\r\n\r\nSee [docs](old.md \"Old title\") and `code`.\r\n";
+            var options = new MarkdownReaderOptions {
+                PreserveTrivia = true
+            };
+            var native = MarkdownNativeDocument.Parse(markdown, options);
+            var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
+            var link = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Link);
+            var target = Assert.Single(link.Metadata, metadata => metadata.Name == "target");
+            var title = Assert.Single(link.Metadata, metadata => metadata.Name == "title");
+
+            var edits = new[] {
+                native.CreateReplaceEdit(title, "New docs title"),
+                native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New **Title**"),
+                native.CreateReplaceEdit(target, "new/location.md")
+            };
+
+            var roundtrip = native.WriteWithSourceEdits(edits);
+
+            Assert.True(roundtrip.IsLossless);
+            Assert.Empty(roundtrip.Diagnostics);
+            Assert.Equal("# New **Title**\r\n\r\nSee [docs](new/location.md \"New docs title\") and `code`.\r\n", roundtrip.Markdown);
+        }
+
+        [Fact]
         public void MarkdownRoundtripWriter_Applies_SourceEdit_To_NormalizedMarkdown_When_OriginalMarkdown_Was_Not_Preserved() {
             const string markdown = "# Old **Title**\r\n\r\nBody\r\n";
             var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown);
