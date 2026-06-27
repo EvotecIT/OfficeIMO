@@ -80,6 +80,7 @@ Current coverage:
 - GFM raw HTML smoke coverage now includes the cmark-gfm HTML tag filter, preserving dangerous tags as source-addressable raw HTML nodes while rendering the filtered leading `<` as `&lt;`; focused renderer coverage now asserts the same filtering for raw HTML blocks and inline tags when raw HTML is otherwise allowed
 - GFM strikethrough smoke coverage now includes official delimiter-run edge cases for single, double, long, and mismatched tilde runs
 - GFM autolink smoke coverage now includes plus-tag email local parts, invalid email-like tokens, bare `mailto:`/`xmpp:` URLs, Unicode URL destinations, `www` host underscore rules, quoted autolinks, trailing punctuation trimming, and the upstream ignored malformed-email case as a parser stability/source-mapping regression; Markdig parity tests now keep plus-tag plain email comparison in the portable profile where bare emails are intentionally literal
+- GFM footnote smoke coverage now includes first-reference ordering and repeated references to the same definition, including GitHub-style repeated backrefs and independent source spans for each repeated reference label
 - list-item paragraph syntax nodes now associate to `ParagraphBlock` objects instead of their nested `InlineSequence`
 - sequence inline syntax nodes now associate back to their wrapper objects across strong, emphasis, strong-emphasis, strikethrough, and highlight grouped inline content
 

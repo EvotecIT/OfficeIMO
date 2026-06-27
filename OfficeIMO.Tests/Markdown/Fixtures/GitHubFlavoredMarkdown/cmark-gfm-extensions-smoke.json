@@ -686,6 +686,35 @@
   },
   {
     "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Footnotes",
+    "topLevelKinds": ["Paragraph", "FootnoteDefinition"],
+    "markdown": "Repeat[^same] and repeat again[^same].\n\n[^same]: Same body\n",
+    "html": "<p>Repeat<sup class=\"footnote-ref\"><a href=\"#fn-same\" id=\"fnref-same\" data-footnote-ref>1</a></sup> and repeat again<sup class=\"footnote-ref\"><a href=\"#fn-same\" id=\"fnref-same-2\" data-footnote-ref>1</a></sup>.</p>\n<section class=\"footnotes\" data-footnotes><ol><li id=\"fn-same\"><p>Same body <a href=\"#fnref-same\" class=\"footnote-backref\" data-footnote-backref data-footnote-backref-idx=\"1\" aria-label=\"Back to reference 1\">↩</a> <a href=\"#fnref-same-2\" class=\"footnote-backref\" data-footnote-backref data-footnote-backref-idx=\"1-2\" aria-label=\"Back to reference 1-2\">↩<sup>2</sup></a></p></li></ol></section>",
+    "syntaxAssertions": [
+      {
+        "description": "the first repeated footnote reference keeps a label child at its own source span",
+        "line": 1,
+        "column": 10,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineFootnoteRef", "InlineFootnoteLabel"],
+        "expectedDeepestKind": "InlineFootnoteLabel",
+        "expectedDeepestLiteral": "same",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 9, "endLine": 1, "endColumn": 12 },
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "the second repeated footnote reference remaps to its own label source span",
+        "line": 1,
+        "column": 35,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineFootnoteRef", "InlineFootnoteLabel"],
+        "expectedDeepestKind": "InlineFootnoteLabel",
+        "expectedDeepestLiteral": "same",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 33, "endLine": 1, "endColumn": 36 },
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
     "section": "Interop",
     "topLevelKinds": ["Table"],
     "markdown": "| a | b |\n| --- | --- |\n| https://github.com www.github.com | http://pokemon.com |\n",
