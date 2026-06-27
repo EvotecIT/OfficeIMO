@@ -194,6 +194,22 @@
     "html": "<p>| a | b | c |\n| --- | --- |\n| this | isn't | okay |</p>\n"
   },
   {
+    "source": "officeimo/gfm-table-smoke",
+    "section": "Tables",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "| a | b |\n| --- | --- | --- |\n| this | still | isn't okay |\n",
+    "html": "<p>| a | b |\n| --- | --- | --- |\n| this | still | isn't okay |</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "GFM tables reject delimiter rows with more cells than the header",
+        "line": 2,
+        "column": 15,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
     "source": "github/cmark-gfm test/extensions.txt",
     "section": "Tables",
     "topLevelKinds": ["Table"],
