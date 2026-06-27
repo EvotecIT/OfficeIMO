@@ -121,6 +121,39 @@ public sealed partial class MarkdownNativeDocument {
         return null;
     }
 
+    /// <summary>Enumerates all source-backed native inline metadata leaves in document order.</summary>
+    public IEnumerable<MarkdownNativeInlineMetadata> EnumerateInlineMetadata() {
+        foreach (var inline in EnumerateInlines()) {
+            for (var i = 0; i < inline.Metadata.Count; i++) {
+                yield return inline.Metadata[i];
+            }
+        }
+    }
+
+    /// <summary>Enumerates source-backed native inline metadata leaves with the supplied metadata name in document order.</summary>
+    public IEnumerable<MarkdownNativeInlineMetadata> EnumerateInlineMetadata(string name) {
+        if (string.IsNullOrWhiteSpace(name)) {
+            yield break;
+        }
+
+        foreach (var metadata in EnumerateInlineMetadata()) {
+            if (string.Equals(metadata.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                yield return metadata;
+            }
+        }
+    }
+
+    /// <summary>Finds the first native inline metadata leaf whose source span contains the supplied 1-based line and column.</summary>
+    public MarkdownNativeInlineMetadata? FindInlineMetadataAtPosition(int lineNumber, int columnNumber) {
+        foreach (var metadata in EnumerateInlineMetadata()) {
+            if (ContainsPosition(metadata.SourceSpan, lineNumber, columnNumber)) {
+                return metadata;
+            }
+        }
+
+        return null;
+    }
+
     private static IEnumerable<MarkdownNativeListItem> EnumerateListItems(MarkdownNativeBlock block) {
         if (block is MarkdownNativeListBlock list) {
             for (var i = 0; i < list.Items.Count; i++) {

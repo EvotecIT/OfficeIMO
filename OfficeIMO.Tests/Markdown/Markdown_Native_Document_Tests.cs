@@ -353,6 +353,33 @@ Second: Other
     }
 
     [Fact]
+    public void Navigation_Helpers_Find_Native_Inline_Metadata_By_Position_And_Name() {
+        var markdown = """
+# Native [docs](https://example.com "Docs")
+
+Paragraph with footnote[^note] and ![Alt](img.png "Img").
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var target = Assert.Single(native.EnumerateInlineMetadata("TARGET"));
+        var title = Assert.Single(native.EnumerateInlineMetadata("title"));
+        var label = Assert.Single(native.EnumerateInlineMetadata("label"));
+        var source = Assert.Single(native.EnumerateInlineMetadata("source"));
+
+        Assert.Equal("https://example.com", target.Value);
+        Assert.Equal("Docs", title.Value);
+        Assert.Equal("note", label.Value);
+        Assert.Equal("img.png", source.Value);
+        Assert.Contains(native.EnumerateInlineMetadata(), metadata => metadata.Name == "alt" && metadata.Value == "Alt");
+        Assert.Empty(native.EnumerateInlineMetadata("missing"));
+        Assert.Same(target, native.FindInlineMetadataAtPosition(1, 18));
+        Assert.Same(title, native.FindInlineMetadataAtPosition(1, 39));
+        Assert.Same(label, native.FindInlineMetadataAtPosition(3, 26));
+        Assert.Same(source, native.FindInlineMetadataAtPosition(3, 44));
+        Assert.Null(native.FindInlineMetadataAtPosition(2, 1));
+    }
+
+    [Fact]
     public void Parse_Projects_Footnote_Definitions_With_Label_SourceSpan_And_Children() {
         var markdown = """
 Body[^shape]
