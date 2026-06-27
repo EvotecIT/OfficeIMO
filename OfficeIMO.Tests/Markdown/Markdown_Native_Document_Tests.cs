@@ -321,6 +321,38 @@ After
     }
 
     [Fact]
+    public void Navigation_Helpers_Find_Native_Definition_List_Parts_By_Position() {
+        var markdown = """
+First: Intro
+
+  - child
+
+Second: Other
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var groups = native.EnumerateDefinitionListGroups().ToArray();
+        var terms = native.EnumerateDefinitionListTerms().ToArray();
+        var definitions = native.EnumerateDefinitionListDefinitions().ToArray();
+
+        Assert.Equal(2, groups.Length);
+        Assert.Equal(new[] { "First", "Second" }, terms.Select(term => term.Text).ToArray());
+        Assert.Equal(new[] { "Intro\n\n- child", "Other" }, definitions.Select(definition => definition.Markdown.Replace("\r\n", "\n")).ToArray());
+
+        Assert.Same(groups[0], native.FindDefinitionListGroupAtPosition(1, 1));
+        Assert.Same(groups[0], native.FindDefinitionListGroupAtPosition(3, 5));
+        Assert.Same(terms[0], native.FindDefinitionListTermAtPosition(1, 2));
+        Assert.Same(definitions[0], native.FindDefinitionListDefinitionAtPosition(1, 8));
+        Assert.Same(definitions[0], native.FindDefinitionListDefinitionAtPosition(3, 5));
+        Assert.Same(groups[1], native.FindDefinitionListGroupAtPosition(5, 1));
+        Assert.Same(terms[1], native.FindDefinitionListTermAtPosition(5, 2));
+        Assert.Same(definitions[1], native.FindDefinitionListDefinitionAtPosition(5, 9));
+        Assert.Null(native.FindDefinitionListGroupAtPosition(6, 1));
+        Assert.Null(native.FindDefinitionListTermAtPosition(3, 5));
+        Assert.Null(native.FindDefinitionListDefinitionAtPosition(1, 2));
+    }
+
+    [Fact]
     public void Parse_Projects_Footnote_Definitions_With_Label_SourceSpan_And_Children() {
         var markdown = """
 Body[^shape]

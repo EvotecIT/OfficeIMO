@@ -58,6 +58,69 @@ public sealed partial class MarkdownNativeDocument {
         return null;
     }
 
+    /// <summary>Enumerates all native definition-list groups in document order, including nested definition lists.</summary>
+    public IEnumerable<MarkdownNativeDefinitionListGroup> EnumerateDefinitionListGroups() {
+        for (var i = 0; i < Blocks.Count; i++) {
+            foreach (var group in EnumerateDefinitionListGroups(Blocks[i])) {
+                yield return group;
+            }
+        }
+    }
+
+    /// <summary>Finds the deepest native definition-list group whose source span contains the supplied 1-based line and column.</summary>
+    public MarkdownNativeDefinitionListGroup? FindDefinitionListGroupAtPosition(int lineNumber, int columnNumber) {
+        for (var i = 0; i < Blocks.Count; i++) {
+            var match = FindDefinitionListGroupAtPosition(Blocks[i], lineNumber, columnNumber);
+            if (match != null) {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Enumerates all native definition-list terms in document order, including nested definition lists.</summary>
+    public IEnumerable<MarkdownNativeDefinitionListTerm> EnumerateDefinitionListTerms() {
+        for (var i = 0; i < Blocks.Count; i++) {
+            foreach (var term in EnumerateDefinitionListTerms(Blocks[i])) {
+                yield return term;
+            }
+        }
+    }
+
+    /// <summary>Finds the native definition-list term whose source span contains the supplied 1-based line and column.</summary>
+    public MarkdownNativeDefinitionListTerm? FindDefinitionListTermAtPosition(int lineNumber, int columnNumber) {
+        for (var i = 0; i < Blocks.Count; i++) {
+            var match = FindDefinitionListTermAtPosition(Blocks[i], lineNumber, columnNumber);
+            if (match != null) {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Enumerates all native definition-list definitions in document order, including nested definition lists.</summary>
+    public IEnumerable<MarkdownNativeDefinitionListDefinition> EnumerateDefinitionListDefinitions() {
+        for (var i = 0; i < Blocks.Count; i++) {
+            foreach (var definition in EnumerateDefinitionListDefinitions(Blocks[i])) {
+                yield return definition;
+            }
+        }
+    }
+
+    /// <summary>Finds the deepest native definition-list definition whose source span contains the supplied 1-based line and column.</summary>
+    public MarkdownNativeDefinitionListDefinition? FindDefinitionListDefinitionAtPosition(int lineNumber, int columnNumber) {
+        for (var i = 0; i < Blocks.Count; i++) {
+            var match = FindDefinitionListDefinitionAtPosition(Blocks[i], lineNumber, columnNumber);
+            if (match != null) {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
     private static IEnumerable<MarkdownNativeListItem> EnumerateListItems(MarkdownNativeBlock block) {
         if (block is MarkdownNativeListBlock list) {
             for (var i = 0; i < list.Items.Count; i++) {
@@ -192,6 +255,152 @@ public sealed partial class MarkdownNativeDocument {
     private static MarkdownNativeTableCell? FindTableCellAtPosition(MarkdownNativeTableCell cell, int lineNumber, int columnNumber) {
         for (var i = 0; i < cell.Children.Count; i++) {
             var match = FindTableCellAtPosition(cell.Children[i], lineNumber, columnNumber);
+            if (match != null) {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<MarkdownNativeDefinitionListGroup> EnumerateDefinitionListGroups(MarkdownNativeBlock block) {
+        if (block is MarkdownNativeDefinitionListBlock definitionList) {
+            for (var i = 0; i < definitionList.Groups.Count; i++) {
+                yield return definitionList.Groups[i];
+            }
+        }
+
+        foreach (var child in GetChildBlocks(block)) {
+            foreach (var group in EnumerateDefinitionListGroups(child)) {
+                yield return group;
+            }
+        }
+    }
+
+    private static MarkdownNativeDefinitionListGroup? FindDefinitionListGroupAtPosition(MarkdownNativeBlock block, int lineNumber, int columnNumber) {
+        if (block is MarkdownNativeDefinitionListBlock definitionList) {
+            for (var i = 0; i < definitionList.Groups.Count; i++) {
+                var group = definitionList.Groups[i];
+                for (var definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
+                    var definition = group.Definitions[definitionIndex];
+                    for (var childIndex = 0; childIndex < definition.Children.Count; childIndex++) {
+                        var childMatch = FindDefinitionListGroupAtPosition(definition.Children[childIndex], lineNumber, columnNumber);
+                        if (childMatch != null) {
+                            return childMatch;
+                        }
+                    }
+                }
+
+                if (ContainsPosition(group.SourceSpan, lineNumber, columnNumber)) {
+                    return group;
+                }
+            }
+
+            return null;
+        }
+
+        foreach (var child in GetChildBlocks(block)) {
+            var match = FindDefinitionListGroupAtPosition(child, lineNumber, columnNumber);
+            if (match != null) {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<MarkdownNativeDefinitionListTerm> EnumerateDefinitionListTerms(MarkdownNativeBlock block) {
+        if (block is MarkdownNativeDefinitionListBlock definitionList) {
+            for (var groupIndex = 0; groupIndex < definitionList.Groups.Count; groupIndex++) {
+                var group = definitionList.Groups[groupIndex];
+                for (var termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
+                    yield return group.Terms[termIndex];
+                }
+            }
+        }
+
+        foreach (var child in GetChildBlocks(block)) {
+            foreach (var term in EnumerateDefinitionListTerms(child)) {
+                yield return term;
+            }
+        }
+    }
+
+    private static MarkdownNativeDefinitionListTerm? FindDefinitionListTermAtPosition(MarkdownNativeBlock block, int lineNumber, int columnNumber) {
+        if (block is MarkdownNativeDefinitionListBlock definitionList) {
+            for (var groupIndex = 0; groupIndex < definitionList.Groups.Count; groupIndex++) {
+                var group = definitionList.Groups[groupIndex];
+                for (var termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
+                    if (ContainsPosition(group.Terms[termIndex].SourceSpan, lineNumber, columnNumber)) {
+                        return group.Terms[termIndex];
+                    }
+                }
+
+                for (var definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
+                    var definition = group.Definitions[definitionIndex];
+                    for (var childIndex = 0; childIndex < definition.Children.Count; childIndex++) {
+                        var childMatch = FindDefinitionListTermAtPosition(definition.Children[childIndex], lineNumber, columnNumber);
+                        if (childMatch != null) {
+                            return childMatch;
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        foreach (var child in GetChildBlocks(block)) {
+            var match = FindDefinitionListTermAtPosition(child, lineNumber, columnNumber);
+            if (match != null) {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<MarkdownNativeDefinitionListDefinition> EnumerateDefinitionListDefinitions(MarkdownNativeBlock block) {
+        if (block is MarkdownNativeDefinitionListBlock definitionList) {
+            for (var groupIndex = 0; groupIndex < definitionList.Groups.Count; groupIndex++) {
+                var group = definitionList.Groups[groupIndex];
+                for (var definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
+                    yield return group.Definitions[definitionIndex];
+                }
+            }
+        }
+
+        foreach (var child in GetChildBlocks(block)) {
+            foreach (var definition in EnumerateDefinitionListDefinitions(child)) {
+                yield return definition;
+            }
+        }
+    }
+
+    private static MarkdownNativeDefinitionListDefinition? FindDefinitionListDefinitionAtPosition(MarkdownNativeBlock block, int lineNumber, int columnNumber) {
+        if (block is MarkdownNativeDefinitionListBlock definitionList) {
+            for (var groupIndex = 0; groupIndex < definitionList.Groups.Count; groupIndex++) {
+                var group = definitionList.Groups[groupIndex];
+                for (var definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
+                    var definition = group.Definitions[definitionIndex];
+                    for (var childIndex = 0; childIndex < definition.Children.Count; childIndex++) {
+                        var childMatch = FindDefinitionListDefinitionAtPosition(definition.Children[childIndex], lineNumber, columnNumber);
+                        if (childMatch != null) {
+                            return childMatch;
+                        }
+                    }
+
+                    if (ContainsPosition(definition.SourceSpan, lineNumber, columnNumber)) {
+                        return definition;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        foreach (var child in GetChildBlocks(block)) {
+            var match = FindDefinitionListDefinitionAtPosition(child, lineNumber, columnNumber);
             if (match != null) {
                 return match;
             }
