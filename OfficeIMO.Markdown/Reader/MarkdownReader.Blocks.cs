@@ -11,6 +11,24 @@ public static partial class MarkdownReader {
         return TryGetAtxHeadingContentRange(line, out level, out _, out _, out text);
     }
 
+    private static bool TryGetSetextHeadingUnderlineLevel(string line, out int level) {
+        level = 0;
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        if (CountLeadingIndentColumns(line) > 3) return false;
+
+        var trimmed = line.Trim();
+        char marker = '\0';
+        for (int i = 0; i < trimmed.Length; i++) {
+            char ch = trimmed[i];
+            if (ch != '=' && ch != '-') return false;
+            if (marker == '\0') marker = ch;
+            else if (ch != marker) return false;
+        }
+
+        level = marker == '=' ? 1 : 2;
+        return true;
+    }
+
     private static bool TryGetAtxHeadingContentRange(string line, out int level, out int contentStart, out int contentEnd, out string text) {
         level = 0;
         contentStart = 0;

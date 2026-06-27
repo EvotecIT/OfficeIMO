@@ -449,6 +449,13 @@
     "html": "<h1>Foo <em>bar\nbaz</em></h1>\n"
   },
   {
+    "example": 82,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "  Foo *bar\nbaz*\t\n====\n",
+    "html": "<h1>Foo <em>bar\nbaz</em></h1>\n"
+  },
+  {
     "example": 83,
     "section": "Setext headings",
     "topLevelKinds": ["Heading", "Heading"],
@@ -463,6 +470,13 @@
     "html": "<h2>Foo</h2>\n<h2>Foo</h2>\n<h1>Foo</h1>\n"
   },
   {
+    "example": 85,
+    "section": "Setext headings",
+    "topLevelKinds": ["CodeBlock", "HorizontalRule"],
+    "markdown": "    Foo\n    ---\n\n    Foo\n---\n",
+    "html": "<pre><code>Foo\n---\n\nFoo\n</code></pre>\n<hr />\n"
+  },
+  {
     "example": 86,
     "section": "Setext headings",
     "topLevelKinds": ["Heading"],
@@ -470,11 +484,39 @@
     "html": "<h2>Foo</h2>\n"
   },
   {
+    "example": 87,
+    "section": "Setext headings",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "Foo\n    ---\n",
+    "html": "<p>Foo\n---</p>\n"
+  },
+  {
+    "example": 88,
+    "section": "Setext headings",
+    "topLevelKinds": ["Paragraph", "Paragraph", "HorizontalRule"],
+    "markdown": "Foo\n= =\n\nFoo\n--- -\n",
+    "html": "<p>Foo\n= =</p>\n<p>Foo</p>\n<hr />\n"
+  },
+  {
     "example": 89,
     "section": "Setext headings",
     "topLevelKinds": ["Heading"],
     "markdown": "Foo  \n-----\n",
     "html": "<h2>Foo</h2>\n"
+  },
+  {
+    "example": 90,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "Foo\\\n----\n",
+    "html": "<h2>Foo\\</h2>\n"
+  },
+  {
+    "example": 91,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading", "Paragraph", "Heading", "Paragraph"],
+    "markdown": "`Foo\n----\n`\n\n<a title=\"a lot\n---\nof dashes\"/>\n",
+    "html": "<h2>`Foo</h2>\n<p>`</p>\n<h2>&lt;a title=&quot;a lot</h2>\n<p>of dashes&quot;/&gt;</p>\n"
   },
   {
     "example": 92,
@@ -512,6 +554,34 @@
     "html": "<hr />\n<h2>Foo</h2>\n<h2>Bar</h2>\n<p>Baz</p>\n"
   },
   {
+    "example": 97,
+    "section": "Setext headings",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "\n====\n",
+    "html": "<p>====</p>\n"
+  },
+  {
+    "example": 98,
+    "section": "Setext headings",
+    "topLevelKinds": ["HorizontalRule", "HorizontalRule"],
+    "markdown": "---\n---\n",
+    "html": "<hr />\n<hr />\n"
+  },
+  {
+    "example": 99,
+    "section": "Setext headings",
+    "topLevelKinds": ["UnorderedList", "HorizontalRule"],
+    "markdown": "- foo\n-----\n",
+    "html": "<ul>\n<li>foo</li>\n</ul>\n<hr />\n"
+  },
+  {
+    "example": 100,
+    "section": "Setext headings",
+    "topLevelKinds": ["CodeBlock", "HorizontalRule"],
+    "markdown": "    foo\n---\n",
+    "html": "<pre><code>foo\n</code></pre>\n<hr />\n"
+  },
+  {
     "example": 101,
     "section": "Setext headings",
     "topLevelKinds": ["Quote", "HorizontalRule"],
@@ -537,6 +607,13 @@
     "section": "Setext headings",
     "topLevelKinds": ["Paragraph", "HorizontalRule", "Paragraph"],
     "markdown": "Foo\nbar\n\n---\n\nbaz\n",
+    "html": "<p>Foo\nbar</p>\n<hr />\n<p>baz</p>\n"
+  },
+  {
+    "example": 105,
+    "section": "Setext headings",
+    "topLevelKinds": ["Paragraph", "HorizontalRule", "Paragraph"],
+    "markdown": "Foo\nbar\n* * *\nbaz\n",
     "html": "<p>Foo\nbar</p>\n<hr />\n<p>baz</p>\n"
   },
   {

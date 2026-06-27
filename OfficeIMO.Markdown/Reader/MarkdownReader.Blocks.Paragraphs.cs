@@ -679,21 +679,12 @@ public static partial class MarkdownReader {
         headingText = string.Empty;
         if (lines == null || lines.Count < 2 || options == null || !options.Headings) return false;
 
-        var underline = lines[lines.Count - 1]?.Trim() ?? string.Empty;
-        if (underline.Length < 1) return false;
-
-        char marker = '\0';
-        for (int i = 0; i < underline.Length; i++) {
-            char ch = underline[i];
-            if (ch != '=' && ch != '-') return false;
-            if (marker == '\0') marker = ch;
-            else if (ch != marker) return false;
-        }
+        var underlineLine = lines[lines.Count - 1] ?? string.Empty;
+        if (!TryGetSetextHeadingUnderlineLevel(underlineLine, out level)) return false;
 
         var contentLines = lines.GetRange(0, lines.Count - 1);
         if (contentLines.Count == 0 || contentLines.TrueForAll(string.IsNullOrWhiteSpace)) return false;
 
-        level = marker == '=' ? 1 : 2;
         headingText = JoinParagraphLines(contentLines, options).Trim();
         return headingText.Length > 0;
     }

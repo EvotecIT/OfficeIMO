@@ -16,15 +16,8 @@ public static partial class MarkdownReader {
             var line = lines[i];
             var next = lines[i + 1];
             if (string.IsNullOrWhiteSpace(line) || string.IsNullOrWhiteSpace(next)) return false;
+            if (!TryGetSetextHeadingUnderlineLevel(next, out int level)) return false;
             var t = next.Trim();
-            // must be only '=' or '-' with length >= 1
-            char ch = '\0';
-            foreach (var c in t) {
-                if (c == '=' || c == '-') { if (ch == '\0') ch = c; if (c != ch) return false; continue; }
-                return false;
-            }
-            if (t.Length < 1) return false;
-            int level = ch == '=' ? 1 : 2;
             var headingText = line.Trim();
             var contentStart = line.IndexOf(headingText, StringComparison.Ordinal);
             var sourceMap = BuildInlineSourceMapForSingleLine(headingText, state.SourceLineOffset + i + 1, contentStart + 1, state);
