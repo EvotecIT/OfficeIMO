@@ -210,11 +210,21 @@ public sealed partial class TableBlock {
         return nodes;
     }
 
-    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(
+    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => null;
+
+    IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() =>
+        BuildSyntaxChildren(SourceSpan);
+
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
+        var children = SourceSpan.HasValue || !span.HasValue
+            ? MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this)
+            : BuildSyntaxChildren(span);
+
+        return new MarkdownSyntaxNode(
             MarkdownSyntaxKind.Table,
             span,
             ((IMarkdownBlock)this).RenderMarkdown(),
-            BuildSyntaxChildren(span),
+            children,
             this);
+    }
 }

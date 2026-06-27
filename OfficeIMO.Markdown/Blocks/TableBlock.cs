@@ -8,7 +8,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Pipe table with optional header row.
 /// </summary>
-public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer {
+public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock {
     internal const int MaxEffectiveColumnCount = 4096;
     internal const string HeaderlessSingleRowTableMarker = "<!-- OfficeIMO:RTF:HeaderlessSingleRowTable -->";
 

@@ -3544,6 +3544,41 @@ Lead[^1]
     }
 
     [Fact]
+    public void TableBlock_SyntaxChild_Owner_Interface_Uses_Row_Syntax_While_ChildBlocks_Stay_Cell_Blocks() {
+        const string markdown = """
+| Name | Notes |
+| --- | --- |
+| One | Intro<br><br>- first<br>- second |
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var table = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
+        var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)table).BuildOwnedSyntaxChildren();
+        var finalTable = Assert.Single(result.FinalSyntaxTree.Children);
+        var childBlocks = ((IChildMarkdownBlockContainer)table).ChildBlocks;
+
+        Assert.Null(((ISyntaxChildrenMarkdownBlock)table).ProvidedSyntaxChildren);
+        Assert.Equal(
+            new[] { MarkdownSyntaxKind.TableHeader, MarkdownSyntaxKind.TableAlignmentRow, MarkdownSyntaxKind.TableRow },
+            ownedChildren.Select(child => child.Kind).ToArray());
+        Assert.Equal(ownedChildren.Select(child => child.Kind), finalTable.Children.Select(child => child.Kind));
+
+        var bodyRow = ownedChildren[2];
+        var notesCellSyntax = bodyRow.Children[1];
+        var notesCell = table.GetCell(0, 1);
+        Assert.NotNull(notesCell);
+        Assert.Same(notesCell, notesCellSyntax.AssociatedObject);
+        Assert.Equal(new[] { MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.UnorderedList }, notesCellSyntax.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(5, childBlocks.Count);
+        Assert.Same(Assert.Single(table.GetHeaderCell(0)!.Blocks), childBlocks[0]);
+        Assert.Same(Assert.Single(table.GetHeaderCell(1)!.Blocks), childBlocks[1]);
+        Assert.Same(Assert.Single(table.GetCell(0, 0)!.Blocks), childBlocks[2]);
+        Assert.Same(notesCell!.Blocks[0], childBlocks[3]);
+        Assert.Same(notesCell.Blocks[1], childBlocks[4]);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void TableCell_ChildContainer_Interface_Uses_Cell_Blocks() {
         var markdown = """
 | Name | Value |
