@@ -50,6 +50,11 @@ public sealed class MarkdownDocumentTransformDiagnostic {
     public int ChangedBlockCountAfter { get; set; }
 
     /// <summary>
+    /// Indicates whether the transform changed any top-level block fingerprints.
+    /// </summary>
+    public bool HasChangedBlocks => ChangedBlockCountBefore > 0 || ChangedBlockCountAfter > 0;
+
+    /// <summary>
     /// Aggregate source span of the affected input blocks when original syntax spans are available.
     /// </summary>
     public MarkdownSourceSpan? AffectedSourceSpan { get; set; }

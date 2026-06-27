@@ -430,11 +430,49 @@ Paragraph
         }
 
         [Fact]
+        public void MarkdownRoundtripWriter_Preserves_Unchanged_OriginalMarkdown_When_NoOpTransform_Ran() {
+            const string markdown = "# Title\r\n\r\nBody\r\n";
+            var options = new MarkdownReaderOptions {
+                PreserveTrivia = true
+            };
+            options.DocumentTransforms.Add(new NoOpTransform());
+
+            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+
+            var transformDiagnostic = Assert.Single(result.TransformDiagnostics);
+            Assert.False(transformDiagnostic.HasChangedBlocks);
+            var roundtrip = MarkdownRoundtripWriter.WriteUnchanged(result);
+
+            Assert.True(roundtrip.IsLossless);
+            Assert.Empty(roundtrip.Diagnostics);
+            Assert.Equal(markdown, roundtrip.Markdown);
+        }
+
+        [Fact]
         public void MarkdownRoundtripWriter_Applies_SourceEdit_To_OriginalMarkdown_When_PreserveTrivia_Is_Enabled() {
             const string markdown = "# Old **Title**\r\n\r\nBody\r\n";
             var options = new MarkdownReaderOptions {
                 PreserveTrivia = true
             };
+            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var native = MarkdownNativeDocument.FromParseResult(result);
+            var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
+            var edit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New Title");
+
+            var roundtrip = MarkdownRoundtripWriter.WriteWithSourceEdit(result, edit);
+
+            Assert.True(roundtrip.IsLossless);
+            Assert.Empty(roundtrip.Diagnostics);
+            Assert.Equal("# New Title\r\n\r\nBody\r\n", roundtrip.Markdown);
+        }
+
+        [Fact]
+        public void MarkdownRoundtripWriter_Applies_SourceEdit_To_OriginalMarkdown_When_NoOpTransform_Ran() {
+            const string markdown = "# Old **Title**\r\n\r\nBody\r\n";
+            var options = new MarkdownReaderOptions {
+                PreserveTrivia = true
+            };
+            options.DocumentTransforms.Add(new NoOpTransform());
             var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
             var native = MarkdownNativeDocument.FromParseResult(result);
             var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
@@ -651,6 +689,10 @@ Paragraph
             var byText = parsed.FindHeadings("repeat");
             Assert.Equal(2, byText.Count);
             Assert.Equal(new[] { "repeat", "repeat-1" }, byText.Select(info => info.Anchor).ToArray());
+        }
+
+        private sealed class NoOpTransform : IMarkdownDocumentTransform {
+            public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) => document;
         }
     }
 }

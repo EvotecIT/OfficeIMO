@@ -28,7 +28,7 @@ public static class MarkdownRoundtripWriter {
                 "The parse result does not contain original reader input. Parse with PreserveTrivia enabled before requesting a lossless unchanged roundtrip.");
         }
 
-        if (result.TransformDiagnostics.Count > 0) {
+        if (HasSourceAffectingTransform(result)) {
             return GeneratedWithDiagnostic(
                 result,
                 DocumentTransformedId,
@@ -70,7 +70,7 @@ public static class MarkdownRoundtripWriter {
         }
 
         var diagnostics = new List<MarkdownRoundtripDiagnostic>();
-        if (result.TransformDiagnostics.Count > 0) {
+        if (HasSourceAffectingTransform(result)) {
             diagnostics.Add(new MarkdownRoundtripDiagnostic(
                 DocumentTransformedId,
                 "The parsed document was changed by one or more document transforms. Source edits were applied to normalized markdown instead of claiming a byte-preserving original-source roundtrip.",
@@ -90,6 +90,16 @@ public static class MarkdownRoundtripWriter {
         return ApplyReplacements(result.SourceMarkdown, normalizedReplacements, diagnostics);
     }
 
+    private static bool HasSourceAffectingTransform(MarkdownParseResult result) {
+        for (var i = 0; i < result.TransformDiagnostics.Count; i++) {
+            if (result.TransformDiagnostics[i].HasChangedBlocks) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static MarkdownRoundtripResult GeneratedWithDiagnostic(
         MarkdownParseResult result,
         string id,
@@ -103,6 +113,10 @@ public static class MarkdownRoundtripWriter {
     private static MarkdownSourceSpan? GetTransformFallbackSpan(MarkdownParseResult result) {
         for (var i = 0; i < result.TransformDiagnostics.Count; i++) {
             var diagnostic = result.TransformDiagnostics[i];
+            if (!diagnostic.HasChangedBlocks) {
+                continue;
+            }
+
             var sourceSpan = diagnostic.AffectedSourceSpan
                              ?? diagnostic.AffectedOriginalBlockSpan
                              ?? diagnostic.AffectedFinalBlockSpan;

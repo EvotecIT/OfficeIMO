@@ -58,6 +58,29 @@ second
     }
 
     [Fact]
+    public void MarkdownDocumentTransformPipeline_Marks_NoOpTransforms_As_Not_SourceAffecting() {
+        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
+        var document = MarkdownDoc.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Text("Base")));
+
+        var transformed = MarkdownDocumentTransformPipeline.Apply(
+            document,
+            new IMarkdownDocumentTransform[] { new NoOpTransform() },
+            new MarkdownDocumentTransformContext(
+                MarkdownDocumentTransformSource.MarkdownReader,
+                MarkdownReaderOptions.CreateOfficeIMOProfile(),
+                sourceOptions: null,
+                diagnostics));
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Same(document, transformed);
+        Assert.False(diagnostic.HasChangedBlocks);
+        Assert.Equal(0, diagnostic.ChangedBlockCountBefore);
+        Assert.Equal(0, diagnostic.ChangedBlockCountAfter);
+        Assert.Null(diagnostic.AffectedSourceSpan);
+    }
+
+    [Fact]
     public void MarkdownDocumentTransformPipeline_Collects_AffectedSourceSpan_When_SyntaxTree_Is_Available() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         var parseResult = MarkdownReader.ParseWithSyntaxTree("previous shutdown was unexpected### Reason", options);
@@ -611,6 +634,13 @@ Lead[^1]
         public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownReader, context.Source);
             document.Add(new ParagraphBlock(new InlineSequence().Text(text)));
+            return document;
+        }
+    }
+
+    private sealed class NoOpTransform : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            Assert.Equal(MarkdownDocumentTransformSource.MarkdownReader, context.Source);
             return document;
         }
     }
