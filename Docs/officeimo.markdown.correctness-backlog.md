@@ -329,7 +329,7 @@ Current coverage:
 - native source edit helpers can address inline link opening/separator/closing delimiter marker metadata without replacing the full inline content
 - native source edit helpers can address inline image opening/separator/closing delimiter marker metadata without replacing the full inline content
 - native source edit helpers can address reference-style link and image opening/separator/closing delimiter marker metadata without replacing the full inline content
-- native source edit helpers can address linked-image outer delimiter marker metadata without replacing the full inline content
+- native source edit helpers can address linked-image outer opening/separator/closing delimiter marker metadata without replacing the full inline content
 - native source edit helpers can address parsed formatting opening/closing marker metadata without replacing the full inline content
 - native source edit helpers can address supported inline HTML opening/closing tag markers without replacing the full inline content
 - native source edit helpers can address hard-break marker spellings without replacing surrounding inline text

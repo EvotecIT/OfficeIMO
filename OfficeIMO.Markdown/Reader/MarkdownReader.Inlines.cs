@@ -196,6 +196,17 @@ public static partial class MarkdownReader {
             && separatorStart + 1 < text.Length
             && text[separatorStart] == ']'
             && text[separatorStart + 1] == '[';
+        int FindLinkedImageOuterSeparatorStart(int start, int length, int targetStart) {
+            for (int i = Math.Min(targetStart - 1, start + length - 1); i > start; i--) {
+                if (char.IsWhiteSpace(text[i])) {
+                    continue;
+                }
+
+                return text[i] == '(' && i > start && text[i - 1] == ']' ? i - 1 : -1;
+            }
+
+            return -1;
+        }
         InlineSequence ParseNestedInlineSegment(int relativeStart, int length, bool nestedAllowLinks, bool nestedAllowImages) {
             if (relativeStart < 0 || length <= 0 || relativeStart >= text.Length) {
                 return new InlineSequence();
@@ -396,6 +407,7 @@ public static partial class MarkdownReader {
                         var plainAlt2 = ExtractImageAltPlainText(alt2, options, state);
                         var imageLink = new ImageLinkInline(alt2, imgResolved!, hrefResolved!, imgTitle2, hrefTitle2, plainAlt2);
                         AddRawNode(imageLink, pos, consumed);
+                        int outerSeparatorStart = FindLinkedImageOuterSeparatorStart(pos, consumed, imageLinkHrefStart);
                         MarkdownInlineMetadataSourceSpans.SetImageLinkParts(
                             imageLink,
                             sourceMap?.GetSpan(altStart2, altLength2),
@@ -412,7 +424,9 @@ public static partial class MarkdownReader {
                             "[",
                             sourceMap?.GetSpan(pos, 1),
                             ")",
-                            sourceMap?.GetSpan(pos + consumed - 1, 1));
+                            sourceMap?.GetSpan(pos + consumed - 1, 1),
+                            outerSeparatorStart >= 0 ? "](" : null,
+                            outerSeparatorStart >= 0 ? sourceMap?.GetSpan(outerSeparatorStart, 2) : null);
                     }
                     pos += consumed; continue;
                 }
