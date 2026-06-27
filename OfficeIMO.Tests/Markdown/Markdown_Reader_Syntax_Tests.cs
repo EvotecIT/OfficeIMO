@@ -2739,6 +2739,39 @@ Term: Intro
     }
 
     [Fact]
+    public void DefinitionList_SyntaxChild_Owner_Interface_Uses_Parsed_Groups() {
+        var result = MarkdownReader.ParseWithSyntaxTree("""
+Term: Intro
+
+  - first
+  - second
+""");
+
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var providedChildren = ((ISyntaxChildrenMarkdownBlock)definitionList).ProvidedSyntaxChildren;
+        var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)definitionList).BuildOwnedSyntaxChildren();
+        var finalDefinitionList = Assert.Single(result.FinalSyntaxTree.Children);
+
+        Assert.NotNull(providedChildren);
+        var providedGroup = Assert.Single(providedChildren!);
+        var ownedGroup = Assert.Single(ownedChildren);
+
+        Assert.Equal(MarkdownSyntaxKind.DefinitionGroup, providedGroup.Kind);
+        Assert.Same(group, providedGroup.AssociatedObject);
+        Assert.Same(definition, providedGroup.Children[1].AssociatedObject);
+        Assert.Same(providedGroup, ownedGroup);
+        Assert.Equal(
+            ownedChildren.Select(child => child.Kind),
+            finalDefinitionList.Children.Select(child => child.Kind));
+        Assert.Equal(
+            definitionList.ChildBlocks,
+            ((IChildMarkdownBlockContainer)definitionList).ChildBlocks);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Maps_SourceSpans_To_Representative_Semantic_Object_Graph() {
         var markdown = """
 # Title

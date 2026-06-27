@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Definition list rendered as term/definition pairs. Markdown output uses
 /// a simple "Term: Definition" fallback; HTML uses &lt;dl&gt;.
 /// </summary>
-public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer {
+public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock {
     private readonly List<DefinitionListGroup> _groups = new List<DefinitionListGroup>();
     private readonly List<DefinitionListEntry> _entries = new List<DefinitionListEntry>();
 
@@ -147,6 +147,8 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     }
 
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
+    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxItems;
+    IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() => BuildSyntaxItems();
 
     private IReadOnlyList<DefinitionListInlineItem> BuildInlineItems() {
         if (_entries.Count == 0) {
@@ -333,7 +335,11 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionList, span, children: BuildSyntaxItems(), associatedObject: this);
+        new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.DefinitionList,
+            span,
+            children: MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this),
+            associatedObject: this);
 
     private sealed class LegacyDefinitionListItemList : IList<(string Term, string Definition)> {
         private readonly DefinitionListBlock _owner;
