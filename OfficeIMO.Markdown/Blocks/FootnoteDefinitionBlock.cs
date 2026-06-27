@@ -9,10 +9,27 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
     /// <summary>Source span for the footnote label token when parsed from markdown.</summary>
     public MarkdownSourceSpan? LabelSourceSpan { get; internal set; }
     private readonly string _fallbackText;
+    private readonly string? _fallbackTextProjection;
     private readonly IReadOnlyList<IMarkdownBlock> _blocks;
 
     /// <summary>Footnote text content. When parsed child blocks are available, this is derived from them.</summary>
-    public string Text => _blocks.Count > 0 ? RenderBlocksAsText(_blocks) : _fallbackText;
+    public string Text {
+        get {
+            if (_blocks.Count == 0) {
+                return _fallbackText;
+            }
+
+            if (string.IsNullOrEmpty(_fallbackText)) {
+                return RenderBlocksAsText(_blocks);
+            }
+
+            var projectedText = RenderBlocksAsText(_blocks);
+            return _fallbackTextProjection != null
+                && string.Equals(projectedText, _fallbackTextProjection, StringComparison.Ordinal)
+                ? _fallbackText
+                : projectedText;
+        }
+    }
     /// <summary>
     /// Parsed child blocks of the footnote definition.
     /// Paragraph-only footnotes keep this aligned with <see cref="ParagraphBlocks"/>, while richer
@@ -40,12 +57,11 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
     /// <summary>Create a new footnote definition.</summary>
     /// <param name="label">Identifier used by references.</param>
     /// <param name="text">Definition text.</param>
-    public FootnoteDefinitionBlock(string label, string text)
-        : this(
-            label,
-            text,
-            Array.Empty<IMarkdownBlock>(),
-            syntaxChildren: null) {
+    public FootnoteDefinitionBlock(string label, string text) {
+        Label = label ?? string.Empty;
+        _fallbackText = text ?? string.Empty;
+        _blocks = CreatePlainTextBodyBlocks(text);
+        _fallbackTextProjection = RenderBlocksAsText(_blocks);
     }
 
     /// <summary>
@@ -87,10 +103,15 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
             syntaxChildren) {
     }
 
-    internal FootnoteDefinitionBlock(string label, string text, IReadOnlyList<IMarkdownBlock>? blocks, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren) {
+    internal FootnoteDefinitionBlock(string label, string text, IReadOnlyList<IMarkdownBlock>? blocks, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren)
+        : this(label, text, blocks, fallbackTextProjection: null, syntaxChildren) {
+    }
+
+    private FootnoteDefinitionBlock(string label, string text, IReadOnlyList<IMarkdownBlock>? blocks, string? fallbackTextProjection, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren) {
         Label = label ?? string.Empty;
         _fallbackText = text ?? string.Empty;
         _blocks = CopyBlocks(blocks);
+        _fallbackTextProjection = fallbackTextProjection;
         SyntaxChildren = syntaxChildren;
     }
 
@@ -304,6 +325,14 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
         }
 
         return blocks;
+    }
+
+    private static IReadOnlyList<IMarkdownBlock> CreatePlainTextBodyBlocks(string? text) {
+        if (string.IsNullOrEmpty(text)) {
+            return Array.Empty<IMarkdownBlock>();
+        }
+
+        return new IMarkdownBlock[] { new ParagraphBlock(MarkdownReader.ParseInlineText(text)) };
     }
 
     private static IReadOnlyList<ParagraphBlock> CreateParagraphBlocks(IReadOnlyList<IMarkdownBlock> blocks) {

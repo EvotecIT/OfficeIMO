@@ -543,6 +543,26 @@ Lead[^1]
     }
 
     [Fact]
+    public void MarkdownInlineNormalizationTransform_Updates_Builder_Footnote_Text_From_TextConstructorChildBlocks() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var document = MarkdownDoc.Create()
+            .Add(new FootnoteDefinitionBlock("1", "Why it matters:missing evidence"));
+        var transform = new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightColonSpacing = true
+        });
+
+        var transformed = MarkdownDocumentTransformPipeline.Apply(
+            document,
+            new IMarkdownDocumentTransform[] { transform },
+            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, options));
+
+        var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(transformed.Blocks));
+
+        Assert.Equal("Why it matters: missing evidence", footnote.Text);
+        Assert.Equal("Why it matters: missing evidence", Assert.Single(footnote.ParagraphBlocks).Inlines.RenderMarkdown());
+    }
+
+    [Fact]
     public void MarkdownInlineNormalizationTransform_Updates_Callout_Body_From_RewrittenBlocks() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {

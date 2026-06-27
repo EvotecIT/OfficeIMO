@@ -143,6 +143,21 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Footnote_Public_Text_Constructor_Adapts_Text_To_ChildBlocks() {
+            var footnote = new FootnoteDefinitionBlock("audit", "Intro *value*");
+
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(footnote.ChildBlocks));
+
+            Assert.Equal(footnote.ChildBlocks, footnote.Blocks);
+            Assert.Equal(footnote.ChildBlocks, ((IChildMarkdownBlockContainer)footnote).ChildBlocks);
+            Assert.Same(paragraph, Assert.Single(footnote.ParagraphBlocks));
+            Assert.Same(paragraph.Inlines, Assert.Single(footnote.Paragraphs));
+            Assert.Equal("Intro *value*", footnote.Text);
+            Assert.Equal("Intro *value*", paragraph.Inlines.RenderMarkdown());
+            Assert.Contains("<em>value</em>", ((IMarkdownBlock)footnote).RenderHtml(), StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Reference_Link_Title_On_Next_Line_Is_Resolved() {
             var md = string.Join("\n", new[] {
                 "See [Docs][docs].",
