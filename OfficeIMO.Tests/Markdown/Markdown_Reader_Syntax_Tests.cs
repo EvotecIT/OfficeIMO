@@ -3656,6 +3656,41 @@ Lead[^1]
     }
 
     [Fact]
+    public void TableCell_SyntaxChild_Owner_Interface_Rebuilds_When_Cell_Blocks_Change() {
+        const string markdown = """
+| Section | Notes |
+| --- | --- |
+| Alpha | Original<br><br>- first |
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var table = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
+        var cell = table.GetCell(0, 1);
+
+        Assert.NotNull(cell);
+        var providedChildren = ((ISyntaxChildrenMarkdownBlock)cell!).ProvidedSyntaxChildren;
+        Assert.NotNull(providedChildren);
+        var oldParagraph = Assert.IsType<ParagraphBlock>(cell.Blocks[0]);
+        var replacement = new ParagraphBlock(new InlineSequence().Text("Replacement"));
+
+        cell.Blocks.Clear();
+        cell.Blocks.Add(replacement);
+
+        var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)cell).BuildOwnedSyntaxChildren();
+        var rebuiltSyntaxTree = MarkdownReader.BuildSyntaxTree(result.Document);
+        var rebuiltCell = rebuiltSyntaxTree.Children[0].Children[2].Children[1];
+        var rebuiltParagraph = Assert.Single(rebuiltCell.Children);
+
+        Assert.NotSame(oldParagraph, replacement);
+        Assert.NotSame(providedChildren![0], ownedChildren[0]);
+        Assert.Same(replacement, Assert.Single(ownedChildren).AssociatedObject);
+        Assert.Same(cell, rebuiltCell.AssociatedObject);
+        Assert.Same(replacement, rebuiltParagraph.AssociatedObject);
+        Assert.Equal("Replacement", rebuiltParagraph.Literal);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(rebuiltSyntaxTree);
+    }
+
+    [Fact]
     public void Document_Can_Enumerate_Descendant_Tables_And_Table_Cells() {
         var markdown = """
 > | Name | Value |
