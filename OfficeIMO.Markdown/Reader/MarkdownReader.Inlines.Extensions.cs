@@ -13,7 +13,14 @@ public static partial class MarkdownReader {
         ParseInlineText(text, options, null);
 
     internal static InlineSequence ParseInlineText(string? text, MarkdownReaderOptions? options, MarkdownReaderState? state) =>
-        ParseInlines(text ?? string.Empty, options ?? new MarkdownReaderOptions(), state);
+        ParseInlineText(text, options, state, sourceMap: null);
+
+    internal static InlineSequence ParseInlineText(
+        string? text,
+        MarkdownReaderOptions? options,
+        MarkdownReaderState? state,
+        MarkdownInlineSourceMap? sourceMap) =>
+        ParseInlines(text ?? string.Empty, options ?? new MarkdownReaderOptions(), state, sourceMap);
 
     private static IReadOnlyList<MarkdownInlineParserExtension> BuildEffectiveInlineParserExtensions(MarkdownReaderOptions options) {
         if (options.InlineParserExtensions.Count == 0) {

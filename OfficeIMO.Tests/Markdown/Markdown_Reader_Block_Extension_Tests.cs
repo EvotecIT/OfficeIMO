@@ -53,8 +53,27 @@ Paragraph line
 
         var panel = Assert.IsType<PanelBlock>(Assert.Single(result.Document.Blocks));
         Assert.Equal(new MarkdownSourceSpan(1, 1, 5, 3), panel.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 5, 3), panel.ParserSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 14), ((MarkdownObject)panel.ChildBlocks[0]).SourceSpan);
         Assert.Same(panel, panelSyntax.AssociatedObject);
+    }
+
+    [Fact]
+    public void Block_Parser_Context_Creates_SourceSpans_For_Custom_Syntax_Children() {
+        const string markdown = ":::panel **Ops** Notes\r\nParagraph line\r\n:::\r\n";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
+
+        var panel = Assert.IsType<PanelBlock>(Assert.Single(result.Document.Blocks));
+        var panelSyntax = Assert.Single(result.FinalSyntaxTree.Children);
+        var titleSyntax = panelSyntax.Children[0];
+        var titleStrong = Assert.Single(titleSyntax.Children, child => child.Kind == MarkdownSyntaxKind.InlineStrong);
+
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 3), panel.ParserSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 22), panel.TitleSourceSpan);
+        Assert.Equal(panel.TitleSourceSpan, titleSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 14), titleStrong.SourceSpan);
+        Assert.Same(panel.TitleSyntaxOwner, titleSyntax.AssociatedObject);
     }
 
     [Fact]
@@ -432,6 +451,11 @@ Paragraph line
         }
 
         var title = trimmed.Length == prefix.Length ? string.Empty : trimmed.Substring(prefix.Length).Trim();
+        var sourceLine = context.CurrentLine;
+        var titleStartColumn = GetPanelTitleStartColumn(sourceLine, prefix);
+        var titleSourceSpan = title.Length > 0
+            ? context.CreateSourceSpan(0, titleStartColumn, 0, titleStartColumn + title.Length - 1)
+            : (MarkdownSourceSpan?)null;
         var closingOffset = -1;
         for (var offset = 1; context.TryGetLine(offset, out var line); offset++) {
             if (string.Equals(line.Trim(), ":::", StringComparison.Ordinal)) {
@@ -447,20 +471,52 @@ Paragraph line
         var nestedBlocks = closingOffset > 1
             ? context.ParseNestedBlocks(1, closingOffset - 1)
             : Array.Empty<IMarkdownBlock>();
-        result = new MarkdownBlockParseResult(new PanelBlock(title, nestedBlocks), closingOffset + 1);
+        result = new MarkdownBlockParseResult(
+            new PanelBlock(
+                title,
+                nestedBlocks,
+                title.Length > 0 ? context.ParseInlineText(0, titleStartColumn, title.Length) : new InlineSequence(),
+                context.CreateLineSpan(0, closingOffset + 1),
+                titleSourceSpan),
+            closingOffset + 1);
         return true;
     }
 
+    private static int GetPanelTitleStartColumn(string line, string prefix) {
+        var prefixIndex = line.IndexOf(prefix, StringComparison.Ordinal);
+        if (prefixIndex < 0) {
+            return 1;
+        }
+
+        var titleStartIndex = prefixIndex + prefix.Length;
+        while (titleStartIndex < line.Length && char.IsWhiteSpace(line[titleStartIndex])) {
+            titleStartIndex++;
+        }
+
+        return titleStartIndex + 1;
+    }
+
     private sealed class PanelBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlockWithContext, IContextualHtmlMarkdownBlock, IChildMarkdownBlockContainer {
-        public PanelBlock(string title, IReadOnlyList<IMarkdownBlock> childBlocks) {
+        public PanelBlock(
+            string title,
+            IReadOnlyList<IMarkdownBlock> childBlocks,
+            InlineSequence titleInlines,
+            MarkdownSourceSpan? parserSourceSpan,
+            MarkdownSourceSpan? titleSourceSpan) {
             Title = title ?? string.Empty;
             ChildBlocks = childBlocks ?? Array.Empty<IMarkdownBlock>();
+            TitleInlines = titleInlines ?? new InlineSequence().Text(Title);
             TitleSyntaxOwner = new PanelTitleSyntaxOwner(Title);
+            ParserSourceSpan = parserSourceSpan;
+            TitleSourceSpan = titleSourceSpan;
         }
 
         public string Title { get; }
+        public InlineSequence TitleInlines { get; }
         public object TitleSyntaxOwner { get; }
         public IReadOnlyList<IMarkdownBlock> ChildBlocks { get; }
+        public MarkdownSourceSpan? ParserSourceSpan { get; }
+        public MarkdownSourceSpan? TitleSourceSpan { get; }
 
         string IMarkdownBlock.RenderMarkdown() {
             var body = string.Join("\n\n", ChildBlocks.Select(block => block.RenderMarkdown().TrimEnd()));
@@ -493,8 +549,8 @@ Paragraph line
         public MarkdownSyntaxNode BuildSyntaxNode(MarkdownBlockSyntaxBuilderContext context, MarkdownSourceSpan? span) {
             var titleNode = context.BuildInlineContainerNode(
                 MarkdownSyntaxKind.Paragraph,
-                new InlineSequence().Text(Title),
-                span: null,
+                TitleInlines,
+                span: TitleSourceSpan,
                 literal: Title,
                 associatedObject: TitleSyntaxOwner);
             var childNodes = context.BuildOwnedChildSyntaxNodes(this);

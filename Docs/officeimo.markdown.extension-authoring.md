@@ -289,6 +289,13 @@ static bool TryParsePanel(MarkdownBlockParserContext context, out MarkdownBlockP
     }
 
     var title = context.CurrentLine.Trim().Substring(":::panel".Length).Trim();
+    var titleStartColumn = context.CurrentLine.IndexOf(title, StringComparison.Ordinal) + 1;
+    var titleSourceSpan = context.CreateSourceSpan(
+        relativeStartLine: 0,
+        startColumn: titleStartColumn,
+        relativeEndLine: 0,
+        endColumn: titleStartColumn + title.Length - 1);
+    var titleInlines = context.ParseInlineText(0, titleStartColumn, title.Length);
     var closingOffset = -1;
     for (var offset = 1; context.TryGetLine(offset, out var line); offset++) {
         if (string.Equals(line.Trim(), ":::", StringComparison.Ordinal)) {
@@ -304,7 +311,10 @@ static bool TryParsePanel(MarkdownBlockParserContext context, out MarkdownBlockP
     var childBlocks = closingOffset > 1
         ? context.ParseNestedBlocks(1, closingOffset - 1)
         : Array.Empty<IMarkdownBlock>();
-    result = new MarkdownBlockParseResult(new PanelBlock(title, childBlocks), closingOffset + 1);
+    var blockSourceSpan = context.CreateLineSpan(0, closingOffset + 1);
+    result = new MarkdownBlockParseResult(
+        new PanelBlock(title, titleInlines, childBlocks, blockSourceSpan, titleSourceSpan),
+        closingOffset + 1);
     return true;
 }
 ```
@@ -315,6 +325,10 @@ Key pieces:
   exposes the current line, surrounding source lines, reader options, shared reader state, and the in-progress document
 - `ParseNestedBlocks(...)`
   lets custom block syntax reuse the core parser for nested markdown while preserving source spans
+- `CreateLineSpan(...)` and `CreateSourceSpan(...)`
+  let custom parsers assign block-level and token-level source spans without manually calculating absolute line offsets
+- `ParseInlineText(...)`
+  parses a source-line slice into an `InlineSequence` while preserving source spans for inline syntax inside custom block metadata such as titles
 - `MarkdownBlockParseResult`
   returns the blocks produced by the parser plus the number of consumed source lines
 - `IChildMarkdownBlockContainer`
@@ -324,6 +338,7 @@ Key pieces:
 
 - Inline source spans are assigned by the reader when your inline parser returns a node through `MarkdownInlineParseResult`.
 - Block source spans are assigned when the block is part of the parsed document and its syntax node `AssociatedObject` points back to the block.
+- Custom block parsers can use `MarkdownBlockParserContext.CreateLineSpan(...)`, `CreateSourceSpan(...)`, and `ParseInlineText(...)` when they need source-aware child syntax such as a custom title, label, or summary token.
 - Use `customKind` on `MarkdownSyntaxNode` for extension-specific AST identity without forcing enum changes in `MarkdownSyntaxKind`.
 
 Recommended practice:
