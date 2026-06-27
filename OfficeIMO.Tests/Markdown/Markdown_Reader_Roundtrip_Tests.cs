@@ -711,6 +711,29 @@ beta
         }
 
         [Fact]
+        public void MarkdownRoundtripWriter_Reports_Both_SourceSpans_For_Overlapping_SourceEdits() {
+            const string markdown = "# Old **Title**\n";
+            var options = new MarkdownReaderOptions {
+                PreserveTrivia = true
+            };
+            var native = MarkdownNativeDocument.Parse(markdown, options);
+            var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
+            var strong = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Strong);
+
+            var headingEdit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New **Title**");
+            var strongEdit = native.CreateReplaceEdit(strong, "Name");
+
+            var roundtrip = native.WriteWithSourceEdits(new[] { strongEdit, headingEdit });
+
+            Assert.False(roundtrip.IsLossless);
+            var diagnostic = Assert.Single(roundtrip.Diagnostics);
+            Assert.Equal("roundtrip.overlapping-edits", diagnostic.Id);
+            Assert.Equal(strongEdit.SourceSpan, diagnostic.SourceSpan);
+            Assert.Equal(new[] { headingEdit.SourceSpan, strongEdit.SourceSpan }, diagnostic.RelatedSourceSpans.ToArray());
+            Assert.Equal(markdown, roundtrip.Markdown);
+        }
+
+        [Fact]
         public void MarkdownRoundtripWriter_Applies_Nested_Inline_SourceEdit_To_OriginalMarkdown() {
             const string markdown = "Start **bold and _em_** end\r\n";
             var options = new MarkdownReaderOptions {

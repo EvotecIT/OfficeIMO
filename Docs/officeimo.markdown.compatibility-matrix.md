@@ -76,6 +76,7 @@ Status values:
 
 ## Recent Parity Slices
 
+- 2026-06-27: Overlapping source-edit roundtrip diagnostics now preserve both conflicting source spans in `RelatedSourceSpans`, so editor hosts can highlight the full conflict instead of only the later edit.
 - 2026-06-27: Valid indented footnote definition labels now keep parser-owned token source spans through original syntax, final syntax rebuilds, native block source fields, snapshots, and source-edit helpers. This narrows the `FootnoteDefinitionBlock` source-map gap without changing the broader partial status for full footnote/cmark-gfm parity.
 
 ## Parity Gates

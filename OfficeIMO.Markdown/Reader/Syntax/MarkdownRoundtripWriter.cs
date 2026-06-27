@@ -202,10 +202,12 @@ public static class MarkdownRoundtripWriter {
 
         for (var i = 1; i < ascending.Length; i++) {
             if (ascending[i].StartOffset <= ascending[i - 1].EndOffsetInclusive) {
+                var sourceSpan = ascending[i].SourceSpan ?? ascending[i - 1].SourceSpan;
                 diagnostics.Add(new MarkdownRoundtripDiagnostic(
                     OverlappingEditsId,
                     "Source edits overlap and cannot be applied deterministically.",
-                    ascending[i].SourceSpan));
+                    sourceSpan,
+                    BuildOverlapRelatedSpans(ascending[i - 1].SourceSpan, ascending[i].SourceSpan)));
                 orderedReplacements = Array.Empty<SourceReplacement>();
                 return false;
             }
@@ -215,6 +217,22 @@ public static class MarkdownRoundtripWriter {
             .OrderByDescending(replacement => replacement.StartOffset)
             .ToArray();
         return true;
+    }
+
+    private static IReadOnlyList<MarkdownSourceSpan> BuildOverlapRelatedSpans(MarkdownSourceSpan? first, MarkdownSourceSpan? second) {
+        if (!first.HasValue && !second.HasValue) {
+            return Array.Empty<MarkdownSourceSpan>();
+        }
+
+        if (!first.HasValue) {
+            return new[] { second.GetValueOrDefault() };
+        }
+
+        if (!second.HasValue || first.Value.Equals(second.Value)) {
+            return new[] { first.Value };
+        }
+
+        return new[] { first.Value, second.Value };
     }
 
     private readonly struct SourceReplacement {
