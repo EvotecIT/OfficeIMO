@@ -198,6 +198,40 @@ public sealed class Markdown_Inline_Extension_Tests {
     }
 
     [Fact]
+    public void Syntax_Aware_InlineParserExtension_Projects_Custom_Syntax_To_Native_Snapshots() {
+        var options = new MarkdownReaderOptions();
+        options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("angle-claim", TryParseAngleClaimInline));
+
+        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Lead <<**core**>> tail", options);
+        var paragraphSyntax = Assert.Single(result.SyntaxTree.Children);
+        var customSyntax = Assert.Single(paragraphSyntax.Children, node => node.CustomKind == "angle-claim-inline");
+
+        Assert.Equal(MarkdownSyntaxKind.Unknown, customSyntax.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 17), customSyntax.SourceSpan);
+        Assert.IsType<AngleClaimInline>(customSyntax.AssociatedObject);
+        Assert.Contains(customSyntax.Children, node => node.Kind == MarkdownSyntaxKind.InlineStrong);
+
+        var native = MarkdownNativeDocument.FromParseResult(result);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var custom = Assert.Single(paragraph.InlineRuns, inline => inline.SyntaxKind == MarkdownSyntaxKind.Unknown);
+
+        Assert.Equal(MarkdownNativeInlineKind.Other, custom.Kind);
+        Assert.Equal("core", custom.Text);
+        Assert.Equal("<<**core**>>", custom.Markdown);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 17), custom.SourceSpan);
+        Assert.Single(custom.Children, inline => inline.Kind == MarkdownNativeInlineKind.Strong);
+
+        var snapshot = native.ToSnapshot();
+        var snapshotCustom = Assert.Single(snapshot.Blocks[0].Inlines, inline => inline.SyntaxKind == MarkdownSyntaxKind.Unknown);
+
+        Assert.Equal(MarkdownNativeInlineKind.Other, snapshotCustom.Kind);
+        Assert.Equal("core", snapshotCustom.Text);
+        Assert.Equal("<<**core**>>", snapshotCustom.Markdown);
+        Assert.Equal("L1:C6-C17", snapshotCustom.SourceSpan!.Display);
+        Assert.Single(snapshotCustom.Children, inline => inline.Kind == MarkdownNativeInlineKind.Strong);
+    }
+
+    [Fact]
     public void InlineMarkdownRenderExtensions_Use_Last_Registration_And_Null_Fallback() {
         var options = new MarkdownWriteOptions {
             OutputLineEnding = "\n"
@@ -288,6 +322,26 @@ public sealed class Markdown_Inline_Extension_Tests {
         return true;
     }
 
+    private static bool TryParseAngleClaimInline(MarkdownInlineParserContext context, out MarkdownInlineParseResult result) {
+        result = default;
+        if (context.CurrentChar != '<'
+            || context.Position + 1 >= context.Text.Length
+            || context.Text[context.Position + 1] != '<') {
+            return false;
+        }
+
+        var closing = context.Text.IndexOf(">>", context.Position + 2, StringComparison.Ordinal);
+        if (closing < 0) {
+            return false;
+        }
+
+        var innerLength = closing - (context.Position + 2);
+        result = new MarkdownInlineParseResult(
+            new AngleClaimInline(context.ParseNestedInlines(2, innerLength)),
+            closing + 2 - context.Position);
+        return true;
+    }
+
     private sealed class TestClaimInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
         public TestClaimInline(string value) {
             Value = value;
@@ -316,5 +370,32 @@ public sealed class Markdown_Inline_Extension_Tests {
         string IRenderableMarkdownInline.RenderHtml() => "<span>" + Inlines.RenderHtml() + "</span>";
 
         void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => InlinePlainText.AppendPlainText(sb, Inlines);
+    }
+
+    private sealed class AngleClaimInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, ISyntaxMarkdownInline {
+        public AngleClaimInline(InlineSequence inlines) {
+            Inlines = inlines;
+        }
+
+        public InlineSequence Inlines { get; }
+
+        InlineSequence? IInlineContainerMarkdownInline.NestedInlines => Inlines;
+
+        string IRenderableMarkdownInline.RenderMarkdown() => "<<" + Inlines.RenderMarkdown() + ">>";
+
+        string IRenderableMarkdownInline.RenderHtml() => "<span data-angle-claim=\"true\">" + Inlines.RenderHtml() + "</span>";
+
+        void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => InlinePlainText.AppendPlainText(sb, Inlines);
+
+        MarkdownSyntaxNode ISyntaxMarkdownInline.BuildSyntaxNode(MarkdownInlineSyntaxBuilderContext context, MarkdownSourceSpan? span) {
+            var children = context.BuildChildren(Inlines);
+            return new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.Unknown,
+                span ?? context.GetAggregateSpan(children),
+                ((IRenderableMarkdownInline)this).RenderMarkdown(),
+                children,
+                this,
+                "angle-claim-inline");
+        }
     }
 }

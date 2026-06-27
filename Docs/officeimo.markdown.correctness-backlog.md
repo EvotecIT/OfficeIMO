@@ -189,6 +189,7 @@ Current coverage:
 
 - `MarkdownInlineParserExtension` is public and covered by custom inline parser tests
 - inline parser extensions now have registration-order, first-success, false-fallback, disabled-extension, and core-parser fallback coverage
+- syntax-aware custom inline parser extensions now project inline-backed `Unknown` syntax nodes into native `Other` inline snapshots, preserving custom syntax kind, source span, markdown/text, and nested inline children for host read models
 - `MarkdownInlineTransformExtension` separates post-parse inline AST normalization from token recognition
 - `HtmlOptions.InlineRenderExtensions` lets hosts/packages override HTML for specific inline semantic types without editing those node types
 - inline HTML render extensions now have explicit ordering and null-fallback tests: later matching registrations win, and `null` falls back to the inline's contextual/default renderer

@@ -174,7 +174,7 @@ internal static class MarkdownNativeInlineProjection {
                 continue;
             }
 
-            if (!IsInlineKind(nodes[i].Kind)) {
+            if (!IsInlineNode(nodes[i])) {
                 continue;
             }
 
@@ -261,7 +261,7 @@ internal static class MarkdownNativeInlineProjection {
 
     private static bool ContainsInlineChildren(MarkdownSyntaxNode node) {
         for (var i = 0; i < node.Children.Count; i++) {
-            if (IsInlineKind(node.Children[i].Kind) && !IsMetadataKind(node.Children[i].Kind)) {
+            if (IsInlineNode(node.Children[i]) && !IsMetadataKind(node.Children[i].Kind)) {
                 return true;
             }
         }
@@ -305,6 +305,9 @@ internal static class MarkdownNativeInlineProjection {
                 return MarkdownNativeInlineKind.Other;
         }
     }
+
+    private static bool IsInlineNode(MarkdownSyntaxNode node) =>
+        node != null && (IsInlineKind(node.Kind) || (node.Kind == MarkdownSyntaxKind.Unknown && node.AssociatedObject is IMarkdownInline));
 
     private static bool IsInlineKind(MarkdownSyntaxKind kind) {
         switch (kind) {
