@@ -335,6 +335,12 @@ public static partial class MarkdownReader {
                             imageLinkHrefTitleStart.HasValue && imageLinkHrefTitleLength.HasValue
                                 ? sourceMap?.GetSpan(imageLinkHrefTitleStart.Value, imageLinkHrefTitleLength.Value)
                                 : null);
+                        MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
+                            imageLink,
+                            "[",
+                            sourceMap?.GetSpan(pos, 1),
+                            ")",
+                            sourceMap?.GetSpan(pos + consumed - 1, 1));
                     }
                     pos += consumed; continue;
                 }

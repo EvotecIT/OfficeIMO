@@ -308,12 +308,18 @@ public class Markdown_Native_Inline_Metadata_Tests {
         var imageTitle = Assert.Single(imageLink.Metadata, metadata => metadata.Name == "imageTitle");
         var target = Assert.Single(imageLink.Metadata, metadata => metadata.Name == "target");
         var title = Assert.Single(imageLink.Metadata, metadata => metadata.Name == "title");
+        var opening = Assert.Single(imageLink.Metadata, metadata => metadata.Name == "openingMarker");
+        var closing = Assert.Single(imageLink.Metadata, metadata => metadata.Name == "closingMarker");
 
         Assert.Equal(new MarkdownSourceSpan(1, 14, 1, 16), alt.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 19, 1, 25), source.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 28, 1, 30), imageTitle.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 35, 1, 53), target.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 56, 1, 65), title.SourceSpan);
+        Assert.Equal("[", opening.Value);
+        Assert.Equal(")", closing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 11), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 67, 1, 67), closing.SourceSpan);
 
         Assert.Equal(
             "Paragraph [![Logo](img.png \"Img\")](https://example.com \"Link title\").",
@@ -330,6 +336,11 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal(
             "Paragraph [![Alt](img.png \"Img\")](https://example.com \"Docs\").",
             native.CreateReplaceEdit(title, "Docs").Apply(native.SourceMarkdown));
+        var edited = native.CreateReplaceEdit(opening, "{").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(closing, "}").Apply(edited);
+        Assert.Equal(
+            "Paragraph {![Alt](img.png \"Img\")](https://example.com \"Link title\"}.",
+            edited);
 
         var snapshot = native.ToSnapshot();
         var snapshotParagraph = Assert.Single(snapshot.Blocks);
@@ -340,6 +351,8 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal("Img", snapshotImageLink.Metadata["imageTitle"]);
         Assert.Equal("https://example.com", snapshotImageLink.Metadata["target"]);
         Assert.Equal("Link title", snapshotImageLink.Metadata["title"]);
+        Assert.Equal("[", snapshotImageLink.Metadata["openingMarker"]);
+        Assert.Equal(")", snapshotImageLink.Metadata["closingMarker"]);
         Assert.Equal(14, snapshotImageLink.MetadataSourceSpans["alt"]!.StartColumn);
         Assert.Equal(16, snapshotImageLink.MetadataSourceSpans["alt"]!.EndColumn);
         Assert.Equal(19, snapshotImageLink.MetadataSourceSpans["source"]!.StartColumn);
@@ -350,5 +363,7 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal(53, snapshotImageLink.MetadataSourceSpans["target"]!.EndColumn);
         Assert.Equal(56, snapshotImageLink.MetadataSourceSpans["title"]!.StartColumn);
         Assert.Equal(65, snapshotImageLink.MetadataSourceSpans["title"]!.EndColumn);
+        Assert.Equal(11, snapshotImageLink.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(67, snapshotImageLink.MetadataSourceSpans["closingMarker"]!.EndColumn);
     }
 }
