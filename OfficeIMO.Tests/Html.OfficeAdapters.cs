@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Packaging;
+using P = DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
 using OfficeIMO.Html;
@@ -542,6 +544,34 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_RoundTripsVariableLengthScatterSeriesInSemanticChartData() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorkSheet("Scatter");
+        var data = new ExcelChartData(
+            new[] { "1", "2", "3" },
+            new[] {
+                new ExcelChartSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }, ExcelChartType.Scatter),
+                new ExcelChartSeries("Outliers", new[] { 40D, 50D }, new[] { 4D, 5D }, ExcelChartType.Scatter)
+            });
+        sheet.AddChart(data, row: 1, column: 1, widthPixels: 320, heightPixels: 180, type: ExcelChartType.Scatter, title: "Scatter");
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+
+        Assert.Contains("data-officeimo-x=\"5\"", html, StringComparison.Ordinal);
+
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelChart chart = Assert.Single(imported.Sheets.Single(sheet => sheet.Name == "Scatter").Charts);
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.Equal(new[] { 1D, 2D, 3D }, snapshot.Data.Series[0].XValues);
+        Assert.Equal(new[] { 10D, 20D, 30D }, snapshot.Data.Series[0].Values);
+        Assert.Equal(new[] { 4D, 5D }, snapshot.Data.Series[1].XValues);
+        Assert.Equal(new[] { 40D, 50D }, snapshot.Data.Series[1].Values);
+    }
+
+    [Fact]
     public void ExcelChart_ScatterSnapshotPrefersLiveRangesOverCachedValues() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorkSheet("ScatterLive");
@@ -709,6 +739,51 @@ public class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-chart-kind=\"ColumnClustered\"", html, StringComparison.Ordinal);
         Assert.Contains("<svg", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Positioned Pipeline", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PowerPointHtml_SemanticSlidesSkipHiddenShapesByDefault() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.AddTextBox("Visible briefing");
+        PowerPointTextBox hidden = slide.AddTextBox("Hidden briefing");
+        hidden.Hidden = true;
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        });
+
+        Assert.Contains("Visible briefing", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden briefing", html, StringComparison.Ordinal);
+
+        string htmlWithHidden = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides,
+            IncludeHiddenShapes = true
+        });
+
+        Assert.Contains("Hidden briefing", htmlWithHidden, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PowerPointHtml_VisualReviewIncludesInheritedLayoutShapes() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointTextBox layoutText = slide.AddTextBoxPoints("Layout footer", 24, 200, 200, 24);
+        P.Shape slideShape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+            .Elements<P.Shape>()
+            .Single(shape => shape.InnerText.Contains("Layout footer", StringComparison.Ordinal));
+        P.Shape layoutShape = (P.Shape)slideShape.CloneNode(true);
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        layoutPart.SlideLayout.CommonSlideData!.ShapeTree!.Append(layoutShape);
+        layoutPart.SlideLayout.Save();
+        layoutText.Remove();
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
+        });
+
+        Assert.Contains("Layout footer", html, StringComparison.Ordinal);
+        Assert.Contains("left:24pt;top:200pt;width:200pt;height:24pt", html, StringComparison.Ordinal);
     }
 
     [Fact]

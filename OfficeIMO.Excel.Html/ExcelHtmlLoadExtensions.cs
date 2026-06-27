@@ -262,15 +262,20 @@ public static class ExcelHtmlLoadExtensions {
         var series = new List<ExcelChartSeries>();
         foreach (IElement row in rows.Skip(1)) {
             List<IElement> cells = row.Children.Where(child => IsElement(child, "th") || IsElement(child, "td")).ToList();
-            if (cells.Count != categories.Count + 1) {
+            if (cells.Count < 2) {
                 return false;
             }
 
             string name = NormalizeText(cells[0].TextContent);
-            var values = new double[categories.Count];
-            var xValues = new double[categories.Count];
             bool hasXValues = cells.Skip(1).Any(cell => cell.GetAttribute("data-officeimo-x") != null);
-            for (int i = 0; i < categories.Count; i++) {
+            if (!hasXValues && cells.Count != categories.Count + 1) {
+                return false;
+            }
+
+            int pointCount = hasXValues ? cells.Count - 1 : categories.Count;
+            var values = new double[pointCount];
+            var xValues = new double[pointCount];
+            for (int i = 0; i < pointCount; i++) {
                 IElement valueCell = cells[i + 1];
                 if (!double.TryParse(NormalizeText(valueCell.TextContent), NumberStyles.Float, CultureInfo.InvariantCulture, out values[i])) {
                     return false;

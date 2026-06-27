@@ -27,7 +27,7 @@ public sealed class PowerPointHtmlSaveOptions {
     /// <summary>When true, tables are exported.</summary>
     public bool IncludeTables { get; set; } = true;
 
-    /// <summary>When true, hidden shapes are included in positioned review output.</summary>
+    /// <summary>When true, hidden shapes are included in semantic and positioned review output.</summary>
     public bool IncludeHiddenShapes { get; set; }
 
     /// <summary>When true, emits slide-aligned extraction markdown as proof text.</summary>

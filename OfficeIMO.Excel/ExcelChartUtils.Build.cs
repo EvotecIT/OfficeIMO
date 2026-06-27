@@ -724,7 +724,13 @@ namespace OfficeIMO.Excel {
 
             IReadOnlyList<double>? xValues = data != null ? ParseNumericCategories(data.Categories) : null;
             foreach (var descriptor in seriesDescriptors) {
-                scatterChart.Append(CreateScatterChartSeries(descriptor.Index, range, descriptor.Series, xValues));
+                IReadOnlyList<double>? seriesXValues = descriptor.Series?.XValues;
+                scatterChart.Append(CreateScatterChartSeries(
+                    descriptor.Index,
+                    range,
+                    descriptor.Series,
+                    seriesXValues ?? xValues,
+                    ShouldUseLiteralXValues(seriesXValues, xValues)));
             }
 
             scatterChart.Append(CreateDefaultDataLabels());
@@ -734,12 +740,12 @@ namespace OfficeIMO.Excel {
         }
 
         private static ScatterChartSeries CreateScatterChartSeries(int seriesIndex, ExcelChartDataRange range,
-            ExcelChartSeries? series, IReadOnlyList<double>? xValues) {
+            ExcelChartSeries? series, IReadOnlyList<double>? xValues, bool useLiteralXValues) {
             return new ScatterChartSeries(
                 new ChartIndex { Val = (uint)seriesIndex },
                 new Order { Val = (uint)seriesIndex },
                 CreateSeriesText(range, seriesIndex, series?.Name ?? $"Series {seriesIndex + 1}"),
-                CreateXValues(range, xValues),
+                CreateXValues(range, xValues, useLiteralXValues),
                 CreateYValues(range, seriesIndex, series)
             );
         }
@@ -903,7 +909,25 @@ namespace OfficeIMO.Excel {
             return new CategoryAxisData(CreateStringReference(formula, null));
         }
 
-        private static XValues CreateXValues(ExcelChartDataRange range, IReadOnlyList<double>? xValues) {
+        private static bool ShouldUseLiteralXValues(IReadOnlyList<double>? seriesXValues, IReadOnlyList<double>? categoryXValues) {
+            if (seriesXValues == null || categoryXValues == null || seriesXValues.Count != categoryXValues.Count) {
+                return seriesXValues != null;
+            }
+
+            for (int i = 0; i < seriesXValues.Count; i++) {
+                if (!seriesXValues[i].Equals(categoryXValues[i])) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static XValues CreateXValues(ExcelChartDataRange range, IReadOnlyList<double>? xValues, bool useLiteralXValues = false) {
+            if (useLiteralXValues && xValues != null) {
+                return new XValues(CreateNumberLiteral(xValues));
+            }
+
             string formula = BuildSheetQualifiedRange(range.SheetName, range.CategoriesRangeA1);
             return new XValues(CreateNumberReference(formula, xValues));
         }

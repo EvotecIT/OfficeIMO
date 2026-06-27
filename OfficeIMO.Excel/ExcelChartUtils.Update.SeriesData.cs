@@ -95,12 +95,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void UpdateXValues(ScatterChartSeries series, ExcelChartDataRange range, IReadOnlyList<double> xValues) {
+        private static void UpdateXValues(ScatterChartSeries series, ExcelChartDataRange range, IReadOnlyList<double> xValues, bool useLiteralXValues = false) {
             string formula = BuildSheetQualifiedRange(range.SheetName, range.CategoriesRangeA1);
             XValues xValueElement = series.GetFirstChild<XValues>() ?? new XValues();
             xValueElement.RemoveAllChildren<NumberReference>();
             xValueElement.RemoveAllChildren<NumberLiteral>();
-            xValueElement.Append(CreateNumberReference(formula, xValues));
+            xValueElement.Append(useLiteralXValues ? CreateNumberLiteral(xValues) : CreateNumberReference(formula, xValues));
 
             if (xValueElement.Parent == null) {
                 series.Append(xValueElement);

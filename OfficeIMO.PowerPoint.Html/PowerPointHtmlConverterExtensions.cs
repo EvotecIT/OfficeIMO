@@ -80,6 +80,10 @@ public static class PowerPointHtmlConverterExtensions {
         body.Append("<h2>Slide ").Append(visibleIndex.ToString(CultureInfo.InvariantCulture)).Append("</h2>");
 
         foreach (PptCore.PowerPointTextBox textBox in slide.TextBoxes) {
+            if (!options.IncludeHiddenShapes && textBox.Hidden) {
+                continue;
+            }
+
             string text = NormalizeText(textBox.Text);
             if (text.Length == 0) {
                 continue;
@@ -90,6 +94,10 @@ public static class PowerPointHtmlConverterExtensions {
 
         if (options.IncludeTables) {
             foreach (PptCore.PowerPointTable table in slide.Tables) {
+                if (!options.IncludeHiddenShapes && table.Hidden) {
+                    continue;
+                }
+
                 AppendTable(body, table);
             }
         }
@@ -115,7 +123,7 @@ public static class PowerPointHtmlConverterExtensions {
             .Append(FormatNumber(height))
             .Append("pt;\">");
 
-        foreach (PptCore.PowerPointShape shape in slide.Shapes) {
+        foreach (PptCore.PowerPointShape shape in EnumerateVisualExportShapes(slide)) {
             if (!options.IncludeHiddenShapes && shape.Hidden) {
                 continue;
             }
@@ -126,6 +134,16 @@ public static class PowerPointHtmlConverterExtensions {
         body.Append("</div></div>");
         AppendExtractionProof(body, extractionProof, options);
         body.Append("</section>");
+    }
+
+    private static IEnumerable<PptCore.PowerPointShape> EnumerateVisualExportShapes(PptCore.PowerPointSlide slide) {
+        foreach (PptCore.PowerPointShape shape in slide.GetInheritedShapesForExport()) {
+            yield return shape;
+        }
+
+        foreach (PptCore.PowerPointShape shape in slide.Shapes) {
+            yield return shape;
+        }
     }
 
     private static void AppendHiddenSlideAttribute(StringBuilder body, PptCore.PowerPointSlide slide) {
@@ -497,7 +515,8 @@ public static class PowerPointHtmlConverterExtensions {
         return presentation.ExtractMarkdownChunks(
                 new PptCore.PowerPointExtractionExtensions.PowerPointExtractOptions {
                     IncludeNotes = options.IncludeNotes,
-                    IncludeTables = options.IncludeTables
+                    IncludeTables = options.IncludeTables,
+                    IncludeHiddenShapes = options.IncludeHiddenShapes
                 })
             .Select(chunk => chunk.Markdown ?? chunk.Text ?? string.Empty)
             .ToList();

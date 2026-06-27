@@ -322,23 +322,33 @@ namespace OfficeIMO.Excel {
                 for (int i = 0; i < seriesList.Count; i++) {
                     OpenXmlCompositeElement seriesElement = seriesList[i];
                     NumberReference? valuesReference = GetSeriesValuesReference(seriesElement);
-                    if (!TryReadReferencedNumberValues(contextSheet, valuesReference?.Formula?.Text, out IReadOnlyList<double>? values)) {
-                        TryReadCachedNumberValues(valuesReference, out values);
-                    }
-
-                    if (values == null) {
-                        return null;
-                    }
-
                     string name = TryReadSeriesName(seriesElement, contextSheet, out string? resolvedName) && !string.IsNullOrWhiteSpace(resolvedName)
                         ? resolvedName!
                         : $"Series {i + 1}";
                     IReadOnlyList<double>? xValues = null;
                     if (seriesElement is ScatterChartSeries scatterSeries) {
                         NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
-                        if (!TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out xValues)) {
+                        NumberLiteral? xLiteral = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberLiteral>();
+                        if (!TryReadNumberLiteralValues(xLiteral, out xValues) &&
+                            !TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out xValues)) {
                             TryReadCachedNumberValues(xReference, out xValues);
                         }
+                    }
+
+                    TryReadReferencedNumberValues(contextSheet, valuesReference?.Formula?.Text, out IReadOnlyList<double>? referencedValues);
+                    TryReadCachedNumberValues(valuesReference, out IReadOnlyList<double>? cachedValues);
+                    IReadOnlyList<double>? values = referencedValues;
+                    if (xValues != null &&
+                        referencedValues != null &&
+                        referencedValues.Count != xValues.Count &&
+                        cachedValues != null &&
+                        cachedValues.Count == xValues.Count) {
+                        values = cachedValues;
+                    }
+
+                    values ??= cachedValues;
+                    if (values == null) {
+                        return null;
                     }
 
                     if (xValues == null && values.Count != categories.Count) {
@@ -363,7 +373,9 @@ namespace OfficeIMO.Excel {
             categories = null;
             if (seriesElement is ScatterChartSeries scatterSeries) {
                 NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
-                if (!TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out IReadOnlyList<double>? numericValues)) {
+                NumberLiteral? xLiteral = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberLiteral>();
+                if (!TryReadNumberLiteralValues(xLiteral, out IReadOnlyList<double>? numericValues) &&
+                    !TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out numericValues)) {
                     TryReadCachedNumberValues(xReference, out numericValues);
                 }
 
@@ -498,14 +510,24 @@ namespace OfficeIMO.Excel {
 
                 NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
                 NumberReference? yReference = scatterSeries.GetFirstChild<YValues>()?.GetFirstChild<NumberReference>();
-                if (!TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out IReadOnlyList<double>? xValues)) {
+                NumberLiteral? xLiteral = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberLiteral>();
+                if (!TryReadNumberLiteralValues(xLiteral, out IReadOnlyList<double>? xValues) &&
+                    !TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out xValues)) {
                     TryReadCachedNumberValues(xReference, out xValues);
                 }
 
-                if (!TryReadReferencedNumberValues(contextSheet, yReference?.Formula?.Text, out IReadOnlyList<double>? yValues)) {
-                    TryReadCachedNumberValues(yReference, out yValues);
+                TryReadReferencedNumberValues(contextSheet, yReference?.Formula?.Text, out IReadOnlyList<double>? referencedYValues);
+                TryReadCachedNumberValues(yReference, out IReadOnlyList<double>? cachedYValues);
+                IReadOnlyList<double>? yValues = referencedYValues;
+                if (xValues != null &&
+                    referencedYValues != null &&
+                    referencedYValues.Count != xValues.Count &&
+                    cachedYValues != null &&
+                    cachedYValues.Count == xValues.Count) {
+                    yValues = cachedYValues;
                 }
 
+                yValues ??= cachedYValues;
                 if (xValues != null || yValues != null) {
                     scatterValuesByIndex[index] = (xValues, yValues);
                 }
@@ -533,12 +555,21 @@ namespace OfficeIMO.Excel {
         private static bool TryReadCachedNumberValues(NumberReference? reference, out IReadOnlyList<double>? values) {
             values = null;
             NumberingCache? cache = reference?.GetFirstChild<NumberingCache>();
-            if (cache == null) {
+            return TryReadNumberPoints(cache, out values);
+        }
+
+        private static bool TryReadNumberLiteralValues(NumberLiteral? literal, out IReadOnlyList<double>? values) {
+            return TryReadNumberPoints(literal, out values);
+        }
+
+        private static bool TryReadNumberPoints(OpenXmlCompositeElement? container, out IReadOnlyList<double>? values) {
+            values = null;
+            if (container == null) {
                 return false;
             }
 
             var numericValues = new List<double>();
-            foreach (NumericPoint point in cache.Elements<NumericPoint>().OrderBy(point => point.Index?.Value ?? uint.MaxValue)) {
+            foreach (NumericPoint point in container.Elements<NumericPoint>().OrderBy(point => point.Index?.Value ?? uint.MaxValue)) {
                 string? text = point.NumericValue?.Text;
                 if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
                     return false;

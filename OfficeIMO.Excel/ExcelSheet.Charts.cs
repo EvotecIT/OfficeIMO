@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
 
             IReadOnlyList<string> categories = data.Categories;
             IReadOnlyList<ExcelChartSeries> series = data.Series;
-            int categoryCount = categories.Count;
+            int categoryCount = GetChartDataPointCount(data);
             int seriesCount = series.Count;
             int cellCapacity = categoryCount * (seriesCount + 1);
             if (includeHeaderRow) {
@@ -66,10 +66,12 @@ namespace OfficeIMO.Excel {
 
                 for (int i = 0; i < categoryCount; i++) {
                     int row = startRow + i + rowOffset;
-                    object categoryValue = CoerceChartCategoryValue(categories[i], numericCategories);
+                    object categoryValue = GetChartCategoryValue(categories, series, i, numericCategories);
                     cells.Add((row, startColumn, categoryValue));
                     for (int s = 0; s < seriesCount; s++) {
-                        cells.Add((row, startColumn + s + 1, series[s].Values[i]));
+                        if (i < series[s].Values.Count) {
+                            cells.Add((row, startColumn + s + 1, series[s].Values[i]));
+                        }
                     }
                 }
             } else {
@@ -79,7 +81,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 for (int i = 0; i < categoryCount; i++) {
-                    cells.Add((startRow, startColumn + i + columnOffset, CoerceChartCategoryValue(categories[i], numericCategories)));
+                    cells.Add((startRow, startColumn + i + columnOffset, GetChartCategoryValue(categories, series, i, numericCategories)));
                 }
 
                 for (int s = 0; s < seriesCount; s++) {
@@ -89,7 +91,9 @@ namespace OfficeIMO.Excel {
                     }
 
                     for (int i = 0; i < categoryCount; i++) {
-                        cells.Add((row, startColumn + i + columnOffset, series[s].Values[i]));
+                        if (i < series[s].Values.Count) {
+                            cells.Add((row, startColumn + i + columnOffset, series[s].Values[i]));
+                        }
                     }
                 }
             }
@@ -101,6 +105,36 @@ namespace OfficeIMO.Excel {
             }
 
             return new ExcelChartDataRange(Name, startRow, startColumn, categoryCount, seriesCount, includeHeaderRow, orientation);
+        }
+
+        private static int GetChartDataPointCount(ExcelChartData data) {
+            int pointCount = data.Categories.Count;
+            foreach (ExcelChartSeries series in data.Series) {
+                pointCount = Math.Max(pointCount, series.Values.Count);
+                if (series.XValues != null) {
+                    pointCount = Math.Max(pointCount, series.XValues.Count);
+                }
+            }
+
+            return pointCount;
+        }
+
+        private static object GetChartCategoryValue(IReadOnlyList<string> categories, IReadOnlyList<ExcelChartSeries> series, int index, bool numericCategories) {
+            if (index < categories.Count) {
+                return CoerceChartCategoryValue(categories[index], numericCategories);
+            }
+
+            if (numericCategories) {
+                foreach (ExcelChartSeries item in series) {
+                    if (item.XValues != null && index < item.XValues.Count) {
+                        return item.XValues[index];
+                    }
+                }
+
+                return index + 1D;
+            }
+
+            return string.Empty;
         }
 
         private static object CoerceChartCategoryValue(string categoryText, bool numericCategories) {
@@ -129,7 +163,7 @@ namespace OfficeIMO.Excel {
             ReportChartTiming(stageWatch, "AddChart.GetOrCreateChartDataSheet");
 
             stageWatch?.Restart();
-            int startRow = _excelDocument.ReserveChartDataStartRow(dataSheet, data.Categories.Count + 1);
+            int startRow = _excelDocument.ReserveChartDataStartRow(dataSheet, GetChartDataPointCount(data) + 1);
             ReportChartTiming(stageWatch, "AddChart.ReserveChartData");
 
             stageWatch?.Restart();
