@@ -239,15 +239,18 @@ public class Markdown_Native_Inline_Metadata_Tests {
         var target = Assert.Single(link.Metadata, metadata => metadata.Name == "target");
         var title = Assert.Single(link.Metadata, metadata => metadata.Name == "title");
         var opening = Assert.Single(link.Metadata, metadata => metadata.Name == "openingMarker");
+        var separator = Assert.Single(link.Metadata, metadata => metadata.Name == "separatorMarker");
         var closing = Assert.Single(link.Metadata, metadata => metadata.Name == "closingMarker");
 
         Assert.Equal("https://example.com", target.Value);
         Assert.Equal("Title", title.Value);
         Assert.Equal("[", opening.Value);
+        Assert.Equal("](", separator.Value);
         Assert.Equal(")", closing.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 30), target.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 33, 1, 37), title.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 5), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 11), separator.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 39, 1, 39), closing.SourceSpan);
 
         Assert.Equal(
@@ -260,13 +263,18 @@ public class Markdown_Native_Inline_Metadata_Tests {
         var edited = native.CreateReplaceEdit(opening, "{").Apply(native.SourceMarkdown);
         edited = native.CreateReplaceEdit(closing, "}").Apply(edited);
         Assert.Equal("See {docs](https://example.com \"Title\"} now\n", edited);
+        Assert.Equal(
+            "See [docs]{https://example.com \"Title\") now\n",
+            native.CreateReplaceEdit(separator, "]{").Apply(native.SourceMarkdown));
 
         var snapshotLink = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Link);
         Assert.Equal("https://example.com", snapshotLink.Metadata["target"]);
         Assert.Equal("Title", snapshotLink.Metadata["title"]);
         Assert.Equal("[", snapshotLink.Metadata["openingMarker"]);
+        Assert.Equal("](", snapshotLink.Metadata["separatorMarker"]);
         Assert.Equal(")", snapshotLink.Metadata["closingMarker"]);
         Assert.Equal(5, snapshotLink.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(10, snapshotLink.MetadataSourceSpans["separatorMarker"]!.StartColumn);
         Assert.Equal(39, snapshotLink.MetadataSourceSpans["closingMarker"]!.EndColumn);
     }
 
@@ -280,8 +288,10 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal(3, links.Length);
 
         var fullOpening = Assert.Single(links[0].Metadata, metadata => metadata.Name == "openingMarker");
+        var fullSeparator = Assert.Single(links[0].Metadata, metadata => metadata.Name == "separatorMarker");
         var fullClosing = Assert.Single(links[0].Metadata, metadata => metadata.Name == "closingMarker");
         var collapsedOpening = Assert.Single(links[1].Metadata, metadata => metadata.Name == "openingMarker");
+        var collapsedSeparator = Assert.Single(links[1].Metadata, metadata => metadata.Name == "separatorMarker");
         var collapsedClosing = Assert.Single(links[1].Metadata, metadata => metadata.Name == "closingMarker");
         var shortcutOpening = Assert.Single(links[2].Metadata, metadata => metadata.Name == "openingMarker");
         var shortcutClosing = Assert.Single(links[2].Metadata, metadata => metadata.Name == "closingMarker");
@@ -290,17 +300,26 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal("/api", links[1].GetMetadata("target"));
         Assert.Equal("/guide", links[2].GetMetadata("target"));
         Assert.Equal("[", fullOpening.Value);
+        Assert.Equal("][", fullSeparator.Value);
         Assert.Equal("]", fullClosing.Value);
         Assert.Equal("[", collapsedOpening.Value);
+        Assert.Equal("][", collapsedSeparator.Value);
         Assert.Equal("]", collapsedClosing.Value);
         Assert.Equal("[", shortcutOpening.Value);
         Assert.Equal("]", shortcutClosing.Value);
+        Assert.DoesNotContain(links[2].Metadata, metadata => metadata.Name == "separatorMarker");
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 5), fullOpening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 11), fullSeparator.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 16), fullClosing.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 19, 1, 19), collapsedOpening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 23, 1, 24), collapsedSeparator.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 25, 1, 25), collapsedClosing.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 32, 1, 32), shortcutOpening.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 38, 1, 38), shortcutClosing.SourceSpan);
+
+        var referenceEdited = native.CreateReplaceEdit(fullSeparator, "](").Apply(native.SourceMarkdown);
+        referenceEdited = native.CreateReplaceEdit(fullClosing, ")").Apply(referenceEdited);
+        Assert.Equal("See [docs](hero), [api][], and [guide]\n\n[hero]: https://example.com/docs \"Docs\"\n[api]: /api\n[guide]: /guide\n", referenceEdited);
 
         var edited = native.CreateReplaceEdit(shortcutOpening, "{").Apply(native.SourceMarkdown);
         edited = native.CreateReplaceEdit(shortcutClosing, "}").Apply(edited);
@@ -308,12 +327,17 @@ public class Markdown_Native_Inline_Metadata_Tests {
 
         var snapshotLinks = native.ToSnapshot().Blocks[0].Inlines.Where(inline => inline.Kind == MarkdownNativeInlineKind.Link).ToArray();
         Assert.Equal("[", snapshotLinks[0].Metadata["openingMarker"]);
+        Assert.Equal("][", snapshotLinks[0].Metadata["separatorMarker"]);
         Assert.Equal("]", snapshotLinks[0].Metadata["closingMarker"]);
         Assert.Equal("[", snapshotLinks[1].Metadata["openingMarker"]);
+        Assert.Equal("][", snapshotLinks[1].Metadata["separatorMarker"]);
         Assert.Equal("]", snapshotLinks[1].Metadata["closingMarker"]);
         Assert.Equal("[", snapshotLinks[2].Metadata["openingMarker"]);
         Assert.Equal("]", snapshotLinks[2].Metadata["closingMarker"]);
+        Assert.False(snapshotLinks[2].Metadata.ContainsKey("separatorMarker"));
         Assert.Equal(5, snapshotLinks[0].MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(10, snapshotLinks[0].MetadataSourceSpans["separatorMarker"]!.StartColumn);
+        Assert.Equal(24, snapshotLinks[1].MetadataSourceSpans["separatorMarker"]!.EndColumn);
         Assert.Equal(25, snapshotLinks[1].MetadataSourceSpans["closingMarker"]!.EndColumn);
         Assert.Equal(38, snapshotLinks[2].MetadataSourceSpans["closingMarker"]!.EndColumn);
     }
@@ -329,17 +353,20 @@ public class Markdown_Native_Inline_Metadata_Tests {
         var source = Assert.Single(image.Metadata, metadata => metadata.Name == "source");
         var title = Assert.Single(image.Metadata, metadata => metadata.Name == "imageTitle");
         var opening = Assert.Single(image.Metadata, metadata => metadata.Name == "openingMarker");
+        var separator = Assert.Single(image.Metadata, metadata => metadata.Name == "separatorMarker");
         var closing = Assert.Single(image.Metadata, metadata => metadata.Name == "closingMarker");
 
         Assert.Equal("Alt", alt.Value);
         Assert.Equal("img.png", source.Value);
         Assert.Equal("Title", title.Value);
         Assert.Equal("![", opening.Value);
+        Assert.Equal("](", separator.Value);
         Assert.Equal(")", closing.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 10), alt.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 13, 1, 19), source.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 22, 1, 26), title.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 12), separator.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 28, 1, 28), closing.SourceSpan);
 
         Assert.Equal(
@@ -355,14 +382,19 @@ public class Markdown_Native_Inline_Metadata_Tests {
         var edited = native.CreateReplaceEdit(opening, "?[").Apply(native.SourceMarkdown);
         edited = native.CreateReplaceEdit(closing, "]").Apply(edited);
         Assert.Equal("Look ?[Alt](img.png \"Title\"] now\n", edited);
+        Assert.Equal(
+            "Look ![Alt]{img.png \"Title\") now\n",
+            native.CreateReplaceEdit(separator, "]{").Apply(native.SourceMarkdown));
 
         var snapshotImage = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Image);
         Assert.Equal("Alt", snapshotImage.Metadata["alt"]);
         Assert.Equal("img.png", snapshotImage.Metadata["source"]);
         Assert.Equal("Title", snapshotImage.Metadata["imageTitle"]);
         Assert.Equal("![", snapshotImage.Metadata["openingMarker"]);
+        Assert.Equal("](", snapshotImage.Metadata["separatorMarker"]);
         Assert.Equal(")", snapshotImage.Metadata["closingMarker"]);
         Assert.Equal(6, snapshotImage.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(12, snapshotImage.MetadataSourceSpans["separatorMarker"]!.EndColumn);
         Assert.Equal(28, snapshotImage.MetadataSourceSpans["closingMarker"]!.EndColumn);
     }
 
@@ -376,6 +408,7 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal(2, images.Length);
 
         var fullOpening = Assert.Single(images[0].Metadata, metadata => metadata.Name == "openingMarker");
+        var fullSeparator = Assert.Single(images[0].Metadata, metadata => metadata.Name == "separatorMarker");
         var fullClosing = Assert.Single(images[0].Metadata, metadata => metadata.Name == "closingMarker");
         var shortcutOpening = Assert.Single(images[1].Metadata, metadata => metadata.Name == "openingMarker");
         var shortcutClosing = Assert.Single(images[1].Metadata, metadata => metadata.Name == "closingMarker");
@@ -385,13 +418,20 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal("Icon", images[1].GetMetadata("alt"));
         Assert.Equal("icon.png", images[1].GetMetadata("source"));
         Assert.Equal("![", fullOpening.Value);
+        Assert.Equal("][", fullSeparator.Value);
         Assert.Equal("]", fullClosing.Value);
         Assert.Equal("![", shortcutOpening.Value);
         Assert.Equal("]", shortcutClosing.Value);
+        Assert.DoesNotContain(images[1].Metadata, metadata => metadata.Name == "separatorMarker");
         Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), fullOpening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 12), fullSeparator.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 16), fullClosing.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 22, 1, 23), shortcutOpening.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 28, 1, 28), shortcutClosing.SourceSpan);
+
+        var referenceEdited = native.CreateReplaceEdit(fullSeparator, "](").Apply(native.SourceMarkdown);
+        referenceEdited = native.CreateReplaceEdit(fullClosing, ")").Apply(referenceEdited);
+        Assert.Equal("Look ![Alt](img) and ![Icon]\n\n[img]: img.png \"Img\"\n[Icon]: icon.png\n", referenceEdited);
 
         var edited = native.CreateReplaceEdit(shortcutOpening, "?[").Apply(native.SourceMarkdown);
         edited = native.CreateReplaceEdit(shortcutClosing, "}").Apply(edited);
@@ -399,10 +439,13 @@ public class Markdown_Native_Inline_Metadata_Tests {
 
         var snapshotImages = native.ToSnapshot().Blocks[0].Inlines.Where(inline => inline.Kind == MarkdownNativeInlineKind.Image).ToArray();
         Assert.Equal("![", snapshotImages[0].Metadata["openingMarker"]);
+        Assert.Equal("][", snapshotImages[0].Metadata["separatorMarker"]);
         Assert.Equal("]", snapshotImages[0].Metadata["closingMarker"]);
         Assert.Equal("![", snapshotImages[1].Metadata["openingMarker"]);
         Assert.Equal("]", snapshotImages[1].Metadata["closingMarker"]);
+        Assert.False(snapshotImages[1].Metadata.ContainsKey("separatorMarker"));
         Assert.Equal(6, snapshotImages[0].MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(11, snapshotImages[0].MetadataSourceSpans["separatorMarker"]!.StartColumn);
         Assert.Equal(16, snapshotImages[0].MetadataSourceSpans["closingMarker"]!.EndColumn);
         Assert.Equal(22, snapshotImages[1].MetadataSourceSpans["openingMarker"]!.StartColumn);
         Assert.Equal(28, snapshotImages[1].MetadataSourceSpans["closingMarker"]!.EndColumn);

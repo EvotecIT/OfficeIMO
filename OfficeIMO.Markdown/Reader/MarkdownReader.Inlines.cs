@@ -88,6 +88,7 @@ public static partial class MarkdownReader {
             string? title,
             int start,
             int length,
+            int labelLength,
             int targetStart,
             int targetLength,
             int? titleStart,
@@ -103,7 +104,9 @@ public static partial class MarkdownReader {
                 "[",
                 sourceMap?.GetSpan(start, 1),
                 ")",
-                sourceMap?.GetSpan(start + length - 1, 1));
+                sourceMap?.GetSpan(start + length - 1, 1),
+                "](",
+                sourceMap?.GetSpan(start + labelLength + 1, 2));
         }
         void AddInlineImageNode(
             string alt,
@@ -132,7 +135,9 @@ public static partial class MarkdownReader {
                 "![",
                 sourceMap?.GetSpan(start, 2),
                 ")",
-                sourceMap?.GetSpan(start + length - 1, 1));
+                sourceMap?.GetSpan(start + length - 1, 1),
+                "](",
+                sourceMap?.GetSpan(altStart + altLength, 2));
         }
         void AddReferenceImageNode(
             string alt,
@@ -152,12 +157,16 @@ public static partial class MarkdownReader {
                 sourceMap?.GetSpan(altStart, altLength),
                 sourceSpan,
                 titleSpan);
+            int separatorStart = altStart + altLength;
+            bool hasSeparator = HasReferenceSeparatorMarker(separatorStart, start, length);
             MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
                 image,
                 "![",
                 sourceMap?.GetSpan(start, 2),
                 "]",
-                sourceMap?.GetSpan(start + length - 1, 1));
+                sourceMap?.GetSpan(start + length - 1, 1),
+                hasSeparator ? "][" : null,
+                hasSeparator ? sourceMap?.GetSpan(separatorStart, 2) : null);
         }
         void AddReferenceLinkNode(
             InlineSequence label,
@@ -165,18 +174,28 @@ public static partial class MarkdownReader {
             string? title,
             int start,
             int length,
+            int labelLength,
             MarkdownSourceSpan? targetSpan,
             MarkdownSourceSpan? titleSpan) {
             var link = new LinkInline(label, resolvedHref, title);
             AddRawNode(link, start, length);
             MarkdownInlineMetadataSourceSpans.SetLinkParts(link, targetSpan, titleSpan);
+            int separatorStart = start + labelLength + 1;
+            bool hasSeparator = HasReferenceSeparatorMarker(separatorStart, start, length);
             MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
                 link,
                 "[",
                 sourceMap?.GetSpan(start, 1),
                 "]",
-                sourceMap?.GetSpan(start + length - 1, 1));
+                sourceMap?.GetSpan(start + length - 1, 1),
+                hasSeparator ? "][" : null,
+                hasSeparator ? sourceMap?.GetSpan(separatorStart, 2) : null);
         }
+        bool HasReferenceSeparatorMarker(int separatorStart, int start, int length) =>
+            separatorStart + 1 < start + length
+            && separatorStart + 1 < text.Length
+            && text[separatorStart] == ']'
+            && text[separatorStart + 1] == '[';
         InlineSequence ParseNestedInlineSegment(int relativeStart, int length, bool nestedAllowLinks, bool nestedAllowImages) {
             if (relativeStart < 0 || length <= 0 || relativeStart >= text.Length) {
                 return new InlineSequence();
@@ -519,14 +538,14 @@ public static partial class MarkdownReader {
 
                         // Allow empty href: commonly used as placeholder or to be filled by the host.
                         if (string.IsNullOrWhiteSpace(href3)) {
-                            AddInlineLinkNode(labelSeq, string.Empty, title2, pos, consumed2, hrefStart2, hrefLength2, titleStart2, titleLength2);
+                            AddInlineLinkNode(labelSeq, string.Empty, title2, pos, consumed2, label2.Length, hrefStart2, hrefLength2, titleStart2, titleLength2);
                         } else {
                             var hrefResolved = ResolveUrl(href3, options);
                             if (hrefResolved is null) {
                                 // Unsafe URLs: keep the label as plain inline content instead of producing an <a href="...">.
                                 foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
-                                AddInlineLinkNode(labelSeq, hrefResolved!, title2, pos, consumed2, hrefStart2, hrefLength2, titleStart2, titleLength2);
+                                AddInlineLinkNode(labelSeq, hrefResolved!, title2, pos, consumed2, label2.Length, hrefStart2, hrefLength2, titleStart2, titleLength2);
                             }
                         }
                         pos += consumed2; continue;
@@ -540,7 +559,7 @@ public static partial class MarkdownReader {
                             if (resolved is null) {
                                 foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
-                                AddReferenceLinkNode(labelSeq, resolved!, def2.Title, pos, consumedC, def2.UrlSourceSpan, def2.TitleSourceSpan);
+                                AddReferenceLinkNode(labelSeq, resolved!, def2.Title, pos, consumedC, lbl2.Length, def2.UrlSourceSpan, def2.TitleSourceSpan);
                             }
                             pos += consumedC; continue;
                         }
@@ -556,7 +575,7 @@ public static partial class MarkdownReader {
                             if (resolved is null) {
                                 foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
-                                AddReferenceLinkNode(labelSeq, resolved!, def.Title, pos, consumedR, def.UrlSourceSpan, def.TitleSourceSpan);
+                                AddReferenceLinkNode(labelSeq, resolved!, def.Title, pos, consumedR, lbl.Length, def.UrlSourceSpan, def.TitleSourceSpan);
                             }
                             pos += consumedR; continue;
                         }
@@ -569,7 +588,7 @@ public static partial class MarkdownReader {
                             if (resolved is null) {
                                 foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
-                                AddReferenceLinkNode(labelSeq, resolved!, def3.Title, pos, consumedS, def3.UrlSourceSpan, def3.TitleSourceSpan);
+                                AddReferenceLinkNode(labelSeq, resolved!, def3.Title, pos, consumedS, lbl3.Length, def3.UrlSourceSpan, def3.TitleSourceSpan);
                             }
                             pos += consumedS; continue;
                         }

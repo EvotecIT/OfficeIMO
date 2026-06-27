@@ -36,6 +36,8 @@ internal static class MarkdownInlineMetadataSourceSpans {
     private sealed class FormattingMarkerState {
         public string OpeningMarker = string.Empty;
         public MarkdownSourceSpan? OpeningMarkerSpan;
+        public string SeparatorMarker = string.Empty;
+        public MarkdownSourceSpan? SeparatorMarkerSpan;
         public string ClosingMarker = string.Empty;
         public MarkdownSourceSpan? ClosingMarkerSpan;
     }
@@ -175,14 +177,18 @@ internal static class MarkdownInlineMetadataSourceSpans {
         string openingMarker,
         MarkdownSourceSpan? openingMarkerSpan,
         string closingMarker,
-        MarkdownSourceSpan? closingMarkerSpan) {
+        MarkdownSourceSpan? closingMarkerSpan,
+        string? separatorMarker = null,
+        MarkdownSourceSpan? separatorMarkerSpan = null) {
         if (inline == null) {
             return;
         }
 
         if (string.IsNullOrEmpty(openingMarker) &&
+            string.IsNullOrEmpty(separatorMarker) &&
             string.IsNullOrEmpty(closingMarker) &&
             !openingMarkerSpan.HasValue &&
+            !separatorMarkerSpan.HasValue &&
             !closingMarkerSpan.HasValue) {
             return;
         }
@@ -191,6 +197,8 @@ internal static class MarkdownInlineMetadataSourceSpans {
         holder.State = new FormattingMarkerState {
             OpeningMarker = openingMarker ?? string.Empty,
             OpeningMarkerSpan = openingMarkerSpan,
+            SeparatorMarker = separatorMarker ?? string.Empty,
+            SeparatorMarkerSpan = separatorMarkerSpan,
             ClosingMarker = closingMarker ?? string.Empty,
             ClosingMarkerSpan = closingMarkerSpan
         };
@@ -201,6 +209,12 @@ internal static class MarkdownInlineMetadataSourceSpans {
 
     internal static MarkdownSourceSpan? GetOpeningMarkerSpan(MarkdownInline? inline) =>
         inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.OpeningMarkerSpan : null;
+
+    internal static string? GetSeparatorMarker(MarkdownInline? inline) =>
+        inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.SeparatorMarker : null;
+
+    internal static MarkdownSourceSpan? GetSeparatorMarkerSpan(MarkdownInline? inline) =>
+        inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.SeparatorMarkerSpan : null;
 
     internal static string? GetClosingMarker(MarkdownInline? inline) =>
         inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.ClosingMarker : null;

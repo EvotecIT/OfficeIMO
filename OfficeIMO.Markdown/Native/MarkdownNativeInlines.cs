@@ -231,6 +231,15 @@ internal static class MarkdownNativeInlineProjection {
                 openingMarkerSpan));
         }
 
+        var separatorMarkerSpan = MarkdownInlineMetadataSourceSpans.GetSeparatorMarkerSpan(inline);
+        if (separatorMarkerSpan.HasValue) {
+            metadata.Add(new MarkdownNativeInlineMetadata(
+                "separatorMarker",
+                MarkdownInlineMetadataSourceSpans.GetSeparatorMarker(inline) ?? string.Empty,
+                node,
+                separatorMarkerSpan));
+        }
+
         var closingMarkerSpan = MarkdownInlineMetadataSourceSpans.GetClosingMarkerSpan(inline);
         if (closingMarkerSpan.HasValue) {
             metadata.Add(new MarkdownNativeInlineMetadata(
