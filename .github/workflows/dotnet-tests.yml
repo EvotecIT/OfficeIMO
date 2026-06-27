@@ -181,16 +181,36 @@ jobs:
         run: |
           # Keep the heavy Excel image visual gate on its dedicated script path; run test projects
           # explicitly so Ubuntu does not spend the job budget walking every solution project.
-          # OfficeIMO.Tests contains long-running graphics/PDF/image-export contracts, so emit
-          # normal per-test progress to avoid a quiet Linux test step being cancelled mid-run.
+          # OfficeIMO.Tests contains long-running graphics/PDF/image-export contracts. Split it
+          # into smaller VSTest processes so Linux runners do not cancel a huge single testhost.
           test_filter='Category!=ExcelImageVisualGate'
-          officeimo_logger='console;verbosity=normal'
-          # Collect coverage once on the primary Linux net8.0 leg; the other OS/framework legs stay as full test runs without coverage overhead.
+          officeimo_coverage_args=()
+          # Collect OfficeIMO.Tests coverage on the primary Linux net8.0 leg; companion test
+          # projects stay without coverage overhead.
           if [ "${{ matrix.collectCoverage }}" = "true" ]; then
-            dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --framework ${{ matrix.framework }} --filter "$test_filter" -m:1 --logger "$officeimo_logger" --logger trx --collect:"XPlat Code Coverage"
-          else
-            dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --framework ${{ matrix.framework }} --filter "$test_filter" -m:1 --logger "$officeimo_logger" --logger trx
+            officeimo_coverage_args=(--collect "XPlat Code Coverage")
           fi
+
+          run_officeimo_tests() {
+            local name="$1"
+            local filter="$2"
+            echo ""
+            echo "== OfficeIMO.Tests: ${name} =="
+            dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx "${officeimo_coverage_args[@]}"
+          }
+
+          run_officeimo_tests "markdown-large" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownMoreCasesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownRoundTripTests'
+          run_officeimo_tests "markdown-suite" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownSuite'
+          run_officeimo_tests "pdf-visual-inspector" 'FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfInspectorTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests'
+          run_officeimo_tests "pdf-core" '(FullyQualifiedName~OfficeIMO.Tests.Pdf.&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfInspectorTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests)|FullyQualifiedName~OfficeIMO.Tests.MarkdownPdfTests|FullyQualifiedName~OfficeIMO.Tests.PdfReadLayoutSmokeTests'
+          run_officeimo_tests "excel-image" 'FullyQualifiedName~OfficeIMO.Tests.ExcelImageExport'
+          run_officeimo_tests "excel-core" 'FullyQualifiedName~OfficeIMO.Tests.Excel.|FullyQualifiedName~OfficeIMO.Tests.ExcelCellAndRangeTests|FullyQualifiedName~OfficeIMO.Tests.ExcelDelimitedImportTests|FullyQualifiedName~OfficeIMO.Tests.ExcelFluent|FullyQualifiedName~OfficeIMO.Tests.ExcelNamed|FullyQualifiedName~OfficeIMO.Tests.ExcelPowerShell|FullyQualifiedName~OfficeIMO.Tests.ExcelRange|FullyQualifiedName~OfficeIMO.Tests.ExcelRows|FullyQualifiedName~OfficeIMO.Tests.ExcelSheet|FullyQualifiedName~OfficeIMO.Tests.ExcelCoerce'
+          run_officeimo_tests "word" 'FullyQualifiedName~OfficeIMO.Tests.Word|FullyQualifiedName~OfficeIMO.Tests.ImageEmbedderTests|FullyQualifiedName~OfficeIMO.Tests.ParagraphParent|FullyQualifiedName~OfficeIMO.Tests.WordParagraph|FullyQualifiedName~OfficeIMO.Tests.WordTable|FullyQualifiedName~OfficeIMO.Tests.Ordering.WordOrderPreservationTests'
+          run_officeimo_tests "rtf" 'FullyQualifiedName~OfficeIMO.Tests.Rtf'
+          run_officeimo_tests "html" 'FullyQualifiedName~OfficeIMO.Tests.Html|FullyQualifiedName~OfficeIMO.Tests.HtmlDomTraversalTests|FullyQualifiedName~OfficeIMO.Tests.HtmlTableMergeTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownTests'
+          run_officeimo_tests "drawing-visio" 'FullyQualifiedName~OfficeIMO.Tests.Drawing|FullyQualifiedName~OfficeIMO.Tests.Visio'
+          run_officeimo_tests "powerpoint-reader-markup-other" 'FullyQualifiedName~OfficeIMO.Tests.PowerPoint|FullyQualifiedName~OfficeIMO.Tests.Reader|FullyQualifiedName~OfficeIMO.Tests.Markup|FullyQualifiedName~OfficeIMO.Tests.Google|FullyQualifiedName~OfficeIMO.Tests.PackageDependency|FullyQualifiedName~OfficeIMO.Tests.Workflow|FullyQualifiedName~OfficeIMO.Tests.OfficeEncryption|FullyQualifiedName~OfficeIMO.Tests.ConversionOptionsTests|FullyQualifiedName~OfficeIMO.Tests.ConverterExceptions|FullyQualifiedName~OfficeIMO.Tests.FontResolverTests|FullyQualifiedName~OfficeIMO.Tests.Markdown.|FullyQualifiedName~OfficeIMO.Tests.Markdown_|FullyQualifiedName~OfficeIMO.Tests.MarkdownTranscript|FullyQualifiedName~OfficeIMO.Tests.MarkdownReaderBomTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownBlankLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownDefinitionLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownOrderedListsTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownStreamingPreviewTests|FullyQualifiedName~OfficeIMO.Tests.Markdown_Renderer|FullyQualifiedName~OfficeIMO.Tests.Markdown_IntelligenceX|FullyQualifiedName~OfficeIMO.Tests.PathCrossPlatform'
+
           dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
