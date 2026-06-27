@@ -2939,7 +2939,10 @@ Term: Intro
         Assert.Equal(MarkdownSyntaxKind.DefinitionGroup, providedGroup.Kind);
         Assert.Same(group, providedGroup.AssociatedObject);
         Assert.Same(definition, providedGroup.Children[1].AssociatedObject);
-        Assert.Same(providedGroup, ownedGroup);
+        Assert.NotSame(providedGroup, ownedGroup);
+        Assert.Equal(providedGroup.SourceSpan, ownedGroup.SourceSpan);
+        Assert.Same(group, ownedGroup.AssociatedObject);
+        Assert.Same(definition, ownedGroup.Children[1].AssociatedObject);
         Assert.Equal(
             ownedChildren.Select(child => child.Kind),
             finalDefinitionList.Children.Select(child => child.Kind));
@@ -2947,6 +2950,39 @@ Term: Intro
             definitionList.ChildBlocks,
             ((IChildMarkdownBlockContainer)definitionList).ChildBlocks);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_SyntaxChild_Owner_Interface_Drops_Stale_Definition_Body_Children_After_Public_Projection_Changes() {
+        var result = MarkdownReader.ParseWithSyntaxTree("""
+Term: Intro
+
+  - first
+  - second
+""");
+
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var listBlock = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var providedGroup = Assert.Single(definitionList.SyntaxItems);
+        var providedDefinitionValue = providedGroup.Children[1];
+        var originalListSyntax = Assert.Single(providedDefinitionValue.Children, child => child.Kind == MarkdownSyntaxKind.UnorderedList);
+
+        definition.Blocks.RemoveAt(0);
+
+        var ownedGroup = Assert.Single(((IOwnedSyntaxChildrenMarkdownBlock)definitionList).BuildOwnedSyntaxChildren());
+        var ownedDefinitionValue = ownedGroup.Children[1];
+        var ownedChildren = ownedDefinitionValue.Children;
+
+        Assert.NotSame(providedGroup, ownedGroup);
+        Assert.Same(group, ownedGroup.AssociatedObject);
+        Assert.Same(definition, ownedDefinitionValue.AssociatedObject);
+        Assert.Equal(new[] { MarkdownSyntaxKind.UnorderedList }, ownedChildren.Select(child => child.Kind).ToArray());
+        Assert.Same(listBlock, ownedChildren[0].AssociatedObject);
+        Assert.Equal(originalListSyntax.SourceSpan, ownedChildren[0].SourceSpan);
+        Assert.DoesNotContain(ownedChildren, child => child.Kind == MarkdownSyntaxKind.Paragraph && child.Literal == "Intro");
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(MarkdownReader.BuildSyntaxTree(result.Document));
     }
 
     [Fact]

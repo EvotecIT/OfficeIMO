@@ -148,7 +148,7 @@ internal static class MarkdownBlockSyntaxBuilder {
     private static bool IsSyntaxChildForBlock(MarkdownSyntaxNode? syntaxNode, IMarkdownBlock block) =>
         syntaxNode?.AssociatedObject != null && ReferenceEquals(syntaxNode.AssociatedObject, block);
 
-    private static MarkdownSyntaxNode CloneSyntaxNode(MarkdownSyntaxNode node) {
+    internal static MarkdownSyntaxNode CloneSyntaxNode(MarkdownSyntaxNode node) {
         var children = node.Children.Count == 0
             ? Array.Empty<MarkdownSyntaxNode>()
             : node.Children.Select(CloneSyntaxNode).ToArray();

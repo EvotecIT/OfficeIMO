@@ -283,42 +283,44 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
 
     internal IReadOnlyList<MarkdownSyntaxNode> BuildSyntaxItems() {
         if (SyntaxItems.Count == _groups.Count && SyntaxItems.Count > 0 && SyntaxItemsMatchCurrentGroups()) {
-            return SyntaxItems;
+            return SyntaxItems.Select(MarkdownBlockSyntaxBuilder.CloneSyntaxNode).ToArray();
         }
 
         var nodes = new List<MarkdownSyntaxNode>();
-        foreach (var group in _groups) {
+        for (int groupIndex = 0; groupIndex < _groups.Count; groupIndex++) {
+            var group = _groups[groupIndex];
             var groupChildren = new List<MarkdownSyntaxNode>();
+            var cachedGroup = FindSyntaxGroupForCurrentGroup(group, groupIndex);
 
             for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
                 var term = group.Terms[termIndex] ?? new InlineSequence();
+                var cachedTerm = FindCachedDefinitionTerm(cachedGroup, termIndex);
                 groupChildren.Add(MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
                     MarkdownSyntaxKind.DefinitionTerm,
                     term,
+                    cachedTerm?.SourceSpan,
                     literal: term.RenderMarkdown()));
             }
 
             for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
                 var definition = group.Definitions[definitionIndex] ?? new DefinitionListDefinition();
                 var definitionLiteral = definition.RenderMarkdown();
-                var definitionChildren = new List<MarkdownSyntaxNode>();
-                for (int blockIndex = 0; blockIndex < definition.Blocks.Count; blockIndex++) {
-                    if (definition.Blocks[blockIndex] != null) {
-                        definitionChildren.Add(MarkdownBlockSyntaxBuilder.BuildBlock(definition.Blocks[blockIndex]));
-                    }
-                }
+                var cachedDefinition = FindCachedDefinitionValue(cachedGroup, group.Terms.Count + definitionIndex, definition);
+                var definitionChildren = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(
+                    cachedDefinition?.Children,
+                    definition.Blocks);
 
                 if (definitionChildren.Count == 0 && !string.IsNullOrEmpty(definitionLiteral)) {
                     var fallbackInlines = BuildDefinitionInline(definition, ReaderOptions ?? new MarkdownReaderOptions(), ReaderState ?? new MarkdownReaderState());
-                    definitionChildren.Add(MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
+                    definitionChildren = new[] { MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
                         MarkdownSyntaxKind.Paragraph,
                         fallbackInlines,
-                        literal: definitionLiteral));
+                        literal: definitionLiteral) };
                 }
 
                 groupChildren.Add(new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.DefinitionValue,
-                    MarkdownBlockSyntaxBuilder.GetAggregateSpan(definitionChildren),
+                    cachedDefinition?.SourceSpan ?? MarkdownBlockSyntaxBuilder.GetAggregateSpan(definitionChildren),
                     definitionLiteral,
                     definitionChildren,
                     associatedObject: definition));
@@ -333,6 +335,69 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
 
         return nodes;
     }
+
+    private MarkdownSyntaxNode? FindSyntaxGroupForCurrentGroup(DefinitionListGroup group, int preferredIndex) {
+        if (group == null || SyntaxItems.Count == 0) {
+            return null;
+        }
+
+        if (preferredIndex >= 0 &&
+            preferredIndex < SyntaxItems.Count &&
+            IsSyntaxGroupForCurrentGroup(SyntaxItems[preferredIndex], group)) {
+            return SyntaxItems[preferredIndex];
+        }
+
+        for (int i = 0; i < SyntaxItems.Count; i++) {
+            if (IsSyntaxGroupForCurrentGroup(SyntaxItems[i], group)) {
+                return SyntaxItems[i];
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsSyntaxGroupForCurrentGroup(MarkdownSyntaxNode? syntaxGroup, DefinitionListGroup group) =>
+        syntaxGroup != null &&
+        syntaxGroup.Kind == MarkdownSyntaxKind.DefinitionGroup &&
+        ReferenceEquals(syntaxGroup.AssociatedObject, group);
+
+    private static MarkdownSyntaxNode? FindCachedDefinitionTerm(MarkdownSyntaxNode? cachedGroup, int childIndex) {
+        if (cachedGroup == null || childIndex < 0 || childIndex >= cachedGroup.Children.Count) {
+            return null;
+        }
+
+        var cachedTerm = cachedGroup.Children[childIndex];
+        return cachedTerm.Kind == MarkdownSyntaxKind.DefinitionTerm ? cachedTerm : null;
+    }
+
+    private static MarkdownSyntaxNode? FindCachedDefinitionValue(
+        MarkdownSyntaxNode? cachedGroup,
+        int preferredChildIndex,
+        DefinitionListDefinition definition) {
+        if (cachedGroup == null || definition == null || cachedGroup.Children.Count == 0) {
+            return null;
+        }
+
+        if (preferredChildIndex >= 0 && preferredChildIndex < cachedGroup.Children.Count) {
+            var preferred = cachedGroup.Children[preferredChildIndex];
+            if (IsSyntaxDefinitionValueForDefinition(preferred, definition)) {
+                return preferred;
+            }
+        }
+
+        for (int i = 0; i < cachedGroup.Children.Count; i++) {
+            if (IsSyntaxDefinitionValueForDefinition(cachedGroup.Children[i], definition)) {
+                return cachedGroup.Children[i];
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsSyntaxDefinitionValueForDefinition(MarkdownSyntaxNode? syntaxNode, DefinitionListDefinition definition) =>
+        syntaxNode != null &&
+        syntaxNode.Kind == MarkdownSyntaxKind.DefinitionValue &&
+        ReferenceEquals(syntaxNode.AssociatedObject, definition);
 
     private bool SyntaxItemsMatchCurrentGroups() {
         if (SyntaxItems.Count != _groups.Count) {
