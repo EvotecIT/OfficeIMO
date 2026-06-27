@@ -216,7 +216,19 @@ public static class PowerPointHtmlConverterExtensions {
         body.Append("<section class=\"officeimo-feature officeimo-images\"><h3>Pictures</h3><ul class=\"officeimo-feature-list\">");
         foreach (PptCore.PowerPointPicture picture in pictureList) {
             string label = GetShapeLabel(picture);
-            body.Append("<li class=\"officeimo-feature-item\"><span class=\"officeimo-feature-label\">")
+            body.Append("<li class=\"officeimo-feature-item\"");
+            AppendDataAttribute(body, "data-officeimo-left", picture.LeftPoints);
+            AppendDataAttribute(body, "data-officeimo-top", picture.TopPoints);
+            AppendDataAttribute(body, "data-officeimo-width", picture.WidthPoints);
+            AppendDataAttribute(body, "data-officeimo-height", picture.HeightPoints);
+            AppendDataAttribute(body, "data-officeimo-rotation", picture.Rotation ?? 0D);
+            AppendDataAttribute(body, "data-officeimo-flip-horizontal", picture.HorizontalFlip == true);
+            AppendDataAttribute(body, "data-officeimo-flip-vertical", picture.VerticalFlip == true);
+            AppendDataAttribute(body, "data-officeimo-crop-left", picture.CropLeftRatio);
+            AppendDataAttribute(body, "data-officeimo-crop-top", picture.CropTopRatio);
+            AppendDataAttribute(body, "data-officeimo-crop-right", picture.CropRightRatio);
+            AppendDataAttribute(body, "data-officeimo-crop-bottom", picture.CropBottomRatio);
+            body.Append("><span class=\"officeimo-feature-label\">")
                 .Append(OfficeHtmlText.Escape(label))
                 .Append("</span><div class=\"officeimo-feature-meta\">Size: ")
                 .Append(FormatNumber(picture.WidthPoints))
@@ -234,6 +246,28 @@ public static class PowerPointHtmlConverterExtensions {
         }
 
         body.Append("</ul></section>");
+    }
+
+    private static void AppendDataAttribute(StringBuilder body, string name, double value) {
+        if (Math.Abs(value) < 0.0000001D) {
+            return;
+        }
+
+        body.Append(' ')
+            .Append(name)
+            .Append("=\"")
+            .Append(value.ToString("G17", CultureInfo.InvariantCulture))
+            .Append('"');
+    }
+
+    private static void AppendDataAttribute(StringBuilder body, string name, bool value) {
+        if (!value) {
+            return;
+        }
+
+        body.Append(' ')
+            .Append(name)
+            .Append("=\"true\"");
     }
 
     private static void AppendChartInventory(StringBuilder body, IEnumerable<PptCore.PowerPointChart> charts) {

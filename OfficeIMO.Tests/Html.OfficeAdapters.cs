@@ -245,6 +245,54 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_RoundTripsImageTransformsAbsoluteAnchorAndDrawingOrder() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorkSheet("Drawings");
+        sheet.CellValue(1, 1, "Category");
+        sheet.CellValue(1, 2, "Value");
+        sheet.CellValue(2, 1, "A");
+        sheet.CellValue(2, 2, 10);
+        sheet.CellValue(3, 1, "B");
+        sheet.CellValue(3, 2, 20);
+        sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 240, heightPixels: 140, type: ExcelChartType.ColumnClustered, title: "Layer base");
+        ExcelImage image = sheet.AddImageAbsolute(33, 44, OnePixelPng, widthPixels: 52, heightPixels: 48, name: "Layer image", altText: "Absolute layer");
+        image.SetRotation(17.5).SetFlip(horizontal: true, vertical: true).SetCropRatio(0.125D, 0.25D, 0.0625D, 0.1875D);
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+
+        Assert.Contains("data-officeimo-anchor=\"absolute\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-x=\"33\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-y=\"44\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-layer-kind=\"image\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-layer-kind=\"chart\"", html, StringComparison.Ordinal);
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelSheet importedSheet = imported.Sheets.Single(importedSheet => importedSheet.Name == "Drawings");
+
+        Assert.Equal(1, result.Images);
+        Assert.Equal(1, result.Charts);
+        Assert.Empty(result.Diagnostics);
+        ExcelChart importedChart = Assert.Single(importedSheet.Charts);
+        ExcelImage importedImage = Assert.Single(importedSheet.Images);
+        Assert.True(importedImage.HasAbsoluteAnchor);
+        Assert.True(importedImage.TryGetAbsoluteAnchorBounds(out int x, out int y, out int width, out int height));
+        Assert.Equal(33, x);
+        Assert.Equal(44, y);
+        Assert.Equal(52, width);
+        Assert.Equal(48, height);
+        Assert.Equal(17.5D, importedImage.RotationDegrees, 3);
+        Assert.True(importedImage.FlipHorizontal);
+        Assert.True(importedImage.FlipVertical);
+        Assert.Equal(0.125D, importedImage.CropLeftRatio, 3);
+        Assert.Equal(0.25D, importedImage.CropTopRatio, 3);
+        Assert.Equal(0.0625D, importedImage.CropRightRatio, 3);
+        Assert.Equal(0.1875D, importedImage.CropBottomRatio, 3);
+        Assert.True(importedChart.DrawingOrder < importedImage.DrawingOrder);
+    }
+
+    [Fact]
     public void ExcelHtml_LoadHonorsSemanticRangeOrigin() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorkSheet("Offset");
@@ -977,6 +1025,61 @@ public class HtmlOfficeAdapters {
         PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
         Assert.Equal(-18D, picture.LeftPoints, 3);
         Assert.Equal(-12D, picture.TopPoints, 3);
+    }
+
+    [Fact]
+    public void PowerPointHtml_RoundTripsPictureTransforms() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.Slides[0];
+        using (var image = new MemoryStream(OnePixelPng)) {
+            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.PowerPoint.ImagePartType.Png, 80, 90, 120, 72);
+            picture.Name = "Transformed picture";
+            picture.AltText = "Transformed alt";
+            picture.Rotation = 23.5D;
+            picture.HorizontalFlip = true;
+            picture.VerticalFlip = true;
+            picture.Crop(10D, 20D, 5D, 15D);
+        }
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        });
+
+        Assert.Contains("data-officeimo-rotation=\"23.5\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-flip-horizontal=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-flip-vertical=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-crop-left=\"0.10000000000000001\"", html, StringComparison.Ordinal);
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+
+        PowerPointPicture importedPicture = Assert.Single(imported.Slides[0].Pictures);
+        Assert.Equal("Transformed alt", importedPicture.AltText);
+        Assert.Equal(80D, importedPicture.LeftPoints, 3);
+        Assert.Equal(90D, importedPicture.TopPoints, 3);
+        Assert.Equal(120D, importedPicture.WidthPoints, 3);
+        Assert.Equal(72D, importedPicture.HeightPoints, 3);
+        Assert.Equal(23.5D, importedPicture.Rotation!.Value, 3);
+        Assert.True(importedPicture.HorizontalFlip);
+        Assert.True(importedPicture.VerticalFlip);
+        Assert.Equal(0.1D, importedPicture.CropLeftRatio, 3);
+        Assert.Equal(0.2D, importedPicture.CropTopRatio, 3);
+        Assert.Equal(0.05D, importedPicture.CropRightRatio, 3);
+        Assert.Equal(0.15D, importedPicture.CropBottomRatio, 3);
+    }
+
+    [Fact]
+    public void PowerPointHtml_VisualReviewStretchesPositionedPicturesToAuthoredShape() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.Slides[0];
+        using (var image = new MemoryStream(OnePixelPng)) {
+            slide.AddPicturePoints(image, OfficeIMO.PowerPoint.ImagePartType.Png, 40, 50, 180, 60);
+        }
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
+        });
+
+        Assert.Contains(".officeimo-shape-picture img{width:100%;height:100%;object-fit:fill;display:block;}", html, StringComparison.Ordinal);
     }
 
     [Fact]

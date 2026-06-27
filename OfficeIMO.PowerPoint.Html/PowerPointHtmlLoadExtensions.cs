@@ -137,6 +137,7 @@ public static class PowerPointHtmlLoadExtensions {
                 picture.AltText = alt;
             }
 
+            ApplyPictureTransforms(item, picture);
             result.Pictures++;
             top = Math.Max(top, pictureTop + height + 18D);
         }
@@ -295,6 +296,8 @@ public static class PowerPointHtmlLoadExtensions {
 
         width = Math.Max(1D, width);
         height = Math.Max(1D, height);
+        if (TryReadDoubleAttribute(item, "data-officeimo-width", out double attributeWidth)) width = Math.Max(1D, attributeWidth);
+        if (TryReadDoubleAttribute(item, "data-officeimo-height", out double attributeHeight)) height = Math.Max(1D, attributeHeight);
     }
 
     private static void ReadPicturePosition(IElement item, double fallbackLeft, double fallbackTop, out double left, out double top) {
@@ -314,6 +317,60 @@ public static class PowerPointHtmlLoadExtensions {
             _ = double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out top);
         }
 
+        if (TryReadDoubleAttribute(item, "data-officeimo-left", out double attributeLeft)) left = attributeLeft;
+        if (TryReadDoubleAttribute(item, "data-officeimo-top", out double attributeTop)) top = attributeTop;
+    }
+
+    private static void ApplyPictureTransforms(IElement item, PptCore.PowerPointPicture picture) {
+        if (TryReadDoubleAttribute(item, "data-officeimo-rotation", out double rotation)) {
+            picture.Rotation = rotation;
+        }
+
+        if (TryReadBoolAttribute(item, "data-officeimo-flip-horizontal", out bool horizontalFlip)) {
+            picture.HorizontalFlip = horizontalFlip;
+        }
+
+        if (TryReadBoolAttribute(item, "data-officeimo-flip-vertical", out bool verticalFlip)) {
+            picture.VerticalFlip = verticalFlip;
+        }
+
+        double left = ReadOptionalDoubleAttribute(item, "data-officeimo-crop-left") ?? 0D;
+        double top = ReadOptionalDoubleAttribute(item, "data-officeimo-crop-top") ?? 0D;
+        double right = ReadOptionalDoubleAttribute(item, "data-officeimo-crop-right") ?? 0D;
+        double bottom = ReadOptionalDoubleAttribute(item, "data-officeimo-crop-bottom") ?? 0D;
+        if (left > 0D || top > 0D || right > 0D || bottom > 0D) {
+            picture.Crop(left * 100D, top * 100D, right * 100D, bottom * 100D);
+        }
+    }
+
+    private static double? ReadOptionalDoubleAttribute(IElement item, string name) =>
+        TryReadDoubleAttribute(item, name, out double value) ? value : null;
+
+    private static bool TryReadDoubleAttribute(IElement item, string name, out double value) {
+        value = 0D;
+        string? raw = item.GetAttribute(name);
+        return !string.IsNullOrWhiteSpace(raw)
+            && double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+    }
+
+    private static bool TryReadBoolAttribute(IElement item, string name, out bool value) {
+        value = false;
+        string? raw = item.GetAttribute(name);
+        if (string.IsNullOrWhiteSpace(raw)) {
+            return false;
+        }
+
+        if (raw!.Equals("1", StringComparison.Ordinal) || raw.Equals("true", StringComparison.OrdinalIgnoreCase)) {
+            value = true;
+            return true;
+        }
+
+        if (raw.Equals("0", StringComparison.Ordinal) || raw.Equals("false", StringComparison.OrdinalIgnoreCase)) {
+            value = false;
+            return true;
+        }
+
+        return false;
     }
 
     private static void ReadChartGeometry(IElement item, double fallbackLeft, double fallbackTop, double fallbackWidth, double fallbackHeight, out double left, out double top, out double width, out double height) {

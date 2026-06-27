@@ -280,12 +280,25 @@ public static class ExcelHtmlConverterExtensions {
             string label = string.IsNullOrWhiteSpace(chart.Title)
                 ? string.IsNullOrWhiteSpace(chart.Name) ? "Chart" : chart.Name
                 : chart.Title!;
-            body.Append("<li class=\"officeimo-feature-item\"><span class=\"officeimo-feature-label\">")
+            bool hasSnapshot = chart.TryGetSnapshot(out ExcelChartSnapshot snapshot);
+            body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"chart\" data-officeimo-layer-index=\"")
+                .Append(chart.DrawingOrder.ToString(CultureInfo.InvariantCulture))
+                .Append("\" data-officeimo-chart-type=\"")
+                .Append(OfficeHtmlText.EscapeAttribute(chart.ChartType.ToString()))
+                .Append('"');
+            if (hasSnapshot) {
+                AppendDataAttribute(body, "data-officeimo-row", snapshot.RowIndex);
+                AppendDataAttribute(body, "data-officeimo-column", snapshot.ColumnIndex);
+                AppendDataAttribute(body, "data-officeimo-width", snapshot.WidthPixels);
+                AppendDataAttribute(body, "data-officeimo-height", snapshot.HeightPixels);
+            }
+
+            body.Append("><span class=\"officeimo-feature-label\">")
                 .Append(OfficeHtmlText.Escape(label))
                 .Append("</span><div class=\"officeimo-feature-meta\">Type: ")
                 .Append(OfficeHtmlText.Escape(chart.ChartType.ToString()))
                 .Append("</div>");
-            if (chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
+            if (hasSnapshot) {
                 body.Append("<div class=\"officeimo-feature-meta\">Series: ")
                     .Append(snapshot.Data.Series.Count.ToString(CultureInfo.InvariantCulture))
                     .Append("; Categories: ")
@@ -359,7 +372,30 @@ public static class ExcelHtmlConverterExtensions {
             string label = !string.IsNullOrWhiteSpace(image.Title)
                 ? image.Title
                 : !string.IsNullOrWhiteSpace(image.Name) ? image.Name : "Image";
-            body.Append("<li class=\"officeimo-feature-item\"><span class=\"officeimo-feature-label\">")
+            body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"image\" data-officeimo-layer-index=\"")
+                .Append(image.DrawingOrder.ToString(CultureInfo.InvariantCulture))
+                .Append("\" data-officeimo-anchor=\"")
+                .Append(image.HasAbsoluteAnchor ? "absolute" : image.HasTwoCellAnchor ? "twoCell" : "oneCell")
+                .Append('"');
+            AppendDataAttribute(body, "data-officeimo-row", image.RowIndex);
+            AppendDataAttribute(body, "data-officeimo-column", image.ColumnIndex);
+            AppendDataAttribute(body, "data-officeimo-width", image.WidthPixels);
+            AppendDataAttribute(body, "data-officeimo-height", image.HeightPixels);
+            AppendDataAttribute(body, "data-officeimo-offset-x", image.OffsetXPixels);
+            AppendDataAttribute(body, "data-officeimo-offset-y", image.OffsetYPixels);
+            AppendDataAttribute(body, "data-officeimo-rotation", image.RotationDegrees);
+            AppendDataAttribute(body, "data-officeimo-flip-horizontal", image.FlipHorizontal);
+            AppendDataAttribute(body, "data-officeimo-flip-vertical", image.FlipVertical);
+            AppendDataAttribute(body, "data-officeimo-crop-left", image.CropLeftRatio);
+            AppendDataAttribute(body, "data-officeimo-crop-top", image.CropTopRatio);
+            AppendDataAttribute(body, "data-officeimo-crop-right", image.CropRightRatio);
+            AppendDataAttribute(body, "data-officeimo-crop-bottom", image.CropBottomRatio);
+            if (image.HasAbsoluteAnchor && image.TryGetAbsoluteAnchorBounds(out int xPixels, out int yPixels, out _, out _)) {
+                AppendDataAttribute(body, "data-officeimo-x", xPixels);
+                AppendDataAttribute(body, "data-officeimo-y", yPixels);
+            }
+
+            body.Append("><span class=\"officeimo-feature-label\">")
                 .Append(OfficeHtmlText.Escape(label))
                 .Append("</span><div class=\"officeimo-feature-meta\">Cell: ")
                 .Append(image.RowIndex.ToString(CultureInfo.InvariantCulture))
@@ -387,6 +423,36 @@ public static class ExcelHtmlConverterExtensions {
         }
 
         body.Append("</ul></section>");
+    }
+
+    private static void AppendDataAttribute(StringBuilder body, string name, int value) {
+        body.Append(' ')
+            .Append(name)
+            .Append("=\"")
+            .Append(value.ToString(CultureInfo.InvariantCulture))
+            .Append('"');
+    }
+
+    private static void AppendDataAttribute(StringBuilder body, string name, double value) {
+        if (Math.Abs(value) < 0.0000001D) {
+            return;
+        }
+
+        body.Append(' ')
+            .Append(name)
+            .Append("=\"")
+            .Append(value.ToString("G17", CultureInfo.InvariantCulture))
+            .Append('"');
+    }
+
+    private static void AppendDataAttribute(StringBuilder body, string name, bool value) {
+        if (!value) {
+            return;
+        }
+
+        body.Append(' ')
+            .Append(name)
+            .Append("=\"true\"");
     }
 
     private static void AppendImagePreview(StringBuilder body, byte[] bytes, string contentType, string label) {

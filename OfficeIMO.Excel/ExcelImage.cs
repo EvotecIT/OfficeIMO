@@ -131,7 +131,10 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public int ToOffsetYPixels => EmuOffsetToPx(GetToMarkerRowOffset());
 
-        internal bool TryGetAbsoluteAnchorBounds(out int xPixels, out int yPixels, out int widthPixels, out int heightPixels) {
+        /// <summary>
+        /// Tries to read the image bounds when it is positioned by an absolute worksheet drawing anchor.
+        /// </summary>
+        public bool TryGetAbsoluteAnchorBounds(out int xPixels, out int yPixels, out int widthPixels, out int heightPixels) {
             xPixels = 0;
             yPixels = 0;
             widthPixels = 0;
@@ -272,20 +275,60 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(degrees), "Rotation must be a finite number of degrees.");
             }
 
-            var shapeProperties = _picture.ShapeProperties;
-            if (shapeProperties == null) {
+            A.Transform2D? transform = EnsureTransform();
+            if (transform == null) return this;
+            transform.Rotation = (int)Math.Round(degrees * 60000.0);
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets image crop ratios, where 0 means no crop and 1 means the full source dimension.
+        /// </summary>
+        public ExcelImage SetCropRatio(double left, double top, double right, double bottom) {
+            ValidateCropRatio(left, nameof(left));
+            ValidateCropRatio(top, nameof(top));
+            ValidateCropRatio(right, nameof(right));
+            ValidateCropRatio(bottom, nameof(bottom));
+
+            Xdr.BlipFill? blipFill = _picture.BlipFill;
+            if (blipFill == null) {
                 return this;
             }
 
-            var transform = shapeProperties.GetFirstChild<A.Transform2D>();
-            if (transform == null) {
-                transform = new A.Transform2D(
-                    new A.Offset { X = 0, Y = 0 },
-                    new A.Extents { Cx = GetExtentCx(), Cy = GetExtentCy() });
-                shapeProperties.PrependChild(transform);
+            if (left == 0D && top == 0D && right == 0D && bottom == 0D) {
+                blipFill.SourceRectangle?.Remove();
+                Save();
+                return this;
             }
 
-            transform.Rotation = (int)Math.Round(degrees * 60000.0);
+            A.SourceRectangle? rectangle = blipFill.SourceRectangle;
+            if (rectangle == null) {
+                rectangle = new A.SourceRectangle();
+                A.Blip? blip = blipFill.GetFirstChild<A.Blip>();
+                if (blip != null) {
+                    blipFill.InsertAfter(rectangle, blip);
+                } else {
+                    blipFill.PrependChild(rectangle);
+                }
+            }
+
+            rectangle.Left = ToCropPercentage(left);
+            rectangle.Top = ToCropPercentage(top);
+            rectangle.Right = ToCropPercentage(right);
+            rectangle.Bottom = ToCropPercentage(bottom);
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets image flip transforms.
+        /// </summary>
+        public ExcelImage SetFlip(bool horizontal, bool vertical) {
+            A.Transform2D? transform = EnsureTransform();
+            if (transform == null) return this;
+            transform.HorizontalFlip = horizontal;
+            transform.VerticalFlip = vertical;
             Save();
             return this;
         }
@@ -433,6 +476,23 @@ namespace OfficeIMO.Excel {
         private A.Transform2D? Transform
             => _picture.ShapeProperties?.GetFirstChild<A.Transform2D>();
 
+        private A.Transform2D? EnsureTransform() {
+            var shapeProperties = _picture.ShapeProperties;
+            if (shapeProperties == null) {
+                return null;
+            }
+
+            var transform = shapeProperties.GetFirstChild<A.Transform2D>();
+            if (transform == null) {
+                transform = new A.Transform2D(
+                    new A.Offset { X = 0, Y = 0 },
+                    new A.Extents { Cx = GetExtentCx(), Cy = GetExtentCy() });
+                shapeProperties.PrependChild(transform);
+            }
+
+            return transform;
+        }
+
         private ImagePart? ImagePart {
             get {
                 string? relationshipId = _picture.BlipFill?.Blip?.Embed?.Value;
@@ -496,6 +556,14 @@ namespace OfficeIMO.Excel {
 
             return Math.Min(0.999D, percentage.Value / 100000D);
         }
+
+        private static void ValidateCropRatio(double ratio, string parameterName) {
+            if (double.IsNaN(ratio) || double.IsInfinity(ratio) || ratio < 0D || ratio >= 1D) {
+                throw new ArgumentOutOfRangeException(parameterName, "Crop ratios must be finite values greater than or equal to 0 and less than 1.");
+            }
+        }
+
+        private static int ToCropPercentage(double ratio) => (int)Math.Round(ratio * 100000D);
 
         private static double GetRotationDegrees(int? angle) {
             if (!angle.HasValue || angle.Value == 0) {
