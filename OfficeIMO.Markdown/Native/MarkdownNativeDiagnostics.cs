@@ -52,11 +52,12 @@ public sealed class MarkdownNativeDiagnostic {
     public IReadOnlyList<MarkdownSourceSpan> RelatedSourceSpans { get; }
 
     internal static MarkdownNativeDiagnostic FromTransform(MarkdownDocumentTransformDiagnostic diagnostic) {
-        var sourceSpan = diagnostic.AffectedFinalNodeSpan
-            ?? diagnostic.AffectedFinalBlockSpan
-            ?? diagnostic.AffectedOriginalNodeSpan
-            ?? diagnostic.AffectedOriginalBlockSpan
-            ?? diagnostic.AffectedSourceSpan;
+        var sourceSpan = MarkdownTransformSourceSpanHelper.SelectMostSpecificSpan(
+            diagnostic.AffectedFinalNodeSpan,
+            diagnostic.AffectedOriginalNodeSpan,
+            diagnostic.AffectedFinalBlockSpan,
+            diagnostic.AffectedOriginalBlockSpan,
+            diagnostic.AffectedSourceSpan);
         var message = string.IsNullOrWhiteSpace(diagnostic.TransformName)
             ? "Document transform ran while building the native markdown projection."
             : $"Document transform '{diagnostic.TransformName}' ran while building the native markdown projection.";

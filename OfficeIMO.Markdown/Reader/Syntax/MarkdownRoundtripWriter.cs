@@ -120,9 +120,12 @@ public static class MarkdownRoundtripWriter {
                 continue;
             }
 
-            var sourceSpan = diagnostic.AffectedSourceSpan
-                             ?? diagnostic.AffectedOriginalBlockSpan
-                             ?? diagnostic.AffectedFinalBlockSpan;
+            var sourceSpan = MarkdownTransformSourceSpanHelper.SelectMostSpecificSpan(
+                diagnostic.AffectedOriginalNodeSpan,
+                diagnostic.AffectedFinalNodeSpan,
+                diagnostic.AffectedSourceSpan,
+                diagnostic.AffectedOriginalBlockSpan,
+                diagnostic.AffectedFinalBlockSpan);
             if (sourceSpan.HasValue) {
                 return sourceSpan;
             }

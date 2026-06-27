@@ -37,6 +37,33 @@ internal static class MarkdownTransformDiagnosticSyntaxHelper {
         }
     }
 
+    internal static void PopulateOriginalChangedNodeAnchor(
+        MarkdownDocumentTransformDiagnostic diagnostic,
+        MarkdownSyntaxNode? beforeNode,
+        MarkdownSyntaxNode? afterNode,
+        MarkdownTransformSourceSpanHelper.ChangedBlockRange change) {
+        if (diagnostic == null ||
+            beforeNode == null ||
+            afterNode == null ||
+            change.CountBefore != 1 ||
+            change.CountAfter != 1) {
+            return;
+        }
+
+        var changedPath = FindChangedNodePath(beforeNode, afterNode);
+        if (changedPath.Count == 0) {
+            return;
+        }
+
+        var changedNode = changedPath[changedPath.Count - 1];
+        if (!changedNode.SourceSpan.HasValue) {
+            return;
+        }
+
+        diagnostic.AffectedOriginalNodePath = "Document > " + string.Join(" > ", changedPath.Select(FormatPathSegment));
+        diagnostic.AffectedOriginalNodeSpan = changedNode.SourceSpan;
+    }
+
     private static void PopulateBlockAnchor(
         MarkdownDocumentTransformDiagnostic diagnostic,
         MarkdownSyntaxNode? syntaxTree,
@@ -100,6 +127,72 @@ internal static class MarkdownTransformDiagnosticSyntaxHelper {
         }
 
         return path;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> FindChangedNodePath(
+        MarkdownSyntaxNode beforeNode,
+        MarkdownSyntaxNode afterNode) {
+        if (beforeNode == null || afterNode == null) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        if (NodeFingerprint(beforeNode) == NodeFingerprint(afterNode)) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        if (beforeNode.Kind != afterNode.Kind ||
+            !string.Equals(beforeNode.CustomKind, afterNode.CustomKind, StringComparison.Ordinal)) {
+            return new[] { beforeNode };
+        }
+
+        var childChange = ComputeChildChange(beforeNode.Children, afterNode.Children);
+        if (childChange.CountBefore == 1 && childChange.CountAfter == 1) {
+            var beforeChild = beforeNode.Children[childChange.StartBefore];
+            var afterChild = afterNode.Children[childChange.StartAfter];
+            var childPath = FindChangedNodePath(beforeChild, afterChild);
+            if (childPath.Count > 0) {
+                var path = new List<MarkdownSyntaxNode>(childPath.Count + 1) {
+                    beforeNode
+                };
+                path.AddRange(childPath);
+                return path;
+            }
+
+            return new[] { beforeNode, beforeChild };
+        }
+
+        return new[] { beforeNode };
+    }
+
+    private static MarkdownTransformSourceSpanHelper.ChangedBlockRange ComputeChildChange(
+        IReadOnlyList<MarkdownSyntaxNode> before,
+        IReadOnlyList<MarkdownSyntaxNode> after) {
+        var beforeFingerprints = new string[before.Count];
+        for (var i = 0; i < before.Count; i++) {
+            beforeFingerprints[i] = NodeFingerprint(before[i]);
+        }
+
+        var afterFingerprints = new string[after.Count];
+        for (var i = 0; i < after.Count; i++) {
+            afterFingerprints[i] = NodeFingerprint(after[i]);
+        }
+
+        return MarkdownTransformSourceSpanHelper.ComputeChangedRange(beforeFingerprints, afterFingerprints);
+    }
+
+    private static string NodeFingerprint(MarkdownSyntaxNode node) {
+        if (node == null) {
+            return string.Empty;
+        }
+
+        return string.Concat(
+            node.Kind.ToString(),
+            "\n",
+            node.CustomKind ?? string.Empty,
+            "\n",
+            node.Literal ?? string.Empty,
+            "\n",
+            string.Join("\n", node.Children.Select(NodeFingerprint)));
     }
 
     private static string FormatPathSegment(MarkdownSyntaxNode node) {

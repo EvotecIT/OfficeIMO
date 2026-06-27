@@ -97,7 +97,7 @@ Current coverage:
 - list-item paragraph syntax nodes now associate to `ParagraphBlock` objects instead of their nested `InlineSequence`
 - definition-list entry term replacement now synchronizes the grouped AST owner, flat entry adapter, Markdown/HTML renderers, and parsed syntax cache invalidation
 - sequence inline syntax nodes now associate back to their wrapper objects across strong, emphasis, strong-emphasis, strikethrough, and highlight grouped inline content
-- transform diagnostics now expose deepest original/final syntax-node anchors alongside block-level anchors, giving editor/native hosts tighter source provenance when a transform fallback can be mapped below the affected block span
+- transform diagnostics now expose deepest original/final syntax-node anchors alongside block-level anchors, and one-to-one single-block transforms compare child syntax fingerprints to report a precise original changed node when a smaller source span can be proven
 
 ### A2. Add tree invariant test helpers
 
@@ -347,7 +347,7 @@ Current coverage:
 - multiline setext heading text and underline token edits can be applied back to preserved original CRLF input through `MarkdownNativeDocument` while preserving surrounding trivia
 - `MarkdownRoundtripWriter.WriteUnchanged` returns the captured original markdown byte-for-byte for unchanged parse results and reports diagnostics when it falls back to generated markdown
 - `MarkdownRoundtripWriter.WriteWithSourceEdit` and `WriteWithSourceEdits` apply explicit native source edits to preserved original markdown when each edit can be remapped safely, and fall back to normalized markdown with diagnostics when they cannot
-- transform fallback diagnostics can now carry related input-block spans plus deepest syntax-node anchors in the parse/native diagnostic layer, but exact below-block changed-node diffing is still future work
+- transform fallback diagnostics can now carry related input-block spans plus deepest syntax-node anchors in the parse/native diagnostic layer, and native/roundtrip diagnostics prefer the most specific proven span for one-to-one single-block inline changes; generalized below-block changed-node diffing is still future work
 - these are useful groundwork, not a first-class lossless trivia mode
 
 Done means:

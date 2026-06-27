@@ -154,6 +154,24 @@ BETA
     }
 
     [Fact]
+    public void MarkdownReader_ParseWithSyntaxTreeAndDiagnostics_Collects_PreciseChangedInlineNodeAnchor() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightStrongBoundaries = true
+        }));
+
+        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Prefix **bold**suffix", options);
+
+        var diagnostic = Assert.Single(result.TransformDiagnostics);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 21), diagnostic.AffectedSourceSpan);
+        Assert.Equal("Document > Paragraph", diagnostic.AffectedOriginalBlockPath);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 21), diagnostic.AffectedOriginalBlockSpan);
+        Assert.Equal("Document > Paragraph > InlineText", diagnostic.AffectedOriginalNodePath);
+        Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 21), diagnostic.AffectedOriginalNodeSpan);
+        Assert.Equal("Prefix **bold** suffix", result.Document.ToMarkdown().Trim());
+    }
+
+    [Fact]
     public void MarkdownReader_ParseWithSyntaxTreeAndDiagnostics_Collects_TransformDiagnostics_InOneCall() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());

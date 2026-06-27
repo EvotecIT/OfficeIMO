@@ -452,6 +452,25 @@ beta
         }
 
         [Fact]
+        public void MarkdownRoundtripWriter_Reports_Transform_PreciseNodeSourceSpan_When_UnchangedWrite_Falls_Back() {
+            var options = MarkdownReaderOptions.CreatePortableProfile();
+            options.PreserveTrivia = true;
+            options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+                NormalizeTightStrongBoundaries = true
+            }));
+
+            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Prefix **bold**suffix", options);
+
+            var roundtrip = MarkdownRoundtripWriter.WriteUnchanged(result);
+
+            Assert.False(roundtrip.IsLossless);
+            var diagnostic = Assert.Single(roundtrip.Diagnostics);
+            Assert.Equal("roundtrip.document-transformed", diagnostic.Id);
+            Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 21), diagnostic.SourceSpan);
+            Assert.Equal("Prefix **bold** suffix", roundtrip.Markdown.Trim());
+        }
+
+        [Fact]
         public void MarkdownRoundtripWriter_Preserves_Unchanged_OriginalMarkdown_When_NoOpTransform_Ran() {
             const string markdown = "# Title\r\n\r\nBody\r\n";
             var options = new MarkdownReaderOptions {

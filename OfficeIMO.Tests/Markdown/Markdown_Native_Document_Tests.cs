@@ -1568,6 +1568,25 @@ beta
     }
 
     [Fact]
+    public void Parse_Projects_Transform_Diagnostic_Precise_Node_SourceSpan_Into_Native_Snapshots() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightStrongBoundaries = true
+        }));
+
+        var native = MarkdownNativeDocument.Parse("Prefix **bold**suffix", options);
+
+        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native.transform");
+        Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 21), diagnostic.SourceSpan);
+
+        var snapshotDiagnostic = Assert.Single(native.ToSnapshot().Diagnostics, item => item.Id == "native.transform");
+        Assert.Equal(1, snapshotDiagnostic.SourceSpan!.StartLine);
+        Assert.Equal(16, snapshotDiagnostic.SourceSpan.StartColumn);
+        Assert.Equal(1, snapshotDiagnostic.SourceSpan.EndLine);
+        Assert.Equal(21, snapshotDiagnostic.SourceSpan.EndColumn);
+    }
+
+    [Fact]
     public void Parse_Reports_Fallback_Diagnostics_For_Unsupported_Blocks() {
         var native = MarkdownNativeDocument.Parse("[TOC]");
 

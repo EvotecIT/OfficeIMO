@@ -135,6 +135,22 @@ internal static class MarkdownTransformSourceSpanHelper {
             : null;
     }
 
+    internal static MarkdownSourceSpan? SelectMostSpecificSpan(params MarkdownSourceSpan?[] spans) {
+        MarkdownSourceSpan? best = null;
+        for (var i = 0; i < spans.Length; i++) {
+            var candidate = spans[i];
+            if (!candidate.HasValue || !IsWellFormedSpan(candidate.Value)) {
+                continue;
+            }
+
+            if (!best.HasValue || IsMoreSpecific(candidate.Value, best.Value)) {
+                best = candidate;
+            }
+        }
+
+        return best;
+    }
+
     internal static List<MarkdownSourceSpan?> UpdateBlockSpans(
         IReadOnlyList<MarkdownSourceSpan?>? previousSpans,
         int newCount,
@@ -253,6 +269,29 @@ internal static class MarkdownTransformSourceSpanHelper {
     private static int NormalizeStartColumn(int? column) => column ?? 1;
 
     private static int NormalizeEndColumn(int? column) => column ?? int.MaxValue;
+
+    private static bool IsMoreSpecific(MarkdownSourceSpan candidate, MarkdownSourceSpan current) {
+        if (current.Contains(candidate) && !candidate.Contains(current)) {
+            return true;
+        }
+
+        if (candidate.Contains(current)) {
+            return false;
+        }
+
+        return EstimateSpanSize(candidate) < EstimateSpanSize(current);
+    }
+
+    private static long EstimateSpanSize(MarkdownSourceSpan span) {
+        if (span.StartOffset.HasValue && span.EndOffset.HasValue) {
+            return Math.Max(0, span.EndOffset.Value - span.StartOffset.Value);
+        }
+
+        var lineDistance = Math.Max(0, span.EndLine - span.StartLine);
+        var startColumn = NormalizeStartColumn(span.StartColumn);
+        var endColumn = span.EndColumn ?? startColumn;
+        return ((long)lineDistance * 1_000_000L) + Math.Max(0, endColumn - startColumn);
+    }
 
     private static bool IsWellFormedSpan(MarkdownSourceSpan span) {
         if (span.StartLine < 1 || span.EndLine < span.StartLine) {
