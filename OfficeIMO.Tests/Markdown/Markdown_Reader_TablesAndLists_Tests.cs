@@ -1007,7 +1007,7 @@ after
         }
 
         [Fact]
-        public void List_Item_Nested_Blockquote_Keeps_Lazy_NonOne_Ordered_Continuation_As_Paragraph() {
+        public void List_Item_Nested_Blockquote_Stops_Before_NonOne_Ordered_Child_List() {
             string md = """
 - outer
   > alpha
@@ -1018,9 +1018,13 @@ after
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
             var quote = Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
+            var ordered = Assert.IsType<OrderedListBlock>(list.Items[0].Children[1]);
+            Assert.Equal(10, ordered.Start);
+            Assert.Single(ordered.Items);
+            Assert.Equal("beta gamma", ordered.Items[0].Content.RenderMarkdown());
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-            Assert.Contains("<blockquote><p>alpha 10. beta gamma</p></blockquote>", html, StringComparison.Ordinal);
+            Assert.Contains("<blockquote><p>alpha</p></blockquote><ol start=\"10\"><li>beta gamma</li></ol>", html, StringComparison.Ordinal);
             Assert.DoesNotContain("<pre><code>", html, StringComparison.Ordinal);
             Assert.Single(quote.Children);
         }

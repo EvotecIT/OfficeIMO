@@ -421,7 +421,6 @@ public static partial class MarkdownReader {
 
         if (options.OrderedLists &&
             IsOrderedListLine(line, out int orderedLevelAbs, out _, out _) &&
-            IsParagraphInterruptingOrderedListLine(StripLeadingIndentColumns(line, continuationIndent)) &&
             orderedLevelAbs >= itemLevelAbs + 1) {
             return true;
         }

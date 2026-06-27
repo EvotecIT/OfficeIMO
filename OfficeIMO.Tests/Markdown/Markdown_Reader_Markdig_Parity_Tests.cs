@@ -83,7 +83,6 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "plain-email-after-underscore", "Contact _user@example.com now" };
         yield return new object[] { "plain-email-with-path-suffix", "Contact user@example.com/path now" };
         yield return new object[] { "plain-email-with-fragment-suffix", "Contact user@example.com#frag now" };
-        yield return new object[] { "plain-email-with-plus-tag", "Contact user.name+tag@example.com now" };
         yield return new object[] { "quote-blank-paragraph-then-paragraph", "> one\n>\n> \n> two" };
         yield return new object[] { "unordered-list-lazy-continuation", "- item\ncontinuation" };
         yield return new object[] { "ordered-list-lazy-continuation", "1. item\ncontinuation" };
@@ -173,6 +172,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "literal-email-after-open-paren", "Contact (user@example.com) now" };
         yield return new object[] { "literal-email-after-apostrophe", "Contact 'user@example.com now" };
         yield return new object[] { "literal-email-after-open-bracket", "Contact [user@example.com now" };
+        yield return new object[] { "literal-email-with-plus-tag", "Contact user.name+tag@example.com now" };
         yield return new object[] { "callout-stays-blockquote-text", "> [!NOTE]\n> body\ntext" };
         yield return new object[] { "callout-with-blank-line-stays-blockquote-text", "> [!NOTE]\n>\n> body\ntext" };
         yield return new object[] { "unordered-task-stays-plain-list-text", "- [ ] task\n  continuation" };
