@@ -271,6 +271,54 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Reference_Link_Metadata_Preserves_Inline_Delimiter_Markers_For_Edits_And_Snapshots() {
+        const string markdown = "See [docs][hero], [api][], and [guide]\n\n[hero]: https://example.com/docs \"Docs\"\n[api]: /api\n[guide]: /guide\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[0]);
+        var links = paragraph.InlineRuns.Where(inline => inline.Kind == MarkdownNativeInlineKind.Link).ToArray();
+        Assert.Equal(3, links.Length);
+
+        var fullOpening = Assert.Single(links[0].Metadata, metadata => metadata.Name == "openingMarker");
+        var fullClosing = Assert.Single(links[0].Metadata, metadata => metadata.Name == "closingMarker");
+        var collapsedOpening = Assert.Single(links[1].Metadata, metadata => metadata.Name == "openingMarker");
+        var collapsedClosing = Assert.Single(links[1].Metadata, metadata => metadata.Name == "closingMarker");
+        var shortcutOpening = Assert.Single(links[2].Metadata, metadata => metadata.Name == "openingMarker");
+        var shortcutClosing = Assert.Single(links[2].Metadata, metadata => metadata.Name == "closingMarker");
+
+        Assert.Equal("https://example.com/docs", links[0].GetMetadata("target"));
+        Assert.Equal("/api", links[1].GetMetadata("target"));
+        Assert.Equal("/guide", links[2].GetMetadata("target"));
+        Assert.Equal("[", fullOpening.Value);
+        Assert.Equal("]", fullClosing.Value);
+        Assert.Equal("[", collapsedOpening.Value);
+        Assert.Equal("]", collapsedClosing.Value);
+        Assert.Equal("[", shortcutOpening.Value);
+        Assert.Equal("]", shortcutClosing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 5), fullOpening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 16), fullClosing.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 19, 1, 19), collapsedOpening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 25, 1, 25), collapsedClosing.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 32, 1, 32), shortcutOpening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 38, 1, 38), shortcutClosing.SourceSpan);
+
+        var edited = native.CreateReplaceEdit(shortcutOpening, "{").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(shortcutClosing, "}").Apply(edited);
+        Assert.Equal("See [docs][hero], [api][], and {guide}\n\n[hero]: https://example.com/docs \"Docs\"\n[api]: /api\n[guide]: /guide\n", edited);
+
+        var snapshotLinks = native.ToSnapshot().Blocks[0].Inlines.Where(inline => inline.Kind == MarkdownNativeInlineKind.Link).ToArray();
+        Assert.Equal("[", snapshotLinks[0].Metadata["openingMarker"]);
+        Assert.Equal("]", snapshotLinks[0].Metadata["closingMarker"]);
+        Assert.Equal("[", snapshotLinks[1].Metadata["openingMarker"]);
+        Assert.Equal("]", snapshotLinks[1].Metadata["closingMarker"]);
+        Assert.Equal("[", snapshotLinks[2].Metadata["openingMarker"]);
+        Assert.Equal("]", snapshotLinks[2].Metadata["closingMarker"]);
+        Assert.Equal(5, snapshotLinks[0].MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(25, snapshotLinks[1].MetadataSourceSpans["closingMarker"]!.EndColumn);
+        Assert.Equal(38, snapshotLinks[2].MetadataSourceSpans["closingMarker"]!.EndColumn);
+    }
+
+    [Fact]
     public void Inline_Image_Metadata_Preserves_Source_Title_And_Delimiter_Markers_For_Edits_And_Snapshots() {
         const string markdown = "Look ![Alt](img.png \"Title\") now\n";
 
@@ -316,6 +364,48 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal(")", snapshotImage.Metadata["closingMarker"]);
         Assert.Equal(6, snapshotImage.MetadataSourceSpans["openingMarker"]!.StartColumn);
         Assert.Equal(28, snapshotImage.MetadataSourceSpans["closingMarker"]!.EndColumn);
+    }
+
+    [Fact]
+    public void Reference_Image_Metadata_Preserves_Inline_Delimiter_Markers_For_Edits_And_Snapshots() {
+        const string markdown = "Look ![Alt][img] and ![Icon]\n\n[img]: img.png \"Img\"\n[Icon]: icon.png\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[0]);
+        var images = paragraph.InlineRuns.Where(inline => inline.Kind == MarkdownNativeInlineKind.Image).ToArray();
+        Assert.Equal(2, images.Length);
+
+        var fullOpening = Assert.Single(images[0].Metadata, metadata => metadata.Name == "openingMarker");
+        var fullClosing = Assert.Single(images[0].Metadata, metadata => metadata.Name == "closingMarker");
+        var shortcutOpening = Assert.Single(images[1].Metadata, metadata => metadata.Name == "openingMarker");
+        var shortcutClosing = Assert.Single(images[1].Metadata, metadata => metadata.Name == "closingMarker");
+
+        Assert.Equal("Alt", images[0].GetMetadata("alt"));
+        Assert.Equal("img.png", images[0].GetMetadata("source"));
+        Assert.Equal("Icon", images[1].GetMetadata("alt"));
+        Assert.Equal("icon.png", images[1].GetMetadata("source"));
+        Assert.Equal("![", fullOpening.Value);
+        Assert.Equal("]", fullClosing.Value);
+        Assert.Equal("![", shortcutOpening.Value);
+        Assert.Equal("]", shortcutClosing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), fullOpening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 16), fullClosing.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 22, 1, 23), shortcutOpening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 28, 1, 28), shortcutClosing.SourceSpan);
+
+        var edited = native.CreateReplaceEdit(shortcutOpening, "?[").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(shortcutClosing, "}").Apply(edited);
+        Assert.Equal("Look ![Alt][img] and ?[Icon}\n\n[img]: img.png \"Img\"\n[Icon]: icon.png\n", edited);
+
+        var snapshotImages = native.ToSnapshot().Blocks[0].Inlines.Where(inline => inline.Kind == MarkdownNativeInlineKind.Image).ToArray();
+        Assert.Equal("![", snapshotImages[0].Metadata["openingMarker"]);
+        Assert.Equal("]", snapshotImages[0].Metadata["closingMarker"]);
+        Assert.Equal("![", snapshotImages[1].Metadata["openingMarker"]);
+        Assert.Equal("]", snapshotImages[1].Metadata["closingMarker"]);
+        Assert.Equal(6, snapshotImages[0].MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(16, snapshotImages[0].MetadataSourceSpans["closingMarker"]!.EndColumn);
+        Assert.Equal(22, snapshotImages[1].MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(28, snapshotImages[1].MetadataSourceSpans["closingMarker"]!.EndColumn);
     }
 
     [Fact]
