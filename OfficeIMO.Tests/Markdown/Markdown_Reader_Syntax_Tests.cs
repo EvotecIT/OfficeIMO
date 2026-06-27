@@ -1025,6 +1025,36 @@ Lead {{core}} tail
     }
 
     [Fact]
+    public void ListItem_SyntaxChild_Owner_Interface_Uses_Parsed_BlockChildren() {
+        const string markdown = """
+- lead
+
+  second
+
+  > quoted
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
+        var item = Assert.Single(list.Items);
+
+        var providedChildren = ((ISyntaxChildrenMarkdownBlock)item).ProvidedSyntaxChildren;
+        var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)item).BuildOwnedSyntaxChildren();
+        var finalItem = Assert.Single(Assert.Single(result.FinalSyntaxTree.Children).Children);
+
+        Assert.NotNull(providedChildren);
+        Assert.Equal(
+            new[] { MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.Quote },
+            providedChildren!.Select(child => child.Kind).ToArray());
+        Assert.Equal(providedChildren.Count, ownedChildren.Count);
+        Assert.Same(item.ParagraphBlocks[0], ownedChildren[0].AssociatedObject);
+        Assert.Same(item.ParagraphBlocks[1], ownedChildren[1].AssociatedObject);
+        Assert.Same(item.ChildBlocks[0], ownedChildren[2].AssociatedObject);
+        Assert.Equal(ownedChildren.Select(child => child.Kind), finalItem.Children.Select(child => child.Kind));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Associates_ListItem_Paragraph_Syntax_To_ParagraphBlocks() {
         const string markdown = """
 - first paragraph

@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// List item content; supports plain and task (checklist) items.
 /// </summary>
-public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer {
+public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock {
     private readonly ParagraphBlock _leadParagraphBlock;
     private readonly List<ParagraphBlock> _additionalParagraphBlocks = new List<ParagraphBlock>();
     private readonly List<ParagraphBlock> _paragraphBlocks = new List<ParagraphBlock>();
@@ -48,6 +48,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer {
     /// <summary>Forces paragraph-wrapped loose rendering even when only the first paragraph and child blocks exist.</summary>
     public bool ForceLoose { get; set; }
     internal List<MarkdownSyntaxNode> SyntaxChildren { get; } = new List<MarkdownSyntaxNode>();
+    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     /// <summary>Creates a plain list item.</summary>
     public ListItem(InlineSequence content) {
@@ -240,7 +241,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer {
     internal bool RequiresLooseListRendering() => ForceLoose || AdditionalParagraphs.Count > 0;
 
     internal MarkdownSyntaxNode BuildSyntaxNode(MarkdownSyntaxNode? nestedList) {
-        var children = BuildOwnedSyntaxChildren();
+        var children = MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this).ToList();
 
         if (nestedList != null) {
             children.Add(nestedList);
@@ -257,6 +258,8 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer {
             children,
             this);
     }
+
+    IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() => BuildOwnedSyntaxChildren();
 
     private List<MarkdownSyntaxNode> BuildOwnedSyntaxChildren() {
         var children = new List<MarkdownSyntaxNode>();
