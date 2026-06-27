@@ -78,6 +78,7 @@ second
         Assert.Equal(0, diagnostic.ChangedBlockCountBefore);
         Assert.Equal(0, diagnostic.ChangedBlockCountAfter);
         Assert.Null(diagnostic.AffectedSourceSpan);
+        Assert.Empty(diagnostic.AffectedSourceSpans);
     }
 
     [Fact]
@@ -105,9 +106,49 @@ second
         Assert.Equal(0, diagnostic.ChangedBlockStartAfter);
         Assert.Equal(2, diagnostic.ChangedBlockCountAfter);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedSourceSpan);
+        var affectedSourceSpan = Assert.Single(diagnostic.AffectedSourceSpans);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), affectedSourceSpan);
         Assert.Equal("Document > Paragraph", diagnostic.AffectedOriginalBlockPath);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedOriginalBlockSpan);
         Assert.Equal(2, transformed.Blocks.Count);
+    }
+
+    [Fact]
+    public void MarkdownDocumentTransformPipeline_Collects_IndividualAffectedSourceSpans() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var parseResult = MarkdownReader.ParseWithSyntaxTree("""
+alpha
+
+beta
+""", options);
+        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
+
+        var transformed = MarkdownDocumentTransformPipeline.Apply(
+            parseResult.Document,
+            new IMarkdownDocumentTransform[] { new UppercaseParagraphsTransform() },
+            new MarkdownDocumentTransformContext(
+                MarkdownDocumentTransformSource.MarkdownReader,
+                options,
+                sourceOptions: null,
+                diagnostics,
+                parseResult.SyntaxTree));
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.True(diagnostic.HasChangedBlocks);
+        Assert.Equal(0, diagnostic.ChangedBlockStartBefore);
+        Assert.Equal(2, diagnostic.ChangedBlockCountBefore);
+        Assert.Equal(0, diagnostic.ChangedBlockStartAfter);
+        Assert.Equal(2, diagnostic.ChangedBlockCountAfter);
+        Assert.Equal(new[] { 1, 3 }, diagnostic.AffectedSourceSpans.Select(span => span.StartLine).ToArray());
+        Assert.Equal(new[] { 1, 3 }, diagnostic.AffectedSourceSpans.Select(span => span.EndLine).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 4), diagnostic.AffectedSourceSpan);
+        Assert.Equal(
+            NormalizeMarkdown("""
+ALPHA
+
+BETA
+"""),
+            NormalizeMarkdown(transformed.ToMarkdown()));
     }
 
     [Fact]
@@ -642,6 +683,21 @@ Lead[^1]
         public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownReader, context.Source);
             return document;
+        }
+    }
+
+    private sealed class UppercaseParagraphsTransform : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            var transformed = MarkdownDoc.Create();
+            foreach (var block in document.Blocks) {
+                if (block is ParagraphBlock paragraph) {
+                    transformed.Add(new ParagraphBlock(new InlineSequence().Text(paragraph.Inlines.RenderMarkdown().ToUpperInvariant())));
+                } else {
+                    transformed.Add(block);
+                }
+            }
+
+            return transformed;
         }
     }
 }

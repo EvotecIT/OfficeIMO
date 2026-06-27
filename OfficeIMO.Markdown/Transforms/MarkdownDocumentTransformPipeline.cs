@@ -59,6 +59,7 @@ public static class MarkdownDocumentTransformPipeline {
 
             string[] afterFingerprints = MarkdownTransformSourceSpanHelper.CreateBlockFingerprints(current.Blocks);
             var change = MarkdownTransformSourceSpanHelper.ComputeChangedRange(beforeFingerprints!, afterFingerprints);
+            IReadOnlyList<MarkdownSourceSpan> affectedSourceSpans = MarkdownTransformSourceSpanHelper.CollectSpans(blockSpans, change.StartBefore, change.CountBefore);
             MarkdownSourceSpan? affectedSourceSpan = MarkdownTransformSourceSpanHelper.AggregateSpans(blockSpans, change.StartBefore, change.CountBefore);
             blockSpans = MarkdownTransformSourceSpanHelper.UpdateBlockSpans(blockSpans, current.Blocks.Count, change, affectedSourceSpan);
 
@@ -72,7 +73,8 @@ public static class MarkdownDocumentTransformPipeline {
                 ChangedBlockCountBefore = change.CountBefore,
                 ChangedBlockStartAfter = change.StartAfter,
                 ChangedBlockCountAfter = change.CountAfter,
-                AffectedSourceSpan = affectedSourceSpan
+                AffectedSourceSpan = affectedSourceSpan,
+                AffectedSourceSpans = affectedSourceSpans
             };
             MarkdownTransformDiagnosticSyntaxHelper.PopulateOriginalBlockAnchor(diagnostic, context.SyntaxTree);
             context.Diagnostics.Add(diagnostic);

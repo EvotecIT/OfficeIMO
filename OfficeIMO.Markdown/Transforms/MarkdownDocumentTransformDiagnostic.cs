@@ -60,6 +60,11 @@ public sealed class MarkdownDocumentTransformDiagnostic {
     public MarkdownSourceSpan? AffectedSourceSpan { get; set; }
 
     /// <summary>
+    /// Source spans of individual top-level input blocks affected by the transform, when available.
+    /// </summary>
+    public IReadOnlyList<MarkdownSourceSpan> AffectedSourceSpans { get; set; } = Array.Empty<MarkdownSourceSpan>();
+
+    /// <summary>
     /// Deepest original block-like syntax path overlapping the affected source span when available.
     /// </summary>
     public string? AffectedOriginalBlockPath { get; set; }
