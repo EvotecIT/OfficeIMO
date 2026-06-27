@@ -1033,7 +1033,7 @@ Lead {{core}} tail
     }
 
     [Fact]
-    public void ListItem_ChildContainer_Interface_Uses_Canonical_BlockChildren_Projection() {
+    public void ListItem_Public_ChildBlocks_And_ChildContainer_Interface_Use_Canonical_BlockChildren_Projection() {
         const string markdown = """
 - lead
 
@@ -1052,8 +1052,9 @@ Lead {{core}} tail
             block => Assert.Equal("lead", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
             block => Assert.Equal("second", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
             block => Assert.Equal("quoted", Assert.IsType<ParagraphBlock>(Assert.Single(Assert.IsType<QuoteBlock>(block).ChildBlocks)).Inlines.RenderMarkdown()));
+        Assert.Equal(blockChildren, item.ChildBlocks);
         Assert.Equal(blockChildren, ((IChildMarkdownBlockContainer)item).ChildBlocks);
-        Assert.Collection(item.ChildBlocks, block => Assert.IsType<QuoteBlock>(block));
+        Assert.Collection(item.Children, block => Assert.IsType<QuoteBlock>(block));
     }
 
     [Fact]
@@ -1081,7 +1082,7 @@ Lead {{core}} tail
         Assert.Equal(providedChildren.Count, ownedChildren.Count);
         Assert.Same(item.ParagraphBlocks[0], ownedChildren[0].AssociatedObject);
         Assert.Same(item.ParagraphBlocks[1], ownedChildren[1].AssociatedObject);
-        Assert.Same(item.ChildBlocks[0], ownedChildren[2].AssociatedObject);
+        Assert.Same(item.Children[0], ownedChildren[2].AssociatedObject);
         Assert.Equal(ownedChildren.Select(child => child.Kind), finalItem.Children.Select(child => child.Kind));
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }

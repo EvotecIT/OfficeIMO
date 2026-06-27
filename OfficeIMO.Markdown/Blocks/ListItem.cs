@@ -25,16 +25,16 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     }
     /// <summary>Nested block content inside the list item (e.g., nested ordered/unordered lists, code blocks).</summary>
     public List<IMarkdownBlock> Children { get; } = new List<IMarkdownBlock>();
-    /// <summary>Read-only AST-style view of nested child blocks inside the list item.</summary>
-    public IReadOnlyList<IMarkdownBlock> ChildBlocks => Children;
     /// <summary>Ordered AST-style view of all list-item child blocks, including lead paragraphs.</summary>
-    public IReadOnlyList<IMarkdownBlock> BlockChildren {
+    public IReadOnlyList<IMarkdownBlock> ChildBlocks {
         get {
             EnsureBlockChildren();
             return _blockChildren;
         }
     }
-    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => BlockChildren;
+    /// <summary>Compatibility alias for <see cref="ChildBlocks"/>.</summary>
+    public IReadOnlyList<IMarkdownBlock> BlockChildren => ChildBlocks;
+    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
     /// <summary>True when rendered as a task item (<c>- [ ]</c> or <c>- [x]</c>).</summary>
     public bool IsTask { get; }
     /// <summary>Whether the task is checked.</summary>
@@ -108,11 +108,11 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         if (!renderLoose && AdditionalParagraphs.Count == 0) {
             var sbTight = new StringBuilder();
             sbTight.Append(checkbox).Append(Content.RenderHtml());
-            for (int i = 0; i < ChildBlocks.Count; i++) {
-                if (ChildBlocks[i] is ITightListItemHtmlMarkdownBlock tightHtmlBlock) {
+            for (int i = 0; i < Children.Count; i++) {
+                if (Children[i] is ITightListItemHtmlMarkdownBlock tightHtmlBlock) {
                     sbTight.Append(tightHtmlBlock.RenderTightListItemHtml());
                 } else {
-                    sbTight.Append(ChildBlocks[i].RenderHtml());
+                    sbTight.Append(Children[i].RenderHtml());
                 }
             }
             return sbTight.ToString();
@@ -129,8 +129,8 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             first = false;
         }
 
-        for (int i = 0; i < ChildBlocks.Count; i++) {
-            sb.Append(ChildBlocks[i].RenderHtml());
+        for (int i = 0; i < Children.Count; i++) {
+            sb.Append(Children[i].RenderHtml());
         }
         return sb.ToString();
     }
@@ -317,8 +317,8 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             _blockChildren.Add(_paragraphBlocks[i]);
         }
 
-        for (int i = 0; i < ChildBlocks.Count; i++) {
-            _blockChildren.Add(ChildBlocks[i]);
+        for (int i = 0; i < Children.Count; i++) {
+            _blockChildren.Add(Children[i]);
         }
     }
 
