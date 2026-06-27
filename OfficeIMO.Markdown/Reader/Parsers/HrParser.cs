@@ -13,6 +13,7 @@ public static partial class MarkdownReader {
 
     private static bool LooksLikeHr(string line) {
         if (string.IsNullOrWhiteSpace(line)) return false;
+        if (CountLeadingIndentColumns(line) > 3) return false;
         var t = line.Trim();
         // Allow spaces between characters, e.g., "- - -". Only '-', '*', '_' are valid.
         char kind = '\0'; int count = 0;

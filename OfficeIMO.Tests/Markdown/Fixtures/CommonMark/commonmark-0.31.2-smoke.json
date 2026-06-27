@@ -70,6 +70,23 @@
     "html": "<p>* foo</p>\n<ul>\n<li>foo</li>\n</ul>\n"
   },
   {
+    "example": 43,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule", "HorizontalRule", "HorizontalRule"],
+    "markdown": "***\n---\n___\n",
+    "html": "<hr />\n<hr />\n<hr />\n",
+    "syntaxAssertions": [
+      {
+        "description": "asterisk thematic break resolves as a horizontal rule",
+        "line": 1,
+        "column": 2,
+        "expectedPathKinds": ["Document", "HorizontalRule"],
+        "expectedDeepestLiteral": "---",
+        "expectedNearestBlockKind": "HorizontalRule"
+      }
+    ]
+  },
+  {
     "example": 44,
     "section": "Thematic breaks",
     "topLevelKinds": ["Paragraph"],
@@ -104,6 +121,89 @@
         "expectedNearestBlockKind": "Paragraph"
       }
     ]
+  },
+  {
+    "example": 46,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "--\n**\n__\n",
+    "html": "<p>--\n**\n__</p>\n"
+  },
+  {
+    "example": 47,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule", "HorizontalRule", "HorizontalRule"],
+    "markdown": " ***\n  ***\n   ***\n",
+    "html": "<hr />\n<hr />\n<hr />\n"
+  },
+  {
+    "example": 48,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    ***\n",
+    "html": "<pre><code>***\n</code></pre>\n",
+    "syntaxAssertions": [
+      {
+        "description": "four-space indented stars are an indented code block, not a thematic break",
+        "line": 1,
+        "column": 5,
+        "expectedPathKinds": ["Document", "CodeBlock", "CodeContent"],
+        "expectedDeepestLiteral": "***",
+        "expectedNearestBlockKind": "CodeBlock"
+      }
+    ]
+  },
+  {
+    "example": 49,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "Foo\n    ***\n",
+    "html": "<p>Foo\n***</p>\n"
+  },
+  {
+    "example": 50,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule"],
+    "markdown": "_____________________________________\n",
+    "html": "<hr />\n"
+  },
+  {
+    "example": 51,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule"],
+    "markdown": " - - -\n",
+    "html": "<hr />\n",
+    "syntaxAssertions": [
+      {
+        "description": "spaced dash markers form a thematic break",
+        "line": 1,
+        "column": 3,
+        "expectedPathKinds": ["Document", "HorizontalRule"],
+        "expectedDeepestLiteral": "---",
+        "expectedNearestBlockKind": "HorizontalRule"
+      }
+    ]
+  },
+  {
+    "example": 52,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule"],
+    "markdown": " **  * ** * ** * **\n",
+    "html": "<hr />\n"
+  },
+  {
+    "example": 53,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule"],
+    "markdown": "-     -      -      -\n",
+    "html": "<hr />\n"
+  },
+  {
+    "example": 54,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule"],
+    "markdown": "- - - -    \n",
+    "html": "<hr />\n"
   },
   {
     "example": 62,
