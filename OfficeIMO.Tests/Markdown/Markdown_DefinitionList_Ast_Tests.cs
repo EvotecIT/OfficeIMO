@@ -43,4 +43,27 @@ public sealed class Markdown_DefinitionList_Ast_Tests {
         Assert.Equal(MarkdownSyntaxKind.DefinitionTerm, definitionTerm.Kind);
         Assert.Equal("Renamed", definitionTerm.Literal);
     }
+
+    [Fact]
+    public void DefinitionList_DefinitionBlockMutation_Rebuilds_Stale_Parsed_SyntaxProjection() {
+        var result = MarkdownReader.ParseWithSyntaxTree("Term: first");
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var providedGroup = Assert.Single(definitionList.SyntaxItems);
+        var entry = Assert.Single(definitionList.Entries);
+
+        entry.DefinitionBlocks.Clear();
+        entry.DefinitionBlocks.Add(new ParagraphBlock(new InlineSequence().Text("second")));
+
+        var ownedGroup = Assert.Single(((IOwnedSyntaxChildrenMarkdownBlock)definitionList).BuildOwnedSyntaxChildren());
+        var syntaxTree = MarkdownReader.BuildSyntaxTree(result.Document);
+        var rebuiltGroup = Assert.Single(Assert.Single(syntaxTree.Children).Children);
+        var definitionValue = rebuiltGroup.Children[1];
+        var paragraph = Assert.Single(definitionValue.Children);
+
+        Assert.NotSame(providedGroup, ownedGroup);
+        Assert.NotSame(providedGroup, rebuiltGroup);
+        Assert.Equal("second", definitionValue.Literal);
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
+        Assert.Same(entry.DefinitionBlocks[0], paragraph.AssociatedObject);
+    }
 }

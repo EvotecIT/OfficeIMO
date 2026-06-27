@@ -282,7 +282,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     }
 
     internal IReadOnlyList<MarkdownSyntaxNode> BuildSyntaxItems() {
-        if (SyntaxItems.Count == _groups.Count && SyntaxItems.Count > 0) {
+        if (SyntaxItems.Count == _groups.Count && SyntaxItems.Count > 0 && SyntaxItemsMatchCurrentGroups()) {
             return SyntaxItems;
         }
 
@@ -332,6 +332,50 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         }
 
         return nodes;
+    }
+
+    private bool SyntaxItemsMatchCurrentGroups() {
+        if (SyntaxItems.Count != _groups.Count) {
+            return false;
+        }
+
+        for (int groupIndex = 0; groupIndex < _groups.Count; groupIndex++) {
+            var group = _groups[groupIndex];
+            var syntaxGroup = SyntaxItems[groupIndex];
+            if (group == null || syntaxGroup == null || syntaxGroup.Kind != MarkdownSyntaxKind.DefinitionGroup) {
+                return false;
+            }
+
+            if (!ReferenceEquals(syntaxGroup.AssociatedObject, group)) {
+                return false;
+            }
+
+            var expectedChildCount = group.Terms.Count + group.Definitions.Count;
+            if (syntaxGroup.Children.Count != expectedChildCount) {
+                return false;
+            }
+
+            for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
+                var term = group.Terms[termIndex] ?? new InlineSequence();
+                var syntaxTerm = syntaxGroup.Children[termIndex];
+                if (syntaxTerm.Kind != MarkdownSyntaxKind.DefinitionTerm
+                    || !string.Equals(syntaxTerm.Literal ?? string.Empty, term.RenderMarkdown(), StringComparison.Ordinal)) {
+                    return false;
+                }
+            }
+
+            for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
+                var definition = group.Definitions[definitionIndex] ?? new DefinitionListDefinition();
+                var syntaxDefinition = syntaxGroup.Children[group.Terms.Count + definitionIndex];
+                if (syntaxDefinition.Kind != MarkdownSyntaxKind.DefinitionValue
+                    || !ReferenceEquals(syntaxDefinition.AssociatedObject, definition)
+                    || !string.Equals(syntaxDefinition.Literal ?? string.Empty, definition.RenderMarkdown(), StringComparison.Ordinal)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
