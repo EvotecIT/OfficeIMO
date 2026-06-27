@@ -257,6 +257,19 @@ public sealed class MarkdownNativeDocument {
         return CreateReplaceEdit(inline.SourceSpan.Value, replacementMarkdown);
     }
 
+    /// <summary>Creates a non-mutating source edit that replaces the source-backed content span of a native list item.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeListItem listItem, string replacementMarkdown) {
+        if (listItem == null) {
+            throw new ArgumentNullException(nameof(listItem));
+        }
+
+        if (!listItem.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native list item does not have a source-backed content span.");
+        }
+
+        return CreateReplaceEdit(listItem.SourceSpan.Value, replacementMarkdown);
+    }
+
     /// <summary>Creates a non-mutating source edit that replaces a reference-style link definition.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownReferenceLinkDefinition referenceDefinition, string replacementMarkdown) {
         if (referenceDefinition == null) {

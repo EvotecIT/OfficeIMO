@@ -231,6 +231,54 @@ After
     }
 
     [Fact]
+    public void Source_Edit_Helpers_Replace_Native_List_Item_Content_And_Preserve_Surrounding_Source() {
+        var markdown = """
+- outer
+  - old
+  - keep
+
+After
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var list = Assert.IsType<MarkdownNativeListBlock>(native.Blocks[0]);
+        var outer = Assert.Single(list.Items);
+        var nested = Assert.Single(outer.Children.OfType<MarkdownNativeListBlock>());
+        var oldItem = nested.Items[0];
+
+        var edited = native.CreateReplaceEdit(oldItem, "new\n    continuation").Apply(native.SourceMarkdown);
+
+        Assert.Equal(
+            """
+- outer
+  - new
+    continuation
+  - keep
+
+After
+""",
+            edited);
+    }
+
+    [Fact]
+    public void Source_Edit_Helpers_Roundtrip_Native_List_Item_Content_Edits_Against_Original_Source() {
+        const string markdown = "- outer\r\n  - old\r\n  - keep\r\n\r\nAfter\r\n";
+        var native = MarkdownNativeDocument.Parse(
+            markdown,
+            new MarkdownReaderOptions { PreserveTrivia = true });
+        var list = Assert.IsType<MarkdownNativeListBlock>(native.Blocks[0]);
+        var outer = Assert.Single(list.Items);
+        var nested = Assert.Single(outer.Children.OfType<MarkdownNativeListBlock>());
+        var oldItem = nested.Items[0];
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(oldItem, "new\r\n    continuation"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("- outer\r\n  - new\r\n    continuation\r\n  - keep\r\n\r\nAfter\r\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void Parse_Projects_Footnote_Definitions_With_Label_SourceSpan_And_Children() {
         var markdown = """
 Body[^shape]
