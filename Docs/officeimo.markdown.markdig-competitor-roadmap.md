@@ -137,6 +137,7 @@ Recent progress:
 - public callout construction can now use structured body blocks through `CalloutBlock` constructors and the `MarkdownDoc.Callout(..., Action<MarkdownDoc>)` builder, so rich callout bodies no longer have to be flattened to raw markdown strings
 - details summaries now carry through to native summary field spans, with source-edit coverage for replacing the summary element without replacing the whole disclosure block
 - `DefinitionListBlock.ChildBlocks` now exposes the same structured definition body blocks already owned by `DefinitionListDefinition`, aligning definition lists with the public child-container shape used by other nested blocks
+- `TableCell.ChildBlocks` now exposes each cell body through the same child-container shape as tables, lists, definitions, footnotes, and other nested semantic blocks
 - definition lists now have a specialized native projection with grouped terms, definition bodies, nested child blocks, source spans, and snapshot DTOs instead of falling through the generic native `Other` block path
 - footnote definitions now expose `LabelSourceSpan` and have a specialized native projection with label metadata and nested body blocks instead of falling through the generic native `Other` block path
 - CommonMark thematic breaks now have a specialized native projection and snapshot shape instead of reporting horizontal rules as unsupported native blocks

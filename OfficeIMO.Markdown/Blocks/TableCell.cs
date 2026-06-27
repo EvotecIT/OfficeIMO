@@ -6,12 +6,14 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Typed table cell containing one or more markdown blocks.
 /// </summary>
-public sealed class TableCell : MarkdownObject {
+public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer {
     private int _columnSpan = 1;
     private int _rowSpan = 1;
 
     /// <summary>Structured cell content.</summary>
     public List<IMarkdownBlock> Blocks { get; } = new List<IMarkdownBlock>();
+    /// <summary>Structured child blocks owned by this table cell.</summary>
+    public IReadOnlyList<IMarkdownBlock> ChildBlocks => Blocks;
     /// <summary>Owned syntax nodes for the structured cell body.</summary>
     internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
     /// <summary>Whether this cell belongs to the header row.</summary>
