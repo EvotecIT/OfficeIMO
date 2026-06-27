@@ -72,7 +72,9 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
-        if (SyntaxChildren != null && SyntaxChildren.Count > 0) {
+        if (SyntaxChildren != null
+            && SyntaxChildren.Count > 0
+            && MarkdownBlockSyntaxBuilder.ChildSyntaxNodesMatchBlocks(SyntaxChildren, ChildBlocks)) {
             return SyntaxChildren;
         }
 

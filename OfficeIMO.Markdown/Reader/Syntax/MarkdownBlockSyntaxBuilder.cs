@@ -51,6 +51,22 @@ internal static class MarkdownBlockSyntaxBuilder {
         return nodes;
     }
 
+    internal static bool ChildSyntaxNodesMatchBlocks(
+        IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren,
+        IReadOnlyList<IMarkdownBlock> blocks) {
+        if (syntaxChildren == null || blocks == null || syntaxChildren.Count != blocks.Count) {
+            return false;
+        }
+
+        for (int i = 0; i < blocks.Count; i++) {
+            if (syntaxChildren[i] == null || !ReferenceEquals(syntaxChildren[i].AssociatedObject, blocks[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     internal static IReadOnlyList<MarkdownSyntaxNode> GetOwnedSyntaxChildrenOrBuild(IChildMarkdownBlockContainer block) {
         if (block is IOwnedSyntaxChildrenMarkdownBlock ownedSyntaxChildren) {
             return ownedSyntaxChildren.BuildOwnedSyntaxChildren();

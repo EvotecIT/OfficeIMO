@@ -2297,6 +2297,36 @@ See ![Badge][hero]
     }
 
     [Fact]
+    public void QuoteBlock_SyntaxChild_Owner_Interface_Rebuilds_When_Children_Change() {
+        var result = MarkdownReader.ParseWithSyntaxTree("""
+> original
+> second
+""");
+
+        var quoteBlock = Assert.IsType<QuoteBlock>(Assert.Single(result.Document.Blocks));
+        var providedChildren = ((ISyntaxChildrenMarkdownBlock)quoteBlock).ProvidedSyntaxChildren;
+        Assert.NotNull(providedChildren);
+        var oldParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quoteBlock.ChildBlocks));
+        var replacement = new ParagraphBlock(new InlineSequence().Text("replacement"));
+
+        quoteBlock.Children.Clear();
+        quoteBlock.Children.Add(replacement);
+
+        var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)quoteBlock).BuildOwnedSyntaxChildren();
+        var rebuiltSyntaxTree = MarkdownReader.BuildSyntaxTree(result.Document);
+        var rebuiltQuote = Assert.Single(rebuiltSyntaxTree.Children);
+        var rebuiltParagraph = Assert.Single(rebuiltQuote.Children);
+
+        Assert.NotSame(oldParagraph, replacement);
+        Assert.NotSame(providedChildren![0], ownedChildren[0]);
+        Assert.Same(replacement, Assert.Single(ownedChildren).AssociatedObject);
+        Assert.Same(quoteBlock, rebuiltQuote.AssociatedObject);
+        Assert.Same(replacement, rebuiltParagraph.AssociatedObject);
+        Assert.Equal("replacement", rebuiltParagraph.Literal);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(rebuiltSyntaxTree);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Rebuilds_Final_Quote_Syntax_After_Nested_Transform() {
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
@@ -2973,6 +3003,42 @@ original
         Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 8), Assert.IsType<ParagraphBlock>(finalParagraph.AssociatedObject).SourceSpan);
         Assert.Equal("rewritten", finalParagraph.Literal);
         Assert.Equal("rewritten", finalText.Literal);
+    }
+
+    [Fact]
+    public void DetailsBlock_SyntaxChild_Owner_Interface_Rebuilds_When_Children_Change() {
+        var result = MarkdownReader.ParseWithSyntaxTree("""
+<details>
+<summary>Summary</summary>
+
+original
+</details>
+""");
+
+        var detailsBlock = Assert.IsType<DetailsBlock>(Assert.Single(result.Document.Blocks));
+        var providedChildren = ((ISyntaxChildrenMarkdownBlock)detailsBlock).ProvidedSyntaxChildren;
+        Assert.NotNull(providedChildren);
+        var oldParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(detailsBlock.ChildBlocks));
+        var replacement = new ParagraphBlock(new InlineSequence().Text("replacement"));
+
+        detailsBlock.Children.Clear();
+        detailsBlock.Children.Add(replacement);
+
+        var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)detailsBlock).BuildOwnedSyntaxChildren();
+        var rebuiltSyntaxTree = MarkdownReader.BuildSyntaxTree(result.Document);
+        var rebuiltDetails = Assert.Single(rebuiltSyntaxTree.Children);
+        Assert.Equal(2, rebuiltDetails.Children.Count);
+        var rebuiltSummary = rebuiltDetails.Children[0];
+        var rebuiltParagraph = rebuiltDetails.Children[1];
+
+        Assert.NotSame(oldParagraph, replacement);
+        Assert.NotSame(providedChildren![0], ownedChildren[1]);
+        Assert.Equal(MarkdownSyntaxKind.Summary, rebuiltSummary.Kind);
+        Assert.Same(replacement, ownedChildren[1].AssociatedObject);
+        Assert.Same(detailsBlock, rebuiltDetails.AssociatedObject);
+        Assert.Same(replacement, rebuiltParagraph.AssociatedObject);
+        Assert.Equal("replacement", rebuiltParagraph.Literal);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(rebuiltSyntaxTree);
     }
 
     [Fact]
