@@ -292,7 +292,10 @@ namespace OfficeIMO.Tests {
                 OfficeImageExportResult svg = sheet.ExportImage(OfficeImageExportFormat.Svg, options);
                 string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
-                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.True(
+                    snapshot.DrawingObjects.Count == 1,
+                    string.Join(" | ", snapshot.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
+                ExcelVisualDrawingObject drawingObject = snapshot.DrawingObjects.Single();
                 Assert.Equal("ShapeOnly!B2", drawingObject.Source);
                 Assert.Equal("Outside used range", drawingObject.Text);
                 Assert.Equal("ShapeOnly!A1:D3", png.Source);
@@ -348,6 +351,7 @@ namespace OfficeIMO.Tests {
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal("Absolute shape", drawingObject.Text);
                 Assert.True(drawingObject.X > 0D, "Absolute-anchor shapes should resolve from worksheet-canvas coordinates instead of falling back to A1.");
+                Assert.Equal(19D, drawingObject.X);
                 Assert.True(drawingObject.Y > 0D, "Absolute-anchor shapes should preserve their vertical worksheet-canvas offset.");
                 Assert.Equal(96D, drawingObject.Width);
                 Assert.Equal(34D, drawingObject.Height);
@@ -396,6 +400,54 @@ namespace OfficeIMO.Tests {
                 Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
                 Assert.NotNull(rendered);
                 Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(149, 179, 215)) > 100);
+            }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportPreservesDrawingShapeTextLineBreaks() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("ShapeBreaks");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(2, 2, "Shape breaks");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(filePath, "Break shape", "Line 1", textHardBreak: true);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:D4").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.Equal("Line 1" + Environment.NewLine + "Line 2", drawingObject.Text);
+            }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRendersDefaultStyledDrawingShapeFill() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.EnsureWorkbookTheme();
+                ExcelSheet sheet = document.AddWorkSheet("DefaultStyle");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(2, 2, "Default styled shape");
+                document.Save(false);
+            }
+
+            AppendDefaultStyledDrawingShape(filePath, "Default styled shape", "Styled shape");
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:D4");
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.False(string.IsNullOrWhiteSpace(drawingObject.FillColorArgb));
+                Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
             }
         }
 
@@ -1013,6 +1065,7 @@ namespace OfficeIMO.Tests {
             int? textInsetTopEmu = null,
             int? textInsetRightEmu = null,
             int? textInsetBottomEmu = null,
+            bool textHardBreak = false,
             int toColumn = 3,
             int toRow = 3,
             int offsetXPixels = 0,
@@ -1026,7 +1079,47 @@ namespace OfficeIMO.Tests {
 
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
-                CreateSupportedShapeAnchor(1, 1, toColumn, toRow, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, fillSchemeColor, fillLuminanceModulation, fillLuminanceOffset, strokeSchemeColor, textSchemeColor, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textShrinkToFit, textResizeShapeToFit, textOrientation, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu, offsetXPixels, offsetYPixels));
+                CreateSupportedShapeAnchor(1, 1, toColumn, toRow, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, fillSchemeColor, fillLuminanceModulation, fillLuminanceOffset, strokeSchemeColor, textSchemeColor, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textShrinkToFit, textResizeShapeToFit, textOrientation, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu, textHardBreak, offsetXPixels, offsetYPixels));
+            drawingsPart.WorksheetDrawing.Save();
+            worksheetPart.Worksheet.Save();
+        }
+
+        private static void AppendDefaultStyledDrawingShape(string filePath, string name, string text) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
+            if (worksheetPart.Worksheet!.Elements<X.Drawing>().FirstOrDefault() == null) {
+                worksheetPart.Worksheet.Append(new X.Drawing { Id = worksheetPart.GetIdOfPart(drawingsPart) });
+            }
+
+            drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
+            drawingsPart.WorksheetDrawing.Append(new Xdr.TwoCellAnchor(
+                new Xdr.FromMarker(
+                    new Xdr.ColumnId("1"),
+                    new Xdr.ColumnOffset("0"),
+                    new Xdr.RowId("1"),
+                    new Xdr.RowOffset("0")),
+                new Xdr.ToMarker(
+                    new Xdr.ColumnId("3"),
+                    new Xdr.ColumnOffset("0"),
+                    new Xdr.RowId("3"),
+                    new Xdr.RowOffset("0")),
+                new Xdr.Shape(
+                    new Xdr.NonVisualShapeProperties(
+                        new Xdr.NonVisualDrawingProperties { Id = 77U, Name = name },
+                        new Xdr.NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true })),
+                    new Xdr.ShapeProperties(
+                        new A.PresetGeometry { Preset = A.ShapeTypeValues.Rectangle }),
+                    new Xdr.ShapeStyle(
+                        new A.LineReference(new A.SchemeColor { Val = A.SchemeColorValues.Accent2 }) { Index = 2U },
+                        new A.FillReference(new A.SchemeColor { Val = A.SchemeColorValues.Accent4 }) { Index = 1U },
+                        new A.EffectReference(new A.SchemeColor { Val = A.SchemeColorValues.Accent4 }) { Index = 0U },
+                        new A.FontReference(new A.SchemeColor { Val = A.SchemeColorValues.Text1 }) { Index = A.FontCollectionIndexValues.Minor }),
+                    new Xdr.TextBody(
+                        new A.BodyProperties(),
+                        new A.ListStyle(),
+                        new A.Paragraph(new A.Run(new A.Text(text))))),
+                new Xdr.ClientData()));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
@@ -1124,6 +1217,7 @@ namespace OfficeIMO.Tests {
             int? textInsetTopEmu = null,
             int? textInsetRightEmu = null,
             int? textInsetBottomEmu = null,
+            bool textHardBreak = false,
             int offsetXPixels = 0,
             int offsetYPixels = 0) {
             var transform = new A.Transform2D {
@@ -1193,9 +1287,20 @@ namespace OfficeIMO.Tests {
                 runProperties.Append(new A.LatinFont { Typeface = textFontFamily });
             }
 
-            paragraph.Append(new A.Run(
-                runProperties,
-                new A.Text(text ?? name)));
+            if (textHardBreak) {
+                paragraph.Append(
+                    new A.Run(
+                        (A.RunProperties)runProperties.CloneNode(true),
+                        new A.Text(text ?? name)),
+                    new A.Break(),
+                    new A.Run(
+                        (A.RunProperties)runProperties.CloneNode(true),
+                        new A.Text("Line 2")));
+            } else {
+                paragraph.Append(new A.Run(
+                    runProperties,
+                    new A.Text(text ?? name)));
+            }
 
             return new Xdr.TwoCellAnchor(
                 new Xdr.FromMarker(

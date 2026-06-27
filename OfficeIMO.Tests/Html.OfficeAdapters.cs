@@ -665,6 +665,30 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void PowerPointHtml_LoadPreservesSlideTextWhitespace() {
+        string html = """
+            <main>
+              <section class="officeimo-slide">
+                <p>Line 1&#10;Line 2  with  spacing</p>
+                <table>
+                  <tr><td>A  B</td><td>First&#10;Second</td></tr>
+                </table>
+              </section>
+            </main>
+            """;
+
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+        PowerPointSlide slide = imported.Slides[0];
+        PowerPointTextBox textBox = Assert.Single(slide.TextBoxes);
+        PowerPointTable table = Assert.Single(slide.Tables);
+
+        Assert.Equal("Line 1\nLine 2  with  spacing", textBox.Text);
+        Assert.Equal("A  B", table.GetCell(0, 0).Text);
+        Assert.Equal("First\nSecond", table.GetCell(0, 1).Text);
+    }
+
+    [Fact]
     public void PowerPointHtml_LoadPreservesChartKindFromSemanticInventory() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.Slides[0];

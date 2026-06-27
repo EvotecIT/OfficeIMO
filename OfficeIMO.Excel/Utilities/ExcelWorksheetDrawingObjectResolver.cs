@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel.Utilities {
 
             string text = string.Join(Environment.NewLine, shape.TextBody?
                 .Elements<A.Paragraph>()
-                .Select(paragraph => string.Concat(paragraph.Descendants<A.Text>().Select(item => item.Text)))
+                .Select(GetDrawingParagraphText)
                 .Where(line => !string.IsNullOrEmpty(line)) ?? Enumerable.Empty<string>());
             OfficeTextAlignment textAlignment = ResolveTextAlignment(shape.TextBody);
             A.BodyProperties? bodyProperties = shape.TextBody?.GetFirstChild<A.BodyProperties>();
@@ -325,10 +325,9 @@ namespace OfficeIMO.Excel.Utilities {
         }
 
         private static void ResolveAbsoluteColumn(WorksheetPart worksheetPart, int absolutePixels, out int column, out int offsetPixels) {
-            double maximumDigitWidth = GetDefaultMaximumDigitWidth(worksheetPart);
             int cursor = 0;
             for (column = 1; column < 16384; column++) {
-                int width = GetColumnWidthPixels(worksheetPart, column, maximumDigitWidth);
+                int width = GetColumnWidthPixels(worksheetPart, column);
                 if (cursor + width >= absolutePixels) {
                     offsetPixels = Math.Max(0, absolutePixels - cursor);
                     return;
@@ -360,10 +359,9 @@ namespace OfficeIMO.Excel.Utilities {
                 return 0;
             }
 
-            double maximumDigitWidth = GetDefaultMaximumDigitWidth(worksheetPart);
             int pixels = -fromOffsetPixels + toOffsetPixels;
             for (int column = fromColumn; column < toColumn; column++) {
-                pixels += GetColumnWidthPixels(worksheetPart, column, maximumDigitWidth);
+                pixels += GetColumnWidthPixels(worksheetPart, column);
             }
 
             return Math.Max(0, pixels);
@@ -382,7 +380,7 @@ namespace OfficeIMO.Excel.Utilities {
             return Math.Max(0, pixels);
         }
 
-        private static int GetColumnWidthPixels(WorksheetPart worksheetPart, int columnIndex, double maximumDigitWidth) {
+        private static int GetColumnWidthPixels(WorksheetPart worksheetPart, int columnIndex) {
             DocumentFormat.OpenXml.Spreadsheet.Worksheet? worksheet = worksheetPart.Worksheet;
             DocumentFormat.OpenXml.Spreadsheet.Column? column = worksheet?
                 .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Columns>()?
@@ -397,41 +395,8 @@ namespace OfficeIMO.Excel.Utilities {
                 : worksheet?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()?.DefaultColumnWidth?.Value > 0
                     ? worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()!.DefaultColumnWidth!.Value
                     : 8.43D;
-            double pixels = Math.Truncate((256D * width + Math.Truncate(128D / maximumDigitWidth)) / 256D * maximumDigitWidth);
+            double pixels = Math.Round((width * 7D) + 5D, 2);
             return Math.Max(1, (int)Math.Round(pixels));
-        }
-
-        private static double GetDefaultMaximumDigitWidth(WorksheetPart worksheetPart) {
-            const double fallbackMaximumDigitWidth = 7D;
-            try {
-                WorkbookPart? workbookPart = worksheetPart.GetParentParts().OfType<WorkbookPart>().FirstOrDefault();
-                DocumentFormat.OpenXml.Spreadsheet.Font? font = workbookPart?.WorkbookStylesPart?.Stylesheet?.Fonts?
-                    .Elements<DocumentFormat.OpenXml.Spreadsheet.Font>()
-                    .FirstOrDefault();
-                string? fontName = font?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.FontName>()?.Val?.Value;
-                if (string.IsNullOrWhiteSpace(fontName)) {
-                    return fallbackMaximumDigitWidth;
-                }
-
-                double fontSize = font!.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.FontSize>()?.Val?.Value ?? 11D;
-                OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
-                if (font.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Bold>() != null) {
-                    fontStyle |= OfficeFontStyle.Bold;
-                }
-
-                if (font.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Italic>() != null) {
-                    fontStyle |= OfficeFontStyle.Italic;
-                }
-
-                if (font.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Underline>() != null) {
-                    fontStyle |= OfficeFontStyle.Underline;
-                }
-
-                float maximumDigitWidth = ExcelTextMeasurer.Create(new OfficeFontInfo(fontName, fontSize, fontStyle)).DefaultStyle.MaximumDigitWidth;
-                return maximumDigitWidth > 0.0001f ? maximumDigitWidth : fallbackMaximumDigitWidth;
-            } catch {
-                return fallbackMaximumDigitWidth;
-            }
         }
 
         private static int GetRowHeightPixels(WorksheetPart worksheetPart, int rowIndex) {
@@ -475,6 +440,7 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             A.SolidFill? solidFill = properties.GetFirstChild<A.SolidFill>();
+            solidFill ??= GetStyleFill(properties);
             if (solidFill == null) {
                 unsupportedReason = "shape fill is not a supported solid RGB fill";
                 return false;
@@ -516,6 +482,40 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             return true;
+        }
+
+        private static string GetDrawingParagraphText(A.Paragraph paragraph) {
+            var builder = new System.Text.StringBuilder();
+            AppendDrawingText(paragraph, builder);
+            return builder.ToString();
+        }
+
+        private static void AppendDrawingText(OpenXmlElement element, System.Text.StringBuilder builder) {
+            if (element is A.Text text) {
+                builder.Append(text.Text);
+                return;
+            }
+
+            if (element is A.Break) {
+                builder.Append(Environment.NewLine);
+                return;
+            }
+
+            foreach (OpenXmlElement child in element.ChildElements) {
+                AppendDrawingText(child, builder);
+            }
+        }
+
+        private static A.SolidFill? GetStyleFill(OpenXmlElement properties) {
+            Xdr.ShapeStyle? style = properties.Parent?.GetFirstChild<Xdr.ShapeStyle>();
+            A.SchemeColor? schemeColor = style?
+                .GetFirstChild<A.FillReference>()?
+                .GetFirstChild<A.SchemeColor>();
+            if (schemeColor == null) {
+                return null;
+            }
+
+            return new A.SolidFill((A.SchemeColor)schemeColor.CloneNode(true));
         }
 
         private static bool TryGetRotationDegrees(A.Transform2D? transform, out double rotationDegrees) {

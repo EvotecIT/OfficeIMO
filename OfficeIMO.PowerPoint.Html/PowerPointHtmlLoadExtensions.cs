@@ -46,7 +46,7 @@ public static class PowerPointHtmlLoadExtensions {
         result.Slides++;
         double top = 48D;
         foreach (IElement paragraph in section.Children.Where(child => IsElement(child, "p"))) {
-            string text = NormalizeText(paragraph.TextContent);
+            string text = PreserveText(paragraph.TextContent);
             if (text.Length == 0) {
                 continue;
             }
@@ -90,7 +90,7 @@ public static class PowerPointHtmlLoadExtensions {
             IElement row = rows[rowIndex];
             List<IElement> cells = row.Children.Where(child => IsElement(child, "th") || IsElement(child, "td")).ToList();
             for (int columnIndex = 0; columnIndex < cells.Count; columnIndex++) {
-                table.GetCell(rowIndex, columnIndex).Text = NormalizeText(cells[columnIndex].TextContent);
+                table.GetCell(rowIndex, columnIndex).Text = PreserveText(cells[columnIndex].TextContent);
             }
         }
 
@@ -194,7 +194,7 @@ public static class PowerPointHtmlLoadExtensions {
 
         List<string> categories = table.QuerySelectorAll("thead tr th")
             .Skip(1)
-            .Select(header => NormalizeText(header.TextContent))
+            .Select(header => PreserveText(header.TextContent))
             .ToList();
         if (categories.Count == 0) {
             return false;
@@ -202,7 +202,7 @@ public static class PowerPointHtmlLoadExtensions {
 
         var series = new List<PptCore.PowerPointChartSeries>();
         foreach (IElement row in table.QuerySelectorAll("tbody tr")) {
-            string name = NormalizeText(row.QuerySelector("th")?.TextContent);
+            string name = PreserveText(row.QuerySelector("th")?.TextContent);
             if (name.Length == 0) {
                 name = "Series " + (series.Count + 1).ToString(CultureInfo.InvariantCulture);
             }
@@ -213,7 +213,7 @@ public static class PowerPointHtmlLoadExtensions {
             bool hasXValues = valueCells.Any(cell => cell.GetAttribute("data-officeimo-x") != null);
             for (int i = 0; i < valueCells.Count; i++) {
                 IElement cell = valueCells[i];
-                string text = NormalizeText(cell.TextContent);
+                string text = PreserveText(cell.TextContent);
                 if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out values[i])) {
                     return false;
                 }
@@ -439,4 +439,7 @@ public static class PowerPointHtmlLoadExtensions {
 
     private static string NormalizeText(string? text) =>
         string.IsNullOrWhiteSpace(text) ? string.Empty : string.Join(" ", text!.Split((char[]?)null!, StringSplitOptions.RemoveEmptyEntries));
+
+    private static string PreserveText(string? text) =>
+        string.IsNullOrWhiteSpace(text) ? string.Empty : text!.Trim();
 }
