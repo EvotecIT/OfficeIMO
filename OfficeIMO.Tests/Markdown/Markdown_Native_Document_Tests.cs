@@ -321,6 +321,43 @@ After
     }
 
     [Fact]
+    public void Native_Table_Cell_Navigation_Snapshot_And_Source_Edit_Cover_List_Nested_Tables() {
+        const string markdown = "- item\r\n\r\n  | Name | Value |\r\n  | --- | --- |\r\n  | CPU | 42 |\r\n";
+        var native = MarkdownNativeDocument.Parse(
+            markdown,
+            new MarkdownReaderOptions {
+                PreserveTrivia = true,
+                Tables = true
+            });
+
+        var cells = native.EnumerateTableCells().ToArray();
+
+        Assert.Equal(4, cells.Length);
+        Assert.True(cells[0].IsHeader);
+        Assert.False(cells[3].IsHeader);
+        Assert.Equal("42", cells[3].Text);
+        Assert.Equal(new MarkdownSourceSpan(5, 11, 5, 12), cells[3].SourceSpan);
+        Assert.Same(cells[3], native.FindTableCellAtPosition(5, 11));
+        Assert.Same(cells[3], native.FindTableCellAtPosition(5, 12));
+
+        var snapshot = native.ToSnapshot();
+        var list = Assert.Single(snapshot.Blocks);
+        var item = Assert.Single(list.Items);
+        Assert.Equal(2, item.Children.Count);
+        Assert.Contains(item.Children, child => child.Kind == MarkdownNativeBlockKind.Paragraph);
+        var nestedTable = Assert.Single(item.Children, child => child.Kind == MarkdownNativeBlockKind.Table);
+        Assert.Equal(MarkdownNativeBlockKind.Table, nestedTable.Kind);
+        Assert.Equal("42", nestedTable.Rows[0][1].Text);
+        Assert.Equal(5, nestedTable.Rows[0][1].SourceSpan!.StartLine);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(cells[3], "84"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("- item\r\n\r\n  | Name | Value |\r\n  | --- | --- |\r\n  | CPU | 84 |\r\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void Navigation_Helpers_Find_Native_Definition_List_Parts_By_Position() {
         var markdown = """
 First: Intro
