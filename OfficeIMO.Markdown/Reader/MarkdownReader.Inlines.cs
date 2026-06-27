@@ -72,6 +72,29 @@ public static partial class MarkdownReader {
                     sourceMap?.GetSpan(start + length - 1, 1));
             }
         }
+        void AddInlineLinkNode(
+            InlineSequence label,
+            string resolvedHref,
+            string? title,
+            int start,
+            int length,
+            int targetStart,
+            int targetLength,
+            int? titleStart,
+            int? titleLength) {
+            var link = new LinkInline(label, resolvedHref, title);
+            AddRawNode(link, start, length);
+            MarkdownInlineMetadataSourceSpans.SetLinkParts(
+                link,
+                targetLength > 0 ? sourceMap?.GetSpan(targetStart, targetLength) : null,
+                titleStart.HasValue && titleLength.HasValue ? sourceMap?.GetSpan(titleStart.Value, titleLength.Value) : null);
+            MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
+                link,
+                "[",
+                sourceMap?.GetSpan(start, 1),
+                ")",
+                sourceMap?.GetSpan(start + length - 1, 1));
+        }
         InlineSequence ParseNestedInlineSegment(int relativeStart, int length, bool nestedAllowLinks, bool nestedAllowImages) {
             if (relativeStart < 0 || length <= 0 || relativeStart >= text.Length) {
                 return new InlineSequence();
@@ -400,24 +423,14 @@ public static partial class MarkdownReader {
 
                         // Allow empty href: commonly used as placeholder or to be filled by the host.
                         if (string.IsNullOrWhiteSpace(href3)) {
-                            var link = new LinkInline(labelSeq, string.Empty, title2);
-                            AddRawNode(link, pos, consumed2);
-                            MarkdownInlineMetadataSourceSpans.SetLinkParts(
-                                link,
-                                hrefLength2 > 0 ? sourceMap?.GetSpan(hrefStart2, hrefLength2) : null,
-                                titleStart2.HasValue && titleLength2.HasValue ? sourceMap?.GetSpan(titleStart2.Value, titleLength2.Value) : null);
+                            AddInlineLinkNode(labelSeq, string.Empty, title2, pos, consumed2, hrefStart2, hrefLength2, titleStart2, titleLength2);
                         } else {
                             var hrefResolved = ResolveUrl(href3, options);
                             if (hrefResolved is null) {
                                 // Unsafe URLs: keep the label as plain inline content instead of producing an <a href="...">.
                                 foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
-                                var link = new LinkInline(labelSeq, hrefResolved!, title2);
-                                AddRawNode(link, pos, consumed2);
-                                MarkdownInlineMetadataSourceSpans.SetLinkParts(
-                                    link,
-                                    hrefLength2 > 0 ? sourceMap?.GetSpan(hrefStart2, hrefLength2) : null,
-                                    titleStart2.HasValue && titleLength2.HasValue ? sourceMap?.GetSpan(titleStart2.Value, titleLength2.Value) : null);
+                                AddInlineLinkNode(labelSeq, hrefResolved!, title2, pos, consumed2, hrefStart2, hrefLength2, titleStart2, titleLength2);
                             }
                         }
                         pos += consumed2; continue;

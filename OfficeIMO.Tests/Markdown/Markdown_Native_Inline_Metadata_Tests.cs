@@ -199,6 +199,47 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Inline_Link_Metadata_Preserves_Target_Title_And_Delimiter_Markers_For_Edits_And_Snapshots() {
+        const string markdown = "See [docs](https://example.com \"Title\") now\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var link = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var target = Assert.Single(link.Metadata, metadata => metadata.Name == "target");
+        var title = Assert.Single(link.Metadata, metadata => metadata.Name == "title");
+        var opening = Assert.Single(link.Metadata, metadata => metadata.Name == "openingMarker");
+        var closing = Assert.Single(link.Metadata, metadata => metadata.Name == "closingMarker");
+
+        Assert.Equal("https://example.com", target.Value);
+        Assert.Equal("Title", title.Value);
+        Assert.Equal("[", opening.Value);
+        Assert.Equal(")", closing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 30), target.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 33, 1, 37), title.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 5), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 39, 1, 39), closing.SourceSpan);
+
+        Assert.Equal(
+            "See [docs](https://contoso.test \"Title\") now\n",
+            native.CreateReplaceEdit(target, "https://contoso.test").Apply(native.SourceMarkdown));
+        Assert.Equal(
+            "See [docs](https://example.com \"Docs\") now\n",
+            native.CreateReplaceEdit(title, "Docs").Apply(native.SourceMarkdown));
+
+        var edited = native.CreateReplaceEdit(opening, "{").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(closing, "}").Apply(edited);
+        Assert.Equal("See {docs](https://example.com \"Title\"} now\n", edited);
+
+        var snapshotLink = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        Assert.Equal("https://example.com", snapshotLink.Metadata["target"]);
+        Assert.Equal("Title", snapshotLink.Metadata["title"]);
+        Assert.Equal("[", snapshotLink.Metadata["openingMarker"]);
+        Assert.Equal(")", snapshotLink.Metadata["closingMarker"]);
+        Assert.Equal(5, snapshotLink.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(39, snapshotLink.MetadataSourceSpans["closingMarker"]!.EndColumn);
+    }
+
+    [Fact]
     public void Linked_Image_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "Paragraph [![Alt](img.png \"Img\")](https://example.com \"Link title\").";
 
