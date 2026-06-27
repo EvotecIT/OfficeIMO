@@ -215,6 +215,43 @@ Body[^shape]
     }
 
     [Fact]
+    public void Parse_Projects_Footnote_Fenced_Code_SourceSpans_Remapped_Into_Native_Children() {
+        var markdown = """
+Lead[^note]
+
+[^note]:
+  ```ps
+  Write-Host hi
+  ```
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var footnote = Assert.IsType<MarkdownNativeFootnoteDefinitionBlock>(Assert.Single(native.Blocks, block => block.Kind == MarkdownNativeBlockKind.FootnoteDefinition));
+        var code = Assert.Single(footnote.Children.OfType<MarkdownNativeCodeBlock>());
+
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 6), footnote.LabelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 3, 4, 5), code.OpeningFenceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 6, 4, 7), code.InfoStringSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 3, 5, 15), code.ContentSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(6, 3, 6, 5), code.ClosingFenceSourceSpan);
+        Assert.Same(code, native.FindBlockAtPosition(5, 6));
+
+        var snapshot = native.ToSnapshot();
+        var footnoteSnapshot = Assert.Single(snapshot.Blocks, block => block.Kind == MarkdownNativeBlockKind.FootnoteDefinition);
+        var codeSnapshot = Assert.Single(footnoteSnapshot.Children, block => block.Kind == MarkdownNativeBlockKind.Code);
+        Assert.Equal(3, codeSnapshot.FieldSourceSpans["openingFence"]!.StartColumn);
+        Assert.Equal(5, codeSnapshot.FieldSourceSpans["openingFence"]!.EndColumn);
+        Assert.Equal(3, codeSnapshot.FieldSourceSpans["content"]!.StartColumn);
+        Assert.Equal(15, codeSnapshot.FieldSourceSpans["content"]!.EndColumn);
+        Assert.Equal(3, codeSnapshot.FieldSourceSpans["closingFence"]!.StartColumn);
+        Assert.Equal(5, codeSnapshot.FieldSourceSpans["closingFence"]!.EndColumn);
+
+        var edited = native.CreateReplaceEdit(code.ContentSourceSpan!.Value, "Write-Output hi").Apply(native.SourceMarkdown);
+        Assert.Contains("  Write-Output hi", edited, StringComparison.Ordinal);
+        Assert.DoesNotContain("Write-Host hi", edited, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Parse_Projects_Definition_Lists_With_Terms_Definitions_And_Children() {
         var markdown = """
 **Term**: Intro
@@ -347,13 +384,13 @@ After
         var edit = native.CreateReplaceEdit(definition, "[hero]: https://example.com/new \"New title\"");
         var updated = edit.Apply(native.SourceMarkdown);
 
-        Assert.Equal("""
+        Assert.Equal(NormalizeLineEndings("""
 Before [hero]
 
 [hero]: https://example.com/new "New title"
 
 After
-""", updated);
+"""), NormalizeLineEndings(updated));
     }
 
     [Fact]
@@ -542,7 +579,7 @@ After
         var edit = native.CreateReplaceEdit(comment, "<!-- updated -->");
         var updated = edit.Apply(native.SourceMarkdown);
 
-        Assert.Equal("""
+        Assert.Equal(NormalizeLineEndings("""
 Before
 
 <section data-kind="note">Raw</section>
@@ -550,7 +587,7 @@ Before
 <!-- updated -->
 
 After
-""", updated);
+"""), updated);
         Assert.DoesNotContain("this comment", updated);
         Assert.DoesNotContain(native.Diagnostics, diagnostic =>
             diagnostic.Id == "native.unsupported-block"
@@ -957,7 +994,7 @@ Console.WriteLine("new");
 """);
         var updated = edit.Apply(native.SourceMarkdown);
 
-        Assert.Equal("""
+        Assert.Equal(NormalizeLineEndings("""
 Before
 
 ```csharp
@@ -965,7 +1002,7 @@ Console.WriteLine("new");
 ```
 
 After
-""", updated);
+"""), NormalizeLineEndings(updated));
     }
 
     [Fact]
@@ -984,7 +1021,7 @@ After
         var code = Assert.IsType<MarkdownNativeCodeBlock>(native.Blocks[1]);
 
         var withInfo = native.CreateReplaceEdit(code.InfoStringSourceSpan!.Value, "powershell").Apply(native.SourceMarkdown);
-        Assert.Equal("""
+        Assert.Equal(NormalizeLineEndings("""
 Before
 
 ```powershell
@@ -992,10 +1029,10 @@ Console.WriteLine("old");
 ```
 
 After
-""", withInfo);
+"""), NormalizeLineEndings(withInfo));
 
         var withContent = native.CreateReplaceEdit(code.ContentSourceSpan!.Value, "Write-Host \"new\"").Apply(native.SourceMarkdown);
-        Assert.Equal("""
+        Assert.Equal(NormalizeLineEndings("""
 Before
 
 ```csharp
@@ -1003,7 +1040,7 @@ Write-Host "new"
 ```
 
 After
-""", withContent);
+"""), NormalizeLineEndings(withContent));
     }
 
     [Fact]
@@ -1018,18 +1055,18 @@ Body
         var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
 
         var withLevel = native.CreateReplaceEdit(heading.LevelSourceSpan!.Value, "##").Apply(native.SourceMarkdown);
-        Assert.Equal("""
+        Assert.Equal(NormalizeLineEndings("""
 ## Old **Title**
 
 Body
-""", withLevel);
+"""), NormalizeLineEndings(withLevel));
 
         var withText = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New Title").Apply(native.SourceMarkdown);
-        Assert.Equal("""
+        Assert.Equal(NormalizeLineEndings("""
 # New Title
 
 Body
-""", withText);
+"""), NormalizeLineEndings(withText));
     }
 
     [Fact]
@@ -1048,11 +1085,11 @@ Next paragraph.
         var edit = native.CreateReplaceEdit(codeInline, "`new`");
         var updated = edit.Apply(native.SourceMarkdown);
 
-        Assert.Equal("""
+        Assert.Equal(NormalizeLineEndings("""
 Before `new` and **bold** after.
 
 Next paragraph.
-""", updated);
+"""), NormalizeLineEndings(updated));
     }
 
     [Fact]

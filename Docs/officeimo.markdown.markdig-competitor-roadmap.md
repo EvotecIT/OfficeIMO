@@ -141,7 +141,7 @@ Recent progress:
 - CommonMark fenced-code coverage now includes escaped/entity-decoded language info strings, tilde fences, longer closing fences, unclosed fences, empty fences, indented fences, blockquoted fences, non-opening backtick info strings, and language-plus-metadata examples
 - reference-style link definitions are now exposed as effective parse-result and native-document metadata with definition-level spans, label/destination/title token spans, snapshots, and native source-edit coverage
 - inline footnote references now expose their label as syntax/native metadata with token source spans, snapshot spans, and native source-edit coverage
-- fenced code and semantic fenced blocks now expose source-addressable opening fence, info-string, content, and closing fence spans through native projections and snapshots, with source-edit coverage for replacing only those tokens and nested blockquote/list remapping coverage
+- fenced code and semantic fenced blocks now expose source-addressable opening fence, info-string, content, and closing fence spans through native projections and snapshots, with source-edit coverage for replacing only those tokens and nested blockquote/list/footnote remapping coverage
 - raw HTML and HTML comment blocks now have native projection/source-edit evidence, so editor hosts can treat them as source-addressable blocks rather than unsupported fallbacks
 - headings now expose source-addressable level and text spans through syntax nodes, native projections, and snapshots, with source-edit coverage for replacing only those tokens
 - GFM pipe-table alignment rows now have a dedicated syntax node and native snapshot field span, with source-edit coverage for replacing the separator row without replacing the full table
