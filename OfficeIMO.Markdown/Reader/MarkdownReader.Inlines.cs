@@ -48,6 +48,16 @@ public static partial class MarkdownReader {
                 sourceMap?.GetSpan(start, length));
             AddRawNode(node, start, length);
         }
+        void AddFootnoteRefNode(string label, int start, int length) {
+            var node = new FootnoteRefInline(label);
+            MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
+                node,
+                "[^",
+                sourceMap?.GetSpan(start, 2),
+                "]",
+                sourceMap?.GetSpan(start + length - 1, 1));
+            AddRawNode(node, start, length);
+        }
         void AddAutolinkNode(
             string label,
             string resolvedHref,
@@ -292,7 +302,7 @@ public static partial class MarkdownReader {
             // Footnote ref [^id] should be recognized before generic link parsing
             if (options.Footnotes && text[pos] == '[' && pos + 2 < text.Length && text[pos + 1] == '^') {
                 int rb = text.IndexOf(']', pos + 2);
-                if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); AddRawNode(new FootnoteRefInline(lab), pos, rb + 1 - pos); pos = rb + 1; continue; }
+                if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); AddFootnoteRefNode(lab, pos, rb + 1 - pos); pos = rb + 1; continue; }
             }
 
             if (TryParseImageLink(
@@ -680,7 +690,7 @@ public static partial class MarkdownReader {
             // Footnote ref [^id]
             if (options.Footnotes && text[pos] == '[' && pos + 2 < text.Length && text[pos + 1] == '^') {
                 int rb = text.IndexOf(']', pos + 2);
-                if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); AddRawNode(new FootnoteRefInline(lab), pos, rb + 1 - pos); pos = rb + 1; continue; }
+                if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); AddFootnoteRefNode(lab, pos, rb + 1 - pos); pos = rb + 1; continue; }
             }
 
             int start = pos; pos++;

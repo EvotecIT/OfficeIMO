@@ -199,6 +199,37 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Footnote_Reference_Metadata_Preserves_Label_And_Delimiter_Markers_For_Edits_And_Snapshots() {
+        const string markdown = "See [^note]\n\n[^note]: Body\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[0]);
+        var footnote = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.FootnoteRef);
+        var label = Assert.Single(footnote.Metadata, metadata => metadata.Name == "label");
+        var opening = Assert.Single(footnote.Metadata, metadata => metadata.Name == "openingMarker");
+        var closing = Assert.Single(footnote.Metadata, metadata => metadata.Name == "closingMarker");
+
+        Assert.Equal("note", label.Value);
+        Assert.Equal("[^", opening.Value);
+        Assert.Equal("]", closing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 10), label.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 6), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 11), closing.SourceSpan);
+        Assert.Equal("See [^todo]\n\n[^note]: Body\n", native.CreateReplaceEdit(label, "todo").Apply(native.SourceMarkdown));
+
+        var edited = native.CreateReplaceEdit(opening, "{^").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(closing, "}").Apply(edited);
+        Assert.Equal("See {^note}\n\n[^note]: Body\n", edited);
+
+        var snapshotFootnote = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.FootnoteRef);
+        Assert.Equal("note", snapshotFootnote.Metadata["label"]);
+        Assert.Equal("[^", snapshotFootnote.Metadata["openingMarker"]);
+        Assert.Equal("]", snapshotFootnote.Metadata["closingMarker"]);
+        Assert.Equal(5, snapshotFootnote.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(11, snapshotFootnote.MetadataSourceSpans["closingMarker"]!.EndColumn);
+    }
+
+    [Fact]
     public void Inline_Link_Metadata_Preserves_Target_Title_And_Delimiter_Markers_For_Edits_And_Snapshots() {
         const string markdown = "See [docs](https://example.com \"Title\") now\n";
 

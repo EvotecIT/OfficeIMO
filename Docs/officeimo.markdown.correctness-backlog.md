@@ -66,13 +66,14 @@ Current coverage:
 - native definition-list projection now exposes grouped terms, definition body children, term inline runs, and snapshot DTOs instead of reporting definition lists as unsupported native blocks
 - native thematic-break projection now exposes CommonMark horizontal rules as first-class native blocks with source spans and snapshots
 - reference-style link definitions now have effective parse-result/native metadata with definition-level spans, label/destination/title token spans, snapshots, and source-edit coverage instead of living only in internal parser state and syntax nodes
-- inline footnote references now expose label metadata spans in syntax and native snapshots, with native source-edit coverage for the label token
+- inline footnote references now expose label and delimiter marker metadata spans in syntax and native snapshots, with native source-edit coverage for the label token and delimiter markers
 - inline links, images, and linked images now expose target/title and alt/source/title-style metadata spans in native snapshots, and inline links/images/linked-image wrappers also expose source-backed opening/closing delimiter marker metadata with native source-edit coverage for replacing those tokens without replacing the whole paragraph
 - parsed formatting sequence inlines now expose native `openingMarker` and `closingMarker` metadata with source spans, snapshot coverage, and metadata source-edit coverage for nested emphasis/strong runs
 - parsed code spans now expose native `openingMarker` and `closingMarker` metadata for the original backtick fence run, including multi-backtick spans, snapshots, and metadata source-edit coverage
 - supported inline HTML tag wrappers now preserve source-map slices for nested inlines and expose opening/closing tag marker metadata with source spans, snapshots, and metadata source-edit coverage
 - hard-break inlines now expose native `marker` metadata for two-space, backslash, and inline HTML break spellings, with source spans, snapshots, and metadata source-edit coverage
 - bare and angle autolinks now expose source-backed target metadata in syntax/native projections, and angle autolinks expose native opening/closing marker metadata with snapshot and source-edit coverage
+- native source edit helpers can address inline footnote reference delimiter marker metadata without replacing the full inline content
 - nested emphasis inlines now have native source-edit coverage through `MarkdownRoundtripWriter`, preserving original surrounding markdown and CRLF input while replacing the span-backed inline content
 - fenced code and semantic fenced blocks now expose info-string/content source spans in native projections and snapshots, with source-edit coverage for replacing those tokens without replacing the full block
 - CommonMark fenced-code smoke coverage now includes escaped/entity-decoded language tokens, tilde fences, longer closing fences, unclosed fences, empty fences, indented fences, blockquoted fences, and invalid backtick info strings that must remain paragraph/code-span text
