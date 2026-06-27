@@ -45,6 +45,12 @@ public sealed partial class MarkdownNativeDocument {
 
     internal static IEnumerable<MarkdownNativeBlockSourceField> EnumerateBlockSourceFields(MarkdownNativeBlock block) {
         switch (block) {
+            case MarkdownNativeParagraphBlock paragraph:
+                if (paragraph.TextSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("paragraphText", paragraph.Text, paragraph.TextSourceSpan.Value, paragraph);
+                }
+
+                break;
             case MarkdownNativeHeadingBlock heading:
                 foreach (var field in EnumerateHeadingFields(heading)) {
                     yield return field;

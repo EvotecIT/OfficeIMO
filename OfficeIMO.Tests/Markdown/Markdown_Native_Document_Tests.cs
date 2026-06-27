@@ -448,6 +448,7 @@ Console.WriteLine();
         var native = MarkdownNativeDocument.Parse(markdown);
         var fields = native.EnumerateBlockSourceFields().ToArray();
         var text = Assert.Single(native.EnumerateBlockSourceFields("text"));
+        var paragraphTexts = native.EnumerateBlockSourceFields("paragraphText").ToArray();
         var calloutKind = Assert.Single(native.EnumerateBlockSourceFields("calloutKind"));
         var title = Assert.Single(native.EnumerateBlockSourceFields("title"));
         var calloutBody = Assert.Single(native.EnumerateBlockSourceFields("calloutBody"));
@@ -464,6 +465,8 @@ Console.WriteLine();
 
         Assert.Contains(fields, field => field.Name == "level" && field.Value == "1");
         Assert.Equal("Title", text.Value);
+        Assert.Contains(paragraphTexts, field => field.Value == "Body" && field.SourceSpan.StartLine == 4);
+        Assert.Contains(paragraphTexts, field => field.Value == "Inside" && field.SourceSpan.StartLine == 9);
         Assert.Equal("note", calloutKind.Value);
         Assert.Equal("Heads up", title.Value);
         Assert.Equal("Body", calloutBody.Value);

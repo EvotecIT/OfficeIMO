@@ -7,6 +7,38 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class Markdown_Native_Block_Source_Field_Tests {
     [Fact]
+    public void Paragraph_Text_SourceField_Uses_Paragraph_Source_Span() {
+        const string markdown = "Old **body**\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 12), paragraph.TextSourceSpan);
+
+        var text = Assert.Single(native.EnumerateBlockSourceFields("paragraphText"));
+        Assert.Same(paragraph, text.Block);
+        Assert.Equal("Old body", text.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 12), text.SourceSpan);
+
+        var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 6));
+        Assert.Equal("paragraphText", found.Name);
+        Assert.Equal(text.Value, found.Value);
+        Assert.Equal(text.SourceSpan, found.SourceSpan);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal(1, snapshot.FieldSourceSpans["paragraphText"]!.StartColumn);
+        Assert.Equal(12, snapshot.FieldSourceSpans["paragraphText"]!.EndColumn);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "paragraphText"
+            && field.Value == "Old body"
+            && field.SourceSpan.StartColumn == 1
+            && field.SourceSpan.EndColumn == 12);
+
+        var edited = native.CreateReplaceEdit(text, "New _body_").Apply(native.SourceMarkdown);
+        Assert.Equal("New _body_", edited.TrimEnd('\r', '\n'));
+    }
+
+    [Fact]
     public void Footnote_Label_SourceField_Uses_Indented_Label_Token_Span() {
         const string markdown = """
   [^note]: Footnote body
@@ -211,6 +243,7 @@ Console.WriteLine();
         }
 
         var allFields = snapshots.SelectMany(block => block.SourceFields).ToArray();
+        Assert.Contains(allFields, field => field.Name == "paragraphText" && field.Value == "Body");
         Assert.Contains(allFields, field => field.Name == "quoteMarker" && field.Index == 0 && field.SourceSpan.StartLine == 23);
         Assert.Contains(allFields, field => field.Name == "quoteMarker" && field.Index == 1 && field.SourceSpan.StartLine == 24);
         Assert.Contains(allFields, field => field.Name == "quoteBody" && field.SourceSpan.StartLine == 23);

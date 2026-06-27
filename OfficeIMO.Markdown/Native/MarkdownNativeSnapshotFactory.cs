@@ -32,6 +32,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.Text = paragraph.Text;
                 snapshot.Markdown = RenderBlock(paragraph.Paragraph);
                 snapshot.Inlines = FromInlines(paragraph.InlineRuns);
+                snapshot.FieldSourceSpans = FieldSpans(("paragraphText", paragraph.TextSourceSpan));
                 break;
             case MarkdownNativeHeadingBlock heading:
                 snapshot.Text = heading.Text;

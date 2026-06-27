@@ -47,6 +47,7 @@ public sealed class MarkdownNativeParagraphBlock : MarkdownNativeBlock {
         Inlines = paragraph.Inlines;
         InlineRuns = MarkdownNativeInlineProjection.FromInlineContainer(syntaxNode);
         Text = InlinePlainText.Extract(paragraph.Inlines);
+        TextSourceSpan = syntaxNode.SourceSpan ?? paragraph.SourceSpan;
     }
 
     /// <summary>Source paragraph block.</summary>
@@ -54,6 +55,9 @@ public sealed class MarkdownNativeParagraphBlock : MarkdownNativeBlock {
 
     /// <summary>Plain-text paragraph content.</summary>
     public string Text { get; }
+
+    /// <summary>Source span for the paragraph payload when available.</summary>
+    public MarkdownSourceSpan? TextSourceSpan { get; }
 
     /// <summary>Structured inline nodes.</summary>
     public InlineSequence Inlines { get; }
