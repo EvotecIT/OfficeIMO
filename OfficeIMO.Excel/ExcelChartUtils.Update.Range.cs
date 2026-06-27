@@ -73,6 +73,10 @@ namespace OfficeIMO.Excel {
                     ExcelChartDataOrientation.Horizontal);
             }
 
+            if (!VerticalSeriesRangesAreContiguous(seriesList, sheetName, r1, r2, c1 + 1)) {
+                return null;
+            }
+
             int headerRow = r1 - 1;
             bool hasHeaderRow = HasVerticalSeriesNameRow(seriesList, sheetName, headerRow);
             int startRow = hasHeaderRow ? headerRow : r1;
@@ -97,6 +101,30 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (row1 != firstSeriesRow + i || row2 != row1 || column1 != firstCategoryColumn || column2 != lastCategoryColumn) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool VerticalSeriesRangesAreContiguous(IReadOnlyList<OpenXmlCompositeElement> seriesList, string sheetName, int firstCategoryRow, int lastCategoryRow, int firstSeriesColumn) {
+            for (int i = 0; i < seriesList.Count; i++) {
+                NumberReference? reference = GetSeriesValuesReference(seriesList[i]);
+                if (!TryParseSheetQualifiedRange(reference?.Formula?.Text, out string valuesSheet, out string valuesRange)) {
+                    return false;
+                }
+
+                if (!string.Equals(sheetName, valuesSheet, StringComparison.OrdinalIgnoreCase)) {
+                    return false;
+                }
+
+                if (!TryParseRange(valuesRange, out int row1, out int column1, out int row2, out int column2)) {
+                    return false;
+                }
+
+                int expectedColumn = firstSeriesColumn + i;
+                if (row1 != firstCategoryRow || row2 != lastCategoryRow || column1 != expectedColumn || column2 != expectedColumn) {
                     return false;
                 }
             }
@@ -411,9 +439,8 @@ namespace OfficeIMO.Excel {
                 return data;
             }
 
-            var seriesTypes = new Dictionary<int, ExcelChartType>();
+            var typedSeries = new List<(OpenXmlCompositeElement Series, ExcelChartType ChartType)>();
             int chartElementCount = 0;
-            int seriesOrder = 0;
             foreach (OpenXmlElement chartElement in plotArea.ChildElements) {
                 if (!TryGetChartElementType(chartElement, out ExcelChartType chartType)) {
                     continue;
@@ -421,16 +448,20 @@ namespace OfficeIMO.Excel {
 
                 chartElementCount++;
                 foreach (OpenXmlElement child in chartElement.ChildElements) {
-                    ChartIndex? index = (child as OpenXmlCompositeElement)?.GetFirstChild<ChartIndex>();
-                    if (index?.Val?.Value != null) {
-                        seriesTypes[seriesOrder++] = chartType;
+                    if (child is OpenXmlCompositeElement seriesElement && seriesElement.GetFirstChild<ChartIndex>()?.Val?.Value != null) {
+                        typedSeries.Add((seriesElement, chartType));
                     }
                 }
             }
 
-            if (chartElementCount <= 1 || seriesTypes.Count == 0) {
+            if (chartElementCount <= 1 || typedSeries.Count == 0) {
                 return data;
             }
+
+            Dictionary<int, ExcelChartType> seriesTypes = typedSeries
+                .OrderBy(item => item.Series.GetFirstChild<ChartIndex>()?.Val?.Value ?? uint.MaxValue)
+                .Select((item, index) => new { index, item.ChartType })
+                .ToDictionary(item => item.index, item => item.ChartType);
 
             var series = new List<ExcelChartSeries>(data.Series.Count);
             for (int i = 0; i < data.Series.Count; i++) {

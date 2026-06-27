@@ -149,7 +149,8 @@ public static class PowerPointHtmlLoadExtensions {
             bool restoredFromSemanticData = TryReadChartData(item, out PptCore.PowerPointChartData? semanticData);
             PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
             string chartKind = ReadChartKind(item);
-            if (!TryAddChartByKind(slide, chartKind, data, 500, top, 320, 180, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
+            ReadChartGeometry(item, 500D, top, 320D, 180D, out double left, out double chartTop, out double width, out double height);
+            if (!TryAddChartByKind(slide, chartKind, data, left, chartTop, width, height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
                 result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' used unsupported chart kind '" + chartKind + "' and was not imported.");
                 continue;
             }
@@ -164,7 +165,7 @@ public static class PowerPointHtmlLoadExtensions {
                 result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' was restored as a native chart with reconstructed placeholder values; exact source chart data was not present in semantic HTML.");
             }
 
-            top += 198D;
+            top = Math.Max(top + 198D, chartTop + height + 18D);
         }
     }
 
@@ -313,8 +314,26 @@ public static class PowerPointHtmlLoadExtensions {
             _ = double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out top);
         }
 
-        left = Math.Max(0D, left);
-        top = Math.Max(0D, top);
+    }
+
+    private static void ReadChartGeometry(IElement item, double fallbackLeft, double fallbackTop, double fallbackWidth, double fallbackHeight, out double left, out double top, out double width, out double height) {
+        ReadPicturePosition(item, fallbackLeft, fallbackTop, out left, out top);
+        width = fallbackWidth;
+        height = fallbackHeight;
+        string meta = string.Join("; ", item.QuerySelectorAll(".officeimo-feature-meta").Select(element => element.TextContent));
+        const string marker = "Size:";
+        int index = meta.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (index >= 0) {
+            string text = meta.Substring(index + marker.Length).Split(';')[0].Trim();
+            string[] parts = text.Replace("pt", string.Empty).Split('x');
+            if (parts.Length == 2) {
+                _ = double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out width);
+                _ = double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out height);
+            }
+        }
+
+        width = Math.Max(1D, width);
+        height = Math.Max(1D, height);
     }
 
     private static string ExtractPresenterNotes(string? markdown) {

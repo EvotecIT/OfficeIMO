@@ -218,11 +218,12 @@ public static class ExcelHtmlLoadExtensions {
         foreach (IElement item in section.QuerySelectorAll("section.officeimo-charts li")) {
             string title = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
             ExcelChartType type = ReadExcelChartType(item);
+            ReadChartPlacement(item, chartIndex, out int row, out int column, out int width, out int height);
             try {
                 if (TryReadChartData(item, out ExcelChartData? chartData) && chartData != null) {
-                    sheet.AddChart(chartData, row: 1 + chartIndex * 12, column: 6, widthPixels: 320, heightPixels: 180, type: type, title: title.Length == 0 ? null : title);
+                    sheet.AddChart(chartData, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
                 } else if (!string.IsNullOrWhiteSpace(range) && !string.Equals(range, "A1", StringComparison.OrdinalIgnoreCase)) {
-                    sheet.AddChartFromRange(range, row: 1 + chartIndex * 12, column: 6, widthPixels: 320, heightPixels: 180, type: type, title: title.Length == 0 ? null : title);
+                    sheet.AddChartFromRange(range, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
                 } else {
                     result.Diagnostics.Add("Chart inventory item '" + title + "' on sheet '" + sheet.Name + "' did not contain semantic chart data and no usable table range was available.");
                     continue;
@@ -349,6 +350,35 @@ public static class ExcelHtmlLoadExtensions {
         }
 
         return ExcelChartType.ColumnClustered;
+    }
+
+    private static void ReadChartPlacement(IElement item, int chartIndex, out int row, out int column, out int width, out int height) {
+        row = 1 + chartIndex * 12;
+        column = 6;
+        width = 320;
+        height = 180;
+        string meta = string.Join("; ", item.QuerySelectorAll(".officeimo-feature-meta").Select(element => element.TextContent));
+        foreach (string part in meta.Split(';')) {
+            string value = part.Trim();
+            if (value.StartsWith("Cell:", StringComparison.OrdinalIgnoreCase)) {
+                string[] pieces = value.Substring("Cell:".Length).Split(',');
+                if (pieces.Length == 2) {
+                    _ = int.TryParse(pieces[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out row);
+                    _ = int.TryParse(pieces[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out column);
+                }
+            } else if (value.StartsWith("Size:", StringComparison.OrdinalIgnoreCase)) {
+                string[] pieces = value.Substring("Size:".Length).Split('x');
+                if (pieces.Length == 2) {
+                    _ = int.TryParse(pieces[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out width);
+                    _ = int.TryParse(pieces[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out height);
+                }
+            }
+        }
+
+        row = Math.Max(1, row);
+        column = Math.Max(1, column);
+        width = Math.Max(1, width);
+        height = Math.Max(1, height);
     }
 
     private static void ReadImagePlacement(IElement item, out int row, out int column, out int width, out int height, out int offsetX, out int offsetY) {

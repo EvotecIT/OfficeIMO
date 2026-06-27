@@ -219,6 +219,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportUsesReferencedValuesWhenVerticalSeriesIsNonAdjacent() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("VerticalGap");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Wrong");
+            sheet.CellValue(1, 3, "Actual");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(4, 1, "Mar");
+            sheet.CellValue(2, 2, 999);
+            sheet.CellValue(3, 2, 999);
+            sheet.CellValue(4, 2, 999);
+            sheet.CellValue(2, 3, 10);
+            sheet.CellValue(3, 3, 20);
+            sheet.CellValue(4, 3, 30);
+            sheet.AddChartFromRange("A1:B4", row: 1, column: 5, widthPixels: 260, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Vertical Gap");
+            SetFirstBarSeriesValueFormula(document, "VerticalGap!$C$2:$C$4");
+
+            ExcelVisualChart visualChart = Assert.Single(sheet.Range("A1:H10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false }).Charts);
+
+            ExcelChartSeries series = Assert.Single(visualChart.Snapshot.Data.Series);
+            Assert.Equal(new[] { 10D, 20D, 30D }, series.Values);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportPreservesScatterCacheOrderInMixedCharts() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -377,6 +403,23 @@ namespace OfficeIMO.Tests {
                 if (order.Parent == null) {
                     series[i].InsertAfter(order, index);
                 }
+            }
+
+            chartPart.ChartSpace.Save();
+        }
+
+        private static void SetFirstBarSeriesValueFormula(ExcelDocument document, string formula) {
+            ChartPart chartPart = GetFirstChartPart(document);
+            BarChartSeries series = chartPart.ChartSpace!.Descendants<BarChartSeries>().First();
+            NumberReference reference = series.GetFirstChild<Values>()?.GetFirstChild<NumberReference>() ?? new NumberReference();
+            reference.Formula = new Formula(formula);
+            Values values = series.GetFirstChild<Values>() ?? new Values();
+            if (reference.Parent == null) {
+                values.Append(reference);
+            }
+
+            if (values.Parent == null) {
+                series.Append(values);
             }
 
             chartPart.ChartSpace.Save();

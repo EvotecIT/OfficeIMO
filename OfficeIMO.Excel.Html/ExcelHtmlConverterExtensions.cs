@@ -290,6 +290,14 @@ public static class ExcelHtmlConverterExtensions {
                     .Append(snapshot.Data.Series.Count.ToString(CultureInfo.InvariantCulture))
                     .Append("; Categories: ")
                     .Append(snapshot.Data.Categories.Count.ToString(CultureInfo.InvariantCulture))
+                    .Append("; Cell: ")
+                    .Append(snapshot.RowIndex.ToString(CultureInfo.InvariantCulture))
+                    .Append(", ")
+                    .Append(snapshot.ColumnIndex.ToString(CultureInfo.InvariantCulture))
+                    .Append("; Size: ")
+                    .Append(snapshot.WidthPixels.ToString(CultureInfo.InvariantCulture))
+                    .Append("x")
+                    .Append(snapshot.HeightPixels.ToString(CultureInfo.InvariantCulture))
                     .Append("</div>");
                 AppendChartDataTable(body, snapshot.Data, snapshot.ChartType);
             } else {

@@ -196,7 +196,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendSvgChart(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelVisualChart chart, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
             double scale = options.Scale;
-            if (!TryCreateOfficeChartSnapshot(chart.Snapshot, chart.Width * scale, chart.Height * scale, diagnostics, snapshot.SheetName, out OfficeChartSnapshot? officeSnapshot) || officeSnapshot == null) {
+            if (!TryCreateOfficeChartSnapshot(chart.Snapshot, chart.Width, chart.Height, diagnostics, snapshot.SheetName, out OfficeChartSnapshot? officeSnapshot) || officeSnapshot == null) {
                 return;
             }
 

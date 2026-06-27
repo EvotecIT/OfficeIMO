@@ -374,9 +374,10 @@ namespace OfficeIMO.Excel {
         private static Dictionary<int, ImageExportSeriesStyle> GetImageExportSeriesStyles(C.PlotArea plotArea, ExcelChartData data, WorkbookPart workbookPart) {
             var styles = new Dictionary<int, ImageExportSeriesStyle>();
             int seriesOrder = 0;
-            foreach (OpenXmlCompositeElement series in plotArea.Descendants<OpenXmlCompositeElement>().Where(IsSeriesElement)) {
-                int documentOrder = seriesOrder++;
-                int index = documentOrder;
+            foreach (OpenXmlCompositeElement series in plotArea.Descendants<OpenXmlCompositeElement>()
+                         .Where(IsSeriesElement)
+                         .OrderBy(item => item.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue)) {
+                int index = seriesOrder++;
                 if (index < 0 || index >= data.Series.Count) {
                     continue;
                 }

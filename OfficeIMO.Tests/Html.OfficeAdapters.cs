@@ -194,6 +194,8 @@ public class HtmlOfficeAdapters {
             Theme = OfficeHtmlDocumentThemeKind.Report
         });
 
+        Assert.Contains("Cell: 1, 5", html, StringComparison.Ordinal);
+        Assert.Contains("Size: 280x180", html, StringComparison.Ordinal);
         ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
         using ExcelDocument imported = result.Workbook;
         ExcelSheet importedSheet = imported.Sheets.Single(importedSheet => importedSheet.Name == "Roundtrip");
@@ -214,6 +216,10 @@ public class HtmlOfficeAdapters {
         Assert.Equal(11, importedImage.OffsetYPixels);
         ExcelChart importedChart = Assert.Single(importedSheet.Charts);
         Assert.True(importedChart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.Equal(1, snapshot.RowIndex);
+        Assert.Equal(5, snapshot.ColumnIndex);
+        Assert.Equal(280, snapshot.WidthPixels);
+        Assert.Equal(180, snapshot.HeightPixels);
         Assert.Equal(new[] { "North", "South", "West" }, snapshot.Data.Categories);
         ExcelChartSeries importedSeries = Assert.Single(snapshot.Data.Series);
         Assert.Equal("Amount", importedSeries.Name);
@@ -815,6 +821,8 @@ public class HtmlOfficeAdapters {
         });
 
         Assert.Contains("Position: 72pt, 180pt", html, StringComparison.Ordinal);
+        Assert.Contains("Position: 180pt, 130pt", html, StringComparison.Ordinal);
+        Assert.Contains("Size: 260pt x 150pt", html, StringComparison.Ordinal);
         PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
         using PowerPointPresentation imported = result.Presentation;
         PowerPointSlide importedSlide = imported.Slides[0];
@@ -834,6 +842,10 @@ public class HtmlOfficeAdapters {
         Assert.Equal(72D, importedPicture.LeftPoints, 3);
         Assert.Equal(180D, importedPicture.TopPoints, 3);
         PowerPointChart importedChart = Assert.Single(importedSlide.Charts);
+        Assert.Equal(180D, importedChart.LeftPoints, 3);
+        Assert.Equal(130D, importedChart.TopPoints, 3);
+        Assert.Equal(260D, importedChart.WidthPoints, 3);
+        Assert.Equal(150D, importedChart.HeightPoints, 3);
         Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
         Assert.Equal(new[] { "Q1", "Q2", "Q3" }, snapshot!.Data.Categories);
         PowerPointChartSeries importedSeries = Assert.Single(snapshot.Data.Series);
@@ -855,6 +867,27 @@ public class HtmlOfficeAdapters {
         Assert.Contains("<td>18</td>", roundTripHtml, StringComparison.Ordinal);
         Assert.Contains("Presenter reminder", roundTripHtml, StringComparison.Ordinal);
         Assert.Contains("data:image/png;base64", roundTripHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PowerPointHtml_RoundTripsOffSlidePicturePosition() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.Slides[0];
+        using (var image = new MemoryStream(OnePixelPng)) {
+            slide.AddPicturePoints(image, OfficeIMO.PowerPoint.ImagePartType.Png, -18, -12, 72, 72);
+        }
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        });
+
+        Assert.Contains("Position: -18pt, -12pt", html, StringComparison.Ordinal);
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+
+        PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
+        Assert.Equal(-18D, picture.LeftPoints, 3);
+        Assert.Equal(-12D, picture.TopPoints, 3);
     }
 
     [Fact]

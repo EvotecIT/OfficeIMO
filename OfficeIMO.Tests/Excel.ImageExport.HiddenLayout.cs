@@ -105,6 +105,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_DefaultImageExportSkipsDefaultHiddenImageAnchorsWhenExpandingUsedRange() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("DefaultHiddenAnchor");
+            sheet.CellValue(1, 1, "Visible");
+            sheet.SetDefaultRowHeight(18D, hidden: true);
+            sheet.SetRowHeight(1, 18D);
+            sheet.AddImage(10, 1, CreateSolidPng(24, 18, OfficeColor.FromRgb(220, 38, 38)), "image/png", widthPixels: 24, heightPixels: 18, name: "DefaultHiddenLogo");
+
+            OfficeImageExportResult defaultResult = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult includeHiddenResult = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { IncludeHidden = true, ShowGridlines = false });
+
+            Assert.Equal("DefaultHiddenAnchor!A1:A1", defaultResult.Source);
+            Assert.Equal("DefaultHiddenAnchor!A1:A10", includeHiddenResult.Source);
+            Assert.True(includeHiddenResult.Height > defaultResult.Height, $"Expected including the default-hidden anchored image to expand the default range. default={defaultResult.Height}, includeHidden={includeHiddenResult.Height}");
+        }
+
+        [Fact]
         public void ExcelWorksheet_DefaultImageExportUsesVisibleExtentsAcrossHiddenColumns() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

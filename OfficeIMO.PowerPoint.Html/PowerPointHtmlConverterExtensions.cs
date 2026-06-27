@@ -224,7 +224,15 @@ public static class PowerPointHtmlConverterExtensions {
 
         body.Append("<section class=\"officeimo-feature officeimo-charts\"><h3>Charts</h3><ul class=\"officeimo-feature-list\">");
         foreach (PptCore.PowerPointChart chart in chartList) {
-            body.Append("<li class=\"officeimo-feature-item\">");
+            body.Append("<li class=\"officeimo-feature-item\"><div class=\"officeimo-feature-meta\">Size: ")
+                .Append(FormatNumber(chart.WidthPoints))
+                .Append("pt x ")
+                .Append(FormatNumber(chart.HeightPoints))
+                .Append("pt; Position: ")
+                .Append(FormatNumber(chart.LeftPoints))
+                .Append("pt, ")
+                .Append(FormatNumber(chart.TopPoints))
+                .Append("pt</div>");
             AppendChartSummary(body, chart);
             body.Append("</li>");
         }
