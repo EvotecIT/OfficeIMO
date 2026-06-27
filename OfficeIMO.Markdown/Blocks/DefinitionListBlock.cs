@@ -19,6 +19,8 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
 
     /// <summary>Parsed inline representation of the current definition list items.</summary>
     public IReadOnlyList<DefinitionListInlineItem> InlineItems => BuildInlineItems();
+    /// <summary>Structured definition body blocks flattened across all groups and definitions.</summary>
+    public IReadOnlyList<IMarkdownBlock> ChildBlocks => BuildChildBlocks();
     internal List<MarkdownSyntaxNode> SyntaxItems { get; } = new List<MarkdownSyntaxNode>();
     internal MarkdownReaderOptions? ReaderOptions { get; private set; }
     internal MarkdownReaderState? ReaderState { get; private set; }
@@ -116,7 +118,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         return sb.ToString();
     }
 
-    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => BuildChildBlocks();
+    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
 
     private IReadOnlyList<DefinitionListInlineItem> BuildInlineItems() {
         if (_entries.Count == 0) {

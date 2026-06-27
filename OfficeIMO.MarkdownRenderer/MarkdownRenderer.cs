@@ -83,7 +83,7 @@ public static partial class MarkdownRenderer {
             result.SyntaxTree,
             result.FinalSyntaxTree,
             sourceMarkdown: result.SourceMarkdown,
-            result.TransformDiagnostics);
+            transformDiagnostics: result.TransformDiagnostics);
         return MarkdownNativeDocument.FromParseResult(
             parseResult,
             sourceMarkdown: null,

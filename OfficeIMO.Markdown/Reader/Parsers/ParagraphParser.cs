@@ -7,11 +7,12 @@ public static partial class MarkdownReader {
             // Paragraph begins when none of the other block starters match.
             if (IsAtxHeading(lines[i], out _, out _) ||
                 IsCodeFenceOpen(lines[i], out _, out _, out _) ||
-                StartsTable(lines, i) ||
+                StartsTable(lines, i, options) ||
                 IsParagraphInterruptingUnorderedListLine(lines[i]) ||
                 IsOrderedListLine(lines[i], out _, out _) ||
                 (options.Callouts && IsCalloutHeader(lines[i], out _, out _)) ||
                 IsQuoteStarter(lines[i]) ||
+                HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[i], options) ||
                 IsReferenceLinkDefinitionStarter(lines, i, options) ||
                 IsFootnoteDefinitionStarter(lines[i], options) ||
                 (options.StandaloneImageBlocks && IsImageLine(lines[i]))) return false;
@@ -22,11 +23,12 @@ public static partial class MarkdownReader {
             while (j < lines.Length && !string.IsNullOrWhiteSpace(lines[j]) &&
                    !IsAtxHeading(lines[j], out _, out _) &&
                    !IsCodeFenceOpen(lines[j], out _, out _, out _) &&
-                   !StartsTable(lines, j) &&
+                   !StartsTable(lines, j, options) &&
                    !IsParagraphInterruptingUnorderedListLine(lines[j]) &&
                    !IsParagraphInterruptingOrderedListLine(lines[j]) &&
                    (!options.Callouts || !IsCalloutHeader(lines[j], out _, out _)) &&
                    !IsQuoteStarter(lines[j]) &&
+                   !HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[j], options) &&
                    !IsReferenceLinkDefinitionStarter(lines, j, options) &&
                    !IsFootnoteDefinitionStarter(lines[j], options) &&
                    !(options.StandaloneImageBlocks && IsImageLine(lines[j]))) {

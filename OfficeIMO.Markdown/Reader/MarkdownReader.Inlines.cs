@@ -7,6 +7,7 @@ public static partial class MarkdownReader {
     private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null, MarkdownInlineSourceMap? sourceMap = null) {
         var sequence = ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true, sourceMap);
         NormalizeInlineSequenceInPlace(sequence, options.InputNormalization);
+        ApplyInlineTransformExtensions(sequence, text, options);
         return sequence;
     }
 
@@ -27,6 +28,7 @@ public static partial class MarkdownReader {
             Current().AddRaw(node);
         }
         void AddTextNode(string literal, int start, int length) => AddRawNode(new TextRun(literal), start, length);
+        void AddDecodedHtmlEntityNode(string literal, int start, int length) => AddRawNode(new DecodedHtmlEntityTextRun(literal), start, length);
         void AddHardBreakNode(int start, int length) => AddRawNode(new HardBreakInline(), start, length);
         InlineSequence ParseNestedInlineSegment(int relativeStart, int length, bool nestedAllowLinks, bool nestedAllowImages) {
             if (relativeStart < 0 || length <= 0 || relativeStart >= text.Length) {
@@ -99,6 +101,12 @@ public static partial class MarkdownReader {
                 continue;
             }
 
+            if (TryConsumeHtmlEntityText(text, pos, out int consumedEntity, out string decodedEntity)) {
+                AddDecodedHtmlEntityNode(decodedEntity, pos, consumedEntity);
+                pos += consumedEntity;
+                continue;
+            }
+
             // Autolink: http(s)://... until whitespace or closing punct
             if (options.AutolinkUrls && StartsWithHttp(text, pos, out int urlEnd)) {
                 var url = text.Substring(pos, urlEnd - pos);
@@ -124,6 +132,17 @@ public static partial class MarkdownReader {
                     AddRawNode(new LinkInline(label, resolved!, null), pos, wwwEnd - pos);
                 }
                 pos = wwwEnd; continue;
+            }
+
+            // Autolink: GFM URI-like bare schemes such as mailto: and xmpp:
+            if (options.AutolinkBareSchemeUrls && TryConsumeBareSchemeAutolink(text, pos, out int schemeEnd, out string schemeLabel, out string schemeHref)) {
+                var resolved = ResolveUrl(schemeHref, options);
+                if (resolved is null) {
+                    AddTextNode(schemeLabel, pos, schemeEnd - pos);
+                } else {
+                    AddRawNode(new LinkInline(schemeLabel, resolved!, null), pos, schemeEnd - pos);
+                }
+                pos = schemeEnd; continue;
             }
 
             // Autolink: plain email
@@ -447,6 +466,14 @@ public static partial class MarkdownReader {
                     continue;
                 }
 
+                // cmark-gfm strikethrough recognizes one- and two-tilde delimiter runs.
+                // Longer runs such as "~~~three~~~" and "~~~~~one~~~~~" remain literal.
+                if (marker == '~' && runLen > 2) {
+                    AddTextNode(new string(marker, runLen), pos, runLen);
+                    pos += runLen;
+                    continue;
+                }
+
                 GetDelimiterFlags(text, pos, marker, runLen, out bool canOpen, out bool canClose);
 
                 if (ShouldTreatMixedSingleMarkerAsLiteral(text, pos, marker, runLen, canOpen, canClose, stack)) {
@@ -502,7 +529,7 @@ public static partial class MarkdownReader {
 
                     while (remaining > 0) {
                         if (marker == '~') {
-                            int strikeDelimiterLength = options.SingleTildeStrikethrough ? 1 : 2;
+                            int strikeDelimiterLength = remaining >= 2 ? 2 : (options.SingleTildeStrikethrough ? 1 : 2);
                             if (remaining >= strikeDelimiterLength) {
                                 stack.Push(new InlineFrame(FrameKind.Strike, marker, strikeDelimiterLength, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
                                 remaining -= strikeDelimiterLength;
@@ -545,6 +572,12 @@ public static partial class MarkdownReader {
                     pos += consumedHtmlTag;
                     continue;
                 }
+
+                if (TryConsumeRawInlineHtmlTag(text, pos, out int consumedRawHtmlTag)) {
+                    AddRawNode(new HtmlRawInline(text.Substring(pos, consumedRawHtmlTag)), pos, consumedRawHtmlTag);
+                    pos += consumedRawHtmlTag;
+                    continue;
+                }
             }
 
             // Footnote ref [^id]
@@ -558,9 +591,11 @@ public static partial class MarkdownReader {
                 // Ensure our explicit inline handlers see these characters.
                 if (text[pos] == '\n') break;
                 if (text[pos] == '\\' && pos + 1 < text.Length && IsBackslashEscapable(text[pos + 1])) break;
+                if (text[pos] == '&' && TryConsumeHtmlEntityText(text, pos, out _, out _)) break;
                 if (text[pos] == '<' && IsAngleAutolinkStart(text, pos)) break;
                 if (options.AutolinkUrls && (text[pos] == 'h' || text[pos] == 'H') && StartsWithHttp(text, pos, out _)) break;
                 if (options.AutolinkWwwUrls && (text[pos] == 'w' || text[pos] == 'W') && StartsWithWww(text, pos, out _)) break;
+                if (options.AutolinkBareSchemeUrls && (text[pos] == 'm' || text[pos] == 'M' || text[pos] == 'x' || text[pos] == 'X') && TryConsumeBareSchemeAutolink(text, pos, out _, out _, out _)) break;
                 if (options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, out _, out _)) break;
                 if (inlineParserExtensions.Count > 0
                     && TryParseInlineExtension(

@@ -382,6 +382,128 @@ Paragraph
         }
 
         [Fact]
+        public void MarkdownRoundtripWriter_Preserves_Unchanged_OriginalMarkdown_When_PreserveTrivia_Is_Enabled() {
+            const string markdown = "# Title\r\n\r\nParagraph one\rSecond para";
+            var options = new MarkdownReaderOptions {
+                PreserveTrivia = true
+            };
+
+            var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+            var roundtrip = MarkdownRoundtripWriter.WriteUnchanged(result);
+
+            Assert.True(roundtrip.IsLossless);
+            Assert.Empty(roundtrip.Diagnostics);
+            Assert.Equal(markdown, roundtrip.Markdown);
+        }
+
+        [Fact]
+        public void MarkdownRoundtripWriter_Reports_Fallback_When_OriginalMarkdown_Was_Not_Preserved() {
+            const string markdown = "# Title\r\n";
+            var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+            var roundtrip = MarkdownRoundtripWriter.WriteUnchanged(result);
+
+            Assert.False(roundtrip.IsLossless);
+            var diagnostic = Assert.Single(roundtrip.Diagnostics);
+            Assert.Equal("roundtrip.preserve-trivia-required", diagnostic.Id);
+            Assert.Equal(result.Document.ToMarkdown(), roundtrip.Markdown);
+        }
+
+        [Fact]
+        public void MarkdownRoundtripWriter_Reports_Fallback_When_DocumentTransforms_Changed_Result() {
+            const string markdown = "previous shutdown was unexpected### Reason";
+            var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+            options.PreserveTrivia = true;
+            options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
+
+            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+
+            var roundtrip = MarkdownRoundtripWriter.WriteUnchanged(result);
+
+            Assert.False(roundtrip.IsLossless);
+            var diagnostic = Assert.Single(roundtrip.Diagnostics);
+            Assert.Equal("roundtrip.document-transformed", diagnostic.Id);
+            Assert.Equal(result.Document.ToMarkdown(), roundtrip.Markdown);
+            Assert.NotEqual(result.OriginalMarkdown, roundtrip.Markdown);
+        }
+
+        [Fact]
+        public void MarkdownRoundtripWriter_Applies_SourceEdit_To_OriginalMarkdown_When_PreserveTrivia_Is_Enabled() {
+            const string markdown = "# Old **Title**\r\n\r\nBody\r\n";
+            var options = new MarkdownReaderOptions {
+                PreserveTrivia = true
+            };
+            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var native = MarkdownNativeDocument.FromParseResult(result);
+            var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
+            var edit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New Title");
+
+            var roundtrip = MarkdownRoundtripWriter.WriteWithSourceEdit(result, edit);
+
+            Assert.True(roundtrip.IsLossless);
+            Assert.Empty(roundtrip.Diagnostics);
+            Assert.Equal("# New Title\r\n\r\nBody\r\n", roundtrip.Markdown);
+        }
+
+        [Fact]
+        public void MarkdownRoundtripWriter_Applies_SourceEdit_To_NormalizedMarkdown_When_OriginalMarkdown_Was_Not_Preserved() {
+            const string markdown = "# Old **Title**\r\n\r\nBody\r\n";
+            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown);
+            var native = MarkdownNativeDocument.FromParseResult(result);
+            var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
+            var edit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New Title");
+
+            var roundtrip = MarkdownRoundtripWriter.WriteWithSourceEdit(result, edit);
+
+            Assert.False(roundtrip.IsLossless);
+            var diagnostic = Assert.Single(roundtrip.Diagnostics);
+            Assert.Equal("roundtrip.preserve-trivia-required", diagnostic.Id);
+            Assert.Equal("# New Title\n\nBody\n", roundtrip.Markdown);
+        }
+
+        [Fact]
+        public void MarkdownRoundtripWriter_Reports_Fallback_When_SourceEdit_Cannot_Map_To_OriginalMarkdown() {
+            const string markdown = "# Ol\u200Bd\r\n";
+            var options = new MarkdownReaderOptions {
+                PreserveTrivia = true,
+                InputNormalization = new MarkdownInputNormalizationOptions {
+                    NormalizeZeroWidthSpacingArtifacts = true
+                }
+            };
+            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var native = MarkdownNativeDocument.FromParseResult(result);
+            var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
+            var edit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New");
+
+            var roundtrip = MarkdownRoundtripWriter.WriteWithSourceEdit(result, edit);
+
+            Assert.False(roundtrip.IsLossless);
+            var diagnostic = Assert.Single(roundtrip.Diagnostics);
+            Assert.Equal("roundtrip.original-source-slice-unavailable", diagnostic.Id);
+            Assert.Equal("# New\n", roundtrip.Markdown);
+        }
+
+        [Fact]
+        public void MarkdownRoundtripWriter_Reports_Fallback_For_Overlapping_SourceEdits() {
+            const string markdown = "# Old **Title**\n";
+            var options = new MarkdownReaderOptions {
+                PreserveTrivia = true
+            };
+            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var native = MarkdownNativeDocument.FromParseResult(result);
+            var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
+            var edit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New Title");
+
+            var roundtrip = MarkdownRoundtripWriter.WriteWithSourceEdits(result, new[] { edit, edit });
+
+            Assert.False(roundtrip.IsLossless);
+            var diagnostic = Assert.Single(roundtrip.Diagnostics);
+            Assert.Equal("roundtrip.overlapping-edits", diagnostic.Id);
+            Assert.Equal(markdown, roundtrip.Markdown);
+        }
+
+        [Fact]
         public void Reader_Enumerates_Headings_And_Resolved_Anchors() {
             const string markdown = """
 # Title

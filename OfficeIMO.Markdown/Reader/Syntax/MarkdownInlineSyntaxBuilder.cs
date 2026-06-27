@@ -37,7 +37,12 @@ internal static class MarkdownInlineSyntaxBuilder {
             case CodeSpanInline code:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineCodeSpan, span, literal: code.Text, associatedObject: code);
             case FootnoteRefInline footnote:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineFootnoteRef, span, literal: footnote.Label, associatedObject: footnote);
+                return new MarkdownSyntaxNode(
+                    MarkdownSyntaxKind.InlineFootnoteRef,
+                    span,
+                    literal: footnote.Label,
+                    children: BuildFootnoteRefChildren(footnote, span),
+                    associatedObject: footnote);
             case HardBreakInline:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineHardBreak, span, literal: "\\n", associatedObject: inline);
             case LinkInline link:
@@ -171,6 +176,42 @@ internal static class MarkdownInlineSyntaxBuilder {
         }
 
         return nodes;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildFootnoteRefChildren(FootnoteRefInline footnote, MarkdownSourceSpan? span) {
+        if (footnote == null || string.IsNullOrEmpty(footnote.Label)) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        return new[] {
+            new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.InlineFootnoteLabel,
+                GetFootnoteRefLabelSpan(footnote, span),
+                literal: footnote.Label)
+        };
+    }
+
+    private static MarkdownSourceSpan? GetFootnoteRefLabelSpan(FootnoteRefInline footnote, MarkdownSourceSpan? span) {
+        if (footnote == null || string.IsNullOrEmpty(footnote.Label) || !span.HasValue || !span.Value.StartColumn.HasValue) {
+            return null;
+        }
+
+        var labelStartColumn = span.Value.StartColumn.Value + 2;
+        var labelEndColumn = labelStartColumn + footnote.Label.Length - 1;
+        int? labelStartOffset = null;
+        int? labelEndOffset = null;
+        if (span.Value.StartOffset.HasValue) {
+            labelStartOffset = span.Value.StartOffset.Value + 2;
+            labelEndOffset = labelStartOffset.Value + footnote.Label.Length - 1;
+        }
+
+        return new MarkdownSourceSpan(
+            span.Value.StartLine,
+            labelStartColumn,
+            span.Value.StartLine,
+            labelEndColumn,
+            labelStartOffset,
+            labelEndOffset);
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildInlineImageChildren(ImageInline image) {

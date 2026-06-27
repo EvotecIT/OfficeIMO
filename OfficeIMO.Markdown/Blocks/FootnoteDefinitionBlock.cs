@@ -6,53 +6,31 @@ namespace OfficeIMO.Markdown;
 public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock, IFootnoteSectionMarkdownBlock {
     /// <summary>Footnote label (identifier without the leading ^).</summary>
     public string Label { get; }
+    /// <summary>Source span for the footnote label token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? LabelSourceSpan { get; internal set; }
     private readonly string _fallbackText;
     private readonly IReadOnlyList<IMarkdownBlock> _blocks;
-    private readonly IReadOnlyList<InlineSequence> _paragraphs;
-    private readonly IReadOnlyList<ParagraphBlock> _paragraphBlocks;
-
-    private readonly struct FootnoteContentViews(
-        IReadOnlyList<IMarkdownBlock> blocks,
-        IReadOnlyList<ParagraphBlock> paragraphBlocks,
-        IReadOnlyList<InlineSequence> paragraphs) {
-        public IReadOnlyList<IMarkdownBlock> Blocks { get; } = blocks ?? Array.Empty<IMarkdownBlock>();
-        public IReadOnlyList<ParagraphBlock> ParagraphBlocks { get; } = paragraphBlocks ?? Array.Empty<ParagraphBlock>();
-        public IReadOnlyList<InlineSequence> Paragraphs { get; } = paragraphs ?? Array.Empty<InlineSequence>();
-    }
 
     /// <summary>Footnote text content. When parsed child blocks are available, this is derived from them.</summary>
     public string Text => _blocks.Count > 0 ? RenderBlocksAsText(_blocks) : _fallbackText;
     /// <summary>
-     /// Parsed child blocks of the footnote definition.
-     /// Paragraph-only footnotes keep this aligned with <see cref="ParagraphBlocks"/>, while richer
-     /// producers can preserve headings, code blocks, and other block types here.
-     /// </summary>
+    /// Parsed child blocks of the footnote definition.
+    /// Paragraph-only footnotes keep this aligned with <see cref="ParagraphBlocks"/>, while richer
+    /// producers can preserve headings, code blocks, and other block types here.
+    /// </summary>
     public IReadOnlyList<IMarkdownBlock> Blocks => _blocks;
     /// <summary>
-     /// Parsed paragraphs of the footnote definition (when created by the reader).
-     /// When empty, renderers may fall back to parsing <see cref="Text"/> as a single inline sequence.
-     /// </summary>
-    public IReadOnlyList<InlineSequence> Paragraphs => _paragraphs;
+    /// Parsed paragraphs of the footnote definition, derived from <see cref="Blocks"/>.
+    /// When empty, renderers may fall back to parsing <see cref="Text"/> as a single inline sequence.
+    /// </summary>
+    public IReadOnlyList<InlineSequence> Paragraphs => CreateParagraphInlines(ParagraphBlocks);
     /// <summary>
-     /// Parsed paragraph blocks of the footnote definition (when created by the reader).
-     /// This exposes footnote content as owned block children for AST-style consumers.
-     /// </summary>
-    public IReadOnlyList<ParagraphBlock> ParagraphBlocks => _paragraphBlocks;
+    /// Parsed paragraph blocks of the footnote definition, derived from <see cref="Blocks"/>.
+    /// This exposes footnote content as owned block children for AST-style consumers.
+    /// </summary>
+    public IReadOnlyList<ParagraphBlock> ParagraphBlocks => CreateParagraphBlocks(_blocks);
     internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; }
     string IFootnoteSectionMarkdownBlock.FootnoteLabel => Label;
-
-    private FootnoteDefinitionBlock(
-        string label,
-        string fallbackText,
-        FootnoteContentViews content,
-        IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren) {
-        Label = label ?? string.Empty;
-        _fallbackText = fallbackText ?? string.Empty;
-        _blocks = content.Blocks;
-        _paragraphBlocks = content.ParagraphBlocks;
-        _paragraphs = content.Paragraphs;
-        SyntaxChildren = syntaxChildren;
-    }
 
     /// <summary>Create a new footnote definition.</summary>
     /// <param name="label">Identifier used by references.</param>
@@ -61,10 +39,7 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
         : this(
             label,
             text,
-            new FootnoteContentViews(
-                Array.Empty<IMarkdownBlock>(),
-                Array.Empty<ParagraphBlock>(),
-                Array.Empty<InlineSequence>()),
+            Array.Empty<IMarkdownBlock>(),
             syntaxChildren: null) {
     }
 
@@ -80,7 +55,7 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
         : this(
             label,
             text,
-            CreateContentViewsFromParagraphs(paragraphs),
+            CreateBlockList(CreateParagraphBlocks(paragraphs)),
             syntaxChildren) {
     }
 
@@ -88,17 +63,17 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
         : this(
             label,
             text,
-            CreateContentViewsFromParagraphBlocks(paragraphBlocks),
+            CreateBlockList(paragraphBlocks),
             syntaxChildren) {
     }
 
-    internal FootnoteDefinitionBlock(string label, string text, IReadOnlyList<IMarkdownBlock> blocks, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren)
-        : this(
-            label,
-            text,
-            CreateContentViewsFromBlocks(blocks),
-            syntaxChildren) {
+    internal FootnoteDefinitionBlock(string label, string text, IReadOnlyList<IMarkdownBlock>? blocks, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren) {
+        Label = label ?? string.Empty;
+        _fallbackText = text ?? string.Empty;
+        _blocks = CopyBlocks(blocks);
+        SyntaxChildren = syntaxChildren;
     }
+
     string IMarkdownBlock.RenderMarkdown() => RenderMarkdown();
     string IMarkdownBlock.RenderHtml() {
         // Standalone rendering; HtmlRenderer aggregates footnotes into a dedicated section.
@@ -190,10 +165,11 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
+        LabelSourceSpan = GetFootnoteLabelSpan(span);
         var children = new List<MarkdownSyntaxNode> {
             new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.FootnoteLabel,
-                GetFootnoteLabelSpan(span),
+                LabelSourceSpan,
                 Label)
         };
 
@@ -333,58 +309,6 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
         var copy = new IMarkdownBlock[blocks.Count];
         for (int i = 0; i < blocks.Count; i++) {
             copy[i] = blocks[i];
-        }
-
-        return copy;
-    }
-
-    private static FootnoteContentViews CreateContentViewsFromParagraphs(IReadOnlyList<InlineSequence>? paragraphs) {
-        var copiedParagraphs = CopyParagraphs(paragraphs);
-        var paragraphBlocks = CreateParagraphBlocks(copiedParagraphs);
-        return new FootnoteContentViews(
-            CreateBlockList(paragraphBlocks),
-            paragraphBlocks,
-            copiedParagraphs);
-    }
-
-    private static FootnoteContentViews CreateContentViewsFromParagraphBlocks(IReadOnlyList<ParagraphBlock>? paragraphBlocks) {
-        var copiedParagraphBlocks = CopyParagraphBlocks(paragraphBlocks);
-        return new FootnoteContentViews(
-            CreateBlockList(copiedParagraphBlocks),
-            copiedParagraphBlocks,
-            CreateParagraphInlines(copiedParagraphBlocks));
-    }
-
-    private static FootnoteContentViews CreateContentViewsFromBlocks(IReadOnlyList<IMarkdownBlock>? blocks) {
-        var copiedBlocks = CopyBlocks(blocks);
-        var paragraphBlocks = CreateParagraphBlocks(copiedBlocks);
-        return new FootnoteContentViews(
-            copiedBlocks,
-            paragraphBlocks,
-            CreateParagraphInlines(paragraphBlocks));
-    }
-
-    private static IReadOnlyList<ParagraphBlock> CopyParagraphBlocks(IReadOnlyList<ParagraphBlock>? paragraphBlocks) {
-        if (paragraphBlocks == null || paragraphBlocks.Count == 0) {
-            return Array.Empty<ParagraphBlock>();
-        }
-
-        var copy = new ParagraphBlock[paragraphBlocks.Count];
-        for (int i = 0; i < paragraphBlocks.Count; i++) {
-            copy[i] = paragraphBlocks[i];
-        }
-
-        return copy;
-    }
-
-    private static IReadOnlyList<InlineSequence> CopyParagraphs(IReadOnlyList<InlineSequence>? paragraphs) {
-        if (paragraphs == null || paragraphs.Count == 0) {
-            return Array.Empty<InlineSequence>();
-        }
-
-        var copy = new InlineSequence[paragraphs.Count];
-        for (int i = 0; i < paragraphs.Count; i++) {
-            copy[i] = paragraphs[i] ?? new InlineSequence();
         }
 
         return copy;

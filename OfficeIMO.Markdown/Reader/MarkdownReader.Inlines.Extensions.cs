@@ -31,6 +31,60 @@ public static partial class MarkdownReader {
         return active;
     }
 
+    private static IReadOnlyList<MarkdownInlineTransformExtension> BuildEffectiveInlineTransformExtensions(MarkdownReaderOptions options) {
+        if (options.InlineTransformExtensions.Count == 0) {
+            return Array.Empty<MarkdownInlineTransformExtension>();
+        }
+
+        var active = new List<MarkdownInlineTransformExtension>(options.InlineTransformExtensions.Count);
+        for (var i = 0; i < options.InlineTransformExtensions.Count; i++) {
+            var extension = options.InlineTransformExtensions[i];
+            if (extension != null && extension.AppliesTo(options)) {
+                active.Add(extension);
+            }
+        }
+
+        return active;
+    }
+
+    private static void ApplyInlineTransformExtensions(InlineSequence sequence, string sourceText, MarkdownReaderOptions options) {
+        var inlineTransformExtensions = BuildEffectiveInlineTransformExtensions(options);
+        if (inlineTransformExtensions.Count == 0) {
+            return;
+        }
+
+        ApplyInlineTransformExtensions(sequence, sourceText, options, inlineTransformExtensions, isNestedSequence: false);
+    }
+
+    private static void ApplyInlineTransformExtensions(
+        InlineSequence sequence,
+        string sourceText,
+        MarkdownReaderOptions options,
+        IReadOnlyList<MarkdownInlineTransformExtension> inlineTransformExtensions,
+        bool isNestedSequence) {
+        for (var i = 0; i < sequence.Nodes.Count; i++) {
+            if (sequence.Nodes[i] is IInlineContainerMarkdownInline container && container.NestedInlines != null) {
+                ApplyInlineTransformExtensions(
+                    container.NestedInlines,
+                    sourceText,
+                    options,
+                    inlineTransformExtensions,
+                    isNestedSequence: true);
+            }
+        }
+
+        var context = new MarkdownInlineTransformContext(sourceText, options, isNestedSequence);
+        for (var i = 0; i < inlineTransformExtensions.Count; i++) {
+            var extension = inlineTransformExtensions[i];
+            var transformed = extension.Transform(sequence, context);
+            if (transformed == null || ReferenceEquals(transformed, sequence)) {
+                continue;
+            }
+
+            sequence.ReplaceItems(transformed.Nodes);
+        }
+    }
+
     private static bool TryParseInlineExtension(
         string text,
         int position,

@@ -302,6 +302,69 @@ public static partial class MarkdownReader {
         item.SyntaxChildren.Add(BuildSyntaxNode(block, CreateLineSpan(state, absoluteStart + 1, Math.Max(absoluteStart + 1, absoluteEndExclusive))));
     }
 
+    private static void AddListItemChildSyntaxNode(
+        ListItem item,
+        IMarkdownBlock block,
+        string[] sourceLines,
+        int continuationIndent,
+        int startLineIndex,
+        int endExclusiveLineIndex,
+        MarkdownReaderState? state) {
+
+        if (item == null || block == null || sourceLines == null) return;
+
+        var slices = BuildListItemNestedSourceLines(sourceLines, continuationIndent, startLineIndex, endExclusiveLineIndex, state);
+        if (slices.Count == 0) {
+            AddListItemChildSyntaxNode(item, block, startLineIndex, endExclusiveLineIndex, state);
+            return;
+        }
+
+        var lastLine = slices[slices.Count - 1].Text;
+        var localSpan = new MarkdownSourceSpan(1, 1, slices.Count, Math.Max(1, lastLine.Length));
+        var localNode = BuildSyntaxNode(block, localSpan);
+        var remappedNode = RemapNestedSyntaxNode(slices, localNode);
+        SynchronizeOwnedSyntaxCaches(remappedNode);
+        item.SyntaxChildren.Add(remappedNode);
+    }
+
+    private static List<MarkdownSourceLineSlice> BuildListItemNestedSourceLines(
+        string[] sourceLines,
+        int continuationIndent,
+        int startLineIndex,
+        int endExclusiveLineIndex,
+        MarkdownReaderState? state) {
+
+        var count = Math.Max(0, Math.Min(endExclusiveLineIndex, sourceLines.Length) - Math.Max(0, startLineIndex));
+        var slices = new List<MarkdownSourceLineSlice>(count);
+        var lineOffset = state?.SourceLineOffset ?? 0;
+        var start = Math.Max(0, startLineIndex);
+        var end = Math.Min(endExclusiveLineIndex, sourceLines.Length);
+
+        for (var i = start; i < end; i++) {
+            var line = sourceLines[i] ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(line)) {
+                slices.Add(new MarkdownSourceLineSlice(string.Empty, lineOffset + i + 1, 1));
+                continue;
+            }
+
+            if (CountLeadingIndentColumns(line) >= continuationIndent) {
+                slices.Add(new MarkdownSourceLineSlice(
+                    StripLeadingIndentColumns(line, continuationIndent),
+                    lineOffset + i + 1,
+                    continuationIndent + 1));
+                continue;
+            }
+
+            var leadingColumns = CountLeadingIndentColumns(line);
+            slices.Add(new MarkdownSourceLineSlice(
+                line.TrimStart(),
+                lineOffset + i + 1,
+                leadingColumns + 1));
+        }
+
+        return slices;
+    }
+
     private static ListItem CreateListItemFromLeadLines(List<string> lines, bool isTask, bool done, MarkdownReaderOptions options, MarkdownReaderState? state, List<MarkdownSourceLineSlice>? sourceLines = null) {
         if (TryCreateListItemFromLeadBlocks(lines, isTask, done, options, state, sourceLines, out var blockLeadItem)) {
             return blockLeadItem;

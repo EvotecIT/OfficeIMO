@@ -38,6 +38,10 @@ public sealed class ListItem : MarkdownObject {
     public bool IsTask { get; }
     /// <summary>Whether the task is checked.</summary>
     public bool Checked { get; }
+    /// <summary>Source span of the list marker token (<c>-</c>, <c>*</c>, <c>+</c>, <c>1.</c>, or <c>1)</c>) when parsed from markdown.</summary>
+    public MarkdownSourceSpan? MarkerSourceSpan { get; internal set; }
+    /// <summary>Source span of the task marker token (<c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>) when parsed from markdown.</summary>
+    public MarkdownSourceSpan? TaskMarkerSourceSpan { get; internal set; }
     /// <summary>Indentation level (0 = top-level). Used for nested lists.</summary>
     public int Level { get; set; }
     /// <summary>Forces paragraph-wrapped loose rendering even when only the first paragraph and child blocks exist.</summary>
@@ -160,6 +164,53 @@ public sealed class ListItem : MarkdownObject {
         }
 
         return true;
+    }
+
+    internal void ReplaceBlockChildren(IReadOnlyList<IMarkdownBlock>? blocks) {
+        var incoming = blocks?
+            .Where(block => block != null)
+            .ToList();
+        IMarkdownInline[]? leadInlines = null;
+        var additionalParagraphs = new List<InlineSequence>();
+        var childBlocks = new List<IMarkdownBlock>();
+
+        if (incoming != null && incoming.Count > 0) {
+            var blockIndex = 0;
+            if (incoming[0] is ParagraphBlock leadParagraph) {
+                leadInlines = leadParagraph.Inlines.Nodes.Where(node => node != null).ToArray();
+                blockIndex = 1;
+            }
+
+            while (blockIndex < incoming.Count && incoming[blockIndex] is ParagraphBlock additionalParagraph) {
+                additionalParagraphs.Add(additionalParagraph.Inlines);
+                blockIndex++;
+            }
+
+            for (; blockIndex < incoming.Count; blockIndex++) {
+                childBlocks.Add(incoming[blockIndex]);
+            }
+        }
+
+        SyntaxChildren.Clear();
+        Content.ReplaceItems(Array.Empty<IMarkdownInline>());
+        AdditionalParagraphs.Clear();
+        Children.Clear();
+
+        if (incoming == null || incoming.Count == 0) {
+            return;
+        }
+
+        if (leadInlines != null) {
+            Content.ReplaceItems(leadInlines);
+        }
+
+        for (int i = 0; i < additionalParagraphs.Count; i++) {
+            AdditionalParagraphs.Add(additionalParagraphs[i]);
+        }
+
+        for (int i = 0; i < childBlocks.Count; i++) {
+            Children.Add(childBlocks[i]);
+        }
     }
 
     internal bool RequiresLooseListRendering() => ForceLoose || AdditionalParagraphs.Count > 0;

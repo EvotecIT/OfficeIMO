@@ -28,6 +28,13 @@ Use this together with `officeimo.markdown.correctness-roadmap.md`.
 6. Performance and benchmark evidence
 7. Breadth expansion only after the above are stable
 
+## Lossless Roundtrip Design
+
+The target design for editor-grade source preservation lives in `officeimo.markdown.lossless-roundtrip-design.md`.
+
+Treat `ToMarkdown()` as semantic markdown generation until that design is implemented. Lossless work should preserve original source slices for unchanged syntax nodes and report diagnostics whenever it falls back to generated markdown.
+`MarkdownRoundtripWriter.WriteUnchanged` now covers the narrow unchanged-document case for trivia-preserved parse results, and `WriteWithSourceEdit` / `WriteWithSourceEdits` apply explicit native source edits back to original input when source spans remap safely. The writer reports fallback diagnostics when it cannot claim byte preservation.
+
 ## Workstream A: Tree Invariants
 
 ### A1. Audit syntax-node builder association
@@ -44,6 +51,34 @@ Done means:
 - every relevant `BuildSyntaxNode` path sets the expected associated object
 - missing coverage cases are fixed
 - regression tests assert object-to-span lookup behavior
+
+Current coverage:
+
+- callout kind syntax nodes now map their token span back to `CalloutBlock.KindSourceSpan`
+- native callout projections expose the same kind token span for editor/read-model consumers
+- callout title syntax nodes associate with `CalloutBlock.TitleInlines`, and native callout projections expose the explicit title span for snapshots and source edits
+- footnote definitions now expose label token spans through `FootnoteDefinitionBlock.LabelSourceSpan` and a specialized native footnote projection
+- public callout construction can now preserve rich bodies as child blocks through structured constructors and the fluent body builder instead of flattening lists/code/tables into a raw body string
+- definition-list group/value syntax nodes now map source spans back to `DefinitionListGroup` and `DefinitionListDefinition` semantic objects
+- definition lists now expose definition body blocks through public `ChildBlocks`, matching the same underlying objects owned by `DefinitionListDefinition`
+- native definition-list projection now exposes grouped terms, definition body children, term inline runs, and snapshot DTOs instead of reporting definition lists as unsupported native blocks
+- native thematic-break projection now exposes CommonMark horizontal rules as first-class native blocks with source spans and snapshots
+- reference-style link definitions now have effective parse-result/native metadata with definition-level spans, label/destination/title token spans, snapshots, and source-edit coverage instead of living only in internal parser state and syntax nodes
+- inline footnote references now expose label metadata spans in syntax and native snapshots, with native source-edit coverage for the label token
+- inline links, images, and linked images now expose target/title and alt/source/title-style metadata spans in native snapshots, with native source-edit coverage for replacing those tokens without replacing the whole paragraph
+- fenced code and semantic fenced blocks now expose info-string/content source spans in native projections and snapshots, with source-edit coverage for replacing those tokens without replacing the full block
+- CommonMark fenced-code smoke coverage now includes escaped/entity-decoded language tokens, tilde fences, longer closing fences, unclosed fences, empty fences, indented fences, blockquoted fences, and invalid backtick info strings that must remain paragraph/code-span text
+- raw HTML and HTML comment blocks now project as source-addressable native HTML blocks with snapshots and block-level source edits instead of falling through unsupported native projection paths
+- CommonMark HTML block smoke coverage now includes official raw table, type 1 `pre`/`script`, comment, processing-instruction, CDATA, paragraph-interrupt, and Markdown-between-raw-tags behavior, with AST assertions for source-addressable raw/comment blocks and split paragraphs
+- CommonMark paragraph and line-break smoke coverage now includes official blank-line paragraph splitting, paragraph indentation normalization, indented-code paragraph boundaries, trailing-space hard breaks, backslash hard breaks, and soft line breaks
+- headings now expose level/text token spans in syntax nodes, native projections, and snapshots, with source-edit coverage for replacing heading markers or heading text without replacing the full block
+- GFM pipe-table alignment rows now have a dedicated syntax node and native snapshot field span, with source-edit coverage for replacing the separator row without replacing the full table
+- GFM pipe-table smoke coverage now includes no-leading-pipe tables, one-column delimiter rows, paragraph-to-table boundaries, short delimiter cells, aligned columns, header/delimiter mismatch rejection, body-row padding/truncation to the header width, reference links inside table cells, adjacent empty cells, compact inline emphasis, inline formatting in table headers/body cells, non-table pipe-row rejection, minimal header-only tables, raw inline HTML/break tags, escaped pipes inside table-cell code spans, and broader table backslash escaping
+- GFM raw HTML smoke coverage now includes the cmark-gfm HTML tag filter, preserving dangerous tags as source-addressable raw HTML nodes while rendering the filtered leading `<` as `&lt;`
+- GFM strikethrough smoke coverage now includes official delimiter-run edge cases for single, double, long, and mismatched tilde runs
+- GFM autolink smoke coverage now includes plus-tag email local parts, invalid email-like tokens, bare `mailto:`/`xmpp:` URLs, Unicode URL destinations, `www` host underscore rules, quoted autolinks, trailing punctuation trimming, and the upstream ignored malformed-email case as a parser stability/source-mapping regression
+- list-item paragraph syntax nodes now associate to `ParagraphBlock` objects instead of their nested `InlineSequence`
+- sequence inline syntax nodes now associate back to their wrapper objects across strong, emphasis, strong-emphasis, strikethrough, and highlight grouped inline content
 
 ### A2. Add tree invariant test helpers
 
@@ -68,6 +103,10 @@ Goal:
 Done means:
 - golden inputs cover headings, nested lists, block quotes, tables, code fences, and footnotes
 - tests assert spans and logical lookup targets, not only rendered text
+
+Current coverage:
+
+- representative semantic-object provenance coverage now walks a mixed document with heading, blockquote/list, definition list, table-cell nested blocks, code fence, semantic fenced block, paragraph, and footnote objects and asserts every expected semantic object has a mapped source span
 
 ## Workstream B: Canonical AST
 
@@ -121,6 +160,14 @@ Done means:
 - ordering and conflict rules are documented
 - tests cover precedence and fallback behavior
 
+Current coverage:
+
+- `MarkdownBlockParserExtension` registrations at the same placement run in registration order
+- the first successful block parser consumes the block and later matching parsers are not invoked
+- disabled block parser extensions are skipped and core parsers continue as fallback
+- placement anchors are covered across earlier/later core parser conflicts, including extension claims before reference definitions and late extensions that cannot preempt GFM tables
+- built-in block extensions and custom block extensions follow the same registration-order conflict rule when registered at the same placement
+
 ### C2. Design inline parser extension contracts
 
 Goal:
@@ -131,6 +178,14 @@ Done means:
 - extension order and failure behavior are defined
 - at least one non-trivial inline extension uses the seam
 
+Current coverage:
+
+- `MarkdownInlineParserExtension` is public and covered by custom inline parser tests
+- inline parser extensions now have registration-order, first-success, false-fallback, disabled-extension, and core-parser fallback coverage
+- `MarkdownInlineTransformExtension` separates post-parse inline AST normalization from token recognition
+- `HtmlOptions.InlineRenderExtensions` lets hosts/packages override HTML for specific inline semantic types without editing those node types
+- inline HTML render extensions now have explicit ordering and null-fallback tests: later matching registrations win, and `null` falls back to the inline's contextual/default renderer
+
 ### C3. Separate parsing from normalization
 
 Goal:
@@ -139,6 +194,11 @@ Goal:
 Done means:
 - parser-owned behavior and normalization-owned behavior are explicitly separated
 - normalization can be applied intentionally instead of implicitly everywhere
+
+Current coverage:
+
+- post-parse inline AST transforms run after core inline parsing and built-in input normalization
+- tests cover transform ordering, replacement sequences, `null` no-op behavior, disabled-extension skipping, nested inline containers, and source-span preservation for reused nodes
 
 ## Workstream D: Renderer And HTML Cleanup
 
@@ -150,6 +210,11 @@ Goal:
 Done means:
 - at least one current HTML-string recovery path is replaced with typed AST or typed renderer contracts
 - tests prove equivalent or better output without HTML rescanning
+
+Current coverage:
+
+- renderer-owned fenced code block registrations are added to the reader as semantic fenced block extensions before parse
+- `Markdown_Renderer_FenceConversion_Tests` proves a matching custom fence renders through the semantic AST renderer and does not invoke the `CodeBlock` HTML fallback
 
 ### D2. Promote fenced semantics into first-class typed contracts
 
@@ -235,6 +300,27 @@ Done means:
 - suites cover markdown -> AST -> markdown
 - suites cover markdown -> HTML -> AST -> markdown
 - suites cover markdown -> Word -> markdown where deliberate degradation is expected and documented
+
+### F5. Implement lossless trivia/source-slice mode
+
+Goal:
+- make markdown -> parse -> targeted edit -> markdown preserve untouched source text where supported
+
+Current coverage:
+
+- native source edit helpers can replace a span-backed fenced code block while preserving surrounding normalized source
+- native source edit helpers can also replace a span-backed inline token while preserving surrounding normalized source
+- syntax-backed parse results can materialize normalized source slices for span-backed nodes
+- `MarkdownReaderOptions.PreserveTrivia` retains raw reader input as parse-result metadata while keeping existing source spans tied to normalized markdown, and line-ending-equivalent original input, including CRLF and standalone CR, can now materialize original source slices through line/column coordinates
+- `MarkdownRoundtripWriter.WriteUnchanged` returns the captured original markdown byte-for-byte for unchanged parse results and reports diagnostics when it falls back to generated markdown
+- `MarkdownRoundtripWriter.WriteWithSourceEdit` and `WriteWithSourceEdits` apply explicit native source edits to preserved original markdown when each edit can be remapped safely, and fall back to normalized markdown with diagnostics when they cannot
+- these are useful groundwork, not a first-class lossless trivia mode
+
+Done means:
+- parser captures enough trivia and source slices for supported block and inline cases
+- unchanged supported fixtures roundtrip byte-for-byte
+- targeted edits preserve surrounding source byte-for-byte
+- diagnostics report every fallback to generated markdown
 
 ## Workstream G: Performance Evidence
 

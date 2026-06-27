@@ -5,7 +5,8 @@ public static partial class MarkdownReader {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.UnorderedLists) return false;
             if (!IsUnorderedListLine(lines[i], out int level0Abs, out var isTask, out var done, out var firstContent)) return false;
-            if (!TryGetUnorderedListMarkerInfo(lines[i], out _, out _, out char firstMarker)) return false;
+            if (!TryGetUnorderedListMarkerInfo(lines[i], out int firstMarkerIndent, out _, out char firstMarker)) return false;
+            if (options.StrictListIndentation && firstMarkerIndent - state.ListMarkerIndentOffset > 3) return false;
             if (isTask && !options.TaskLists) {
                 isTask = false;
                 done = false;
@@ -38,6 +39,7 @@ public static partial class MarkdownReader {
                 initialStartColumn: firstStartColumn);
             var first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state, firstSourceLines);
             first.Level = 0;
+            SetListItemMarkerSourceSpans(first, lines[i], i, isTask, state);
             if (continuationIndentsByLevel != null) {
                 TrackListItemContinuationIndent(continuationIndentsByLevel, first.Level, firstContinuationIndent);
             }
@@ -58,7 +60,8 @@ public static partial class MarkdownReader {
                 if (itemStart >= lines.Length
                     || !IsUnorderedListLine(lines[itemStart], out var lvlAbs, out var isTask2, out var done2, out var content2)
                     || lvlAbs < level0Abs
-                    || !TryGetUnorderedListMarkerInfo(lines[itemStart], out _, out _, out char marker)
+                    || !TryGetUnorderedListMarkerInfo(lines[itemStart], out int markerIndent, out _, out char marker)
+                    || (options.StrictListIndentation && markerIndent - firstMarkerIndent > 3)
                     || marker != firstMarker) {
                     break;
                 }
@@ -98,6 +101,7 @@ public static partial class MarkdownReader {
                 li.Level = continuationIndentsByLevel != null
                     ? GetRelativeListItemLevel(continuationIndentsByLevel, lines[itemStart])
                     : lvlAbs - level0Abs;
+                SetListItemMarkerSourceSpans(li, lines[itemStart], itemStart, isTask2, state);
                 if (separatedByBlankLine) {
                     li.ForceLoose = true;
                 }

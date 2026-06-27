@@ -133,6 +133,21 @@ public static partial class MarkdownReader {
             return true;
         }
 
+        internal static bool IsParagraphInterruptingHtmlBlockStart(string line, MarkdownReaderOptions options) {
+            if (options?.HtmlBlocks != true) return false;
+            if (string.IsNullOrEmpty(line)) return false;
+
+            int indent = CountLeadingSpaces(line);
+            if (indent < 0 || indent > 3) return false;
+
+            string trimmed = indent == 0 ? line : line.Substring(indent);
+            if (trimmed.Length == 0 || trimmed[0] != '<') return false;
+            if (TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) return false;
+            if (!TryGetHtmlBlockState(trimmed, out var blockState)) return false;
+
+            return blockState.Kind != HtmlBlockKind.Type7;
+        }
+
         private static bool IsHeaderlessSingleRowTableMarker(string trimmed) {
             return string.Equals(trimmed.Trim(), TableBlock.HeaderlessSingleRowTableMarker, StringComparison.Ordinal);
         }
@@ -323,6 +338,20 @@ public static partial class MarkdownReader {
         private static bool AllowsBlankLineContinuation(string tagName) {
             return s_BlankLineFriendlyTags.Contains(tagName);
         }
+
+        internal static bool IsBlockOrRawTextHtmlTagName(string tagName) {
+            if (string.IsNullOrEmpty(tagName)) {
+                return false;
+            }
+
+            return s_BlockTags.Contains(tagName)
+                || string.Equals(tagName, "script", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "style", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "pre", StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static bool TryParseHtmlTag(string line, out string tagName, out bool isClosing, out int endIndex) =>
+            TryParseTag(line, out tagName, out isClosing, out endIndex);
 
         private static readonly HashSet<string> s_BlankLineFriendlyTags = new(StringComparer.OrdinalIgnoreCase) {
             "details",

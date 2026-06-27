@@ -59,7 +59,9 @@ Inside details
 
         var callout = Assert.IsType<MarkdownNativeCalloutBlock>(native.Blocks[2]);
         Assert.Equal("warning", callout.CalloutKind);
+        Assert.Equal(new MarkdownSourceSpan(6, 5, 6, 11), callout.KindSourceSpan);
         Assert.Equal("Watch", callout.Title);
+        Assert.Equal(new MarkdownSourceSpan(6, 14, 6, 18), callout.TitleSourceSpan);
         Assert.Equal("Body text", Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(callout.Children)).Text);
         Assert.Same(callout.Children[0], native.FindBlockAtLine(7));
 
@@ -83,7 +85,275 @@ Inside details
         var details = Assert.IsType<MarkdownNativeDetailsBlock>(native.Blocks[6]);
         Assert.True(details.Open);
         Assert.Equal("More context", details.Summary);
+        Assert.Equal(new MarkdownSourceSpan(17, 17), details.SummarySourceSpan);
         Assert.Equal("Inside details", Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(details.Children)).Text);
+
+        var detailsSnapshot = native.ToSnapshot().Blocks[6];
+        Assert.Equal(17, detailsSnapshot.FieldSourceSpans["summary"]!.StartLine);
+        Assert.Equal(17, detailsSnapshot.FieldSourceSpans["summary"]!.EndLine);
+
+        var withSummary = native.CreateReplaceEdit(details.SummarySourceSpan!.Value, "<summary>Less context</summary>").Apply(native.SourceMarkdown);
+        Assert.Contains("<summary>Less context</summary>", withSummary);
+        Assert.DoesNotContain("<summary>More context</summary>", withSummary);
+    }
+
+    [Fact]
+    public void Parse_Projects_Task_List_Marker_SourceSpans_Into_Native_Snapshots_And_Edits() {
+        const string markdown = "- [X]\tUpper\n- [ ]    Open\n- [x]tight\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var list = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(native.Blocks));
+
+        Assert.Collection(
+            list.Items,
+            item => {
+                Assert.True(item.IsTask);
+                Assert.True(item.Checked);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), item.MarkerSourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), item.TaskMarkerSourceSpan);
+            },
+            item => {
+                Assert.True(item.IsTask);
+                Assert.False(item.Checked);
+                Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 1), item.MarkerSourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 5), item.TaskMarkerSourceSpan);
+            },
+            item => {
+                Assert.False(item.IsTask);
+                Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 1), item.MarkerSourceSpan);
+                Assert.Null(item.TaskMarkerSourceSpan);
+            });
+
+        var snapshot = native.ToSnapshot();
+        var snapshotList = Assert.Single(snapshot.Blocks);
+        Assert.Equal(1, snapshotList.Items[0].MarkerSourceSpan!.StartColumn);
+        Assert.Equal(1, snapshotList.Items[0].MarkerSourceSpan!.EndColumn);
+        Assert.Equal(3, snapshotList.Items[0].TaskMarkerSourceSpan!.StartColumn);
+        Assert.Equal(5, snapshotList.Items[0].TaskMarkerSourceSpan!.EndColumn);
+        Assert.Null(snapshotList.Items[2].TaskMarkerSourceSpan);
+
+        var edited = native.CreateReplaceEdit(list.Items[0].TaskMarkerSourceSpan!.Value, "[ ]").Apply(native.SourceMarkdown);
+        Assert.StartsWith("- [ ]\tUpper", edited, StringComparison.Ordinal);
+        Assert.Contains("- [ ]    Open", edited, StringComparison.Ordinal);
+        Assert.Contains("- [x]tight", edited, StringComparison.Ordinal);
+
+        var withSecondMarker = native.CreateReplaceEdit(list.Items[1].MarkerSourceSpan!.Value, "*").Apply(native.SourceMarkdown);
+        Assert.Contains("* [ ]    Open", withSecondMarker, StringComparison.Ordinal);
+        Assert.StartsWith("- [X]\tUpper", withSecondMarker, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Parse_Projects_Quote_Marker_SourceSpans_Into_Native_Snapshots_And_Edits() {
+        var markdown = """
+> Outer
+>
+> > Inner
+>
+> Still outer
+
+After
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var quote = Assert.IsType<MarkdownNativeQuoteBlock>(native.Blocks[0]);
+
+        Assert.Equal(new[] {
+            new MarkdownSourceSpan(1, 1, 1, 1),
+            new MarkdownSourceSpan(2, 1, 2, 1),
+            new MarkdownSourceSpan(3, 1, 3, 1),
+            new MarkdownSourceSpan(4, 1, 4, 1),
+            new MarkdownSourceSpan(5, 1, 5, 1)
+        }, quote.MarkerSourceSpans);
+        Assert.Equal(quote.MarkerSourceSpans, quote.Quote.MarkerSourceSpans);
+
+        var innerQuote = Assert.IsType<MarkdownNativeQuoteBlock>(quote.Children[1]);
+        var innerMarker = Assert.Single(innerQuote.MarkerSourceSpans);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 3), innerMarker);
+
+        var snapshot = native.ToSnapshot().Blocks[0];
+        Assert.Equal(5, snapshot.MarkerSourceSpans.Count);
+        Assert.Equal(1, snapshot.MarkerSourceSpans[0].StartLine);
+        Assert.Equal(1, snapshot.MarkerSourceSpans[0].StartColumn);
+        Assert.Equal(3, snapshot.Children[1].MarkerSourceSpans[0].StartLine);
+        Assert.Equal(3, snapshot.Children[1].MarkerSourceSpans[0].StartColumn);
+
+        var edited = native.CreateReplaceEdit(quote.MarkerSourceSpans[4], ">>").Apply(native.SourceMarkdown);
+        Assert.Contains(">> Still outer", edited, StringComparison.Ordinal);
+        Assert.Contains("> > Inner", edited, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Parse_Projects_Footnote_Definitions_With_Label_SourceSpan_And_Children() {
+        var markdown = """
+Body[^shape]
+
+[^shape]: Footnote body
+
+  - nested
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+
+        Assert.Equal(new[] {
+            MarkdownNativeBlockKind.Paragraph,
+            MarkdownNativeBlockKind.FootnoteDefinition
+        }, native.Blocks.Select(block => block.Kind).ToArray());
+
+        var footnote = Assert.IsType<MarkdownNativeFootnoteDefinitionBlock>(native.Blocks[1]);
+        Assert.Equal("shape", footnote.Label);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 7), footnote.LabelSourceSpan);
+        Assert.Equal("Footnote body\n\n- nested", footnote.Text.Replace("\r\n", "\n"));
+        Assert.Collection(
+            footnote.Children,
+            block => Assert.Equal("Footnote body", Assert.IsType<MarkdownNativeParagraphBlock>(block).Text),
+            block => Assert.Single(Assert.IsType<MarkdownNativeListBlock>(block).Items));
+        Assert.Same(footnote, native.FindBlockAtPosition(3, 3));
+        Assert.Same(footnote.Children[0], native.FindBlockAtPosition(3, 12));
+        Assert.DoesNotContain(native.Diagnostics, diagnostic =>
+            diagnostic.Id == "native.unsupported-block"
+            && ReferenceEquals(diagnostic.Block, footnote));
+    }
+
+    [Fact]
+    public void Parse_Projects_Definition_Lists_With_Terms_Definitions_And_Children() {
+        var markdown = """
+**Term**: Intro
+
+  - first
+  - second
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+
+        var definitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var term = Assert.Single(group.Terms);
+        var definition = Assert.Single(group.Definitions);
+
+        Assert.Equal(MarkdownNativeBlockKind.DefinitionList, definitionList.Kind);
+        Assert.Equal("Term", term.Text);
+        Assert.Equal("**Term**", term.Markdown);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 8), term.SourceSpan);
+        Assert.Contains(term.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "Term");
+        Assert.Equal("Intro\n\n- first\n- second", definition.Markdown.Replace("\r\n", "\n"));
+        Assert.Collection(
+            definition.Children,
+            block => Assert.Equal("Intro", Assert.IsType<MarkdownNativeParagraphBlock>(block).Text),
+            block => Assert.Equal(2, Assert.IsType<MarkdownNativeListBlock>(block).Items.Count));
+        Assert.Equal(definition.Children, definitionList.Children);
+        Assert.Same(definition.Children[1], native.FindBlockAtPosition(3, 3));
+        Assert.Contains(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "Term");
+        Assert.DoesNotContain(native.Diagnostics, diagnostic =>
+            diagnostic.Id == "native.unsupported-block"
+            && ReferenceEquals(diagnostic.Block, definitionList));
+    }
+
+    [Fact]
+    public void ToSnapshot_Projects_Definition_List_Groups_Terms_And_Definition_Children() {
+        var native = MarkdownNativeDocument.Parse("""
+Term: Intro
+
+  - first
+""");
+
+        var snapshot = native.ToSnapshot();
+        var definitionList = Assert.Single(snapshot.Blocks);
+        var group = Assert.Single(definitionList.DefinitionGroups);
+        var term = Assert.Single(group.Terms);
+        var definition = Assert.Single(group.Definitions);
+
+        Assert.Equal(MarkdownNativeBlockKind.DefinitionList, definitionList.Kind);
+        Assert.Equal("Term", term.Text);
+        Assert.Equal("Term", term.Markdown);
+        Assert.Equal("Intro\n\n- first", definition.Markdown.Replace("\r\n", "\n"));
+        Assert.Collection(
+            definition.Children,
+            block => Assert.Equal(MarkdownNativeBlockKind.Paragraph, block.Kind),
+            block => Assert.Equal(MarkdownNativeBlockKind.List, block.Kind));
+        Assert.Equal(definition.Children.Select(block => block.Id).ToArray(), definitionList.Children.Select(block => block.Id).ToArray());
+    }
+
+    [Fact]
+    public void Parse_Projects_Thematic_Break_As_FirstClass_Native_Block() {
+        var native = MarkdownNativeDocument.Parse("""
+Before
+
+***
+
+After
+""");
+
+        Assert.Equal(new[] {
+            MarkdownNativeBlockKind.Paragraph,
+            MarkdownNativeBlockKind.ThematicBreak,
+            MarkdownNativeBlockKind.Paragraph
+        }, native.Blocks.Select(block => block.Kind).ToArray());
+
+        var thematicBreak = Assert.IsType<MarkdownNativeThematicBreakBlock>(native.Blocks[1]);
+        Assert.Equal("---", thematicBreak.Marker);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), thematicBreak.SourceSpan);
+        Assert.Same(thematicBreak, native.FindBlockAtPosition(3, 2));
+        Assert.DoesNotContain(native.Diagnostics, diagnostic =>
+            diagnostic.Id == "native.unsupported-block"
+            && ReferenceEquals(diagnostic.Block, thematicBreak));
+    }
+
+    [Fact]
+    public void Parse_Exposes_Reference_Link_Definitions_On_Native_Document_And_Snapshot() {
+        var native = MarkdownNativeDocument.Parse("""
+[hero]: https://example.com/docs "Docs title"
+
+[hero]
+""");
+
+        var definition = Assert.Single(native.ReferenceLinkDefinitions);
+        Assert.Equal("hero", definition.Label);
+        Assert.Equal("https://example.com/docs", definition.Url);
+        Assert.Equal("Docs title", definition.Title);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 45), definition.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 2, 1, 5), definition.LabelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 32), definition.UrlSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 35, 1, 44), definition.TitleSourceSpan);
+
+        var snapshotDefinition = Assert.Single(native.ToSnapshot().ReferenceLinkDefinitions);
+        Assert.Equal("hero", snapshotDefinition.Label);
+        Assert.Equal("https://example.com/docs", snapshotDefinition.Url);
+        Assert.Equal("Docs title", snapshotDefinition.Title);
+        Assert.Equal(1, snapshotDefinition.SourceSpan!.StartLine);
+        Assert.Equal(1, snapshotDefinition.SourceSpan.StartColumn);
+        Assert.Equal(45, snapshotDefinition.SourceSpan.EndColumn);
+        Assert.Equal(1, snapshotDefinition.LabelSourceSpan!.StartLine);
+        Assert.Equal(2, snapshotDefinition.LabelSourceSpan.StartColumn);
+        Assert.Equal(5, snapshotDefinition.LabelSourceSpan.EndColumn);
+        Assert.Equal(9, snapshotDefinition.UrlSourceSpan!.StartColumn);
+        Assert.Equal(32, snapshotDefinition.UrlSourceSpan.EndColumn);
+        Assert.Equal(35, snapshotDefinition.TitleSourceSpan!.StartColumn);
+        Assert.Equal(44, snapshotDefinition.TitleSourceSpan.EndColumn);
+    }
+
+    [Fact]
+    public void Source_Edit_Helpers_Replace_Reference_Definition_And_Preserve_Surrounding_Source() {
+        var markdown = """
+Before [hero]
+
+[hero]: https://example.com/docs "Docs title"
+
+After
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var definition = Assert.Single(native.ReferenceLinkDefinitions);
+
+        var edit = native.CreateReplaceEdit(definition, "[hero]: https://example.com/new \"New title\"");
+        var updated = edit.Apply(native.SourceMarkdown);
+
+        Assert.Equal("""
+Before [hero]
+
+[hero]: https://example.com/new "New title"
+
+After
+""", updated);
     }
 
     [Fact]
@@ -123,6 +393,10 @@ Console.WriteLine(1);
         Assert.Equal("csharp", code.Language);
         Assert.Equal("Console.WriteLine(1);", code.Content);
         Assert.Equal(3, code.SourceSpan!.Value.StartLine);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), code.OpeningFenceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 4, 3, 9), code.InfoStringSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 21), code.ContentSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 3), code.ClosingFenceSourceSpan);
 
         var table = Assert.IsType<MarkdownNativeTableBlock>(native.Blocks[2]);
         Assert.Equal("Name", table.HeaderCells[0].Text);
@@ -134,7 +408,156 @@ Console.WriteLine(1);
         Assert.Equal("ix-chart", visual.Language);
         Assert.Equal("{\"type\":\"bar\"}", visual.Content);
         Assert.Equal(11, visual.SourceSpan!.Value.StartLine);
+        Assert.Equal(new MarkdownSourceSpan(11, 1, 11, 3), visual.OpeningFenceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(11, 4, 11, 11), visual.InfoStringSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(12, 1, 12, 14), visual.ContentSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(13, 1, 13, 3), visual.ClosingFenceSourceSpan);
+        var snapshot = native.ToSnapshot();
+        Assert.Equal(1, snapshot.Blocks[1].FieldSourceSpans["openingFence"]!.StartColumn);
+        Assert.Equal(3, snapshot.Blocks[1].FieldSourceSpans["openingFence"]!.EndColumn);
+        Assert.Equal(4, snapshot.Blocks[1].FieldSourceSpans["infoString"]!.StartColumn);
+        Assert.Equal(9, snapshot.Blocks[1].FieldSourceSpans["infoString"]!.EndColumn);
+        Assert.Equal(1, snapshot.Blocks[1].FieldSourceSpans["closingFence"]!.StartColumn);
+        Assert.Equal(3, snapshot.Blocks[1].FieldSourceSpans["closingFence"]!.EndColumn);
+        Assert.Equal(1, snapshot.Blocks[3].FieldSourceSpans["openingFence"]!.StartColumn);
+        Assert.Equal(3, snapshot.Blocks[3].FieldSourceSpans["openingFence"]!.EndColumn);
+        Assert.Equal(4, snapshot.Blocks[3].FieldSourceSpans["infoString"]!.StartColumn);
+        Assert.Equal(11, snapshot.Blocks[3].FieldSourceSpans["infoString"]!.EndColumn);
+        Assert.Equal(1, snapshot.Blocks[3].FieldSourceSpans["closingFence"]!.StartColumn);
+        Assert.Equal(3, snapshot.Blocks[3].FieldSourceSpans["closingFence"]!.EndColumn);
+
+        var reticked = native.CreateReplaceEdit(code.OpeningFenceSourceSpan!.Value, "````").Apply(native.SourceMarkdown);
+        Assert.Contains("````csharp", reticked, StringComparison.Ordinal);
+        var visualClose = native.CreateReplaceEdit(visual.ClosingFenceSourceSpan!.Value, "````").Apply(native.SourceMarkdown);
+        Assert.Contains("{\"type\":\"bar\"}\n````", visualClose, StringComparison.Ordinal);
         Assert.Same(visual, native.FindBlockAtLine(12));
+    }
+
+    [Fact]
+    public void Parse_Projects_Unclosed_Fenced_Code_Exposes_Opening_But_Not_Closing_Fence_SourceSpan() {
+        var native = MarkdownNativeDocument.Parse("```text\nbody");
+        var code = Assert.IsType<MarkdownNativeCodeBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), code.OpeningFenceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 7), code.InfoStringSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 4), code.ContentSourceSpan);
+        Assert.Null(code.ClosingFenceSourceSpan);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal(1, snapshot.FieldSourceSpans["openingFence"]!.StartColumn);
+        Assert.Null(snapshot.FieldSourceSpans["closingFence"]);
+    }
+
+    [Fact]
+    public void Parse_Projects_Nested_Fenced_Code_Marker_SourceSpans_Remapped_Through_Quote_And_List() {
+        var markdown = """
+> ```csharp
+> Console.WriteLine(1);
+> ```
+
+- item
+  ```json
+  {"ok":true}
+  ```
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+
+        var quote = Assert.IsType<MarkdownNativeQuoteBlock>(native.Blocks[0]);
+        var quotedCode = Assert.IsType<MarkdownNativeCodeBlock>(Assert.Single(quote.Children));
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), quotedCode.OpeningFenceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 11), quotedCode.InfoStringSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 23), quotedCode.ContentSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 5), quotedCode.ClosingFenceSourceSpan);
+
+        var list = Assert.IsType<MarkdownNativeListBlock>(native.Blocks[1]);
+        var listCode = Assert.Single(Assert.Single(list.Items).Children.OfType<MarkdownNativeCodeBlock>());
+        Assert.Equal(new MarkdownSourceSpan(6, 3, 6, 5), listCode.OpeningFenceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(6, 6, 6, 9), listCode.InfoStringSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(7, 3, 7, 13), listCode.ContentSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(8, 3, 8, 5), listCode.ClosingFenceSourceSpan);
+
+        var snapshot = native.ToSnapshot();
+        var quotedSnapshot = Assert.Single(snapshot.Blocks[0].Children);
+        Assert.Equal(3, quotedSnapshot.FieldSourceSpans["openingFence"]!.StartColumn);
+        Assert.Equal(5, quotedSnapshot.FieldSourceSpans["openingFence"]!.EndColumn);
+        Assert.Equal(3, quotedSnapshot.FieldSourceSpans["closingFence"]!.StartColumn);
+        Assert.Equal(5, quotedSnapshot.FieldSourceSpans["closingFence"]!.EndColumn);
+
+        var listSnapshot = Assert.Single(Assert.Single(snapshot.Blocks[1].Items).Children, child => child.Kind == MarkdownNativeBlockKind.Code);
+        Assert.Equal(3, listSnapshot.FieldSourceSpans["openingFence"]!.StartColumn);
+        Assert.Equal(5, listSnapshot.FieldSourceSpans["openingFence"]!.EndColumn);
+        Assert.Equal(3, listSnapshot.FieldSourceSpans["closingFence"]!.StartColumn);
+        Assert.Equal(5, listSnapshot.FieldSourceSpans["closingFence"]!.EndColumn);
+
+        var quotedReticked = native.CreateReplaceEdit(quotedCode.OpeningFenceSourceSpan!.Value, "````").Apply(native.SourceMarkdown);
+        Assert.Contains("> ````csharp", quotedReticked, StringComparison.Ordinal);
+
+        var listReticked = native.CreateReplaceEdit(listCode.ClosingFenceSourceSpan!.Value, "````").Apply(native.SourceMarkdown);
+        Assert.Contains("\n  ````", listReticked, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Parse_Projects_Html_Blocks_With_SourceSpans_Snapshots_And_SourceEdits() {
+        var markdown = """
+Before
+
+<section data-kind="note">Raw</section>
+
+<!-- keep
+this comment
+-->
+
+After
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+
+        Assert.Equal(new[] {
+            MarkdownNativeBlockKind.Paragraph,
+            MarkdownNativeBlockKind.Html,
+            MarkdownNativeBlockKind.Html,
+            MarkdownNativeBlockKind.Paragraph
+        }, native.Blocks.Select(block => block.Kind).ToArray());
+
+        var html = Assert.IsType<MarkdownNativeHtmlBlock>(native.Blocks[1]);
+        Assert.False(html.IsComment);
+        Assert.Equal("<section data-kind=\"note\">Raw</section>", html.Html);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 39), html.SourceSpan);
+        Assert.Same(html, native.FindBlockAtPosition(3, 10));
+
+        var comment = Assert.IsType<MarkdownNativeHtmlBlock>(native.Blocks[2]);
+        Assert.True(comment.IsComment);
+        Assert.Equal("<!-- keep\nthis comment\n-->", comment.Html);
+        Assert.Equal(new MarkdownSourceSpan(5, 1, 7, 3), comment.SourceSpan);
+        Assert.Same(comment, native.FindBlockAtLine(6));
+
+        var snapshot = native.ToSnapshot();
+        Assert.Equal("<section data-kind=\"note\">Raw</section>", snapshot.Blocks[1].Markdown);
+        Assert.Equal("false", snapshot.Blocks[1].Fields["isComment"]);
+        Assert.Equal("true", snapshot.Blocks[2].Fields["isComment"]);
+        Assert.Equal(5, snapshot.Blocks[2].SourceSpan!.StartLine);
+        Assert.Equal(7, snapshot.Blocks[2].SourceSpan.EndLine);
+
+        var edit = native.CreateReplaceEdit(comment, "<!-- updated -->");
+        var updated = edit.Apply(native.SourceMarkdown);
+
+        Assert.Equal("""
+Before
+
+<section data-kind="note">Raw</section>
+
+<!-- updated -->
+
+After
+""", updated);
+        Assert.DoesNotContain("this comment", updated);
+        Assert.DoesNotContain(native.Diagnostics, diagnostic =>
+            diagnostic.Id == "native.unsupported-block"
+            && ReferenceEquals(diagnostic.Block, html));
+        Assert.DoesNotContain(native.Diagnostics, diagnostic =>
+            diagnostic.Id == "native.unsupported-block"
+            && ReferenceEquals(diagnostic.Block, comment));
     }
 
     [Fact]
@@ -168,6 +591,15 @@ Console.WriteLine(1);
         Assert.Equal(ColumnAlignment.Right, table.HeaderCells[1].Alignment);
         Assert.Equal(ColumnAlignment.Left, table.Rows[0][0].Alignment);
         Assert.Equal(ColumnAlignment.Right, table.Rows[0][1].Alignment);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 15), table.AlignmentRowSourceSpan);
+
+        var snapshot = native.ToSnapshot().Blocks[0];
+        Assert.Equal(2, snapshot.FieldSourceSpans["alignmentRow"]!.StartLine);
+        Assert.Equal(1, snapshot.FieldSourceSpans["alignmentRow"]!.StartColumn);
+        Assert.Equal(15, snapshot.FieldSourceSpans["alignmentRow"]!.EndColumn);
+
+        var edited = native.CreateReplaceEdit(table.AlignmentRowSourceSpan!.Value, "| :---: | --- |").Apply(native.SourceMarkdown);
+        Assert.Equal("| :---: | --- |", edited.Split('\n')[1]);
     }
 
     [Fact]
@@ -231,12 +663,16 @@ Console.WriteLine(1);
         var markdown = """
 # Native **AST** [docs](https://example.com "Docs")
 
-Paragraph with `code` and ![Alt](img.png "Img").
+Paragraph with `code`, footnote[^note], and ![Alt](img.png "Img").
+
+[^note]: Footnote body
 """;
 
         var native = MarkdownNativeDocument.Parse(markdown);
 
         var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), heading.LevelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 51), heading.TextSourceSpan);
         Assert.Contains(heading.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "AST");
 
         var link = Assert.Single(heading.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Link);
@@ -246,13 +682,74 @@ Paragraph with `code` and ![Alt](img.png "Img").
         Assert.True(link.SourceSpan.HasValue);
         Assert.Same(link, native.FindInlineById(link.Id));
         Assert.Same(link, native.FindInlineAtPosition(link.SourceSpan.Value.StartLine, link.SourceSpan.Value.StartColumn!.Value));
+        var linkTarget = Assert.Single(link.Metadata, metadata => metadata.Name == "target");
+        var linkTitle = Assert.Single(link.Metadata, metadata => metadata.Name == "title");
+        Assert.Equal(new MarkdownSourceSpan(1, 25, 1, 43), linkTarget.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 46, 1, 49), linkTitle.SourceSpan);
+        Assert.Equal(
+            "# Native **AST** [docs](https://contoso.test \"Docs\")",
+            native.CreateReplaceEdit(linkTarget, "https://contoso.test").Apply(native.SourceMarkdown).Split('\n')[0]);
+        Assert.Equal(
+            "# Native **AST** [docs](https://example.com \"Guide\")",
+            native.CreateReplaceEdit(linkTitle, "Guide").Apply(native.SourceMarkdown).Split('\n')[0]);
 
         var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[1]);
         Assert.Contains(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Code && inline.Text == "code");
+        var footnoteRef = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.FootnoteRef);
+        Assert.Equal("note", footnoteRef.GetMetadata("label"));
+        var footnoteLabel = Assert.Single(footnoteRef.Metadata, metadata => metadata.Name == "label");
+        Assert.Equal(new MarkdownSourceSpan(3, 34, 3, 37), footnoteLabel.SourceSpan);
+        Assert.Equal(
+            "Paragraph with `code`, footnote[^memo], and ![Alt](img.png \"Img\").",
+            native.CreateReplaceEdit(footnoteLabel, "memo").Apply(native.SourceMarkdown).Split('\n')[2]);
         var image = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Image);
         Assert.Equal("Alt", image.GetMetadata("alt"));
         Assert.Equal("img.png", image.GetMetadata("source"));
         Assert.Equal("Img", image.GetMetadata("imageTitle"));
+        var imageAlt = Assert.Single(image.Metadata, metadata => metadata.Name == "alt");
+        var imageSource = Assert.Single(image.Metadata, metadata => metadata.Name == "source");
+        var imageTitle = Assert.Single(image.Metadata, metadata => metadata.Name == "imageTitle");
+        Assert.Equal(new MarkdownSourceSpan(3, 47, 3, 49), imageAlt.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 52, 3, 58), imageSource.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 61, 3, 63), imageTitle.SourceSpan);
+        Assert.Equal(
+            "Paragraph with `code`, footnote[^note], and ![Logo](img.png \"Img\").",
+            native.CreateReplaceEdit(imageAlt, "Logo").Apply(native.SourceMarkdown).Split('\n')[2]);
+        Assert.Equal(
+            "Paragraph with `code`, footnote[^note], and ![Alt](logo.svg \"Img\").",
+            native.CreateReplaceEdit(imageSource, "logo.svg").Apply(native.SourceMarkdown).Split('\n')[2]);
+        Assert.Equal(
+            "Paragraph with `code`, footnote[^note], and ![Alt](img.png \"Diagram\").",
+            native.CreateReplaceEdit(imageTitle, "Diagram").Apply(native.SourceMarkdown).Split('\n')[2]);
+
+        var snapshotHeading = native.ToSnapshot().Blocks[0];
+        Assert.Equal(1, snapshotHeading.FieldSourceSpans["level"]!.StartColumn);
+        Assert.Equal(1, snapshotHeading.FieldSourceSpans["level"]!.EndColumn);
+        Assert.Equal(3, snapshotHeading.FieldSourceSpans["text"]!.StartColumn);
+        Assert.Equal(51, snapshotHeading.FieldSourceSpans["text"]!.EndColumn);
+        var snapshotLink = Assert.Single(snapshotHeading.Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        Assert.Equal("https://example.com", snapshotLink.Metadata["target"]);
+        Assert.Equal("Docs", snapshotLink.Metadata["title"]);
+        Assert.Equal(25, snapshotLink.MetadataSourceSpans["target"]!.StartColumn);
+        Assert.Equal(43, snapshotLink.MetadataSourceSpans["target"]!.EndColumn);
+        Assert.Equal(46, snapshotLink.MetadataSourceSpans["title"]!.StartColumn);
+        Assert.Equal(49, snapshotLink.MetadataSourceSpans["title"]!.EndColumn);
+
+        var snapshotParagraph = native.ToSnapshot().Blocks[1];
+        var snapshotFootnoteRef = Assert.Single(snapshotParagraph.Inlines, inline => inline.Kind == MarkdownNativeInlineKind.FootnoteRef);
+        Assert.Equal("note", snapshotFootnoteRef.Metadata["label"]);
+        Assert.Equal(34, snapshotFootnoteRef.MetadataSourceSpans["label"]!.StartColumn);
+        Assert.Equal(37, snapshotFootnoteRef.MetadataSourceSpans["label"]!.EndColumn);
+        var snapshotImage = Assert.Single(snapshotParagraph.Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Image);
+        Assert.Equal("Alt", snapshotImage.Metadata["alt"]);
+        Assert.Equal("img.png", snapshotImage.Metadata["source"]);
+        Assert.Equal("Img", snapshotImage.Metadata["imageTitle"]);
+        Assert.Equal(47, snapshotImage.MetadataSourceSpans["alt"]!.StartColumn);
+        Assert.Equal(49, snapshotImage.MetadataSourceSpans["alt"]!.EndColumn);
+        Assert.Equal(52, snapshotImage.MetadataSourceSpans["source"]!.StartColumn);
+        Assert.Equal(58, snapshotImage.MetadataSourceSpans["source"]!.EndColumn);
+        Assert.Equal(61, snapshotImage.MetadataSourceSpans["imageTitle"]!.StartColumn);
+        Assert.Equal(63, snapshotImage.MetadataSourceSpans["imageTitle"]!.EndColumn);
     }
 
     [Fact]
@@ -382,7 +879,10 @@ graph TD
         Assert.Equal(ColumnAlignment.Right, table.Rows[0][1].Alignment);
         Assert.Contains(table.Rows[0][0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "CPU");
 
-        Assert.Contains(snapshot.Diagnostics, diagnostic =>
+        var thematicBreak = snapshot.Blocks[2];
+        Assert.Equal(MarkdownNativeBlockKind.ThematicBreak, thematicBreak.Kind);
+        Assert.Equal("---", thematicBreak.Markdown);
+        Assert.DoesNotContain(snapshot.Diagnostics, diagnostic =>
             diagnostic.Id == "native.unsupported-block"
             && diagnostic.BlockId == native.Blocks[2].Id);
     }
@@ -399,10 +899,21 @@ Outside
         var native = MarkdownNativeDocument.Parse(markdown);
         var callout = Assert.IsType<MarkdownNativeCalloutBlock>(native.Blocks[0]);
         var child = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(callout.Children));
+        var snapshot = native.ToSnapshot().Blocks[0];
 
         Assert.Same(callout, native.FindBlockById(callout.Id));
         Assert.Same(child, native.FindBlockAtPosition(child.SourceSpan!.Value.StartLine, child.SourceSpan.Value.StartColumn!.Value));
         Assert.Equal(new[] { callout.Id, child.Id }, native.GetBlockPath(child.Id).Select(block => block.Id).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), callout.KindSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 18), callout.TitleSourceSpan);
+        Assert.Equal(5, snapshot.FieldSourceSpans["calloutKind"]!.StartColumn);
+        Assert.Equal(8, snapshot.FieldSourceSpans["calloutKind"]!.EndColumn);
+        Assert.Equal(11, snapshot.FieldSourceSpans["title"]!.StartColumn);
+        Assert.Equal(18, snapshot.FieldSourceSpans["title"]!.EndColumn);
+
+        var withTitle = native.CreateReplaceEdit(callout.TitleSourceSpan!.Value, "New title").Apply(native.SourceMarkdown);
+        Assert.Contains("> [!NOTE] New title", withTitle);
+        Assert.DoesNotContain("> [!NOTE] Heads up", withTitle);
 
         var edit = native.CreateReplaceEdit(child, "> Updated body");
         var updated = edit.Apply(native.SourceMarkdown);
@@ -422,6 +933,126 @@ Outside
         var updated = edit.Apply(native.SourceMarkdown);
 
         Assert.Equal("First\n\nUpdated\n", updated);
+    }
+
+    [Fact]
+    public void Source_Edit_Helpers_Replace_Fenced_Code_Block_And_Preserve_Surrounding_Source() {
+        var markdown = """
+Before
+
+```csharp
+Console.WriteLine("old");
+```
+
+After
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var code = Assert.IsType<MarkdownNativeCodeBlock>(native.Blocks[1]);
+
+        var edit = native.CreateReplaceEdit(code, """
+```csharp
+Console.WriteLine("new");
+```
+""");
+        var updated = edit.Apply(native.SourceMarkdown);
+
+        Assert.Equal("""
+Before
+
+```csharp
+Console.WriteLine("new");
+```
+
+After
+""", updated);
+    }
+
+    [Fact]
+    public void Source_Edit_Helpers_Replace_Fenced_Code_Info_And_Content_Tokens() {
+        var markdown = """
+Before
+
+```csharp
+Console.WriteLine("old");
+```
+
+After
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var code = Assert.IsType<MarkdownNativeCodeBlock>(native.Blocks[1]);
+
+        var withInfo = native.CreateReplaceEdit(code.InfoStringSourceSpan!.Value, "powershell").Apply(native.SourceMarkdown);
+        Assert.Equal("""
+Before
+
+```powershell
+Console.WriteLine("old");
+```
+
+After
+""", withInfo);
+
+        var withContent = native.CreateReplaceEdit(code.ContentSourceSpan!.Value, "Write-Host \"new\"").Apply(native.SourceMarkdown);
+        Assert.Equal("""
+Before
+
+```csharp
+Write-Host "new"
+```
+
+After
+""", withContent);
+    }
+
+    [Fact]
+    public void Source_Edit_Helpers_Replace_Heading_Level_And_Text_Tokens() {
+        var markdown = """
+# Old **Title**
+
+Body
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
+
+        var withLevel = native.CreateReplaceEdit(heading.LevelSourceSpan!.Value, "##").Apply(native.SourceMarkdown);
+        Assert.Equal("""
+## Old **Title**
+
+Body
+""", withLevel);
+
+        var withText = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New Title").Apply(native.SourceMarkdown);
+        Assert.Equal("""
+# New Title
+
+Body
+""", withText);
+    }
+
+    [Fact]
+    public void Source_Edit_Helpers_Replace_Inline_Token_And_Preserve_Surrounding_Source() {
+        var markdown = """
+Before `old` and **bold** after.
+
+Next paragraph.
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var codeInline = Assert.Single(
+            native.EnumerateInlines(),
+            inline => inline.Kind == MarkdownNativeInlineKind.Code && inline.Text == "old");
+
+        var edit = native.CreateReplaceEdit(codeInline, "`new`");
+        var updated = edit.Apply(native.SourceMarkdown);
+
+        Assert.Equal("""
+Before `new` and **bold** after.
+
+Next paragraph.
+""", updated);
     }
 
     [Fact]
@@ -449,7 +1080,7 @@ Outside
             parseResult.SyntaxTree,
             parseResult.FinalSyntaxTree,
             sourceMarkdown: null,
-            parseResult.TransformDiagnostics);
+            transformDiagnostics: parseResult.TransformDiagnostics);
         var native = MarkdownNativeDocument.FromParseResult(withoutSource, sourceMarkdown: string.Empty);
         var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
 
@@ -482,7 +1113,7 @@ ix:cached-tool-evidence:v1
 
     [Fact]
     public void Parse_Reports_Fallback_Diagnostics_For_Unsupported_Blocks() {
-        var native = MarkdownNativeDocument.Parse("***");
+        var native = MarkdownNativeDocument.Parse("[TOC]");
 
         var other = Assert.IsType<MarkdownNativeOtherBlock>(Assert.Single(native.Blocks));
         var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native.unsupported-block");

@@ -18,6 +18,7 @@ public static partial class MarkdownReader {
             // Collect contiguous quote lines and un-prefix one ">" level
             var inner = new System.Collections.Generic.List<string>();
             var innerSourceLines = new System.Collections.Generic.List<MarkdownSourceLineSlice>();
+            var markerSourceSpans = new System.Collections.Generic.List<MarkdownSourceSpan>();
             int j = i;
             bool sawQuotedLine = false;
             while (j < lines.Length) {
@@ -34,6 +35,9 @@ public static partial class MarkdownReader {
                     // Strip one level
                     var stripped = ltrim.Length >= 2 && ltrim[1] == ' ' ? ltrim.Substring(2) : ltrim.Substring(1);
                     if (inner.Count > 0 &&
+                        TryNormalizeQuotedNestedQuoteContinuation(inner[inner.Count - 1], stripped, options, out var normalizedNestedQuoteLine)) {
+                        stripped = normalizedNestedQuoteLine;
+                    } else if (inner.Count > 0 &&
                         TryNormalizeQuotedListContinuationLine(inner[inner.Count - 1], stripped, options, out var normalizedQuotedLine)) {
                         stripped = normalizedQuotedLine;
                     } else if (inner.Count > 0 &&
@@ -46,6 +50,7 @@ public static partial class MarkdownReader {
                         stripped,
                         state.SourceLineOffset + j + 1,
                         GetQuoteContentStartColumn(ln)));
+                    markerSourceSpans.Add(CreateQuoteMarkerSourceSpan(ln, state.SourceLineOffset + j + 1, state));
                     sawQuotedLine = true;
                     j++;
                     continue;
@@ -90,6 +95,16 @@ public static partial class MarkdownReader {
                             j++;
                             continue;
                         }
+
+                        if (TryNormalizeQuotedNestedQuoteContinuation(inner[inner.Count - 1], ln, options, out var normalizedNestedLazyLine)) {
+                            inner.Add(normalizedNestedLazyLine);
+                            innerSourceLines.Add(new MarkdownSourceLineSlice(
+                                normalizedNestedLazyLine,
+                                state.SourceLineOffset + j + 1,
+                                CountLeadingIndentColumns(ln) + 1));
+                            j++;
+                            continue;
+                        }
                     }
 
                     break;
@@ -101,9 +116,42 @@ public static partial class MarkdownReader {
             var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(innerSourceLines, options, state);
             var qb = new QuoteBlock();
             foreach (var b in childBlocks) qb.Children.Add(b);
+            qb.ReplaceMarkerSourceSpans(markerSourceSpans);
             qb.SyntaxChildren = syntaxChildren;
             doc.Add(qb); i = j; return true;
         }
+    }
+
+    private static MarkdownSourceSpan CreateQuoteMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownReaderState state) {
+        int markerColumn = GetQuoteMarkerStartColumn(line);
+        return CreateSpan(state, absoluteLineNumber, markerColumn, absoluteLineNumber, markerColumn);
+    }
+
+    private static int GetQuoteMarkerStartColumn(string line) {
+        if (string.IsNullOrEmpty(line)) {
+            return 1;
+        }
+
+        int column = 1;
+        int index = 0;
+        while (index < line.Length) {
+            char ch = line[index];
+            if (ch == ' ') {
+                column++;
+                index++;
+                continue;
+            }
+
+            if (ch == '\t') {
+                column += 4 - ((column - 1) % 4);
+                index++;
+                continue;
+            }
+
+            break;
+        }
+
+        return column;
     }
 
     private static bool LooksLikeParagraphLine(IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options) {
@@ -125,6 +173,27 @@ public static partial class MarkdownReader {
         if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
         if (options.Callouts && IsCalloutHeader("> " + t, out _, out _)) return false; // callout marker is quote-prefixed in source
 
+        return true;
+    }
+
+    private static bool TryNormalizeQuotedNestedQuoteContinuation(string? previousLine, string? currentLine, MarkdownReaderOptions options, out string normalized) {
+        normalized = currentLine ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(previousLine) || string.IsNullOrWhiteSpace(currentLine)) return false;
+
+        int previousQuoteDepth = GetLeadingQuoteMarkerDepth(previousLine!);
+        if (previousQuoteDepth == 0) return false;
+
+        int currentQuoteDepth = GetLeadingQuoteMarkerDepth(currentLine);
+        if (currentQuoteDepth >= previousQuoteDepth) return false;
+
+        var contentCandidate = StripLeadingQuoteMarkers(currentLine!, currentQuoteDepth);
+        if (!TryNormalizeQuoteLazyContinuationLine(new[] { contentCandidate }, 0, options, out var normalizedCurrent)) return false;
+
+        var content = normalizedCurrent.TrimStart();
+        if (content.Length == 0) return false;
+
+        var markerPrefix = CreateQuoteMarkerPrefix(previousQuoteDepth);
+        normalized = markerPrefix + content;
         return true;
     }
 
@@ -188,8 +257,6 @@ public static partial class MarkdownReader {
         }
 
         int currentIndent = CountLeadingIndentColumns(currentLine!);
-        if (currentIndent <= 0) return false;
-
         var trimmed = currentLine!.TrimStart();
         if (trimmed.Length == 0) return false;
         if (trimmed.StartsWith(">")) return false;
@@ -202,6 +269,14 @@ public static partial class MarkdownReader {
         if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed)) return false;
 
         int continuationIndent = GetListContinuationIndent(previous);
+        if (currentIndent == 0 &&
+            TryGetRawListItemContentAfterMarker(previous, out var previousListContent) &&
+            GetLeadingQuoteMarkerDepth(previousListContent) > 0) {
+            normalized = new string(' ', Math.Max(continuationIndent, 1)) + trimmed;
+            return true;
+        }
+
+        if (currentIndent <= 0) return false;
         if (currentIndent >= continuationIndent) return false;
         if (currentIndent + 1 != continuationIndent) return false;
 
@@ -232,5 +307,42 @@ public static partial class MarkdownReader {
 
         normalized = trimmed;
         return true;
+    }
+
+    private static int GetLeadingQuoteMarkerDepth(string? line) {
+        if (string.IsNullOrWhiteSpace(line)) return 0;
+
+        int depth = 0;
+        int index = 0;
+        while (index < line!.Length) {
+            while (index < line.Length && line[index] == ' ') index++;
+            if (index >= line.Length || line[index] != '>') break;
+            depth++;
+            index++;
+            if (index < line.Length && line[index] == ' ') index++;
+        }
+
+        return depth;
+    }
+
+    private static string StripLeadingQuoteMarkers(string line, int markerDepth) {
+        if (string.IsNullOrEmpty(line) || markerDepth <= 0) return line ?? string.Empty;
+
+        int index = 0;
+        int stripped = 0;
+        while (index < line.Length && stripped < markerDepth) {
+            while (index < line.Length && line[index] == ' ') index++;
+            if (index >= line.Length || line[index] != '>') break;
+            stripped++;
+            index++;
+            if (index < line.Length && line[index] == ' ') index++;
+        }
+
+        return index >= line.Length ? string.Empty : line.Substring(index);
+    }
+
+    private static string CreateQuoteMarkerPrefix(int markerDepth) {
+        if (markerDepth <= 0) return string.Empty;
+        return new string('>', markerDepth) + " ";
     }
 }

@@ -10,6 +10,14 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     public InlineSequence Inlines { get; }
     /// <summary>Plain-text heading text for compatibility, slugs, and TOC labels.</summary>
     public string Text { get; }
+    internal bool HasLevelSourceInfo { get; private set; }
+    internal int LevelSourceLineOffset { get; private set; }
+    internal int LevelSourceStartColumn { get; private set; }
+    internal int LevelSourceEndColumn { get; private set; }
+    internal bool HasTextSourceInfo { get; private set; }
+    internal int TextSourceLineOffset { get; private set; }
+    internal int TextSourceStartColumn { get; private set; }
+    internal int TextSourceEndColumn { get; private set; }
     /// <summary>
     /// Creates a new heading block.
     /// </summary>
@@ -31,6 +39,21 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         Inlines = inlines ?? new InlineSequence();
         Text = InlinePlainText.Extract(Inlines);
     }
+
+    internal void SetLevelSourceInfo(int lineOffset, int startColumn, int endColumn) {
+        HasLevelSourceInfo = true;
+        LevelSourceLineOffset = Math.Max(0, lineOffset);
+        LevelSourceStartColumn = Math.Max(1, startColumn);
+        LevelSourceEndColumn = Math.Max(LevelSourceStartColumn, endColumn);
+    }
+
+    internal void SetTextSourceInfo(int lineOffset, int startColumn, int endColumn) {
+        HasTextSourceInfo = true;
+        TextSourceLineOffset = Math.Max(0, lineOffset);
+        TextSourceStartColumn = Math.Max(1, startColumn);
+        TextSourceEndColumn = Math.Max(TextSourceStartColumn, endColumn);
+    }
+
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() => new string('#', Level) + " " + Inlines.RenderMarkdown();
     /// <inheritdoc />
@@ -67,13 +90,16 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
         var nodes = new List<MarkdownSyntaxNode> {
-            new MarkdownSyntaxNode(MarkdownSyntaxKind.HeadingLevel, literal: Level.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.HeadingLevel,
+                GetLevelSourceSpan(span),
+                literal: Level.ToString(System.Globalization.CultureInfo.InvariantCulture))
         };
 
         nodes.Add(MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
             MarkdownSyntaxKind.HeadingText,
             Inlines,
-            null,
+            GetTextSourceSpan(span),
             Inlines.RenderMarkdown()));
 
         return new MarkdownSyntaxNode(MarkdownSyntaxKind.Heading, span, Inlines.RenderMarkdown(), nodes, this);
@@ -85,5 +111,44 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
             inlines.Text(text!);
         }
         return inlines;
+    }
+
+    private MarkdownSourceSpan? GetLevelSourceSpan(MarkdownSourceSpan? span) {
+        if (!span.HasValue || !span.Value.StartColumn.HasValue) {
+            return null;
+        }
+
+        var value = span.Value;
+        if (HasLevelSourceInfo) {
+            return new MarkdownSourceSpan(
+                value.StartLine + LevelSourceLineOffset,
+                LevelSourceStartColumn,
+                value.StartLine + LevelSourceLineOffset,
+                LevelSourceEndColumn);
+        }
+
+        if (value.EndLine > value.StartLine && value.EndColumn.HasValue) {
+            return new MarkdownSourceSpan(value.EndLine, 1, value.EndLine, value.EndColumn.Value);
+        }
+
+        var startColumn = value.StartColumn.Value;
+        return new MarkdownSourceSpan(value.StartLine, startColumn, value.StartLine, startColumn + Level - 1);
+    }
+
+    private MarkdownSourceSpan? GetTextSourceSpan(MarkdownSourceSpan? span) {
+        if (!span.HasValue || !span.Value.StartColumn.HasValue) {
+            return null;
+        }
+
+        var value = span.Value;
+        if (HasTextSourceInfo) {
+            return new MarkdownSourceSpan(
+                value.StartLine + TextSourceLineOffset,
+                TextSourceStartColumn,
+                value.StartLine + TextSourceLineOffset,
+                TextSourceEndColumn);
+        }
+
+        return Inlines.SourceSpan;
     }
 }

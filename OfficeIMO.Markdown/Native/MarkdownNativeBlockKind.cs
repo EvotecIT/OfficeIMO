@@ -25,6 +25,9 @@ public enum MarkdownNativeBlockKind {
     /// <summary>Fenced or indented code block.</summary>
     Code,
 
+    /// <summary>CommonMark thematic break / horizontal rule.</summary>
+    ThematicBreak,
+
     /// <summary>Markdown table with structured cells.</summary>
     Table,
 
@@ -33,6 +36,12 @@ public enum MarkdownNativeBlockKind {
 
     /// <summary>HTML details/disclosure block with summary and nested native blocks.</summary>
     Details,
+
+    /// <summary>Definition list with grouped terms and definition bodies.</summary>
+    DefinitionList,
+
+    /// <summary>Footnote definition with label metadata and nested definition body blocks.</summary>
+    FootnoteDefinition,
 
     /// <summary>YAML front matter entries.</summary>
     FrontMatter,

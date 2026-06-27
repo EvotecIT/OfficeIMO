@@ -36,7 +36,8 @@ public sealed class Markdown_GitHubFlavoredMarkdown_Examples_Tests {
             CssDelivery = CssDelivery.None,
             BodyClass = null,
             GitHubTaskListHtml = true,
-            GitHubFootnoteHtml = true
+            GitHubFootnoteHtml = true,
+            GitHubHtmlTagFilter = true
         };
     }
 
@@ -80,6 +81,11 @@ public sealed class Markdown_GitHubFlavoredMarkdown_Examples_Tests {
             .Replace(" class=\"contains-task-list\"", string.Empty)
             .Replace(" class=\"task-list-item\"", string.Empty)
             .Replace(" class=\"task-list-item-checkbox\"", string.Empty);
+        html = Regex.Replace(
+            html,
+            "<(t[hd])\\s+align=\"(left|center|right)\">",
+            "<$1 style=\"text-align:$2\">",
+            RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
         var sb = new StringBuilder(html.Length);
         bool inTag = false;
@@ -127,7 +133,25 @@ public sealed class Markdown_GitHubFlavoredMarkdown_Examples_Tests {
             .Replace("> <", "><")
             .Replace("&#39;", "'")
             .Replace("&#x27;", "'");
+        normalized = Regex.Replace(
+            normalized,
+            "&#(\\d+);",
+            static match => char.ConvertFromUtf32(int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)),
+            RegexOptions.CultureInvariant);
+        normalized = Regex.Replace(
+            normalized,
+            "&#x([0-9a-fA-F]+);",
+            static match => char.ConvertFromUtf32(int.Parse(match.Groups[1].Value, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture)),
+            RegexOptions.CultureInvariant);
         normalized = Regex.Replace(normalized, "<h([1-6])\\s+id=\"[^\"]*\">", "<h$1>", RegexOptions.CultureInvariant);
+        normalized = Regex.Replace(normalized, "<br\\s*/?>", "<br>", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+        normalized = normalized
+            .Replace(" <ul", "<ul")
+            .Replace(" <ol", "<ol")
+            .Replace(" <blockquote", "<blockquote")
+            .Replace(" <pre", "<pre")
+            .Replace(" <table", "<table")
+            .Replace(" <p", "<p");
         return normalized.Trim();
     }
 

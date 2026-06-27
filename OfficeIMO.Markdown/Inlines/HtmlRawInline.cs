@@ -18,7 +18,7 @@ public sealed class HtmlRawInline : MarkdownInline, IRenderableMarkdownInline, I
         var options = HtmlRenderContext.Options;
         var handling = options?.RawHtmlHandling ?? RawHtmlHandling.Allow;
         return handling switch {
-            RawHtmlHandling.Allow => Html,
+            RawHtmlHandling.Allow => options?.GitHubHtmlTagFilter == true ? GitHubHtmlTagFilter.Apply(Html) : Html,
             RawHtmlHandling.Escape => System.Net.WebUtility.HtmlEncode(Html),
             RawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Html),
             _ => string.Empty

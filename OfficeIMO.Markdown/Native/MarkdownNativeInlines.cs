@@ -325,6 +325,9 @@ internal static class MarkdownNativeInlineProjection {
             case MarkdownSyntaxKind.ImageTitle:
                 name = "imageTitle";
                 return true;
+            case MarkdownSyntaxKind.InlineFootnoteLabel:
+                name = "label";
+                return true;
             default:
                 name = string.Empty;
                 return false;

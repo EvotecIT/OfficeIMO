@@ -15,6 +15,14 @@ This document turns the recent review into a practical roadmap for making `Offic
 
 That is a strong base. It is not yet at true Markdig-competitor level for one reason more than any other: the parser, AST, extension API, and renderer model are not yet centered around one canonical, lossless tree with broad plugin seams.
 
+Current scoreboard:
+
+- compatibility matrix: `Docs/officeimo.markdown.compatibility-matrix.md`
+- lossless roundtrip design: `Docs/officeimo.markdown.lossless-roundtrip-design.md`
+- external parity baseline: Markdig `1.3.2`
+- standards smoke baseline: 165 CommonMark `0.31.2` fixtures, 32 cmark-gfm extension fixtures, and a focused upstream ignored-autolink crash regression
+- package guardrail baseline: tests and benchmarks must keep the same Markdig package version
+
 ## Where We Are Strong
 
 - The library already models markdown as structured data instead of treating it as strings all the way through.
@@ -33,12 +41,15 @@ Markdig’s differentiators are not only feature count. The bigger advantages ar
 
 Today `OfficeIMO.Markdown` is still behind on those points.
 
-## Immediate Bugs To Fix
+## Source-Mapping Fixes To Keep Covered
 
-These are not roadmap items. They should stay fixed and covered by tests.
+These are not speculative roadmap items anymore. They are core invariants that should stay covered by tests.
 
-- `SemanticFencedBlock` must attach itself as the syntax node `AssociatedObject`, otherwise object-level `SourceSpan` mapping is incomplete.
-- `FootnoteDefinitionBlock` must do the same for the same reason.
+- `SemanticFencedBlock` attaches itself as the syntax node `AssociatedObject`, so object-level `SourceSpan` mapping remains complete for semantic fenced extensions.
+- `FootnoteDefinitionBlock` does the same, including structured paragraph child ownership in the final syntax tree.
+- `ListItem` paragraph syntax associates to `ParagraphBlock` objects, not nested inline sequences.
+- Sequence inline wrappers associate to the wrapper object across strong, emphasis, strong-emphasis, strikethrough, and highlight nodes.
+- `DefinitionListBlock` group/value syntax associates to `DefinitionListGroup` and `DefinitionListDefinition` objects.
 
 ## Main Architectural Gaps
 
@@ -100,6 +111,47 @@ Target direction:
 - track intentional deviations explicitly
 - add performance and allocation baselines against representative public corpora
 
+Recent progress:
+
+- the Markdig comparison baseline is now guarded so `OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks` cannot silently drift to different Markdig versions
+- the GFM smoke lane now covers escaped table pipes, pipes inside code spans, escaped pipes inside table-cell code spans, broader table backslash escaping, no-leading-pipe tables, one-column delimiter rows, paragraph-to-table boundaries, aligned delimiter rows, header/delimiter mismatch rejection, body-row padding/truncation, reference links inside table cells, adjacent empty cells, compact inline emphasis in table cells, inline formatting in table headers/body cells, non-table pipe-row rejection, minimal header-only tables, raw inline HTML and break tags inside table cells, the cmark-gfm HTML tag filter, nested task lists, uppercase checked task markers, task-marker whitespace boundaries, non-task bracket-marker list items, plus-tag email local parts, invalid email-like tokens, bare `mailto:`/`xmpp:` autolinks, Unicode URL destinations, `www` host underscore rules, quoted/trailing-punctuation autolinks, an upstream ignored autolink crash regression, nested emphasis and delimiter-run edge cases inside strikethrough, and footnote ordering by first reference
+- the CommonMark smoke lane now covers more code-span delimiter cases, underscore emphasis, digit-adjacent emphasis, broader absolute-URI autolinks, expanded official HTML block behavior for raw tables, type 1 blocks, comments, processing instructions, CDATA, and paragraph interruption, backslash-escaped punctuation, named entities, paragraph blank-line/indentation handling, hard and soft line breaks, false thematic-break markers, escaped ATX closing marker characters, setext/container interactions, compact nested blockquotes, blockquote lazy-continuation cases, nested blockquote list-continuations, list/code boundaries, shallow list indentation, and HTML-comment list boundaries
+- CommonMark backslash escapes now use the full ASCII punctuation set, and inline entity references are decoded through the reader instead of remaining escaped text
+- double-tilde strikethrough parsing now prefers the full `~~` delimiter frame instead of accidentally nesting two single-tilde spans when the GFM profile enables single-tilde strikethrough
+- `FootnoteDefinitionBlock` now stores structured content through one canonical block list; paragraph-block and inline paragraph views are derived from that list instead of being stored as parallel state
+- `ListItem` rewrite projection is now owned by `ListItem.ReplaceBlockChildren`, so recursive rewriters no longer duplicate the mapping from block children back into lead content, additional paragraphs, and nested blocks
+- parsed list items now expose the list marker token, and task-list items expose the `[ ]`, `[x]`, or `[X]` marker token, as semantic/native source spans with snapshot and source-edit coverage
+- parsed blockquotes now expose each explicit `>` marker token as semantic/native source spans, including nested quote remapping, snapshot projection, and marker-only source-edit coverage
+- lossless/trivia roundtrip now has a concrete design target covering source slices, trivia capture, change tracking, roundtrip diagnostics, and phased implementation gates
+- inline HTML rendering now has a type-targeted `HtmlOptions.InlineRenderExtensions` override seam, matching the existing direction for block HTML and markdown writer overrides
+- inline HTML render extensions now have contract coverage for last-registration-wins ordering and `null` fallback to contextual/default inline rendering
+- inline Markdown serialization now has a type-targeted `MarkdownWriteOptions.InlineRenderExtensions` override seam with contract coverage for last-registration-wins ordering and `null` fallback to default inline Markdown rendering
+- block parser extensions now have contract coverage for same-placement registration order, first-success consumption, disabled-extension fallback to core parsers, multi-placement conflicts with later core parsers, and built-in/custom callout precedence
+- inline parser extensions now have contract coverage for registration order, first-success consumption at the current marker, false fallback to later extensions, disabled-extension skipping, and core parser fallback
+- post-parse inline AST transforms now have a dedicated `MarkdownReaderOptions.InlineTransformExtensions` seam with contract coverage for ordering, replacement sequences, disabled-extension skipping, nested inline containers, and source-span preservation for reused nodes
+- renderer fenced-code registrations now have semantic AST evidence: matching custom fences are parsed as semantic fenced blocks and render without falling back through default code-block HTML
+- parsed callouts now carry the `[!KIND]` token span on the semantic block and native projection, giving editor tooling a direct source handle for callout markers
+- parsed callout titles now carry through from `CalloutTitle` syntax association to native title field spans, with source-edit coverage for replacing just the title token
+- public callout construction can now use structured body blocks through `CalloutBlock` constructors and the `MarkdownDoc.Callout(..., Action<MarkdownDoc>)` builder, so rich callout bodies no longer have to be flattened to raw markdown strings
+- details summaries now carry through to native summary field spans, with source-edit coverage for replacing the summary element without replacing the whole disclosure block
+- `DefinitionListBlock.ChildBlocks` now exposes the same structured definition body blocks already owned by `DefinitionListDefinition`, aligning definition lists with the public child-container shape used by other nested blocks
+- definition lists now have a specialized native projection with grouped terms, definition bodies, nested child blocks, source spans, and snapshot DTOs instead of falling through the generic native `Other` block path
+- footnote definitions now expose `LabelSourceSpan` and have a specialized native projection with label metadata and nested body blocks instead of falling through the generic native `Other` block path
+- CommonMark thematic breaks now have a specialized native projection and snapshot shape instead of reporting horizontal rules as unsupported native blocks
+- CommonMark fenced-code coverage now includes escaped/entity-decoded language info strings, tilde fences, longer closing fences, unclosed fences, empty fences, indented fences, blockquoted fences, non-opening backtick info strings, and language-plus-metadata examples
+- reference-style link definitions are now exposed as effective parse-result and native-document metadata with definition-level spans, label/destination/title token spans, snapshots, and native source-edit coverage
+- inline footnote references now expose their label as syntax/native metadata with token source spans, snapshot spans, and native source-edit coverage
+- fenced code and semantic fenced blocks now expose source-addressable opening fence, info-string, content, and closing fence spans through native projections and snapshots, with source-edit coverage for replacing only those tokens and nested blockquote/list remapping coverage
+- raw HTML and HTML comment blocks now have native projection/source-edit evidence, so editor hosts can treat them as source-addressable blocks rather than unsupported fallbacks
+- headings now expose source-addressable level and text spans through syntax nodes, native projections, and snapshots, with source-edit coverage for replacing only those tokens
+- GFM pipe-table alignment rows now have a dedicated syntax node and native snapshot field span, with source-edit coverage for replacing the separator row without replacing the full table
+- source-mapping coverage now includes a representative mixed semantic object graph, including heading, blockquote/list, definition-list group/value, table-cell nested blocks, code fence, semantic fenced block, paragraph, and footnote semantic objects
+- sequence inline wrapper coverage now proves grouped strong, emphasis, strong-emphasis, strikethrough, and highlight syntax nodes map to wrapper objects rather than nested inline sequences
+- native source-edit coverage now proves span-backed fenced code blocks and inline tokens can be replaced while preserving surrounding normalized source
+- parser-core source-slice coverage now proves syntax-backed parse results can materialize normalized source slices for span-backed nodes, `PreserveTrivia` can retain raw reader input, and line-ending-equivalent original input, including CRLF and standalone CR, can materialize original source slices without repointing normalized source spans
+- roundtrip-writer coverage now proves unchanged trivia-backed parse results can return captured original markdown byte-for-byte, explicit native source edits can preserve original source around edited spans, and non-trivia, transformed, unsafe-map, or overlapping-edit cases report fallback diagnostics
+- native inline metadata coverage now proves link target/title, image alt/source/title, and linked-image alt/source/image-title/link-target/link-title tokens carry source spans into snapshots and can be source-edited without replacing the surrounding paragraph
+
 ## Recommended Phases
 
 ### Phase 0: Stabilize source mapping and tree invariants
@@ -159,7 +211,7 @@ If `OfficeIMO.Markdown` reaches that bar, it can be a credible alternative even 
 1. Audit all syntax-node builders for `AssociatedObject` coverage and add regression tests where missing.
 2. Pick one duplicated public node shape and make it canonical as the pattern for the rest.
 3. Design an inline parser extension API before adding more inline features.
-4. Add a documented compatibility matrix for CommonMark, GFM, OfficeIMO extensions, and host-only semantics.
+4. Keep the compatibility matrix current for CommonMark, GFM, OfficeIMO extensions, and host-only semantics.
 5. Add formal benchmark inputs from public docs/readme-style corpora.
 6. Create a parity backlog that separates parser gaps, AST gaps, renderer gaps, and performance gaps.
 

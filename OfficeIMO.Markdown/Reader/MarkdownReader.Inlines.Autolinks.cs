@@ -108,6 +108,7 @@ public static partial class MarkdownReader {
         int i = rawEnd;
         // Trim trailing punctuation commonly outside URLs
         while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
+        if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
         if (ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
         if (ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
         end = i; return end > start + 7;
@@ -124,6 +125,7 @@ public static partial class MarkdownReader {
         int i = rawEnd;
         int scanEnd = rawEnd;
         while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
+        if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
         if (ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
         if (ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
 
@@ -131,12 +133,106 @@ public static partial class MarkdownReader {
         var token = text.Substring(start, i - start);
         if (token.Length <= 4) return false;
         if (token.IndexOf('.', 4) < 0) return false;
+        if (!IsGfmWwwHostAllowed(token)) return false;
 
         // Right boundary: avoid linking as part of an identifier-like token.
         if (scanEnd < text.Length && IsEmailChar(text[scanEnd])) return false;
 
         end = i;
         return end > start + 4;
+    }
+
+    private static bool IsGfmWwwHostAllowed(string token) {
+        if (string.IsNullOrEmpty(token) || !token.StartsWith("www.", StringComparison.OrdinalIgnoreCase)) return false;
+
+        int hostEnd = token.Length;
+        for (int i = 4; i < token.Length; i++) {
+            char c = token[i];
+            if (c == '/' || c == '?' || c == '#') {
+                hostEnd = i;
+                break;
+            }
+        }
+
+        if (hostEnd <= 4) return false;
+
+        string host = token.Substring(0, hostEnd);
+        string[] labels = host.Split('.');
+        if (labels.Length < 3) return false;
+
+        for (int i = 2; i < labels.Length; i++) {
+            string label = labels[i];
+            if (label.Length == 0 || label[0] == '_' || label.IndexOf('_') >= 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool TryConsumeBareSchemeAutolink(string text, int start, out int end, out string label, out string href) {
+        end = start;
+        label = href = string.Empty;
+        if (start < 0 || start >= text.Length) return false;
+        if (HasInvalidAutolinkLeftBoundary(text, start)) return false;
+        if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
+
+        if (StartsWithOrdinalIgnoreCase(text, start, "mailto:")) {
+            int emailStart = start + "mailto:".Length;
+            if (!TryConsumeBareMailtoAddress(text, emailStart, out int emailEnd, out string email)) return false;
+            end = emailEnd;
+            label = text.Substring(start, end - start);
+            href = "mailto:" + email;
+            return true;
+        }
+
+        if (StartsWithOrdinalIgnoreCase(text, start, "xmpp:")) {
+            int rawEnd = ConsumeLiteralUrl(text, start);
+            int i = rawEnd;
+            while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
+            if (i <= start + "xmpp:".Length) return false;
+            end = i;
+            label = text.Substring(start, end - start);
+            href = label;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryConsumeBareMailtoAddress(string text, int start, out int end, out string email) {
+        end = start;
+        email = string.Empty;
+        if (start < 0 || start >= text.Length) return false;
+
+        int i = start;
+        bool sawAt = false;
+        while (i < text.Length) {
+            char c = text[i];
+            if (char.IsWhiteSpace(c)) break;
+            if (c == ')' || c == ']' || c == '<' || c == '/') break;
+            if (!IsEmailChar(c)) break;
+            if (c == '@') sawAt = true;
+            i++;
+        }
+        if (!sawAt) return false;
+
+        int j = i;
+        while (j > start && (text[j - 1] == '.' || text[j - 1] == ',' || text[j - 1] == ';' || text[j - 1] == ':')) j--;
+        if (j <= start) return false;
+
+        string token = text.Substring(start, j - start);
+        if (!LooksLikeEmail(token)) return false;
+
+        end = j;
+        email = token;
+        return true;
+    }
+
+    private static bool StartsWithOrdinalIgnoreCase(string text, int start, string value) {
+        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(value)) return false;
+        if (start < 0 || start + value.Length > text.Length) return false;
+        return string.Compare(text, start, value, 0, value.Length, StringComparison.OrdinalIgnoreCase) == 0;
     }
 
     private static bool HasInvalidAutolinkLeftBoundary(string text, int start) {
@@ -153,8 +249,18 @@ public static partial class MarkdownReader {
             || previous == '='
             || previous == '&'
             || previous == '('
-            || previous == '\''
             || previous == '[';
+    }
+
+    private static bool ShouldRejectUnmatchedOpeningSingleQuote(string text, int start, int rawEnd, int trimmedEnd) {
+        if (string.IsNullOrEmpty(text) || start <= 0) return false;
+        if (text[start - 1] != '\'') return false;
+
+        for (int i = trimmedEnd; i < rawEnd; i++) {
+            if (text[i] == '\'') return false;
+        }
+
+        return true;
     }
 
     private static bool IsAfterInvalidReferenceDefinitionPrefix(string text, int start) {
@@ -244,7 +350,7 @@ public static partial class MarkdownReader {
         if (start < 0 || start >= text.Length) return false;
         if (!IsEmailStartChar(text[start])) return false;
         if (start > 0 && (IsEmailChar(text[start - 1]) || text[start - 1] == '+' || text[start - 1] == '/' || text[start - 1] == ':' || text[start - 1] == '=' || text[start - 1] == '&' || text[start - 1] == '(' || text[start - 1] == '\'' || text[start - 1] == '[')) return false;
-        if (IsImmediatelyAfterMailtoScheme(text, start)) return false;
+        if (IsImmediatelyAfterStandaloneMailtoScheme(text, start)) return false;
 
         int i = start;
         bool sawAt = false;
@@ -280,13 +386,15 @@ public static partial class MarkdownReader {
 
     private static bool IsEmailChar(char c) {
         if (char.IsLetterOrDigit(c)) return true;
-        return c == '@' || c == '.' || c == '-' || c == '_';
+        return c == '@' || c == '.' || c == '-' || c == '_' || c == '+';
     }
 
-    private static bool IsImmediatelyAfterMailtoScheme(string text, int start) {
+    private static bool IsImmediatelyAfterStandaloneMailtoScheme(string text, int start) {
         if (string.IsNullOrEmpty(text) || start < 7) return false;
         if (text[start - 1] != ':') return false;
 
-        return string.Compare(text, start - 7, "mailto:", 0, 7, StringComparison.OrdinalIgnoreCase) == 0;
+        int schemeStart = start - 7;
+        return string.Compare(text, schemeStart, "mailto:", 0, 7, StringComparison.OrdinalIgnoreCase) == 0
+            && !HasInvalidAutolinkLeftBoundary(text, schemeStart);
     }
 }

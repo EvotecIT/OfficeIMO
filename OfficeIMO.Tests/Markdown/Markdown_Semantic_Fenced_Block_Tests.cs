@@ -53,13 +53,17 @@ _Chart caption_
 
         var block = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.SemanticFencedBlock, block.Kind);
-        Assert.Equal(3, block.Children.Count);
+        Assert.Equal(5, block.Children.Count);
         Assert.Equal(MarkdownSyntaxKind.FenceSemanticKind, block.Children[0].Kind);
         Assert.Equal(MarkdownSemanticKinds.Chart, block.Children[0].Literal);
-        Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, block.Children[1].Kind);
-        Assert.Equal("ix-chart", block.Children[1].Literal);
-        Assert.Equal(MarkdownSyntaxKind.CodeContent, block.Children[2].Kind);
-        Assert.Equal("{\"type\":\"bar\"}", block.Children[2].Literal);
+        Assert.Equal(MarkdownSyntaxKind.CodeFenceOpening, block.Children[1].Kind);
+        Assert.Equal("```", block.Children[1].Literal);
+        Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, block.Children[2].Kind);
+        Assert.Equal("ix-chart", block.Children[2].Literal);
+        Assert.Equal(MarkdownSyntaxKind.CodeContent, block.Children[3].Kind);
+        Assert.Equal("{\"type\":\"bar\"}", block.Children[3].Literal);
+        Assert.Equal(MarkdownSyntaxKind.CodeFenceClosing, block.Children[4].Kind);
+        Assert.Equal("```", block.Children[4].Literal);
     }
 
     [Fact]

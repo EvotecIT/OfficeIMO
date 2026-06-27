@@ -18,6 +18,8 @@ public static partial class MarkdownReader {
             TaskLists = source.TaskLists,
             OrderedLists = source.OrderedLists,
             Tables = source.Tables,
+            AllowHeaderlessTables = source.AllowHeaderlessTables,
+            ParseTableCellBlocks = source.ParseTableCellBlocks,
             DefinitionLists = source.DefinitionLists,
             TocPlaceholders = source.TocPlaceholders,
             Footnotes = source.Footnotes,
@@ -25,6 +27,7 @@ public static partial class MarkdownReader {
             HtmlBlocks = source.HtmlBlocks,
             Paragraphs = source.Paragraphs,
             AutolinkUrls = source.AutolinkUrls,
+            AutolinkBareSchemeUrls = source.AutolinkBareSchemeUrls,
             AutolinkWwwUrls = source.AutolinkWwwUrls,
             AutolinkWwwScheme = source.AutolinkWwwScheme,
             AutolinkEmails = source.AutolinkEmails,
@@ -38,6 +41,7 @@ public static partial class MarkdownReader {
             AllowProtocolRelativeUrls = source.AllowProtocolRelativeUrls,
             RestrictUrlSchemes = source.RestrictUrlSchemes,
             AllowedUrlSchemes = source.AllowedUrlSchemes,
+            PreserveTrivia = source.PreserveTrivia,
             MaxInputCharacters = source.MaxInputCharacters,
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeZeroWidthSpacingArtifacts = source.InputNormalization?.NormalizeZeroWidthSpacingArtifacts ?? false,
@@ -164,6 +168,7 @@ public static partial class MarkdownReader {
         foreach (var kvp in state.LinkRefs) clone.LinkRefs[kvp.Key] = kvp.Value;
         clone.SourceLineOffset = state.SourceLineOffset;
         clone.SourceTextMap = state.SourceTextMap;
+        clone.ListMarkerIndentOffset = state.ListMarkerIndentOffset;
         return clone;
     }
 

@@ -57,16 +57,21 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     // Internal escape hatch for the reader to attach richer inline nodes without expanding the public fluent API.
     internal InlineSequence AddRaw(IMarkdownInline node) { if (node != null) _inlines.Add(node); return this; }
 
-    internal void ReplaceItems(IEnumerable<IMarkdownInline> nodes) {
-        _inlines.Clear();
+    /// <summary>
+    /// Replaces the inline nodes in this sequence.
+    /// Extension authors can use this from reader transform hooks to normalize a parsed inline AST
+    /// while preserving source spans on any existing node instances they keep.
+    /// </summary>
+    public void ReplaceItems(IEnumerable<IMarkdownInline> nodes) {
         if (nodes == null) {
+            _inlines.Clear();
             return;
         }
 
-        foreach (var node in nodes) {
-            if (node != null) {
-                _inlines.Add(node);
-            }
+        var replacement = nodes.Where(node => node != null).ToArray();
+        _inlines.Clear();
+        for (int i = 0; i < replacement.Length; i++) {
+            _inlines.Add(replacement[i]);
         }
     }
 
@@ -78,7 +83,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
                 var cur = _inlines[i];
                 if (prev is not HardBreakInline && cur is not HardBreakInline) sb.Append(' ');
             }
-            sb.Append(GetRenderable(_inlines[i]).RenderMarkdown());
+            sb.Append(RenderMarkdown(_inlines[i], MarkdownRenderContext.Options));
         }
         return sb.ToString();
     }
@@ -106,12 +111,68 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             ?? throw new InvalidOperationException($"Inline node of type '{node.GetType().FullName}' does not implement {nameof(IRenderableMarkdownInline)}.");
     }
 
+    private static string RenderMarkdown(IMarkdownInline node, MarkdownWriteOptions? options) {
+        var overridden = TryRenderInlineMarkdownOverride(node, options);
+        if (overridden != null) {
+            return overridden;
+        }
+
+        return GetRenderable(node).RenderMarkdown();
+    }
+
+    private static string? TryRenderInlineMarkdownOverride(IMarkdownInline node, MarkdownWriteOptions? options) {
+        var extensions = options?.InlineRenderExtensions;
+        if (extensions == null || extensions.Count == 0) {
+            return null;
+        }
+
+        for (int i = extensions.Count - 1; i >= 0; i--) {
+            var extension = extensions[i];
+            if (extension == null || !extension.Matches(node)) {
+                continue;
+            }
+
+            var rendered = extension.RenderMarkdown(node, options!);
+            if (rendered != null) {
+                return rendered;
+            }
+        }
+
+        return null;
+    }
+
     private static string RenderHtml(IMarkdownInline node, HtmlOptions? options) {
+        var overridden = TryRenderInlineOverride(node, options);
+        if (overridden != null) {
+            return overridden;
+        }
+
         if (options != null && node is IContextualHtmlMarkdownInline contextualInline) {
             return contextualInline.RenderHtml(options);
         }
 
         return GetRenderable(node).RenderHtml();
+    }
+
+    private static string? TryRenderInlineOverride(IMarkdownInline node, HtmlOptions? options) {
+        var extensions = options?.InlineRenderExtensions;
+        if (extensions == null || extensions.Count == 0) {
+            return null;
+        }
+
+        for (int i = extensions.Count - 1; i >= 0; i--) {
+            var extension = extensions[i];
+            if (extension == null || !extension.Matches(node)) {
+                continue;
+            }
+
+            var rendered = extension.RenderHtml(node, options!);
+            if (rendered != null) {
+                return rendered;
+            }
+        }
+
+        return null;
     }
 }
 

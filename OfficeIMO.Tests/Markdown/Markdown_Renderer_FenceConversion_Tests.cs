@@ -51,5 +51,29 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain("class=\"ix-callout\"", html);
         }
+
+        [Fact]
+        public void CustomRenderer_MatchingFence_UsesSemanticAstRendererWithoutCodeBlockFallback() {
+            var codeBlockRendererCalled = false;
+            var options = new MarkdownRendererOptions();
+            options.HtmlOptions.CodeBlockHtmlRenderer = (_, _) => {
+                codeBlockRendererCalled = true;
+                return null;
+            };
+            options.FencedCodeBlockRenderers.Add(new MarkdownFencedCodeBlockRenderer(
+                "Callout",
+                new[] { "ix-callout" },
+                (match, _) => "<aside class=\"ix-callout\" data-language=\"" + match.Language + "\">"
+                    + System.Net.WebUtility.HtmlEncode(match.RawContent)
+                    + "</aside>"));
+
+            var html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("```ix-callout\nhello <world>\n```", options);
+
+            Assert.Contains("class=\"ix-callout\"", html);
+            Assert.Contains("data-language=\"ix-callout\"", html);
+            Assert.Contains("hello &lt;world&gt;", html);
+            Assert.DoesNotContain("<pre><code", html);
+            Assert.False(codeBlockRendererCalled);
+        }
     }
 }

@@ -78,6 +78,10 @@ public sealed class MarkdownNativeCodeBlock : MarkdownNativeBlock {
         Classes = code.FenceInfo.Classes;
         ElementId = code.FenceInfo.ElementId;
         Title = code.FenceInfo.Title;
+        OpeningFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceOpening) ?? code.OpeningFenceSourceSpan;
+        InfoStringSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceInfo);
+        ContentSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeContent);
+        ClosingFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceClosing) ?? code.ClosingFenceSourceSpan;
     }
 
     /// <summary>Source code block.</summary>
@@ -109,6 +113,38 @@ public sealed class MarkdownNativeCodeBlock : MarkdownNativeBlock {
 
     /// <summary>Convenience title resolved from fence metadata.</summary>
     public string? Title { get; }
+
+    /// <summary>Source span for the opening fence marker when the block was parsed from a fenced source block.</summary>
+    public MarkdownSourceSpan? OpeningFenceSourceSpan { get; }
+
+    /// <summary>Source span for the fenced-code info string when the block was parsed from a fenced source block.</summary>
+    public MarkdownSourceSpan? InfoStringSourceSpan { get; }
+
+    /// <summary>Source span for the code payload when available.</summary>
+    public MarkdownSourceSpan? ContentSourceSpan { get; }
+
+    /// <summary>Source span for the closing fence marker when the block was parsed from a closed fenced source block.</summary>
+    public MarkdownSourceSpan? ClosingFenceSourceSpan { get; }
+
+    private static MarkdownSourceSpan? GetChildSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
+        syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.SourceSpan;
+}
+
+/// <summary>
+/// Native projection for a CommonMark thematic break / horizontal rule.
+/// </summary>
+public sealed class MarkdownNativeThematicBreakBlock : MarkdownNativeBlock {
+    internal MarkdownNativeThematicBreakBlock(HorizontalRuleBlock horizontalRule, MarkdownSyntaxNode syntaxNode)
+        : base(MarkdownNativeBlockKind.ThematicBreak, horizontalRule, syntaxNode) {
+        HorizontalRule = horizontalRule;
+        Marker = syntaxNode.Literal ?? ((IMarkdownBlock)horizontalRule).RenderMarkdown();
+    }
+
+    /// <summary>Source horizontal rule block.</summary>
+    public HorizontalRuleBlock HorizontalRule { get; }
+
+    /// <summary>Normalized markdown marker used for semantic rendering.</summary>
+    public string Marker { get; }
 }
 
 /// <summary>
@@ -129,6 +165,10 @@ public sealed class MarkdownNativeVisualBlock : MarkdownNativeBlock {
         ElementId = visual.FenceInfo.ElementId;
         Title = visual.FenceInfo.Title;
         Payload = MarkdownNativeVisualPayload.Create(visual);
+        OpeningFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceOpening) ?? visual.OpeningFenceSourceSpan;
+        InfoStringSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceInfo);
+        ContentSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeContent);
+        ClosingFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceClosing) ?? visual.ClosingFenceSourceSpan;
     }
 
     /// <summary>Source semantic fenced block.</summary>
@@ -166,6 +206,21 @@ public sealed class MarkdownNativeVisualBlock : MarkdownNativeBlock {
 
     /// <summary>Dependency-free typed payload hints for visual UI hosts.</summary>
     public MarkdownNativeVisualPayload Payload { get; }
+
+    /// <summary>Source span for the opening fence marker when the block was parsed from a fenced source block.</summary>
+    public MarkdownSourceSpan? OpeningFenceSourceSpan { get; }
+
+    /// <summary>Source span for the fenced-block info string when the block was parsed from a fenced source block.</summary>
+    public MarkdownSourceSpan? InfoStringSourceSpan { get; }
+
+    /// <summary>Source span for the fenced payload when available.</summary>
+    public MarkdownSourceSpan? ContentSourceSpan { get; }
+
+    /// <summary>Source span for the closing fence marker when the block was parsed from a closed fenced source block.</summary>
+    public MarkdownSourceSpan? ClosingFenceSourceSpan { get; }
+
+    private static MarkdownSourceSpan? GetChildSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
+        syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.SourceSpan;
 }
 
 /// <summary>
@@ -178,12 +233,16 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
         ICollection<MarkdownNativeDiagnostic> diagnostics)
         : base(MarkdownNativeBlockKind.Table, table, syntaxNode) {
         Table = table;
+        AlignmentRowSourceSpan = syntaxNode.Children.FirstOrDefault(static child => child.Kind == MarkdownSyntaxKind.TableAlignmentRow)?.SourceSpan;
         HeaderCells = BuildHeaderCells(table, syntaxNode, diagnostics);
         Rows = BuildRows(table, syntaxNode, diagnostics);
     }
 
     /// <summary>Source table block.</summary>
     public TableBlock Table { get; }
+
+    /// <summary>Source span for the GFM table alignment/separator row when present.</summary>
+    public MarkdownSourceSpan? AlignmentRowSourceSpan { get; }
 
     /// <summary>Header cells in document order.</summary>
     public IReadOnlyList<MarkdownNativeTableCell> HeaderCells { get; }

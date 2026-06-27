@@ -17,20 +17,89 @@ public sealed class MarkdownParseResult {
     public MarkdownSyntaxNode FinalSyntaxTree { get; }
     /// <summary>The normalized markdown source text used to compute syntax source spans.</summary>
     public string SourceMarkdown { get; }
+    /// <summary>
+    /// Raw markdown input retained when <see cref="MarkdownReaderOptions.PreserveTrivia"/> was enabled;
+    /// otherwise this falls back to <see cref="SourceMarkdown"/>.
+    /// </summary>
+    public string OriginalMarkdown { get; }
+    /// <summary>
+    /// Indicates whether <see cref="OriginalMarkdown"/> contains the exact reader input captured before
+    /// input normalization and line-ending normalization.
+    /// </summary>
+    public bool PreservesOriginalMarkdown { get; }
     /// <summary>Optional document-transform diagnostics captured during parsing.</summary>
     public IReadOnlyList<MarkdownDocumentTransformDiagnostic> TransformDiagnostics { get; }
+    /// <summary>Effective reference-style link definitions collected during parsing, in source order where spans are available.</summary>
+    public IReadOnlyList<MarkdownReferenceLinkDefinition> ReferenceLinkDefinitions { get; }
 
     internal MarkdownParseResult(
         MarkdownDoc document,
         MarkdownSyntaxNode syntaxTree,
         MarkdownSyntaxNode? finalSyntaxTree = null,
         string? sourceMarkdown = null,
-        IReadOnlyList<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null) {
+        string? originalMarkdown = null,
+        bool preservesOriginalMarkdown = false,
+        IReadOnlyList<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null,
+        IReadOnlyList<MarkdownReferenceLinkDefinition>? referenceLinkDefinitions = null) {
         Document = document;
         SyntaxTree = syntaxTree;
         FinalSyntaxTree = finalSyntaxTree ?? syntaxTree;
         SourceMarkdown = sourceMarkdown ?? string.Empty;
+        OriginalMarkdown = preservesOriginalMarkdown ? originalMarkdown ?? string.Empty : SourceMarkdown;
+        PreservesOriginalMarkdown = preservesOriginalMarkdown;
         TransformDiagnostics = transformDiagnostics ?? Array.Empty<MarkdownDocumentTransformDiagnostic>();
+        ReferenceLinkDefinitions = referenceLinkDefinitions ?? Array.Empty<MarkdownReferenceLinkDefinition>();
+    }
+
+    /// <summary>
+    /// Creates a source slice over the normalized markdown text that backs source spans.
+    /// </summary>
+    public bool TryCreateSourceSlice(MarkdownSyntaxNode node, out MarkdownSourceSlice slice) {
+        if (node == null || !node.SourceSpan.HasValue) {
+            slice = default;
+            return false;
+        }
+
+        return TryCreateSourceSlice(node.SourceSpan.Value, out slice);
+    }
+
+    /// <summary>
+    /// Creates a source slice over the normalized markdown text that backs source spans.
+    /// </summary>
+    public bool TryCreateSourceSlice(MarkdownSourceSpan span, out MarkdownSourceSlice slice) =>
+        MarkdownSourceSlice.TryCreate(SourceMarkdown, span, MarkdownSourceTextKind.Normalized, out slice);
+
+    /// <summary>
+    /// Creates a source slice over the original reader input when it is safely equivalent to the normalized span text.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(MarkdownSyntaxNode node, out MarkdownSourceSlice slice) {
+        if (node == null || !node.SourceSpan.HasValue) {
+            slice = default;
+            return false;
+        }
+
+        return TryCreateOriginalSourceSlice(node.SourceSpan.Value, out slice);
+    }
+
+    /// <summary>
+    /// Creates a source slice over the original reader input when it is safely equivalent to the normalized span text.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(MarkdownSourceSpan span, out MarkdownSourceSlice slice) {
+        if (!PreservesOriginalMarkdown) {
+            slice = default;
+            return false;
+        }
+
+        if (string.Equals(OriginalMarkdown, SourceMarkdown, StringComparison.Ordinal)) {
+            return MarkdownSourceSlice.TryCreate(OriginalMarkdown, span, MarkdownSourceTextKind.Original, out slice);
+        }
+
+        if (!LineEndingsAreEquivalent(OriginalMarkdown, SourceMarkdown)) {
+            slice = default;
+            return false;
+        }
+
+        return MarkdownSourceSlice.TryCreateFromLineColumns(OriginalMarkdown, span, MarkdownSourceTextKind.Original, out slice);
     }
 
     /// <summary>Finds the deepest syntax node whose source span contains the given 1-based line number.</summary>
@@ -104,4 +173,10 @@ public sealed class MarkdownParseResult {
 
     /// <summary>Finds the nearest block-like syntax node in the final document tree whose source span overlaps the given span.</summary>
     public MarkdownSyntaxNode? FindNearestFinalBlockOverlappingSpan(MarkdownSourceSpan span) => FinalSyntaxTree.FindNearestBlockOverlappingSpan(span);
+
+    private static bool LineEndingsAreEquivalent(string originalMarkdown, string sourceMarkdown) =>
+        string.Equals(NormalizeLineEndings(originalMarkdown), sourceMarkdown, StringComparison.Ordinal);
+
+    private static string NormalizeLineEndings(string value) =>
+        value.Replace("\r\n", "\n").Replace('\r', '\n');
 }

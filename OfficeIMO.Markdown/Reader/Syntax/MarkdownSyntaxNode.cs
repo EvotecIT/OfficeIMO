@@ -89,6 +89,15 @@ public sealed class MarkdownSyntaxNode {
         if (SourceSpan.HasValue && !SourceSpan.Value.ContainsLine(lineNumber)) return null;
 
         for (int i = 0; i < Children.Count; i++) {
+            if (IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
+            var match = Children[i].FindDeepestNodeAtLine(lineNumber);
+            if (match != null) return match;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (!IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
             var match = Children[i].FindDeepestNodeAtLine(lineNumber);
             if (match != null) return match;
         }
@@ -136,6 +145,15 @@ public sealed class MarkdownSyntaxNode {
         }
 
         for (int i = 0; i < Children.Count; i++) {
+            if (IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
+            var match = Children[i].FindDeepestNodeContainingSpan(span);
+            if (match != null) return match;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (!IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
             var match = Children[i].FindDeepestNodeContainingSpan(span);
             if (match != null) return match;
         }
@@ -163,6 +181,15 @@ public sealed class MarkdownSyntaxNode {
         }
 
         for (int i = 0; i < Children.Count; i++) {
+            if (IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
+            var match = Children[i].FindDeepestNodeOverlappingSpan(span);
+            if (match != null) return match;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (!IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
             var match = Children[i].FindDeepestNodeOverlappingSpan(span);
             if (match != null) return match;
         }
@@ -195,6 +222,14 @@ public sealed class MarkdownSyntaxNode {
 
         path.Add(this);
         for (int i = 0; i < Children.Count; i++) {
+            if (IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
+            if (Children[i].TryBuildNodePathAtLine(lineNumber, path)) return true;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (!IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
             if (Children[i].TryBuildNodePathAtLine(lineNumber, path)) return true;
         }
 
@@ -224,6 +259,14 @@ public sealed class MarkdownSyntaxNode {
         }
 
         for (int i = 0; i < Children.Count; i++) {
+            if (IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
+            if (Children[i].TryBuildNodePathContainingSpan(span, path)) return true;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (!IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
             if (Children[i].TryBuildNodePathContainingSpan(span, path)) return true;
         }
 
@@ -241,6 +284,14 @@ public sealed class MarkdownSyntaxNode {
         }
 
         for (int i = 0; i < Children.Count; i++) {
+            if (IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
+            if (Children[i].TryBuildNodePathOverlappingSpan(span, path)) return true;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (!IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
             if (Children[i].TryBuildNodePathOverlappingSpan(span, path)) return true;
         }
 
@@ -249,6 +300,9 @@ public sealed class MarkdownSyntaxNode {
 
     private static bool HasExactSpan(MarkdownSyntaxNode node, MarkdownSourceSpan span) =>
         node.SourceSpan.HasValue && node.SourceSpan.Value.Equals(span);
+
+    private static bool IsLowerPriorityBroadLookupChild(MarkdownSyntaxNode parent, MarkdownSyntaxNode child) =>
+        parent.Kind == MarkdownSyntaxKind.Heading && child.Kind == MarkdownSyntaxKind.HeadingLevel;
 
     private static MarkdownSyntaxNode? FindNearestBlock(IReadOnlyList<MarkdownSyntaxNode> path) {
         for (int i = path.Count - 1; i >= 0; i--) {

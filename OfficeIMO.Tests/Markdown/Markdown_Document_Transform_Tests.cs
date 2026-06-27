@@ -328,6 +328,31 @@ Paragraph body.
     }
 
     [Fact]
+    public void MarkdownListParagraphStrongArtifactTransform_Preserves_List_Item_Content_When_No_Local_Repair_Is_Needed() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownListParagraphStrongArtifactTransform(new MarkdownInputNormalizationOptions {
+            NormalizeDanglingTrailingStrongListClosers = true
+        }));
+
+        var document = MarkdownReader.Parse("""
+- Signal **Current comparison used **System** log only.**
+- [ ] task
+""", options);
+
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        Assert.Collection(
+            list.Items,
+            item => {
+                Assert.False(item.IsTask);
+                Assert.Equal("Signal **Current comparison used **System** log only.**", item.Content.RenderMarkdown());
+            },
+            item => {
+                Assert.True(item.IsTask);
+                Assert.Equal("task", item.Content.RenderMarkdown());
+            });
+    }
+
+    [Fact]
     public void HtmlToMarkdown_Applies_DocumentTransforms_To_IntermediateDocument() {
         var options = new HtmlToMarkdownOptions();
         options.DocumentTransforms.Add(

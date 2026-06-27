@@ -396,6 +396,17 @@ public class MarkdownDoc : MarkdownObject {
     /// <summary>Adds a callout/admonition block (Docs-style).</summary>
     public MarkdownDoc Callout(string kind, string title, string body) => Add(new CalloutBlock(kind, title, body));
 
+    /// <summary>Adds a callout/admonition block with structured markdown body content.</summary>
+    public MarkdownDoc Callout(string kind, string title, Action<MarkdownDoc> buildBody) {
+        if (buildBody == null) {
+            throw new ArgumentNullException(nameof(buildBody));
+        }
+
+        var body = MarkdownDoc.Create();
+        buildBody(body);
+        return Add(new CalloutBlock(kind, title, body.Blocks));
+    }
+
     /// <summary>Adds an unordered list.</summary>
     public MarkdownDoc Ul(Action<UnorderedListBuilder> build) {
         UnorderedListBuilder builder = new UnorderedListBuilder();

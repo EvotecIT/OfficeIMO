@@ -46,7 +46,7 @@ public static partial class MarkdownReader {
             consumed = 2;
             return true;
         }
-        if (top.Kind == FrameKind.Strike && remaining >= top.OpenLen) {
+        if (top.Kind == FrameKind.Strike && remaining == top.OpenLen) {
             stack.Pop();
             var node = new StrikethroughSequenceInline(top.Seq);
             stack.Peek().Seq.AddRaw(node);

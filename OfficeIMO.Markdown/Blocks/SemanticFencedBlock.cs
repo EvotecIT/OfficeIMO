@@ -39,6 +39,39 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
     public string? Caption { get; set; }
 
     internal bool IsFenced { get; }
+    internal int FenceIndentColumns { get; private set; }
+    internal char FenceChar { get; private set; } = '`';
+    internal int FenceLength { get; private set; } = 3;
+    internal int FenceInfoPaddingColumns { get; private set; }
+    internal bool HasClosingFence { get; private set; } = true;
+    internal int ClosingFenceIndentColumns { get; private set; }
+    internal int ClosingFenceLength { get; private set; } = 3;
+    /// <summary>Source span for the opening fence token when parsed from a fenced source block.</summary>
+    public MarkdownSourceSpan? OpeningFenceSourceSpan { get; internal set; }
+    /// <summary>Source span for the closing fence token when parsed from a closed fenced source block.</summary>
+    public MarkdownSourceSpan? ClosingFenceSourceSpan { get; internal set; }
+
+    internal void SetFenceSourceInfo(
+        int fenceIndentColumns,
+        int fenceLength,
+        int infoPaddingColumns,
+        char fenceChar = '`',
+        bool hasClosingFence = true,
+        int closingFenceIndentColumns = 0,
+        int closingFenceLength = 3) {
+        FenceIndentColumns = Math.Max(0, fenceIndentColumns);
+        FenceChar = fenceChar == '~' ? '~' : '`';
+        FenceLength = Math.Max(3, fenceLength);
+        FenceInfoPaddingColumns = Math.Max(0, infoPaddingColumns);
+        HasClosingFence = hasClosingFence;
+        ClosingFenceIndentColumns = Math.Max(0, closingFenceIndentColumns);
+        ClosingFenceLength = Math.Max(3, closingFenceLength);
+    }
+
+    internal void SetFenceTokenSourceSpans(MarkdownSourceSpan? openingFenceSourceSpan, MarkdownSourceSpan? closingFenceSourceSpan) {
+        OpeningFenceSourceSpan = openingFenceSourceSpan;
+        ClosingFenceSourceSpan = closingFenceSourceSpan;
+    }
 
     string IMarkdownBlock.RenderMarkdown() {
         string fence = MarkdownFence.BuildSafeFence(Content);
@@ -93,30 +126,35 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
             new MarkdownSyntaxNode(MarkdownSyntaxKind.FenceSemanticKind, literal: SemanticKind)
         };
 
-        if (span.HasValue && IsFenced && !string.IsNullOrEmpty(InfoString)) {
+        OpeningFenceSourceSpan = MarkdownFencedBlockSourceSpans.GetOpeningFenceSpan(span, IsFenced, FenceIndentColumns, FenceLength);
+        ClosingFenceSourceSpan = MarkdownFencedBlockSourceSpans.GetClosingFenceSpan(span, IsFenced, Content, HasClosingFence, ClosingFenceIndentColumns, ClosingFenceLength);
+
+        if (OpeningFenceSourceSpan.HasValue) {
             nodes.Add(new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.CodeFenceInfo,
-                new MarkdownSourceSpan(span.Value.StartLine, span.Value.StartLine),
-                InfoString));
+                MarkdownSyntaxKind.CodeFenceOpening,
+                OpeningFenceSourceSpan,
+                new string(FenceChar, FenceLength)));
         }
 
-        MarkdownSourceSpan? contentSpan;
-        if (span.HasValue) {
-            if (IsFenced) {
-                contentSpan = span.Value.EndLine > span.Value.StartLine + 1
-                    ? new MarkdownSourceSpan(span.Value.StartLine + 1, span.Value.EndLine - 1)
-                    : null;
-            } else {
-                contentSpan = span.Value;
-            }
-        } else {
-            contentSpan = null;
+        var infoSpan = MarkdownFencedBlockSourceSpans.GetInfoSpan(span, IsFenced, InfoString, FenceIndentColumns, FenceLength, FenceInfoPaddingColumns);
+        if (infoSpan.HasValue) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CodeFenceInfo,
+                infoSpan,
+                InfoString));
         }
 
         nodes.Add(new MarkdownSyntaxNode(
             MarkdownSyntaxKind.CodeContent,
-            contentSpan,
+            MarkdownFencedBlockSourceSpans.GetContentSpan(span, IsFenced, Content),
             MarkdownBlockSyntaxBuilder.NormalizeSyntaxLiteralLineEndings(Content)));
+
+        if (ClosingFenceSourceSpan.HasValue) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CodeFenceClosing,
+                ClosingFenceSourceSpan,
+                new string(FenceChar, ClosingFenceLength)));
+        }
 
         return new MarkdownSyntaxNode(
             MarkdownSyntaxKind.SemanticFencedBlock,

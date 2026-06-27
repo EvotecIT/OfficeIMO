@@ -6,6 +6,22 @@ namespace OfficeIMO.Tests;
 
 public sealed class PackageDependencyGuardrailTests {
     [Fact]
+    public void MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline() {
+        const string expectedMarkdigVersion = "1.3.2";
+        string[] projectPaths = [
+            "OfficeIMO.Tests/OfficeIMO.Tests.csproj",
+            "OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj"
+        ];
+
+        foreach (var relativeProjectPath in projectPaths) {
+            var projectPath = GetRepositoryPath(relativeProjectPath);
+            Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+
+            Assert.Equal(expectedMarkdigVersion, GetPackageReferenceVersion(projectPath, "Markdig"));
+        }
+    }
+
+    [Fact]
     public void Projects_DoNotReferenceImageSharpPackage() {
         var projectFiles = Directory.EnumerateFiles(GetRepositoryRoot(), "*.csproj", SearchOption.AllDirectories)
             .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
@@ -338,5 +354,16 @@ public sealed class PackageDependencyGuardrailTests {
         return document
             .Descendants(ns + "PackageReference")
             .Any(static e => string.Equals((string?)e.Attribute("Include"), "SixLabors.Fonts", StringComparison.Ordinal));
+    }
+
+    private static string? GetPackageReferenceVersion(string projectPath, string packageId) {
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        return document
+            .Descendants(ns + "PackageReference")
+            .Where(element => string.Equals((string?)element.Attribute("Include"), packageId, StringComparison.OrdinalIgnoreCase))
+            .Select(static element => (string?)element.Attribute("Version"))
+            .SingleOrDefault();
     }
 }

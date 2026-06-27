@@ -7,6 +7,9 @@ This repo has two related pieces:
 
 The intent is "GitHub-like" output plus a practical typed reader/AST for documentation and chat scenarios, without pulling in a full CommonMark/GFM engine at runtime.
 
+For the current standards, extension, AST, and editor-readiness scoreboard, see
+[`Docs/officeimo.markdown.compatibility-matrix.md`](../Docs/officeimo.markdown.compatibility-matrix.md).
+
 ## Recommended Stack (Docs + Chat)
 
 - For docs pipelines (static HTML): use `OfficeIMO.Markdown` directly via `MarkdownReader.Parse(...).ToHtmlDocument(...)` / `ToHtmlFragment(...)`.
@@ -52,7 +55,7 @@ Inline:
 - Inline code spans (single or multi-backtick)
 - Hard breaks (from explicit line breaks / `<br>` when inline HTML is enabled)
 - Angle-bracket autolinks (`<https://...>`, `<ftp://...>`, `<mailto:user@example.com>`, and `<user@example.com>`)
-- Literal autolinks in text: `http(s)://...`, `www.example.com`, `user@example.com` (configurable via `MarkdownReaderOptions`)
+- Literal autolinks in text: `http(s)://...`, `www.example.com`, `user@example.com`, and selected GFM bare schemes such as `mailto:` and `xmpp:` when enabled (configurable via `MarkdownReaderOptions`)
 
 Lists note:
 
@@ -73,6 +76,9 @@ Renderer:
 - Built-in HTML styles (Clean, GitHub Light/Dark/Auto, Word-ish)
 - Optional Prism syntax highlighting (online/offline delivery modes)
 - Optional GitHub-style task-list and footnote HTML via `HtmlOptions.GitHubTaskListHtml` and `HtmlOptions.GitHubFootnoteHtml`
+- Reader extension seams for block parsers, fenced-block semantic factories, inline parsers, and post-parse inline AST transforms
+- Type-targeted block and inline HTML override registration via `HtmlOptions.BlockRenderExtensions` and `HtmlOptions.InlineRenderExtensions`
+- Type-targeted block and inline Markdown serialization overrides via `MarkdownWriteOptions.BlockRenderExtensions` and `MarkdownWriteOptions.InlineRenderExtensions`
 - `OfficeIMO.MarkdownRenderer`: Mermaid bootstrap + incremental DOM updates suitable for WebView2
 
 ## Known Gaps vs CommonMark / GFM Expectations
@@ -80,7 +86,7 @@ Renderer:
 These are the main reasons you will see differences compared to typical CommonMark/GFM expectations in real-world README files:
 
 - Tables
-  - Headerless tables are intentionally conservative to reduce false positives: they require outer pipes on every row and at least 2 rows.
+  - Headerless tables are intentionally conservative to reduce false positives in the OfficeIMO/default profile: they require outer pipes on every row and at least 2 rows. The GFM profile requires a delimiter row and keeps table cells inline-only, matching cmark-gfm more closely.
   - Escaped pipes (`\\|`) and pipes inside code spans are handled for common cases, but deep edge cases still exist (especially when mixing HTML, backslashes, and unusual backtick fences).
 - Lists
   - Continuation lines, multi-paragraph items, wide post-marker padding, and several nested block types are supported, but complex nesting rules are not fully CommonMark-compliant.
@@ -89,21 +95,22 @@ These are the main reasons you will see differences compared to typical CommonMa
 - Inline emphasis rules
   - Delimiter-run rules (nesting, intraword `_`, etc.) are simplified and can differ from CommonMark output.
 - Autolinks
-  - Literal autolinks cover common cases (`http(s)://...`, `www.*`, plain emails, and angle-bracket absolute URIs like `mailto:`, `ftp://`, `tel:`, and `urn:`) but do not aim for full spec coverage.
-  - The GitHub Flavored Markdown profile now matches cmark-gfm's single-tilde strikethrough and `www.*` autolink baseline more closely by treating `~text~` as strikethrough and resolving `www.*` links with `http://`.
-  - The GFM parity lane also exercises cmark-gfm-style footnote rendering and the `text![^id]` punctuation case more closely, including paragraph interruption by later footnote definitions.
-  - The CommonMark smoke lane now covers multiline reference link definitions, multiline reference labels, Unicode-aware label folding for shortcut/full references, invalid-inline-link fallback to shortcut references, chained reference precedence/backtracking, and percent-encoding of non-ASCII link destinations more directly. The final rebuilt AST also no longer leaks definition-source spans into resolved inline link metadata, and final-tree exact-span lookup is more reliable when sibling inline nodes share a boundary.
+  - Literal autolinks cover common cases (`http(s)://...`, `www.*`, plain emails, selected GFM bare schemes such as `mailto:` and `xmpp:`, and angle-bracket absolute URIs like `mailto:`, `ftp://`, `tel:`, and `urn:`) but do not aim for full spec coverage.
+  - The GitHub Flavored Markdown profile now matches cmark-gfm's single-tilde strikethrough and `www.*` autolink baseline more closely by treating `~text~` as strikethrough and resolving `www.*` links with `http://`. Double-tilde input now keeps the `~~...~~` delimiter frame instead of degrading into nested single-tilde spans, while longer and mismatched tilde runs stay literal.
+  - The GFM parity lane also exercises cmark-gfm-style footnote rendering and the `text![^id]` punctuation case more closely, including paragraph interruption by later footnote definitions. The smoke corpus now also protects escaped pipes, code-span pipes, escaped pipes inside table-cell code spans, broader table backslash escaping, one-column delimiter rows, paragraph-to-table boundaries, reference links inside table cells, adjacent empty cells, compact inline emphasis inside tables, inline formatting in table headers/body cells, non-table pipe-row rejection, minimal header-only tables, raw inline HTML and break tags inside table cells, the cmark-gfm HTML tag filter, nested task lists, uppercase checked task markers, task-marker whitespace boundaries, list/task marker source spans, plus-tag email local parts, invalid email-like tokens, bare `mailto:`/`xmpp:` autolinks, Unicode URL destinations, `www` host underscore rules, quoted/trailing-punctuation autolinks, the upstream ignored malformed-email crash regression, nested emphasis and delimiter-run edge cases inside strikethrough, and footnote ordering by first reference.
+  - The CommonMark smoke lane now covers multiline reference link definitions, multiline reference labels, Unicode-aware label folding for shortcut/full references, invalid-inline-link fallback to shortcut references, chained reference precedence/backtracking, percent-encoding of non-ASCII link destinations, more code-span delimiter cases, underscore/digit-adjacent emphasis, broader absolute-URI autolinks, expanded official HTML block behavior for raw tables, type 1 blocks, comments, processing instructions, CDATA, and paragraph interruption, backslash-escaped punctuation, named entities, paragraph blank-line/indentation behavior, hard and soft line breaks, false thematic-break markers, escaped ATX closing marker characters, setext/container interactions, compact nested blockquotes, blockquote lazy-continuation cases, nested blockquote list-continuations, quote marker source spans, list/code boundaries, shallow list indentation, and HTML-comment list boundaries more directly. The final rebuilt AST also no longer leaks definition-source spans into resolved inline link metadata, and final-tree exact-span lookup is more reliable when sibling inline nodes share a boundary.
   - For a more portable baseline, use `MarkdownReaderOptions.CreatePortableProfile()` to turn off bare `http(s)`, `www`, and plain-email autolinking and disable OfficeIMO-only callout/task-list parsing while keeping explicit links, angle autolinks, and plain lists.
 - Images
   - The OfficeIMO/default profile promotes standalone markdown image lines into typed `ImageBlock` nodes. CommonMark, GFM, and portable reader profiles now keep those lines as paragraph inline images so the spec-oriented HTML shape stays closer to CommonMark.
   - Parsed image descriptions now flatten inline formatting and nested link/image content down to plain-string HTML `alt` text more like the official CommonMark image examples, while the syntax tree still preserves the raw source form of the image label.
 - Extension model
-  - The parser/renderer architecture is much cleaner than before, but it is still not as pluggable or extension-rich as other dedicated markdown engines.
+  - The parser/renderer architecture is much cleaner than before, with public block parser, fenced block, inline parser, inline transform, and type-targeted renderer/writer override seams. It is still not as broad as mature dedicated markdown engines because syntax-node-shape renderers and lossless token/trivia extension points are not first-class yet.
 - Spec breadth
-  - We now cover a much larger compatibility set than the earlier subset reader, and the test suite now includes pinned CommonMark 0.31.2 and cmark-gfm smoke corpora with selected AST path/span assertions in addition to curated Markdig parity cases, but that is still not the same thing as full CommonMark/GFM conformance.
+- We now cover a much larger compatibility set than the earlier subset reader, and the test suite now includes 165 pinned CommonMark 0.31.2 fixtures, 32 cmark-gfm smoke fixtures, and focused upstream non-render regression coverage with selected AST path/span assertions in addition to curated Markdig 1.3.2 parity cases. A package guardrail keeps the Markdig test and benchmark baselines aligned, but that is still not the same thing as full CommonMark/GFM conformance.
+- Syntax-backed parse results now expose normalized source slices for span-backed nodes, including fenced-code opening/info/content/closing tokens with nested blockquote/list source-map coverage, and `MarkdownReaderOptions.PreserveTrivia` can retain the raw reader input as parse-result metadata for future lossless work. Line-ending-equivalent original input, including CRLF and standalone CR, can also materialize original source slices through line/column coordinates. `MarkdownRoundtripWriter` can preserve unchanged trivia-backed parse results byte-for-byte, apply explicit native source edits to original input when every edit remaps safely, and report diagnostics when it falls back to generated or normalized markdown, but full trivia capture and general byte-preserving edit writing are still not implemented.
   - URL normalization is now closer to the official CommonMark examples for non-ASCII link destinations, but broader URI normalization and edge-case destination parsing still need wider corpus coverage.
 - Code blocks
-- Some CommonMark edge cases around indentation and list nesting are not fully covered, though the pinned CommonMark lane now includes trickier list-padding/code-boundary examples plus list-boundary/loose-list and empty-loose-item cases in addition to the earlier list-item smoke cases (fenced code is still the most reliable form).
+- Some CommonMark edge cases around indentation and list nesting are not fully covered, though the pinned CommonMark lane now includes trickier list-padding/code-boundary examples, shallow-indentation list examples, HTML-comment list boundaries, blockquote/list continuation cases including nested blockquote list items, and list-boundary/loose-list and empty-loose-item cases in addition to the earlier list-item smoke cases (fenced code is still the most reliable form).
 - HTML
   - Inline HTML and HTML blocks are intentionally optional; for chat-like untrusted scenarios they should remain disabled.
 

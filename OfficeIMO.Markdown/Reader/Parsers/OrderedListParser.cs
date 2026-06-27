@@ -8,26 +8,19 @@ public static partial class MarkdownReader {
             stripped = content ?? string.Empty;
             if (string.IsNullOrEmpty(stripped) || !options.TaskLists) return false;
 
-            // Task marker is only valid at the start of the list item content: [ ] or [x] (case-insensitive).
-            if (stripped.StartsWith("[ ]", StringComparison.Ordinal)) {
+            if (TryStripTaskListMarker(stripped, out done, out stripped)) {
                 isTask = true;
-                done = false;
-                stripped = stripped.Length > 4 && stripped[3] == ' ' ? stripped.Substring(4) : stripped.Substring(3);
                 return true;
             }
-            if (stripped.StartsWith("[x]", StringComparison.OrdinalIgnoreCase)) {
-                isTask = true;
-                done = true;
-                stripped = stripped.Length > 4 && stripped[3] == ' ' ? stripped.Substring(4) : stripped.Substring(3);
-                return true;
-            }
+
             return false;
         }
 
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.OrderedLists) return false;
             if (!IsOrderedListLine(lines[i], out int lvl0Abs, out int startNum, out var firstContent)) return false;
-            if (!TryGetOrderedListMarkerInfo(lines[i], out _, out _, out _, out char firstDelimiter)) return false;
+            if (!TryGetOrderedListMarkerInfo(lines[i], out int firstMarkerIndent, out _, out _, out char firstDelimiter)) return false;
+            if (options.StrictListIndentation && firstMarkerIndent - state.ListMarkerIndentOffset > 3) return false;
             var ol = new OrderedListBlock { Start = startNum };
             var continuationIndentsByLevel = options.StrictListIndentation ? new List<int>() : null;
             int firstContinuationIndent = GetListContinuationIndent(lines[i]);
@@ -56,6 +49,7 @@ public static partial class MarkdownReader {
                 initialStartColumn: firstStartColumn);
             var first = CreateListItemFromLeadLines(firstLines, firstIsTask, firstDone, options, state, firstSourceLines);
             first.Level = 0;
+            SetListItemMarkerSourceSpans(first, lines[i], i, firstIsTask, state);
             if (continuationIndentsByLevel != null) {
                 TrackListItemContinuationIndent(continuationIndentsByLevel, first.Level, firstContinuationIndent);
             }
@@ -75,7 +69,8 @@ public static partial class MarkdownReader {
                 if (itemStart >= lines.Length
                     || !IsOrderedListLine(lines[itemStart], out var lvlAbs, out _, out var content)
                     || lvlAbs < lvl0Abs
-                    || !TryGetOrderedListMarkerInfo(lines[itemStart], out _, out _, out _, out char delimiter)
+                    || !TryGetOrderedListMarkerInfo(lines[itemStart], out int markerIndent, out _, out _, out char delimiter)
+                    || (options.StrictListIndentation && markerIndent - firstMarkerIndent > 3)
                     || delimiter != firstDelimiter) {
                     break;
                 }
@@ -111,6 +106,7 @@ public static partial class MarkdownReader {
                 li.Level = continuationIndentsByLevel != null
                     ? GetRelativeListItemLevel(continuationIndentsByLevel, lines[itemStart])
                     : lvlAbs - lvl0Abs;
+                SetListItemMarkerSourceSpans(li, lines[itemStart], itemStart, isTask, state);
                 if (separatedByBlankLine) {
                     li.ForceLoose = true;
                 }

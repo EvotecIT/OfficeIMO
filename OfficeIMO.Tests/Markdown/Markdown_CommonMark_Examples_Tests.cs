@@ -108,8 +108,19 @@ public sealed class Markdown_CommonMark_Examples_Tests {
 
         string normalized = sb.ToString()
             .Replace("> <", "><")
+            .Replace("<br/>", "<br />")
             .Replace("&#39;", "'")
             .Replace("&#x27;", "'");
+        normalized = Regex.Replace(
+            normalized,
+            "&#(\\d+);",
+            static match => char.ConvertFromUtf32(int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)),
+            RegexOptions.CultureInvariant);
+        normalized = Regex.Replace(
+            normalized,
+            "&#x([0-9a-fA-F]+);",
+            static match => char.ConvertFromUtf32(int.Parse(match.Groups[1].Value, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture)),
+            RegexOptions.CultureInvariant);
         normalized = Regex.Replace(normalized, "<h([1-6])\\s+id=\"[^\"]*\">", "<h$1>", RegexOptions.CultureInvariant);
         normalized = normalized
             .Replace(" <ul", "<ul")

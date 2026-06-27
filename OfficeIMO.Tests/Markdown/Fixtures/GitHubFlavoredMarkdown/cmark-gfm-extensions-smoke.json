@@ -20,6 +20,280 @@
   },
   {
     "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Paragraph", "Table", "Paragraph"],
+    "markdown": "Hello!\n\n| _abc_ | セン |\n| ----- | ---- |\n| 1. Block elements inside cells don't work. | |\n| But _**inline elements do**_. | x |\n\nHi!\n",
+    "html": "<p>Hello!</p>\n<table>\n<thead>\n<tr>\n<th><em>abc</em></th>\n<th>セン</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>1. Block elements inside cells don't work.</td>\n<td></td>\n</tr>\n<tr>\n<td>But <em><strong>inline elements do</strong></em>.</td>\n<td>x</td>\n</tr>\n</tbody>\n</table>\n<p>Hi!</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "GFM table headers preserve inline emphasis in table-cell paragraphs",
+        "line": 3,
+        "column": 5,
+        "expectedPathKinds": ["Document", "Table", "TableHeader", "TableCell", "Paragraph", "InlineEmphasis", "InlineText"],
+        "expectedDeepestLiteral": "abc",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "GFM table cells keep inline strong-emphasis while block-looking text stays plain cell content",
+        "line": 6,
+        "column": 11,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineEmphasis", "InlineStrong", "InlineText"],
+        "expectedDeepestLiteral": "inline elements do",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "paragraphs after a GFM table resume as normal top-level blocks",
+        "line": 8,
+        "column": 1,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "Hi",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Paragraph", "Paragraph", "Table", "Paragraph", "Table", "Table"],
+    "markdown": "| Not enough table | to be considered table |\n\n| Not enough table | to be considered table |\n| Not enough table | to be considered table |\n\n| Just enough table | to be considered table |\n| ----------------- | ---------------------- |\n\n| ---- | --- |\n\n|x|\n|-|\n\n| xyz |\n| --- |\n",
+    "html": "<p>| Not enough table | to be considered table |</p>\n<p>| Not enough table | to be considered table |\n| Not enough table | to be considered table |</p>\n<table>\n<thead>\n<tr>\n<th>Just enough table</th>\n<th>to be considered table</th>\n</tr>\n</thead>\n</table>\n<p>| ---- | --- |</p>\n<table>\n<thead>\n<tr>\n<th>x</th>\n</tr>\n</thead>\n</table>\n<table>\n<thead>\n<tr>\n<th>xyz</th>\n</tr>\n</thead>\n</table>\n",
+    "syntaxAssertions": [
+      {
+        "description": "single pipe rows without a delimiter remain paragraph text",
+        "line": 1,
+        "column": 3,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "header plus delimiter is enough to form a GFM table",
+        "line": 6,
+        "column": 4,
+        "expectedPathKinds": ["Document", "Table", "TableHeader", "TableCell", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "Just enough table",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "minimal single-cell GFM table syntax produces a table header cell",
+        "line": 11,
+        "column": 2,
+        "expectedPathKinds": ["Document", "Table", "TableHeader", "TableCell", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "x",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Table"],
+    "markdown": "| a |\n--- |\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n</table>\n"
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Table"],
+    "markdown": "| left | right |\n| --- | --- |\n| a \\| b | `x|y` |\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>left</th>\n<th>right</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>a | b</td>\n<td><code>x|y</code></td>\n</tr>\n</tbody>\n</table>\n",
+    "syntaxAssertions": [
+      {
+        "description": "escaped pipes stay inside a table cell instead of splitting the row",
+        "line": 3,
+        "column": 6,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "|",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "pipes inside code spans stay inside the same table cell",
+        "line": 3,
+        "column": 15,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineCodeSpan"],
+        "expectedDeepestLiteral": "x|y",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Table", "Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph"],
+    "markdown": "| a | b |\n| --- | --- |\n| \\\\ | `\\\\` |\n| \\\\\\\\ | `\\\\\\\\` |\n| \\_ | `\\_` |\n| \\| | `\\|` |\n| \\a | `\\a` |\n\n\\\\ `\\\\`\n\n\\\\\\\\ `\\\\\\\\`\n\n\\_ `\\_`\n\n\\| `\\|`\n\n\\a `\\a`\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>\\</td>\n<td><code>\\\\</code></td>\n</tr>\n<tr>\n<td>\\\\</td>\n<td><code>\\\\\\\\</code></td>\n</tr>\n<tr>\n<td>_</td>\n<td><code>\\_</code></td>\n</tr>\n<tr>\n<td>|</td>\n<td><code>|</code></td>\n</tr>\n<tr>\n<td>\\a</td>\n<td><code>\\a</code></td>\n</tr>\n</tbody>\n</table>\n<p>\\ <code>\\\\</code></p>\n<p>\\\\ <code>\\\\\\\\</code></p>\n<p>_ <code>\\_</code></p>\n<p>| <code>\\|</code></p>\n<p>\\a <code>\\a</code></p>\n"
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Table"],
+    "markdown": "| a | b |\n| --- | --- |\n| Escaped pipes are \\|okay\\|. | Like \\| this. |\n| Within `\\|code\\| is okay` too. |\n| _**`c\\|`**_ \\| complex\n| don't **\\_reparse\\_**\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Escaped pipes are |okay|.</td>\n<td>Like | this.</td>\n</tr>\n<tr>\n<td>Within <code>|code| is okay</code> too.</td>\n<td></td>\n</tr>\n<tr>\n<td><em><strong><code>c|</code></strong></em> | complex</td>\n<td></td>\n</tr>\n<tr>\n<td>don't <strong>_reparse_</strong></td>\n<td></td>\n</tr>\n</tbody>\n</table>\n",
+    "syntaxAssertions": [
+      {
+        "description": "escaped pipes inside GFM table code spans are normalized before code-span parsing",
+        "line": 4,
+        "column": 12,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineCodeSpan"],
+        "expectedDeepestLiteral": "|code| is okay",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "escaped pipes inside nested table-cell code spans keep the nested inline AST shape",
+        "line": 5,
+        "column": 9,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineEmphasis", "InlineStrong", "InlineCodeSpan"],
+        "expectedDeepestLiteral": "c|",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "backslash-escaped underscores inside table-cell strong text stay literal text tokens",
+        "line": 6,
+        "column": 12,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineStrong", "InlineText"],
+        "expectedDeepestLiteral": "_",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Paragraph", "Table"],
+    "markdown": "123\n456\n| a | b |\n| ---| --- |\nd | e\n",
+    "html": "<p>123\n456</p>\n<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>d</td>\n<td>e</td>\n</tr>\n</tbody>\n</table>\n"
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Table"],
+    "markdown": "abc | def\n--- | ---\nxyz | ghi\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>abc</th>\n<th>def</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>xyz</td>\n<td>ghi</td>\n</tr>\n</tbody>\n</table>\n"
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Table"],
+    "markdown": "aaa | bbb | ccc | ddd | eee\n:-- | --- | :-: | --- | --:\nfff | ggg | hhh | iii | jjj\n",
+    "html": "<table>\n<thead>\n<tr>\n<th align=\"left\">aaa</th>\n<th>bbb</th>\n<th align=\"center\">ccc</th>\n<th>ddd</th>\n<th align=\"right\">eee</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td align=\"left\">fff</td>\n<td>ggg</td>\n<td align=\"center\">hhh</td>\n<td>iii</td>\n<td align=\"right\">jjj</td>\n</tr>\n</tbody>\n</table>\n",
+    "syntaxAssertions": [
+      {
+        "description": "GFM delimiter rows with one or two hyphens still form an aligned table",
+        "line": 3,
+        "column": 13,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "hhh",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "| a | b | c |\n| --- | --- |\n| this | isn't | okay |\n",
+    "html": "<p>| a | b | c |\n| --- | --- |\n| this | isn't | okay |</p>\n"
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Table"],
+    "markdown": "| a | b | c |\n| --- | --- | ---\n| x\n| a | b\n| 1 | 2 | 3 | 4 | 5 |\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n<th>c</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>x</td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>a</td>\n<td>b</td>\n<td></td>\n</tr>\n<tr>\n<td>1</td>\n<td>2</td>\n<td>3</td>\n</tr>\n</tbody>\n</table>\n",
+    "syntaxAssertions": [
+      {
+        "description": "short GFM table body rows are padded to the header width",
+        "line": 3,
+        "column": 3,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "x",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "long GFM table body rows are truncated to the header width",
+        "line": 5,
+        "column": 11,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "3",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Paragraph", "Table", "ReferenceLinkDefinition"],
+    "markdown": "Here's a link to [Freedom Planet 2][].\n\n| Here's a link to [Freedom Planet 2][] in a table header. |\n| --- |\n| Here's a link to [Freedom Planet 2][] in a table row. |\n\n[Freedom Planet 2]: http://www.freedomplanet2.com/\n",
+    "html": "<p>Here's a link to <a href=\"http://www.freedomplanet2.com/\">Freedom Planet 2</a>.</p>\n<table>\n<thead>\n<tr>\n<th>Here's a link to <a href=\"http://www.freedomplanet2.com/\">Freedom Planet 2</a> in a table header.</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Here's a link to <a href=\"http://www.freedomplanet2.com/\">Freedom Planet 2</a> in a table row.</td>\n</tr>\n</tbody>\n</table>\n",
+    "syntaxAssertions": [
+      {
+        "description": "reference links resolve inside GFM table headers using document-level definitions",
+        "line": 3,
+        "column": 22,
+        "expectedPathKinds": ["Document", "Table", "TableHeader", "TableCell", "Paragraph", "InlineLink", "InlineText"],
+        "expectedDeepestLiteral": "Freedom Planet 2",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "reference links resolve inside GFM table body cells using later definitions",
+        "line": 5,
+        "column": 22,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineLink", "InlineText"],
+        "expectedDeepestLiteral": "Freedom Planet 2",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Table"],
+    "markdown": "| a | b | c |\n| --- | --- | --- |\n| d || e |\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n<th>c</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>d</td>\n<td></td>\n<td>e</td>\n</tr>\n</tbody>\n</table>\n"
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Table"],
+    "markdown": "| a | b |\n| --- | --- |\n|***(a)***|\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><em><strong>(a)</strong></em></td>\n<td></td>\n</tr>\n</tbody>\n</table>\n",
+    "syntaxAssertions": [
+      {
+        "description": "compact GFM table body cells keep nested emphasis AST paths",
+        "line": 3,
+        "column": 6,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineEmphasis", "InlineStrong", "InlineText"],
+        "expectedDeepestLiteral": "(a)",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Table"],
+    "markdown": "| a |\n| --- |\n| <strong>hello</strong> |\n| ok <br> sure |\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><strong>hello</strong></td>\n</tr>\n<tr>\n<td>ok <br> sure</td>\n</tr>\n</tbody>\n</table>\n",
+    "syntaxAssertions": [
+      {
+        "description": "raw inline HTML tags inside GFM table cells are preserved as raw HTML syntax nodes",
+        "line": 3,
+        "column": 3,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineHtmlRaw"],
+        "expectedDeepestLiteral": "<strong>",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "HTML break tags inside GFM table cells remain source-addressable hard breaks",
+        "line": 4,
+        "column": 6,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineHardBreak"],
+        "expectedDeepestKind": "InlineHardBreak",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
     "section": "Strikethroughs",
     "topLevelKinds": ["Paragraph"],
     "markdown": "A proper ~strikethrough~.\n",
@@ -39,10 +313,234 @@
   },
   {
     "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Strikethroughs",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "~~deleted *and emphasized*~~\n",
+    "html": "<p><del>deleted <em>and emphasized</em></del></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "strikethrough content can contain nested emphasis in the syntax tree",
+        "line": 1,
+        "column": 13,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineStrikethrough", "InlineEmphasis", "InlineText"],
+        "expectedDeepestLiteral": "and emphasized",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Strikethroughs",
+    "topLevelKinds": ["Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph"],
+    "markdown": "These are ~not strikethroughs.\n\nNo, they are not~\n\nThis ~is ~ legit~ isn't ~ legit.\n\nThis is not ~~~~~one~~~~~ huge strikethrough.\n\n~one~ ~~two~~ ~~~three~~~\n\nNo ~mismatch~~\n",
+    "html": "<p>These are ~not strikethroughs.</p>\n<p>No, they are not~</p>\n<p>This <del>is ~ legit</del> isn't ~ legit.</p>\n<p>This is not ~~~~~one~~~~~ huge strikethrough.</p>\n<p><del>one</del> <del>two</del> ~~~three~~~</p>\n<p>No ~mismatch~~</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "single-tilde GFM strikethrough can contain literal tilde text before it closes",
+        "line": 5,
+        "column": 11,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineStrikethrough", "InlineText"],
+        "expectedDeepestLiteral": " legit",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "long tilde runs are literal text, not nested strikethrough delimiters",
+        "line": 7,
+        "column": 18,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "single-tilde GFM strikethrough remains source-addressable among adjacent runs",
+        "line": 9,
+        "column": 3,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineStrikethrough", "InlineText"],
+        "expectedDeepestLiteral": "one",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "double-tilde GFM strikethrough remains source-addressable among adjacent runs",
+        "line": 9,
+        "column": 10,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineStrikethrough", "InlineText"],
+        "expectedDeepestLiteral": "two",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "triple-tilde GFM strikethrough candidates stay literal",
+        "line": 9,
+        "column": 19,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "mismatched single opener and double closer stays literal",
+        "line": 11,
+        "column": 6,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "mismatch",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
     "section": "Autolinks",
     "topLevelKinds": ["Paragraph"],
     "markdown": ": http://google.com https://google.com\n",
     "html": "<p>: <a href=\"http://google.com\">http://google.com</a> <a href=\"https://google.com\">https://google.com</a></p>\n"
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "scy.the_rbe-edr+ill@pokemon.com\n\nscyther@pokemon.com.\n",
+    "html": "<p><a href=\"mailto:scy.the_rbe-edr+ill@pokemon.com\">scy.the_rbe-edr+ill@pokemon.com</a></p>\n<p><a href=\"mailto:scyther@pokemon.com\">scyther@pokemon.com</a>.</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "GFM autolinks accept plus-tag email local parts",
+        "line": 1,
+        "column": 18,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink"],
+        "expectedDeepestKind": "InlineLink",
+        "expectedDeepestLiteral": "mailto:scy.the_rbe-edr+ill@pokemon.com",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "GFM email autolinks trim trailing full stops outside the link",
+        "line": 3,
+        "column": 20,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": ".",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph", "Paragraph"],
+    "markdown": "<http://google.com/å> http://google.com/å\n\nmailto:scyther@pokemon.com\n\nThis is a mailto:scyther@pokemon.com\n\nmailto:scyther@pokemon.com.\n\nxmpp:scyther@pokemon.com\n\nxmpp:scyther@pokemon.com/message.\n\nwww.github.com www.github.com/á\n\nwww.google.com/a_b\n\nUnderscores not allowed in host name www.xxx.yyy._zzz\n\nUnderscores not allowed in host name www.xxx._yyy.zzz\n\nUnderscores allowed in domain name www._xxx.yyy.zzz\n\nFull stop outside parens shouldn't be included http://google.com/ok.\n\n(Full stop inside parens shouldn't be included http://google.com/ok.)\n\n\"http://google.com\"\n\n'http://google.com'\n\nhttp://🍄.ga/ http://x🍄.ga/\n",
+    "html": "<p><a href=\"http://google.com/%C3%A5\">http://google.com/å</a> <a href=\"http://google.com/%C3%A5\">http://google.com/å</a></p>\n<p><a href=\"mailto:scyther@pokemon.com\">mailto:scyther@pokemon.com</a></p>\n<p>This is a <a href=\"mailto:scyther@pokemon.com\">mailto:scyther@pokemon.com</a></p>\n<p><a href=\"mailto:scyther@pokemon.com\">mailto:scyther@pokemon.com</a>.</p>\n<p><a href=\"xmpp:scyther@pokemon.com\">xmpp:scyther@pokemon.com</a></p>\n<p><a href=\"xmpp:scyther@pokemon.com/message\">xmpp:scyther@pokemon.com/message</a>.</p>\n<p><a href=\"http://www.github.com\">www.github.com</a> <a href=\"http://www.github.com/%C3%A1\">www.github.com/á</a></p>\n<p><a href=\"http://www.google.com/a_b\">www.google.com/a_b</a></p>\n<p>Underscores not allowed in host name www.xxx.yyy._zzz</p>\n<p>Underscores not allowed in host name www.xxx._yyy.zzz</p>\n<p>Underscores allowed in domain name <a href=\"http://www._xxx.yyy.zzz\">www._xxx.yyy.zzz</a></p>\n<p>Full stop outside parens shouldn't be included <a href=\"http://google.com/ok\">http://google.com/ok</a>.</p>\n<p>(Full stop inside parens shouldn't be included <a href=\"http://google.com/ok\">http://google.com/ok</a>.)</p>\n<p>&quot;<a href=\"http://google.com\">http://google.com</a>&quot;</p>\n<p>'<a href=\"http://google.com\">http://google.com</a>'</p>\n<p><a href=\"http://%F0%9F%8D%84.ga/\">http://🍄.ga/</a> <a href=\"http://x%F0%9F%8D%84.ga/\">http://x🍄.ga/</a></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "GFM autolinks percent-encode non-ASCII URL destinations while keeping the source label",
+        "line": 1,
+        "column": 21,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink"],
+        "expectedDeepestKind": "InlineLink",
+        "expectedDeepestLiteral": "http://google.com/å",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "GFM bare mailto URLs are source-addressable inline links",
+        "line": 3,
+        "column": 1,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink"],
+        "expectedDeepestLiteral": "mailto:scyther@pokemon.com",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "GFM bare xmpp URLs trim trailing punctuation outside the link",
+        "line": 11,
+        "column": 33,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": ".",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "GFM www autolinks reject underscores in later host labels",
+        "line": 17,
+        "column": 1,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "GFM www autolinks allow underscores in the first label after www",
+        "line": 21,
+        "column": 37,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink"],
+        "expectedDeepestLiteral": "http://www._xxx.yyy.zzz",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "GFM autolinks trim full stops outside parenthesized URL text",
+        "line": 25,
+        "column": 68,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": ".)",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "GFM autolinks support emoji domain labels through percent-encoded destinations",
+        "line": 31,
+        "column": 8,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink"],
+        "expectedDeepestLiteral": "http://🍄.ga/",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph", "UnorderedList"],
+    "markdown": "These should not link:\n\n* @a.b.c@. x\n* n@.  b\n",
+    "html": "<p>These should not link:</p>\n<ul>\n<li>@a.b.c@. x</li>\n<li>n@.  b</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "invalid email-like token with punctuation boundary stays literal list text",
+        "line": 3,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "missing local/domain structure does not produce an email autolink",
+        "line": 4,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "HTML tag filter",
+    "topLevelKinds": ["Paragraph", "HtmlRaw", "Paragraph", "HtmlRaw", "HtmlRaw", "Paragraph", "HtmlComment", "Paragraph", "HtmlComment", "HtmlComment", "HtmlComment", "HtmlComment"],
+    "markdown": "This is <xmp> not okay, but **this** <strong>is</strong>.\n\n<p>This is <xmp> not okay, but **this** <strong>is</strong>.</p>\n\nNope, I won't have <textarea>.\n\n<p>No <textarea> here either.</p>\n\n<p>This <random /> <thing> is okay</thing> though.</p>\n\nYep, <totally>okay</totally>.\n\n<!-- HTML comments are okay, though. -->\n<!- But we're strict. ->\n<! No nonsense. >\n<!-- Leave multiline comments the heck alone, though, okay?\nEven with {\"x\":\"y\"} or 1 > 2 or whatever. Even **markdown**.\n-->\n<!--- Support everything CommonMark's parser does. -->\n<!---->\n<!--thistoo-->\n",
+    "html": "<p>This is &lt;xmp> not okay, but <strong>this</strong> <strong>is</strong>.</p>\n<p>This is &lt;xmp> not okay, but **this** <strong>is</strong>.</p>\n<p>Nope, I won't have &lt;textarea>.</p>\n<p>No &lt;textarea> here either.</p>\n<p>This <random /> <thing> is okay</thing> though.</p>\n<p>Yep, <totally>okay</totally>.</p>\n<!-- HTML comments are okay, though. -->\n<p>&lt;!- But we're strict. -&gt;\n&lt;! No nonsense. &gt;</p>\n<!-- Leave multiline comments the heck alone, though, okay?\nEven with {\"x\":\"y\"} or 1 > 2 or whatever. Even **markdown**.\n-->\n<!--- Support everything CommonMark's parser does. -->\n<!---->\n<!--thistoo-->\n",
+    "syntaxAssertions": [
+      {
+        "description": "filtered inline HTML tags stay source-addressable as raw HTML nodes",
+        "line": 1,
+        "column": 9,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineHtmlRaw"],
+        "expectedDeepestLiteral": "<xmp>",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "filtered raw HTML block tags keep their raw block syntax node",
+        "line": 3,
+        "column": 12,
+        "expectedPathKinds": ["Document", "HtmlRaw"],
+        "expectedDeepestKind": "HtmlRaw"
+      },
+      {
+        "description": "invalid comment-like declarations stay paragraph text",
+        "line": 14,
+        "column": 1,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "valid multiline comments interrupt paragraphs as HTML comment blocks",
+        "line": 16,
+        "column": 1,
+        "expectedPathKinds": ["Document", "HtmlComment"],
+        "expectedDeepestKind": "HtmlComment"
+      }
+    ]
   },
   {
     "source": "github/cmark-gfm test/extensions.txt",
@@ -65,6 +563,93 @@
   },
   {
     "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Task lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- [x] parent\n  - [ ] child\n",
+    "html": "<ul>\n<li><input type=\"checkbox\" checked=\"\" disabled=\"\" /> parent\n<ul>\n<li><input type=\"checkbox\" disabled=\"\" /> child</li>\n</ul>\n</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "nested task list items keep their own paragraph source path",
+        "line": 2,
+        "column": 9,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "child",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Task lists",
+    "topLevelKinds": ["UnorderedList", "Paragraph", "UnorderedList"],
+    "markdown": "- [x] foo\n  - [ ] bar\n  - [x] baz\n- [ ] bim\n\nShow a regular (non task) list to show that it has the same structure\n- [@] foo\n  - [@] bar\n  - [@] baz\n- [@] bim\n",
+    "html": "<ul>\n<li><input type=\"checkbox\" checked=\"\" disabled=\"\" /> foo\n<ul>\n<li><input type=\"checkbox\" disabled=\"\" /> bar</li>\n<li><input type=\"checkbox\" checked=\"\" disabled=\"\" /> baz</li>\n</ul>\n</li>\n<li><input type=\"checkbox\" disabled=\"\" /> bim</li>\n</ul>\n<p>Show a regular (non task) list to show that it has the same structure</p>\n<ul>\n<li>[@] foo\n<ul>\n<li>[@] bar</li>\n<li>[@] baz</li>\n</ul>\n</li>\n<li>[@] bim</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "nested checked and unchecked task items keep their own paragraph paths",
+        "line": 3,
+        "column": 9,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "baz",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "similar bracket markers that are not task markers remain literal list item text",
+        "line": 8,
+        "column": 9,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": " bar",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Task lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- [X]\tUpper tab\n- [ ]    spaced\n",
+    "html": "<ul>\n<li><input type=\"checkbox\" checked=\"\" disabled=\"\" /> Upper tab</li>\n<li><input type=\"checkbox\" disabled=\"\" /> spaced</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "uppercase task markers and tab padding strip to the real task text",
+        "line": 1,
+        "column": 7,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "Upper tab",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 7, "endLine": 1, "endColumn": 15 },
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "unchecked task markers consume all marker-adjacent padding before content",
+        "line": 2,
+        "column": 10,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "spaced",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 10, "endLine": 2, "endColumn": 15 },
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Task lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- [x]tight\n- [ ]tight\n",
+    "html": "<ul>\n<li>[x]tight</li>\n<li>[ ]tight</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "task-like markers without required following whitespace remain literal list text",
+        "line": 1,
+        "column": 7,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "tight",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 6, "endLine": 1, "endColumn": 10 },
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
     "section": "Footnotes",
     "topLevelKinds": ["Paragraph", "Paragraph", "Paragraph", "Paragraph", "FootnoteDefinition", "FootnoteDefinition", "FootnoteDefinition", "Paragraph", "FootnoteDefinition", "FootnoteDefinition"],
     "markdown": "This is some text![^1].\nOther text.[^footnote].\n\nHere's a thing[^other-note].\n\nAnd another thing[^codeblock-note].\n\nThis doesn't have a referent[^nope].\n\n[^other-note]: no code block here (spaces are stripped away)\n[^codeblock-note]:\n        this is now a code block (8 spaces indentation)\n[^1]: Some *bolded* footnote definition.\nHi!\n[^footnote]:\n    > Blockquotes can be in a footnote.\n\n        as well as code blocks\n\n    or, naturally, simple paragraphs.\n[^unused]: This is unused.\n",
@@ -77,6 +662,24 @@
         "expectedPathKinds": ["Document", "Paragraph", "InlineFootnoteRef"],
         "expectedDeepestKind": "InlineFootnoteRef",
         "expectedDeepestLiteral": "1",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Footnotes",
+    "topLevelKinds": ["Paragraph", "FootnoteDefinition", "FootnoteDefinition"],
+    "markdown": "B first[^b], then A[^a].\n\n[^a]: A body\n[^b]: B body\n",
+    "html": "<p>B first<sup class=\"footnote-ref\"><a href=\"#fn-b\" id=\"fnref-b\" data-footnote-ref>1</a></sup>, then A<sup class=\"footnote-ref\"><a href=\"#fn-a\" id=\"fnref-a\" data-footnote-ref>2</a></sup>.</p>\n<section class=\"footnotes\" data-footnotes><ol><li id=\"fn-b\"><p>B body <a href=\"#fnref-b\" class=\"footnote-backref\" data-footnote-backref data-footnote-backref-idx=\"1\" aria-label=\"Back to reference 1\">↩</a></p></li><li id=\"fn-a\"><p>A body <a href=\"#fnref-a\" class=\"footnote-backref\" data-footnote-backref data-footnote-backref-idx=\"2\" aria-label=\"Back to reference 2\">↩</a></p></li></ol></section>",
+    "syntaxAssertions": [
+      {
+        "description": "footnote references are numbered by first reference occurrence, not definition order",
+        "line": 1,
+        "column": 10,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineFootnoteRef", "InlineFootnoteLabel"],
+        "expectedDeepestKind": "InlineFootnoteLabel",
+        "expectedDeepestLiteral": "b",
         "expectedNearestBlockKind": "Paragraph"
       }
     ]

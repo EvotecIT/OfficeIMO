@@ -107,7 +107,9 @@ public static partial class MarkdownReader {
             string decoded = System.Net.WebUtility.HtmlDecode(text.Text);
             if (!string.Equals(decoded, text.Text, StringComparison.Ordinal)) {
                 changed = true;
-                return new DecodedHtmlEntityTextRun(decoded);
+                var decodedRun = new DecodedHtmlEntityTextRun(decoded);
+                MarkdownInlineSourceSpans.Set(decodedRun, MarkdownInlineSourceSpans.Get(text));
+                return decodedRun;
             }
 
             return text;
@@ -121,6 +123,128 @@ public static partial class MarkdownReader {
 
         return node;
     }
+
+    private static bool TryConsumeHtmlEntityText(string text, int start, out int consumed, out string decoded) {
+        consumed = 0;
+        decoded = string.Empty;
+
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length || text[start] != '&') {
+            return false;
+        }
+
+        int semicolon = text.IndexOf(';', start + 1);
+        if (semicolon < 0 || semicolon == start + 1 || semicolon - start > 32) {
+            return false;
+        }
+
+        string candidate = text.Substring(start, semicolon - start + 1);
+        string htmlDecoded = System.Net.WebUtility.HtmlDecode(candidate);
+        if (string.Equals(htmlDecoded, candidate, StringComparison.Ordinal)) {
+            return false;
+        }
+
+        consumed = candidate.Length;
+        decoded = htmlDecoded;
+        return true;
+    }
+
+    private static bool TryConsumeRawInlineHtmlTag(string text, int start, out int consumed) {
+        consumed = 0;
+
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length || text[start] != '<') {
+            return false;
+        }
+
+        int position = start + 1;
+        if (position >= text.Length) {
+            return false;
+        }
+
+        if (text[position] == '/') {
+            position++;
+            if (position >= text.Length || !IsAsciiLetter(text[position])) {
+                return false;
+            }
+
+            position = ConsumeHtmlTagName(text, position);
+            while (position < text.Length && IsHtmlAttributeWhitespace(text[position])) {
+                position++;
+            }
+
+            if (position < text.Length && text[position] == '>') {
+                consumed = position - start + 1;
+                return true;
+            }
+
+            return false;
+        }
+
+        if (!IsAsciiLetter(text[position])) {
+            return false;
+        }
+
+        position = ConsumeHtmlTagName(text, position);
+        if (position >= text.Length) {
+            return false;
+        }
+
+        char next = text[position];
+        if (next != '>' && next != '/' && !IsHtmlAttributeWhitespace(next)) {
+            return false;
+        }
+
+        char quote = '\0';
+        while (position < text.Length) {
+            char ch = text[position];
+
+            if (quote != '\0') {
+                if (ch == quote) {
+                    quote = '\0';
+                }
+
+                position++;
+                continue;
+            }
+
+            if (ch == '"' || ch == '\'') {
+                quote = ch;
+                position++;
+                continue;
+            }
+
+            if (ch == '\r' || ch == '\n' || ch == '<') {
+                return false;
+            }
+
+            if (ch == '>') {
+                consumed = position - start + 1;
+                return true;
+            }
+
+            position++;
+        }
+
+        return false;
+    }
+
+    private static int ConsumeHtmlTagName(string text, int position) {
+        while (position < text.Length) {
+            char ch = text[position];
+            if (!IsAsciiLetter(ch) && !char.IsDigit(ch) && ch != '-') {
+                break;
+            }
+
+            position++;
+        }
+
+        return position;
+    }
+
+    private static bool IsAsciiLetter(char value) =>
+        (value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z');
+
+    private static bool IsHtmlAttributeWhitespace(char value) =>
+        value == ' ' || value == '\t';
 
     private static bool StartsWithExactHtmlTag(string text, int start, string tagName, bool opening) {
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(tagName) || start < 0 || start >= text.Length || text[start] != '<') {

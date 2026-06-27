@@ -38,7 +38,14 @@ public static partial class MarkdownReader {
 
         var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
         MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
-        return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree, sourceMarkdown);
+        return new MarkdownParseResult(
+            document,
+            originalSyntaxTree,
+            finalSyntaxTree,
+            sourceMarkdown,
+            options.PreserveTrivia ? markdown : null,
+            options.PreserveTrivia,
+            referenceLinkDefinitions: SnapshotReferenceLinkDefinitions(state));
     }
 
     /// <summary>
@@ -66,7 +73,15 @@ public static partial class MarkdownReader {
 
         var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
         MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
-        return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree, sourceMarkdown, diagnostics);
+        return new MarkdownParseResult(
+            document,
+            originalSyntaxTree,
+            finalSyntaxTree,
+            sourceMarkdown,
+            options.PreserveTrivia ? markdown : null,
+            options.PreserveTrivia,
+            diagnostics,
+            SnapshotReferenceLinkDefinitions(state));
     }
 
     /// <summary>Parses a Markdown file path into a <see cref="MarkdownDoc"/>.</summary>

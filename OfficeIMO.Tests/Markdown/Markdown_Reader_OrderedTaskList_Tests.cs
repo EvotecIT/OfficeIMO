@@ -21,5 +21,36 @@ public class Markdown_Reader_OrderedTaskList_Tests {
         Assert.Contains("1. [ ] Todo", round, StringComparison.Ordinal);
         Assert.Contains("2. [x] Done", round, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Ordered_Task_List_Markers_Require_Boundary_Whitespace_And_Support_Uppercase_X() {
+        var md = "1. [X]\tUpper\n2. [ ]   Open\n3. [x]tight\n";
+
+        var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var list = Assert.IsType<OrderedListBlock>(Assert.Single(doc.Blocks));
+
+        Assert.Collection(
+            list.Items,
+            item => {
+                Assert.True(item.IsTask);
+                Assert.True(item.Checked);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 2), item.MarkerSourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 6), item.TaskMarkerSourceSpan);
+                Assert.Equal("Upper", item.Content.RenderMarkdown());
+            },
+            item => {
+                Assert.True(item.IsTask);
+                Assert.False(item.Checked);
+                Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 2), item.MarkerSourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(2, 4, 2, 6), item.TaskMarkerSourceSpan);
+                Assert.Equal("Open", item.Content.RenderMarkdown());
+            },
+            item => {
+                Assert.False(item.IsTask);
+                Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 2), item.MarkerSourceSpan);
+                Assert.Null(item.TaskMarkerSourceSpan);
+                Assert.Equal("[x]tight", InlinePlainText.Extract(item.Content));
+            });
+    }
 }
 

@@ -93,15 +93,26 @@ public sealed class HtmlOptions {
     /// </summary>
     public bool GitHubFootnoteHtml { get; set; } = false;
     /// <summary>
+    /// When <c>true</c>, raw HTML rendering applies cmark-gfm's tag filter by escaping the leading
+    /// <c>&lt;</c> on dangerous raw HTML tags such as <c>script</c>, <c>style</c>, <c>textarea</c>, and <c>xmp</c>.
+    /// Default: <c>false</c>.
+    /// </summary>
+    public bool GitHubHtmlTagFilter { get; set; } = false;
+    /// <summary>
     /// Optional block render extensions that can override HTML emitted for specific block types.
     /// Later registrations win when block types overlap.
     /// </summary>
     public List<MarkdownBlockHtmlRenderExtension> BlockRenderExtensions { get; } = new();
+    /// <summary>
+    /// Optional inline render extensions that can override HTML emitted for specific inline types.
+    /// Later registrations win when inline types overlap.
+    /// </summary>
+    public List<MarkdownInlineHtmlRenderExtension> InlineRenderExtensions { get; } = new();
     /// <summary>Prefix selectors in emitted CSS with this scope selector to avoid collisions. Default: "article.markdown-body".</summary>
     public string? CssScopeSelector { get; set; } = "article.markdown-body";
 
     /// <summary>
-    /// Controls how raw HTML blocks are emitted. Default: <see cref="RawHtmlHandling.Allow"/>.
+    /// Controls how raw HTML blocks and inline fragments are emitted. Default: <see cref="RawHtmlHandling.Allow"/>.
     /// For untrusted chat scenarios, prefer <see cref="RawHtmlHandling.Strip"/> or <see cref="RawHtmlHandling.Escape"/>.
     /// </summary>
     public RawHtmlHandling RawHtmlHandling { get; set; } = RawHtmlHandling.Allow;

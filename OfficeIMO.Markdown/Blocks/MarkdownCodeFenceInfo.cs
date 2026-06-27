@@ -198,7 +198,7 @@ public sealed class MarkdownCodeFenceInfo {
             split++;
         }
 
-        var language = normalized.Substring(0, split);
+        var language = DecodeInfoStringToken(normalized.Substring(0, split));
         var additionalInfo = split < normalized.Length
             ? normalized.Substring(split).Trim()
             : string.Empty;
@@ -207,6 +207,40 @@ public sealed class MarkdownCodeFenceInfo {
 
         return new MarkdownCodeFenceInfo(normalized, language, additionalInfo, elementId, classes, attributes);
     }
+
+    private static string DecodeInfoStringToken(string token) {
+        if (string.IsNullOrEmpty(token)) {
+            return string.Empty;
+        }
+
+        var decoded = DecodeBackslashEscapes(token);
+        var htmlDecoded = System.Net.WebUtility.HtmlDecode(decoded);
+        return htmlDecoded ?? decoded;
+    }
+
+    private static string DecodeBackslashEscapes(string value) {
+        StringBuilder? builder = null;
+
+        for (int i = 0; i < value.Length; i++) {
+            char ch = value[i];
+            if (ch != '\\' || i + 1 >= value.Length || !IsAsciiPunctuation(value[i + 1])) {
+                builder?.Append(ch);
+                continue;
+            }
+
+            builder ??= new StringBuilder(value.Length).Append(value, 0, i);
+            builder.Append(value[i + 1]);
+            i++;
+        }
+
+        return builder?.ToString() ?? value;
+    }
+
+    private static bool IsAsciiPunctuation(char ch) =>
+        (ch >= '!' && ch <= '/') ||
+        (ch >= ':' && ch <= '@') ||
+        (ch >= '[' && ch <= '`') ||
+        (ch >= '{' && ch <= '~');
 
     private static void ParseMetadata(
         string additionalInfo,

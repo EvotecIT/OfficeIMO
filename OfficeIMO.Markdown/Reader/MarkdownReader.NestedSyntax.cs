@@ -58,6 +58,12 @@ public static partial class MarkdownReader {
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
         MarkdownSyntaxNode node) {
         var span = RemapNestedSourceSpan(sourceLines, node.SourceSpan);
+        if (node.AssociatedObject is QuoteBlock quoteBlock) {
+            quoteBlock.ReplaceMarkerSourceSpans(quoteBlock.MarkerSourceSpans
+                .Select(marker => RemapNestedSourceSpan(sourceLines, marker) ?? marker)
+                .ToArray());
+        }
+
         IReadOnlyList<MarkdownSyntaxNode> children = node.Children;
         if (node.Children.Count > 0) {
             var remappedChildren = new List<MarkdownSyntaxNode>(node.Children.Count);
@@ -88,6 +94,18 @@ public static partial class MarkdownReader {
                 SynchronizeListItemSyntaxChildren(listItem, node.Children);
                 break;
 
+            case CodeBlock codeBlock:
+                codeBlock.SetFenceTokenSourceSpans(
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceOpening),
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceClosing));
+                break;
+
+            case SemanticFencedBlock semanticFencedBlock:
+                semanticFencedBlock.SetFenceTokenSourceSpans(
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceOpening),
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceClosing));
+                break;
+
             case QuoteBlock quoteBlock:
                 quoteBlock.SyntaxChildren = node.Children.Count > 0 ? node.Children : null;
                 break;
@@ -104,6 +122,16 @@ public static partial class MarkdownReader {
         for (int i = 0; i < node.Children.Count; i++) {
             SynchronizeOwnedSyntaxCaches(node.Children[i]);
         }
+    }
+
+    private static MarkdownSourceSpan? GetChildSourceSpan(MarkdownSyntaxNode node, MarkdownSyntaxKind kind) {
+        for (int i = 0; i < node.Children.Count; i++) {
+            if (node.Children[i].Kind == kind) {
+                return node.Children[i].SourceSpan;
+            }
+        }
+
+        return null;
     }
 
     private static void SynchronizeListItemSyntaxChildren(ListItem listItem, IReadOnlyList<MarkdownSyntaxNode> syntaxChildren) {

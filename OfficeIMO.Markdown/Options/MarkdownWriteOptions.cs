@@ -66,6 +66,11 @@ public sealed class MarkdownWriteOptions {
     public List<MarkdownBlockMarkdownRenderExtension> BlockRenderExtensions { get; } = new();
 
     /// <summary>
+    /// Optional markdown inline render extensions. Later registrations win when inline types overlap.
+    /// </summary>
+    public List<MarkdownInlineMarkdownRenderExtension> InlineRenderExtensions { get; } = new();
+
+    /// <summary>
     /// Creates a shallow clone of the writer options while copying mutable collections.
     /// </summary>
     public MarkdownWriteOptions Clone() {
@@ -76,6 +81,9 @@ public sealed class MarkdownWriteOptions {
         };
         for (int i = 0; i < BlockRenderExtensions.Count; i++) {
             clone.BlockRenderExtensions.Add(BlockRenderExtensions[i]);
+        }
+        for (int i = 0; i < InlineRenderExtensions.Count; i++) {
+            clone.InlineRenderExtensions.Add(InlineRenderExtensions[i]);
         }
 
         return clone;

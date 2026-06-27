@@ -86,7 +86,9 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     internal List<TableCell>? StructuredHeaders { get; private set; }
     internal List<IReadOnlyList<TableCell>>? StructuredRows { get; private set; }
     internal int? StructuredContentSignature { get; private set; }
+    internal MarkdownSourceSpan? AlignmentRowSourceSpan { get; private set; }
     internal bool PreserveHeaderlessSingleRowTable { get; set; }
+    internal bool UseHeaderColumnCountForRendering { get; set; }
     internal bool CellsContainRenderedMarkdown { get; set; }
 
     // When a table is produced by the reader, we keep the parse options/state so inline parsing in cells
@@ -129,6 +131,10 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
 
         StructuredContentSignature = contentSignature;
         InvalidateRealizedCellCache();
+    }
+
+    internal void SetAlignmentRowSourceSpan(MarkdownSourceSpan sourceSpan) {
+        AlignmentRowSourceSpan = sourceSpan;
     }
 
     /// <inheritdoc />
@@ -198,7 +204,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
             int columnCount = GetEffectiveColumnCount();
             var preparedHeaders = PrepareRowCells(Headers, columnCount);
             var currentStructuredHeaders = GetCurrentStructuredHeaders();
-            var preparedStructuredHeaders = PrepareStructuredRowHtmlCells(currentStructuredHeaders, columnCount)
+            var preparedStructuredHeaders = PrepareStructuredRowHtmlCells(currentStructuredHeaders, columnCount, UseHeaderColumnCountForRendering)
                 ?? PrepareStructuredRowCells(headerCells, columnCount);
             var preparedParsedHeaders = PrepareParsedRowCells(headerInlines, columnCount);
             int headerRenderCount = GetHtmlRenderCellCount(preparedHeaders.Count, preparedStructuredHeaders);
@@ -212,30 +218,33 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
             }
             sb.Append("</tr></thead>");
         }
-        sb.Append("<tbody>");
-        int bodyColumnCount = GetEffectiveColumnCount();
-        for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
-            var row = Rows[rowIndex];
-            var cells = PrepareRowCells(row, bodyColumnCount);
-            var currentStructuredRow = GetCurrentStructuredRow(rowIndex);
-            var structuredCells = PrepareStructuredRowHtmlCells(currentStructuredRow, bodyColumnCount)
-                ?? (rowIndex < rowCells.Count ? PrepareStructuredRowCells(rowCells[rowIndex], bodyColumnCount) : null);
-            var parsedCells = rowIndex < rowInlines.Count
-                ? PrepareParsedRowCells(rowInlines[rowIndex], bodyColumnCount)
-                : null;
-            sb.Append("<tr>");
-            int renderCellCount = GetHtmlRenderCellCount(cells.Count, structuredCells);
-            for (int i = 0; i < renderCellCount; i++) {
-                var cell = cells[i];
-                var style = GetAlignment(i);
-                TableCell? structuredCell = structuredCells?[i];
-                sb.Append($"<td{RenderCellAttributes(structuredCell, style)}>");
-                sb.Append(RenderCellHtml(cell, structuredCell, parsedCells?[i]));
-                sb.Append("</td>");
+        if (Rows.Count > 0) {
+            sb.Append("<tbody>");
+            int bodyColumnCount = GetEffectiveColumnCount();
+            for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
+                var row = Rows[rowIndex];
+                var cells = PrepareRowCells(row, bodyColumnCount);
+                var currentStructuredRow = GetCurrentStructuredRow(rowIndex);
+                var structuredCells = PrepareStructuredRowHtmlCells(currentStructuredRow, bodyColumnCount, UseHeaderColumnCountForRendering)
+                    ?? (rowIndex < rowCells.Count ? PrepareStructuredRowCells(rowCells[rowIndex], bodyColumnCount) : null);
+                var parsedCells = rowIndex < rowInlines.Count
+                    ? PrepareParsedRowCells(rowInlines[rowIndex], bodyColumnCount)
+                    : null;
+                sb.Append("<tr>");
+                int renderCellCount = GetHtmlRenderCellCount(cells.Count, structuredCells);
+                for (int i = 0; i < renderCellCount; i++) {
+                    var cell = cells[i];
+                    var style = GetAlignment(i);
+                    TableCell? structuredCell = structuredCells?[i];
+                    sb.Append($"<td{RenderCellAttributes(structuredCell, style)}>");
+                    sb.Append(RenderCellHtml(cell, structuredCell, parsedCells?[i]));
+                    sb.Append("</td>");
+                }
+                sb.Append("</tr>");
             }
-            sb.Append("</tr>");
+            sb.Append("</tbody>");
         }
-        sb.Append("</tbody></table>");
+        sb.Append("</table>");
         return sb.ToString();
     }
 

@@ -36,6 +36,9 @@ public sealed class MarkdownNativeDocument {
     /// <summary>Document-transform diagnostics captured during parsing.</summary>
     public IReadOnlyList<MarkdownDocumentTransformDiagnostic> TransformDiagnostics { get; }
 
+    /// <summary>Effective reference-style link definitions collected during parsing.</summary>
+    public IReadOnlyList<MarkdownReferenceLinkDefinition> ReferenceLinkDefinitions => ParseResult.ReferenceLinkDefinitions;
+
     /// <summary>Markdown source text whose source spans back this projection.</summary>
     public string SourceMarkdown { get; }
 
@@ -237,6 +240,32 @@ public sealed class MarkdownNativeDocument {
         return CreateReplaceEdit(inline.SourceSpan.Value, replacementMarkdown);
     }
 
+    /// <summary>Creates a non-mutating source edit that replaces a reference-style link definition.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownReferenceLinkDefinition referenceDefinition, string replacementMarkdown) {
+        if (referenceDefinition == null) {
+            throw new ArgumentNullException(nameof(referenceDefinition));
+        }
+
+        if (!referenceDefinition.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The reference definition does not have a source span.");
+        }
+
+        return CreateReplaceEdit(referenceDefinition.SourceSpan.Value, replacementMarkdown);
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces source-backed inline metadata.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeInlineMetadata metadata, string replacementMarkdown) {
+        if (metadata == null) {
+            throw new ArgumentNullException(nameof(metadata));
+        }
+
+        if (!metadata.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native inline metadata does not have a source span.");
+        }
+
+        return CreateReplaceEdit(metadata.SourceSpan.Value, replacementMarkdown);
+    }
+
     private static MarkdownNativeBlock? FindBlockAtLine(MarkdownNativeBlock block, int lineNumber) {
         switch (block) {
             case MarkdownNativeQuoteBlock quote:
@@ -245,6 +274,10 @@ public sealed class MarkdownNativeDocument {
                 return FindChildBlockAtLine(callout.Children, lineNumber) ?? (callout.ContainsLine(lineNumber) ? callout : null);
             case MarkdownNativeDetailsBlock details:
                 return FindChildBlockAtLine(details.Children, lineNumber) ?? (details.ContainsLine(lineNumber) ? details : null);
+            case MarkdownNativeDefinitionListBlock definitionList:
+                return FindChildBlockAtLine(definitionList.Children, lineNumber) ?? (definitionList.ContainsLine(lineNumber) ? definitionList : null);
+            case MarkdownNativeFootnoteDefinitionBlock footnote:
+                return FindChildBlockAtLine(footnote.Children, lineNumber) ?? (footnote.ContainsLine(lineNumber) ? footnote : null);
             case MarkdownNativeListBlock list:
                 for (var i = 0; i < list.Items.Count; i++) {
                     var itemMatch = FindChildBlockAtLine(list.Items[i].Children, lineNumber);
@@ -269,6 +302,10 @@ public sealed class MarkdownNativeDocument {
                 return FindChildBlockAtPosition(callout.Children, lineNumber, columnNumber) ?? (ContainsPosition(callout, lineNumber, columnNumber) ? callout : null);
             case MarkdownNativeDetailsBlock details:
                 return FindChildBlockAtPosition(details.Children, lineNumber, columnNumber) ?? (ContainsPosition(details, lineNumber, columnNumber) ? details : null);
+            case MarkdownNativeDefinitionListBlock definitionList:
+                return FindChildBlockAtPosition(definitionList.Children, lineNumber, columnNumber) ?? (ContainsPosition(definitionList, lineNumber, columnNumber) ? definitionList : null);
+            case MarkdownNativeFootnoteDefinitionBlock footnote:
+                return FindChildBlockAtPosition(footnote.Children, lineNumber, columnNumber) ?? (ContainsPosition(footnote, lineNumber, columnNumber) ? footnote : null);
             case MarkdownNativeListBlock list:
                 for (var i = 0; i < list.Items.Count; i++) {
                     var itemMatch = FindChildBlockAtPosition(list.Items[i].Children, lineNumber, columnNumber);
@@ -358,6 +395,10 @@ public sealed class MarkdownNativeDocument {
                 return callout.Children;
             case MarkdownNativeDetailsBlock details:
                 return details.Children;
+            case MarkdownNativeDefinitionListBlock definitionList:
+                return definitionList.Children;
+            case MarkdownNativeFootnoteDefinitionBlock footnote:
+                return footnote.Children;
             case MarkdownNativeListBlock list:
                 return EnumerateListItemChildren(list);
             case MarkdownNativeTableBlock table:
@@ -418,6 +459,8 @@ public sealed class MarkdownNativeDocument {
                 return callout.TitleInlineRuns;
             case MarkdownNativeDetailsBlock details:
                 return details.SummaryInlineRuns;
+            case MarkdownNativeDefinitionListBlock definitionList:
+                return EnumerateDefinitionListTermInlines(definitionList);
             case MarkdownNativeTableBlock table:
                 return EnumerateTableInlines(table);
             case MarkdownNativeListBlock list:
@@ -438,6 +481,18 @@ public sealed class MarkdownNativeDocument {
             for (var column = 0; column < table.Rows[row].Count; column++) {
                 for (var i = 0; i < table.Rows[row][column].InlineRuns.Count; i++) {
                     yield return table.Rows[row][column].InlineRuns[i];
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeInline> EnumerateDefinitionListTermInlines(MarkdownNativeDefinitionListBlock definitionList) {
+        for (var groupIndex = 0; groupIndex < definitionList.Groups.Count; groupIndex++) {
+            var group = definitionList.Groups[groupIndex];
+            for (var termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
+                var term = group.Terms[termIndex];
+                for (var inlineIndex = 0; inlineIndex < term.InlineRuns.Count; inlineIndex++) {
+                    yield return term.InlineRuns[inlineIndex];
                 }
             }
         }

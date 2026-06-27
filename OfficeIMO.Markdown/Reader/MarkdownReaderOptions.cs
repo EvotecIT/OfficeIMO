@@ -77,6 +77,8 @@ public sealed class MarkdownReaderOptions {
             Callouts = false,
             TaskLists = true,
             Tables = true,
+            AllowHeaderlessTables = false,
+            ParseTableCellBlocks = false,
             DefinitionLists = false,
             TocPlaceholders = false,
             Footnotes = true,
@@ -84,6 +86,7 @@ public sealed class MarkdownReaderOptions {
             StrictListIndentation = true,
             SingleTildeStrikethrough = true,
             AutolinkUrls = true,
+            AutolinkBareSchemeUrls = true,
             AutolinkWwwUrls = true,
             AutolinkWwwScheme = "http://",
             AutolinkEmails = true
@@ -144,6 +147,16 @@ public sealed class MarkdownReaderOptions {
     public bool StrictListIndentation { get; set; } = false;
     /// <summary>Enable pipe tables with optional header + alignment row.</summary>
     public bool Tables { get; set; } = true;
+    /// <summary>
+    /// When <c>true</c>, pipe rows without a GFM delimiter/alignment row can be parsed as OfficeIMO headerless tables.
+    /// Disable this for stricter GitHub Flavored Markdown compatibility, where a delimiter row is required.
+    /// </summary>
+    public bool AllowHeaderlessTables { get; set; } = true;
+    /// <summary>
+    /// When <c>true</c>, table cells that look like nested markdown can be upgraded to structured block content.
+    /// Disable this for GitHub Flavored Markdown compatibility, where table cells contain inline content only.
+    /// </summary>
+    public bool ParseTableCellBlocks { get; set; } = true;
     /// <summary>Enable definition lists (Term: Definition lines).</summary>
     public bool DefinitionLists { get; set; } = true;
     /// <summary>Enable placeholder TOC markers such as <c>[TOC]</c> and <c>{:toc}</c>.</summary>
@@ -173,6 +186,12 @@ public sealed class MarkdownReaderOptions {
     /// Default: <c>true</c>.
     /// </summary>
     public bool AutolinkUrls { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, auto-detects selected GFM bare URI schemes such as <c>mailto:</c> and <c>xmpp:</c>.
+    /// Default: <c>false</c>; enabled by <see cref="CreateGitHubFlavoredMarkdownProfile"/>.
+    /// </summary>
+    public bool AutolinkBareSchemeUrls { get; set; } = false;
 
     /// <summary>
     /// When <c>true</c>, auto-detects plain <c>www.example.com</c> URLs in text and turns them into links.
@@ -267,6 +286,13 @@ public sealed class MarkdownReaderOptions {
     public MarkdownInputNormalizationOptions InputNormalization { get; set; } = new MarkdownInputNormalizationOptions();
 
     /// <summary>
+    /// When <c>true</c>, syntax-backed parse results retain the raw markdown input beside the normalized source
+    /// text used for source spans. This is groundwork for lossless trivia/roundtrip support; semantic
+    /// <see cref="MarkdownDoc.ToMarkdown(MarkdownWriteOptions?)"/> output remains normalized markdown generation.
+    /// </summary>
+    public bool PreserveTrivia { get; set; } = false;
+
+    /// <summary>
     /// Optional maximum input length, in characters, accepted by <see cref="MarkdownReader"/>.
     /// When set and exceeded, parsing fails fast with an <see cref="ArgumentOutOfRangeException"/>.
     /// </summary>
@@ -290,6 +316,12 @@ public sealed class MarkdownReaderOptions {
     /// the built-in inline parser handles the current position.
     /// </summary>
     public List<MarkdownInlineParserExtension> InlineParserExtensions { get; } = new();
+
+    /// <summary>
+    /// Optional ordered post-parse inline AST transforms.
+    /// These run after built-in inline parsing and input normalization, before document-level transforms.
+    /// </summary>
+    public List<MarkdownInlineTransformExtension> InlineTransformExtensions { get; } = new();
 
     /// <summary>
     /// Optional ordered post-parse document transforms.

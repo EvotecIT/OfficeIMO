@@ -300,6 +300,22 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Gfm_Autolinks_DoNot_Crash_On_Upstream_Ignored_Email_Case() {
+        const string markdown = "This shouldn't crash everything: (_A_@_.A";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(
+            markdown,
+            MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("This shouldn&#39;t crash everything", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<a ", html, StringComparison.OrdinalIgnoreCase);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void Autolinks_DoNot_Link_Plain_Emails_After_Apostrophe() {
         var doc = MarkdownReader.Parse("Contact 'user@example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -327,12 +343,14 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
-    public void Autolinks_DoNot_Link_Plain_Emails_With_Plus_Tags() {
+    public void Autolinks_Link_Plain_Emails_With_Plus_Tags() {
         var doc = MarkdownReader.Parse("Contact user.name+tag@example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
-        Assert.DoesNotContain("href=\"mailto:user.name+tag@example.com\"", html, StringComparison.Ordinal);
-        Assert.Contains("<p>Contact user.name+tag@example.com now</p>", html, StringComparison.Ordinal);
+        Assert.Contains(
+            "<a href=\"mailto:user.name+tag@example.com\">user.name+tag@example.com</a>",
+            html,
+            StringComparison.Ordinal);
     }
 
     [Fact]

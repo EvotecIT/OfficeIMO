@@ -15,6 +15,7 @@ The package now has public seams for:
 - block parser registration with `MarkdownBlockParserExtension`
 - fenced block registration with `MarkdownFencedBlockExtension`
 - inline parser registration with `MarkdownInlineParserExtension`
+- post-parse inline AST transforms with `MarkdownInlineTransformExtension`
 - post-parse semantic transforms with `IMarkdownDocumentTransform`
 - syntax-tree participation with:
   - `ISyntaxMarkdownInline`
@@ -26,8 +27,11 @@ The package now has public seams for:
   - `IMarkdownBlock.RenderHtml()`
   - `IContextualHtmlMarkdownBlock`
   - `IContextualHtmlMarkdownInline`
+  - `HtmlOptions.BlockRenderExtensions`
+  - `HtmlOptions.InlineRenderExtensions`
 - Markdown rendering with:
   - `MarkdownBlockMarkdownRenderExtension`
+  - `MarkdownInlineMarkdownRenderExtension`
   - `MarkdownWriteContext`
 - markdown/html inline participation with:
   - `IRenderableMarkdownInline`
@@ -50,11 +54,14 @@ Use the public layers like this:
    Register block, fenced-block, or inline parsers on `MarkdownReaderOptions`.
 2. Semantic model
    Return real block/inline objects instead of string placeholders.
-3. Syntax tree
+3. Inline normalization
+   Register `MarkdownInlineTransformExtension` only when a parsed inline AST needs a post-parse normalization pass that is separate from token recognition.
+4. Syntax tree
    Implement `ISyntaxMarkdownInline` or `ISyntaxMarkdownBlockWithContext` when you want more than the default `Unknown` node fallback.
-4. Rendering
+5. Rendering
    Implement `IMarkdownBlock.RenderHtml()` for simple self-contained output.
    Implement `IContextualHtmlMarkdownBlock` when rendering depends on `HtmlOptions` or surrounding blocks.
+   Register `MarkdownBlockHtmlRenderExtension` or `MarkdownInlineHtmlRenderExtension` when a package or host needs to override HTML for a semantic type without changing that type.
 
 ## Inline Extension Pattern
 
@@ -133,6 +140,10 @@ public static class DoubleBraceExtension {
     }
 }
 ```
+
+Inline parser registrations are evaluated in order at each parser position. Return `false` quickly when the current position is not yours; the first extension that returns `true` consumes that slice, later registrations do not get to claim the same marker, and disabled registrations are skipped before core inline parsing continues.
+
+Post-parse inline transform registrations run after the core inline parser and built-in input normalization. They receive an `InlineSequence` and a `MarkdownInlineTransformContext`, can mutate the sequence with `InlineSequence.ReplaceItems(...)`, or can return a replacement `InlineSequence`. Returning `null` is a no-op. Transforms also visit nested inline containers; `MarkdownInlineTransformContext.IsNestedSequence` lets a transform distinguish root paragraph/heading/table-cell sequences from nested label or custom-inline sequences. Source spans stay attached to reused inline node instances; replacement nodes are intentionally spanless unless they came from the parser.
 
 Why each interface matters:
 
@@ -225,6 +236,8 @@ Use:
 
 `HtmlOptions.BlockRenderExtensions` also supports context-aware override registrations now. When you need an external override to win before the block's own `IContextualHtmlMarkdownBlock` implementation, register a `MarkdownBlockHtmlRenderExtension` with `MarkdownBlockHtmlRenderExtension.CreateContextual(...)`.
 
+`HtmlOptions.InlineRenderExtensions` provides the matching seam for inline HTML output. Register a `MarkdownInlineHtmlRenderExtension` for the inline type you want to override. Later registrations win when several extensions match the same inline object, and returning `null` from the delegate falls back to the inline's own contextual/default HTML rendering.
+
 `MarkdownWriteOptions.BlockRenderExtensions` now has the same pattern through `MarkdownBlockMarkdownRenderExtension.CreateContextual(...)`, with `MarkdownWriteContext` exposing:
 
 - `GetBlockIndex(...)`
@@ -234,9 +247,13 @@ Use:
 
 See `OfficeIMO.Examples/Markdown/Markdown09_Custom_Markdown_Write_Overrides.cs` for a runnable example that writes both default markdown and a customized markdown profile using a contextual TOC override plus a legacy-compatible callout override.
 
+`MarkdownWriteOptions.InlineRenderExtensions` provides the matching seam for inline Markdown output. Register a `MarkdownInlineMarkdownRenderExtension` for the inline type you want to override during `MarkdownDoc.ToMarkdown(...)`. Later registrations win when several extensions match the same inline object, and returning `null` from the delegate falls back to the inline's own `IRenderableMarkdownInline.RenderMarkdown()` implementation.
+
 ## Delegate Block Parser Pattern
 
 For non-fenced syntax, the public block parser API now has the same delegate-style ergonomics as inline parsing.
+
+Block parser extensions run at their selected placement in registration order. The first parser that returns `true` consumes the block; later parsers at the same placement are not invoked for that block. Use `isEnabled` to opt out cleanly so parsing continues through later extension or core parsers.
 
 ```csharp
 var options = MarkdownReaderOptions.CreatePortableProfile();
@@ -299,6 +316,7 @@ Recommended practice:
 - Use `MarkdownBlockParserExtension` when the syntax is block-structured and does not naturally fit fenced code.
 - Use `MarkdownFencedBlockExtension` when a fenced language token is the right contract boundary.
 - Use `MarkdownInlineParserExtension` for local token syntax inside paragraphs/headings/list items.
+- Use `MarkdownInlineTransformExtension` for inline AST normalization that should run after token recognition and before document transforms.
 - Use `IMarkdownDocumentTransform` for AST upgrades that should happen after parsing, not during token recognition.
 
 ## Current Limits
@@ -306,8 +324,8 @@ Recommended practice:
 The extension surface is much stronger than before, but a few things are still intentionally limited:
 
 - `MarkdownSyntaxKind` remains a fixed enum, so extension node identity should flow through `CustomKind`
-- inline HTML rendering does not yet have a separate override registry beyond the inline node itself
 - block HTML override extensions still operate by block type, not by syntax-node shape
+- inline HTML and Markdown override extensions also operate by semantic inline type, not by syntax-node shape
 - the syntax tree is semantic-friendly, but it is still not a fully lossless token stream
 
 ## Suggested Pattern For Real Packages

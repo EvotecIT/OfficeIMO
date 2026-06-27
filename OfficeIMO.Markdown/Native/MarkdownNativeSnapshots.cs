@@ -6,15 +6,20 @@ namespace OfficeIMO.Markdown;
 public sealed class MarkdownNativeDocumentSnapshot {
     internal MarkdownNativeDocumentSnapshot(
         MarkdownNativeDocumentSourceKind sourceKind,
+        IReadOnlyList<MarkdownNativeReferenceLinkDefinitionSnapshot> referenceLinkDefinitions,
         IReadOnlyList<MarkdownNativeBlockSnapshot> blocks,
         IReadOnlyList<MarkdownNativeDiagnosticSnapshot> diagnostics) {
         SourceKind = sourceKind;
+        ReferenceLinkDefinitions = referenceLinkDefinitions ?? Array.Empty<MarkdownNativeReferenceLinkDefinitionSnapshot>();
         Blocks = blocks ?? Array.Empty<MarkdownNativeBlockSnapshot>();
         Diagnostics = diagnostics ?? Array.Empty<MarkdownNativeDiagnosticSnapshot>();
     }
 
     /// <summary>Identifies the markdown source backing this snapshot.</summary>
     public MarkdownNativeDocumentSourceKind SourceKind { get; }
+
+    /// <summary>Effective reference-style link definitions collected during parsing.</summary>
+    public IReadOnlyList<MarkdownNativeReferenceLinkDefinitionSnapshot> ReferenceLinkDefinitions { get; }
 
     /// <summary>Top-level block snapshots.</summary>
     public IReadOnlyList<MarkdownNativeBlockSnapshot> Blocks { get; }
@@ -24,14 +29,53 @@ public sealed class MarkdownNativeDocumentSnapshot {
 }
 
 /// <summary>
+/// UI-safe snapshot of a reference-style link definition.
+/// </summary>
+public sealed class MarkdownNativeReferenceLinkDefinitionSnapshot {
+    internal MarkdownNativeReferenceLinkDefinitionSnapshot(MarkdownReferenceLinkDefinition definition) {
+        Label = definition.Label;
+        Url = definition.Url;
+        Title = definition.Title;
+        SourceSpan = definition.SourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.SourceSpan.Value) : null;
+        LabelSourceSpan = definition.LabelSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.LabelSourceSpan.Value) : null;
+        UrlSourceSpan = definition.UrlSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.UrlSourceSpan.Value) : null;
+        TitleSourceSpan = definition.TitleSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.TitleSourceSpan.Value) : null;
+    }
+
+    /// <summary>Normalized reference label.</summary>
+    public string Label { get; }
+
+    /// <summary>Resolved destination URL.</summary>
+    public string Url { get; }
+
+    /// <summary>Optional definition title.</summary>
+    public string? Title { get; }
+
+    /// <summary>Source span for the entire reference-style definition, when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>Source span for the definition label token, when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? LabelSourceSpan { get; }
+
+    /// <summary>Source span for the destination token, when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? UrlSourceSpan { get; }
+
+    /// <summary>Source span for the optional title token, when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? TitleSourceSpan { get; }
+}
+
+/// <summary>
 /// UI-safe snapshot of a native block.
 /// </summary>
 public sealed class MarkdownNativeBlockSnapshot {
     internal MarkdownNativeBlockSnapshot() {
         Fields = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        FieldSourceSpans = new Dictionary<string, MarkdownNativeSourceSpanSnapshot?>(StringComparer.OrdinalIgnoreCase);
+        MarkerSourceSpans = Array.Empty<MarkdownNativeSourceSpanSnapshot>();
         Inlines = Array.Empty<MarkdownNativeInlineSnapshot>();
         Children = Array.Empty<MarkdownNativeBlockSnapshot>();
         Items = Array.Empty<MarkdownNativeListItemSnapshot>();
+        DefinitionGroups = Array.Empty<MarkdownNativeDefinitionListGroupSnapshot>();
         HeaderCells = Array.Empty<MarkdownNativeTableCellSnapshot>();
         Rows = Array.Empty<IReadOnlyList<MarkdownNativeTableCellSnapshot>>();
     }
@@ -54,6 +98,12 @@ public sealed class MarkdownNativeBlockSnapshot {
     /// <summary>String fields for block-specific metadata.</summary>
     public IReadOnlyDictionary<string, string?> Fields { get; internal set; }
 
+    /// <summary>Source spans for block-specific metadata fields when available.</summary>
+    public IReadOnlyDictionary<string, MarkdownNativeSourceSpanSnapshot?> FieldSourceSpans { get; internal set; }
+
+    /// <summary>Source spans for repeated marker tokens owned by this block, such as blockquote markers.</summary>
+    public IReadOnlyList<MarkdownNativeSourceSpanSnapshot> MarkerSourceSpans { get; internal set; }
+
     /// <summary>Inline snapshots owned directly by this block.</summary>
     public IReadOnlyList<MarkdownNativeInlineSnapshot> Inlines { get; internal set; }
 
@@ -63,11 +113,88 @@ public sealed class MarkdownNativeBlockSnapshot {
     /// <summary>List item snapshots for native list blocks.</summary>
     public IReadOnlyList<MarkdownNativeListItemSnapshot> Items { get; internal set; }
 
+    /// <summary>Definition-list group snapshots for native definition list blocks.</summary>
+    public IReadOnlyList<MarkdownNativeDefinitionListGroupSnapshot> DefinitionGroups { get; internal set; }
+
     /// <summary>Table header cell snapshots.</summary>
     public IReadOnlyList<MarkdownNativeTableCellSnapshot> HeaderCells { get; internal set; }
 
     /// <summary>Table body row snapshots.</summary>
     public IReadOnlyList<IReadOnlyList<MarkdownNativeTableCellSnapshot>> Rows { get; internal set; }
+}
+
+/// <summary>
+/// UI-safe snapshot of a definition-list group.
+/// </summary>
+public sealed class MarkdownNativeDefinitionListGroupSnapshot {
+    internal MarkdownNativeDefinitionListGroupSnapshot(
+        MarkdownNativeSourceSpanSnapshot? sourceSpan,
+        IReadOnlyList<MarkdownNativeDefinitionListTermSnapshot> terms,
+        IReadOnlyList<MarkdownNativeDefinitionListDefinitionSnapshot> definitions) {
+        SourceSpan = sourceSpan;
+        Terms = terms ?? Array.Empty<MarkdownNativeDefinitionListTermSnapshot>();
+        Definitions = definitions ?? Array.Empty<MarkdownNativeDefinitionListDefinitionSnapshot>();
+    }
+
+    /// <summary>Source span snapshot when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>Terms in this group.</summary>
+    public IReadOnlyList<MarkdownNativeDefinitionListTermSnapshot> Terms { get; }
+
+    /// <summary>Definitions in this group.</summary>
+    public IReadOnlyList<MarkdownNativeDefinitionListDefinitionSnapshot> Definitions { get; }
+}
+
+/// <summary>
+/// UI-safe snapshot of a definition-list term.
+/// </summary>
+public sealed class MarkdownNativeDefinitionListTermSnapshot {
+    internal MarkdownNativeDefinitionListTermSnapshot(
+        string text,
+        string markdown,
+        MarkdownNativeSourceSpanSnapshot? sourceSpan,
+        IReadOnlyList<MarkdownNativeInlineSnapshot> inlines) {
+        Text = text ?? string.Empty;
+        Markdown = markdown ?? string.Empty;
+        SourceSpan = sourceSpan;
+        Inlines = inlines ?? Array.Empty<MarkdownNativeInlineSnapshot>();
+    }
+
+    /// <summary>Plain text term content.</summary>
+    public string Text { get; }
+
+    /// <summary>Markdown term content.</summary>
+    public string Markdown { get; }
+
+    /// <summary>Source span snapshot when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>Inline snapshots for the term.</summary>
+    public IReadOnlyList<MarkdownNativeInlineSnapshot> Inlines { get; }
+}
+
+/// <summary>
+/// UI-safe snapshot of a definition-list definition body.
+/// </summary>
+public sealed class MarkdownNativeDefinitionListDefinitionSnapshot {
+    internal MarkdownNativeDefinitionListDefinitionSnapshot(
+        string markdown,
+        MarkdownNativeSourceSpanSnapshot? sourceSpan,
+        IReadOnlyList<MarkdownNativeBlockSnapshot> children) {
+        Markdown = markdown ?? string.Empty;
+        SourceSpan = sourceSpan;
+        Children = children ?? Array.Empty<MarkdownNativeBlockSnapshot>();
+    }
+
+    /// <summary>Markdown definition body.</summary>
+    public string Markdown { get; }
+
+    /// <summary>Source span snapshot when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>Nested child block snapshots.</summary>
+    public IReadOnlyList<MarkdownNativeBlockSnapshot> Children { get; }
 }
 
 /// <summary>
@@ -83,6 +210,7 @@ public sealed class MarkdownNativeInlineSnapshot {
         string literal,
         MarkdownNativeSourceSpanSnapshot? sourceSpan,
         IReadOnlyDictionary<string, string> metadata,
+        IReadOnlyDictionary<string, MarkdownNativeSourceSpanSnapshot?> metadataSourceSpans,
         IReadOnlyList<MarkdownNativeInlineSnapshot> children) {
         Id = id ?? string.Empty;
         Kind = kind;
@@ -92,6 +220,7 @@ public sealed class MarkdownNativeInlineSnapshot {
         Literal = literal ?? string.Empty;
         SourceSpan = sourceSpan;
         Metadata = metadata ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        MetadataSourceSpans = metadataSourceSpans ?? new Dictionary<string, MarkdownNativeSourceSpanSnapshot?>(StringComparer.OrdinalIgnoreCase);
         Children = children ?? Array.Empty<MarkdownNativeInlineSnapshot>();
     }
 
@@ -119,6 +248,9 @@ public sealed class MarkdownNativeInlineSnapshot {
     /// <summary>Metadata values such as target/title/source/alt.</summary>
     public IReadOnlyDictionary<string, string> Metadata { get; }
 
+    /// <summary>Source spans for metadata values such as target/title/source/alt.</summary>
+    public IReadOnlyDictionary<string, MarkdownNativeSourceSpanSnapshot?> MetadataSourceSpans { get; }
+
     /// <summary>Nested inline snapshots.</summary>
     public IReadOnlyList<MarkdownNativeInlineSnapshot> Children { get; }
 }
@@ -134,6 +266,8 @@ public sealed class MarkdownNativeListItemSnapshot {
         bool isChecked,
         int level,
         MarkdownNativeSourceSpanSnapshot? sourceSpan,
+        MarkdownNativeSourceSpanSnapshot? markerSourceSpan,
+        MarkdownNativeSourceSpanSnapshot? taskMarkerSourceSpan,
         IReadOnlyList<MarkdownNativeInlineSnapshot> inlines,
         IReadOnlyList<MarkdownNativeBlockSnapshot> children) {
         Id = id ?? string.Empty;
@@ -142,6 +276,8 @@ public sealed class MarkdownNativeListItemSnapshot {
         IsChecked = isChecked;
         Level = level;
         SourceSpan = sourceSpan;
+        MarkerSourceSpan = markerSourceSpan;
+        TaskMarkerSourceSpan = taskMarkerSourceSpan;
         Inlines = inlines ?? Array.Empty<MarkdownNativeInlineSnapshot>();
         Children = children ?? Array.Empty<MarkdownNativeBlockSnapshot>();
     }
@@ -163,6 +299,12 @@ public sealed class MarkdownNativeListItemSnapshot {
 
     /// <summary>Source span snapshot when available.</summary>
     public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>List marker token source span snapshot when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? MarkerSourceSpan { get; }
+
+    /// <summary>Task marker token source span snapshot when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? TaskMarkerSourceSpan { get; }
 
     /// <summary>Lead inline snapshots.</summary>
     public IReadOnlyList<MarkdownNativeInlineSnapshot> Inlines { get; }

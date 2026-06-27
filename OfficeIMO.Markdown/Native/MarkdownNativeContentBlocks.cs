@@ -11,6 +11,8 @@ public sealed class MarkdownNativeHeadingBlock : MarkdownNativeBlock {
         Inlines = heading.Inlines;
         InlineRuns = MarkdownNativeInlineProjection.FromInlineContainerChild(syntaxNode, MarkdownSyntaxKind.HeadingText);
         Text = heading.Text;
+        LevelSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingLevel);
+        TextSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingText);
     }
 
     /// <summary>Source heading block.</summary>
@@ -27,6 +29,15 @@ public sealed class MarkdownNativeHeadingBlock : MarkdownNativeBlock {
 
     /// <summary>AST-backed native inline projection with source spans.</summary>
     public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }
+
+    /// <summary>Source span for the heading marker or setext underline that determines the level.</summary>
+    public MarkdownSourceSpan? LevelSourceSpan { get; }
+
+    /// <summary>Source span for the heading text payload.</summary>
+    public MarkdownSourceSpan? TextSourceSpan { get; }
+
+    private static MarkdownSourceSpan? GetChildSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
+        syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.SourceSpan;
 }
 
 /// <summary>
@@ -75,6 +86,8 @@ public sealed class MarkdownNativeListItem {
         AdditionalParagraphs = item.AdditionalParagraphs;
         IsTask = item.IsTask;
         Checked = item.Checked;
+        MarkerSourceSpan = item.MarkerSourceSpan;
+        TaskMarkerSourceSpan = item.TaskMarkerSourceSpan;
         Level = item.Level;
         Id = MarkdownNativeListItemId.Create(item, syntaxNode, SourceSpan);
     }
@@ -111,6 +124,12 @@ public sealed class MarkdownNativeListItem {
 
     /// <summary>Whether this task item is checked.</summary>
     public bool Checked { get; }
+
+    /// <summary>Source span for the list marker token when this item was parsed from markdown.</summary>
+    public MarkdownSourceSpan? MarkerSourceSpan { get; }
+
+    /// <summary>Source span for the task marker token when this item was parsed from markdown.</summary>
+    public MarkdownSourceSpan? TaskMarkerSourceSpan { get; }
 
     /// <summary>Indentation level from the source list item.</summary>
     public int Level { get; }

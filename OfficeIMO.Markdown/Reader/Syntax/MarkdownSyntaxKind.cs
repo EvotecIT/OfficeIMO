@@ -50,6 +50,8 @@ public enum MarkdownSyntaxKind {
     InlineHtmlRaw,
     /// <summary>Footnote reference inline node.</summary>
     InlineFootnoteRef,
+    /// <summary>Footnote reference label metadata.</summary>
+    InlineFootnoteLabel,
     /// <summary>Paragraph block.</summary>
     Paragraph,
     /// <summary>Blockquote block.</summary>
@@ -66,14 +68,20 @@ public enum MarkdownSyntaxKind {
     SemanticFencedBlock,
     /// <summary>Semantic kind metadata for a semantic fenced block.</summary>
     FenceSemanticKind,
+    /// <summary>Opening fence marker token for a fenced code or semantic block.</summary>
+    CodeFenceOpening,
     /// <summary>Fenced code block info string / language hint.</summary>
     CodeFenceInfo,
     /// <summary>Code block content payload.</summary>
     CodeContent,
+    /// <summary>Closing fence marker token for a fenced code or semantic block.</summary>
+    CodeFenceClosing,
     /// <summary>Markdown table block.</summary>
     Table,
     /// <summary>Header row inside a markdown table.</summary>
     TableHeader,
+    /// <summary>Alignment/separator row inside a markdown table.</summary>
+    TableAlignmentRow,
     /// <summary>Body row inside a markdown table.</summary>
     TableRow,
     /// <summary>Single cell inside a markdown table row/header.</summary>

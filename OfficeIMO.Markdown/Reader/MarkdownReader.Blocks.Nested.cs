@@ -77,9 +77,15 @@ public static partial class MarkdownReader {
                 continue;
             }
 
+            int lineIndentColumns = CountLeadingIndentColumns(line);
+            bool underIndentedMarkerContinuation = options.StrictListIndentation
+                && lineIndentColumns > 3
+                && lineIndentColumns < continuationIndent;
+
             // Stop before the next list item (including nested items).
-            if (IsUnorderedListLine(line, out _, out _, out _, out _) ||
-                (breakOnAnyOrderedListLine ? IsOrderedListLine(line, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(line))) {
+            if (!underIndentedMarkerContinuation &&
+                (IsUnorderedListLine(line, out _, out _, out _, out _) ||
+                (breakOnAnyOrderedListLine ? IsOrderedListLine(line, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(line)))) {
                 break;
             }
 
@@ -97,7 +103,6 @@ public static partial class MarkdownReader {
 
                 // Indented code block inside list item: continuationIndent + 4 spaces.
                 if (options.IndentedCodeBlocks) {
-                    int lineIndentColumns = CountLeadingIndentColumns(line);
                     if (lineIndentColumns >= continuationIndent + 4 && !LastCollectedLinePreservesIndentedContinuation(collected)) break;
                 }
 
@@ -136,7 +141,7 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            int indentColumns = CountLeadingIndentColumns(line);
+            int indentColumns = lineIndentColumns;
             if (indentColumns < continuationIndent) {
                 if (collected.Count > 0 &&
                     !string.IsNullOrWhiteSpace(collected[collected.Count - 1]) &&
@@ -205,8 +210,18 @@ public static partial class MarkdownReader {
         if (LooksLikeTableRow(trimmed)) return false;
         if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
         if (options.Callouts && IsCalloutHeader("> " + trimmed, out _, out _)) return false;
-        if (IsUnorderedListLine(trimmed, out _, out _, out _, out _)) return false;
-        if (breakOnAnyOrderedListLine ? IsOrderedListLine(trimmed, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(trimmed)) return false;
+        int sourceIndentColumns = CountLeadingIndentColumns(source);
+        if (IsUnorderedListLine(trimmed, out _, out _, out _, out _)) {
+            if (sourceIndentColumns <= 3) return false;
+            normalized = trimmed;
+            return true;
+        }
+
+        if (breakOnAnyOrderedListLine ? IsOrderedListLine(trimmed, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(trimmed)) {
+            if (sourceIndentColumns <= 3) return false;
+            normalized = trimmed;
+            return true;
+        }
 
         if (options.HtmlBlocks && trimmed.StartsWith("<") && !TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) {
             return false;
@@ -230,15 +245,22 @@ public static partial class MarkdownReader {
         if (openingFenceIndent > 3) return false;
 
         string openingFence = StripLeadingIndentColumns(first, openingFenceIndent);
-        if (!IsCodeFenceOpen(openingFence, out string language, out char fenceChar, out int fenceLen)) return false;
+        if (!IsCodeFenceOpen(openingFence, out string language, out char fenceChar, out int fenceLen, out int fenceIndentColumns, out int infoPaddingColumns)) return false;
 
         int j = index + 1;
         var code = new StringBuilder();
+        bool hasClosingFence = false;
+        int closingFenceIndentColumns = 0;
+        int closingFenceLength = fenceLen;
         while (j < lines.Length) {
             string raw = lines[j] ?? string.Empty;
             int ind = CountLeadingIndentColumns(raw);
             string sliced = ind >= continuationIndent ? StripLeadingIndentColumns(raw, continuationIndent) : raw.TrimStart();
-            if (IsCodeFenceClose(sliced, fenceChar, fenceLen)) { j++; break; }
+            if (TryGetCodeFenceCloseInfo(sliced, fenceChar, fenceLen, out closingFenceIndentColumns, out closingFenceLength)) {
+                hasClosingFence = true;
+                j++;
+                break;
+            }
             int contentIndentToStrip = Math.Min(openingFenceIndent, CountLeadingIndentColumns(sliced));
             if (contentIndentToStrip > 0) {
                 sliced = StripLeadingIndentColumns(sliced, contentIndentToStrip);
@@ -258,7 +280,19 @@ public static partial class MarkdownReader {
             }
         }
 
-        block = CreateParsedFencedBlock(language, content, isFenced: true, caption, options);
+        block = CreateParsedFencedBlock(
+            language,
+            content,
+            isFenced: true,
+            caption,
+            options,
+            openingFenceIndent + fenceIndentColumns,
+            fenceLen,
+            infoPaddingColumns,
+            fenceChar,
+            hasClosingFence,
+            openingFenceIndent + closingFenceIndentColumns,
+            closingFenceLength);
         index = j;
         return true;
     }
@@ -300,7 +334,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryParseNestedQuoteBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, MarkdownReaderState state, out QuoteBlock? quote) {
+    private static bool TryParseNestedQuoteBlock(string[] lines, ref int index, int itemLevelAbs, int continuationIndent, MarkdownReaderOptions options, MarkdownReaderState state, out QuoteBlock? quote) {
         quote = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
 
@@ -359,6 +393,7 @@ public static partial class MarkdownReader {
 
             // Match the top-level quote parser's lazy continuation behavior inside list items too.
             if (!sawQuotedLine) break;
+            if (IsNestedListLineForParentItem(raw, itemLevelAbs, continuationIndent, options)) break;
             var previousQuoteContent = lastQuoteContent;
             if (previousQuoteContent == null || previousQuoteContent.Length == 0) break;
             var quoteContext = new[] { previousQuoteContent, part };
@@ -377,6 +412,26 @@ public static partial class MarkdownReader {
             index = j;
             return true;
         }
+        return false;
+    }
+
+    private static bool IsNestedListLineForParentItem(string line, int itemLevelAbs, int continuationIndent, MarkdownReaderOptions options) {
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        if (CountLeadingIndentColumns(line) < continuationIndent) return false;
+
+        if (options.OrderedLists &&
+            IsOrderedListLine(line, out int orderedLevelAbs, out _, out _) &&
+            IsParagraphInterruptingOrderedListLine(StripLeadingIndentColumns(line, continuationIndent)) &&
+            orderedLevelAbs >= itemLevelAbs + 1) {
+            return true;
+        }
+
+        if (options.UnorderedLists &&
+            IsUnorderedListLine(line, out int unorderedLevelAbs, out _, out _, out _) &&
+            unorderedLevelAbs >= itemLevelAbs + 1) {
+            return true;
+        }
+
         return false;
     }
 

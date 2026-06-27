@@ -11,6 +11,7 @@ public sealed class MarkdownNativeQuoteBlock : MarkdownNativeBlock {
         : base(MarkdownNativeBlockKind.Quote, quote, syntaxNode) {
         Quote = quote;
         Lines = quote.Lines;
+        MarkerSourceSpans = quote.MarkerSourceSpans;
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
     }
 
@@ -19,6 +20,9 @@ public sealed class MarkdownNativeQuoteBlock : MarkdownNativeBlock {
 
     /// <summary>Raw quote lines captured by the reader when available.</summary>
     public IReadOnlyList<string> Lines { get; }
+
+    /// <summary>Source spans for parsed quote marker tokens.</summary>
+    public IReadOnlyList<MarkdownSourceSpan> MarkerSourceSpans { get; }
 
     /// <summary>Nested native blocks in quote order.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Children { get; }
@@ -35,7 +39,9 @@ public sealed class MarkdownNativeCalloutBlock : MarkdownNativeBlock {
         : base(MarkdownNativeBlockKind.Callout, callout, syntaxNode) {
         Callout = callout;
         CalloutKind = callout.Kind;
+        KindSourceSpan = callout.KindSourceSpan ?? FindCalloutKindSourceSpan(syntaxNode);
         Title = callout.Title;
+        TitleSourceSpan = callout.TitleSourceSpan ?? FindCalloutTitleSourceSpan(syntaxNode);
         TitleInlines = callout.TitleInlines;
         TitleInlineRuns = MarkdownNativeInlineProjection.FromInlineContainerChild(syntaxNode, MarkdownSyntaxKind.CalloutTitle);
         Body = callout.Body;
@@ -48,8 +54,14 @@ public sealed class MarkdownNativeCalloutBlock : MarkdownNativeBlock {
     /// <summary>Callout kind such as info, warning, note, or success.</summary>
     public string CalloutKind { get; }
 
+    /// <summary>Source span for the callout kind token when available.</summary>
+    public MarkdownSourceSpan? KindSourceSpan { get; }
+
     /// <summary>Plain-text title.</summary>
     public string Title { get; }
+
+    /// <summary>Source span for the explicit callout title when available.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan { get; }
 
     /// <summary>Structured title inline nodes.</summary>
     public InlineSequence TitleInlines { get; }
@@ -62,6 +74,26 @@ public sealed class MarkdownNativeCalloutBlock : MarkdownNativeBlock {
 
     /// <summary>Nested native body blocks.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Children { get; }
+
+    private static MarkdownSourceSpan? FindCalloutKindSourceSpan(MarkdownSyntaxNode syntaxNode) {
+        for (int i = 0; i < syntaxNode.Children.Count; i++) {
+            if (syntaxNode.Children[i].Kind == MarkdownSyntaxKind.CalloutKind) {
+                return syntaxNode.Children[i].SourceSpan;
+            }
+        }
+
+        return null;
+    }
+
+    private static MarkdownSourceSpan? FindCalloutTitleSourceSpan(MarkdownSyntaxNode syntaxNode) {
+        for (int i = 0; i < syntaxNode.Children.Count; i++) {
+            if (syntaxNode.Children[i].Kind == MarkdownSyntaxKind.CalloutTitle) {
+                return syntaxNode.Children[i].SourceSpan;
+            }
+        }
+
+        return null;
+    }
 }
 
 /// <summary>
@@ -77,6 +109,7 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
         Open = details.Open;
         SummaryInlines = details.Summary?.Inlines;
         Summary = SummaryInlines == null ? null : InlinePlainText.Extract(SummaryInlines);
+        SummarySourceSpan = details.Summary?.SourceSpan ?? FindSummarySourceSpan(syntaxNode);
         SummaryInlineRuns = MarkdownNativeInlineProjection.FromInlineContainerChild(syntaxNode, MarkdownSyntaxKind.Summary);
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
     }
@@ -90,6 +123,9 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
     /// <summary>Plain-text summary when available.</summary>
     public string? Summary { get; }
 
+    /// <summary>Source span for the summary element when available.</summary>
+    public MarkdownSourceSpan? SummarySourceSpan { get; }
+
     /// <summary>Structured summary inline nodes when available.</summary>
     public InlineSequence? SummaryInlines { get; }
 
@@ -98,4 +134,56 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
 
     /// <summary>Nested native body blocks.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Children { get; }
+
+    private static MarkdownSourceSpan? FindSummarySourceSpan(MarkdownSyntaxNode syntaxNode) {
+        for (int i = 0; i < syntaxNode.Children.Count; i++) {
+            if (syntaxNode.Children[i].Kind == MarkdownSyntaxKind.Summary) {
+                return syntaxNode.Children[i].SourceSpan;
+            }
+        }
+
+        return null;
+    }
+}
+
+/// <summary>
+/// Native projection for a footnote definition.
+/// </summary>
+public sealed class MarkdownNativeFootnoteDefinitionBlock : MarkdownNativeBlock {
+    internal MarkdownNativeFootnoteDefinitionBlock(
+        FootnoteDefinitionBlock footnote,
+        MarkdownSyntaxNode syntaxNode,
+        IReadOnlyList<MarkdownNativeBlock> children)
+        : base(MarkdownNativeBlockKind.FootnoteDefinition, footnote, syntaxNode) {
+        Footnote = footnote;
+        Label = footnote.Label;
+        LabelSourceSpan = footnote.LabelSourceSpan ?? FindFootnoteLabelSourceSpan(syntaxNode);
+        Text = footnote.Text;
+        Children = children ?? Array.Empty<MarkdownNativeBlock>();
+    }
+
+    /// <summary>Source footnote definition block.</summary>
+    public FootnoteDefinitionBlock Footnote { get; }
+
+    /// <summary>Footnote label without the leading caret marker.</summary>
+    public string Label { get; }
+
+    /// <summary>Source span for the footnote label token when available.</summary>
+    public MarkdownSourceSpan? LabelSourceSpan { get; }
+
+    /// <summary>Rendered markdown text for the definition body.</summary>
+    public string Text { get; }
+
+    /// <summary>Nested native definition body blocks.</summary>
+    public IReadOnlyList<MarkdownNativeBlock> Children { get; }
+
+    private static MarkdownSourceSpan? FindFootnoteLabelSourceSpan(MarkdownSyntaxNode syntaxNode) {
+        for (int i = 0; i < syntaxNode.Children.Count; i++) {
+            if (syntaxNode.Children[i].Kind == MarkdownSyntaxKind.FootnoteLabel) {
+                return syntaxNode.Children[i].SourceSpan;
+            }
+        }
+
+        return null;
+    }
 }

@@ -21,7 +21,11 @@ public static partial class MarkdownReader {
                 out var titleSpan)) {
                 var resolved = ResolveUrl(url, options);
                 if (resolved != null && !state.LinkRefs.ContainsKey(label)) {
-                    state.LinkRefs[label] = new MarkdownReferenceLinkDefinition(label, resolved!, title, labelSpan, urlSpan, titleSpan);
+                    var sourceSpan = CreateLineSpan(
+                        state,
+                        state.SourceLineOffset + i + 1,
+                        state.SourceLineOffset + i + consumedLines);
+                    state.LinkRefs[label] = new MarkdownReferenceLinkDefinition(label, resolved!, title, sourceSpan, labelSpan, urlSpan, titleSpan);
                 }
                 i += consumedLines;
                 return true;

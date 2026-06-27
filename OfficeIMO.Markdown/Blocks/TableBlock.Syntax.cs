@@ -117,6 +117,10 @@ public sealed partial class TableBlock {
                 MarkdownBlockSyntaxBuilder.GetAggregateSpan(headerChildren) ?? new MarkdownSourceSpan(line, line),
                 string.Join(" | ", Headers),
                 headerChildren));
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.TableAlignmentRow,
+                GetAlignmentRowSourceSpan(span, line + 1),
+                BuildAlignmentRowLiteral(columnCount)));
             line += 2;
         }
 
@@ -139,6 +143,36 @@ public sealed partial class TableBlock {
         }
 
         return nodes;
+    }
+
+    private MarkdownSourceSpan? GetAlignmentRowSourceSpan(MarkdownSourceSpan? tableSpan, int line) {
+        if (AlignmentRowSourceSpan.HasValue) {
+            return AlignmentRowSourceSpan;
+        }
+
+        if (!tableSpan.HasValue) {
+            return null;
+        }
+
+        return new MarkdownSourceSpan(line, line);
+    }
+
+    private string BuildAlignmentRowLiteral(int columnCount) {
+        if (columnCount <= 0) {
+            return string.Empty;
+        }
+
+        var cells = new string[columnCount];
+        for (int i = 0; i < columnCount; i++) {
+            cells[i] = GetAlignment(i) switch {
+                ColumnAlignment.Left => ":---",
+                ColumnAlignment.Center => ":---:",
+                ColumnAlignment.Right => "---:",
+                _ => "---"
+            };
+        }
+
+        return string.Join(" | ", cells);
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildTableCellSyntaxChildren(

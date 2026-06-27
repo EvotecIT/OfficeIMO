@@ -10,6 +10,18 @@ public static partial class MarkdownReader {
         PreScanReferenceLinkDefinitions(lines, state, new MarkdownReaderOptions());
     }
 
+    private static IReadOnlyList<MarkdownReferenceLinkDefinition> SnapshotReferenceLinkDefinitions(MarkdownReaderState state) {
+        if (state == null || state.LinkRefs.Count == 0) {
+            return Array.Empty<MarkdownReferenceLinkDefinition>();
+        }
+
+        return state.LinkRefs.Values
+            .OrderBy(definition => definition.LabelSourceSpan?.StartLine ?? int.MaxValue)
+            .ThenBy(definition => definition.LabelSourceSpan?.StartColumn ?? int.MaxValue)
+            .ThenBy(definition => definition.Label, StringComparer.Ordinal)
+            .ToArray();
+    }
+
     private static void PreScanReferenceLinkDefinitions(string[] lines, MarkdownReaderState state, MarkdownReaderOptions options) {
         bool inFence = false;
         char fenceChar = '\0';
@@ -52,7 +64,11 @@ public static partial class MarkdownReader {
                 out var titleSpan)) {
                 var resolved = ResolveUrl(url, options);
                 if (resolved != null && !state.LinkRefs.ContainsKey(label)) {
-                    state.LinkRefs[label] = new MarkdownReferenceLinkDefinition(label, resolved!, title, labelSpan, urlSpan, titleSpan);
+                    var sourceSpan = CreateLineSpan(
+                        state,
+                        state.SourceLineOffset + idx + 1,
+                        state.SourceLineOffset + idx + consumedLines);
+                    state.LinkRefs[label] = new MarkdownReferenceLinkDefinition(label, resolved!, title, sourceSpan, labelSpan, urlSpan, titleSpan);
                 }
                 idx += consumedLines - 1;
             }

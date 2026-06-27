@@ -4,12 +4,16 @@ namespace OfficeIMO.Markdown;
 /// Simple blockquote block consisting of raw text lines.
 /// </summary>
 public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
+    private readonly List<MarkdownSourceSpan> _markerSourceSpans = new List<MarkdownSourceSpan>();
+
     /// <summary>Raw text lines for a simple quote (used when <see cref="Children"/> is empty).</summary>
     public System.Collections.Generic.List<string> Lines { get; } = new System.Collections.Generic.List<string>();
     /// <summary>Nested blocks rendered inside the quote.</summary>
     public System.Collections.Generic.List<IMarkdownBlock> Children { get; } = new System.Collections.Generic.List<IMarkdownBlock>();
     /// <summary>Read-only AST-style view of parsed child blocks inside the quote.</summary>
     public IReadOnlyList<IMarkdownBlock> ChildBlocks => Children;
+    /// <summary>Source spans for quote marker tokens (<c>&gt;</c>) captured from parsed markdown lines.</summary>
+    public IReadOnlyList<MarkdownSourceSpan> MarkerSourceSpans => _markerSourceSpans;
     /// <summary>Nested syntax nodes captured during parsing, when available.</summary>
     internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
     /// <summary>Create an empty quote block.</summary>
@@ -19,6 +23,15 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
 
     internal void ClearSyntaxCache() {
         SyntaxChildren = null;
+    }
+
+    internal void ReplaceMarkerSourceSpans(IEnumerable<MarkdownSourceSpan>? spans) {
+        _markerSourceSpans.Clear();
+        if (spans == null) {
+            return;
+        }
+
+        _markerSourceSpans.AddRange(spans);
     }
 
     string IMarkdownBlock.RenderMarkdown() {

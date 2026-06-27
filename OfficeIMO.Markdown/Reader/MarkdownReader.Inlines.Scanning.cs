@@ -16,8 +16,7 @@ public static partial class MarkdownReader {
     }
 
     private static bool IsBackslashEscapable(char c) {
-        // CommonMark backslash-escapable punctuation (plus '|' which we want for tables).
-        // See: https://spec.commonmark.org/ (backslash escapes). We keep the set small and pragmatic.
+        // CommonMark backslash-escapable ASCII punctuation.
         return c switch {
             '\\' => true,
             '`' => true,
@@ -30,14 +29,25 @@ public static partial class MarkdownReader {
             '(' => true,
             ')' => true,
             '#' => true,
+            '$' => true,
+            '%' => true,
+            '&' => true,
             '+' => true,
+            ',' => true,
             '-' => true,
             '.' => true,
+            '/' => true,
+            ':' => true,
+            ';' => true,
+            '<' => true,
             '!' => true,
             '"' => true,
             '\'' => true,
             '|' => true,
             '>' => true,
+            '?' => true,
+            '@' => true,
+            '^' => true,
             '~' => true,
             '=' => true,
             _ => false

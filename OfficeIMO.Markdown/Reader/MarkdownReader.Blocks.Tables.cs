@@ -28,9 +28,16 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool StartsTable(string[] lines, int index) => TryGetTableExtent(lines, index, out _, out _);
+    private static bool StartsTable(string[] lines, int index, MarkdownReaderOptions options) =>
+        TryGetTableExtent(lines, index, out _, out _, allowHeaderlessTables: options?.AllowHeaderlessTables ?? true);
 
-    private static bool TryGetTableExtent(string[] lines, int start, out int end, out bool hasOuterPipes, bool allowSingleRowHeaderless = false) {
+    private static bool TryGetTableExtent(
+        string[] lines,
+        int start,
+        out int end,
+        out bool hasOuterPipes,
+        bool allowSingleRowHeaderless = false,
+        bool allowHeaderlessTables = true) {
         end = start;
         hasOuterPipes = false;
         if (lines is null || start < 0 || start >= lines.Length) return false;
@@ -48,10 +55,20 @@ public static partial class MarkdownReader {
         bool sawAlignmentRow = false;
         if (j < lines.Length && IsAlignmentRow(lines[j])) {
             sawAlignmentRow = true;
+            var headerCells = SplitTableRow(lines[start]);
+            var alignmentCells = SplitTableRow(lines[j]);
+            if (headerCells.Count != alignmentCells.Count) {
+                return false;
+            }
+
             j++;
         }
 
         if (!sawAlignmentRow) {
+            if (!allowHeaderlessTables && !allowSingleRowHeaderless) {
+                return false;
+            }
+
             // Headerless tables are easy to mis-detect (any two lines with pipes). To reduce false positives,
             // require explicit outer pipes on every row and at least two rows.
             if (!hasOuterPipes) return false;
@@ -86,7 +103,7 @@ public static partial class MarkdownReader {
                 j++;
             }
         } else {
-            while (j < lines.Length && LooksLikeTableRow(lines[j])) j++;
+            while (j < lines.Length && LooksLikeTableBodyRow(lines[j])) j++;
         }
 
         end = j - 1;
@@ -103,6 +120,8 @@ public static partial class MarkdownReader {
         table.InlineRenderState = inlineState;
         if (start + 1 <= end && IsAlignmentRow(lines[start + 1])) {
             table.Headers.AddRange(cells0.Select(cell => cell.Text));
+            table.UseHeaderColumnCountForRendering = true;
+            table.SetAlignmentRowSourceSpan(CreateLineSpan(state, state.SourceLineOffset + start + 2, state.SourceLineOffset + start + 2));
             var aligns = SplitTableRow(lines[start + 1]);
             for (int i = 0; i < aligns.Count; i++) table.Alignments.Add(ParseAlignmentCell(aligns[i]));
             for (int i = start + 2; i <= end; i++) {
@@ -237,6 +256,9 @@ public static partial class MarkdownReader {
         if (string.IsNullOrEmpty(cell.Markdown)) {
             return null;
         }
+        if (!options.ParseTableCellBlocks) {
+            return null;
+        }
 
         var normalized = BuildTableCellSourceLines(cell);
         if (!TableBlock.LooksLikeStructuredMarkdownCell(string.Join("\n", normalized.Select(line => line.Text)))) {
@@ -278,16 +300,21 @@ public static partial class MarkdownReader {
         var cells = SplitTableRow(line);
         if (cells.Count == 0) return false;
         foreach (var c in cells) {
-            var t = c.Trim(); if (t.Length < 3) return false;
+            var t = c.Trim(); if (t.Length == 0) return false;
             int dash = 0;
             for (int i = 0; i < t.Length; i++) {
                 char ch = t[i];
                 if (ch == '-') dash++;
                 else if (ch == ':' && (i == 0 || i == t.Length - 1)) { } else return false;
             }
-            if (dash < 3) return false;
+            if (dash < 1) return false;
         }
         return true;
+    }
+
+    private static bool LooksLikeTableBodyRow(string line) {
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        return line.Trim().Contains('|');
     }
 
     private static ColumnAlignment ParseAlignmentCell(string cell) {
@@ -407,6 +434,7 @@ public static partial class MarkdownReader {
         List<MarkdownSourcePoint?>? points = state?.SourceTextMap == null ? null : new List<MarkdownSourcePoint?>(cell.Markdown.Length + 8);
         int absoluteLine = cell.SourceSpan.StartLine;
         int column = cell.SourceSpan.StartColumn ?? 1;
+        int codeFenceLen = 0;
 
         void AppendMapped(string value, int sourceColumn) {
             builder.Append(value);
@@ -422,6 +450,35 @@ public static partial class MarkdownReader {
 
         for (int i = 0; i < cell.Markdown.Length; i++) {
             char ch = cell.Markdown[i];
+            if (ch == '`') {
+                int run = 1;
+                int tick = i + 1;
+                while (tick < cell.Markdown.Length && cell.Markdown[tick] == '`') {
+                    run++;
+                    tick++;
+                }
+
+                if (codeFenceLen == 0) {
+                    if (HasClosingBacktickRun(cell.Markdown, i + run, run)) {
+                        codeFenceLen = run;
+                    }
+                } else if (run == codeFenceLen) {
+                    codeFenceLen = 0;
+                }
+
+                AppendMapped(cell.Markdown.Substring(i, run), column);
+                column += run;
+                i += run - 1;
+                continue;
+            }
+
+            if (codeFenceLen != 0 && ch == '\\' && i + 1 < cell.Markdown.Length && cell.Markdown[i + 1] == '|') {
+                AppendMapped("|", column + 1);
+                column += 2;
+                i++;
+                continue;
+            }
+
             if (ch == '\r') {
                 if (i + 1 < cell.Markdown.Length && cell.Markdown[i + 1] == '\n') {
                     i++;
@@ -453,6 +510,13 @@ public static partial class MarkdownReader {
                         continue;
                     }
 
+                    if (TryConsumeInlineRawHtmlTableCellTag(cell.Markdown, i, out int rawHtmlTagLength)) {
+                        AppendMapped(cell.Markdown.Substring(i, rawHtmlTagLength), column);
+                        column += rawHtmlTagLength;
+                        i += rawHtmlTagLength - 1;
+                        continue;
+                    }
+
                     AppendMapped("&lt;", column);
                     break;
                 case '>':
@@ -470,6 +534,25 @@ public static partial class MarkdownReader {
         }
 
         return (builder.ToString(), points == null ? null : new MarkdownInlineSourceMap(points.ToArray()));
+    }
+
+    private static bool TryConsumeInlineRawHtmlTableCellTag(string markdown, int index, out int consumed) {
+        consumed = 0;
+        if (!TryConsumeRawInlineHtmlTag(markdown, index, out int rawHtmlTagLength)) {
+            return false;
+        }
+
+        string rawTag = markdown.Substring(index, rawHtmlTagLength);
+        if (!HtmlBlockParser.TryParseHtmlTag(rawTag, out var tagName, out _, out _)) {
+            return false;
+        }
+
+        if (HtmlBlockParser.IsBlockOrRawTextHtmlTagName(tagName)) {
+            return false;
+        }
+
+        consumed = rawHtmlTagLength;
+        return true;
     }
 
     private static List<MarkdownSourceLineSlice> BuildTableCellSourceLines(TableCellSourceFragment cell) {

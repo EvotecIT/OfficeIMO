@@ -62,6 +62,119 @@ Paragraph text
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Creates_Normalized_SourceSlices_For_SpanBacked_Nodes() {
+        const string markdown = "# Title\r\n\r\nParagraph one\r\n";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var heading = result.SyntaxTree.Children[0];
+        var paragraph = result.SyntaxTree.Children[1];
+
+        Assert.Equal("# Title\n\nParagraph one\n", result.SourceMarkdown);
+        Assert.False(result.PreservesOriginalMarkdown);
+
+        Assert.True(result.TryCreateSourceSlice(heading, out var headingSlice));
+        Assert.Equal(MarkdownSourceTextKind.Normalized, headingSlice.TextKind);
+        Assert.Equal("# Title", headingSlice.Text);
+        Assert.Equal(0, headingSlice.StartOffset);
+        Assert.Equal(6, headingSlice.EndOffsetInclusive);
+
+        Assert.True(result.TryCreateSourceSlice(paragraph.SourceSpan!.Value, out var paragraphSlice));
+        Assert.Equal("Paragraph one", paragraphSlice.Text);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, paragraphSlice.TextKind);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_PreserveTrivia_Creates_Original_SourceSlices_For_LineEndingEquivalent_Input() {
+        const string markdown = "# Title\r\n\r\nParagraph one\r\n";
+        var options = new MarkdownReaderOptions {
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var heading = result.SyntaxTree.Children[0];
+        var paragraph = result.SyntaxTree.Children[1];
+
+        Assert.True(result.PreservesOriginalMarkdown);
+        Assert.Equal(markdown, result.OriginalMarkdown);
+        Assert.Equal("# Title\n\nParagraph one\n", result.SourceMarkdown);
+
+        Assert.True(result.TryCreateSourceSlice(heading, out var normalizedSlice));
+        Assert.Equal("# Title", normalizedSlice.Text);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, normalizedSlice.TextKind);
+
+        Assert.True(result.TryCreateOriginalSourceSlice(heading, out var originalHeadingSlice));
+        Assert.Equal(MarkdownSourceTextKind.Original, originalHeadingSlice.TextKind);
+        Assert.Equal("# Title", originalHeadingSlice.Text);
+
+        Assert.True(result.TryCreateOriginalSourceSlice(paragraph, out var originalParagraphSlice));
+        Assert.Equal(MarkdownSourceTextKind.Original, originalParagraphSlice.TextKind);
+        Assert.Equal("Paragraph one", originalParagraphSlice.Text);
+        Assert.Equal(markdown.IndexOf("Paragraph one", StringComparison.Ordinal), originalParagraphSlice.StartOffset);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_PreserveTrivia_Creates_Original_SourceSlices_For_StandaloneCarriageReturns() {
+        const string markdown = "# Title\r\rParagraph one\rSecond para";
+        var options = new MarkdownReaderOptions {
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var paragraph = result.SyntaxTree.Children[1];
+
+        Assert.True(result.PreservesOriginalMarkdown);
+        Assert.Equal(markdown, result.OriginalMarkdown);
+        Assert.Equal("# Title\n\nParagraph one\nSecond para", result.SourceMarkdown);
+
+        Assert.True(result.TryCreateOriginalSourceSlice(paragraph, out var originalSlice));
+        Assert.Equal(MarkdownSourceTextKind.Original, originalSlice.TextKind);
+        Assert.Equal("Paragraph one\rSecond para", originalSlice.Text);
+        Assert.Equal(markdown.IndexOf("Paragraph one", StringComparison.Ordinal), originalSlice.StartOffset);
+        Assert.Equal(markdown.Length - 1, originalSlice.EndOffsetInclusive);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_PreserveTrivia_Creates_Original_SourceSlice_When_Text_Is_Equivalent() {
+        const string markdown = "# Title\n\nParagraph one\n";
+        var options = new MarkdownReaderOptions {
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var paragraph = result.SyntaxTree.Children[1];
+
+        Assert.True(result.PreservesOriginalMarkdown);
+        Assert.Equal(markdown, result.OriginalMarkdown);
+        Assert.Equal(markdown, result.SourceMarkdown);
+
+        Assert.True(result.TryCreateOriginalSourceSlice(paragraph, out var originalSlice));
+        Assert.Equal(MarkdownSourceTextKind.Original, originalSlice.TextKind);
+        Assert.Equal("Paragraph one", originalSlice.Text);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_PreserveTrivia_Rejects_Original_SourceSlice_When_InputNormalization_Changes_Text() {
+        const string markdown = "# Ti\u200Btle\n";
+        var options = new MarkdownReaderOptions {
+            PreserveTrivia = true,
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeZeroWidthSpacingArtifacts = true
+            }
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var heading = result.SyntaxTree.Children[0];
+
+        Assert.True(result.PreservesOriginalMarkdown);
+        Assert.Equal(markdown, result.OriginalMarkdown);
+        Assert.Equal("# Title\n", result.SourceMarkdown);
+        Assert.True(result.TryCreateSourceSlice(heading, out var normalizedSlice));
+        Assert.Equal("# Title", normalizedSlice.Text);
+
+        Assert.False(result.TryCreateOriginalSourceSlice(heading, out _));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Returns_FinalDocument_OriginalSyntaxTree_And_TransformDiagnostics() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
@@ -276,7 +389,7 @@ Heading Title
         var level = heading.Children[0];
         Assert.Equal(MarkdownSyntaxKind.HeadingLevel, level.Kind);
         Assert.Equal("2", level.Literal);
-        Assert.Null(level.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 13), level.SourceSpan);
 
         var text = heading.Children[1];
         Assert.Equal(MarkdownSyntaxKind.HeadingText, text.Kind);
@@ -284,6 +397,29 @@ Heading Title
         Assert.NotNull(text.SourceSpan);
         Assert.Equal(1, text.SourceSpan!.Value.StartLine);
         Assert.Equal(1, text.SourceSpan!.Value.EndLine);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Atx_Heading_Level_And_Text_SourceSpans() {
+        const string markdown = "  ###   Trimmed ###";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var heading = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
+        Assert.Equal("Trimmed", heading.Literal);
+
+        var level = heading.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.HeadingLevel, level.Kind);
+        Assert.Equal("3", level.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), level.SourceSpan);
+
+        var text = heading.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.HeadingText, text.Kind);
+        Assert.Equal("Trimmed", text.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 15), text.SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.HeadingLevel, result.FindDeepestNodeAtPosition(1, 4)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(1, 10)!.Kind);
     }
 
     [Fact]
@@ -304,7 +440,7 @@ Heading Title
             MarkdownSyntaxKind.InlineText,
             MarkdownSyntaxKind.InlineCodeSpan
         }, text.Children.Select(node => node.Kind).ToArray());
-        Assert.Equal(5, text.SourceSpan!.Value.StartColumn);
+        Assert.Equal(3, text.SourceSpan!.Value.StartColumn);
         Assert.Equal(20, text.SourceSpan!.Value.EndColumn);
         Assert.NotNull(text.Children[0].SourceSpan);
         Assert.Equal(5, text.Children[0].SourceSpan!.Value.StartColumn);
@@ -382,6 +518,23 @@ Heading Title
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Footnote_Reference_Label_Metadata_Node() {
+        const string markdown = "A [^note]\n\n[^note]: Body";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var paragraph = result.SyntaxTree.Children[0];
+        var footnoteRef = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineFootnoteRef);
+
+        Assert.Equal("note", footnoteRef.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 9), footnoteRef.SourceSpan);
+        var label = Assert.Single(footnoteRef.Children);
+        Assert.Equal(MarkdownSyntaxKind.InlineFootnoteLabel, label.Kind);
+        Assert.Equal("note", label.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), label.SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.InlineFootnoteLabel, result.FindDeepestNodeAtPosition(1, 6)!.Kind);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Uses_Custom_Inline_Parser_Extensions_With_Nested_Ast_And_SourceSpans() {
         const string markdown = "Lead {{**Bold** core}} tail";
         var options = new MarkdownReaderOptions();
@@ -453,23 +606,46 @@ Heading Title
 
     [Fact]
     public void ParseWithSyntaxTree_Associates_SequenceInline_Syntax_To_Wrapper_Objects() {
-        const string markdown = "Use **bold** and *emphasis*.";
+        const string markdown = "Use **bold**, *emphasis*, ~~strike~~, and ==mark==.";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateOfficeIMOProfile());
         var paragraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
         var paragraphSyntax = Assert.Single(result.FinalSyntaxTree.Children);
         var boldInline = Assert.IsType<BoldSequenceInline>(paragraphBlock.Inlines.Nodes[1]);
         var italicInline = Assert.IsType<ItalicSequenceInline>(paragraphBlock.Inlines.Nodes[3]);
+        var strikethroughInline = Assert.IsType<StrikethroughSequenceInline>(paragraphBlock.Inlines.Nodes[5]);
+        var highlightInline = Assert.IsType<HighlightSequenceInline>(paragraphBlock.Inlines.Nodes[7]);
 
         var strongSyntax = paragraphSyntax.Children[1];
         var emphasisSyntax = paragraphSyntax.Children[3];
+        var strikethroughSyntax = paragraphSyntax.Children[5];
+        var highlightSyntax = paragraphSyntax.Children[7];
 
         Assert.Same(boldInline, strongSyntax.AssociatedObject);
         Assert.Equal(boldInline.SourceSpan, strongSyntax.SourceSpan);
         Assert.Same(italicInline, emphasisSyntax.AssociatedObject);
         Assert.Equal(italicInline.SourceSpan, emphasisSyntax.SourceSpan);
+        Assert.Same(strikethroughInline, strikethroughSyntax.AssociatedObject);
+        Assert.Equal(strikethroughInline.SourceSpan, strikethroughSyntax.SourceSpan);
+        Assert.Same(highlightInline, highlightSyntax.AssociatedObject);
+        Assert.Equal(highlightInline.SourceSpan, highlightSyntax.SourceSpan);
         Assert.IsNotType<InlineSequence>(strongSyntax.AssociatedObject);
         Assert.IsNotType<InlineSequence>(emphasisSyntax.AssociatedObject);
+        Assert.IsNotType<InlineSequence>(strikethroughSyntax.AssociatedObject);
+        Assert.IsNotType<InlineSequence>(highlightSyntax.AssociatedObject);
+    }
+
+    [Fact]
+    public void SyntaxBuilder_Associates_BoldItalicSequence_Syntax_To_Wrapper_Object() {
+        var boldItalicInline = new BoldItalicSequenceInline(new InlineSequence().Text("both"));
+        var paragraph = new ParagraphBlock(new InlineSequence().AddRaw(boldItalicInline));
+
+        var paragraphSyntax = ((ISyntaxMarkdownBlock)paragraph).BuildSyntaxNode(null);
+        var strongEmphasisSyntax = Assert.Single(paragraphSyntax.Children);
+
+        Assert.Equal(MarkdownSyntaxKind.InlineStrongEmphasis, strongEmphasisSyntax.Kind);
+        Assert.Same(boldItalicInline, strongEmphasisSyntax.AssociatedObject);
+        Assert.IsNotType<InlineSequence>(strongEmphasisSyntax.AssociatedObject);
     }
 
     [Fact]
@@ -505,6 +681,98 @@ Heading Title
         Assert.Contains("data-inline=\"double-brace\"", html, StringComparison.Ordinal);
         Assert.Contains("data-title=\"inline-title\"", html, StringComparison.Ordinal);
         Assert.Contains(">core<", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Html_Inline_Render_Extension_Overrides_Contextual_Custom_Inline_Rendering() {
+        const string markdown = "Lead {{core}} tail";
+        var options = new MarkdownReaderOptions();
+        options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var htmlOptions = new HtmlOptions {
+            Kind = HtmlKind.Fragment,
+            Title = "inline-extension-title"
+        };
+        htmlOptions.InlineRenderExtensions.Add(new MarkdownInlineHtmlRenderExtension(
+            "double-brace-html",
+            typeof(DoubleBraceInline),
+            static (inline, html) => {
+                if (inline is not DoubleBraceInline custom) {
+                    return null;
+                }
+
+                return "<mark data-inline-extension=\"double-brace\" data-title=\""
+                    + System.Net.WebUtility.HtmlEncode(html.Title)
+                    + "\">"
+                    + System.Net.WebUtility.HtmlEncode(InlinePlainText.Extract(custom.Inlines))
+                    + "</mark>";
+            }));
+
+        var rendered = document.ToHtmlFragment(htmlOptions);
+
+        Assert.Contains("data-inline-extension=\"double-brace\"", rendered, StringComparison.Ordinal);
+        Assert.Contains("data-title=\"inline-extension-title\"", rendered, StringComparison.Ordinal);
+        Assert.Contains(">core<", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-inline=\"double-brace\"", rendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Html_Inline_Render_Extension_Uses_Last_Matching_Registration() {
+        const string markdown = "Lead {{core}} tail";
+        var options = new MarkdownReaderOptions();
+        options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var htmlOptions = new HtmlOptions {
+            Kind = HtmlKind.Fragment
+        };
+        htmlOptions.InlineRenderExtensions.Add(new MarkdownInlineHtmlRenderExtension(
+            "first-double-brace-html",
+            typeof(DoubleBraceInline),
+            static (inline, _) => inline is DoubleBraceInline custom
+                ? "<span data-inline-extension=\"first\">"
+                    + System.Net.WebUtility.HtmlEncode(InlinePlainText.Extract(custom.Inlines))
+                    + "</span>"
+                : null));
+        htmlOptions.InlineRenderExtensions.Add(new MarkdownInlineHtmlRenderExtension(
+            "last-double-brace-html",
+            typeof(DoubleBraceInline),
+            static (inline, _) => inline is DoubleBraceInline custom
+                ? "<strong data-inline-extension=\"last\">"
+                    + System.Net.WebUtility.HtmlEncode(InlinePlainText.Extract(custom.Inlines))
+                    + "</strong>"
+                : null));
+
+        var rendered = document.ToHtmlFragment(htmlOptions);
+
+        Assert.Contains("data-inline-extension=\"last\"", rendered, StringComparison.Ordinal);
+        Assert.Contains("<strong", rendered, StringComparison.Ordinal);
+        Assert.Contains(">core<", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-inline-extension=\"first\"", rendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Html_Inline_Render_Extension_Null_Result_Falls_Back_To_Contextual_Rendering() {
+        const string markdown = "Lead {{core}} tail";
+        var options = new MarkdownReaderOptions();
+        options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var htmlOptions = new HtmlOptions {
+            Kind = HtmlKind.Fragment,
+            Title = "fallback-title"
+        };
+        htmlOptions.InlineRenderExtensions.Add(new MarkdownInlineHtmlRenderExtension(
+            "noop-double-brace-html",
+            typeof(DoubleBraceInline),
+            static (_, _) => null));
+
+        var rendered = document.ToHtmlFragment(htmlOptions);
+
+        Assert.Contains("data-inline=\"double-brace\"", rendered, StringComparison.Ordinal);
+        Assert.Contains("data-title=\"fallback-title\"", rendered, StringComparison.Ordinal);
+        Assert.Contains(">core<", rendered, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -680,6 +948,39 @@ Heading Title
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Keeps_BlankLine_Separated_Nested_Quote_And_NonOne_Ordered_List_As_Separate_ListItem_Blocks() {
+        const string markdown = """
+- outer
+  > alpha
+
+  10. beta
+      gamma
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
+        var item = Assert.Single(list.Items);
+        var quote = Assert.IsType<QuoteBlock>(item.ChildBlocks[0]);
+        var ordered = Assert.IsType<OrderedListBlock>(item.ChildBlocks[1]);
+        var nestedItem = Assert.Single(ordered.Items);
+        var listSyntax = Assert.Single(result.FinalSyntaxTree.Children);
+        var itemSyntax = Assert.Single(listSyntax.Children);
+
+        Assert.Equal("outer", item.Content.RenderMarkdown());
+        Assert.Equal("alpha", Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks)).Inlines.RenderMarkdown());
+        Assert.Equal(10, ordered.Start);
+        Assert.Equal("beta gamma", nestedItem.Content.RenderMarkdown());
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.Quote,
+            MarkdownSyntaxKind.OrderedList
+        }, itemSyntax.Children.Select(child => child.Kind).ToArray());
+        Assert.Same(item.ParagraphBlocks[0], itemSyntax.Children[0].AssociatedObject);
+        Assert.Same(quote, itemSyntax.Children[1].AssociatedObject);
+        Assert.Same(ordered, itemSyntax.Children[2].AssociatedObject);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Assigns_SourceSpans_To_TableCell_Ast_Objects() {
         const string markdown = """
 | Name | Value |
@@ -766,6 +1067,38 @@ Heading Title
         Assert.Equal("after", itemParagraph.Inlines.RenderMarkdown());
         Assert.Same(list.Items[0], itemParagraph.Parent);
         Assert.Same(itemParagraph, itemParagraph.Inlines.Parent);
+    }
+
+    [Fact]
+    public void MarkdownRewriter_Keeps_ListItem_BlockProjection_Canonical_After_Rewriting_Loose_Items() {
+        var document = MarkdownReader.Parse("""
+- lead
+
+  second
+
+  > quoted
+""");
+
+        document.Rewrite(new ReplaceParagraphRewriter("after"));
+
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        var item = Assert.Single(list.Items);
+        var blocks = item.BlockChildren.ToArray();
+
+        Assert.Equal("after", item.Content.RenderMarkdown());
+        Assert.Equal("after", Assert.Single(item.AdditionalParagraphs).RenderMarkdown());
+        Assert.Collection(
+            blocks,
+            block => Assert.Equal("after", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => Assert.Equal("after", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => {
+                var quote = Assert.IsType<QuoteBlock>(block);
+                Assert.Equal("after", Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks)).Inlines.RenderMarkdown());
+            });
+
+        Assert.Same(item, Assert.IsAssignableFrom<MarkdownObject>(blocks[0]).Parent);
+        Assert.Same(item, Assert.IsAssignableFrom<MarkdownObject>(blocks[1]).Parent);
+        Assert.Same(item, Assert.IsAssignableFrom<MarkdownObject>(blocks[2]).Parent);
     }
 
     [Fact]
@@ -1136,6 +1469,41 @@ Heading Title
                 Assert.Equal(MarkdownSyntaxKind.InlineLinkTitle, node.Kind);
                 Assert.Equal("Shortcut title", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(5, 43, 5, 56), node.SourceSpan);
+            });
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Exposes_Effective_Reference_Link_Definitions_In_Source_Order() {
+        var markdown = """
+[beta]: https://example.com/beta "Beta title"
+
+[alpha]: https://example.com/alpha
+[beta]: https://example.com/duplicate
+
+[alpha] [beta]
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        Assert.Collection(
+            result.ReferenceLinkDefinitions,
+            definition => {
+                Assert.Equal("beta", definition.Label);
+                Assert.Equal("https://example.com/beta", definition.Url);
+                Assert.Equal("Beta title", definition.Title);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 45), definition.SourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(1, 2, 1, 5), definition.LabelSourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 32), definition.UrlSourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(1, 35, 1, 44), definition.TitleSourceSpan);
+            },
+            definition => {
+                Assert.Equal("alpha", definition.Label);
+                Assert.Equal("https://example.com/alpha", definition.Url);
+                Assert.Null(definition.Title);
+                Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 34), definition.SourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(3, 2, 3, 6), definition.LabelSourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(3, 10, 3, 34), definition.UrlSourceSpan);
+                Assert.Null(definition.TitleSourceSpan);
             });
     }
 
@@ -1803,10 +2171,13 @@ See ![Badge][hero]
         Assert.Equal(5, kind.SourceSpan!.Value.StartColumn);
         Assert.Equal(8, kind.SourceSpan!.Value.EndColumn);
 
+        var semanticCallout = Assert.IsType<CalloutBlock>(Assert.Single(result.Document.Blocks));
+        Assert.Equal(kind.SourceSpan, semanticCallout.KindSourceSpan);
+
         var title = callout.Children[1];
         Assert.Equal(MarkdownSyntaxKind.CalloutTitle, title.Kind);
         Assert.Equal("Title", title.Literal);
-        Assert.Same(Assert.IsType<CalloutBlock>(Assert.Single(result.Document.Blocks)).TitleInlines, title.AssociatedObject);
+        Assert.Same(semanticCallout.TitleInlines, title.AssociatedObject);
         Assert.NotNull(title.SourceSpan);
         Assert.Equal(1, title.SourceSpan!.Value.StartLine);
         Assert.Equal(1, title.SourceSpan!.Value.EndLine);
@@ -2028,6 +2399,8 @@ Other: Another
         Assert.Same(definitionListBlock, definitionList.AssociatedObject);
         Assert.Same(semanticFirstGroup, firstGroup.AssociatedObject);
         Assert.Same(semanticFirstValue, firstValue.AssociatedObject);
+        Assert.Equal(firstGroup.SourceSpan, semanticFirstGroup.SourceSpan);
+        Assert.Equal(firstValue.SourceSpan, semanticFirstValue.SourceSpan);
     }
 
     [Fact]
@@ -2135,6 +2508,130 @@ Term: Intro
             MarkdownSyntaxKind.Paragraph,
             MarkdownSyntaxKind.InlineText
         }, result.FindNodePathAtPosition(3, 5).Select(node => node.Kind).ToArray());
+    }
+
+    [Fact]
+    public void DefinitionList_ChildBlocks_Expose_Definition_Body_Blocks_As_Public_Ast_Projection() {
+        var document = MarkdownReader.Parse("""
+Term: Intro
+
+  - first
+  - second
+""");
+
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
+        var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
+
+        Assert.Equal(2, definitionList.ChildBlocks.Count);
+        Assert.Same(definition.Blocks[0], definitionList.ChildBlocks[0]);
+        Assert.Same(definition.Blocks[1], definitionList.ChildBlocks[1]);
+        Assert.IsType<ParagraphBlock>(definitionList.ChildBlocks[0]);
+        Assert.IsType<UnorderedListBlock>(definitionList.ChildBlocks[1]);
+        Assert.Equal(
+            definitionList.ChildBlocks,
+            ((IChildMarkdownBlockContainer)definitionList).ChildBlocks);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Maps_SourceSpans_To_Representative_Semantic_Object_Graph() {
+        var markdown = """
+# Title
+
+> - quoted
+>   continued
+
+Term: Intro
+
+  - first
+  - second
+
+| Name | Notes |
+| --- | --- |
+| One | Intro<br><br>- nested |
+
+```csharp
+Console.WriteLine("hi");
+```
+
+```mermaid
+graph TD;
+```
+
+Lead[^1]
+
+[^1]: footnote
+""";
+
+        var options = new MarkdownReaderOptions();
+        options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
+            "mermaid",
+            new[] { "mermaid" },
+            context => new SemanticFencedBlock(MarkdownSemanticKinds.Mermaid, context.InfoString, context.Content, context.Caption)));
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var heading = Assert.IsType<HeadingBlock>(result.Document.Blocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(result.Document.Blocks[1]);
+        var quoteList = Assert.IsType<UnorderedListBlock>(Assert.Single(quote.ChildBlocks));
+        var quoteItem = Assert.Single(quoteList.Items);
+        var quoteParagraph = Assert.Single(quoteItem.ParagraphBlocks);
+
+        var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[2]);
+        var definitionGroup = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(definitionGroup.Definitions);
+        var definitionParagraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var definitionListBlock = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definitionListBlock.Items.Count);
+        var firstDefinitionListItem = definitionListBlock.Items[0];
+        var firstDefinitionListParagraph = Assert.Single(firstDefinitionListItem.ParagraphBlocks);
+        var secondDefinitionListItem = definitionListBlock.Items[1];
+        var secondDefinitionListParagraph = Assert.Single(secondDefinitionListItem.ParagraphBlocks);
+
+        var table = Assert.IsType<TableBlock>(result.Document.Blocks[3]);
+        var tableHeaderCell = table.HeaderCells[0];
+        var tableBodyCell = table.RowCells[0][1];
+        var tableCellParagraph = Assert.IsType<ParagraphBlock>(tableBodyCell.Blocks[0]);
+        var tableCellList = Assert.IsType<UnorderedListBlock>(tableBodyCell.Blocks[1]);
+        var tableCellListItem = Assert.Single(tableCellList.Items);
+        var tableCellListParagraph = Assert.Single(tableCellListItem.ParagraphBlocks);
+
+        var codeBlock = Assert.IsType<CodeBlock>(result.Document.Blocks[4]);
+        var semanticFence = Assert.IsType<SemanticFencedBlock>(result.Document.Blocks[5]);
+        var paragraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[6]);
+        var footnote = Assert.IsType<FootnoteDefinitionBlock>(result.Document.Blocks[7]);
+        var footnoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(footnote.Blocks));
+
+        AssertSemanticObjectsHaveSourceSpans(
+            heading,
+            heading.Inlines,
+            quote,
+            quoteList,
+            quoteItem,
+            quoteParagraph,
+            definitionList,
+            definitionGroup,
+            definitionGroup.Terms[0],
+            definition,
+            definitionParagraph,
+            definitionListBlock,
+            firstDefinitionListItem,
+            firstDefinitionListParagraph,
+            secondDefinitionListItem,
+            secondDefinitionListParagraph,
+            table,
+            tableHeaderCell,
+            tableBodyCell,
+            tableCellParagraph,
+            tableCellList,
+            tableCellListItem,
+            tableCellListParagraph,
+            codeBlock,
+            semanticFence,
+            paragraph,
+            footnote,
+            footnoteParagraph);
     }
 
     [Fact]
@@ -2264,6 +2761,8 @@ Lead[^1]
         Assert.Equal(MarkdownSyntaxKind.FootnoteLabel, label.Kind);
         Assert.Equal("1", label.Literal);
         Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 3), label.SourceSpan);
+        var semanticFootnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(result.Document.Blocks, block => block is FootnoteDefinitionBlock));
+        Assert.Equal(label.SourceSpan, semanticFootnote.LabelSourceSpan);
 
         var firstParagraph = footnote.Children[1];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, firstParagraph.Kind);
@@ -2624,7 +3123,7 @@ Lead[^1]
         Assert.NotNull(table.SourceSpan);
         Assert.Equal(1, table.SourceSpan!.Value.StartLine);
         Assert.Equal(4, table.SourceSpan!.Value.EndLine);
-        Assert.Equal(3, table.Children.Count);
+        Assert.Equal(4, table.Children.Count);
 
         var header = table.Children[0];
         Assert.Equal(MarkdownSyntaxKind.TableHeader, header.Kind);
@@ -2633,14 +3132,21 @@ Lead[^1]
         Assert.Equal(1, header.SourceSpan!.Value.EndLine);
         Assert.Equal("Name | Value", header.Literal);
 
-        var firstRow = table.Children[1];
+        var alignment = table.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.TableAlignmentRow, alignment.Kind);
+        Assert.NotNull(alignment.SourceSpan);
+        Assert.Equal(2, alignment.SourceSpan!.Value.StartLine);
+        Assert.Equal(2, alignment.SourceSpan!.Value.EndLine);
+        Assert.Equal("--- | ---:", alignment.Literal);
+
+        var firstRow = table.Children[2];
         Assert.Equal(MarkdownSyntaxKind.TableRow, firstRow.Kind);
         Assert.NotNull(firstRow.SourceSpan);
         Assert.Equal(3, firstRow.SourceSpan!.Value.StartLine);
         Assert.Equal(3, firstRow.SourceSpan!.Value.EndLine);
         Assert.Equal("One | 1", firstRow.Literal);
 
-        var secondRow = table.Children[2];
+        var secondRow = table.Children[3];
         Assert.Equal(MarkdownSyntaxKind.TableRow, secondRow.Kind);
         Assert.NotNull(secondRow.SourceSpan);
         Assert.Equal(4, secondRow.SourceSpan!.Value.StartLine);
@@ -2665,7 +3171,7 @@ Lead[^1]
         Assert.Equal("Name", header.Children[0].Literal);
         Assert.Equal("Notes", header.Children[1].Literal);
 
-        var row = table.Children[1];
+        var row = table.Children[2];
         Assert.Equal(2, row.Children.Count);
         Assert.All(row.Children, cell => Assert.Equal(MarkdownSyntaxKind.TableCell, cell.Kind));
         Assert.Equal("One", row.Children[0].Literal);
@@ -2689,7 +3195,7 @@ Lead[^1]
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var table = Assert.Single(result.SyntaxTree.Children);
-        var row = table.Children[1];
+        var row = table.Children[2];
         var valueCell = row.Children[1];
 
         Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 5), row.Children[0].SourceSpan);
@@ -2809,20 +3315,55 @@ Console.WriteLine("hi");
         Assert.NotNull(code.SourceSpan);
         Assert.Equal(1, code.SourceSpan!.Value.StartLine);
         Assert.Equal(3, code.SourceSpan!.Value.EndLine);
-        Assert.Equal(2, code.Children.Count);
+        Assert.Equal(4, code.Children.Count);
 
-        var info = code.Children[0];
+        var opening = code.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.CodeFenceOpening, opening.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), opening.SourceSpan);
+        Assert.Equal("```", opening.Literal);
+
+        var info = code.Children[1];
         Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, info.Kind);
         Assert.NotNull(info.SourceSpan);
-        Assert.Equal(1, info.SourceSpan!.Value.StartLine);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 9), info.SourceSpan);
         Assert.Equal("csharp", info.Literal);
 
-        var content = code.Children[1];
+        var content = code.Children[2];
         Assert.Equal(MarkdownSyntaxKind.CodeContent, content.Kind);
         Assert.NotNull(content.SourceSpan);
         Assert.Equal(2, content.SourceSpan!.Value.StartLine);
         Assert.Equal(2, content.SourceSpan!.Value.EndLine);
         Assert.Equal("Console.WriteLine(\"hi\");", content.Literal);
+
+        var closing = code.Children[3];
+        Assert.Equal(MarkdownSyntaxKind.CodeFenceClosing, closing.Kind);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), closing.SourceSpan);
+        Assert.Equal("```", closing.Literal);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Padded_Tilde_Fence_Info_SourceSpan() {
+        var markdown = """
+  ~~~~   json title="chart"
+  {"value":1}
+  ~~~~
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var code = Assert.Single(result.SyntaxTree.Children);
+        var opening = Assert.Single(code.Children, child => child.Kind == MarkdownSyntaxKind.CodeFenceOpening);
+        var info = Assert.Single(code.Children, child => child.Kind == MarkdownSyntaxKind.CodeFenceInfo);
+        var closing = Assert.Single(code.Children, child => child.Kind == MarkdownSyntaxKind.CodeFenceClosing);
+
+        Assert.Equal("~~~~", opening.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 6), opening.SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, info.Kind);
+        Assert.Equal("json title=\"chart\"", info.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 27), info.SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, result.FindDeepestNodeAtPosition(1, 12)!.Kind);
+        Assert.Equal("~~~~", closing.Literal);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 6), closing.SourceSpan);
     }
 
     [Fact]
@@ -2836,7 +3377,7 @@ Console.WriteLine("hi");
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var code = Assert.Single(result.SyntaxTree.Children);
-        var info = code.Children[0];
+        var info = Assert.Single(code.Children, child => child.Kind == MarkdownSyntaxKind.CodeFenceInfo);
 
         Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, info.Kind);
         Assert.Equal("json title=\"chart\"", info.Literal);
@@ -3219,7 +3760,11 @@ Console.WriteLine();
 
         var codeDeepest = result.FindDeepestNodeAtLine(1);
         Assert.NotNull(codeDeepest);
-        Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, codeDeepest!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.CodeFenceOpening, codeDeepest!.Kind);
+
+        var codeInfo = result.FindDeepestNodeAtPosition(1, 4);
+        Assert.NotNull(codeInfo);
+        Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, codeInfo!.Kind);
 
         var codeBlock = result.FindNearestBlockAtLine(1);
         Assert.NotNull(codeBlock);
@@ -3469,6 +4014,15 @@ Term: Definition
             }
 
             return rewritten;
+        }
+    }
+
+    private static void AssertSemanticObjectsHaveSourceSpans(params MarkdownObject[] objects) {
+        Assert.NotEmpty(objects);
+        for (int i = 0; i < objects.Length; i++) {
+            Assert.True(
+                objects[i].SourceSpan.HasValue,
+                $"Expected {objects[i].GetType().Name} at index {i} to have a semantic source span.");
         }
     }
 

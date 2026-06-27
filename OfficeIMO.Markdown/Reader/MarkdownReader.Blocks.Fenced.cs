@@ -5,8 +5,21 @@ using System.Text;
 namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {
-    private static bool IsCodeFenceOpen(string line, out string infoString, out char fenceChar, out int fenceLength) {
-        infoString = string.Empty; fenceChar = '\0'; fenceLength = 0;
+    private static bool IsCodeFenceOpen(string line, out string infoString, out char fenceChar, out int fenceLength) =>
+        IsCodeFenceOpen(line, out infoString, out fenceChar, out fenceLength, out _, out _);
+
+    private static bool IsCodeFenceOpen(
+        string line,
+        out string infoString,
+        out char fenceChar,
+        out int fenceLength,
+        out int fenceIndentColumns,
+        out int infoPaddingColumns) {
+        infoString = string.Empty;
+        fenceChar = '\0';
+        fenceLength = 0;
+        fenceIndentColumns = 0;
+        infoPaddingColumns = 0;
         if (line is null) return false;
         int indent = CountLeadingIndentColumns(line);
         if (indent > 3) return false;
@@ -25,32 +38,77 @@ public static partial class MarkdownReader {
 
         fenceChar = ch;
         fenceLength = run;
+        fenceIndentColumns = indent;
+        infoPaddingColumns = CountLeadingIndentColumns(parsedInfoString);
         infoString = parsedInfoString.Trim();
         return true;
     }
-    private static bool IsCodeFenceClose(string line, char fenceChar, int fenceLength) {
+    private static bool IsCodeFenceClose(string line, char fenceChar, int fenceLength) =>
+        TryGetCodeFenceCloseInfo(line, fenceChar, fenceLength, out _, out _);
+
+    private static bool TryGetCodeFenceCloseInfo(string line, char fenceChar, int fenceLength, out int fenceIndentColumns, out int closingFenceLength) {
+        fenceIndentColumns = 0;
+        closingFenceLength = 0;
         if (line is null) return false;
         int indent = CountLeadingIndentColumns(line);
         if (indent > 3) return false;
 
-        var trimmed = (indent > 0 ? StripLeadingIndentColumns(line, indent) : line).Trim();
-        if (trimmed.Length < Math.Max(3, fenceLength)) return false;
-        // CommonMark allows closing fence length >= opening fence length. We accept that.
-        for (int i = 0; i < trimmed.Length; i++) {
-            if (trimmed[i] != fenceChar) return false;
+        var candidate = indent > 0 ? StripLeadingIndentColumns(line, indent) : line;
+        int run = 0;
+        while (run < candidate.Length && candidate[run] == fenceChar) run++;
+        if (run < Math.Max(3, fenceLength)) return false;
+        for (int i = run; i < candidate.Length; i++) {
+            if (!char.IsWhiteSpace(candidate[i])) return false;
         }
-        return trimmed.Length >= Math.Max(3, fenceLength);
+
+        fenceIndentColumns = indent;
+        closingFenceLength = run;
+        return true;
     }
 
-    private static IMarkdownBlock CreateParsedFencedBlock(string infoString, string content, bool isFenced, string? caption, MarkdownReaderOptions options) {
+    private static IMarkdownBlock CreateParsedFencedBlock(
+        string infoString,
+        string content,
+        bool isFenced,
+        string? caption,
+        MarkdownReaderOptions options,
+        int fenceIndentColumns = 0,
+        int fenceLength = 3,
+        int infoPaddingColumns = 0,
+        char fenceChar = '`',
+        bool hasClosingFence = true,
+        int closingFenceIndentColumns = 0,
+        int closingFenceLength = 3) {
         var extendedBlock = TryCreateExtendedFencedBlock(options?.FencedBlockExtensions, infoString, content, isFenced, caption);
         if (extendedBlock != null) {
+            ApplyFenceSourceInfo(extendedBlock, fenceIndentColumns, fenceLength, infoPaddingColumns, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
             return extendedBlock;
         }
 
-        return new CodeBlock(infoString, content, isFenced) {
+        var codeBlock = new CodeBlock(infoString, content, isFenced) {
             Caption = caption
         };
+        codeBlock.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
+        return codeBlock;
+    }
+
+    private static void ApplyFenceSourceInfo(
+        IMarkdownBlock block,
+        int fenceIndentColumns,
+        int fenceLength,
+        int infoPaddingColumns,
+        char fenceChar,
+        bool hasClosingFence,
+        int closingFenceIndentColumns,
+        int closingFenceLength) {
+        switch (block) {
+            case CodeBlock code:
+                code.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
+                break;
+            case SemanticFencedBlock semantic:
+                semantic.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
+                break;
+        }
     }
 
     internal static IMarkdownBlock? TryCreateExtendedFencedBlock(

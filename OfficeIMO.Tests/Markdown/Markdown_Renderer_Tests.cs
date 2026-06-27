@@ -120,13 +120,14 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
-    public void MarkdownRenderer_StrictPreset_Still_Encodes_Unsupported_Inline_Html() {
+    public void MarkdownRenderer_StrictPreset_Strips_Unsupported_Inline_Html_Tags() {
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(
             "<span>hello</span>",
             MarkdownRendererPresets.CreateStrict());
 
-        Assert.Contains("&lt;span&gt;hello&lt;/span&gt;", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(">hello<", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("<span>hello</span>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("&lt;span&gt;hello&lt;/span&gt;", html, StringComparison.OrdinalIgnoreCase);
     }
 
     [Theory]

@@ -111,5 +111,44 @@ Console.WriteLine("x");
         Assert.Equal("fresh body", callout.Body);
         Assert.Same(paragraph, Assert.Single(callout.ChildBlocks));
     }
+
+    [Fact]
+    public void Callout_Public_Structured_Constructor_Uses_ChildBlocks_As_Primary_Body() {
+        var paragraph = new ParagraphBlock(MarkdownReader.ParseInlineText("fresh body"));
+        var list = new UnorderedListBlock();
+        list.Items.Add(new ListItem(MarkdownReader.ParseInlineText("first")));
+        var callout = new CalloutBlock("note", "Heads up", new IMarkdownBlock[] {
+            paragraph,
+            list
+        });
+
+        Assert.Equal(2, callout.ChildBlocks.Count);
+        Assert.Same(paragraph, callout.ChildBlocks[0]);
+        Assert.Same(list, callout.ChildBlocks[1]);
+        Assert.Equal("fresh body\n\n- first", callout.Body.Replace("\r\n", "\n"));
+        Assert.Contains("> - first", ((IMarkdownBlock)callout).RenderMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownDoc_Callout_BodyBuilder_Adds_Structured_ChildBlocks() {
+        var document = MarkdownDoc.Create()
+            .Callout("warning", "Structured", body => body
+                .P("Intro")
+                .Ul(list => list.Item("first").Item("second"))
+                .Code("text", "payload"));
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(document.Blocks));
+        Assert.Collection(
+            callout.ChildBlocks,
+            block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => Assert.Equal(new[] { "first", "second" }, Assert.IsType<UnorderedListBlock>(block).Items.Select(item => item.Content.RenderMarkdown()).ToArray()),
+            block => Assert.Equal("payload", Assert.IsType<CodeBlock>(block).Content));
+
+        var markdown = document.ToMarkdown().Replace("\r\n", "\n");
+        Assert.Contains("> [!WARNING] Structured", markdown, StringComparison.Ordinal);
+        Assert.Contains("> - first", markdown, StringComparison.Ordinal);
+        Assert.Contains("> ```text", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("System.", markdown, StringComparison.Ordinal);
+    }
 }
 

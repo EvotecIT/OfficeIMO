@@ -157,6 +157,155 @@ Paragraph line
         Assert.Contains("data-title=\"legacy-title\"", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Block_Parser_Extensions_Use_Registration_Order_And_Stop_After_First_Success() {
+        const string markdown = "::claim";
+        var firstCalls = 0;
+        var secondCalls = 0;
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "first-claim",
+            MarkdownBlockParserPlacement.BeforeParagraphs,
+            (MarkdownBlockParser)((MarkdownBlockParserContext _, out MarkdownBlockParseResult result) => {
+                firstCalls++;
+                result = new MarkdownBlockParseResult(
+                    new ParagraphBlock(new InlineSequence().Text("first extension")),
+                    consumedLineCount: 1);
+                return true;
+            })));
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "second-claim",
+            MarkdownBlockParserPlacement.BeforeParagraphs,
+            (MarkdownBlockParser)((MarkdownBlockParserContext _, out MarkdownBlockParseResult result) => {
+                secondCalls++;
+                result = new MarkdownBlockParseResult(
+                    new ParagraphBlock(new InlineSequence().Text("second extension")),
+                    consumedLineCount: 1);
+                return true;
+            })));
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("first extension", InlinePlainText.Extract(paragraph.Inlines));
+        Assert.Equal(1, firstCalls);
+        Assert.Equal(0, secondCalls);
+    }
+
+    [Fact]
+    public void Disabled_Block_Parser_Extension_Falls_Back_To_Core_Parsers() {
+        const string markdown = "::disabled";
+        var calls = 0;
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "disabled-claim",
+            MarkdownBlockParserPlacement.BeforeParagraphs,
+            (MarkdownBlockParser)((MarkdownBlockParserContext _, out MarkdownBlockParseResult result) => {
+                calls++;
+                result = new MarkdownBlockParseResult(
+                    new ParagraphBlock(new InlineSequence().Text("disabled extension")),
+                    consumedLineCount: 1);
+                return true;
+            }),
+            isEnabled: _ => false));
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("::disabled", InlinePlainText.Extract(paragraph.Inlines));
+        Assert.Equal(0, calls);
+    }
+
+    [Fact]
+    public void Block_Parser_Extension_Placement_Can_Claim_Input_Before_Later_Core_Parsers() {
+        const string markdown = "[hero]: /url\n\n[hero]";
+        var calls = 0;
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "claim-reference-looking-line",
+            MarkdownBlockParserPlacement.AfterHtmlBlocks,
+            CreateClaimingParser(
+                "claimed before reference definitions",
+                () => calls++,
+                context => context.CurrentLine.StartsWith("[hero]:", StringComparison.Ordinal))));
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        Assert.Equal(2, document.Blocks.Count);
+        var claimed = Assert.IsType<ParagraphBlock>(document.Blocks[0]);
+        Assert.Equal("claimed before reference definitions", InlinePlainText.Extract(claimed.Inlines));
+        Assert.IsType<ParagraphBlock>(document.Blocks[1]);
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
+    public void Block_Parser_Extension_Later_Placement_Does_Not_Preempt_Earlier_Core_Parsers() {
+        const string markdown = """
+| A | B |
+|---|---|
+| 1 | 2 |
+""";
+        var calls = 0;
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "late-claim-anything",
+            MarkdownBlockParserPlacement.BeforeParagraphs,
+            CreateClaimingParser("late extension", () => calls++)));
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(0, calls);
+    }
+
+    [Fact]
+    public void BuiltIn_Block_Parser_Extension_Wins_At_Same_Placement_When_Registered_First() {
+        const string markdown = """
+> [!NOTE] Heads up
+> Body
+""";
+        var calls = 0;
+        var options = new MarkdownReaderOptions();
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "custom-after-default-callout",
+            MarkdownBlockParserPlacement.AfterFrontMatter,
+            CreateClaimingParser(
+                "custom callout",
+                () => calls++,
+                context => context.CurrentLine.StartsWith("> [!", StringComparison.Ordinal))));
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        Assert.IsType<CalloutBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(0, calls);
+    }
+
+    [Fact]
+    public void Custom_Block_Parser_Extension_Can_Preempt_BuiltIn_When_Registered_First() {
+        const string markdown = """
+> [!NOTE] Heads up
+> Body
+""";
+        var calls = 0;
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Callouts = true;
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "custom-before-callout",
+            MarkdownBlockParserPlacement.AfterFrontMatter,
+            CreateClaimingParser(
+                "custom before callout",
+                () => calls++,
+                context => context.CurrentLine.StartsWith("> [!", StringComparison.Ordinal),
+                consumedLineCount: 2)));
+        MarkdownReaderBuiltInExtensions.AddCallouts(options);
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("custom before callout", InlinePlainText.Extract(paragraph.Inlines));
+        Assert.Equal(1, calls);
+    }
+
     private static MarkdownReaderOptions CreateOptions() {
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
@@ -165,6 +314,24 @@ Paragraph line
             TryParsePanelBlock));
         return options;
     }
+
+    private static MarkdownBlockParser CreateClaimingParser(
+        string text,
+        Action? onClaim = null,
+        Func<MarkdownBlockParserContext, bool>? canClaim = null,
+        int consumedLineCount = 1) =>
+        (MarkdownBlockParser)((MarkdownBlockParserContext context, out MarkdownBlockParseResult result) => {
+            if (canClaim != null && !canClaim(context)) {
+                result = default;
+                return false;
+            }
+
+            onClaim?.Invoke();
+            result = new MarkdownBlockParseResult(
+                new ParagraphBlock(new InlineSequence().Text(text)),
+                consumedLineCount);
+            return true;
+        });
 
     private static bool TryParsePanelBlock(MarkdownBlockParserContext context, out MarkdownBlockParseResult result) {
         result = default;

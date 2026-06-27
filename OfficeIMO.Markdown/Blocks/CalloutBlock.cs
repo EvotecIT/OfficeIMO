@@ -7,6 +7,10 @@ namespace OfficeIMO.Markdown;
 public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Admonition kind, e.g., info, warning, success.</summary>
     public string Kind { get; }
+    /// <summary>Source span for the callout kind token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? KindSourceSpan { get; internal set; }
+    /// <summary>Source span for the explicit callout title when parsed from markdown.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
     private readonly string _fallbackBody;
     private readonly IReadOnlyList<IMarkdownBlock> _childBlocks;
     /// <summary>Callout title displayed inline with the marker.</summary>
@@ -30,6 +34,22 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     /// <summary>Creates a callout with the specified kind, title and body.</summary>
     public CalloutBlock(string kind, string title, string body)
         : this(kind, new InlineSequence().Text(title ?? string.Empty), body) {
+    }
+
+    /// <summary>
+    /// Creates a callout with structured body blocks.
+    /// Prefer this overload when the body contains lists, code blocks, tables, or other nested markdown structure.
+    /// </summary>
+    public CalloutBlock(string kind, string title, IEnumerable<IMarkdownBlock> children)
+        : this(kind, new InlineSequence().Text(title ?? string.Empty), CopyChildren(children), syntaxChildren: null) {
+    }
+
+    /// <summary>
+    /// Creates a callout with structured title inlines and structured body blocks.
+    /// This is the canonical semantic shape used by parsed callouts.
+    /// </summary>
+    public CalloutBlock(string kind, InlineSequence titleInlines, IEnumerable<IMarkdownBlock> children)
+        : this(kind, titleInlines, CopyChildren(children), syntaxChildren: null) {
     }
 
     internal CalloutBlock(string kind, InlineSequence titleInlines, string body) {
@@ -116,6 +136,18 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
         return sb.ToString();
     }
 
+    private static IReadOnlyList<IMarkdownBlock> CopyChildren(IEnumerable<IMarkdownBlock>? children) {
+        if (children is IReadOnlyList<IMarkdownBlock> readOnlyChildren) {
+            return CopyChildren(readOnlyChildren);
+        }
+
+        if (children == null) {
+            return Array.Empty<IMarkdownBlock>();
+        }
+
+        return children.Where(child => child != null).ToArray();
+    }
+
     private static IReadOnlyList<IMarkdownBlock> CopyChildren(IReadOnlyList<IMarkdownBlock>? children) {
         if (children == null || children.Count == 0) {
             return Array.Empty<IMarkdownBlock>();
@@ -173,18 +205,22 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
         var calloutTitleMarkdown = TitleInlines.RenderMarkdown();
+        KindSourceSpan = GetCalloutKindSpan(span);
         var children = new List<MarkdownSyntaxNode>();
         children.Add(new MarkdownSyntaxNode(
             MarkdownSyntaxKind.CalloutKind,
-            GetCalloutKindSpan(span),
+            KindSourceSpan,
             Kind));
 
         if (!string.IsNullOrWhiteSpace(calloutTitleMarkdown)) {
+            TitleSourceSpan = TitleInlines.SourceSpan;
             children.Add(MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
                 MarkdownSyntaxKind.CalloutTitle,
                 TitleInlines,
-                TitleInlines.SourceSpan,
+                TitleSourceSpan,
                 calloutTitleMarkdown));
+        } else {
+            TitleSourceSpan = null;
         }
 
         var bodyChildren = ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren();

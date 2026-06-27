@@ -76,9 +76,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var doc = MarkdownReader.Parse(md);
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
             var wrapper = Assert.IsType<HtmlTagSequenceInline>(Assert.Single(paragraph.Inlines.Nodes, node => node is HtmlTagSequenceInline));
-            var text = Assert.IsType<DecodedHtmlEntityTextRun>(Assert.Single(wrapper.Inlines.Nodes));
 
-            Assert.Equal("<u>x</u>", text.Text);
+            Assert.Contains(wrapper.Inlines.Nodes, node => node is DecodedHtmlEntityTextRun);
+            Assert.All(wrapper.Inlines.Nodes, node => Assert.True(node is TextRun or DecodedHtmlEntityTextRun, node.GetType().FullName));
+            Assert.Equal("<u>x</u>", InlinePlainText.Extract(wrapper.Inlines));
 
             var markdown = doc.ToMarkdown();
             Assert.Contains("Value <u>&lt;u&gt;x&lt;/u&gt;</u>", markdown, StringComparison.Ordinal);
@@ -94,9 +95,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var doc = MarkdownReader.Parse(md);
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
             var wrapper = Assert.IsType<HtmlTagSequenceInline>(Assert.Single(paragraph.Inlines.Nodes, node => node is HtmlTagSequenceInline));
-            var text = Assert.IsType<DecodedHtmlEntityTextRun>(Assert.Single(wrapper.Inlines.Nodes));
 
-            Assert.Equal("`code` ~~strike~~ ==mark==", text.Text);
+            Assert.Contains(wrapper.Inlines.Nodes, node => node is DecodedHtmlEntityTextRun);
+            Assert.All(wrapper.Inlines.Nodes, node => Assert.True(node is TextRun or DecodedHtmlEntityTextRun, node.GetType().FullName));
+            Assert.Equal("`code` ~~strike~~ ==mark==", InlinePlainText.Extract(wrapper.Inlines));
 
             var markdown = doc.ToMarkdown();
             Assert.Contains(@"Value <u>\`code\` \~\~strike\~\~ \=\=mark\=\=</u>", markdown, StringComparison.Ordinal);
