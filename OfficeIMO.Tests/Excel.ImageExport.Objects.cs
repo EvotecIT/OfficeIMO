@@ -307,6 +307,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_ImageExportDoesNotExpandUsedRangeForUnsupportedDrawingShapes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("UnsupportedOnly");
+                sheet.CellValue(1, 1, "Only cell");
+                document.Save(false);
+            }
+
+            AddDrawingShapes(filePath);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                var options = new ExcelWorksheetImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = sheet.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, options);
+
+                Assert.Equal("UnsupportedOnly!A1:A1", png.Source);
+                Assert.Empty(snapshot.DrawingObjects);
+                Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+            }
+        }
+
+        [Fact]
         public void ExcelWorksheet_ImageExportIncludesDrawingObjectAnchorOffsetsWhenExpandingUsedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {

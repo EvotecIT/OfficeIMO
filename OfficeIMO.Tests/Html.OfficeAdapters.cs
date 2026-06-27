@@ -27,7 +27,7 @@ public class HtmlOfficeAdapters {
         sheet.CellFormula(5, 2, "SUM(B2:B4)");
         sheet.SetComment(2, 2, "Reviewed with finance", "OfficeIMO");
         sheet.AddChartFromRange("A1:B4", row: 1, column: 5, widthPixels: 280, heightPixels: 180, type: ExcelChartType.ColumnClustered, title: "Revenue Trend");
-        sheet.AddImage(7, 1, OnePixelPng, widthPixels: 48, heightPixels: 48, name: "Status Logo", altText: "Inline status marker");
+        sheet.AddImage(7, 1, OnePixelPng, widthPixels: 48, heightPixels: 48, offsetXPixels: 9, offsetYPixels: 11, name: "Status Logo", altText: "Inline status marker");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
@@ -48,6 +48,7 @@ public class HtmlOfficeAdapters {
         Assert.Contains(">South</th>", html, StringComparison.Ordinal);
         Assert.Contains(">Amount</th>", html, StringComparison.Ordinal);
         Assert.Contains("Inline status marker", html, StringComparison.Ordinal);
+        Assert.Contains("Offset: 9, 11", html, StringComparison.Ordinal);
         Assert.Contains("data:image/png;base64", html, StringComparison.Ordinal);
     }
 
@@ -77,6 +78,29 @@ public class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-visual-proof=\"comment-callout\"", html, StringComparison.Ordinal);
         Assert.Contains("Visual comment proof", html, StringComparison.Ordinal);
         Assert.Contains("dependency-free callout approximation", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExcelHtml_VisualWorkbookNamespacesEmbeddedSvgIdsPerWorksheet() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet first = workbook.AddWorkSheet("One");
+        first.CellValue(1, 1, "Shared label");
+        first.SetColumnWidth(1, 14);
+
+        ExcelSheet second = workbook.AddWorkSheet("Two");
+        second.CellValue(1, 1, "Shared label");
+        second.SetColumnWidth(1, 14);
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelVisualReview
+        });
+
+        Assert.Contains("id=\"officeimo-sheet-svg-one-1-xl-text-1-1\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"officeimo-sheet-svg-two-2-xl-text-1-1\"", html, StringComparison.Ordinal);
+        Assert.Contains("clip-path=\"url(#officeimo-sheet-svg-one-1-xl-text-1-1)\"", html, StringComparison.Ordinal);
+        Assert.Contains("clip-path=\"url(#officeimo-sheet-svg-two-2-xl-text-1-1)\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"xl-text-1-1\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("url(#xl-text-1-1)", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -163,7 +187,7 @@ public class HtmlOfficeAdapters {
         sheet.CellFormula(5, 2, "SUM(B2:B4)");
         sheet.SetComment(2, 2, "Reviewed with finance", "OfficeIMO");
         sheet.AddChartFromRange("A1:B4", row: 1, column: 5, widthPixels: 280, heightPixels: 180, type: ExcelChartType.ColumnClustered, title: "Revenue Trend");
-        sheet.AddImage(7, 1, OnePixelPng, widthPixels: 48, heightPixels: 48, name: "Status Logo", altText: "Inline status marker");
+        sheet.AddImage(7, 1, OnePixelPng, widthPixels: 48, heightPixels: 48, offsetXPixels: 9, offsetYPixels: 11, name: "Status Logo", altText: "Inline status marker");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
@@ -185,7 +209,9 @@ public class HtmlOfficeAdapters {
         Assert.Equal("North", region);
         Assert.Contains(importedSheet.GetFormulaCells(), formula => formula.CellReference == "B5" && formula.Formula == "SUM(B2:B4)");
         Assert.Contains(importedSheet.GetComments(), comment => comment.CellReference == "B2" && comment.Text == "Reviewed with finance" && comment.Author == "OfficeIMO");
-        Assert.Single(importedSheet.Images);
+        ExcelImage importedImage = Assert.Single(importedSheet.Images);
+        Assert.Equal(9, importedImage.OffsetXPixels);
+        Assert.Equal(11, importedImage.OffsetYPixels);
         ExcelChart importedChart = Assert.Single(importedSheet.Charts);
         Assert.True(importedChart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
         Assert.Equal(new[] { "North", "South", "West" }, snapshot.Data.Categories);

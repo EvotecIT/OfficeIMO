@@ -185,14 +185,14 @@ public static class ExcelHtmlLoadExtensions {
                 continue;
             }
 
-            ReadImagePlacement(item, out int row, out int column, out int width, out int height);
+            ReadImagePlacement(item, out int row, out int column, out int width, out int height, out int offsetX, out int offsetY);
             string name = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
             string description = NormalizeText(item.QuerySelector("p")?.TextContent);
             if (description.Length == 0) {
                 description = NormalizeText(image.GetAttribute("alt"));
             }
 
-            sheet.AddImage(row, column, bytes, dataUri.MediaType, width, height, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
+            sheet.AddImage(row, column, bytes, dataUri.MediaType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
             result.Images++;
         }
     }
@@ -336,11 +336,13 @@ public static class ExcelHtmlLoadExtensions {
         return ExcelChartType.ColumnClustered;
     }
 
-    private static void ReadImagePlacement(IElement item, out int row, out int column, out int width, out int height) {
+    private static void ReadImagePlacement(IElement item, out int row, out int column, out int width, out int height, out int offsetX, out int offsetY) {
         row = 1;
         column = 1;
         width = 96;
         height = 32;
+        offsetX = 0;
+        offsetY = 0;
         string meta = string.Join("; ", item.QuerySelectorAll(".officeimo-feature-meta").Select(element => element.TextContent));
         foreach (string part in meta.Split(';')) {
             string value = part.Trim();
@@ -356,6 +358,12 @@ public static class ExcelHtmlLoadExtensions {
                     _ = int.TryParse(pieces[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out width);
                     _ = int.TryParse(pieces[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out height);
                 }
+            } else if (value.StartsWith("Offset:", StringComparison.OrdinalIgnoreCase)) {
+                string[] pieces = value.Substring("Offset:".Length).Split(',');
+                if (pieces.Length == 2) {
+                    _ = int.TryParse(pieces[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out offsetX);
+                    _ = int.TryParse(pieces[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out offsetY);
+                }
             }
         }
 
@@ -363,6 +371,8 @@ public static class ExcelHtmlLoadExtensions {
         column = Math.Max(1, column);
         width = Math.Max(1, width);
         height = Math.Max(1, height);
+        offsetX = Math.Max(0, offsetX);
+        offsetY = Math.Max(0, offsetY);
     }
 
     private static string ReadAuthor(IElement item) {

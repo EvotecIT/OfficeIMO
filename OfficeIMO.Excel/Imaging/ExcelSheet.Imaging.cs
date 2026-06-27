@@ -379,7 +379,7 @@ namespace OfficeIMO.Excel {
 
             if (options.IncludeDrawingObjects) {
                 foreach (ExcelWorksheetDrawingObjectInfo drawing in ExcelWorksheetDrawingObjectResolver.FindDrawingObjects(WorksheetPart)) {
-                    if (options.IncludeHidden || !IsHiddenAnchor(drawing.Row, drawing.Column, rows, columns)) {
+                    if (drawing.IsRenderable && (options.IncludeHidden || !IsHiddenAnchor(drawing.Row, drawing.Column, rows, columns))) {
                         ExpandVisualAnchor(
                             drawing.Row,
                             drawing.Column,

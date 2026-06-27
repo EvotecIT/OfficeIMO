@@ -762,6 +762,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportRendersFirstPriorityDataBarForOverlappingRules() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("DataBarPriority");
+            sheet.CellValue(1, 1, 20);
+            sheet.CellValue(2, 1, 10);
+            sheet.SetColumnWidth(1, 12);
+            sheet.AddConditionalDataBar("A1:A2", OfficeColor.Blue);
+            sheet.AddConditionalDataBar("A1:A1", OfficeColor.Red);
+
+            ExcelRange range = sheet.Range("A1:A1");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+
+            Assert.Equal(new[] { "FF0000FF", "FFFF0000" }, snapshot.ConditionalDataBars.Select(bar => bar.ColorArgb).ToArray());
+            Assert.Contains("#0000FF", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("#FF0000", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportUsesRawNumericValuesForFormattedConditionalCandidates() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

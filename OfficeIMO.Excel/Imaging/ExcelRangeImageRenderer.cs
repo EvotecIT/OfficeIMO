@@ -152,7 +152,10 @@ namespace OfficeIMO.Excel {
         private static Dictionary<string, ExcelVisualConditionalDataBar> BuildDataBarMap(IReadOnlyList<ExcelVisualConditionalDataBar> dataBars) {
             var resolved = new Dictionary<string, ExcelVisualConditionalDataBar>(StringComparer.Ordinal);
             foreach (ExcelVisualConditionalDataBar dataBar in dataBars) {
-                resolved[Key(dataBar.Row, dataBar.Column)] = dataBar;
+                string key = Key(dataBar.Row, dataBar.Column);
+                if (!resolved.ContainsKey(key)) {
+                    resolved[key] = dataBar;
+                }
             }
 
             return resolved;

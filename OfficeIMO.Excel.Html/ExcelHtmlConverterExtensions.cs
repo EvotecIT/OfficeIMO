@@ -77,8 +77,9 @@ public static class ExcelHtmlConverterExtensions {
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, "Excel Visual Review"))).Append("</h1>");
         ExcelWorkbookImageExportOptions visualOptions = ResolveWorkbookVisualOptions(options.VisualOptions);
         Dictionary<string, ExcelSheet> sheetsByName = workbook.Sheets.ToDictionary(sheet => sheet.Name, StringComparer.OrdinalIgnoreCase);
+        int svgIndex = 0;
         foreach (OfficeImageExportResult result in workbook.ExportImages(OfficeImageExportFormat.Svg, visualOptions)) {
-            AppendSvgResult(body, result);
+            AppendSvgResult(body, result, CreateSvgNamespacePrefix(result, ++svgIndex));
             string? resultName = result.Name;
             if (!string.IsNullOrWhiteSpace(resultName) && sheetsByName.TryGetValue(resultName!, out ExcelSheet? sheet)) {
                 AppendVisualCommentInventory(body, sheet.GetComments());
@@ -95,7 +96,7 @@ public static class ExcelHtmlConverterExtensions {
             .Append(OfficeHtmlText.EscapeAttribute(options.Profile.ToString()))
             .Append("\">");
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, sheet.Name))).Append("</h1>");
-        AppendSvgResult(body, sheet.ExportImage(OfficeImageExportFormat.Svg, ToWorksheetOptions(ResolveWorkbookVisualOptions(options.VisualOptions))));
+        AppendSvgResult(body, sheet.ExportImage(OfficeImageExportFormat.Svg, ToWorksheetOptions(ResolveWorkbookVisualOptions(options.VisualOptions))), "officeimo-sheet-svg-1-");
         AppendVisualCommentInventory(body, sheet.GetComments());
         body.Append("</main>");
         return Wrap(body.ToString(), options, GetTitle(options, sheet.Name));
@@ -358,6 +359,10 @@ public static class ExcelHtmlConverterExtensions {
                 .Append(image.WidthPixels.ToString(CultureInfo.InvariantCulture))
                 .Append("x")
                 .Append(image.HeightPixels.ToString(CultureInfo.InvariantCulture))
+                .Append("; Offset: ")
+                .Append(image.OffsetXPixels.ToString(CultureInfo.InvariantCulture))
+                .Append(", ")
+                .Append(image.OffsetYPixels.ToString(CultureInfo.InvariantCulture))
                 .Append("; Type: ")
                 .Append(OfficeHtmlText.Escape(image.ContentType))
                 .Append("</div>");
@@ -388,8 +393,8 @@ public static class ExcelHtmlConverterExtensions {
             .Append("\">");
     }
 
-    private static void AppendSvgResult(StringBuilder body, OfficeImageExportResult result) {
-        string svg = Encoding.UTF8.GetString(result.Bytes);
+    private static void AppendSvgResult(StringBuilder body, OfficeImageExportResult result, string idPrefix) {
+        string svg = NamespaceSvgIds(Encoding.UTF8.GetString(result.Bytes), idPrefix);
         body.Append("<section class=\"officeimo-sheet\" data-officeimo-source-anchor=\"")
             .Append(OfficeHtmlText.EscapeAttribute(result.Source))
             .Append("\">");
@@ -412,6 +417,56 @@ public static class ExcelHtmlConverterExtensions {
         }
 
         body.Append("</section>");
+    }
+
+    private static string CreateSvgNamespacePrefix(OfficeImageExportResult result, int index) {
+        string name = !string.IsNullOrWhiteSpace(result.Name)
+            ? result.Name!
+            : (string.IsNullOrWhiteSpace(result.Source) ? "worksheet" : result.Source!);
+        var builder = new StringBuilder("officeimo-sheet-svg-");
+        foreach (char value in name) {
+            if (char.IsLetterOrDigit(value)) {
+                builder.Append(char.ToLowerInvariant(value));
+            } else if (builder[builder.Length - 1] != '-') {
+                builder.Append('-');
+            }
+        }
+
+        if (builder[builder.Length - 1] != '-') {
+            builder.Append('-');
+        }
+
+        builder.Append(index.ToString(CultureInfo.InvariantCulture)).Append('-');
+        return builder.ToString();
+    }
+
+    private static string NamespaceSvgIds(string svg, string prefix) {
+        if (string.IsNullOrEmpty(svg) || string.IsNullOrEmpty(prefix)) {
+            return svg;
+        }
+
+        var ids = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(svg, "\\bid=(['\\\"])(?<id>[^'\\\"]+)\\1")) {
+            string id = match.Groups["id"].Value;
+            if (id.Length > 0 && !id.StartsWith(prefix, StringComparison.Ordinal)) {
+                ids.Add(id);
+            }
+        }
+
+        string namespaced = svg;
+        foreach (string id in ids.OrderByDescending(item => item.Length)) {
+            string replacement = prefix + id;
+            namespaced = namespaced
+                .Replace("id=\"" + id + "\"", "id=\"" + replacement + "\"")
+                .Replace("id='" + id + "'", "id='" + replacement + "'")
+                .Replace("url(#" + id + ")", "url(#" + replacement + ")")
+                .Replace("href=\"#" + id + "\"", "href=\"#" + replacement + "\"")
+                .Replace("href='#" + id + "'", "href='#" + replacement + "'")
+                .Replace("xlink:href=\"#" + id + "\"", "xlink:href=\"#" + replacement + "\"")
+                .Replace("xlink:href='#" + id + "'", "xlink:href='#" + replacement + "'");
+        }
+
+        return namespaced;
     }
 
     private static string CreateDiagnosticGroupKey(OfficeImageExportDiagnostic diagnostic) {
