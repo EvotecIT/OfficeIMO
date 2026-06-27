@@ -526,7 +526,7 @@ public class MarkdownDoc : MarkdownObject {
         // Build a transient block list where TOC placeholders are realized
         var (blocks, headingCatalog) = GetBlocksAndHeadingSlugs();
         var context = new MarkdownWriteContext(blocks, options, headingCatalog);
-        using var _ctx = MarkdownRenderContext.Push(options);
+        using var _ctx = MarkdownRenderContext.Push(context);
         StringBuilder sb = new StringBuilder();
         if (_frontMatter != null) {
             sb.AppendLine(_frontMatter.RenderFrontMatter());

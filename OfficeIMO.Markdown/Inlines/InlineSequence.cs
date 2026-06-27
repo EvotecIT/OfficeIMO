@@ -77,13 +77,17 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
 
     internal string RenderMarkdown() {
         StringBuilder sb = new StringBuilder();
+        var options = MarkdownRenderContext.Options;
+        MarkdownInlineMarkdownRenderContext? context = options == null
+            ? null
+            : new MarkdownInlineMarkdownRenderContext(options, MarkdownRenderContext.WriteContext);
         for (int i = 0; i < _inlines.Count; i++) {
             if (AutoSpacing && i > 0) {
                 var prev = _inlines[i - 1];
                 var cur = _inlines[i];
                 if (prev is not HardBreakInline && cur is not HardBreakInline) sb.Append(' ');
             }
-            sb.Append(RenderMarkdown(_inlines[i], MarkdownRenderContext.Options));
+            sb.Append(RenderMarkdown(_inlines[i], context));
         }
         return sb.ToString();
     }
@@ -91,13 +95,16 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     internal string RenderHtml() {
         StringBuilder sb = new StringBuilder();
         var options = HtmlRenderContext.Options;
+        MarkdownInlineHtmlRenderContext? context = options == null
+            ? null
+            : new MarkdownInlineHtmlRenderContext(options, HtmlRenderContext.BodyContext);
         for (int i = 0; i < _inlines.Count; i++) {
             if (AutoSpacing && i > 0) {
                 var prev = _inlines[i - 1];
                 var cur = _inlines[i];
                 if (prev is not HardBreakInline && cur is not HardBreakInline) sb.Append(' ');
             }
-            sb.Append(RenderHtml(_inlines[i], options));
+            sb.Append(RenderHtml(_inlines[i], options, context));
         }
         return sb.ToString();
     }
@@ -111,8 +118,8 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             ?? throw new InvalidOperationException($"Inline node of type '{node.GetType().FullName}' does not implement {nameof(IRenderableMarkdownInline)}.");
     }
 
-    private static string RenderMarkdown(IMarkdownInline node, MarkdownWriteOptions? options) {
-        var overridden = TryRenderInlineMarkdownOverride(node, options);
+    private static string RenderMarkdown(IMarkdownInline node, MarkdownInlineMarkdownRenderContext? context) {
+        var overridden = TryRenderInlineMarkdownOverride(node, context);
         if (overridden != null) {
             return overridden;
         }
@@ -120,8 +127,12 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
         return GetRenderable(node).RenderMarkdown();
     }
 
-    private static string? TryRenderInlineMarkdownOverride(IMarkdownInline node, MarkdownWriteOptions? options) {
-        var extensions = options?.InlineRenderExtensions;
+    private static string? TryRenderInlineMarkdownOverride(IMarkdownInline node, MarkdownInlineMarkdownRenderContext? context) {
+        if (context == null) {
+            return null;
+        }
+
+        var extensions = context.Options.InlineRenderExtensions;
         if (extensions == null || extensions.Count == 0) {
             return null;
         }
@@ -132,7 +143,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
                 continue;
             }
 
-            var rendered = extension.RenderMarkdown(node, options!);
+            var rendered = extension.RenderMarkdownWithContext(node, context);
             if (rendered != null) {
                 return rendered;
             }
@@ -141,8 +152,8 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
         return null;
     }
 
-    private static string RenderHtml(IMarkdownInline node, HtmlOptions? options) {
-        var overridden = TryRenderInlineOverride(node, options);
+    private static string RenderHtml(IMarkdownInline node, HtmlOptions? options, MarkdownInlineHtmlRenderContext? context) {
+        var overridden = TryRenderInlineOverride(node, context);
         if (overridden != null) {
             return overridden;
         }
@@ -154,8 +165,12 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
         return GetRenderable(node).RenderHtml();
     }
 
-    private static string? TryRenderInlineOverride(IMarkdownInline node, HtmlOptions? options) {
-        var extensions = options?.InlineRenderExtensions;
+    private static string? TryRenderInlineOverride(IMarkdownInline node, MarkdownInlineHtmlRenderContext? context) {
+        if (context == null) {
+            return null;
+        }
+
+        var extensions = context.Options.InlineRenderExtensions;
         if (extensions == null || extensions.Count == 0) {
             return null;
         }
@@ -166,7 +181,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
                 continue;
             }
 
-            var rendered = extension.RenderHtml(node, options!);
+            var rendered = extension.RenderHtmlWithContext(node, context);
             if (rendered != null) {
                 return rendered;
             }

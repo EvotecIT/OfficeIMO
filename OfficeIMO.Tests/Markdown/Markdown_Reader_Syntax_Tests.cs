@@ -718,6 +718,50 @@ Heading Title
     }
 
     [Fact]
+    public void Html_Inline_Render_Extension_Contextual_Renderer_Can_Read_Body_Context_And_SourceSpan() {
+        const string markdown = """
+## Intro
+
+Lead {{core}} tail
+""";
+        var options = new MarkdownReaderOptions();
+        options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
+
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, options).Document;
+        var htmlOptions = new HtmlOptions {
+            Kind = HtmlKind.Fragment,
+            Title = "inline-context-title"
+        };
+        htmlOptions.InlineRenderExtensions.Add(MarkdownInlineHtmlRenderExtension.CreateContextual(
+            "double-brace-contextual-html",
+            typeof(DoubleBraceInline),
+            static (inline, context) => {
+                if (inline is not DoubleBraceInline custom) {
+                    return null;
+                }
+
+                var paragraph = custom.Ancestors().OfType<ParagraphBlock>().First();
+                return "<mark data-inline-context=\"true\" data-title=\""
+                    + System.Net.WebUtility.HtmlEncode(context.Options.Title)
+                    + "\" data-block-index=\""
+                    + context.GetBlockIndex(paragraph)
+                    + "\" data-source=\""
+                    + System.Net.WebUtility.HtmlEncode(custom.SourceSpan?.ToString() ?? string.Empty)
+                    + "\">"
+                    + System.Net.WebUtility.HtmlEncode(InlinePlainText.Extract(custom.Inlines))
+                    + "</mark>";
+            }));
+
+        var rendered = document.ToHtmlFragment(htmlOptions);
+
+        Assert.Contains("data-inline-context=\"true\"", rendered, StringComparison.Ordinal);
+        Assert.Contains("data-title=\"inline-context-title\"", rendered, StringComparison.Ordinal);
+        Assert.Contains("data-block-index=\"1\"", rendered, StringComparison.Ordinal);
+        Assert.Contains("data-source=\"L3:C6-C13\"", rendered, StringComparison.Ordinal);
+        Assert.Contains(">core<", rendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Html_Inline_Render_Extension_Uses_Last_Matching_Registration() {
         const string markdown = "Lead {{core}} tail";
         var options = new MarkdownReaderOptions();

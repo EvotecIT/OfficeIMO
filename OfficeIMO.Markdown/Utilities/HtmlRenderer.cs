@@ -115,6 +115,7 @@ internal static class HtmlRenderer {
 
     private static string RenderBody(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options, MarkdownHeadingCatalog headingCatalog) {
         var context = new MarkdownBodyRenderContext(blocks, options, headingCatalog);
+        using var _inlineContext = HtmlRenderContext.PushBodyContext(context);
         var plan = MarkdownBodyRenderPlan.Create(blocks);
         var footnotes = plan.Footnotes;
         var sidebar = plan.Sidebar;

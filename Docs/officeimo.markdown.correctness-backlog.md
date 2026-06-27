@@ -196,6 +196,7 @@ Current coverage:
 - `MarkdownInlineTransformExtension` separates post-parse inline AST normalization from token recognition
 - `HtmlOptions.InlineRenderExtensions` lets hosts/packages override HTML for specific inline semantic types without editing those node types
 - inline HTML render extensions now have explicit ordering and null-fallback tests: later matching registrations win, and `null` falls back to the inline's contextual/default renderer
+- inline HTML and Markdown render extensions now also have context-aware registration coverage so extension renderers can read body/write context helpers and parsed inline source spans
 
 ### C3. Separate parsing from normalization
 

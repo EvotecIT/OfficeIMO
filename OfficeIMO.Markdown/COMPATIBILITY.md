@@ -77,8 +77,8 @@ Renderer:
 - Optional Prism syntax highlighting (online/offline delivery modes)
 - Optional GitHub-style task-list and footnote HTML via `HtmlOptions.GitHubTaskListHtml` and `HtmlOptions.GitHubFootnoteHtml`
 - Reader extension seams for block parsers, fenced-block semantic factories, inline parsers, and post-parse inline AST transforms
-- Type-targeted block and inline HTML override registration via `HtmlOptions.BlockRenderExtensions` and `HtmlOptions.InlineRenderExtensions`
-- Type-targeted block and inline Markdown serialization overrides via `MarkdownWriteOptions.BlockRenderExtensions` and `MarkdownWriteOptions.InlineRenderExtensions`
+- Type-targeted block and inline HTML override registration via `HtmlOptions.BlockRenderExtensions` and `HtmlOptions.InlineRenderExtensions`, including context-aware registrations for body/write context and source-span-aware AST rendering
+- Type-targeted block and inline Markdown serialization overrides via `MarkdownWriteOptions.BlockRenderExtensions` and `MarkdownWriteOptions.InlineRenderExtensions`, including context-aware registrations for body/write context and source-span-aware AST rendering
 - `OfficeIMO.MarkdownRenderer`: Mermaid bootstrap + incremental DOM updates suitable for WebView2
 
 ## Known Gaps vs CommonMark / GFM Expectations
@@ -104,7 +104,7 @@ These are the main reasons you will see differences compared to typical CommonMa
   - The OfficeIMO/default profile promotes standalone markdown image lines into typed `ImageBlock` nodes. CommonMark, GFM, and portable reader profiles now keep those lines as paragraph inline images so the spec-oriented HTML shape stays closer to CommonMark.
   - Parsed image descriptions now flatten inline formatting and nested link/image content down to plain-string HTML `alt` text more like the official CommonMark image examples, while the syntax tree still preserves the raw source form of the image label.
 - Extension model
-  - The parser/renderer architecture is much cleaner than before, with public block parser, fenced block, inline parser, inline transform, and type-targeted renderer/writer override seams. It is still not as broad as mature dedicated markdown engines because syntax-node-shape renderers and lossless token/trivia extension points are not first-class yet.
+  - The parser/renderer architecture is much cleaner than before, with public block parser, fenced block, inline parser, inline transform, and context-aware type-targeted renderer/writer override seams. It is still not as broad as mature dedicated markdown engines because syntax-node-shape renderers and lossless token/trivia extension points are not first-class yet.
 - Spec breadth
 - We now cover a much larger compatibility set than the earlier subset reader, and the test suite now includes 172 pinned CommonMark 0.31.2 fixtures, 33 cmark-gfm smoke fixtures, and focused upstream non-render regression coverage with selected AST path/span assertions in addition to curated Markdig 1.3.2 parity cases. A package guardrail keeps the Markdig test and benchmark baselines aligned, but that is still not the same thing as full CommonMark/GFM conformance.
 - Syntax-backed parse results now expose normalized source slices for span-backed nodes, including fenced-code opening/info/content/closing tokens with nested blockquote/list source-map coverage, and `MarkdownReaderOptions.PreserveTrivia` can retain the raw reader input as parse-result metadata for future lossless work. Line-ending-equivalent original input, including CRLF and standalone CR, can also materialize original source slices through line/column coordinates. `MarkdownRoundtripWriter` can preserve unchanged trivia-backed parse results byte-for-byte, apply explicit native source edits to original input when every edit remaps safely, and report diagnostics when it falls back to generated or normalized markdown, but full trivia capture and general byte-preserving edit writing are still not implemented.

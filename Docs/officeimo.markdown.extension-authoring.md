@@ -236,7 +236,7 @@ Use:
 
 `HtmlOptions.BlockRenderExtensions` also supports context-aware override registrations now. When you need an external override to win before the block's own `IContextualHtmlMarkdownBlock` implementation, register a `MarkdownBlockHtmlRenderExtension` with `MarkdownBlockHtmlRenderExtension.CreateContextual(...)`.
 
-`HtmlOptions.InlineRenderExtensions` provides the matching seam for inline HTML output. Register a `MarkdownInlineHtmlRenderExtension` for the inline type you want to override. Later registrations win when several extensions match the same inline object, and returning `null` from the delegate falls back to the inline's own contextual/default HTML rendering.
+`HtmlOptions.InlineRenderExtensions` provides the matching seam for inline HTML output. Register a `MarkdownInlineHtmlRenderExtension` for the inline type you want to override. Later registrations win when several extensions match the same inline object, and returning `null` from the delegate falls back to the inline's own contextual/default HTML rendering. Use `MarkdownInlineHtmlRenderExtension.CreateContextual(...)` when the inline renderer needs the active `HtmlOptions`, top-level body context helpers, or source-span-aware semantic object tree.
 
 `MarkdownWriteOptions.BlockRenderExtensions` now has the same pattern through `MarkdownBlockMarkdownRenderExtension.CreateContextual(...)`, with `MarkdownWriteContext` exposing:
 
@@ -247,7 +247,7 @@ Use:
 
 See `OfficeIMO.Examples/Markdown/Markdown09_Custom_Markdown_Write_Overrides.cs` for a runnable example that writes both default markdown and a customized markdown profile using a contextual TOC override plus a legacy-compatible callout override.
 
-`MarkdownWriteOptions.InlineRenderExtensions` provides the matching seam for inline Markdown output. Register a `MarkdownInlineMarkdownRenderExtension` for the inline type you want to override during `MarkdownDoc.ToMarkdown(...)`. Later registrations win when several extensions match the same inline object, and returning `null` from the delegate falls back to the inline's own `IRenderableMarkdownInline.RenderMarkdown()` implementation.
+`MarkdownWriteOptions.InlineRenderExtensions` provides the matching seam for inline Markdown output. Register a `MarkdownInlineMarkdownRenderExtension` for the inline type you want to override during `MarkdownDoc.ToMarkdown(...)`. Later registrations win when several extensions match the same inline object, and returning `null` from the delegate falls back to the inline's own `IRenderableMarkdownInline.RenderMarkdown()` implementation. Use `MarkdownInlineMarkdownRenderExtension.CreateContextual(...)` when serialization needs the active `MarkdownWriteOptions`, top-level document context helpers, or parsed source spans from the semantic object tree.
 
 ## Delegate Block Parser Pattern
 
@@ -325,7 +325,7 @@ The extension surface is much stronger than before, but a few things are still i
 
 - `MarkdownSyntaxKind` remains a fixed enum, so extension node identity should flow through `CustomKind`
 - block HTML override extensions still operate by block type, not by syntax-node shape
-- inline HTML and Markdown override extensions also operate by semantic inline type, not by syntax-node shape
+- inline HTML and Markdown override extensions now support contextual semantic inline rendering, but still operate by semantic inline type rather than raw syntax-node shape
 - the syntax tree is semantic-friendly, but it is still not a fully lossless token stream
 
 ## Suggested Pattern For Real Packages

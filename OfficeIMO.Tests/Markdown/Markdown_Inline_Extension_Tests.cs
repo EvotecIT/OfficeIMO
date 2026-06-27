@@ -255,6 +255,42 @@ public sealed class Markdown_Inline_Extension_Tests {
     }
 
     [Fact]
+    public void InlineMarkdownRenderExtensions_Contextual_Renderer_Can_Read_Document_Context_And_SourceSpan() {
+        var readerOptions = new MarkdownReaderOptions();
+        readerOptions.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
+        var document = MarkdownReader.ParseWithSyntaxTree("""
+## Intro
+
+Lead {{core}} tail
+""", readerOptions).Document;
+
+        var options = new MarkdownWriteOptions {
+            OutputLineEnding = "\n"
+        };
+        options.InlineRenderExtensions.Add(MarkdownInlineMarkdownRenderExtension.CreateContextual(
+            "double-brace-contextual-markdown",
+            typeof(DoubleBraceInline),
+            static (inline, context) => {
+                if (inline is not DoubleBraceInline custom) {
+                    return null;
+                }
+
+                var paragraph = custom.Ancestors().OfType<ParagraphBlock>().First();
+                return "[block:"
+                    + context.GetBlockIndex(paragraph)
+                    + ";source:"
+                    + (custom.SourceSpan?.ToString() ?? string.Empty)
+                    + ";text:"
+                    + InlinePlainText.Extract(custom.Inlines)
+                    + "]";
+            }));
+
+        var rendered = document.ToMarkdown(options);
+
+        Assert.Equal("## Intro\n\nLead [block:1;source:L3:C6-C13;text:core] tail\n", rendered);
+    }
+
+    [Fact]
     public void InlineMarkdownRenderExtensions_Fall_Back_When_Renderer_Returns_Null() {
         var options = new MarkdownWriteOptions {
             OutputLineEnding = "\n"
