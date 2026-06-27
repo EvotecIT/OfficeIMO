@@ -40,6 +40,60 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
         Assert.Contains("&lt;script&gt;alert(1)&lt;/script&gt;", html, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData("type 1 script", "<script>\nalert(1)\n</script>", "<script>", "&lt;script&gt;")]
+    [InlineData("type 2 comment", "<!-- keep -->", "<!-- keep -->", "&lt;!-- keep --&gt;")]
+    [InlineData("type 3 processing instruction", "<?xml version=\"1.0\"?>", "<?xml", "&lt;?xml")]
+    [InlineData("type 4 declaration", "<!DOCTYPE html>", "<!DOCTYPE", "&lt;!DOCTYPE")]
+    [InlineData("type 5 CDATA", "<![CDATA[<p>literal</p>]]>", "<![CDATA", "&lt;![CDATA")]
+    [InlineData("type 6 block tag", "<div onclick=\"alert(1)\">ok</div>", "<div", "&lt;div")]
+    [InlineData("type 7 custom tag", "<custom onclick=\"alert(1)\">ok</custom>", "<custom", "&lt;custom")]
+    public void RawHtmlHandling_Security_Profiles_Cover_CommonMark_Html_Block_Shapes(
+        string _,
+        string rawMarkdown,
+        string unsafeFragment,
+        string escapedFragment) {
+        string markdown = rawMarkdown + "\n\nParagraph";
+        var doc = MarkdownReader.Parse(markdown);
+
+        var stripped = doc.ToHtmlFragment(CreatePlainHtmlOptions(RawHtmlHandling.Strip));
+        Assert.DoesNotContain(unsafeFragment, stripped, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(escapedFragment, stripped, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<p>Paragraph</p>", stripped, StringComparison.Ordinal);
+
+        var escaped = doc.ToHtmlFragment(CreatePlainHtmlOptions(RawHtmlHandling.Escape));
+        Assert.DoesNotContain(unsafeFragment, escaped, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<pre class=\"md-raw-html\"><code>", escaped, StringComparison.Ordinal);
+        Assert.Contains(escapedFragment, escaped, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<p>Paragraph</p>", escaped, StringComparison.Ordinal);
+
+        var sanitized = doc.ToHtmlFragment(CreatePlainHtmlOptions(RawHtmlHandling.Sanitize));
+        Assert.DoesNotContain(unsafeFragment, sanitized, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(escapedFragment, sanitized, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<p>Paragraph</p>", sanitized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GitHubHtmlTagFilter_Filters_Dangerous_RawHtml_Blocks_And_Inlines_When_RawHtml_Is_Allowed() {
+        const string md = "Inline <xmp>bad</xmp> but <strong>ok</strong>.\n\n<script>alert(1)</script>\n\n<custom>ok</custom>";
+        var opts = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            RawHtmlHandling = RawHtmlHandling.Allow,
+            GitHubHtmlTagFilter = true
+        };
+
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(opts);
+
+        Assert.Contains("&lt;xmp>bad&lt;/xmp>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<strong>ok</strong>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("&lt;script>alert(1)&lt;/script>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<custom>ok</custom>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<xmp>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<script>", html, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void MarkdownRenderer_Defaults_To_Stripping_RawHtml() {
         var md = "<div>hi</div>";
@@ -49,4 +103,12 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
 
         Assert.DoesNotContain("<div>hi</div>", html, StringComparison.Ordinal);
     }
+
+    private static HtmlOptions CreatePlainHtmlOptions(RawHtmlHandling handling) =>
+        new() {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            RawHtmlHandling = handling
+        };
 }

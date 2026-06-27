@@ -238,14 +238,16 @@ _Caption_
             var doc = MarkdownReader.Parse(md, options);
 
             var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
-            Assert.Equal(4, paragraph.Inlines.Items.Count);
-            var firstText = Assert.IsType<TextRun>(paragraph.Inlines.Items[0]);
-            Assert.Equal("<div>First", firstText.Text);
-            Assert.IsType<HardBreakInline>(paragraph.Inlines.Items[1]);
-            var secondText = Assert.IsType<TextRun>(paragraph.Inlines.Items[2]);
+            Assert.Equal(5, paragraph.Inlines.Items.Count);
+            var openingTag = Assert.IsType<HtmlRawInline>(paragraph.Inlines.Items[0]);
+            Assert.Equal("<div>", openingTag.Html);
+            var firstText = Assert.IsType<TextRun>(paragraph.Inlines.Items[1]);
+            Assert.Equal("First", firstText.Text);
+            Assert.IsType<HardBreakInline>(paragraph.Inlines.Items[2]);
+            var secondText = Assert.IsType<TextRun>(paragraph.Inlines.Items[3]);
             Assert.Equal("Second", secondText.Text);
-            var closingTag = Assert.IsType<TextRun>(paragraph.Inlines.Items[3]);
-            Assert.Equal("</div>", closingTag.Text);
+            var closingTag = Assert.IsType<HtmlRawInline>(paragraph.Inlines.Items[4]);
+            Assert.Equal("</div>", closingTag.Html);
         }
 
         [Fact]

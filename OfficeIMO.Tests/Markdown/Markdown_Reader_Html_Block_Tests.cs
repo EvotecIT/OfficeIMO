@@ -250,7 +250,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Html_Blocks_Can_Be_Disabled() {
             string md = "<div>Inline</div>\n\nParagraph";
 
-            var options = new MarkdownReaderOptions { HtmlBlocks = false };
+            var options = new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false };
             var doc = MarkdownReader.Parse(md, options);
 
             Assert.DoesNotContain(doc.Blocks, block => block is HtmlRawBlock);
