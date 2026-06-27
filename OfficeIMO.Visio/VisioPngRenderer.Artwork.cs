@@ -134,7 +134,7 @@ namespace OfficeIMO.Visio {
             canvas.DrawImage(
                 raster,
                 renderPlan.ToVisibleProjection(
-                    rotationDegrees: OfficeGeometry.RadiansToDegrees(ToRasterRotation(shape.Angle)),
+                    rotationDegrees: -OfficeGeometry.RadiansToDegrees(ToRasterRotation(shape.Angle)),
                     rotationCenterX: centerX,
                     rotationCenterY: centerY));
             return true;

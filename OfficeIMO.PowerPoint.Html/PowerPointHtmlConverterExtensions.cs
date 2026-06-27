@@ -216,7 +216,9 @@ public static class PowerPointHtmlConverterExtensions {
         body.Append("<section class=\"officeimo-feature officeimo-images\"><h3>Pictures</h3><ul class=\"officeimo-feature-list\">");
         foreach (PptCore.PowerPointPicture picture in pictureList) {
             string label = GetShapeLabel(picture);
-            body.Append("<li class=\"officeimo-feature-item\"");
+            body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"picture\" data-officeimo-layer-index=\"")
+                .Append(picture.DrawingOrder.ToString(CultureInfo.InvariantCulture))
+                .Append('"');
             AppendDataAttribute(body, "data-officeimo-left", picture.LeftPoints);
             AppendDataAttribute(body, "data-officeimo-top", picture.TopPoints);
             AppendDataAttribute(body, "data-officeimo-width", picture.WidthPoints);
@@ -278,7 +280,17 @@ public static class PowerPointHtmlConverterExtensions {
 
         body.Append("<section class=\"officeimo-feature officeimo-charts\"><h3>Charts</h3><ul class=\"officeimo-feature-list\">");
         foreach (PptCore.PowerPointChart chart in chartList) {
-            body.Append("<li class=\"officeimo-feature-item\"><div class=\"officeimo-feature-meta\">Size: ")
+            body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"chart\" data-officeimo-layer-index=\"")
+                .Append(chart.DrawingOrder.ToString(CultureInfo.InvariantCulture))
+                .Append('"');
+            AppendDataAttribute(body, "data-officeimo-left", chart.LeftPoints);
+            AppendDataAttribute(body, "data-officeimo-top", chart.TopPoints);
+            AppendDataAttribute(body, "data-officeimo-width", chart.WidthPoints);
+            AppendDataAttribute(body, "data-officeimo-height", chart.HeightPoints);
+            AppendDataAttribute(body, "data-officeimo-rotation", chart.Rotation ?? 0D);
+            AppendDataAttribute(body, "data-officeimo-flip-horizontal", chart.HorizontalFlip == true);
+            AppendDataAttribute(body, "data-officeimo-flip-vertical", chart.VerticalFlip == true);
+            body.Append("><div class=\"officeimo-feature-meta\">Size: ")
                 .Append(FormatNumber(chart.WidthPoints))
                 .Append("pt x ")
                 .Append(FormatNumber(chart.HeightPoints))

@@ -65,12 +65,8 @@ public static class PowerPointHtmlLoadExtensions {
             }
         }
 
-        if (options.ImportPictures) {
-            ImportPictures(section, slide, result);
-        }
-
-        if (options.ImportChartInventory) {
-            ImportCharts(section, slide, result);
+        if (options.ImportPictures || options.ImportChartInventory) {
+            ImportDrawings(section, slide, options, result);
         }
 
         if (options.ImportNotes) {
@@ -105,69 +101,90 @@ public static class PowerPointHtmlLoadExtensions {
         return top + Math.Max(90, rowCount * 40);
     }
 
-    private static void ImportPictures(IElement section, PptCore.PowerPointSlide slide, PowerPointHtmlLoadResult result) {
-        double top = 140D;
-        foreach (IElement item in section.QuerySelectorAll("section.officeimo-images li")) {
-            IElement? image = item.QuerySelector("img[src]");
-            if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
-                continue;
+    private static void ImportDrawings(IElement section, PptCore.PowerPointSlide slide, PowerPointHtmlLoadOptions options, PowerPointHtmlLoadResult result) {
+        var drawings = new List<PowerPointDrawingImportItem>();
+        int fallbackOrder = 0;
+        if (options.ImportPictures) {
+            foreach (IElement item in section.QuerySelectorAll("section.officeimo-images li")) {
+                drawings.Add(new PowerPointDrawingImportItem(item, PowerPointDrawingImportKind.Picture, ReadOptionalIntAttribute(item, "data-officeimo-layer-index"), fallbackOrder++));
             }
+        }
 
-            if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
-                result.Diagnostics.Add("Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.");
-                continue;
+        if (options.ImportChartInventory) {
+            foreach (IElement item in section.QuerySelectorAll("section.officeimo-charts li")) {
+                drawings.Add(new PowerPointDrawingImportItem(item, PowerPointDrawingImportKind.Chart, ReadOptionalIntAttribute(item, "data-officeimo-layer-index"), fallbackOrder++));
             }
+        }
 
-            if (!TryGetImagePartType(dataUri.MediaType, out PptCore.ImagePartType imagePartType)) {
-                result.Diagnostics.Add("Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' used unsupported media type '" + dataUri.MediaType + "' and was not imported.");
-                continue;
+        double pictureTop = 140D;
+        double chartTop = 220D;
+        foreach (PowerPointDrawingImportItem drawing in drawings.OrderBy(item => item.LayerIndex ?? item.FallbackOrder).ThenBy(item => item.FallbackOrder)) {
+            if (drawing.Kind == PowerPointDrawingImportKind.Picture) {
+                ImportPicture(drawing.Element, slide, result, ref pictureTop);
+            } else {
+                ImportChart(drawing.Element, slide, result, ref chartTop);
             }
-
-            ReadPictureSize(item, out double width, out double height);
-            ReadPicturePosition(item, 720D, top, out double left, out double pictureTop);
-            using var stream = new MemoryStream(bytes);
-            PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, left, pictureTop, width, height);
-            string label = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
-            string alt = NormalizeText(image.GetAttribute("alt"));
-            if (label.Length > 0) {
-                picture.Name = label;
-            }
-
-            if (alt.Length > 0) {
-                picture.AltText = alt;
-            }
-
-            ApplyPictureTransforms(item, picture);
-            result.Pictures++;
-            top = Math.Max(top, pictureTop + height + 18D);
         }
     }
 
-    private static void ImportCharts(IElement section, PptCore.PowerPointSlide slide, PowerPointHtmlLoadResult result) {
-        double top = 220D;
-        foreach (IElement item in section.QuerySelectorAll("section.officeimo-charts li")) {
-            string title = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
-            bool restoredFromSemanticData = TryReadChartData(item, out PptCore.PowerPointChartData? semanticData);
-            PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
-            string chartKind = ReadChartKind(item);
-            ReadChartGeometry(item, 500D, top, 320D, 180D, out double left, out double chartTop, out double width, out double height);
-            if (!TryAddChartByKind(slide, chartKind, data, left, chartTop, width, height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
-                result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' used unsupported chart kind '" + chartKind + "' and was not imported.");
-                continue;
-            }
-
-            chart.SetTitle(title.Length == 0 ? "Imported chart" : title);
-            result.Charts++;
-            if (!string.IsNullOrWhiteSpace(fallbackMessage)) {
-                result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' " + fallbackMessage);
-            }
-
-            if (!restoredFromSemanticData) {
-                result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' was restored as a native chart with reconstructed placeholder values; exact source chart data was not present in semantic HTML.");
-            }
-
-            top = Math.Max(top + 198D, chartTop + height + 18D);
+    private static void ImportPicture(IElement item, PptCore.PowerPointSlide slide, PowerPointHtmlLoadResult result, ref double fallbackTop) {
+        IElement? image = item.QuerySelector("img[src]");
+        if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
+            return;
         }
+
+        if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
+            result.Diagnostics.Add("Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.");
+            return;
+        }
+
+        if (!TryGetImagePartType(dataUri.MediaType, out PptCore.ImagePartType imagePartType)) {
+            result.Diagnostics.Add("Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' used unsupported media type '" + dataUri.MediaType + "' and was not imported.");
+            return;
+        }
+
+        ReadPictureSize(item, out double width, out double height);
+        ReadPicturePosition(item, 720D, fallbackTop, out double left, out double pictureTop);
+        using var stream = new MemoryStream(bytes);
+        PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, left, pictureTop, width, height);
+        string label = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
+        string alt = NormalizeText(image.GetAttribute("alt"));
+        if (label.Length > 0) {
+            picture.Name = label;
+        }
+
+        if (alt.Length > 0) {
+            picture.AltText = alt;
+        }
+
+        ApplyPictureTransforms(item, picture);
+        result.Pictures++;
+        fallbackTop = Math.Max(fallbackTop, pictureTop + height + 18D);
+    }
+
+    private static void ImportChart(IElement item, PptCore.PowerPointSlide slide, PowerPointHtmlLoadResult result, ref double fallbackTop) {
+        string title = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
+        bool restoredFromSemanticData = TryReadChartData(item, out PptCore.PowerPointChartData? semanticData);
+        PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
+        string chartKind = ReadChartKind(item);
+        ReadChartGeometry(item, 500D, fallbackTop, 320D, 180D, out double left, out double chartTop, out double width, out double height);
+        if (!TryAddChartByKind(slide, chartKind, data, left, chartTop, width, height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
+            result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' used unsupported chart kind '" + chartKind + "' and was not imported.");
+            return;
+        }
+
+        chart.SetTitle(title.Length == 0 ? "Imported chart" : title);
+        ApplyShapeTransforms(item, chart);
+        result.Charts++;
+        if (!string.IsNullOrWhiteSpace(fallbackMessage)) {
+            result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' " + fallbackMessage);
+        }
+
+        if (!restoredFromSemanticData) {
+            result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' was restored as a native chart with reconstructed placeholder values; exact source chart data was not present in semantic HTML.");
+        }
+
+        fallbackTop = Math.Max(fallbackTop + 198D, chartTop + height + 18D);
     }
 
     private static void ImportNotes(IElement section, PptCore.PowerPointSlide slide, PowerPointHtmlLoadResult result) {
@@ -322,17 +339,7 @@ public static class PowerPointHtmlLoadExtensions {
     }
 
     private static void ApplyPictureTransforms(IElement item, PptCore.PowerPointPicture picture) {
-        if (TryReadDoubleAttribute(item, "data-officeimo-rotation", out double rotation)) {
-            picture.Rotation = rotation;
-        }
-
-        if (TryReadBoolAttribute(item, "data-officeimo-flip-horizontal", out bool horizontalFlip)) {
-            picture.HorizontalFlip = horizontalFlip;
-        }
-
-        if (TryReadBoolAttribute(item, "data-officeimo-flip-vertical", out bool verticalFlip)) {
-            picture.VerticalFlip = verticalFlip;
-        }
+        ApplyShapeTransforms(item, picture);
 
         double left = ReadOptionalDoubleAttribute(item, "data-officeimo-crop-left") ?? 0D;
         double top = ReadOptionalDoubleAttribute(item, "data-officeimo-crop-top") ?? 0D;
@@ -341,6 +348,30 @@ public static class PowerPointHtmlLoadExtensions {
         if (left > 0D || top > 0D || right > 0D || bottom > 0D) {
             picture.Crop(left * 100D, top * 100D, right * 100D, bottom * 100D);
         }
+    }
+
+    private static void ApplyShapeTransforms(IElement item, PptCore.PowerPointShape shape) {
+        if (TryReadDoubleAttribute(item, "data-officeimo-rotation", out double rotation)) {
+            shape.Rotation = rotation;
+        }
+
+        if (TryReadBoolAttribute(item, "data-officeimo-flip-horizontal", out bool horizontalFlip)) {
+            shape.HorizontalFlip = horizontalFlip;
+        }
+
+        if (TryReadBoolAttribute(item, "data-officeimo-flip-vertical", out bool verticalFlip)) {
+            shape.VerticalFlip = verticalFlip;
+        }
+    }
+
+    private static int? ReadOptionalIntAttribute(IElement item, string name) =>
+        TryReadIntAttribute(item, name, out int value) ? value : null;
+
+    private static bool TryReadIntAttribute(IElement item, string name, out int value) {
+        value = 0;
+        string? raw = item.GetAttribute(name);
+        return !string.IsNullOrWhiteSpace(raw)
+            && int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
     }
 
     private static double? ReadOptionalDoubleAttribute(IElement item, string name) =>
@@ -391,6 +422,8 @@ public static class PowerPointHtmlLoadExtensions {
 
         width = Math.Max(1D, width);
         height = Math.Max(1D, height);
+        if (TryReadDoubleAttribute(item, "data-officeimo-width", out double attributeWidth)) width = Math.Max(1D, attributeWidth);
+        if (TryReadDoubleAttribute(item, "data-officeimo-height", out double attributeHeight)) height = Math.Max(1D, attributeHeight);
     }
 
     private static string ExtractPresenterNotes(string? markdown) {
@@ -594,4 +627,26 @@ public static class PowerPointHtmlLoadExtensions {
 
     private static string PreserveText(string? text) =>
         string.IsNullOrWhiteSpace(text) ? string.Empty : text!.Trim();
+
+    private sealed class PowerPointDrawingImportItem {
+        internal PowerPointDrawingImportItem(IElement element, PowerPointDrawingImportKind kind, int? layerIndex, int fallbackOrder) {
+            Element = element;
+            Kind = kind;
+            LayerIndex = layerIndex;
+            FallbackOrder = fallbackOrder;
+        }
+
+        internal IElement Element { get; }
+
+        internal PowerPointDrawingImportKind Kind { get; }
+
+        internal int? LayerIndex { get; }
+
+        internal int FallbackOrder { get; }
+    }
+
+    private enum PowerPointDrawingImportKind {
+        Picture,
+        Chart
+    }
 }

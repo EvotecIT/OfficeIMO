@@ -395,6 +395,13 @@ public static class ExcelHtmlConverterExtensions {
                 AppendDataAttribute(body, "data-officeimo-y", yPixels);
             }
 
+            if (image.HasTwoCellAnchor && image.ToRowIndex.HasValue && image.ToColumnIndex.HasValue) {
+                AppendDataAttribute(body, "data-officeimo-to-row", image.ToRowIndex.Value);
+                AppendDataAttribute(body, "data-officeimo-to-column", image.ToColumnIndex.Value);
+                AppendDataAttribute(body, "data-officeimo-to-offset-x", image.ToOffsetXPixels);
+                AppendDataAttribute(body, "data-officeimo-to-offset-y", image.ToOffsetYPixels);
+            }
+
             body.Append("><span class=\"officeimo-feature-label\">")
                 .Append(OfficeHtmlText.Escape(label))
                 .Append("</span><div class=\"officeimo-feature-meta\">Cell: ")

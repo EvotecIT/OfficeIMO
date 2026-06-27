@@ -234,12 +234,50 @@ public static class ExcelHtmlLoadExtensions {
         } else if (IsAbsoluteImageAnchor(item)) {
             result.Diagnostics.Add("Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used an absolute anchor without semantic x/y coordinates and was restored to its fallback cell anchor.");
             importedImage = sheet.AddImage(row, column, bytes, dataUri.MediaType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
+        } else if (IsTwoCellImageAnchor(item)) {
+            importedImage = AddTwoCellImage(item, sheet, result, bytes, dataUri.MediaType, row, column, width, height, offsetX, offsetY, name, description);
         } else {
             importedImage = sheet.AddImage(row, column, bytes, dataUri.MediaType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         }
 
         ApplyImageTransforms(item, importedImage);
         result.Images++;
+    }
+
+    private static ExcelImage AddTwoCellImage(
+        IElement item,
+        ExcelSheet sheet,
+        ExcelHtmlLoadResult result,
+        byte[] bytes,
+        string contentType,
+        int row,
+        int column,
+        int width,
+        int height,
+        int offsetX,
+        int offsetY,
+        string name,
+        string description) {
+        if (TryReadIntAttribute(item, "data-officeimo-to-row", out int toRow)
+            && TryReadIntAttribute(item, "data-officeimo-to-column", out int toColumn)) {
+            int endRow = Math.Max(row, toRow - 1);
+            int endColumn = Math.Max(column, toColumn - 1);
+            int endOffsetX = Math.Max(0, ReadOptionalIntAttribute(item, "data-officeimo-to-offset-x") ?? 0);
+            int endOffsetY = Math.Max(0, ReadOptionalIntAttribute(item, "data-officeimo-to-offset-y") ?? 0);
+            return sheet.AddImageToRange(
+                BuildRangeReference(row, column, endRow, endColumn),
+                bytes,
+                contentType,
+                offsetX,
+                offsetY,
+                endOffsetX,
+                endOffsetY,
+                name: name.Length == 0 ? null : name,
+                altText: description.Length == 0 ? null : description);
+        }
+
+        result.Diagnostics.Add("Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used a two-cell anchor without semantic ending marker coordinates and was restored to its fallback cell anchor.");
+        return sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
     }
 
     private static void ImportChart(IElement item, ExcelSheet sheet, ExcelHtmlLoadResult result, string range, ref int chartIndex) {
@@ -490,6 +528,9 @@ public static class ExcelHtmlLoadExtensions {
     private static bool IsAbsoluteImageAnchor(IElement item) =>
         string.Equals(item.GetAttribute("data-officeimo-anchor"), "absolute", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsTwoCellImageAnchor(IElement item) =>
+        string.Equals(item.GetAttribute("data-officeimo-anchor"), "twoCell", StringComparison.OrdinalIgnoreCase);
+
     private static int? ReadOptionalIntAttribute(IElement item, string name) =>
         TryReadIntAttribute(item, name, out int value) ? value : null;
 
@@ -572,6 +613,9 @@ public static class ExcelHtmlLoadExtensions {
 
         return letters.Append(row.ToString(CultureInfo.InvariantCulture)).ToString();
     }
+
+    private static string BuildRangeReference(int startRow, int startColumn, int endRow, int endColumn) =>
+        BuildCellReference(startRow, startColumn) + ":" + BuildCellReference(endRow, endColumn);
 
     private static bool IsElement(IElement element, string name) =>
         string.Equals(element.LocalName, name, StringComparison.OrdinalIgnoreCase);

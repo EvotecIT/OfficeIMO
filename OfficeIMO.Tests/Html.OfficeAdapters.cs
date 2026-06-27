@@ -293,6 +293,43 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_RoundTripsTwoCellImageAnchors() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorkSheet("Anchors");
+        sheet.CellValue(1, 1, "Seed");
+        ExcelImage image = sheet.AddImageToRange("B2:D5", OnePixelPng, "image/png", offsetXPixels: 7, offsetYPixels: 8, endOffsetXPixels: 9, endOffsetYPixels: 10, name: "Range image", altText: "Two-cell anchor");
+        image.SetRotation(12.5D).SetFlip(horizontal: true, vertical: false);
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+
+        Assert.Contains("data-officeimo-anchor=\"twoCell\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-to-row=\"6\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-to-column=\"5\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-to-offset-x=\"9\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-to-offset-y=\"10\"", html, StringComparison.Ordinal);
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelSheet importedSheet = imported.Sheets.Single(importedSheet => importedSheet.Name == "Anchors");
+
+        Assert.Equal(1, result.Images);
+        Assert.Empty(result.Diagnostics);
+        ExcelImage importedImage = Assert.Single(importedSheet.Images);
+        Assert.True(importedImage.HasTwoCellAnchor);
+        Assert.Equal(2, importedImage.RowIndex);
+        Assert.Equal(2, importedImage.ColumnIndex);
+        Assert.Equal(7, importedImage.OffsetXPixels);
+        Assert.Equal(8, importedImage.OffsetYPixels);
+        Assert.Equal(6, importedImage.ToRowIndex);
+        Assert.Equal(5, importedImage.ToColumnIndex);
+        Assert.Equal(9, importedImage.ToOffsetXPixels);
+        Assert.Equal(10, importedImage.ToOffsetYPixels);
+        Assert.Equal(12.5D, importedImage.RotationDegrees, 3);
+        Assert.True(importedImage.FlipHorizontal);
+    }
+
+    [Fact]
     public void ExcelHtml_LoadHonorsSemanticRangeOrigin() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorkSheet("Offset");
@@ -1065,6 +1102,45 @@ public class HtmlOfficeAdapters {
         Assert.Equal(0.2D, importedPicture.CropTopRatio, 3);
         Assert.Equal(0.05D, importedPicture.CropRightRatio, 3);
         Assert.Equal(0.15D, importedPicture.CropBottomRatio, 3);
+    }
+
+    [Fact]
+    public void PowerPointHtml_RoundTripsChartTransformsAndMixedDrawingOrder() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointChartData chartData = new(
+            new[] { "Q1", "Q2" },
+            new[] { new PowerPointChartSeries("Actual", new[] { 10D, 18D }) });
+        PowerPointChart chart = slide.AddChartPoints(chartData, 120, 90, 240, 140);
+        chart.SetTitle("Transform chart");
+        chart.Rotation = 18.75D;
+        chart.HorizontalFlip = true;
+        chart.VerticalFlip = true;
+        using (var image = new MemoryStream(OnePixelPng)) {
+            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.PowerPoint.ImagePartType.Png, 96, 100, 80, 64);
+            picture.Name = "Top picture";
+        }
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        });
+
+        Assert.Contains("data-officeimo-layer-kind=\"chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-layer-kind=\"picture\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-rotation=\"18.75\"", html, StringComparison.Ordinal);
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+        PowerPointSlide importedSlide = imported.Slides[0];
+
+        Assert.Equal(1, result.Charts);
+        Assert.Equal(1, result.Pictures);
+        Assert.Empty(result.Diagnostics);
+        PowerPointChart importedChart = Assert.Single(importedSlide.Charts);
+        PowerPointPicture importedPicture = Assert.Single(importedSlide.Pictures);
+        Assert.Equal(18.75D, importedChart.Rotation!.Value, 3);
+        Assert.True(importedChart.HorizontalFlip);
+        Assert.True(importedChart.VerticalFlip);
+        Assert.True(importedChart.DrawingOrder < importedPicture.DrawingOrder);
     }
 
     [Fact]
