@@ -21,6 +21,13 @@ public sealed class MarkdownBlockSyntaxBuilderContext {
         MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(children);
 
     /// <summary>
+    /// Builds child syntax nodes for a child-block container using the same owned-syntax projection rules
+    /// as the core reader, falling back to the container's public child blocks when no parsed syntax is available.
+    /// </summary>
+    public IReadOnlyList<MarkdownSyntaxNode> BuildOwnedChildSyntaxNodes(IChildMarkdownBlockContainer container) =>
+        MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(container);
+
+    /// <summary>
     /// Builds a syntax node for inline content wrapped in a specific syntax kind.
     /// </summary>
     public MarkdownSyntaxNode BuildInlineContainerNode(

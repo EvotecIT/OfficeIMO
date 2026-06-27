@@ -58,6 +58,32 @@ Paragraph line
     }
 
     [Fact]
+    public void Context_SyntaxBuilder_Can_Use_Owned_Child_Syntax_For_Custom_Block_Containers() {
+        var markdown = """
+:::panel Ops Notes
+Paragraph line
+
+- item
+:::
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
+
+        var panel = Assert.IsType<PanelBlock>(Assert.Single(result.Document.Blocks));
+        var panelSyntax = Assert.Single(result.FinalSyntaxTree.Children);
+
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.UnorderedList
+        }, panelSyntax.Children.Select(child => child.Kind).ToArray());
+        Assert.Same(panel, panelSyntax.AssociatedObject);
+        Assert.Same(panel.ChildBlocks[0], panelSyntax.Children[1].AssociatedObject);
+        Assert.Same(panel.ChildBlocks[1], panelSyntax.Children[2].AssociatedObject);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void Custom_Block_Can_Render_Html_With_Public_Heading_Context_Helpers() {
         var markdown = """
 # Intro
@@ -447,7 +473,7 @@ Paragraph line
                 MarkdownSyntaxKind.Paragraph,
                 new InlineSequence().Text(Title),
                 literal: Title);
-            var childNodes = context.BuildChildSyntaxNodes(ChildBlocks);
+            var childNodes = context.BuildOwnedChildSyntaxNodes(this);
             var children = new List<MarkdownSyntaxNode>(childNodes.Count + 1) { titleNode };
             for (int i = 0; i < childNodes.Count; i++) {
                 children.Add(childNodes[i]);

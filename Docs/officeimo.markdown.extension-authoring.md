@@ -219,7 +219,7 @@ Use:
 - `ISyntaxMarkdownBlock`
   when the syntax node is simple and self-contained
 - `ISyntaxMarkdownBlockWithContext`
-  when you want helper methods for child blocks, inline children, aggregate spans, or literal normalization
+  when you want helper methods for child blocks, owned child-container syntax, inline children, aggregate spans, or literal normalization
 - `IContextualHtmlMarkdownBlock`
   when output depends on `HtmlOptions`, heading catalog behavior, or surrounding blocks
 

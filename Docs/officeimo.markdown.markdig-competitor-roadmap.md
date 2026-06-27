@@ -129,6 +129,7 @@ Recent progress:
 - block HTML render extensions can now read final syntax nodes plus normalized/original source slices from parsed documents while builder-only documents keep returning no source context
 - block Markdown writer extensions can now read final syntax nodes plus normalized/original source slices from parsed documents, including CRLF-preserving original slices when `PreserveTrivia` is enabled
 - block parser extensions now have contract coverage for same-placement registration order, first-success consumption, disabled-extension fallback to core parsers, multi-placement conflicts with later core parsers, and built-in/custom callout precedence
+- custom block syntax builders can now ask the public builder context for owned child-container syntax, so extension blocks can reuse the same child syntax ownership rules as core containers
 - inline parser extensions now have contract coverage for registration order, first-success consumption at the current marker, false fallback to later extensions, disabled-extension skipping, and core parser fallback
 - post-parse inline AST transforms now have a dedicated `MarkdownReaderOptions.InlineTransformExtensions` seam with contract coverage for ordering, replacement sequences, disabled-extension skipping, nested inline containers, and source-span preservation for reused nodes
 - renderer fenced-code registrations now have semantic AST evidence: matching custom fences are parsed as semantic fenced blocks and render without falling back through default code-block HTML
