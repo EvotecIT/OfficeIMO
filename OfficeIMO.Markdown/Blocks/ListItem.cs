@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// List item content; supports plain and task (checklist) items.
 /// </summary>
-public sealed class ListItem : MarkdownObject {
+public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer {
     private readonly ParagraphBlock _leadParagraphBlock;
     private readonly List<ParagraphBlock> _additionalParagraphBlocks = new List<ParagraphBlock>();
     private readonly List<ParagraphBlock> _paragraphBlocks = new List<ParagraphBlock>();
@@ -34,6 +34,7 @@ public sealed class ListItem : MarkdownObject {
             return _blockChildren;
         }
     }
+    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => BlockChildren;
     /// <summary>True when rendered as a task item (<c>- [ ]</c> or <c>- [x]</c>).</summary>
     public bool IsTask { get; }
     /// <summary>Whether the task is checked.</summary>

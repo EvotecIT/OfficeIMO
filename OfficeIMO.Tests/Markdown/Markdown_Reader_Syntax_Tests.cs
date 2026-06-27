@@ -1001,6 +1001,30 @@ Lead {{core}} tail
     }
 
     [Fact]
+    public void ListItem_ChildContainer_Interface_Uses_Canonical_BlockChildren_Projection() {
+        const string markdown = """
+- lead
+
+  second
+
+  > quoted
+""";
+
+        var document = MarkdownReader.Parse(markdown);
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        var item = Assert.Single(list.Items);
+        var blockChildren = item.BlockChildren;
+
+        Assert.Collection(
+            blockChildren,
+            block => Assert.Equal("lead", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => Assert.Equal("second", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => Assert.Equal("quoted", Assert.IsType<ParagraphBlock>(Assert.Single(Assert.IsType<QuoteBlock>(block).ChildBlocks)).Inlines.RenderMarkdown()));
+        Assert.Equal(blockChildren, ((IChildMarkdownBlockContainer)item).ChildBlocks);
+        Assert.Collection(item.ChildBlocks, block => Assert.IsType<QuoteBlock>(block));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Associates_ListItem_Paragraph_Syntax_To_ParagraphBlocks() {
         const string markdown = """
 - first paragraph
