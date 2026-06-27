@@ -289,6 +289,9 @@ namespace OfficeIMO.Excel {
             // Excel formulas in XML should not start with '=' and must not include illegal control characters
             var safe = Utilities.ExcelSanitizer.SanitizeFormula(formula);
             cell.CellFormula = new CellFormula(safe);
+            cell.CellValue = null;
+            cell.DataType = null;
+            cell.InlineString = null;
             ClearHeaderCacheForCellMutation(row, column);
         }
 

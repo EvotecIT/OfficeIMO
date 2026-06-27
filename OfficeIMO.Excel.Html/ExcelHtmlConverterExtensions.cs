@@ -128,14 +128,18 @@ public static class ExcelHtmlConverterExtensions {
                 string tag = row == 0 ? "th" : "td";
                 int cellRow = firstRow + row;
                 int cellColumn = firstColumn + column;
+                bool hasSnapshot = sheet.TryGetCellValueSnapshot(cellRow, cellColumn, out ExcelCellValueSnapshot? snapshot) && snapshot != null;
                 string cellText = ReadCellText(sheet, cellRow, cellColumn, options.EmptyCellText);
                 body.Append('<').Append(tag);
-                if (sheet.TryGetCellValueSnapshot(cellRow, cellColumn, out ExcelCellValueSnapshot? snapshot) && snapshot != null) {
+                if (hasSnapshot) {
+                    ExcelCellValueSnapshot cellSnapshot = snapshot!;
                     body.Append(" data-officeimo-value-kind=\"")
-                        .Append(OfficeHtmlText.EscapeAttribute(ToHtmlValueKind(snapshot, cellText)))
+                        .Append(OfficeHtmlText.EscapeAttribute(ToHtmlValueKind(cellSnapshot, cellText)))
                         .Append("\" data-officeimo-value=\"")
-                        .Append(OfficeHtmlText.EscapeAttribute(ToHtmlRawValue(snapshot, cellText)))
+                        .Append(OfficeHtmlText.EscapeAttribute(ToHtmlRawValue(cellSnapshot, cellText)))
                         .Append('"');
+                } else {
+                    body.Append(" data-officeimo-empty=\"true\"");
                 }
 
                 body.Append('>');

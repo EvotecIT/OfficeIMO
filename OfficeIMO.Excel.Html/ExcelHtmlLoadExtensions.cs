@@ -71,7 +71,7 @@ public static class ExcelHtmlLoadExtensions {
             int columnIndex = firstColumn;
             foreach (IElement cell in row.Children.Where(child => IsElement(child, "th") || IsElement(child, "td"))) {
                 string text = NormalizeText(cell.TextContent);
-                if (text.Length > 0 || cell.GetAttribute("data-officeimo-value") != null) {
+                if (!IsSemanticEmptyCell(cell) && (text.Length > 0 || cell.GetAttribute("data-officeimo-value") != null)) {
                     SetCellValue(sheet, rowIndex, columnIndex, cell, text, result);
                     result.Cells++;
                 }
@@ -143,10 +143,19 @@ public static class ExcelHtmlLoadExtensions {
         } else if (kind.Equals("text", StringComparison.OrdinalIgnoreCase)) {
             sheet.CellValue(row, column, rawValue);
             return;
+        } else if (kind.Equals("formula", StringComparison.OrdinalIgnoreCase)) {
+            sheet.CellFormula(row, column, rawValue);
+            return;
+        } else if (kind.Equals("error", StringComparison.OrdinalIgnoreCase)) {
+            sheet.CellError(row, column, rawValue);
+            return;
         }
 
         sheet.CellValue(row, column, fallbackText);
     }
+
+    private static bool IsSemanticEmptyCell(IElement cell) =>
+        string.Equals(cell.GetAttribute("data-officeimo-empty"), "true", StringComparison.OrdinalIgnoreCase);
 
     private static void ImportComments(IElement section, ExcelSheet sheet, ExcelHtmlLoadResult result) {
         foreach (IElement item in section.QuerySelectorAll("section.officeimo-comments li[data-officeimo-cell]")) {

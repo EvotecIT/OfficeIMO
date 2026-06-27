@@ -259,6 +259,28 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_DoesNotImportEmptyCellTextPlaceholdersAsValues() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorkSheet("Placeholders");
+        sheet.CellValue(1, 1, "Left");
+        sheet.CellValue(1, 3, "Right");
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
+            EmptyCellText = "(empty)"
+        });
+
+        Assert.Contains("data-officeimo-empty=\"true\">(empty)", html, StringComparison.Ordinal);
+
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelSheet importedSheet = Assert.Single(imported.Sheets);
+
+        Assert.Equal(2, result.Cells);
+        Assert.False(importedSheet.TryGetCellValueSnapshot(1, 2, out _));
+    }
+
+    [Fact]
     public void ExcelHtml_LoadCreatesValidWorkbookWhenNoSheetSectionsExist() {
         ExcelHtmlLoadResult result = "<main><p>No workbook markup</p></main>".LoadExcelFromHtmlWithResult();
         using ExcelDocument imported = result.Workbook;
@@ -296,6 +318,34 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_LoadClearsFallbackTextWhenApplyingSemanticFormula() {
+        string html = """
+            <main>
+              <section class="officeimo-sheet" data-officeimo-sheet="Formulas" data-officeimo-range="A1:A3">
+                <table>
+                  <tr><td data-officeimo-value-kind="number" data-officeimo-value="1">1</td></tr>
+                  <tr><td data-officeimo-value-kind="number" data-officeimo-value="2">2</td></tr>
+                  <tr><td data-officeimo-value-kind="formula" data-officeimo-value="SUM(A1:A2)">3</td></tr>
+                </table>
+                <section class="officeimo-feature officeimo-formulas">
+                  <ul class="officeimo-feature-list">
+                    <li class="officeimo-feature-item" data-officeimo-cell="A3"><code>SUM(A1:A2)</code></li>
+                  </ul>
+                </section>
+              </section>
+            </main>
+            """;
+
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelSheet importedSheet = Assert.Single(imported.Sheets);
+
+        Assert.True(importedSheet.TryGetCellValueSnapshot(3, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.Equal(ExcelCellValueKind.Formula, snapshot!.Kind);
+        Assert.Equal("SUM(A1:A2)", snapshot.RawValue);
+    }
+
+    [Fact]
     public void ExcelHtml_RoundTripsSemanticCellValueKinds() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorkSheet("Typed");
@@ -327,6 +377,28 @@ public class HtmlOfficeAdapters {
         Assert.True(importedSheet.TryGetCellValueSnapshot(4, 2, out ExcelCellValueSnapshot? boolSnapshot));
         Assert.Equal(ExcelCellValueKind.Boolean, boolSnapshot!.Kind);
         Assert.Equal("1", boolSnapshot.RawValue);
+    }
+
+    [Fact]
+    public void ExcelHtml_RoundTripsSemanticErrorCellValueKind() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorkSheet("Errors");
+        sheet.CellValue(1, 1, "Error");
+        sheet.CellError(2, 1, "#DIV/0!");
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+
+        Assert.Contains("data-officeimo-value-kind=\"error\" data-officeimo-value=\"#DIV/0!\"", html, StringComparison.Ordinal);
+
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelSheet importedSheet = Assert.Single(imported.Sheets);
+
+        Assert.True(importedSheet.TryGetCellValueSnapshot(2, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.Equal(ExcelCellValueKind.Error, snapshot!.Kind);
+        Assert.Equal("#DIV/0!", snapshot.RawValue);
     }
 
     [Fact]

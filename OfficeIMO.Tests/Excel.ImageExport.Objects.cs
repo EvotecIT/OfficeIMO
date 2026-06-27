@@ -298,7 +298,7 @@ namespace OfficeIMO.Tests {
                 ExcelVisualDrawingObject drawingObject = snapshot.DrawingObjects.Single();
                 Assert.Equal("ShapeOnly!B2", drawingObject.Source);
                 Assert.Equal("Outside used range", drawingObject.Text);
-                Assert.Equal("ShapeOnly!A1:D3", png.Source);
+                Assert.Equal("ShapeOnly!A1:C3", png.Source);
                 Assert.Equal(png.Source, svg.Source);
                 Assert.Contains("#E0F2FE", svgText, StringComparison.Ordinal);
                 Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
@@ -325,7 +325,7 @@ namespace OfficeIMO.Tests {
                 var options = new ExcelWorksheetImageExportOptions { ShowGridlines = false };
                 OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, options);
 
-                Assert.Equal("OffsetShape!A1:D3", png.Source);
+                Assert.Equal("OffsetShape!A1:C3", png.Source);
                 Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
             }
         }
