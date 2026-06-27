@@ -30,6 +30,14 @@ public static partial class MarkdownReader {
         void AddCodeSpanNode(string literal, int start, int closingStart, int fenceLength) {
             var node = new CodeSpanInline(literal);
             var marker = new string('`', fenceLength);
+            var contentStart = start + fenceLength;
+            var contentLength = closingStart - contentStart;
+            if (contentLength > 0) {
+                MarkdownInlineMetadataSourceSpans.SetCodeSpanContent(
+                    node,
+                    sourceMap?.GetSpan(contentStart, contentLength));
+            }
+
             MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
                 node,
                 marker,

@@ -46,6 +46,14 @@ internal static class MarkdownInlineMetadataSourceSpans {
         public FormattingMarkerState? State;
     }
 
+    private sealed class CodeSpanState {
+        public MarkdownSourceSpan? ContentSpan;
+    }
+
+    private sealed class CodeSpanHolder {
+        public CodeSpanState? State;
+    }
+
     private sealed class HardBreakMarkerState {
         public string Marker = string.Empty;
         public MarkdownSourceSpan? MarkerSpan;
@@ -61,6 +69,7 @@ internal static class MarkdownInlineMetadataSourceSpans {
     private static readonly ConditionalWeakTable<ImageInline, ImageHolder> _imageSpans = new();
     private static readonly ConditionalWeakTable<ImageLinkInline, ImageLinkHolder> _imageLinkSpans = new();
     private static readonly ConditionalWeakTable<MarkdownInline, FormattingMarkerHolder> _formattingMarkerSpans = new();
+    private static readonly ConditionalWeakTable<CodeSpanInline, CodeSpanHolder> _codeSpanSpans = new();
     private static readonly ConditionalWeakTable<HardBreakInline, HardBreakMarkerHolder> _hardBreakMarkerSpans = new();
 
     internal static void SetLinkParts(
@@ -221,6 +230,22 @@ internal static class MarkdownInlineMetadataSourceSpans {
 
     internal static MarkdownSourceSpan? GetClosingMarkerSpan(MarkdownInline? inline) =>
         inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.ClosingMarkerSpan : null;
+
+    internal static void SetCodeSpanContent(
+        CodeSpanInline? inline,
+        MarkdownSourceSpan? contentSpan) {
+        if (inline == null || !contentSpan.HasValue) {
+            return;
+        }
+
+        var holder = _codeSpanSpans.GetValue(inline, static _ => new CodeSpanHolder());
+        holder.State = new CodeSpanState {
+            ContentSpan = contentSpan
+        };
+    }
+
+    internal static MarkdownSourceSpan? GetCodeSpanContentSpan(CodeSpanInline? inline) =>
+        inline != null && _codeSpanSpans.TryGetValue(inline, out var holder) ? holder.State?.ContentSpan : null;
 
     internal static void SetHardBreakMarker(
         HardBreakInline? inline,

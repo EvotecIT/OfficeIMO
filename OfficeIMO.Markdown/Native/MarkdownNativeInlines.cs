@@ -208,6 +208,7 @@ internal static class MarkdownNativeInlineProjection {
         }
 
         AddFormattingMarkerMetadata(node, metadata);
+        AddCodeSpanContentMetadata(node, metadata);
         AddHardBreakMarkerMetadata(node, metadata);
 
         if (metadata.Count == 0) {
@@ -247,6 +248,21 @@ internal static class MarkdownNativeInlineProjection {
                 MarkdownInlineMetadataSourceSpans.GetClosingMarker(inline) ?? string.Empty,
                 node,
                 closingMarkerSpan));
+        }
+    }
+
+    private static void AddCodeSpanContentMetadata(MarkdownSyntaxNode node, List<MarkdownNativeInlineMetadata> metadata) {
+        if (node.AssociatedObject is not CodeSpanInline codeSpan) {
+            return;
+        }
+
+        var contentSpan = MarkdownInlineMetadataSourceSpans.GetCodeSpanContentSpan(codeSpan);
+        if (contentSpan.HasValue) {
+            metadata.Add(new MarkdownNativeInlineMetadata(
+                "content",
+                codeSpan.Text,
+                node,
+                contentSpan));
         }
     }
 
