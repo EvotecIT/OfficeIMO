@@ -81,6 +81,12 @@ public sealed partial class MarkdownNativeDocument {
                 }
 
                 break;
+            case MarkdownNativeImageBlock image:
+                foreach (var field in EnumerateImageFields(image)) {
+                    yield return field;
+                }
+
+                break;
             case MarkdownNativeDefinitionListBlock definitionList:
                 foreach (var field in EnumerateDefinitionListFields(definitionList)) {
                     yield return field;
@@ -181,6 +187,28 @@ public sealed partial class MarkdownNativeDocument {
 
         if (visual.ClosingFenceSourceSpan.HasValue) {
             yield return new MarkdownNativeBlockSourceField("closingFence", null, visual.ClosingFenceSourceSpan.Value, visual);
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateImageFields(MarkdownNativeImageBlock image) {
+        if (image.AltSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("alt", image.Alt, image.AltSourceSpan.Value, image);
+        }
+
+        if (image.SourceSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("source", image.Source, image.SourceSourceSpan.Value, image);
+        }
+
+        if (image.TitleSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("title", image.Title, image.TitleSourceSpan.Value, image);
+        }
+
+        if (image.LinkUrlSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("linkUrl", image.LinkUrl, image.LinkUrlSourceSpan.Value, image);
+        }
+
+        if (image.LinkTitleSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("linkTitle", image.LinkTitle, image.LinkTitleSourceSpan.Value, image);
         }
     }
 

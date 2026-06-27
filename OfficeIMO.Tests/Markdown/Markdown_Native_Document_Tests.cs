@@ -81,6 +81,9 @@ Inside details
         Assert.Equal("images/signal.png", image.Source);
         Assert.Equal("Signal", image.Alt);
         Assert.Equal("Signal", image.Title);
+        Assert.Equal(new MarkdownSourceSpan(14, 3, 14, 8), image.AltSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(14, 11, 14, 27), image.SourceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(14, 30, 14, 35), image.TitleSourceSpan);
 
         var details = Assert.IsType<MarkdownNativeDetailsBlock>(native.Blocks[6]);
         Assert.True(details.Open);
@@ -91,6 +94,10 @@ Inside details
         var detailsSnapshot = native.ToSnapshot().Blocks[6];
         Assert.Equal(17, detailsSnapshot.FieldSourceSpans["summary"]!.StartLine);
         Assert.Equal(17, detailsSnapshot.FieldSourceSpans["summary"]!.EndLine);
+
+        var imageSnapshot = native.ToSnapshot().Blocks[5];
+        Assert.Equal(11, imageSnapshot.FieldSourceSpans["source"]!.StartColumn);
+        Assert.Equal(27, imageSnapshot.FieldSourceSpans["source"]!.EndColumn);
 
         var withSummary = native.CreateReplaceEdit(details.SummarySourceSpan!.Value, "<summary>Less context</summary>").Apply(native.SourceMarkdown);
         Assert.Contains("<summary>Less context</summary>", withSummary);

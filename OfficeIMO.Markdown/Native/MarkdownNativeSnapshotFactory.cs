@@ -139,6 +139,12 @@ internal static class MarkdownNativeSnapshotFactory {
                     ("title", image.Title),
                     ("caption", image.Caption),
                     ("linkUrl", image.LinkUrl));
+                snapshot.FieldSourceSpans = FieldSpans(
+                    ("alt", image.AltSourceSpan),
+                    ("source", image.SourceSourceSpan),
+                    ("title", image.TitleSourceSpan),
+                    ("linkUrl", image.LinkUrlSourceSpan),
+                    ("linkTitle", image.LinkTitleSourceSpan));
                 break;
             case MarkdownNativeFrontMatterBlock frontMatter:
                 snapshot.Markdown = RenderBlock(frontMatter.FrontMatter);

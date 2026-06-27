@@ -187,6 +187,91 @@ Inside
     }
 
     [Fact]
+    public void Image_SourceFields_Use_Image_Token_Spans() {
+        const string markdown = "![Alt text](https://example.com/image.png \"Image title\")\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var image = Assert.IsType<MarkdownNativeImageBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 10), image.AltSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 13, 1, 41), image.SourceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 44, 1, 54), image.TitleSourceSpan);
+
+        var alt = Assert.Single(native.EnumerateBlockSourceFields("alt"));
+        Assert.Same(image, alt.Block);
+        Assert.Equal("Alt text", alt.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 10), alt.SourceSpan);
+
+        var source = Assert.Single(native.EnumerateBlockSourceFields("source"));
+        Assert.Equal("https://example.com/image.png", source.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 13, 1, 41), source.SourceSpan);
+
+        var title = Assert.Single(native.EnumerateBlockSourceFields("title"));
+        Assert.Equal("Image title", title.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 44, 1, 54), title.SourceSpan);
+
+        var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 45));
+        Assert.Equal("title", found.Name);
+        Assert.Equal("Image title", found.Value);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal(3, snapshot.FieldSourceSpans["alt"]!.StartColumn);
+        Assert.Equal(41, snapshot.FieldSourceSpans["source"]!.EndColumn);
+        Assert.Equal(44, snapshot.FieldSourceSpans["title"]!.StartColumn);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "source"
+            && field.Value == "https://example.com/image.png"
+            && field.SourceSpan.StartColumn == 13
+            && field.SourceSpan.EndColumn == 41);
+
+        var edited = native.CreateReplaceEdit(source, "/media/new.png").Apply(native.SourceMarkdown);
+        Assert.Equal("![Alt text](/media/new.png \"Image title\")", edited.TrimEnd('\r', '\n'));
+    }
+
+    [Fact]
+    public void Linked_Image_SourceFields_Use_Image_And_Link_Token_Spans() {
+        var markdown = """
+[![Alt text](https://example.com/image.png "Image title")](https://example.com/docs "Link title")
+_Caption_
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var image = Assert.IsType<MarkdownNativeImageBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 11), image.AltSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 14, 1, 42), image.SourceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 45, 1, 55), image.TitleSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 60, 1, 83), image.LinkUrlSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 86, 1, 95), image.LinkTitleSourceSpan);
+
+        var linkUrl = Assert.Single(native.EnumerateBlockSourceFields("linkUrl"));
+        Assert.Same(image, linkUrl.Block);
+        Assert.Equal("https://example.com/docs", linkUrl.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 60, 1, 83), linkUrl.SourceSpan);
+
+        var linkTitle = Assert.Single(native.EnumerateBlockSourceFields("linkTitle"));
+        Assert.Equal("Link title", linkTitle.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 86, 1, 95), linkTitle.SourceSpan);
+
+        var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 62));
+        Assert.Equal("linkUrl", found.Name);
+        Assert.Equal("https://example.com/docs", found.Value);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal(60, snapshot.FieldSourceSpans["linkUrl"]!.StartColumn);
+        Assert.Equal(95, snapshot.FieldSourceSpans["linkTitle"]!.EndColumn);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "linkTitle"
+            && field.Value == "Link title"
+            && field.SourceSpan.StartColumn == 86
+            && field.SourceSpan.EndColumn == 95);
+
+        var edited = native.CreateReplaceEdit(linkTitle, "More docs").Apply(native.SourceMarkdown);
+        Assert.Contains("](https://example.com/docs \"More docs\")", edited, StringComparison.Ordinal);
+        Assert.Contains("_Caption_", edited, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToSnapshot_Projects_SourceFields_From_The_Same_Native_Block_Field_Enumeration() {
         var markdown = """
 # Title
@@ -213,6 +298,8 @@ Console.WriteLine();
 
 > Quote
 > Again
+
+![Alt text](https://example.com/image.png "Image title")
 
 ---
 """;
@@ -252,6 +339,7 @@ Console.WriteLine();
         Assert.Contains(allFields, field => field.Name == "label" && field.Value == "note");
         Assert.Contains(allFields, field => field.Name == "footnoteBody" && field.Value == "Footnote");
         Assert.Contains(allFields, field => field.Name == "marker" && field.Value == "---");
+        Assert.Contains(allFields, field => field.Name == "source" && field.Value == "https://example.com/image.png");
     }
 
     private static IEnumerable<MarkdownNativeBlockSnapshot> Flatten(IReadOnlyList<MarkdownNativeBlockSnapshot> blocks) {

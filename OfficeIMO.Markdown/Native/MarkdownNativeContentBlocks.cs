@@ -178,6 +178,11 @@ public sealed class MarkdownNativeImageBlock : MarkdownNativeBlock {
         LinkRel = image.LinkRel;
         PictureFallbackPath = image.PictureFallbackPath;
         PictureSources = image.PictureSources.ToArray();
+        AltSourceSpan = image.AltSyntaxSpan;
+        SourceSourceSpan = image.SourceSyntaxSpan;
+        TitleSourceSpan = image.TitleSyntaxSpan;
+        LinkUrlSourceSpan = image.LinkTargetSyntaxSpan;
+        LinkTitleSourceSpan = image.LinkTitleSyntaxSpan;
     }
 
     /// <summary>Source image block.</summary>
@@ -221,6 +226,21 @@ public sealed class MarkdownNativeImageBlock : MarkdownNativeBlock {
 
     /// <summary>Responsive picture sources in source order.</summary>
     public IReadOnlyList<ImagePictureSource> PictureSources { get; }
+
+    /// <summary>Source span for the image alternate text token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? AltSourceSpan { get; }
+
+    /// <summary>Source span for the image source token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? SourceSourceSpan { get; }
+
+    /// <summary>Source span for the image title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan { get; }
+
+    /// <summary>Source span for the wrapping link target token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? LinkUrlSourceSpan { get; }
+
+    /// <summary>Source span for the wrapping link title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? LinkTitleSourceSpan { get; }
 }
 
 /// <summary>
