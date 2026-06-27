@@ -33,7 +33,8 @@ public static class MarkdownRoundtripWriter {
                 result,
                 DocumentTransformedId,
                 "The parsed document was changed by one or more document transforms. Generated markdown was emitted instead of claiming a byte-preserving roundtrip.",
-                GetTransformFallbackSpan(result));
+                GetTransformFallbackSpan(result),
+                GetTransformFallbackRelatedSpans(result));
         }
 
         return new MarkdownRoundtripResult(result.OriginalMarkdown);
@@ -74,7 +75,8 @@ public static class MarkdownRoundtripWriter {
             diagnostics.Add(new MarkdownRoundtripDiagnostic(
                 DocumentTransformedId,
                 "The parsed document was changed by one or more document transforms. Source edits were applied to normalized markdown instead of claiming a byte-preserving original-source roundtrip.",
-                GetTransformFallbackSpan(result) ?? editList[0].SourceSpan));
+                GetTransformFallbackSpan(result) ?? editList[0].SourceSpan,
+                GetTransformFallbackRelatedSpans(result)));
         } else if (!result.PreservesOriginalMarkdown) {
             diagnostics.Add(new MarkdownRoundtripDiagnostic(
                 PreserveTriviaRequiredId,
@@ -104,10 +106,11 @@ public static class MarkdownRoundtripWriter {
         MarkdownParseResult result,
         string id,
         string message,
-        MarkdownSourceSpan? sourceSpan = null) {
+        MarkdownSourceSpan? sourceSpan = null,
+        IReadOnlyList<MarkdownSourceSpan>? relatedSourceSpans = null) {
         return new MarkdownRoundtripResult(
             result.Document.ToMarkdown(),
-            new[] { new MarkdownRoundtripDiagnostic(id, message, sourceSpan) });
+            new[] { new MarkdownRoundtripDiagnostic(id, message, sourceSpan, relatedSourceSpans) });
     }
 
     private static MarkdownSourceSpan? GetTransformFallbackSpan(MarkdownParseResult result) {
@@ -126,6 +129,17 @@ public static class MarkdownRoundtripWriter {
         }
 
         return null;
+    }
+
+    private static IReadOnlyList<MarkdownSourceSpan> GetTransformFallbackRelatedSpans(MarkdownParseResult result) {
+        for (var i = 0; i < result.TransformDiagnostics.Count; i++) {
+            var diagnostic = result.TransformDiagnostics[i];
+            if (diagnostic.HasChangedBlocks && diagnostic.AffectedSourceSpans.Count > 0) {
+                return diagnostic.AffectedSourceSpans;
+            }
+        }
+
+        return Array.Empty<MarkdownSourceSpan>();
     }
 
     private static bool TryCreateOriginalReplacements(

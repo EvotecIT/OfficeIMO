@@ -430,6 +430,28 @@ Paragraph
         }
 
         [Fact]
+        public void MarkdownRoundtripWriter_Reports_Transform_RelatedSourceSpans_When_UnchangedWrite_Falls_Back() {
+            var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+            options.PreserveTrivia = true;
+            options.DocumentTransforms.Add(new UppercaseParagraphsTransform());
+
+            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+alpha
+
+beta
+""", options);
+
+            var roundtrip = MarkdownRoundtripWriter.WriteUnchanged(result);
+
+            Assert.False(roundtrip.IsLossless);
+            var diagnostic = Assert.Single(roundtrip.Diagnostics);
+            Assert.Equal("roundtrip.document-transformed", diagnostic.Id);
+            Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 4), diagnostic.SourceSpan);
+            Assert.Equal(new[] { 1, 3 }, diagnostic.RelatedSourceSpans.Select(span => span.StartLine).ToArray());
+            Assert.Equal(new[] { 1, 3 }, diagnostic.RelatedSourceSpans.Select(span => span.EndLine).ToArray());
+        }
+
+        [Fact]
         public void MarkdownRoundtripWriter_Preserves_Unchanged_OriginalMarkdown_When_NoOpTransform_Ran() {
             const string markdown = "# Title\r\n\r\nBody\r\n";
             var options = new MarkdownReaderOptions {
@@ -576,6 +598,30 @@ Paragraph
         }
 
         [Fact]
+        public void MarkdownRoundtripWriter_Reports_Transform_RelatedSourceSpans_When_SourceEdit_Falls_Back() {
+            var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+            options.PreserveTrivia = true;
+            options.DocumentTransforms.Add(new UppercaseParagraphsTransform());
+            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+alpha
+
+beta
+""", options);
+            var native = MarkdownNativeDocument.FromParseResult(result);
+            var edit = native.CreateReplaceEdit(Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[0]), "Updated");
+
+            var roundtrip = MarkdownRoundtripWriter.WriteWithSourceEdit(result, edit);
+
+            Assert.False(roundtrip.IsLossless);
+            var diagnostic = Assert.Single(roundtrip.Diagnostics);
+            Assert.Equal("roundtrip.document-transformed", diagnostic.Id);
+            Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 4), diagnostic.SourceSpan);
+            Assert.Equal(new[] { 1, 3 }, diagnostic.RelatedSourceSpans.Select(span => span.StartLine).ToArray());
+            Assert.Equal(new[] { 1, 3 }, diagnostic.RelatedSourceSpans.Select(span => span.EndLine).ToArray());
+            Assert.Equal("Updated", roundtrip.Markdown);
+        }
+
+        [Fact]
         public void MarkdownRoundtripWriter_Reports_Fallback_When_SourceEdit_Cannot_Map_To_OriginalMarkdown() {
             const string markdown = "# Ol\u200Bd\r\n";
             var options = new MarkdownReaderOptions {
@@ -693,6 +739,21 @@ Paragraph
 
         private sealed class NoOpTransform : IMarkdownDocumentTransform {
             public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) => document;
+        }
+
+        private sealed class UppercaseParagraphsTransform : IMarkdownDocumentTransform {
+            public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+                var transformed = MarkdownDoc.Create();
+                foreach (var block in document.Blocks) {
+                    if (block is ParagraphBlock paragraph) {
+                        transformed.Add(new ParagraphBlock(new InlineSequence().Text(paragraph.Inlines.RenderMarkdown().ToUpperInvariant())));
+                    } else {
+                        transformed.Add(block);
+                    }
+                }
+
+                return transformed;
+            }
         }
     }
 }
