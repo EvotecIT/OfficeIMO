@@ -58,8 +58,16 @@ public static partial class MarkdownReader {
 
             string content = string.Join("\n", contentSourceLines.Select(slice => slice.Text ?? string.Empty));
             var (blocks, syntaxChildren) = ParseFootnoteBody(contentSourceLines, options, state);
+            var footnote = new FootnoteDefinitionBlock(label, content, blocks, syntaxChildren) {
+                LabelSourceSpan = CreateSpan(
+                    state,
+                    absoluteLine,
+                    leading0 + 3,
+                    absoluteLine,
+                    leading0 + 2 + label.Length)
+            };
 
-            doc.Add(new FootnoteDefinitionBlock(label, content, blocks, syntaxChildren));
+            doc.Add(footnote);
             i = j; return true;
         }
     }

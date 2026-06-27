@@ -7,6 +7,38 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class Markdown_Native_Block_Source_Field_Tests {
     [Fact]
+    public void Footnote_Label_SourceField_Uses_Indented_Label_Token_Span() {
+        const string markdown = """
+  [^note]: Footnote body
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var footnote = Assert.IsType<MarkdownNativeFootnoteDefinitionBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), footnote.LabelSourceSpan);
+
+        var label = Assert.Single(native.EnumerateBlockSourceFields("label"));
+        Assert.Same(footnote, label.Block);
+        Assert.Equal("note", label.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), label.SourceSpan);
+        var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 6));
+        Assert.Equal(label.Name, found.Name);
+        Assert.Equal(label.Value, found.Value);
+        Assert.Equal(label.SourceSpan, found.SourceSpan);
+
+        var snapshotLabel = Assert.Single(native.ToSnapshot().Blocks[0].SourceFields);
+        Assert.Equal("label", snapshotLabel.Name);
+        Assert.Equal("note", snapshotLabel.Value);
+        Assert.Equal(1, snapshotLabel.SourceSpan.StartLine);
+        Assert.Equal(5, snapshotLabel.SourceSpan.StartColumn);
+        Assert.Equal(1, snapshotLabel.SourceSpan.EndLine);
+        Assert.Equal(8, snapshotLabel.SourceSpan.EndColumn);
+
+        var edited = native.CreateReplaceEdit(label, "memo").Apply(native.SourceMarkdown);
+        Assert.Equal("  [^memo]: Footnote body", edited.TrimEnd('\r', '\n'));
+    }
+
+    [Fact]
     public void ToSnapshot_Projects_SourceFields_From_The_Same_Native_Block_Field_Enumeration() {
         var markdown = """
 # Title

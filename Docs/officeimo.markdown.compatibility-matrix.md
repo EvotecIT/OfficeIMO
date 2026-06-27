@@ -74,6 +74,10 @@ Status values:
 | `TableBlock` | High | Typed `TableCell` model carries row/column metadata, spans, blocks, and syntax ownership, including empty parsed cells with addressable whitespace spans for syntax lookup/native edits; public `TableBlock.ChildBlocks` now exposes the flattened cell-block projection used by the child-container interface, parsed tables expose owned row/header/alignment syntax through the generic syntax-child owner path, each `TableCell` exposes its own block body through the same generic child-container shape, and parsed table cells now expose owned syntax children through the shared canonical child-syntax reconciliation path; continue treating raw/inline views as caches or adapters | Partial |
 | `CalloutBlock` | Medium | Title inlines and child blocks are primary for parsed callouts; public structured constructors, the fluent body builder, and the legacy text-body constructor now create child-block bodies so traversal, syntax projection, and transforms see the same semantic shape; body/title text helpers are derived or preserved as compatibility views; parsed kind and explicit title tokens now carry semantic/native source spans; parsed callout bodies now use the shared canonical child-syntax reconciliation path so exact cached body syntax is cloned and stale parsed body syntax is pruned when a rebuilt callout carries a changed body projection | Partial |
 
+## Recent Parity Slices
+
+- 2026-06-27: Valid indented footnote definition labels now keep parser-owned token source spans through original syntax, final syntax rebuilds, native block source fields, snapshots, and source-edit helpers. This narrows the `FootnoteDefinitionBlock` source-map gap without changing the broader partial status for full footnote/cmark-gfm parity.
+
 ## Parity Gates
 
 Before claiming Markdig-class parity, require:

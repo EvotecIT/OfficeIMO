@@ -3371,6 +3371,29 @@ Lead[^1]
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Preserves_Indented_Footnote_Label_SourceSpan() {
+        var markdown = """
+Lead[^note]
+
+  [^note]: first line
+    continued
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown);
+
+        var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(result.Document.Blocks, block => block is FootnoteDefinitionBlock));
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 8), footnote.LabelSourceSpan);
+
+        var syntaxFootnote = Assert.Single(result.SyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
+        var syntaxLabel = Assert.Single(syntaxFootnote.Children, child => child.Kind == MarkdownSyntaxKind.FootnoteLabel);
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 8), syntaxLabel.SourceSpan);
+
+        var finalFootnote = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
+        var finalLabel = Assert.Single(finalFootnote.Children, child => child.Kind == MarkdownSyntaxKind.FootnoteLabel);
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 8), finalLabel.SourceSpan);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Rebuilds_Final_Footnote_Syntax_After_Nested_Transform() {
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));

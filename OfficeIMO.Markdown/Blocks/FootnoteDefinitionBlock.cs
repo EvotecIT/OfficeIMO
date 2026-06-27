@@ -198,7 +198,10 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
-        LabelSourceSpan = GetFootnoteLabelSpan(span);
+        if (!LabelSourceSpan.HasValue || (span.HasValue && !span.Value.Contains(LabelSourceSpan.Value))) {
+            LabelSourceSpan = GetFootnoteLabelSpan(span);
+        }
+
         var children = new List<MarkdownSyntaxNode> {
             new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.FootnoteLabel,
