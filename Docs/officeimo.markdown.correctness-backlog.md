@@ -72,6 +72,7 @@ Current coverage:
 - CommonMark HTML block smoke coverage now includes official raw table, type 1 `pre`/`script`, comment, processing-instruction, CDATA, paragraph-interrupt, and Markdown-between-raw-tags behavior, with AST assertions for source-addressable raw/comment blocks and split paragraphs
 - raw HTML renderer security-profile coverage now proves `Strip`, `Escape`, and `Sanitize` behavior across CommonMark HTML block types 1-7
 - CommonMark paragraph and line-break smoke coverage now includes official blank-line paragraph splitting, paragraph indentation normalization, indented-code paragraph boundaries, trailing-space hard breaks, backslash hard breaks, and soft line breaks
+- CommonMark emphasis smoke coverage now includes underscore delimiter edge cases for leading whitespace, punctuation adjacency, intraword ASCII text, digits, and CJK text, with AST source-span coverage for a valid punctuation-adjacent opener
 - nested list-item quote parsing now stops before valid non-one ordered child-list markers instead of swallowing them as lazy blockquote paragraph text
 - nested list-item quote/ordered-list source remapping now keeps quote markers, ordered-list markers, syntax associations, native snapshots, and targeted source edits on original columns
 - headings now expose level/text token spans in syntax nodes, native projections, and snapshots, with source-edit coverage for replacing heading markers or heading text without replacing the full block

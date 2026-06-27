@@ -1933,6 +1933,67 @@
     ]
   },
   {
+    "example": 358,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "_ foo bar_\n",
+    "html": "<p>_ foo bar_</p>\n"
+  },
+  {
+    "example": 359,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "a_\"foo\"_\n",
+    "html": "<p>a_&quot;foo&quot;_</p>\n"
+  },
+  {
+    "example": 360,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo_bar_\n",
+    "html": "<p>foo_bar_</p>\n"
+  },
+  {
+    "example": 361,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "5_6_78\n",
+    "html": "<p>5_6_78</p>\n"
+  },
+  {
+    "example": 362,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "пристаням_стремятся_\n",
+    "html": "<p>пристаням_стремятся_</p>\n"
+  },
+  {
+    "example": 363,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "aa_\"bb\"_cc\n",
+    "html": "<p>aa_&quot;bb&quot;_cc</p>\n"
+  },
+  {
+    "example": 364,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo-_(bar)_\n",
+    "html": "<p>foo-<em>(bar)</em></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "punctuation before an underscore opener still allows CommonMark emphasis",
+        "line": 1,
+        "column": 7,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineEmphasis", "InlineText"],
+        "expectedDeepestLiteral": "(bar)",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 6, "endLine": 1, "endColumn": 10 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 11 }
+      }
+    ]
+  },
+  {
     "example": 482,
     "section": "Links",
     "topLevelKinds": ["Paragraph"],
