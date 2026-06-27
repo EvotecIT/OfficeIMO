@@ -2550,6 +2550,59 @@ See ![Badge][hero]
     }
 
     [Fact]
+    public void CalloutBlock_SyntaxChild_Owner_Interface_Clones_Parsed_Body_SyntaxChildren() {
+        var result = MarkdownReader.ParseWithSyntaxTree("""
+> [!NOTE] Title
+> body
+>
+> - first
+""");
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(result.Document.Blocks));
+        var providedChildren = ((ISyntaxChildrenMarkdownBlock)callout).ProvidedSyntaxChildren;
+        var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)callout).BuildOwnedSyntaxChildren();
+
+        Assert.NotNull(providedChildren);
+        Assert.Equal(new[] { MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.UnorderedList }, providedChildren!.Select(child => child.Kind).ToArray());
+        Assert.Equal(providedChildren.Count, ownedChildren.Count);
+        Assert.NotSame(providedChildren[0], ownedChildren[0]);
+        Assert.NotSame(providedChildren[1], ownedChildren[1]);
+        Assert.Equal(providedChildren[0].SourceSpan, ownedChildren[0].SourceSpan);
+        Assert.Equal(providedChildren[1].SourceSpan, ownedChildren[1].SourceSpan);
+        Assert.Same(callout.ChildBlocks[0], ownedChildren[0].AssociatedObject);
+        Assert.Same(callout.ChildBlocks[1], ownedChildren[1].AssociatedObject);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(((ISyntaxMarkdownBlock)callout).BuildSyntaxNode(result.FinalSyntaxTree.Children[0].SourceSpan));
+    }
+
+    [Fact]
+    public void CalloutBlock_SyntaxChild_Owner_Interface_Drops_Stale_Cached_Children_After_Body_Projection_Changes() {
+        var result = MarkdownReader.ParseWithSyntaxTree("""
+> [!NOTE] Title
+> body
+>
+> - first
+""");
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(result.Document.Blocks));
+        var listBlock = Assert.IsType<UnorderedListBlock>(callout.ChildBlocks[1]);
+        var providedChildren = ((ISyntaxChildrenMarkdownBlock)callout).ProvidedSyntaxChildren;
+        var originalListSyntax = Assert.Single(providedChildren!, child => child.Kind == MarkdownSyntaxKind.UnorderedList);
+        var rebuiltCallout = new CalloutBlock(
+            callout.Kind,
+            callout.TitleInlines,
+            new IMarkdownBlock[] { listBlock },
+            providedChildren);
+
+        var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)rebuiltCallout).BuildOwnedSyntaxChildren();
+
+        Assert.Equal(new[] { MarkdownSyntaxKind.UnorderedList }, ownedChildren.Select(child => child.Kind).ToArray());
+        Assert.Same(listBlock, ownedChildren[0].AssociatedObject);
+        Assert.Equal(originalListSyntax.SourceSpan, ownedChildren[0].SourceSpan);
+        Assert.DoesNotContain(ownedChildren, child => child.Kind == MarkdownSyntaxKind.Paragraph && child.Literal == "body");
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(((ISyntaxMarkdownBlock)rebuiltCallout).BuildSyntaxNode(result.FinalSyntaxTree.Children[0].SourceSpan));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Rebuilds_Final_Callout_Syntax_After_Nested_Transform() {
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));

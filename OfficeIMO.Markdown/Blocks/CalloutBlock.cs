@@ -236,11 +236,7 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
-        if (SyntaxChildren != null && SyntaxChildren.Count > 0) {
-            return SyntaxChildren;
-        }
-
-        return MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(ChildBlocks);
+        return MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, ChildBlocks);
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
