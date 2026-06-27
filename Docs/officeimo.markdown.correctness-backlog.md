@@ -95,6 +95,7 @@ Current coverage:
 - GFM autolink smoke coverage now includes plus-tag email local parts, invalid email-like tokens, bare `mailto:`/`xmpp:` URLs, Unicode URL destinations, `www` host underscore rules, quoted autolinks, trailing punctuation trimming, and the upstream ignored malformed-email case as a parser stability/source-mapping regression; Markdig parity tests now keep plus-tag plain email comparison in the portable profile where bare emails are intentionally literal
 - GFM footnote smoke coverage now includes first-reference ordering and repeated references to the same definition, including GitHub-style repeated backrefs and independent source spans for each repeated reference label
 - list-item paragraph syntax nodes now associate to `ParagraphBlock` objects instead of their nested `InlineSequence`
+- definition-list entry term replacement now synchronizes the grouped AST owner, flat entry adapter, Markdown/HTML renderers, and parsed syntax cache invalidation
 - sequence inline syntax nodes now associate back to their wrapper objects across strong, emphasis, strong-emphasis, strikethrough, and highlight grouped inline content
 
 ### A2. Add tree invariant test helpers

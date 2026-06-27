@@ -40,6 +40,14 @@ public sealed class DefinitionListGroup : MarkdownObject {
         }
     }
 
+    internal void ReplaceTerm(int index, InlineSequence? term) {
+        if (index < 0 || index >= _terms.Count) {
+            return;
+        }
+
+        _terms[index] = term ?? new InlineSequence();
+    }
+
     internal void AddDefinition(DefinitionListDefinition? definition) {
         if (definition != null) {
             _definitions.Add(definition);

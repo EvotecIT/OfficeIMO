@@ -39,6 +39,34 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         SyntaxItems.Clear();
     }
 
+    internal void ReplaceEntryTerm(DefinitionListEntry entry, InlineSequence term) {
+        if (entry == null) {
+            return;
+        }
+
+        for (int groupIndex = 0; groupIndex < _groups.Count; groupIndex++) {
+            var group = _groups[groupIndex];
+            for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
+                if (!entry.IsBoundTo(group, termIndex)) {
+                    continue;
+                }
+
+                var safeTerm = term ?? new InlineSequence();
+                group.ReplaceTerm(termIndex, safeTerm);
+                for (int entryIndex = 0; entryIndex < _entries.Count; entryIndex++) {
+                    if (_entries[entryIndex].IsBoundTo(group, termIndex)) {
+                        _entries[entryIndex].SetTermFromOwner(safeTerm);
+                    }
+                }
+
+                SyntaxItems.Clear();
+                return;
+            }
+        }
+
+        entry.SetTermFromOwner(term);
+    }
+
     internal void AddParsedEntry(DefinitionListEntry entry, MarkdownSyntaxNode syntaxItem) {
         if (entry == null) {
             throw new ArgumentNullException(nameof(entry));
@@ -387,7 +415,9 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
             for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
                 var term = group.Terms[termIndex];
-                _entries.Add(new DefinitionListEntry(term, group.Definitions[definitionIndex]));
+                var entry = new DefinitionListEntry(term, group.Definitions[definitionIndex]);
+                entry.BindToDefinitionList(this, group, termIndex);
+                _entries.Add(entry);
             }
         }
     }
@@ -396,9 +426,11 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         _groups.Clear();
         for (int i = 0; i < _entries.Count; i++) {
             var entry = _entries[i] ?? new DefinitionListEntry();
-            _groups.Add(new DefinitionListGroup(
+            var group = new DefinitionListGroup(
                 new[] { entry.Term },
-                new[] { entry.Definition }));
+                new[] { entry.Definition });
+            _groups.Add(group);
+            entry.BindToDefinitionList(this, group, 0);
         }
 
         SyntaxItems.Clear();
