@@ -187,6 +187,91 @@ Inside
     }
 
     [Fact]
+    public void List_SourceFields_Use_Item_And_Task_Marker_Token_Spans() {
+        var markdown = """
+* [X]	Upper
+* Plain
+
+10) Ordered
+11) Next
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var unordered = Assert.IsType<MarkdownNativeListBlock>(native.Blocks[0]);
+        var ordered = Assert.IsType<MarkdownNativeListBlock>(native.Blocks[1]);
+
+        Assert.Equal("*", unordered.Items[0].MarkerText);
+        Assert.Equal("[X]", unordered.Items[0].TaskMarkerText);
+        Assert.Equal("10)", ordered.Items[0].MarkerText);
+        Assert.Equal("11)", ordered.Items[1].MarkerText);
+
+        var listMarkers = native.EnumerateBlockSourceFields("listMarker").ToArray();
+        Assert.Collection(
+            listMarkers,
+            field => {
+                Assert.Same(unordered, field.Block);
+                Assert.Equal("*", field.Value);
+                Assert.Equal(0, field.Index);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), field.SourceSpan);
+            },
+            field => {
+                Assert.Same(unordered, field.Block);
+                Assert.Equal("*", field.Value);
+                Assert.Equal(1, field.Index);
+                Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 1), field.SourceSpan);
+            },
+            field => {
+                Assert.Same(ordered, field.Block);
+                Assert.Equal("10)", field.Value);
+                Assert.Equal(0, field.Index);
+                Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 3), field.SourceSpan);
+            },
+            field => {
+                Assert.Same(ordered, field.Block);
+                Assert.Equal("11)", field.Value);
+                Assert.Equal(1, field.Index);
+                Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 3), field.SourceSpan);
+            });
+
+        var taskMarker = Assert.Single(native.EnumerateBlockSourceFields("taskMarker"));
+        Assert.Same(unordered, taskMarker.Block);
+        Assert.Equal("[X]", taskMarker.Value);
+        Assert.Equal(0, taskMarker.Index);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), taskMarker.SourceSpan);
+
+        var foundListMarker = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(4, 2));
+        Assert.Equal("listMarker", foundListMarker.Name);
+        Assert.Equal("10)", foundListMarker.Value);
+
+        var foundTaskMarker = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 4));
+        Assert.Equal("taskMarker", foundTaskMarker.Name);
+        Assert.Equal("[X]", foundTaskMarker.Value);
+
+        var snapshot = native.ToSnapshot();
+        Assert.Contains(snapshot.Blocks[0].SourceFields, field =>
+            field.Name == "listMarker"
+            && field.Value == "*"
+            && field.Index == 0
+            && field.SourceSpan.StartColumn == 1);
+        Assert.Contains(snapshot.Blocks[0].SourceFields, field =>
+            field.Name == "taskMarker"
+            && field.Value == "[X]"
+            && field.Index == 0
+            && field.SourceSpan.StartColumn == 3
+            && field.SourceSpan.EndColumn == 5);
+        Assert.Equal("*", snapshot.Blocks[0].Items[0].MarkerText);
+        Assert.Equal("[X]", snapshot.Blocks[0].Items[0].TaskMarkerText);
+        Assert.Equal("10)", snapshot.Blocks[1].Items[0].MarkerText);
+
+        var taskEdited = native.CreateReplaceEdit(taskMarker, "[ ]").Apply(native.SourceMarkdown);
+        Assert.StartsWith("* [ ]\tUpper", taskEdited, StringComparison.Ordinal);
+
+        var orderedEdited = native.CreateReplaceEdit(listMarkers[2], "7.").Apply(native.SourceMarkdown);
+        Assert.Contains("7. Ordered", orderedEdited, StringComparison.Ordinal);
+        Assert.Contains("11) Next", orderedEdited, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Image_SourceFields_Use_Image_Token_Spans() {
         const string markdown = "![Alt text](https://example.com/image.png \"Image title\")\n";
 

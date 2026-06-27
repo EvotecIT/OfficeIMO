@@ -41,8 +41,12 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public bool Checked { get; }
     /// <summary>Source span of the list marker token (<c>-</c>, <c>*</c>, <c>+</c>, <c>1.</c>, or <c>1)</c>) when parsed from markdown.</summary>
     public MarkdownSourceSpan? MarkerSourceSpan { get; internal set; }
+    /// <summary>Exact list marker token (<c>-</c>, <c>*</c>, <c>+</c>, <c>1.</c>, or <c>1)</c>) when parsed from markdown.</summary>
+    public string? MarkerText { get; internal set; }
     /// <summary>Source span of the task marker token (<c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>) when parsed from markdown.</summary>
     public MarkdownSourceSpan? TaskMarkerSourceSpan { get; internal set; }
+    /// <summary>Exact task marker token (<c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>) when parsed from markdown.</summary>
+    public string? TaskMarkerText { get; internal set; }
     /// <summary>Indentation level (0 = top-level). Used for nested lists.</summary>
     public int Level { get; set; }
     /// <summary>Forces paragraph-wrapped loose rendering even when only the first paragraph and child blocks exist.</summary>

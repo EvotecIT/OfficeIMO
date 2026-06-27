@@ -240,7 +240,9 @@ internal static class MarkdownNativeSnapshotFactory {
                 items[i].Level,
                 ToSpanSnapshot(items[i].SourceSpan),
                 ToSpanSnapshot(items[i].MarkerSourceSpan),
+                items[i].MarkerText,
                 ToSpanSnapshot(items[i].TaskMarkerSourceSpan),
+                items[i].TaskMarkerText,
                 FromInlines(items[i].InlineRuns),
                 FromBlocks(items[i].Children)));
         }

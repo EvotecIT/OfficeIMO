@@ -87,7 +87,9 @@ public sealed class MarkdownNativeListItem {
         IsTask = item.IsTask;
         Checked = item.Checked;
         MarkerSourceSpan = item.MarkerSourceSpan;
+        MarkerText = item.MarkerText;
         TaskMarkerSourceSpan = item.TaskMarkerSourceSpan;
+        TaskMarkerText = item.TaskMarkerText;
         Level = item.Level;
         Id = MarkdownNativeListItemId.Create(item, syntaxNode, SourceSpan);
     }
@@ -128,8 +130,14 @@ public sealed class MarkdownNativeListItem {
     /// <summary>Source span for the list marker token when this item was parsed from markdown.</summary>
     public MarkdownSourceSpan? MarkerSourceSpan { get; }
 
+    /// <summary>Exact list marker token when this item was parsed from markdown.</summary>
+    public string? MarkerText { get; }
+
     /// <summary>Source span for the task marker token when this item was parsed from markdown.</summary>
     public MarkdownSourceSpan? TaskMarkerSourceSpan { get; }
+
+    /// <summary>Exact task marker token when this item was parsed from markdown.</summary>
+    public string? TaskMarkerText { get; }
 
     /// <summary>Indentation level from the source list item.</summary>
     public int Level { get; }

@@ -295,7 +295,9 @@ public sealed class MarkdownNativeListItemSnapshot {
         int level,
         MarkdownNativeSourceSpanSnapshot? sourceSpan,
         MarkdownNativeSourceSpanSnapshot? markerSourceSpan,
+        string? markerText,
         MarkdownNativeSourceSpanSnapshot? taskMarkerSourceSpan,
+        string? taskMarkerText,
         IReadOnlyList<MarkdownNativeInlineSnapshot> inlines,
         IReadOnlyList<MarkdownNativeBlockSnapshot> children) {
         Id = id ?? string.Empty;
@@ -305,7 +307,9 @@ public sealed class MarkdownNativeListItemSnapshot {
         Level = level;
         SourceSpan = sourceSpan;
         MarkerSourceSpan = markerSourceSpan;
+        MarkerText = markerText;
         TaskMarkerSourceSpan = taskMarkerSourceSpan;
+        TaskMarkerText = taskMarkerText;
         Inlines = inlines ?? Array.Empty<MarkdownNativeInlineSnapshot>();
         Children = children ?? Array.Empty<MarkdownNativeBlockSnapshot>();
     }
@@ -331,8 +335,14 @@ public sealed class MarkdownNativeListItemSnapshot {
     /// <summary>List marker token source span snapshot when available.</summary>
     public MarkdownNativeSourceSpanSnapshot? MarkerSourceSpan { get; }
 
+    /// <summary>Exact list marker token when available.</summary>
+    public string? MarkerText { get; }
+
     /// <summary>Task marker token source span snapshot when available.</summary>
     public MarkdownNativeSourceSpanSnapshot? TaskMarkerSourceSpan { get; }
+
+    /// <summary>Exact task marker token when available.</summary>
+    public string? TaskMarkerText { get; }
 
     /// <summary>Lead inline snapshots.</summary>
     public IReadOnlyList<MarkdownNativeInlineSnapshot> Inlines { get; }

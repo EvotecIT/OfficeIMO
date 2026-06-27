@@ -434,9 +434,44 @@ public static partial class MarkdownReader {
 
         int absoluteLineNumber = state.SourceLineOffset + lineIndex + 1;
         item.MarkerSourceSpan = TryCreateListMarkerSourceSpan(line, absoluteLineNumber, state);
+        item.MarkerText = TryGetListMarkerText(line);
         if (isTask) {
             item.TaskMarkerSourceSpan = TryCreateTaskMarkerSourceSpan(line, absoluteLineNumber, state);
+            item.TaskMarkerText = TryGetTaskMarkerText(line);
+        } else {
+            item.TaskMarkerText = null;
         }
+    }
+
+    private static string? TryGetListMarkerText(string line) {
+        if (string.IsNullOrEmpty(line)) {
+            return null;
+        }
+
+        if (TryGetOrderedListMarkerInfo(line, out int orderedLeadingSpaces, out _, out _, out _)) {
+            int delimiterIndex = orderedLeadingSpaces;
+            while (delimiterIndex < line.Length && char.IsDigit(line[delimiterIndex])) {
+                delimiterIndex++;
+            }
+
+            return delimiterIndex < line.Length
+                ? line.Substring(orderedLeadingSpaces, delimiterIndex - orderedLeadingSpaces + 1)
+                : null;
+        }
+
+        return TryGetUnorderedListMarkerInfo(line, out int unorderedLeadingSpaces, out _, out char marker)
+            ? marker.ToString()
+            : null;
+    }
+
+    private static string? TryGetTaskMarkerText(string line) {
+        if (string.IsNullOrEmpty(line)
+            || !TryGetRawListItemContentAfterMarker(line, out string content)
+            || !TryGetTaskListMarkerContentStartIndex(content, out _)) {
+            return null;
+        }
+
+        return content.Length >= 3 ? content.Substring(0, 3) : null;
     }
 
     private static MarkdownSourceSpan? TryCreateListMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownReaderState state) {

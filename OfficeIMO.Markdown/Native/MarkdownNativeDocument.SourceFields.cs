@@ -81,6 +81,12 @@ public sealed partial class MarkdownNativeDocument {
                 }
 
                 break;
+            case MarkdownNativeListBlock list:
+                foreach (var field in EnumerateListFields(list)) {
+                    yield return field;
+                }
+
+                break;
             case MarkdownNativeImageBlock image:
                 foreach (var field in EnumerateImageFields(image)) {
                     yield return field;
@@ -143,6 +149,19 @@ public sealed partial class MarkdownNativeDocument {
                 }
 
                 break;
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateListFields(MarkdownNativeListBlock list) {
+        for (var i = 0; i < list.Items.Count; i++) {
+            var item = list.Items[i];
+            if (item.MarkerSourceSpan.HasValue) {
+                yield return new MarkdownNativeBlockSourceField("listMarker", item.MarkerText, item.MarkerSourceSpan.Value, list, i);
+            }
+
+            if (item.TaskMarkerSourceSpan.HasValue) {
+                yield return new MarkdownNativeBlockSourceField("taskMarker", item.TaskMarkerText, item.TaskMarkerSourceSpan.Value, list, i);
+            }
         }
     }
 
