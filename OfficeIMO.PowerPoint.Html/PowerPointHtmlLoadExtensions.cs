@@ -148,13 +148,17 @@ public static class PowerPointHtmlLoadExtensions {
             bool restoredFromSemanticData = TryReadChartData(item, out PptCore.PowerPointChartData? semanticData);
             PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
             string chartKind = ReadChartKind(item);
-            if (!TryAddChartByKind(slide, chartKind, data, 500, top, 320, 180, out PptCore.PowerPointChart? chart) || chart == null) {
+            if (!TryAddChartByKind(slide, chartKind, data, 500, top, 320, 180, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
                 result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' used unsupported chart kind '" + chartKind + "' and was not imported.");
                 continue;
             }
 
             chart.SetTitle(title.Length == 0 ? "Imported chart" : title);
             result.Charts++;
+            if (!string.IsNullOrWhiteSpace(fallbackMessage)) {
+                result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' " + fallbackMessage);
+            }
+
             if (!restoredFromSemanticData) {
                 result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' was restored as a native chart with reconstructed placeholder values; exact source chart data was not present in semantic HTML.");
             }
@@ -297,7 +301,7 @@ public static class PowerPointHtmlLoadExtensions {
         }
 
         string normalized = markdown!.Replace("\r\n", "\n").Replace('\r', '\n');
-        int marker = normalized.IndexOf("### Notes", StringComparison.OrdinalIgnoreCase);
+        int marker = FindPresenterNotesMarker(normalized);
         if (marker < 0) {
             return string.Empty;
         }
@@ -306,8 +310,38 @@ public static class PowerPointHtmlLoadExtensions {
         return tail.Trim('\n').Replace("\n", Environment.NewLine);
     }
 
-    private static bool TryAddChartByKind(PptCore.PowerPointSlide slide, string chartKind, PptCore.PowerPointChartData data, double left, double top, double width, double height, out PptCore.PowerPointChart? chart) {
+    private static int FindPresenterNotesMarker(string normalizedMarkdown) {
+        int searchStart = normalizedMarkdown.Length - 1;
+        while (searchStart >= 0) {
+            int marker = normalizedMarkdown.LastIndexOf("### Notes", searchStart, StringComparison.OrdinalIgnoreCase);
+            if (marker < 0) {
+                return -1;
+            }
+
+            int lineStart = marker;
+            while (lineStart > 0 && normalizedMarkdown[lineStart - 1] != '\n') {
+                lineStart--;
+            }
+
+            int lineEnd = normalizedMarkdown.IndexOf('\n', marker);
+            if (lineEnd < 0) {
+                lineEnd = normalizedMarkdown.Length;
+            }
+
+            string line = normalizedMarkdown.Substring(lineStart, lineEnd - lineStart).Trim();
+            if (line.Equals("### Notes", StringComparison.OrdinalIgnoreCase)) {
+                return marker;
+            }
+
+            searchStart = marker - 1;
+        }
+
+        return -1;
+    }
+
+    private static bool TryAddChartByKind(PptCore.PowerPointSlide slide, string chartKind, PptCore.PowerPointChartData data, double left, double top, double width, double height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) {
         chart = null;
+        fallbackMessage = null;
         if (chartKind.Equals("ClusteredColumn", StringComparison.OrdinalIgnoreCase) ||
             chartKind.Equals("ColumnClustered", StringComparison.OrdinalIgnoreCase)) {
             chart = slide.AddChartPoints(data, left, top, width, height);
@@ -346,8 +380,25 @@ public static class PowerPointHtmlLoadExtensions {
             return true;
         }
 
+        if (CanImportAsClusteredColumnFallback(chartKind)) {
+            chart = slide.AddChartPoints(data, left, top, width, height);
+            fallbackMessage = "used chart kind '" + chartKind + "' and was imported as a clustered column fallback.";
+            return true;
+        }
+
         return false;
     }
+
+    private static bool CanImportAsClusteredColumnFallback(string chartKind) =>
+        chartKind.Equals("ClusteredBar", StringComparison.OrdinalIgnoreCase) ||
+        chartKind.Equals("StackedColumn", StringComparison.OrdinalIgnoreCase) ||
+        chartKind.Equals("StackedColumn100", StringComparison.OrdinalIgnoreCase) ||
+        chartKind.Equals("StackedBar", StringComparison.OrdinalIgnoreCase) ||
+        chartKind.Equals("StackedBar100", StringComparison.OrdinalIgnoreCase) ||
+        chartKind.Equals("Area", StringComparison.OrdinalIgnoreCase) ||
+        chartKind.Equals("StackedArea", StringComparison.OrdinalIgnoreCase) ||
+        chartKind.Equals("StackedArea100", StringComparison.OrdinalIgnoreCase) ||
+        chartKind.Equals("Radar", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryCreateScatterChartData(PptCore.PowerPointChartData data, out PptCore.PowerPointScatterChartData? scatterData) {
         scatterData = null;

@@ -285,6 +285,38 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_RoundTripsHiddenWorksheetVisibility() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet visible = workbook.AddWorkSheet("Visible");
+        ExcelSheet hidden = workbook.AddWorkSheet("Hidden");
+        ExcelSheet veryHidden = workbook.AddWorkSheet("VeryHidden");
+        visible.CellValue(1, 1, "Visible");
+        hidden.CellValue(1, 1, "Hidden");
+        veryHidden.CellValue(1, 1, "Very hidden");
+        hidden.SetHidden(true);
+        veryHidden.SetVeryHidden(true);
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+
+        Assert.Contains("data-officeimo-sheet=\"Hidden\" data-officeimo-range=\"A1:A1\" data-officeimo-visibility=\"hidden\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-sheet=\"VeryHidden\" data-officeimo-range=\"A1:A1\" data-officeimo-visibility=\"veryHidden\"", html, StringComparison.Ordinal);
+
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelSheet importedVisible = imported.Sheets.Single(sheet => sheet.Name == "Visible");
+        ExcelSheet importedHidden = imported.Sheets.Single(sheet => sheet.Name == "Hidden");
+        ExcelSheet importedVeryHidden = imported.Sheets.Single(sheet => sheet.Name == "VeryHidden");
+
+        Assert.False(importedVisible.Hidden);
+        Assert.False(importedVisible.VeryHidden);
+        Assert.True(importedHidden.Hidden);
+        Assert.False(importedHidden.VeryHidden);
+        Assert.True(importedVeryHidden.VeryHidden);
+    }
+
+    [Fact]
     public void ExcelHtml_DoesNotImportEmptyCellTextPlaceholdersAsValues() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorkSheet("Placeholders");
@@ -501,6 +533,28 @@ public class HtmlOfficeAdapters {
         ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
         Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
         Assert.Equal(new[] { 10D, 20D }, series.Values);
+    }
+
+    [Fact]
+    public void ExcelChart_ScatterSnapshotPrefersLiveRangesOverCachedValues() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorkSheet("ScatterLive");
+        var data = new ExcelChartData(
+            new[] { "1", "2" },
+            new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 2D }, ExcelChartType.Scatter) });
+        ExcelChart chart = sheet.AddChart(data, row: 1, column: 5, widthPixels: 320, heightPixels: 180, type: ExcelChartType.Scatter, title: "Scatter");
+        ExcelChartDataRange range = chart.DataRange!;
+        ExcelSheet dataSheet = workbook[range.SheetName];
+
+        dataSheet.CellValue(range.CategoryStartRow, range.CategoryStartColumn, 3D);
+        dataSheet.CellValue(range.CategoryStartRow + 1, range.CategoryStartColumn, 4D);
+        dataSheet.CellValue(range.SeriesStartRow, range.SeriesStartColumn, 30D);
+        dataSheet.CellValue(range.SeriesStartRow + 1, range.SeriesStartColumn, 40D);
+
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
+        Assert.Equal(new[] { 3D, 4D }, series.XValues);
+        Assert.Equal(new[] { 30D, 40D }, series.Values);
     }
 
     [Fact]
@@ -922,19 +976,23 @@ public class HtmlOfficeAdapters {
         Assert.Equal(2, snapshot.Data.Series.Count);
     }
 
-    [Fact]
-    public void PowerPointHtml_LoadReportsUnsupportedChartKindsInsteadOfColumnFallback() {
-        string html = """
+    [Theory]
+    [InlineData("ClusteredBar")]
+    [InlineData("StackedColumn")]
+    [InlineData("Area")]
+    [InlineData("Radar")]
+    public void PowerPointHtml_LoadDegradesExportedChartKindsInsteadOfDroppingChart(string chartKind) {
+        string html = $$"""
             <main>
               <section class="officeimo-slide">
                 <section class="officeimo-feature officeimo-charts">
                   <ul class="officeimo-feature-list">
                     <li class="officeimo-feature-item">
-                      <span class="officeimo-feature-label">Bar chart</span>
-                      <div class="officeimo-feature-meta">Type: ClusteredBar; Series: 1; Categories: 2</div>
+                      <span class="officeimo-feature-label">Imported chart</span>
+                      <div class="officeimo-feature-meta">Type: {{chartKind}}; Series: 1; Categories: 2</div>
                       <table class="officeimo-chart-data">
-                        <tr><th></th><th>Q1</th><th>Q2</th></tr>
-                        <tr><th>Actual</th><td>10</td><td>12</td></tr>
+                        <thead><tr><th></th><th>Q1</th><th>Q2</th></tr></thead>
+                        <tbody><tr><th>Actual</th><td>10</td><td>12</td></tr></tbody>
                       </table>
                     </li>
                   </ul>
@@ -945,10 +1003,12 @@ public class HtmlOfficeAdapters {
 
         PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
         using PowerPointPresentation imported = result.Presentation;
+        PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
-        Assert.Equal(0, result.Charts);
-        Assert.Empty(imported.Slides[0].Charts);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Contains("unsupported chart kind 'ClusteredBar'", StringComparison.Ordinal));
+        Assert.Equal(1, result.Charts);
+        Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
+        Assert.Equal(PowerPointChartSnapshotKind.ClusteredColumn, snapshot!.ChartKind);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Contains("used chart kind '" + chartKind + "' and was imported as a clustered column fallback", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -958,6 +1018,10 @@ public class HtmlOfficeAdapters {
               <section class="officeimo-slide">
                 <p>Notes slide</p>
                 <pre class="officeimo-source-markdown"># Notes slide
+
+            ## Body section
+            ### Notes
+            This is regular slide content, not presenter notes.
 
             ### Notes
             # Follow up
@@ -970,6 +1034,7 @@ public class HtmlOfficeAdapters {
         using PowerPointPresentation imported = result.Presentation;
 
         Assert.Equal(1, result.Notes);
+        Assert.DoesNotContain("This is regular slide content", imported.Slides[0].Notes.Text, StringComparison.Ordinal);
         Assert.Contains("# Follow up", imported.Slides[0].Notes.Text, StringComparison.Ordinal);
         Assert.Contains("Keep this line", imported.Slides[0].Notes.Text, StringComparison.Ordinal);
     }

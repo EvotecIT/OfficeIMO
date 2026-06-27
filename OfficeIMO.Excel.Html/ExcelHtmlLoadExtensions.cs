@@ -53,9 +53,24 @@ public static class ExcelHtmlLoadExtensions {
             if (options.ImportChartInventory) {
                 ImportCharts(section, sheet, result);
             }
+
+            ApplySheetVisibility(section, sheet);
         }
 
         return result;
+    }
+
+    private static void ApplySheetVisibility(IElement section, ExcelSheet sheet) {
+        string? visibility = section.GetAttribute("data-officeimo-visibility");
+        if (string.IsNullOrWhiteSpace(visibility)) {
+            return;
+        }
+
+        if (visibility!.Equals("veryHidden", StringComparison.OrdinalIgnoreCase)) {
+            sheet.SetVeryHidden(true);
+        } else if (visibility.Equals("hidden", StringComparison.OrdinalIgnoreCase)) {
+            sheet.SetHidden(true);
+        }
     }
 
     private static void ImportTable(IElement section, ExcelSheet sheet, ExcelHtmlLoadResult result) {

@@ -65,6 +65,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportOmitsDefaultHiddenRowsUnlessExplicitlyVisible() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("DefaultHidden");
+            sheet.CellValue(1, 1, "Hidden by default");
+            sheet.CellValue(2, 1, "Visible override");
+            sheet.CellValue(3, 1, "Hidden by default too");
+            sheet.SetDefaultRowHeight(18D, hidden: true);
+            sheet.SetRowHeight(2, 18D);
+
+            ExcelRange range = sheet.Range("A1:A3");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelRangeVisualSnapshot includeHidden = range.CreateVisualSnapshot(new ExcelImageExportOptions { IncludeHidden = true, ShowGridlines = false });
+
+            ExcelVisualRow row = Assert.Single(snapshot.Rows);
+            Assert.Equal(2, row.Index);
+            ExcelVisualCell cell = Assert.Single(snapshot.Cells);
+            Assert.Equal("Visible override", cell.Text);
+            AssertDiagnostic(snapshot.Diagnostics, ExcelImageExportDiagnosticCodes.HiddenRowsOmitted, "DefaultHidden!A1:A3");
+            Assert.Equal(new[] { 1, 2, 3 }, includeHidden.Rows.Select(item => item.Index).ToArray());
+        }
+
+        [Fact]
         public void ExcelWorksheet_DefaultImageExportSkipsHiddenImageAnchorsWhenExpandingUsedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

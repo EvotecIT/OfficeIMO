@@ -108,7 +108,9 @@ public static class ExcelHtmlConverterExtensions {
             .Append(OfficeHtmlText.EscapeAttribute(sheet.Name))
             .Append("\" data-officeimo-range=\"")
             .Append(OfficeHtmlText.EscapeAttribute(usedRange))
-            .Append("\">");
+            .Append('"');
+        AppendSheetVisibilityAttribute(body, sheet);
+        body.Append('>');
         body.Append("<h2>").Append(OfficeHtmlText.Escape(sheet.Name)).Append("</h2>");
 
         ParseUsedRange(usedRange, out int firstRow, out int firstColumn, out int rowCount, out int columnCount);
@@ -516,6 +518,14 @@ public static class ExcelHtmlConverterExtensions {
 
     private static string GetTitle(ExcelHtmlSaveOptions options, string fallback) {
         return string.IsNullOrWhiteSpace(options.Title) ? fallback : options.Title!;
+    }
+
+    private static void AppendSheetVisibilityAttribute(StringBuilder body, ExcelSheet sheet) {
+        if (sheet.VeryHidden) {
+            body.Append(" data-officeimo-visibility=\"veryHidden\"");
+        } else if (sheet.Hidden) {
+            body.Append(" data-officeimo-visibility=\"hidden\"");
+        }
     }
 
     private static string ReadCellText(ExcelSheet sheet, int row, int column, string emptyCellText) {

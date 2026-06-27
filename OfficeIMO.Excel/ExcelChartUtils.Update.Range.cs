@@ -449,12 +449,12 @@ namespace OfficeIMO.Excel {
 
                 NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
                 NumberReference? yReference = scatterSeries.GetFirstChild<YValues>()?.GetFirstChild<NumberReference>();
-                if (!TryReadCachedNumberValues(xReference, out IReadOnlyList<double>? xValues)) {
-                    TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out xValues);
+                if (!TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out IReadOnlyList<double>? xValues)) {
+                    TryReadCachedNumberValues(xReference, out xValues);
                 }
 
-                if (!TryReadCachedNumberValues(yReference, out IReadOnlyList<double>? yValues)) {
-                    TryReadReferencedNumberValues(contextSheet, yReference?.Formula?.Text, out yValues);
+                if (!TryReadReferencedNumberValues(contextSheet, yReference?.Formula?.Text, out IReadOnlyList<double>? yValues)) {
+                    TryReadCachedNumberValues(yReference, out yValues);
                 }
 
                 if (xValues != null || yValues != null) {
