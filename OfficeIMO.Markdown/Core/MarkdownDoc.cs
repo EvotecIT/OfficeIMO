@@ -25,6 +25,7 @@ public class MarkdownDoc : MarkdownObject {
     private readonly List<IMarkdownBlock> _blocks = new();
     private IMarkdownBlock? _lastBlock;
     private IFrontMatterMarkdownBlock? _frontMatter;
+    private MarkdownParseResult? _parseResult;
 
     /// <summary>Creates a new, empty Markdown document.</summary>
     public static MarkdownDoc Create() => new MarkdownDoc();
@@ -40,6 +41,8 @@ public class MarkdownDoc : MarkdownObject {
     /// <summary>Whether the document has front matter.</summary>
     public bool HasDocumentHeader => DocumentHeader != null;
 
+    internal MarkdownParseResult? ParseResult => _parseResult;
+
     /// <summary>Adds a block instance (object-model style).</summary>
     /// <param name="block">Block to append to the document.</param>
     /// <returns>Same <see cref="MarkdownDoc"/> for chaining.</returns>
@@ -50,6 +53,7 @@ public class MarkdownDoc : MarkdownObject {
             _blocks.Add(block);
             _lastBlock = block;
         }
+        _parseResult = null;
         MarkdownObjectTreeBinder.BindDocument(this);
         return this;
     }
@@ -66,6 +70,7 @@ public class MarkdownDoc : MarkdownObject {
     internal void ReplaceBlocks(IEnumerable<IMarkdownBlock>? blocks) {
         _blocks.Clear();
         _lastBlock = null;
+        _parseResult = null;
         if (blocks == null) {
             MarkdownObjectTreeBinder.BindDocument(this);
             return;
@@ -81,6 +86,10 @@ public class MarkdownDoc : MarkdownObject {
         }
 
         MarkdownObjectTreeBinder.BindDocument(this);
+    }
+
+    internal void AttachParseResult(MarkdownParseResult parseResult) {
+        _parseResult = parseResult ?? throw new ArgumentNullException(nameof(parseResult));
     }
 
     /// <summary>Enumerates all document blocks depth-first, including front matter when present.</summary>
@@ -525,7 +534,7 @@ public class MarkdownDoc : MarkdownObject {
         options ??= MarkdownWriteOptions.CreateOfficeIMOProfile();
         // Build a transient block list where TOC placeholders are realized
         var (blocks, headingCatalog) = GetBlocksAndHeadingSlugs();
-        var context = new MarkdownWriteContext(blocks, options, headingCatalog);
+        var context = new MarkdownWriteContext(this, blocks, options, headingCatalog);
         using var _ctx = MarkdownRenderContext.Push(context);
         StringBuilder sb = new StringBuilder();
         if (_frontMatter != null) {

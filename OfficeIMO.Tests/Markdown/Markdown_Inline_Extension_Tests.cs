@@ -276,10 +276,14 @@ Lead {{core}} tail
                 }
 
                 var paragraph = custom.Ancestors().OfType<ParagraphBlock>().First();
+                var syntax = context.FindSyntaxNode(custom);
+                var hasSourceSlice = context.TryCreateSourceSlice(custom, out var sourceSlice);
                 return "[block:"
                     + context.GetBlockIndex(paragraph)
+                    + ";kind:"
+                    + syntax?.Kind
                     + ";source:"
-                    + (custom.SourceSpan?.ToString() ?? string.Empty)
+                    + (hasSourceSlice ? sourceSlice.Text : string.Empty)
                     + ";text:"
                     + InlinePlainText.Extract(custom.Inlines)
                     + "]";
@@ -287,7 +291,7 @@ Lead {{core}} tail
 
         var rendered = document.ToMarkdown(options);
 
-        Assert.Equal("## Intro\n\nLead [block:1;source:L3:C6-C13;text:core] tail\n", rendered);
+        Assert.Equal("## Intro\n\nLead [block:1;kind:Unknown;source:{{core}};text:core] tail\n", rendered);
     }
 
     [Fact]

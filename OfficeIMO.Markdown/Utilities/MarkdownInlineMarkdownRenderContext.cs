@@ -42,5 +42,34 @@ public sealed class MarkdownInlineMarkdownRenderContext {
     /// </summary>
     public IReadOnlyList<TocBlock.Entry> BuildTocEntries(int blockIndex, TocOptions options, string? titleAnchor = null) =>
         _writeContext?.BuildTocEntries(blockIndex, options, titleAnchor) ?? Array.Empty<TocBlock.Entry>();
-}
 
+    /// <summary>
+    /// Finds the final syntax-tree node associated with a parsed model object, or <c>null</c> when no document context is active.
+    /// </summary>
+    public MarkdownSyntaxNode? FindSyntaxNode(object associatedObject) =>
+        _writeContext?.FindSyntaxNode(associatedObject);
+
+    /// <summary>
+    /// Creates a normalized source slice for the final syntax node associated with a parsed model object.
+    /// </summary>
+    public bool TryCreateSourceSlice(object associatedObject, out MarkdownSourceSlice slice) {
+        if (_writeContext == null) {
+            slice = default;
+            return false;
+        }
+
+        return _writeContext.TryCreateSourceSlice(associatedObject, out slice);
+    }
+
+    /// <summary>
+    /// Creates an original-input source slice for the final syntax node associated with a parsed model object.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(object associatedObject, out MarkdownSourceSlice slice) {
+        if (_writeContext == null) {
+            slice = default;
+            return false;
+        }
+
+        return _writeContext.TryCreateOriginalSourceSlice(associatedObject, out slice);
+    }
+}

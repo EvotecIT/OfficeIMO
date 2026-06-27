@@ -768,12 +768,16 @@ Lead {{core}} tail
                 }
 
                 var paragraph = custom.Ancestors().OfType<ParagraphBlock>().First();
+                var syntax = context.FindSyntaxNode(custom);
+                var hasSourceSlice = context.TryCreateSourceSlice(custom, out var sourceSlice);
                 return "<mark data-inline-context=\"true\" data-title=\""
                     + System.Net.WebUtility.HtmlEncode(context.Options.Title)
                     + "\" data-block-index=\""
                     + context.GetBlockIndex(paragraph)
+                    + "\" data-kind=\""
+                    + System.Net.WebUtility.HtmlEncode(syntax?.Kind.ToString() ?? string.Empty)
                     + "\" data-source=\""
-                    + System.Net.WebUtility.HtmlEncode(custom.SourceSpan?.ToString() ?? string.Empty)
+                    + System.Net.WebUtility.HtmlEncode(hasSourceSlice ? sourceSlice.Text : string.Empty)
                     + "\">"
                     + System.Net.WebUtility.HtmlEncode(InlinePlainText.Extract(custom.Inlines))
                     + "</mark>";
@@ -784,7 +788,8 @@ Lead {{core}} tail
         Assert.Contains("data-inline-context=\"true\"", rendered, StringComparison.Ordinal);
         Assert.Contains("data-title=\"inline-context-title\"", rendered, StringComparison.Ordinal);
         Assert.Contains("data-block-index=\"1\"", rendered, StringComparison.Ordinal);
-        Assert.Contains("data-source=\"L3:C6-C13\"", rendered, StringComparison.Ordinal);
+        Assert.Contains("data-kind=\"Unknown\"", rendered, StringComparison.Ordinal);
+        Assert.Contains("data-source=\"{{core}}\"", rendered, StringComparison.Ordinal);
         Assert.Contains(">core<", rendered, StringComparison.Ordinal);
     }
 

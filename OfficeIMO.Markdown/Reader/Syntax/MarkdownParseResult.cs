@@ -49,6 +49,50 @@ public sealed class MarkdownParseResult {
         PreservesOriginalMarkdown = preservesOriginalMarkdown;
         TransformDiagnostics = transformDiagnostics ?? Array.Empty<MarkdownDocumentTransformDiagnostic>();
         ReferenceLinkDefinitions = referenceLinkDefinitions ?? Array.Empty<MarkdownReferenceLinkDefinition>();
+        document.AttachParseResult(this);
+    }
+
+    /// <summary>
+    /// Finds the first node in the final syntax tree associated with the supplied model object.
+    /// </summary>
+    public MarkdownSyntaxNode? FindFinalNodeForAssociatedObject(object associatedObject) {
+        if (associatedObject == null) {
+            return null;
+        }
+
+        foreach (var node in FinalSyntaxTree.DescendantsAndSelf()) {
+            if (ReferenceEquals(node.AssociatedObject, associatedObject)) {
+                return node;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Creates a source slice for the final syntax node associated with the supplied model object.
+    /// </summary>
+    public bool TryCreateSourceSlice(object associatedObject, out MarkdownSourceSlice slice) {
+        var node = FindFinalNodeForAssociatedObject(associatedObject);
+        if (node == null) {
+            slice = default;
+            return false;
+        }
+
+        return TryCreateSourceSlice(node, out slice);
+    }
+
+    /// <summary>
+    /// Creates an original-input source slice for the final syntax node associated with the supplied model object.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(object associatedObject, out MarkdownSourceSlice slice) {
+        var node = FindFinalNodeForAssociatedObject(associatedObject);
+        if (node == null) {
+            slice = default;
+            return false;
+        }
+
+        return TryCreateOriginalSourceSlice(node, out slice);
     }
 
     /// <summary>

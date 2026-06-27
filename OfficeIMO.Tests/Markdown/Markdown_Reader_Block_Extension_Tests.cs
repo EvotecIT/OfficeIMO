@@ -128,6 +128,50 @@ Paragraph line
     }
 
     [Fact]
+    public void Html_Block_Render_Extension_Can_Read_Final_Syntax_Node_And_Source_Slices() {
+        const string markdown = "# Intro\r\n\r\n:::panel Ops Notes\r\nParagraph line\r\n:::\r\n";
+        var readerOptions = CreateOptions();
+        readerOptions.PreserveTrivia = true;
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
+        MarkdownSyntaxNode? seenSyntax = null;
+        MarkdownSourceSlice normalizedSlice = default;
+        MarkdownSourceSlice originalSlice = default;
+        var normalizedOk = false;
+        var originalOk = false;
+
+        var htmlOptions = new HtmlOptions {
+            Kind = HtmlKind.Fragment
+        };
+        htmlOptions.BlockRenderExtensions.Add(MarkdownBlockHtmlRenderExtension.CreateContextual(
+            "panel-source-aware",
+            typeof(PanelBlock),
+            (block, context) => {
+                if (block is not PanelBlock panel) {
+                    return null;
+                }
+
+                seenSyntax = context.FindSyntaxNode(panel);
+                normalizedOk = context.TryCreateSourceSlice(panel, out normalizedSlice);
+                originalOk = context.TryCreateOriginalSourceSlice(panel, out originalSlice);
+                return "<aside data-panel-source=\"true\">"
+                    + System.Net.WebUtility.HtmlEncode(panel.Title)
+                    + "</aside>";
+            }));
+
+        var html = document.ToHtmlFragment(htmlOptions);
+
+        Assert.Contains("data-panel-source=\"true\"", html, StringComparison.Ordinal);
+        Assert.NotNull(seenSyntax);
+        Assert.Equal(MarkdownSyntaxKind.Unknown, seenSyntax!.Kind);
+        Assert.Equal("panel-block", seenSyntax.CustomKind);
+        Assert.True(normalizedOk);
+        Assert.Equal(":::panel Ops Notes\nParagraph line\n:::", normalizedSlice.Text);
+        Assert.True(originalOk);
+        Assert.Equal(MarkdownSourceTextKind.Original, originalSlice.TextKind);
+        Assert.Equal(":::panel Ops Notes\r\nParagraph line\r\n:::", originalSlice.Text);
+    }
+
+    [Fact]
     public void Html_Block_Render_Extension_Legacy_Constructor_Still_Uses_Options_And_Applies() {
         var markdown = """
 :::panel Ops Notes

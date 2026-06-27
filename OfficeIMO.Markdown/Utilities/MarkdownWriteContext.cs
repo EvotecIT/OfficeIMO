@@ -5,13 +5,20 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class MarkdownWriteContext {
     internal MarkdownWriteContext(
+        MarkdownDoc document,
         IReadOnlyList<IMarkdownBlock> blocks,
         MarkdownWriteOptions options,
         MarkdownHeadingCatalog headingCatalog) {
+        Document = document ?? throw new ArgumentNullException(nameof(document));
         Blocks = blocks;
         Options = options;
         HeadingCatalog = headingCatalog;
     }
+
+    /// <summary>
+    /// Document being serialized.
+    /// </summary>
+    public MarkdownDoc Document { get; }
 
     /// <summary>
     /// Top-level blocks being rendered for the current markdown document.
@@ -62,4 +69,36 @@ public sealed class MarkdownWriteContext {
     /// </summary>
     public IReadOnlyList<TocBlock.Entry> BuildTocEntries(int blockIndex, TocOptions options, string? titleAnchor = null) =>
         HeadingCatalog.BuildTocEntries(Blocks, blockIndex, options ?? new TocOptions(), titleAnchor);
+
+    /// <summary>
+    /// Finds the final syntax-tree node associated with a parsed model object, or <c>null</c> for builder-only documents.
+    /// </summary>
+    public MarkdownSyntaxNode? FindSyntaxNode(object associatedObject) =>
+        Document.ParseResult?.FindFinalNodeForAssociatedObject(associatedObject);
+
+    /// <summary>
+    /// Creates a normalized source slice for the final syntax node associated with a parsed model object.
+    /// </summary>
+    public bool TryCreateSourceSlice(object associatedObject, out MarkdownSourceSlice slice) {
+        var parseResult = Document.ParseResult;
+        if (parseResult == null) {
+            slice = default;
+            return false;
+        }
+
+        return parseResult.TryCreateSourceSlice(associatedObject, out slice);
+    }
+
+    /// <summary>
+    /// Creates an original-input source slice for the final syntax node associated with a parsed model object.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(object associatedObject, out MarkdownSourceSlice slice) {
+        var parseResult = Document.ParseResult;
+        if (parseResult == null) {
+            slice = default;
+            return false;
+        }
+
+        return parseResult.TryCreateOriginalSourceSlice(associatedObject, out slice);
+    }
 }

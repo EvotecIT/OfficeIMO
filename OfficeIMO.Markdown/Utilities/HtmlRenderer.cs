@@ -36,7 +36,7 @@ internal static class HtmlRenderer {
 
         // Insert a top anchor for back-to-top links
         var blocksForRendering = doc.Blocks;
-        string bodyContent = (options.BackToTopLinks ? "<a id=\"top\"></a>" : string.Empty) + RenderBody(blocksForRendering, options, headingCatalog);
+        string bodyContent = (options.BackToTopLinks ? "<a id=\"top\"></a>" : string.Empty) + RenderBody(doc, blocksForRendering, options, headingCatalog);
         if (options.ThemeToggle) {
             const string toggle = "<button class=\"theme-toggle\" data-theme-toggle title=\"Toggle theme\" aria-label=\"Toggle theme\">🌓</button>";
             bodyContent = toggle + bodyContent;
@@ -113,8 +113,8 @@ internal static class HtmlRenderer {
         return parts;
     }
 
-    private static string RenderBody(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options, MarkdownHeadingCatalog headingCatalog) {
-        var context = new MarkdownBodyRenderContext(blocks, options, headingCatalog);
+    private static string RenderBody(MarkdownDoc document, System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options, MarkdownHeadingCatalog headingCatalog) {
+        var context = new MarkdownBodyRenderContext(document, blocks, options, headingCatalog);
         using var _inlineContext = HtmlRenderContext.PushBodyContext(context);
         var plan = MarkdownBodyRenderPlan.Create(blocks);
         var footnotes = plan.Footnotes;
