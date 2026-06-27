@@ -112,7 +112,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
                 if (Children[i] is ITightListItemHtmlMarkdownBlock tightHtmlBlock) {
                     sbTight.Append(tightHtmlBlock.RenderTightListItemHtml());
                 } else {
-                    sbTight.Append(Children[i].RenderHtml());
+                    sbTight.Append(MarkdownBlockRenderDispatcher.RenderHtml(Children[i]));
                 }
             }
             return sbTight.ToString();
@@ -130,7 +130,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         }
 
         for (int i = 0; i < Children.Count; i++) {
-            sb.Append(Children[i].RenderHtml());
+            sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(Children[i]));
         }
         return sb.ToString();
     }

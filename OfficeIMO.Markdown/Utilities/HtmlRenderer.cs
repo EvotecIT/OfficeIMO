@@ -139,68 +139,7 @@ internal static class HtmlRenderer {
     }
 
     private static string RenderBodyBlock(IMarkdownBlock block, MarkdownBodyRenderContext context) {
-        var overridden = TryRenderSyntaxBlockOverride(block, context);
-        if (overridden != null) {
-            return overridden;
-        }
-
-        overridden = TryRenderBlockOverride(block, context);
-        if (overridden != null) {
-            return overridden;
-        }
-
-        if (block is IContextualHtmlMarkdownBlock contextualBlock) {
-            return contextualBlock.RenderHtml(context);
-        }
-
-        return block.RenderHtml();
-    }
-
-    private static string? TryRenderSyntaxBlockOverride(IMarkdownBlock block, MarkdownBodyRenderContext context) {
-        var extensions = context.Options.SyntaxBlockRenderExtensions;
-        if (extensions.Count == 0) {
-            return null;
-        }
-
-        var syntaxNode = context.FindSyntaxNode(block);
-        if (syntaxNode == null) {
-            return null;
-        }
-
-        for (int i = extensions.Count - 1; i >= 0; i--) {
-            var extension = extensions[i];
-            if (extension == null || !extension.Matches(syntaxNode)) {
-                continue;
-            }
-
-            var rendered = extension.RenderHtml(block, syntaxNode, context);
-            if (rendered != null) {
-                return rendered;
-            }
-        }
-
-        return null;
-    }
-
-    private static string? TryRenderBlockOverride(IMarkdownBlock block, MarkdownBodyRenderContext context) {
-        var extensions = context.Options.BlockRenderExtensions;
-        if (extensions.Count == 0) {
-            return null;
-        }
-
-        for (int i = extensions.Count - 1; i >= 0; i--) {
-            var extension = extensions[i];
-            if (extension == null || !extension.Matches(block)) {
-                continue;
-            }
-
-            var rendered = extension.RenderHtml(block, context);
-            if (rendered != null) {
-                return rendered;
-            }
-        }
-
-        return null;
+        return MarkdownBlockRenderDispatcher.RenderHtml(block, context);
     }
 
     private static string BuildFootnotesSectionHtml(IReadOnlyList<IFootnoteSectionMarkdownBlock> footnotes, MarkdownBodyRenderContext context) {

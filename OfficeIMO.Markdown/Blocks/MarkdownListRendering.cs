@@ -124,7 +124,7 @@ internal static class MarkdownListRendering {
 
         for (int c = 0; c < item.Children.Count; c++) {
             var child = item.Children[c];
-            var childMd = child.RenderMarkdown();
+            var childMd = MarkdownBlockRenderDispatcher.RenderMarkdown(child);
             if (string.IsNullOrWhiteSpace(childMd)) continue;
 
             sb.Append(baseIndent).AppendLine();

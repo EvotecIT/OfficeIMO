@@ -50,7 +50,9 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
 
         if (Summary != null) {
             sb.Append(NewLine);
-            sb.Append(renderHtmlChildren ? ((IMarkdownBlock)Summary).RenderHtml() : ((IMarkdownBlock)Summary).RenderMarkdown());
+            sb.Append(renderHtmlChildren
+                ? MarkdownBlockRenderDispatcher.RenderHtml(Summary)
+                : MarkdownBlockRenderDispatcher.RenderMarkdown(Summary));
         }
 
         if (Children.Count > 0) {
@@ -61,7 +63,9 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
                 } else {
                     sb.Append(NewLine).Append(NewLine);
                 }
-                var rendered = renderHtmlChildren ? Children[i].RenderHtml() : Children[i].RenderMarkdown();
+                var rendered = renderHtmlChildren
+                    ? MarkdownBlockRenderDispatcher.RenderHtml(Children[i])
+                    : MarkdownBlockRenderDispatcher.RenderMarkdown(Children[i]);
                 sb.Append(rendered);
             }
         }

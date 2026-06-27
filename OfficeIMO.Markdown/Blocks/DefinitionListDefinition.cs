@@ -34,7 +34,7 @@ public sealed class DefinitionListDefinition : MarkdownObject {
 
         var sb = new StringBuilder();
         for (int i = 0; i < _blocks.Count; i++) {
-            var rendered = _blocks[i].RenderMarkdown();
+            var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(_blocks[i]);
             if (string.IsNullOrEmpty(rendered)) {
                 continue;
             }
@@ -60,7 +60,7 @@ public sealed class DefinitionListDefinition : MarkdownObject {
 
         var sb = new StringBuilder();
         for (int i = 0; i < _blocks.Count; i++) {
-            sb.Append(_blocks[i].RenderHtml());
+            sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(_blocks[i]));
         }
 
         return sb.ToString();

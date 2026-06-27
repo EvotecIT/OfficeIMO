@@ -38,7 +38,7 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
         if (Children.Count > 0) {
             var sb = new StringBuilder();
             for (int i = 0; i < Children.Count; i++) {
-                var rendered = Children[i].RenderMarkdown();
+                var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(Children[i]);
                 // Prefix every line with "> "
                 using var reader = new System.IO.StringReader(rendered);
                 string? line; bool first = true;
@@ -60,7 +60,7 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
         if (Children.Count > 0) {
             var sb = new StringBuilder();
             sb.Append("<blockquote>");
-            foreach (var b in Children) sb.Append(b.RenderHtml());
+            foreach (var b in Children) sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(b));
             sb.Append("</blockquote>");
             return sb.ToString();
         }

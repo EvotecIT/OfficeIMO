@@ -237,6 +237,8 @@ Use:
   resolve the title heading anchor for section-scoped rendering
 - `BuildTocEntries(...)`
   generate TOC-style heading entries without depending on internal catalog types
+- `RenderBlock(...)`
+  render nested child blocks through the active HTML override dispatcher instead of bypassing syntax-kind or type-targeted render extensions
 
 `HtmlOptions.BlockRenderExtensions` also supports context-aware override registrations now. When you need an external override to win before the block's own `IContextualHtmlMarkdownBlock` implementation, register a `MarkdownBlockHtmlRenderExtension` with `MarkdownBlockHtmlRenderExtension.CreateContextual(...)`.
 
@@ -259,6 +261,7 @@ Register `MarkdownSyntaxBlockHtmlRenderExtension`, `MarkdownSyntaxInlineHtmlRend
 - `GetHeadingAnchor(...)`
 - `GetPrecedingHeadingAnchor(...)`
 - `BuildTocEntries(...)`
+- `RenderBlock(...)`
 
 See `OfficeIMO.Examples/Markdown/Markdown09_Custom_Markdown_Write_Overrides.cs` for a runnable example that writes both default markdown and a customized markdown profile using a contextual TOC override plus a legacy-compatible callout override.
 
@@ -339,7 +342,7 @@ Recommended practice:
 The extension surface is much stronger than before, but a few things are still intentionally limited:
 
 - `MarkdownSyntaxKind` remains a fixed enum, so extension node identity should flow through `CustomKind`
-- block and inline syntax-kind render overrides use the final syntax node for the semantic object being rendered; nested block rendering still follows the existing block renderer traversal, so broad nested-block override traversal is not complete yet
+- block and inline syntax-kind render overrides use the final syntax node for the semantic object being rendered; built-in nested containers route child blocks through the active dispatcher, and custom contextual containers should call `RenderBlock(...)` on the render/write context for the same behavior
 - full lossless token/trivia extension points are not available yet; syntax-kind renderers can read captured source slices only when spans are present and trivia was preserved
 
 ## Suggested Pattern For Real Packages

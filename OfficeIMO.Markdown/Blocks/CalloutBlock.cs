@@ -101,7 +101,7 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
             var inner = new StringBuilder();
             for (int i = 0; i < ChildBlocks.Count; i++) {
                 if (ChildBlocks[i] == null) continue;
-                var rendered = ChildBlocks[i].RenderMarkdown();
+                var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(ChildBlocks[i]);
                 if (string.IsNullOrEmpty(rendered)) continue;
                 inner.AppendLine(rendered.TrimEnd());
             }
@@ -136,7 +136,7 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
         if (ChildBlocks.Count > 0) {
             for (int i = 0; i < ChildBlocks.Count; i++) {
                 if (ChildBlocks[i] == null) continue;
-                sb.Append(ChildBlocks[i].RenderHtml());
+                sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(ChildBlocks[i]));
             }
         } else {
             // Plain text body (builder-created callouts).

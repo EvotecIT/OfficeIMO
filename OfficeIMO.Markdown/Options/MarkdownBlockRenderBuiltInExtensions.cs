@@ -128,7 +128,7 @@ public static class MarkdownBlockRenderBuiltInExtensions {
 
         if (callout.ChildBlocks.Count > 0) {
             for (int i = 0; i < callout.ChildBlocks.Count; i++) {
-                var rendered = callout.ChildBlocks[i]?.RenderMarkdown();
+                var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(callout.ChildBlocks[i]);
                 if (!string.IsNullOrWhiteSpace(rendered)) {
                     parts.Add(rendered!.TrimEnd());
                 }
@@ -157,7 +157,7 @@ public static class MarkdownBlockRenderBuiltInExtensions {
 
         if (callout.ChildBlocks.Count > 0) {
             for (int i = 0; i < callout.ChildBlocks.Count; i++) {
-                sb.Append(callout.ChildBlocks[i]?.RenderHtml());
+                sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(callout.ChildBlocks[i]));
             }
         } else {
             var lines = (callout.Body ?? string.Empty).Replace("\r\n", "\n").Split('\n');

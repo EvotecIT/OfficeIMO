@@ -71,6 +71,13 @@ public sealed class MarkdownWriteContext {
         HeadingCatalog.BuildTocEntries(Blocks, blockIndex, options ?? new TocOptions(), titleAnchor);
 
     /// <summary>
+    /// Renders a block through the active Markdown writer dispatcher, including syntax-kind and type-targeted overrides.
+    /// Custom container renderers should use this for child blocks instead of calling <see cref="IMarkdownBlock.RenderMarkdown"/> directly.
+    /// </summary>
+    public string RenderBlock(IMarkdownBlock block) =>
+        MarkdownBlockRenderDispatcher.RenderMarkdown(block, this);
+
+    /// <summary>
     /// Finds the final syntax-tree node associated with a parsed model object, or <c>null</c> for builder-only documents.
     /// </summary>
     public MarkdownSyntaxNode? FindSyntaxNode(object associatedObject) =>

@@ -297,6 +297,138 @@ Lead[^1]
     }
 
     [Fact]
+    public void Markdown_Syntax_Block_Render_Extension_Applies_To_Nested_Quote_Children() {
+        const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+
+        var options = new MarkdownWriteOptions { OutputLineEnding = "\n" };
+        options.SyntaxBlockRenderExtensions.Add(MarkdownSyntaxBlockMarkdownRenderExtension.CreateContextual(
+            "nested-paragraph-syntax-markdown",
+            MarkdownSyntaxKind.Paragraph,
+            static (block, syntaxNode, context) =>
+                syntaxNode.Ancestors().Any(parent => parent.Kind == MarkdownSyntaxKind.Quote)
+                    ? $"nested:{syntaxNode.Parent?.Kind}"
+                    : null));
+
+        var rendered = document.ToMarkdown(options);
+
+        Assert.Contains("> nested:Quote", rendered, StringComparison.Ordinal);
+        Assert.Contains("Tail", rendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Markdown_Type_Block_Render_Extension_Applies_To_Nested_Quote_Children() {
+        const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+
+        var options = new MarkdownWriteOptions { OutputLineEnding = "\n" };
+        options.BlockRenderExtensions.Add(MarkdownBlockMarkdownRenderExtension.CreateContextual(
+            "nested-paragraph-type-markdown",
+            typeof(ParagraphBlock),
+            static (block, context) =>
+                block is ParagraphBlock paragraph && context.GetBlockIndex(paragraph) < 0
+                    ? "nested:type"
+                    : null));
+
+        var rendered = document.ToMarkdown(options);
+
+        Assert.Contains("> nested:type", rendered, StringComparison.Ordinal);
+        Assert.Contains("Tail", rendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Html_Syntax_Block_Render_Extension_Applies_To_Nested_Quote_Children() {
+        const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+
+        var options = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
+        options.SyntaxBlockRenderExtensions.Add(MarkdownSyntaxBlockHtmlRenderExtension.CreateContextual(
+            "nested-paragraph-syntax-html",
+            MarkdownSyntaxKind.Paragraph,
+            static (block, syntaxNode, context) =>
+                syntaxNode.Ancestors().Any(parent => parent.Kind == MarkdownSyntaxKind.Quote)
+                    ? $"<p data-nested=\"{syntaxNode.Parent?.Kind}\">syntax</p>"
+                    : null));
+
+        var html = document.ToHtmlFragment(options);
+
+        Assert.Contains("<blockquote><p data-nested=\"Quote\">syntax</p></blockquote>", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Tail</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Html_Type_Block_Render_Extension_Applies_To_Nested_Quote_Children() {
+        const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+
+        var options = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
+        options.BlockRenderExtensions.Add(MarkdownBlockHtmlRenderExtension.CreateContextual(
+            "nested-paragraph-type-html",
+            typeof(ParagraphBlock),
+            static (block, context) =>
+                block is ParagraphBlock paragraph && context.GetBlockIndex(paragraph) < 0
+                    ? "<p data-nested=\"type\">html</p>"
+                    : null));
+
+        var html = document.ToHtmlFragment(options);
+
+        Assert.Contains("<blockquote><p data-nested=\"type\">html</p></blockquote>", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Tail</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Markdown_Write_Context_Can_Render_Custom_Container_Children_Through_Overrides() {
+        const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+
+        var options = new MarkdownWriteOptions { OutputLineEnding = "\n" };
+        options.SyntaxBlockRenderExtensions.Add(MarkdownSyntaxBlockMarkdownRenderExtension.CreateContextual(
+            "context-child-paragraph-markdown",
+            MarkdownSyntaxKind.Paragraph,
+            static (block, syntaxNode, context) =>
+                syntaxNode.Ancestors().Any(parent => parent.Kind == MarkdownSyntaxKind.Quote)
+                    ? "child-through-context"
+                    : null));
+        options.BlockRenderExtensions.Add(MarkdownBlockMarkdownRenderExtension.CreateContextual(
+            "quote-context-container",
+            typeof(QuoteBlock),
+            static (block, context) => block is QuoteBlock quote
+                ? string.Join("\n", quote.ChildBlocks.Select(context.RenderBlock))
+                : null));
+
+        var rendered = document.ToMarkdown(options);
+
+        Assert.Contains("child-through-context", rendered, StringComparison.Ordinal);
+        Assert.Contains("Tail", rendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Html_Render_Context_Can_Render_Custom_Container_Children_Through_Overrides() {
+        const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+
+        var options = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
+        options.SyntaxBlockRenderExtensions.Add(MarkdownSyntaxBlockHtmlRenderExtension.CreateContextual(
+            "context-child-paragraph-html",
+            MarkdownSyntaxKind.Paragraph,
+            static (block, syntaxNode, context) =>
+                syntaxNode.Ancestors().Any(parent => parent.Kind == MarkdownSyntaxKind.Quote)
+                    ? "<p data-context-child=\"true\">child</p>"
+                    : null));
+        options.BlockRenderExtensions.Add(MarkdownBlockHtmlRenderExtension.CreateContextual(
+            "quote-context-container",
+            typeof(QuoteBlock),
+            static (block, context) => block is QuoteBlock quote
+                ? "<aside>" + string.Concat(quote.ChildBlocks.Select(context.RenderBlock)) + "</aside>"
+                : null));
+
+        var html = document.ToHtmlFragment(options);
+
+        Assert.Contains("<aside><p data-context-child=\"true\">child</p></aside>", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Tail</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Markdown_Block_Render_Extension_Legacy_Constructor_Still_Uses_Options_And_Applies() {
         var doc = MarkdownReader.Parse("""
 > [!NOTE] Example

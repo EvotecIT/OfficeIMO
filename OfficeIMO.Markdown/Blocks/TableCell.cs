@@ -85,7 +85,7 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
 
         var sb = new StringBuilder();
         for (int i = 0; i < Blocks.Count; i++) {
-            var rendered = Blocks[i].RenderMarkdown();
+            var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(Blocks[i]);
             if (string.IsNullOrEmpty(rendered)) {
                 continue;
             }
@@ -112,7 +112,7 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
 
         var sb = new StringBuilder();
         for (int i = 0; i < Blocks.Count; i++) {
-            sb.Append(Blocks[i].RenderHtml());
+            sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(Blocks[i]));
         }
 
         return sb.ToString();

@@ -71,6 +71,13 @@ public sealed class MarkdownBodyRenderContext {
         HeadingCatalog.BuildTocEntries(Blocks, blockIndex, options ?? new TocOptions(), titleAnchor);
 
     /// <summary>
+    /// Renders a block through the active HTML render dispatcher, including syntax-kind and type-targeted overrides.
+    /// Contextual custom container blocks should use this for child blocks instead of calling <see cref="IMarkdownBlock.RenderHtml"/> directly.
+    /// </summary>
+    public string RenderBlock(IMarkdownBlock block) =>
+        MarkdownBlockRenderDispatcher.RenderHtml(block, this);
+
+    /// <summary>
     /// Finds the final syntax-tree node associated with a parsed model object, or <c>null</c> for builder-only documents.
     /// </summary>
     public MarkdownSyntaxNode? FindSyntaxNode(object associatedObject) =>

@@ -144,7 +144,7 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
                 continue;
             }
 
-            mixed.Append(block.RenderHtml());
+            mixed.Append(MarkdownBlockRenderDispatcher.RenderHtml(block));
         }
 
         mixed.Append("<p><a class=\"footnote-backref\" href=\"#fnref:").Append(encLabel).Append("\" aria-label=\"Back to reference\">&#8617;</a></p></div>");
@@ -180,7 +180,7 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
                     continue;
                 }
 
-                sb.Append(block.RenderHtml());
+                sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(block));
             }
 
             sb.Append("<p><a class=\"footnote-backref\" href=\"#fnref:").Append(encLabel).Append("\" aria-label=\"Back to reference\">&#8617;</a></p>");
