@@ -155,6 +155,7 @@ Recent progress:
 - roundtrip-writer coverage now proves unchanged trivia-backed parse results can return captured original markdown byte-for-byte, explicit native source edits can preserve original source around edited spans, and non-trivia, transformed, unsafe-map, or overlapping-edit cases report fallback diagnostics
 - native inline metadata coverage now proves link target/title, image alt/source/title, and linked-image alt/source/image-title/link-target/link-title tokens carry source spans into snapshots and can be source-edited without replacing the surrounding paragraph
 - native document navigation now enumerates source-backed inline metadata leaves and resolves metadata by caret position, so editor hosts can directly target link, image, footnote-reference, autolink, and inline-token spans
+- native block source fields now provide first-class enumeration, name filtering, caret-position lookup, and source-edit targets over heading, fence, quote-marker, callout, details, footnote, table-alignment, and thematic-break token spans
 
 ## Recommended Phases
 

@@ -380,6 +380,87 @@ Paragraph with footnote[^note] and ![Alt](img.png "Img").
     }
 
     [Fact]
+    public void Navigation_Helpers_Find_Native_Block_Source_Fields_By_Position_And_Name() {
+        var markdown = """
+# Title
+
+> [!NOTE] Heads up
+> Body
+
+<details>
+<summary>More</summary>
+
+Inside
+</details>
+
+[^note]: Footnote
+
+```cs
+Console.WriteLine();
+```
+
+> Quote
+
+| A | B |
+| --- | --- |
+| 1 | 2 |
+
+---
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var fields = native.EnumerateBlockSourceFields().ToArray();
+        var text = Assert.Single(native.EnumerateBlockSourceFields("text"));
+        var calloutKind = Assert.Single(native.EnumerateBlockSourceFields("calloutKind"));
+        var title = Assert.Single(native.EnumerateBlockSourceFields("title"));
+        var summary = Assert.Single(native.EnumerateBlockSourceFields("summary"));
+        var label = Assert.Single(native.EnumerateBlockSourceFields("label"));
+        var info = Assert.Single(native.EnumerateBlockSourceFields("infoString"));
+        var content = Assert.Single(native.EnumerateBlockSourceFields("content"));
+        var quoteMarker = Assert.Single(native.EnumerateBlockSourceFields("quoteMarker"));
+        var alignment = Assert.Single(native.EnumerateBlockSourceFields("alignmentRow"));
+        var thematicMarker = Assert.Single(native.EnumerateBlockSourceFields("marker"));
+
+        Assert.Contains(fields, field => field.Name == "level" && field.Value == "1");
+        Assert.Equal("Title", text.Value);
+        Assert.Equal("note", calloutKind.Value);
+        Assert.Equal("Heads up", title.Value);
+        Assert.Equal("More", summary.Value);
+        Assert.Equal("note", label.Value);
+        Assert.Equal("cs", info.Value);
+        Assert.Equal("Console.WriteLine();", content.Value!.Trim());
+        Assert.Equal(0, quoteMarker.Index);
+        Assert.Empty(native.EnumerateBlockSourceFields("missing"));
+
+        AssertEquivalentField(text, native.FindBlockSourceFieldAtPosition(1, 3));
+        AssertEquivalentField(calloutKind, native.FindBlockSourceFieldAtPosition(3, 5));
+        AssertEquivalentField(title, native.FindBlockSourceFieldAtPosition(3, 13));
+        AssertEquivalentField(summary, native.FindBlockSourceFieldAtPosition(7, 10));
+        AssertEquivalentField(label, native.FindBlockSourceFieldAtPosition(12, 4));
+        AssertEquivalentField(info, native.FindBlockSourceFieldAtPosition(14, 5));
+        AssertEquivalentField(content, native.FindBlockSourceFieldAtPosition(15, 3));
+        AssertEquivalentField(quoteMarker, native.FindBlockSourceFieldAtPosition(18, 1));
+        AssertEquivalentField(alignment, native.FindBlockSourceFieldAtPosition(21, 3));
+        AssertEquivalentField(thematicMarker, native.FindBlockSourceFieldAtPosition(24, 2));
+        Assert.Null(native.FindBlockSourceFieldAtPosition(2, 1));
+
+        Assert.Contains("# New Title", native.CreateReplaceEdit(text, "New Title").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("> [!TIP] Heads up", native.CreateReplaceEdit(calloutKind, "TIP").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("<summary>Less</summary>", native.CreateReplaceEdit(summary, "<summary>Less</summary>").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("```powershell", native.CreateReplaceEdit(info, "powershell").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("| :---: | --- |", native.CreateReplaceEdit(alignment, "| :---: | --- |").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+
+        static void AssertEquivalentField(MarkdownNativeBlockSourceField expected, MarkdownNativeBlockSourceField? actual) {
+            Assert.NotNull(actual);
+            Assert.Equal(expected.Name, actual.Name);
+            Assert.Equal(expected.Value, actual.Value);
+            Assert.Equal(expected.SourceSpan, actual.SourceSpan);
+            Assert.Same(expected.Block, actual.Block);
+            Assert.Equal(expected.Index, actual.Index);
+        }
+    }
+
+    [Fact]
     public void Parse_Projects_Footnote_Definitions_With_Label_SourceSpan_And_Children() {
         var markdown = """
 Body[^shape]

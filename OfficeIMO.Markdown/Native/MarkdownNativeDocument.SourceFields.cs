@@ -1,0 +1,158 @@
+namespace OfficeIMO.Markdown;
+
+public sealed partial class MarkdownNativeDocument {
+    /// <summary>Enumerates source-backed block fields in document order.</summary>
+    public IEnumerable<MarkdownNativeBlockSourceField> EnumerateBlockSourceFields() {
+        foreach (var block in DescendantBlocksAndSelf()) {
+            foreach (var field in EnumerateBlockSourceFields(block)) {
+                yield return field;
+            }
+        }
+    }
+
+    /// <summary>Enumerates source-backed block fields with the supplied field name in document order.</summary>
+    public IEnumerable<MarkdownNativeBlockSourceField> EnumerateBlockSourceFields(string name) {
+        if (string.IsNullOrWhiteSpace(name)) {
+            yield break;
+        }
+
+        foreach (var field in EnumerateBlockSourceFields()) {
+            if (string.Equals(field.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                yield return field;
+            }
+        }
+    }
+
+    /// <summary>Finds the first source-backed block field whose span contains the supplied 1-based line and column.</summary>
+    public MarkdownNativeBlockSourceField? FindBlockSourceFieldAtPosition(int lineNumber, int columnNumber) {
+        foreach (var field in EnumerateBlockSourceFields()) {
+            if (field.SourceSpan.ContainsPosition(lineNumber, columnNumber)) {
+                return field;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces a native block source field.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeBlockSourceField field, string replacementMarkdown) {
+        if (field == null) {
+            throw new ArgumentNullException(nameof(field));
+        }
+
+        return CreateReplaceEdit(field.SourceSpan, replacementMarkdown);
+    }
+
+    private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateBlockSourceFields(MarkdownNativeBlock block) {
+        switch (block) {
+            case MarkdownNativeHeadingBlock heading:
+                foreach (var field in EnumerateHeadingFields(heading)) {
+                    yield return field;
+                }
+
+                break;
+            case MarkdownNativeCodeBlock code:
+                foreach (var field in EnumerateCodeFields(code)) {
+                    yield return field;
+                }
+
+                break;
+            case MarkdownNativeVisualBlock visual:
+                foreach (var field in EnumerateVisualFields(visual)) {
+                    yield return field;
+                }
+
+                break;
+            case MarkdownNativeThematicBreakBlock thematicBreak:
+                if (thematicBreak.SourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("marker", thematicBreak.Marker, thematicBreak.SourceSpan.Value, thematicBreak);
+                }
+
+                break;
+            case MarkdownNativeTableBlock table:
+                if (table.AlignmentRowSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("alignmentRow", null, table.AlignmentRowSourceSpan.Value, table);
+                }
+
+                break;
+            case MarkdownNativeQuoteBlock quote:
+                for (var i = 0; i < quote.MarkerSourceSpans.Count; i++) {
+                    yield return new MarkdownNativeBlockSourceField("quoteMarker", ">", quote.MarkerSourceSpans[i], quote, i);
+                }
+
+                break;
+            case MarkdownNativeCalloutBlock callout:
+                if (callout.KindSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("calloutKind", callout.CalloutKind, callout.KindSourceSpan.Value, callout);
+                }
+
+                if (callout.TitleSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("title", callout.Title, callout.TitleSourceSpan.Value, callout);
+                }
+
+                break;
+            case MarkdownNativeDetailsBlock details:
+                if (details.SummarySourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("summary", details.Summary, details.SummarySourceSpan.Value, details);
+                }
+
+                break;
+            case MarkdownNativeFootnoteDefinitionBlock footnote:
+                if (footnote.LabelSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("label", footnote.Label, footnote.LabelSourceSpan.Value, footnote);
+                }
+
+                break;
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateHeadingFields(MarkdownNativeHeadingBlock heading) {
+        if (heading.LevelSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField(
+                "level",
+                heading.Level.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                heading.LevelSourceSpan.Value,
+                heading);
+        }
+
+        if (heading.TextSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("text", heading.Text, heading.TextSourceSpan.Value, heading);
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateCodeFields(MarkdownNativeCodeBlock code) {
+        if (code.OpeningFenceSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("openingFence", null, code.OpeningFenceSourceSpan.Value, code);
+        }
+
+        if (code.InfoStringSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("infoString", code.InfoString, code.InfoStringSourceSpan.Value, code);
+        }
+
+        if (code.ContentSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("content", code.Content, code.ContentSourceSpan.Value, code);
+        }
+
+        if (code.ClosingFenceSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("closingFence", null, code.ClosingFenceSourceSpan.Value, code);
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateVisualFields(MarkdownNativeVisualBlock visual) {
+        if (visual.OpeningFenceSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("openingFence", null, visual.OpeningFenceSourceSpan.Value, visual);
+        }
+
+        if (visual.InfoStringSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("infoString", visual.InfoString, visual.InfoStringSourceSpan.Value, visual);
+        }
+
+        if (visual.ContentSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("content", visual.Content, visual.ContentSourceSpan.Value, visual);
+        }
+
+        if (visual.ClosingFenceSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("closingFence", null, visual.ClosingFenceSourceSpan.Value, visual);
+        }
+    }
+}
