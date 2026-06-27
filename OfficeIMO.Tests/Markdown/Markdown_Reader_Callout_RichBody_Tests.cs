@@ -130,6 +130,16 @@ Console.WriteLine("x");
     }
 
     [Fact]
+    public void Callout_Public_Text_Constructor_Adapts_Body_To_ChildBlocks() {
+        var callout = new CalloutBlock("note", "Heads up", "first line\nsecond line");
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks));
+        Assert.Equal("first line  \nsecond line", paragraph.Inlines.RenderMarkdown().Replace("\r\n", "\n"));
+        Assert.Equal("first line\nsecond line", callout.Body.Replace("\r\n", "\n"));
+        Assert.Contains("first line<br/>second line", ((IMarkdownBlock)callout).RenderHtml(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownDoc_Callout_BodyBuilder_Adds_Structured_ChildBlocks() {
         var document = MarkdownDoc.Create()
             .Callout("warning", "Structured", body => body

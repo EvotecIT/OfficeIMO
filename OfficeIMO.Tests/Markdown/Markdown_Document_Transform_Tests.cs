@@ -560,6 +560,26 @@ Lead[^1]
         Assert.Equal("coverage: missing evidence", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
     }
 
+    [Fact]
+    public void MarkdownInlineNormalizationTransform_Updates_Builder_Callout_Body_From_TextConstructorChildBlocks() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var document = MarkdownDoc.Create()
+            .Callout("note", "Why it matters", "coverage:missing evidence");
+        var transform = new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightColonSpacing = true
+        });
+
+        var transformed = MarkdownDocumentTransformPipeline.Apply(
+            document,
+            new IMarkdownDocumentTransform[] { transform },
+            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, options));
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(transformed.Blocks));
+
+        Assert.Equal("coverage: missing evidence", callout.Body);
+        Assert.Equal("coverage: missing evidence", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
+    }
+
     private static string NormalizeMarkdown(string markdown) {
         return (markdown ?? string.Empty)
             .Replace("\r\n", "\n")

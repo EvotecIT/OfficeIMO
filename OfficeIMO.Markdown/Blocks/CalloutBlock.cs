@@ -12,13 +12,25 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     /// <summary>Source span for the explicit callout title when parsed from markdown.</summary>
     public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
     private readonly string _fallbackBody;
+    private readonly string? _fallbackBodyProjection;
     private readonly IReadOnlyList<IMarkdownBlock> _childBlocks;
     /// <summary>Callout title displayed inline with the marker.</summary>
     public string Title => InlinePlainText.Extract(TitleInlines);
     /// <summary>Parsed inline title content when available.</summary>
     public InlineSequence TitleInlines { get; }
-    /// <summary>Callout body text (can include multiple lines). When parsed child blocks are available, this is derived from them.</summary>
-    public string Body => _childBlocks.Count > 0 ? RenderBlocksAsBody(_childBlocks) : _fallbackBody;
+    /// <summary>Callout body text (can include multiple lines). Structured callouts derive this from child blocks; legacy plain-text bodies preserve the original text.</summary>
+    public string Body {
+        get {
+            if (string.IsNullOrEmpty(_fallbackBody)) {
+                return RenderBlocksAsBody(_childBlocks);
+            }
+
+            var projectedBody = RenderBlocksAsBody(_childBlocks);
+            return string.Equals(projectedBody, _fallbackBodyProjection, StringComparison.Ordinal)
+                ? _fallbackBody
+                : projectedBody;
+        }
+    }
     /// <summary>
     /// Parsed body blocks when the callout is created by the reader.
     /// This exposes callout content as owned child blocks for AST-style consumers.
@@ -56,17 +68,23 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
         Kind = (kind ?? "info").Trim();
         TitleInlines = titleInlines ?? new InlineSequence();
         _fallbackBody = body ?? string.Empty;
-        _childBlocks = Array.Empty<IMarkdownBlock>();
+        _childBlocks = CreatePlainTextBodyBlocks(body);
+        _fallbackBodyProjection = RenderBlocksAsBody(_childBlocks);
     }
 
     internal CalloutBlock(string kind, string title, IReadOnlyList<IMarkdownBlock> children, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren = null)
         : this(kind, new InlineSequence().Text(title ?? string.Empty), children, syntaxChildren) {
     }
 
-    internal CalloutBlock(string kind, InlineSequence titleInlines, IReadOnlyList<IMarkdownBlock> children, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren = null) {
+    internal CalloutBlock(string kind, InlineSequence titleInlines, IReadOnlyList<IMarkdownBlock> children, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren = null)
+        : this(kind, titleInlines, children, fallbackBody: string.Empty, syntaxChildren) {
+    }
+
+    private CalloutBlock(string kind, InlineSequence titleInlines, IReadOnlyList<IMarkdownBlock> children, string fallbackBody, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren = null) {
         Kind = (kind ?? "info").Trim();
         TitleInlines = titleInlines ?? new InlineSequence();
-        _fallbackBody = string.Empty;
+        _fallbackBody = fallbackBody ?? string.Empty;
+        _fallbackBodyProjection = null;
         _childBlocks = CopyChildren(children);
         SyntaxChildren = syntaxChildren;
     }
@@ -159,6 +177,28 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
         }
 
         return copy;
+    }
+
+    private static IReadOnlyList<IMarkdownBlock> CreatePlainTextBodyBlocks(string? body) {
+        if (string.IsNullOrEmpty(body)) {
+            return Array.Empty<IMarkdownBlock>();
+        }
+
+        var inlines = new InlineSequence { AutoSpacing = false };
+        var bodyText = body!;
+        var normalized = bodyText.Replace("\r\n", "\n").Replace('\r', '\n');
+        var lines = normalized.Split('\n');
+        for (int i = 0; i < lines.Length; i++) {
+            if (i > 0) {
+                inlines.HardBreak();
+            }
+
+            if (lines[i].Length > 0) {
+                inlines.Text(lines[i]);
+            }
+        }
+
+        return new IMarkdownBlock[] { new ParagraphBlock(inlines) };
     }
 
     private static string RenderBlocksAsBody(IReadOnlyList<IMarkdownBlock> blocks) {
