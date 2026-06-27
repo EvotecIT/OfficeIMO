@@ -79,6 +79,51 @@ public class Markdown_Native_Block_Source_Field_Tests {
     }
 
     [Fact]
+    public void Container_Body_SourceFields_Use_Structured_Child_Block_Spans() {
+        var markdown = """
+> [!TIP] Title
+> Body line
+
+<details>
+<summary>More</summary>
+
+Inside
+</details>
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var callout = Assert.IsType<MarkdownNativeCalloutBlock>(native.Blocks[0]);
+        var details = Assert.IsType<MarkdownNativeDetailsBlock>(native.Blocks[1]);
+
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 11), callout.BodySourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(7, 1, 7, 6), details.BodySourceSpan);
+
+        var calloutBody = Assert.Single(native.EnumerateBlockSourceFields("calloutBody"));
+        Assert.Same(callout, calloutBody.Block);
+        Assert.Equal("Body line", calloutBody.Value);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 11), calloutBody.SourceSpan);
+
+        var detailsBody = Assert.Single(native.EnumerateBlockSourceFields("detailsBody"));
+        Assert.Same(details, detailsBody.Block);
+        Assert.Null(detailsBody.Value);
+        Assert.Equal(new MarkdownSourceSpan(7, 1, 7, 6), detailsBody.SourceSpan);
+
+        Assert.Equal("calloutBody", native.FindBlockSourceFieldAtPosition(2, 4)!.Name);
+        Assert.Equal("detailsBody", native.FindBlockSourceFieldAtPosition(7, 3)!.Name);
+
+        var snapshot = native.ToSnapshot();
+        Assert.Equal(3, snapshot.Blocks[0].FieldSourceSpans["calloutBody"]!.StartColumn);
+        Assert.Equal(11, snapshot.Blocks[0].FieldSourceSpans["calloutBody"]!.EndColumn);
+        Assert.Equal(1, snapshot.Blocks[1].FieldSourceSpans["detailsBody"]!.StartColumn);
+        Assert.Equal(6, snapshot.Blocks[1].FieldSourceSpans["detailsBody"]!.EndColumn);
+        Assert.Contains(snapshot.Blocks[0].SourceFields, field => field.Name == "calloutBody" && field.Value == "Body line");
+        Assert.Contains(snapshot.Blocks[1].SourceFields, field => field.Name == "detailsBody" && field.Value == null);
+
+        Assert.Contains("> Updated", native.CreateReplaceEdit(calloutBody, "Updated").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("Outside", native.CreateReplaceEdit(detailsBody, "Outside").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToSnapshot_Projects_SourceFields_From_The_Same_Native_Block_Field_Enumeration() {
         var markdown = """
 # Title
@@ -137,6 +182,8 @@ Console.WriteLine();
         var allFields = snapshots.SelectMany(block => block.SourceFields).ToArray();
         Assert.Contains(allFields, field => field.Name == "quoteMarker" && field.Index == 0 && field.SourceSpan.StartLine == 23);
         Assert.Contains(allFields, field => field.Name == "quoteMarker" && field.Index == 1 && field.SourceSpan.StartLine == 24);
+        Assert.Contains(allFields, field => field.Name == "calloutBody" && field.Value!.Replace("\r\n", "\n") == "Body\n\n> Nested");
+        Assert.Contains(allFields, field => field.Name == "detailsBody");
         Assert.Contains(allFields, field => field.Name == "label" && field.Value == "note");
         Assert.Contains(allFields, field => field.Name == "footnoteBody" && field.Value == "Footnote");
         Assert.Contains(allFields, field => field.Name == "marker" && field.Value == "---");

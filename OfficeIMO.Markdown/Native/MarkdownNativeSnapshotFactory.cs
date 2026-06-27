@@ -97,7 +97,8 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.Fields = Fields(("calloutKind", callout.CalloutKind));
                 snapshot.FieldSourceSpans = FieldSpans(
                     ("calloutKind", callout.KindSourceSpan),
-                    ("title", callout.TitleSourceSpan));
+                    ("title", callout.TitleSourceSpan),
+                    ("calloutBody", callout.BodySourceSpan));
                 break;
             case MarkdownNativeDetailsBlock details:
                 snapshot.Text = details.Summary;
@@ -105,7 +106,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.Inlines = FromInlines(details.SummaryInlineRuns);
                 snapshot.Children = FromBlocks(details.Children);
                 snapshot.Fields = Fields(("open", details.Open ? "true" : "false"));
-                snapshot.FieldSourceSpans = FieldSpans(("summary", details.SummarySourceSpan));
+                snapshot.FieldSourceSpans = FieldSpans(("summary", details.SummarySourceSpan), ("detailsBody", details.BodySourceSpan));
                 break;
             case MarkdownNativeDefinitionListBlock definitionList:
                 snapshot.Markdown = RenderBlock(definitionList.DefinitionList);

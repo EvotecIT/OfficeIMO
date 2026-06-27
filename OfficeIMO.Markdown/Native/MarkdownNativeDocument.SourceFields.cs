@@ -96,10 +96,18 @@ public sealed partial class MarkdownNativeDocument {
                     yield return new MarkdownNativeBlockSourceField("title", callout.Title, callout.TitleSourceSpan.Value, callout);
                 }
 
+                if (callout.BodySourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("calloutBody", callout.Body, callout.BodySourceSpan.Value, callout);
+                }
+
                 break;
             case MarkdownNativeDetailsBlock details:
                 if (details.SummarySourceSpan.HasValue) {
                     yield return new MarkdownNativeBlockSourceField("summary", details.Summary, details.SummarySourceSpan.Value, details);
+                }
+
+                if (details.BodySourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("detailsBody", null, details.BodySourceSpan.Value, details);
                 }
 
                 break;

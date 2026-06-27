@@ -46,6 +46,7 @@ public sealed class MarkdownNativeCalloutBlock : MarkdownNativeBlock {
         TitleInlineRuns = MarkdownNativeInlineProjection.FromInlineContainerChild(syntaxNode, MarkdownSyntaxKind.CalloutTitle);
         Body = callout.Body;
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
+        BodySourceSpan = MarkdownNativeContainerSourceSpans.GetAggregateChildSourceSpan(Children);
     }
 
     /// <summary>Source callout block.</summary>
@@ -71,6 +72,9 @@ public sealed class MarkdownNativeCalloutBlock : MarkdownNativeBlock {
 
     /// <summary>Rendered markdown body.</summary>
     public string Body { get; }
+
+    /// <summary>Source span for the structured callout body when available.</summary>
+    public MarkdownSourceSpan? BodySourceSpan { get; }
 
     /// <summary>Nested native body blocks.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Children { get; }
@@ -112,6 +116,7 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
         SummarySourceSpan = details.Summary?.SourceSpan ?? FindSummarySourceSpan(syntaxNode);
         SummaryInlineRuns = MarkdownNativeInlineProjection.FromInlineContainerChild(syntaxNode, MarkdownSyntaxKind.Summary);
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
+        BodySourceSpan = MarkdownNativeContainerSourceSpans.GetAggregateChildSourceSpan(Children);
     }
 
     /// <summary>Source details block.</summary>
@@ -131,6 +136,9 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
 
     /// <summary>AST-backed native summary inline projection with source spans.</summary>
     public IReadOnlyList<MarkdownNativeInline> SummaryInlineRuns { get; }
+
+    /// <summary>Source span for the structured details body when available.</summary>
+    public MarkdownSourceSpan? BodySourceSpan { get; }
 
     /// <summary>Nested native body blocks.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Children { get; }
@@ -160,7 +168,7 @@ public sealed class MarkdownNativeFootnoteDefinitionBlock : MarkdownNativeBlock 
         LabelSourceSpan = footnote.LabelSourceSpan ?? FindFootnoteLabelSourceSpan(syntaxNode);
         Text = footnote.Text;
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
-        BodySourceSpan = GetAggregateChildSourceSpan(Children);
+        BodySourceSpan = MarkdownNativeContainerSourceSpans.GetAggregateChildSourceSpan(Children);
     }
 
     /// <summary>Source footnote definition block.</summary>
@@ -191,7 +199,14 @@ public sealed class MarkdownNativeFootnoteDefinitionBlock : MarkdownNativeBlock 
         return null;
     }
 
-    private static MarkdownSourceSpan? GetAggregateChildSourceSpan(IReadOnlyList<MarkdownNativeBlock> children) {
+}
+
+/// <summary>
+/// Shared source-span helpers for native container body projections.
+/// </summary>
+internal static class MarkdownNativeContainerSourceSpans {
+    /// <summary>Aggregates source spans from native child block syntax nodes when the container body is source-backed.</summary>
+    internal static MarkdownSourceSpan? GetAggregateChildSourceSpan(IReadOnlyList<MarkdownNativeBlock> children) {
         if (children == null || children.Count == 0) {
             return null;
         }
