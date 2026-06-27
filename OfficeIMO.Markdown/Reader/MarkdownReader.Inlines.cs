@@ -27,6 +27,17 @@ public static partial class MarkdownReader {
             MarkdownInlineSourceSpans.Set(node, sourceMap?.GetSpan(start, length));
             Current().AddRaw(node);
         }
+        void AddCodeSpanNode(string literal, int start, int closingStart, int fenceLength) {
+            var node = new CodeSpanInline(literal);
+            var marker = new string('`', fenceLength);
+            MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
+                node,
+                marker,
+                sourceMap?.GetSpan(start, fenceLength),
+                marker,
+                sourceMap?.GetSpan(closingStart, fenceLength));
+            AddRawNode(node, start, closingStart + fenceLength - start);
+        }
         void AddTextNode(string literal, int start, int length) => AddRawNode(new TextRun(literal), start, length);
         void AddDecodedHtmlEntityNode(string literal, int start, int length) => AddRawNode(new DecodedHtmlEntityTextRun(literal), start, length);
         void AddHardBreakNode(int start, int length) => AddRawNode(new HardBreakInline(), start, length);
@@ -184,7 +195,7 @@ public static partial class MarkdownReader {
                     if (contentLen < 0) contentLen = 0;
                     var inner = text.Substring(contentStart, contentLen);
                     inner = NormalizeCodeSpanContent(inner);
-                    AddRawNode(new CodeSpanInline(inner), pos, matchStart + fenceLen - pos);
+                    AddCodeSpanNode(inner, pos, matchStart, fenceLen);
                     pos = matchStart + fenceLen; continue;
                 }
 

@@ -45,6 +45,35 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Code_Span_Marker_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
+        const string markdown = "Use ``code ` tick`` now\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var code = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Code);
+        var opening = Assert.Single(code.Metadata, metadata => metadata.Name == "openingMarker");
+        var closing = Assert.Single(code.Metadata, metadata => metadata.Name == "closingMarker");
+
+        Assert.Equal("code ` tick", code.Text);
+        Assert.Equal("``", opening.Value);
+        Assert.Equal("``", closing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 6), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 18, 1, 19), closing.SourceSpan);
+
+        var edited = native.CreateReplaceEdit(closing, "```").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(opening, "```").Apply(edited);
+        Assert.Equal("Use ```code ` tick``` now\n", edited);
+
+        var snapshotCode = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Code);
+        Assert.Equal("``", snapshotCode.Metadata["openingMarker"]);
+        Assert.Equal("``", snapshotCode.Metadata["closingMarker"]);
+        Assert.Equal(5, snapshotCode.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(6, snapshotCode.MetadataSourceSpans["openingMarker"]!.EndColumn);
+        Assert.Equal(18, snapshotCode.MetadataSourceSpans["closingMarker"]!.StartColumn);
+        Assert.Equal(19, snapshotCode.MetadataSourceSpans["closingMarker"]!.EndColumn);
+    }
+
+    [Fact]
     public void Linked_Image_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "Paragraph [![Alt](img.png \"Img\")](https://example.com \"Link title\").";
 

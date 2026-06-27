@@ -69,6 +69,7 @@ Current coverage:
 - inline footnote references now expose label metadata spans in syntax and native snapshots, with native source-edit coverage for the label token
 - inline links, images, and linked images now expose target/title and alt/source/title-style metadata spans in native snapshots, with native source-edit coverage for replacing those tokens without replacing the whole paragraph
 - parsed formatting sequence inlines now expose native `openingMarker` and `closingMarker` metadata with source spans, snapshot coverage, and metadata source-edit coverage for nested emphasis/strong runs
+- parsed code spans now expose native `openingMarker` and `closingMarker` metadata for the original backtick fence run, including multi-backtick spans, snapshots, and metadata source-edit coverage
 - nested emphasis inlines now have native source-edit coverage through `MarkdownRoundtripWriter`, preserving original surrounding markdown and CRLF input while replacing the span-backed inline content
 - fenced code and semantic fenced blocks now expose info-string/content source spans in native projections and snapshots, with source-edit coverage for replacing those tokens without replacing the full block
 - CommonMark fenced-code smoke coverage now includes escaped/entity-decoded language tokens, tilde fences, longer closing fences, unclosed fences, empty fences, indented fences, blockquoted fences, and invalid backtick info strings that must remain paragraph/code-span text
