@@ -26,16 +26,56 @@ public class Markdown_Native_Block_Source_Field_Tests {
         Assert.Equal(label.Value, found.Value);
         Assert.Equal(label.SourceSpan, found.SourceSpan);
 
-        var snapshotLabel = Assert.Single(native.ToSnapshot().Blocks[0].SourceFields);
+        var snapshot = native.ToSnapshot().Blocks[0];
+        var snapshotLabel = Assert.Single(snapshot.SourceFields, field => field.Name == "label");
         Assert.Equal("label", snapshotLabel.Name);
         Assert.Equal("note", snapshotLabel.Value);
         Assert.Equal(1, snapshotLabel.SourceSpan.StartLine);
         Assert.Equal(5, snapshotLabel.SourceSpan.StartColumn);
         Assert.Equal(1, snapshotLabel.SourceSpan.EndLine);
         Assert.Equal(8, snapshotLabel.SourceSpan.EndColumn);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "footnoteBody"
+            && field.Value == "Footnote body"
+            && field.SourceSpan.StartColumn == 12
+            && field.SourceSpan.EndColumn == 24);
 
         var edited = native.CreateReplaceEdit(label, "memo").Apply(native.SourceMarkdown);
         Assert.Equal("  [^memo]: Footnote body", edited.TrimEnd('\r', '\n'));
+    }
+
+    [Fact]
+    public void Footnote_Body_SourceField_Uses_Definition_Body_Span() {
+        const string markdown = """
+[^note]: Old body
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var footnote = Assert.IsType<MarkdownNativeFootnoteDefinitionBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 17), footnote.BodySourceSpan);
+
+        var body = Assert.Single(native.EnumerateBlockSourceFields("footnoteBody"));
+        Assert.Same(footnote, body.Block);
+        Assert.Equal("Old body", body.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 17), body.SourceSpan);
+
+        var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 12));
+        Assert.Equal("footnoteBody", found.Name);
+        Assert.Equal("Old body", found.Value);
+        Assert.Equal(body.SourceSpan, found.SourceSpan);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal(10, snapshot.FieldSourceSpans["footnoteBody"]!.StartColumn);
+        Assert.Equal(17, snapshot.FieldSourceSpans["footnoteBody"]!.EndColumn);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "footnoteBody"
+            && field.Value == "Old body"
+            && field.SourceSpan.StartColumn == 10
+            && field.SourceSpan.EndColumn == 17);
+
+        var edited = native.CreateReplaceEdit(body, "New body").Apply(native.SourceMarkdown);
+        Assert.Equal("[^note]: New body", edited.TrimEnd('\r', '\n'));
     }
 
     [Fact]
@@ -98,6 +138,7 @@ Console.WriteLine();
         Assert.Contains(allFields, field => field.Name == "quoteMarker" && field.Index == 0 && field.SourceSpan.StartLine == 23);
         Assert.Contains(allFields, field => field.Name == "quoteMarker" && field.Index == 1 && field.SourceSpan.StartLine == 24);
         Assert.Contains(allFields, field => field.Name == "label" && field.Value == "note");
+        Assert.Contains(allFields, field => field.Name == "footnoteBody" && field.Value == "Footnote");
         Assert.Contains(allFields, field => field.Name == "marker" && field.Value == "---");
     }
 

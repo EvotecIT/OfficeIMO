@@ -117,6 +117,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.Markdown = RenderBlock(footnote.Footnote);
                 snapshot.Children = FromBlocks(footnote.Children);
                 snapshot.Fields = Fields(("label", footnote.Label));
+                snapshot.FieldSourceSpans = FieldSpans(("label", footnote.LabelSourceSpan), ("footnoteBody", footnote.BodySourceSpan));
                 break;
             case MarkdownNativeListBlock list:
                 snapshot.Markdown = list.List.RenderMarkdown();

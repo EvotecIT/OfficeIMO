@@ -108,6 +108,10 @@ public sealed partial class MarkdownNativeDocument {
                     yield return new MarkdownNativeBlockSourceField("label", footnote.Label, footnote.LabelSourceSpan.Value, footnote);
                 }
 
+                if (footnote.BodySourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("footnoteBody", footnote.Text, footnote.BodySourceSpan.Value, footnote);
+                }
+
                 break;
         }
     }

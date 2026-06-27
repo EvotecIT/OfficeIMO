@@ -160,6 +160,7 @@ public sealed class MarkdownNativeFootnoteDefinitionBlock : MarkdownNativeBlock 
         LabelSourceSpan = footnote.LabelSourceSpan ?? FindFootnoteLabelSourceSpan(syntaxNode);
         Text = footnote.Text;
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
+        BodySourceSpan = GetAggregateChildSourceSpan(Children);
     }
 
     /// <summary>Source footnote definition block.</summary>
@@ -174,6 +175,9 @@ public sealed class MarkdownNativeFootnoteDefinitionBlock : MarkdownNativeBlock 
     /// <summary>Rendered markdown text for the definition body.</summary>
     public string Text { get; }
 
+    /// <summary>Source span for the structured definition body when available.</summary>
+    public MarkdownSourceSpan? BodySourceSpan { get; }
+
     /// <summary>Nested native definition body blocks.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Children { get; }
 
@@ -185,5 +189,18 @@ public sealed class MarkdownNativeFootnoteDefinitionBlock : MarkdownNativeBlock 
         }
 
         return null;
+    }
+
+    private static MarkdownSourceSpan? GetAggregateChildSourceSpan(IReadOnlyList<MarkdownNativeBlock> children) {
+        if (children == null || children.Count == 0) {
+            return null;
+        }
+
+        var nodes = new MarkdownSyntaxNode[children.Count];
+        for (var i = 0; i < children.Count; i++) {
+            nodes[i] = children[i].SyntaxNode;
+        }
+
+        return MarkdownBlockSyntaxBuilder.GetAggregateSpan(nodes);
     }
 }
