@@ -78,3 +78,54 @@ public class MarkdownHtmlBenchmarks {
     [Benchmark]
     public string OfficeIMO_ToHtml_Portable() => MarkdownReader.Parse(_markdown, _portableOptions).ToHtml();
 }
+
+[MemoryDiagnoser]
+[SimpleJob(RuntimeMoniker.Net80)]
+public class MarkdownTransformBenchmarks {
+    private MarkdownReaderOptions _baselineOptions = null!;
+    private MarkdownReaderOptions _transformOptions = null!;
+    private string _markdown = string.Empty;
+
+    [ParamsSource(nameof(CorpusNames))]
+    public string CorpusName { get; set; } = string.Empty;
+
+    public IEnumerable<string> CorpusNames() => MarkdownBenchmarkCorpus.Names;
+
+    [GlobalSetup]
+    public void Setup() {
+        _baselineOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        _transformOptions = CreateTransformOptions();
+        _markdown = MarkdownBenchmarkCorpus.Get(CorpusName);
+    }
+
+    [Benchmark(Baseline = true)]
+    public MarkdownDoc OfficeIMO_Parse_OfficeProfile() => MarkdownReader.Parse(_markdown, _baselineOptions);
+
+    [Benchmark]
+    public MarkdownDoc OfficeIMO_Parse_WithNormalizationTransforms() => MarkdownReader.Parse(_markdown, _transformOptions);
+
+    [Benchmark]
+    public MarkdownParseResult OfficeIMO_ParseWithSyntaxTreeAndDiagnostics_WithNormalizationTransforms() =>
+        MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(_markdown, _transformOptions);
+
+    [Benchmark]
+    public string OfficeIMO_ToMarkdown_AfterNormalizationTransforms() =>
+        MarkdownReader.Parse(_markdown, _transformOptions).ToMarkdown();
+
+    private static MarkdownReaderOptions CreateTransformOptions() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.InputNormalization.NormalizeCompactHeadingBoundaries = true;
+        options.InputNormalization.NormalizeHeadingListBoundaries = true;
+        options.InputNormalization.NormalizeColonListBoundaries = true;
+        options.InputNormalization.NormalizeCompactStrongLabelListBoundaries = true;
+        options.InputNormalization.NormalizeStandaloneHashHeadingSeparators = true;
+        options.InputNormalization.NormalizeTightArrowStrongBoundaries = true;
+        options.InputNormalization.NormalizeBrokenStrongArrowLabels = true;
+        options.InputNormalization.NormalizeWrappedSignalFlowStrongRuns = true;
+        options.InputNormalization.NormalizeSignalFlowLabelSpacing = true;
+        options.InputNormalization.NormalizeOrderedListMarkerSpacing = true;
+        options.InputNormalization.NormalizeOrderedListParenMarkers = true;
+        options.InputNormalization.NormalizeOrderedListCaretArtifacts = true;
+        return options;
+    }
+}

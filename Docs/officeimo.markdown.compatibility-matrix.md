@@ -14,11 +14,12 @@ Status values:
 
 | Area | Current baseline |
 | --- | --- |
-| External comparison package | Markdig `1.3.2` in `OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks`; guarded by `PackageDependencyGuardrailTests.MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline` |
+| External comparison package | Markdig `1.3.2` in `OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks`; guarded by `PackageDependencyGuardrailTests.MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline`; verified current with `dotnet list ... package --outdated` on 2026-06-27 |
 | CommonMark reference | 165 CommonMark `0.31.2` smoke fixtures |
 | GFM reference | 32 cmark-gfm extension smoke fixtures plus a focused upstream ignored-autolink crash regression |
 | OfficeIMO core package | `OfficeIMO.Markdown` owns parsing, semantic AST, syntax tree, writing, and HTML projection |
 | Host renderer package | `OfficeIMO.MarkdownRenderer` owns WebView/browser shell rendering and incremental updates |
+| Benchmark evidence | `OfficeIMO.Markdown.Benchmarks` compares parse/syntax-tree parse/HTML render against the current Markdig baseline and now includes transform/diagnostics cost lanes over stable README, transcript, technical-doc, rich-AST, long-list, large-table, and normalization-heavy corpora |
 
 ## Standards Coverage
 
@@ -82,5 +83,5 @@ Before claiming Markdig-class parity, require:
 3. Broader cmark-gfm corpus coverage for enabled GFM extensions.
 4. Compatibility matrix updated for every intentional deviation.
 5. Tree invariant and associated-object tests for all canonicalized AST nodes.
-6. Benchmarks against stable README/docs/chat corpora with parse, syntax-tree parse, HTML render, allocation, and transform costs.
+6. Benchmarks against stable README/docs/chat corpora with parse, syntax-tree parse, HTML render, allocation, and transform costs. The benchmark harness now covers these lanes; before claiming parity, capture and review current release-mode results.
 7. Implement the documented lossless/trivia mode design before editor-grade roundtrip claims.

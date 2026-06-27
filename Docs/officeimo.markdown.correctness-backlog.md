@@ -332,6 +332,10 @@ Done means:
 Goal:
 - move beyond synthetic micro-cases
 
+Current coverage:
+
+- `OfficeIMO.Markdown.Benchmarks` uses stable in-source corpora for README-style docs, chat/transcript documents, technical docs, mixed rich AST content, long nested lists, large pipe tables, and normalization-heavy transcript artifacts
+
 Done means:
 - benchmarks include README-style docs, long lists, nested block content, large tables, and mixed rich documents
 
@@ -339,6 +343,11 @@ Done means:
 
 Goal:
 - avoid accidental performance regressions while architecture improves
+
+Current coverage:
+
+- BenchmarkDotNet `MemoryDiagnoser` is enabled for parse, syntax-tree parse, HTML render, and normalization/document-transform benchmarks
+- `MarkdownTransformBenchmarks` measures OfficeIMO baseline parse, parse with normalization transforms, syntax-tree parse with transform diagnostics, and markdown generation after transforms
 
 Done means:
 - baseline metrics exist for parse, transform, and render paths
@@ -348,6 +357,11 @@ Done means:
 
 Goal:
 - make "competitive" measurable
+
+Current coverage:
+
+- `OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks` both reference Markdig `1.3.2`; a guardrail test keeps the versions aligned
+- `dotnet list ... package --outdated` reported no newer Markdig package for the parity test or benchmark projects on 2026-06-27
 
 Done means:
 - benchmark inputs are fixed
