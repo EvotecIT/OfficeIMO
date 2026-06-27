@@ -1,5 +1,33 @@
 [
   {
+    "example": 12,
+    "section": "Backslash escapes",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "\\!\\\"\\#\\$\\%\\&\\'\\(\\)\\*\\+\\,\\-\\.\\/\\:\\;\\<\\=\\>\\?\\@\\[\\\\\\]\\^\\_\\`\\{\\|\\}\\~\n",
+    "html": "<p>!&quot;#$%&amp;'()*+,-./:;&lt;=&gt;?@[\\]^_`{|}~</p>\n"
+  },
+  {
+    "example": 17,
+    "section": "Backslash escapes",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "`` \\[\\` ``\n",
+    "html": "<p><code>\\[\\`</code></p>\n"
+  },
+  {
+    "example": 18,
+    "section": "Backslash escapes",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    \\[\\]\n",
+    "html": "<pre><code>\\[\\]\n</code></pre>\n"
+  },
+  {
+    "example": 19,
+    "section": "Backslash escapes",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "~~~\n\\[\\]\n~~~\n",
+    "html": "<pre><code>\\[\\]\n</code></pre>\n"
+  },
+  {
     "example": 24,
     "section": "Backslash escapes",
     "topLevelKinds": ["CodeBlock"],
@@ -12,6 +40,34 @@
     "topLevelKinds": ["CodeBlock"],
     "markdown": "``` f&ouml;&ouml;\nfoo\n```\n",
     "html": "<pre><code class=\"language-föö\">foo\n</code></pre>\n"
+  },
+  {
+    "example": 35,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "`f&ouml;&ouml;`\n",
+    "html": "<p><code>f&amp;ouml;&amp;ouml;</code></p>\n"
+  },
+  {
+    "example": 36,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    f&ouml;f&ouml;\n",
+    "html": "<pre><code>f&amp;ouml;f&amp;ouml;\n</code></pre>\n"
+  },
+  {
+    "example": 37,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "&#42;foo&#42;\n*foo*\n",
+    "html": "<p>*foo*\n<em>foo</em></p>\n"
+  },
+  {
+    "example": 38,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["Paragraph", "UnorderedList"],
+    "markdown": "&#42; foo\n\n* foo\n",
+    "html": "<p>* foo</p>\n<ul>\n<li>foo</li>\n</ul>\n"
   },
   {
     "example": 44,
