@@ -202,6 +202,10 @@ public static class PowerPointHtmlConverterExtensions {
                 .Append(FormatNumber(picture.WidthPoints))
                 .Append("pt x ")
                 .Append(FormatNumber(picture.HeightPoints))
+                .Append("pt; Position: ")
+                .Append(FormatNumber(picture.LeftPoints))
+                .Append("pt, ")
+                .Append(FormatNumber(picture.TopPoints))
                 .Append("pt; Type: ")
                 .Append(OfficeHtmlText.Escape(picture.ContentType ?? string.Empty))
                 .Append("</div>");

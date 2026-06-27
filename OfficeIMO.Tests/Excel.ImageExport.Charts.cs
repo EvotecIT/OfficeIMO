@@ -159,6 +159,66 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportMapsComboSeriesTypesByOrderedSeriesWhenIndexesAreNonContiguous() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("ComboIdx");
+            var data = new ExcelChartData(
+                new[] { "Jan", "Feb" },
+                new[] {
+                    new ExcelChartSeries("Sales", new[] { 10D, 20D }, ExcelChartType.ColumnClustered),
+                    new ExcelChartSeries("Trend", new[] { 12D, 22D }, ExcelChartType.Line)
+                });
+            sheet.AddChart(data, row: 1, column: 4, widthPixels: 260, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Combo Idx");
+            SetChartSeriesIndexes(document, 1U, 2U);
+
+            ExcelVisualChart visualChart = Assert.Single(sheet.Range("A1:H10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false }).Charts);
+
+            Assert.Collection(
+                visualChart.Snapshot.Data.Series,
+                series => Assert.Equal(ExcelChartType.ColumnClustered, series.ChartType),
+                series => Assert.Equal(ExcelChartType.Line, series.ChartType));
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportMapsSeriesStylesByOrderedSeriesWhenIndexesAreNonContiguous() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("StyleIdx");
+            var data = new ExcelChartData(
+                new[] { "Jan", "Feb" },
+                new[] {
+                    new ExcelChartSeries("Sales", new[] { 10D, 20D }),
+                    new ExcelChartSeries("Trend", new[] { 12D, 22D })
+                });
+            ExcelChart chart = sheet.AddChart(data, row: 1, column: 4, widthPixels: 260, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Style Idx");
+            chart.SetSeriesFillColor(0, "22C55E");
+            chart.SetSeriesFillColor(1, "F97316");
+            SetChartSeriesIndexes(document, 1U, 2U);
+
+            ExcelVisualChart visualChart = Assert.Single(sheet.Range("A1:H10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false }).Charts);
+
+            Assert.Equal("22C55E", visualChart.Snapshot.Data.Series[0].SeriesColorArgb);
+            Assert.Equal("F97316", visualChart.Snapshot.Data.Series[1].SeriesColorArgb);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportReferencedNumberReaderPreservesBlankPoints() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorkSheet("BlankPoints");
+            sheet.CellValue(2, 2, 10);
+            sheet.CellValue(4, 2, 30);
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            System.Reflection.MethodInfo method = utilities.GetMethod("TryReadReferencedNumberValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            object?[] args = { sheet, "BlankPoints!$B$2:$B$4", null };
+
+            bool read = (bool)method.Invoke(null, args)!;
+
+            Assert.True(read);
+            Assert.Equal(new[] { 10D, 0D, 30D }, (IReadOnlyList<double>)args[2]!);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportPreservesScatterCacheOrderInMixedCharts() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -282,6 +342,29 @@ namespace OfficeIMO.Tests {
         private static void SetScatterChartSeriesIndexes(ExcelDocument document, params uint[] indexes) {
             ChartPart chartPart = GetFirstChartPart(document);
             ScatterChartSeries[] series = chartPart.ChartSpace!.Descendants<ScatterChartSeries>().ToArray();
+            for (int i = 0; i < series.Length && i < indexes.Length; i++) {
+                DocumentFormat.OpenXml.Drawing.Charts.Index index = series[i].GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Index>() ?? new DocumentFormat.OpenXml.Drawing.Charts.Index();
+                index.Val = indexes[i];
+                if (index.Parent == null) {
+                    series[i].InsertAt(index, 0);
+                }
+
+                Order order = series[i].GetFirstChild<Order>() ?? new Order();
+                order.Val = indexes[i];
+                if (order.Parent == null) {
+                    series[i].InsertAfter(order, index);
+                }
+            }
+
+            chartPart.ChartSpace.Save();
+        }
+
+        private static void SetChartSeriesIndexes(ExcelDocument document, params uint[] indexes) {
+            ChartPart chartPart = GetFirstChartPart(document);
+            OpenXmlCompositeElement[] series = chartPart.ChartSpace!
+                .Descendants<OpenXmlCompositeElement>()
+                .Where(element => element is BarChartSeries || element is LineChartSeries || element is ScatterChartSeries || element is AreaChartSeries)
+                .ToArray();
             for (int i = 0; i < series.Length && i < indexes.Length; i++) {
                 DocumentFormat.OpenXml.Drawing.Charts.Index index = series[i].GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Index>() ?? new DocumentFormat.OpenXml.Drawing.Charts.Index();
                 index.Val = indexes[i];

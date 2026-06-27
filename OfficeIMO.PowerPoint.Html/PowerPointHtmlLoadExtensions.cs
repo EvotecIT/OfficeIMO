@@ -124,8 +124,9 @@ public static class PowerPointHtmlLoadExtensions {
             }
 
             ReadPictureSize(item, out double width, out double height);
+            ReadPicturePosition(item, 720D, top, out double left, out double pictureTop);
             using var stream = new MemoryStream(bytes);
-            PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, 720, top, width, height);
+            PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, left, pictureTop, width, height);
             string label = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
             string alt = NormalizeText(image.GetAttribute("alt"));
             if (label.Length > 0) {
@@ -137,7 +138,7 @@ public static class PowerPointHtmlLoadExtensions {
             }
 
             result.Pictures++;
-            top += height + 18D;
+            top = Math.Max(top, pictureTop + height + 18D);
         }
     }
 
@@ -237,7 +238,7 @@ public static class PowerPointHtmlLoadExtensions {
                 }
             }
 
-            if (values.Length != categories.Count) {
+            if (!hasXValues && values.Length != categories.Count) {
                 return false;
             }
 
@@ -293,6 +294,27 @@ public static class PowerPointHtmlLoadExtensions {
 
         width = Math.Max(1D, width);
         height = Math.Max(1D, height);
+    }
+
+    private static void ReadPicturePosition(IElement item, double fallbackLeft, double fallbackTop, out double left, out double top) {
+        left = fallbackLeft;
+        top = fallbackTop;
+        string meta = string.Join("; ", item.QuerySelectorAll(".officeimo-feature-meta").Select(element => element.TextContent));
+        const string marker = "Position:";
+        int index = meta.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (index < 0) {
+            return;
+        }
+
+        string text = meta.Substring(index + marker.Length).Split(';')[0].Trim();
+        string[] parts = text.Replace("pt", string.Empty).Split(',');
+        if (parts.Length == 2) {
+            _ = double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out left);
+            _ = double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out top);
+        }
+
+        left = Math.Max(0D, left);
+        top = Math.Max(0D, top);
     }
 
     private static string ExtractPresenterNotes(string? markdown) {

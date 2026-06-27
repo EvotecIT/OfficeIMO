@@ -298,14 +298,31 @@ namespace OfficeIMO.Excel {
                         TryReadCachedNumberValues(valuesReference, out values);
                     }
 
-                    if (values == null || values.Count != categories.Count) {
+                    if (values == null) {
                         return null;
                     }
 
                     string name = TryReadSeriesName(seriesElement, contextSheet, out string? resolvedName) && !string.IsNullOrWhiteSpace(resolvedName)
                         ? resolvedName!
                         : $"Series {i + 1}";
-                    series.Add(new ExcelChartSeries(name, values));
+                    IReadOnlyList<double>? xValues = null;
+                    if (seriesElement is ScatterChartSeries scatterSeries) {
+                        NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
+                        if (!TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out xValues)) {
+                            TryReadCachedNumberValues(xReference, out xValues);
+                        }
+                    }
+
+                    if (xValues == null && values.Count != categories.Count) {
+                        return null;
+                    }
+
+                    if (xValues != null && xValues.Count != values.Count) {
+                        return null;
+                    }
+
+                    ExcelChartSeries chartSeries = new ExcelChartSeries(name, values);
+                    series.Add(xValues == null ? chartSeries : chartSeries.WithXValues(xValues));
                 }
 
                 return new ExcelChartData(categories, series);
@@ -396,6 +413,7 @@ namespace OfficeIMO.Excel {
 
             var seriesTypes = new Dictionary<int, ExcelChartType>();
             int chartElementCount = 0;
+            int seriesOrder = 0;
             foreach (OpenXmlElement chartElement in plotArea.ChildElements) {
                 if (!TryGetChartElementType(chartElement, out ExcelChartType chartType)) {
                     continue;
@@ -405,7 +423,7 @@ namespace OfficeIMO.Excel {
                 foreach (OpenXmlElement child in chartElement.ChildElements) {
                     ChartIndex? index = (child as OpenXmlCompositeElement)?.GetFirstChild<ChartIndex>();
                     if (index?.Val?.Value != null) {
-                        seriesTypes[(int)index.Val.Value] = chartType;
+                        seriesTypes[seriesOrder++] = chartType;
                     }
                 }
             }
@@ -559,7 +577,12 @@ namespace OfficeIMO.Excel {
             for (int row = r1; row <= r2; row++) {
                 for (int column = c1; column <= c2; column++) {
                     if (!sheet.TryGetCellText(row, column, out string? raw) ||
-                        !double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out double value)) {
+                        string.IsNullOrWhiteSpace(raw)) {
+                        numericValues.Add(0D);
+                        continue;
+                    }
+
+                    if (!double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out double value)) {
                         return false;
                     }
 

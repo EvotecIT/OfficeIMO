@@ -376,8 +376,7 @@ namespace OfficeIMO.Excel {
             int seriesOrder = 0;
             foreach (OpenXmlCompositeElement series in plotArea.Descendants<OpenXmlCompositeElement>().Where(IsSeriesElement)) {
                 int documentOrder = seriesOrder++;
-                int rawIndex = (int)(series.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)documentOrder);
-                int index = rawIndex >= 0 && rawIndex < data.Series.Count ? rawIndex : documentOrder;
+                int index = documentOrder;
                 if (index < 0 || index >= data.Series.Count) {
                     continue;
                 }

@@ -612,6 +612,32 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void PowerPointHtml_RoundTripsVariableLengthScatterSeriesInSemanticChartData() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.Slides[0];
+        var data = new PowerPointScatterChartData(new[] {
+            new PowerPointScatterChartSeries("Forecast", new[] { 1D, 2D, 3D }, new[] { 10D, 20D, 30D }),
+            new PowerPointScatterChartSeries("Outliers", new[] { 4D, 5D }, new[] { 40D, 50D })
+        });
+        slide.AddScatterChartPoints(data, 72, 96, 240, 140).SetTitle("Scatter");
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        });
+
+        Assert.Contains("data-officeimo-x=\"5\"", html, StringComparison.Ordinal);
+
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+        PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
+        Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
+        Assert.Equal(new[] { 1D, 2D, 3D }, snapshot!.Data.Series[0].XValues);
+        Assert.Equal(new[] { 10D, 20D, 30D }, snapshot.Data.Series[0].Values);
+        Assert.Equal(new[] { 4D, 5D }, snapshot.Data.Series[1].XValues);
+        Assert.Equal(new[] { 40D, 50D }, snapshot.Data.Series[1].Values);
+    }
+
+    [Fact]
     public void PowerPointHtml_ExportsSemanticSlidesWithExtractionProof() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.Slides[0];
@@ -788,6 +814,7 @@ public class HtmlOfficeAdapters {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
 
+        Assert.Contains("Position: 72pt, 180pt", html, StringComparison.Ordinal);
         PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
         using PowerPointPresentation imported = result.Presentation;
         PowerPointSlide importedSlide = imported.Slides[0];
@@ -802,7 +829,10 @@ public class HtmlOfficeAdapters {
         Assert.Contains(importedSlide.TextBoxes, textBox => textBox.Text.Contains("Roundtrip Roadmap", StringComparison.Ordinal));
         Assert.Contains(importedSlide.TextBoxes, textBox => textBox.Text.Contains("HTML end to end", StringComparison.Ordinal));
         Assert.Contains(importedSlide.Tables, importedTable => importedTable.GetCell(1, 1).Text == "Rich proof");
-        Assert.Contains(importedSlide.Pictures, picture => picture.AltText == "Reusable renderer badge");
+        PowerPointPicture importedPicture = Assert.Single(importedSlide.Pictures);
+        Assert.Equal("Reusable renderer badge", importedPicture.AltText);
+        Assert.Equal(72D, importedPicture.LeftPoints, 3);
+        Assert.Equal(180D, importedPicture.TopPoints, 3);
         PowerPointChart importedChart = Assert.Single(importedSlide.Charts);
         Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
         Assert.Equal(new[] { "Q1", "Q2", "Q3" }, snapshot!.Data.Categories);
