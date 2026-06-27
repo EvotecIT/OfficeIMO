@@ -279,6 +279,48 @@ After
     }
 
     [Fact]
+    public void Navigation_Helpers_Find_Native_List_Items_By_Position_And_Id() {
+        var markdown = """
+- [x] done
+  - child
+  - keep
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var items = native.EnumerateListItems().ToArray();
+
+        Assert.Equal(3, items.Length);
+        Assert.Same(items[0], native.FindListItemAtPosition(1, 1));
+        Assert.Same(items[0], native.FindListItemAtPosition(1, 4));
+        Assert.Same(items[0], native.FindListItemAtPosition(1, 7));
+        Assert.Same(items[1], native.FindListItemAtPosition(2, 5));
+        Assert.Same(items[1], native.FindListItemById(items[1].Id));
+        Assert.Null(native.FindListItemAtPosition(4, 1));
+        Assert.Null(native.FindListItemById("missing"));
+    }
+
+    [Fact]
+    public void Navigation_Helpers_Find_Native_Table_Cells_By_Position() {
+        var markdown = """
+| Name | Value |
+| --- | --- |
+| CPU | 42 |
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var cells = native.EnumerateTableCells().ToArray();
+
+        Assert.Equal(4, cells.Length);
+        Assert.True(cells[1].IsHeader);
+        Assert.False(cells[3].IsHeader);
+        Assert.Equal(0, cells[3].RowIndex);
+        Assert.Equal(1, cells[3].ColumnIndex);
+        Assert.Same(cells[1], native.FindTableCellAtPosition(1, 10));
+        Assert.Same(cells[3], native.FindTableCellAtPosition(3, 9));
+        Assert.Null(native.FindTableCellAtPosition(2, 3));
+    }
+
+    [Fact]
     public void Parse_Projects_Footnote_Definitions_With_Label_SourceSpan_And_Children() {
         var markdown = """
 Body[^shape]

@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Native, AST-backed projection of a parsed markdown document for UI hosts that need structured blocks and source spans.
 /// </summary>
-public sealed class MarkdownNativeDocument {
+public sealed partial class MarkdownNativeDocument {
     private MarkdownNativeDocument(
         MarkdownParseResult parseResult,
         string sourceMarkdown,
