@@ -352,7 +352,7 @@ public static partial class OfficeChartDrawingRenderer {
                 continue;
             }
 
-            int categorySlot = categories.Count - 1 - i;
+            int categorySlot = GetHorizontalBarCategorySlotIndex(i, categories.Count, layout);
             double centerY = plotTop + slot * categorySlot + slot / 2D;
             double labelHeight = GetAxisLabelBoxHeight(layout);
             AddChartText(drawing, label, labelLeft, centerY - labelHeight / 2D, labelWidth, labelHeight, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);

@@ -980,7 +980,7 @@ public static partial class OfficeChartDrawingRenderer {
                 if (horizontal) {
                     double categoryHeight = plotHeight / categories.Count;
                     double rowHeight = Math.Max(2D, categoryHeight * 0.68D / (stacked ? 1D : series.Count));
-                    int categorySlot = categories.Count - 1 - category;
+                    int categorySlot = GetHorizontalBarCategorySlotIndex(category, categories.Count, layout);
                     int seriesSlot = stacked ? 0 : series.Count - 1 - s;
                     double y = plotTop + categoryHeight * categorySlot + categoryHeight * 0.16D + (stacked ? 0D : rowHeight * seriesSlot);
                     double x1 = ToPlotX(baseline, min, max, plotLeft, plotWidth);

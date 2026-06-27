@@ -183,9 +183,9 @@ jobs:
           test_filter='Category!=ExcelImageVisualGate'
           # Collect coverage once on the primary Linux net8.0 leg; the other OS/framework legs stay as full test runs without coverage overhead.
           if [ "${{ matrix.collectCoverage }}" = "true" ]; then
-            dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "$test_filter" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+            dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "$test_filter" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
           else
-            dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "$test_filter" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "$test_filter" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           fi
 
       - name: Summarize failing tests

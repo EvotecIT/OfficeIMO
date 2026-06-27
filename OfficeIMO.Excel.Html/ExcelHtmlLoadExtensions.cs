@@ -154,7 +154,7 @@ public static class ExcelHtmlLoadExtensions {
                 continue;
             }
 
-            string text = NormalizeText(item.QuerySelector("p")?.TextContent);
+            string text = item.QuerySelector("p")?.TextContent?.Trim() ?? string.Empty;
             if (text.Length == 0) {
                 continue;
             }

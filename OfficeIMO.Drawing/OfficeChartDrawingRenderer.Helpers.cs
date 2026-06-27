@@ -395,6 +395,11 @@ public static partial class OfficeChartDrawingRenderer {
     private static int GetCategorySlotIndex(int categoryIndex, int categoryCount, OfficeChartLayout layout) =>
         layout.ReverseCategoryAxis ? categoryCount - 1 - categoryIndex : categoryIndex;
 
+    private static int GetHorizontalBarCategorySlotIndex(int categoryIndex, int categoryCount, OfficeChartLayout layout) =>
+        layout.CategoryAxisOrientationSpecified
+            ? GetCategorySlotIndex(categoryIndex, categoryCount, layout)
+            : categoryCount - 1 - categoryIndex;
+
     private static double GetCategorySlotCenterX(double plotLeft, double slotWidth, int categoryIndex, int categoryCount, OfficeChartLayout layout) =>
         plotLeft + slotWidth * GetCategorySlotIndex(categoryIndex, categoryCount, layout) + slotWidth / 2D;
 

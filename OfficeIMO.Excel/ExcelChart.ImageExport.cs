@@ -194,7 +194,8 @@ namespace OfficeIMO.Excel {
             OfficeChartAxisTickLabelPosition verticalAxisTickLabelPosition = GetImageExportVerticalAxisTickLabelPosition(plotArea, categoryAxis, valueAxis);
             OfficeChartAxisCrossingPosition horizontalAxisCrossingPosition = GetImageExportHorizontalAxisCrossingPosition(plotArea, categoryAxis);
             OfficeChartAxisCrossingPosition verticalAxisCrossingPosition = GetImageExportVerticalAxisCrossingPosition(plotArea, valueAxis);
-            bool reverseCategoryAxis = GetImageExportReverseCategoryAxis(plotArea, categoryAxis);
+            bool reverseCategoryAxis = GetImageExportReverseCategoryAxis(categoryAxis);
+            bool categoryAxisOrientationSpecified = HasImageExportCategoryAxisOrientation(categoryAxis);
             double? legendFontSize = TryGetImageExportLegendFontSize(chart, out double resolvedLegendFontSize) ? resolvedLegendFontSize : null;
             string? legendFontFamily = TryGetImageExportLegendFontFamily(chart, out string? resolvedLegendFontFamily) ? resolvedLegendFontFamily : null;
             OfficeFontStyle? legendFontStyle = TryGetImageExportLegendFontStyle(chart, out OfficeFontStyle resolvedLegendFontStyle) ? resolvedLegendFontStyle : null;
@@ -233,7 +234,7 @@ namespace OfficeIMO.Excel {
             bool hasAxisLabelPosition = horizontalAxisTickLabelPosition != OfficeChartAxisTickLabelPosition.NextTo || verticalAxisTickLabelPosition != OfficeChartAxisTickLabelPosition.NextTo;
             bool hasAxisCrossingPosition = horizontalAxisCrossingPosition != OfficeChartAxisCrossingPosition.AutoZero ||
                 verticalAxisCrossingPosition != OfficeChartAxisCrossingPosition.AutoZero;
-            bool hasCategoryAxisOrientation = reverseCategoryAxis;
+            bool hasCategoryAxisOrientation = categoryAxisOrientationSpecified;
             bool fillRadarSeries = GetImageExportFillRadarSeries(plotArea);
             bool hasRadarFillLayout = !fillRadarSeries;
             bool hasScatterStyleLayout = !connectScatterPoints;
@@ -330,6 +331,7 @@ namespace OfficeIMO.Excel {
                 horizontalAxisCrossingPosition: horizontalAxisCrossingPosition,
                 verticalAxisCrossingPosition: verticalAxisCrossingPosition,
                 reverseCategoryAxis: reverseCategoryAxis,
+                categoryAxisOrientationSpecified: categoryAxisOrientationSpecified,
                 fillRadarSeries: fillRadarSeries,
                 showCategoryAxis: showCategoryAxis,
                 showValueAxis: showValueAxis,

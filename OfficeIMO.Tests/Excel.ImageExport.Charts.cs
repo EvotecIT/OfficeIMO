@@ -1382,6 +1382,73 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportPreservesHorizontalBarCategoryOrder() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("BarOrder");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(2, 2, 120);
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(3, 2, 180);
+            sheet.CellValue(4, 1, "Mar");
+            sheet.CellValue(4, 2, 160);
+            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 265, heightPixels: 170, type: ExcelChartType.BarClustered, title: "Bar Order");
+            chart.SetCategoryAxisReverseOrder(false);
+
+            ExcelRange range = sheet.Range("A1:H9");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+            OfficeChartData chartData = new OfficeChartData(
+                visualChart.Snapshot.Data.Categories,
+                visualChart.Snapshot.Data.Series.Select(series => new OfficeChartSeries(series.Name, series.Values)));
+            OfficeChartSnapshot officeChartSnapshot = new OfficeChartSnapshot(
+                visualChart.Snapshot.Name,
+                visualChart.Snapshot.Title,
+                OfficeChartKind.BarClustered,
+                chartData,
+                visualChart.Width,
+                visualChart.Height,
+                visualChart.Snapshot.Style,
+                visualChart.Snapshot.Layout);
+            OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
+
+            Assert.NotNull(visualChart.Snapshot.Layout);
+            Assert.False(visualChart.Snapshot.Layout!.ReverseCategoryAxis);
+            OfficeDrawingText janLabel = Assert.Single(chartDrawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Jan");
+            OfficeDrawingText febLabel = Assert.Single(chartDrawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Feb");
+            OfficeDrawingText marLabel = Assert.Single(chartDrawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Mar");
+            Assert.True(janLabel.Y < febLabel.Y && febLabel.Y < marLabel.Y, "Expected horizontal bar categories to follow the authored axis order from top to bottom.");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportKeepsHigherPriorityDataBarsBeforeStopIfTrueFill() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("ConditionalPriority");
+            sheet.CellValue(1, 1, 10);
+            sheet.CellValue(2, 1, 20);
+            sheet.CellValue(3, 1, 30);
+            sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
+            sheet.AddConditionalRule(
+                "A1:A3",
+                DocumentFormat.OpenXml.Spreadsheet.ConditionalFormattingOperatorValues.GreaterThan,
+                "0",
+                null,
+                "FFFF0000",
+                stopIfTrue: true);
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A3").CreateVisualSnapshot(new ExcelImageExportOptions {
+                ShowGridlines = false,
+                IncludeConditionalFormatting = true
+            });
+
+            Assert.Equal(3, snapshot.ConditionalDataBars.Count);
+            Assert.All(snapshot.Cells, cell => Assert.Equal("FFFF0000", cell.Style.FillColorArgb));
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportAllowsDistinctChartBodyTextColorBuckets() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

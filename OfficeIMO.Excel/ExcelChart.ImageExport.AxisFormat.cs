@@ -131,10 +131,13 @@ namespace OfficeIMO.Excel {
             return GetImageExportAxisCrossingPosition(categoryAxis);
         }
 
-        private static bool GetImageExportReverseCategoryAxis(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis) =>
-            !HasHorizontalBarChart(plotArea) &&
+        private static bool GetImageExportReverseCategoryAxis(OpenXmlCompositeElement? categoryAxis) =>
             (categoryAxis is C.CategoryAxis || categoryAxis is C.DateAxis) &&
             categoryAxis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin;
+
+        private static bool HasImageExportCategoryAxisOrientation(OpenXmlCompositeElement? categoryAxis) =>
+            (categoryAxis is C.CategoryAxis || categoryAxis is C.DateAxis) &&
+            categoryAxis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val != null;
 
         private static string? GetImageExportAxisNumberFormat(OpenXmlCompositeElement? axis) {
             string? value = axis?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value;

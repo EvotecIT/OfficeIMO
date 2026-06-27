@@ -1,6 +1,7 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using OfficeIMO.Html;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 using PptCore = OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.PowerPoint.Html;
@@ -194,7 +195,6 @@ public static class PowerPointHtmlLoadExtensions {
         List<string> categories = table.QuerySelectorAll("thead tr th")
             .Skip(1)
             .Select(header => NormalizeText(header.TextContent))
-            .Where(text => text.Length > 0)
             .ToList();
         if (categories.Count == 0) {
             return false;
@@ -315,6 +315,12 @@ public static class PowerPointHtmlLoadExtensions {
             chartKind.Equals("StackedLine", StringComparison.OrdinalIgnoreCase) ||
             chartKind.Equals("StackedLine100", StringComparison.OrdinalIgnoreCase)) {
             chart = slide.AddLineChartPoints(data, left, top, width, height);
+            if (chartKind.Equals("StackedLine", StringComparison.OrdinalIgnoreCase)) {
+                chart.SetLineChartGrouping(C.GroupingValues.Stacked);
+            } else if (chartKind.Equals("StackedLine100", StringComparison.OrdinalIgnoreCase)) {
+                chart.SetLineChartGrouping(C.GroupingValues.PercentStacked);
+            }
+
             return true;
         }
 

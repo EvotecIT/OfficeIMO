@@ -356,6 +356,31 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_LoadPreservesCommentTextWhitespace() {
+        string html = """
+            <main>
+              <section class="officeimo-sheet" data-officeimo-sheet="Comments" data-officeimo-range="A1:A1">
+                <table><tr><td>seed</td></tr></table>
+                <section class="officeimo-feature officeimo-comments">
+                  <ul class="officeimo-feature-list">
+                    <li class="officeimo-feature-item" data-officeimo-cell="A1">
+                      <span class="officeimo-feature-label">A1</span>
+                      <p>Line 1&#10;Line 2  with  spacing</p>
+                    </li>
+                  </ul>
+                </section>
+              </section>
+            </main>
+            """;
+
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        var comment = Assert.Single(imported.Sheets[0].GetComments());
+
+        Assert.Equal("Line 1\nLine 2  with  spacing", comment.Text);
+    }
+
+    [Fact]
     public void ExcelHtml_RoundTripsScatterChartXValuesInSemanticChartData() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorkSheet("Scatter");
@@ -658,6 +683,71 @@ public class HtmlOfficeAdapters {
 
         Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
         Assert.Equal(PowerPointChartSnapshotKind.Line, snapshot!.ChartKind);
+    }
+
+    [Fact]
+    public void PowerPointHtml_LoadPreservesBlankChartCategories() {
+        string html = """
+            <main>
+              <section class="officeimo-slide">
+                <section class="officeimo-feature officeimo-charts">
+                  <ul class="officeimo-feature-list">
+                    <li class="officeimo-feature-item">
+                      <span class="officeimo-feature-label">Blank category</span>
+                      <div class="officeimo-feature-meta">Type: ClusteredColumn; Series: 1; Categories: 3</div>
+                      <table class="officeimo-chart-data">
+                        <thead><tr><th></th><th>Q1</th><th></th><th>Q3</th></tr></thead>
+                        <tbody><tr><th>Actual</th><td>10</td><td>12</td><td>14</td></tr></tbody>
+                      </table>
+                    </li>
+                  </ul>
+                </section>
+              </section>
+            </main>
+            """;
+
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+        PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
+
+        Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
+        Assert.Equal(new[] { "Q1", string.Empty, "Q3" }, snapshot!.Data.Categories);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Contains("placeholder values", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("StackedLine", PowerPointChartSnapshotKind.StackedLine)]
+    [InlineData("StackedLine100", PowerPointChartSnapshotKind.StackedLine100)]
+    public void PowerPointHtml_LoadPreservesStackedLineChartKinds(string chartKind, PowerPointChartSnapshotKind expectedKind) {
+        string html = $$"""
+            <main>
+              <section class="officeimo-slide">
+                <section class="officeimo-feature officeimo-charts">
+                  <ul class="officeimo-feature-list">
+                    <li class="officeimo-feature-item">
+                      <span class="officeimo-feature-label">Stacked trend</span>
+                      <div class="officeimo-feature-meta">Type: {{chartKind}}; Series: 2; Categories: 2</div>
+                      <table class="officeimo-chart-data">
+                        <thead><tr><th></th><th>Q1</th><th>Q2</th></tr></thead>
+                        <tbody>
+                          <tr><th>Actual</th><td>10</td><td>12</td></tr>
+                          <tr><th>Plan</th><td>8</td><td>11</td></tr>
+                        </tbody>
+                      </table>
+                    </li>
+                  </ul>
+                </section>
+              </section>
+            </main>
+            """;
+
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+        PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
+
+        Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
+        Assert.Equal(expectedKind, snapshot!.ChartKind);
+        Assert.Equal(2, snapshot.Data.Series.Count);
     }
 
     [Fact]

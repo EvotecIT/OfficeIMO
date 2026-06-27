@@ -61,6 +61,7 @@ public sealed class OfficeChartLayout {
     /// <param name="horizontalAxisCrossingPosition">Physical crossing side for the horizontal axis.</param>
     /// <param name="verticalAxisCrossingPosition">Physical crossing side for the vertical axis.</param>
     /// <param name="reverseCategoryAxis">Whether category-axis slots should be rendered in reverse order.</param>
+    /// <param name="categoryAxisOrientationSpecified">Whether category-axis orientation was explicitly supplied by the source chart.</param>
     /// <param name="overlayTitle">Whether the title should overlay the plot instead of reserving layout space.</param>
     /// <param name="titleTopPadding">Top padding before the chart title inside the chart canvas.</param>
     /// <param name="legendFontStyle">Optional legend label font style.</param>
@@ -157,7 +158,8 @@ public sealed class OfficeChartLayout {
         OfficeChartAxisTickMark verticalAxisMajorTickMark = OfficeChartAxisTickMark.None,
         OfficeChartAxisTickMark horizontalAxisMinorTickMark = OfficeChartAxisTickMark.None,
         OfficeChartAxisTickMark verticalAxisMinorTickMark = OfficeChartAxisTickMark.None,
-        string? categoryAxisNumberFormat = null)
+        string? categoryAxisNumberFormat = null,
+        bool categoryAxisOrientationSpecified = false)
         : this(
             overlayLegend: false,
             seriesLegendWidthRatio: seriesLegendWidthRatio,
@@ -230,7 +232,8 @@ public sealed class OfficeChartLayout {
             verticalAxisMajorTickMark: verticalAxisMajorTickMark,
             horizontalAxisMinorTickMark: horizontalAxisMinorTickMark,
             verticalAxisMinorTickMark: verticalAxisMinorTickMark,
-            categoryAxisNumberFormat: categoryAxisNumberFormat) {
+            categoryAxisNumberFormat: categoryAxisNumberFormat,
+            categoryAxisOrientationSpecified: categoryAxisOrientationSpecified) {
     }
 
     /// <summary>
@@ -283,6 +286,7 @@ public sealed class OfficeChartLayout {
     /// <param name="horizontalAxisCrossingPosition">Physical crossing side for the horizontal axis.</param>
     /// <param name="verticalAxisCrossingPosition">Physical crossing side for the vertical axis.</param>
     /// <param name="reverseCategoryAxis">Whether category-axis slots should be rendered in reverse order.</param>
+    /// <param name="categoryAxisOrientationSpecified">Whether category-axis orientation was explicitly supplied by the source chart.</param>
     /// <param name="overlayTitle">Whether the title should overlay the plot instead of reserving layout space.</param>
     /// <param name="titleTopPadding">Top padding before the chart title inside the chart canvas.</param>
     /// <param name="legendFontStyle">Optional legend label font style.</param>
@@ -380,7 +384,8 @@ public sealed class OfficeChartLayout {
         OfficeChartAxisTickMark verticalAxisMajorTickMark = OfficeChartAxisTickMark.None,
         OfficeChartAxisTickMark horizontalAxisMinorTickMark = OfficeChartAxisTickMark.None,
         OfficeChartAxisTickMark verticalAxisMinorTickMark = OfficeChartAxisTickMark.None,
-        string? categoryAxisNumberFormat = null) {
+        string? categoryAxisNumberFormat = null,
+        bool categoryAxisOrientationSpecified = false) {
         SeriesLegendWidthRatio = ValidateRatio(seriesLegendWidthRatio ?? 0.34D, nameof(seriesLegendWidthRatio));
         CategoryLegendWidthRatio = ValidateRatio(categoryLegendWidthRatio ?? 0.38D, nameof(categoryLegendWidthRatio));
         LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
@@ -449,6 +454,7 @@ public sealed class OfficeChartLayout {
         HorizontalAxisCrossingPosition = horizontalAxisCrossingPosition;
         VerticalAxisCrossingPosition = verticalAxisCrossingPosition;
         ReverseCategoryAxis = reverseCategoryAxis;
+        CategoryAxisOrientationSpecified = categoryAxisOrientationSpecified;
         ShowCategoryAxisLabels = showCategoryAxis && showCategoryAxisLabels;
         ShowValueAxisLabels = showValueAxis && showValueAxisLabels;
         OverlayTitle = overlayTitle;
@@ -679,6 +685,9 @@ public sealed class OfficeChartLayout {
 
     /// <summary>Whether category-axis slots should be rendered in reverse order.</summary>
     public bool ReverseCategoryAxis { get; }
+
+    /// <summary>Whether category-axis orientation was explicitly supplied by the source chart.</summary>
+    public bool CategoryAxisOrientationSpecified { get; }
 
     /// <summary>Whether the chart title should overlay the plot area instead of reserving a title band.</summary>
     public bool OverlayTitle { get; }
