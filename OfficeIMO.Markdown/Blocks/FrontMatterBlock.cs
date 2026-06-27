@@ -171,6 +171,11 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
     string IMarkdownBlock.RenderHtml() => string.Empty;
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
         var children = new List<MarkdownSyntaxNode>();
+        var openingFenceSpan = CreateFenceSpan(span, opening: true);
+        if (openingFenceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterOpeningFence, openingFenceSpan, "---", associatedObject: this));
+        }
+
         for (int i = 0; i < Entries.Count; i++) {
             var entry = Entries[i];
             if (entry.KeySourceSpan.HasValue) {
@@ -182,7 +187,32 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
             }
         }
 
+        var closingFenceSpan = CreateFenceSpan(span, opening: false);
+        if (closingFenceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterClosingFence, closingFenceSpan, "---", associatedObject: this));
+        }
+
         return new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatter, span, Render(), children, this);
+    }
+
+    private static MarkdownSourceSpan? CreateFenceSpan(MarkdownSourceSpan? span, bool opening) {
+        if (!span.HasValue) {
+            return null;
+        }
+
+        var value = span.Value;
+        var line = opening ? value.StartLine : value.EndLine;
+        int? startOffset = null;
+        int? endOffset = null;
+        if (opening && value.StartOffset.HasValue) {
+            startOffset = value.StartOffset.Value;
+            endOffset = startOffset.Value + 2;
+        } else if (!opening && value.EndOffset.HasValue && value.EndColumn.HasValue) {
+            startOffset = value.EndOffset.Value - Math.Max(0, value.EndColumn.Value - 1);
+            endOffset = startOffset.Value + 2;
+        }
+
+        return new MarkdownSourceSpan(line, 1, line, 3, startOffset, endOffset);
     }
 
     internal static string? FormatSyntaxValue(object? value) {

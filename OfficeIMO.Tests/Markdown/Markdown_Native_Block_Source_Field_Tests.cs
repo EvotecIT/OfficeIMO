@@ -273,8 +273,7 @@ _Caption_
 
     [Fact]
     public void FrontMatter_SourceFields_Use_Entry_Key_And_Value_Token_Spans() {
-        var markdown = """
----
+        var markdown = "--- \n" + """
 title: Doc
 published: true
 tags: [a, b]
@@ -288,6 +287,8 @@ summary: |
 
         var native = MarkdownNativeDocument.Parse(markdown);
         var frontMatter = Assert.IsType<MarkdownNativeFrontMatterBlock>(native.Blocks[0]);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), frontMatter.OpeningFenceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(8, 1, 8, 3), frontMatter.ClosingFenceSourceSpan);
 
         Assert.Collection(frontMatter.Entries,
             entry => {
@@ -324,12 +325,28 @@ summary: |
         Assert.Equal("First line\nSecond line", values[3].Value!.Replace("\r\n", "\n"));
         Assert.Equal(new MarkdownSourceSpan(6, 3, 7, 13), values[3].SourceSpan);
 
+        var openingFence = Assert.Single(native.EnumerateBlockSourceFields("openingFence"));
+        Assert.Null(openingFence.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), openingFence.SourceSpan);
+
+        var closingFence = Assert.Single(native.EnumerateBlockSourceFields("closingFence"));
+        Assert.Null(closingFence.Value);
+        Assert.Equal(new MarkdownSourceSpan(8, 1, 8, 3), closingFence.SourceSpan);
+
         var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(4, 8));
         Assert.Equal("frontMatterValue", found.Name);
         Assert.Equal(2, found.Index);
         Assert.Equal("a, b", found.Value);
 
+        var openingFound = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 2));
+        Assert.Equal("openingFence", openingFound.Name);
+
+        var closingFound = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(8, 2));
+        Assert.Equal("closingFence", closingFound.Name);
+
         var snapshot = native.ToSnapshot().Blocks[0];
+        Assert.Equal(1, snapshot.FieldSourceSpans["openingFence"]!.StartLine);
+        Assert.Equal(8, snapshot.FieldSourceSpans["closingFence"]!.StartLine);
         Assert.Contains(snapshot.SourceFields, field =>
             field.Name == "frontMatterKey"
             && field.Value == "summary"
@@ -342,10 +359,21 @@ summary: |
             && field.Index == 3
             && field.SourceSpan.StartLine == 6
             && field.SourceSpan.StartColumn == 3);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "openingFence"
+            && field.SourceSpan.StartLine == 1
+            && field.SourceSpan.EndColumn == 3);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "closingFence"
+            && field.SourceSpan.StartLine == 8
+            && field.SourceSpan.EndColumn == 3);
 
         var edited = native.CreateReplaceEdit(values[0], "Better").Apply(native.SourceMarkdown);
         Assert.Contains("title: Better", edited, StringComparison.Ordinal);
         Assert.Contains("published: true", edited, StringComparison.Ordinal);
+
+        var fenceEdited = native.CreateReplaceEdit(openingFence, "...").Apply(native.SourceMarkdown);
+        Assert.StartsWith("... \n", fenceEdited.Replace("\r\n", "\n"), StringComparison.Ordinal);
     }
 
     [Fact]

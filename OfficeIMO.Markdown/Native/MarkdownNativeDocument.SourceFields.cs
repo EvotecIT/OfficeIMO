@@ -219,6 +219,10 @@ public sealed partial class MarkdownNativeDocument {
     }
 
     private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateFrontMatterFields(MarkdownNativeFrontMatterBlock frontMatter) {
+        if (frontMatter.OpeningFenceSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("openingFence", null, frontMatter.OpeningFenceSourceSpan.Value, frontMatter);
+        }
+
         for (var i = 0; i < frontMatter.Entries.Count; i++) {
             var entry = frontMatter.Entries[i];
             if (entry.KeySourceSpan.HasValue) {
@@ -228,6 +232,10 @@ public sealed partial class MarkdownNativeDocument {
             if (entry.ValueSourceSpan.HasValue) {
                 yield return new MarkdownNativeBlockSourceField("frontMatterValue", FrontMatterBlock.FormatSyntaxValue(entry.Value), entry.ValueSourceSpan.Value, frontMatter, i);
             }
+        }
+
+        if (frontMatter.ClosingFenceSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("closingFence", null, frontMatter.ClosingFenceSourceSpan.Value, frontMatter);
         }
     }
 

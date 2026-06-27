@@ -255,6 +255,8 @@ public sealed class MarkdownNativeFrontMatterBlock : MarkdownNativeBlock {
             static entry => entry.Key,
             static entry => entry.Value,
             StringComparer.OrdinalIgnoreCase);
+        OpeningFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.FrontMatterOpeningFence);
+        ClosingFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.FrontMatterClosingFence);
     }
 
     /// <summary>Source front matter block.</summary>
@@ -265,6 +267,15 @@ public sealed class MarkdownNativeFrontMatterBlock : MarkdownNativeBlock {
 
     /// <summary>Front matter values by key.</summary>
     public IReadOnlyDictionary<string, object?> Values { get; }
+
+    /// <summary>Source span for the opening front matter fence marker when parsed from markdown.</summary>
+    public MarkdownSourceSpan? OpeningFenceSourceSpan { get; }
+
+    /// <summary>Source span for the closing front matter fence marker when parsed from markdown.</summary>
+    public MarkdownSourceSpan? ClosingFenceSourceSpan { get; }
+
+    private static MarkdownSourceSpan? GetChildSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
+        syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.SourceSpan;
 }
 
 /// <summary>

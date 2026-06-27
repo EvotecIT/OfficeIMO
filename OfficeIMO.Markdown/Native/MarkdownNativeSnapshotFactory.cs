@@ -149,6 +149,9 @@ internal static class MarkdownNativeSnapshotFactory {
             case MarkdownNativeFrontMatterBlock frontMatter:
                 snapshot.Markdown = RenderBlock(frontMatter.FrontMatter);
                 snapshot.Fields = FromFrontMatter(frontMatter);
+                snapshot.FieldSourceSpans = FieldSpans(
+                    ("openingFence", frontMatter.OpeningFenceSourceSpan),
+                    ("closingFence", frontMatter.ClosingFenceSourceSpan));
                 break;
             case MarkdownNativeHtmlBlock html:
                 snapshot.Text = html.Html;
