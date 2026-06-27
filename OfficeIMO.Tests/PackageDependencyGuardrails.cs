@@ -22,6 +22,22 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
+    public void MarkdownCompatibilityDocs_TrackCurrentFixtureBaselineCounts() {
+        int commonMarkFixtureCount = CountJsonArrayEntries("OfficeIMO.Tests/Markdown/Fixtures/CommonMark/commonmark-0.31.2-smoke.json");
+        int gfmFixtureCount = CountJsonArrayEntries("OfficeIMO.Tests/Markdown/Fixtures/GitHubFlavoredMarkdown/cmark-gfm-extensions-smoke.json");
+
+        string compatibilityMatrix = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.compatibility-matrix.md"));
+        Assert.Contains($"| CommonMark reference | {commonMarkFixtureCount} CommonMark `0.31.2` smoke fixtures |", compatibilityMatrix, StringComparison.Ordinal);
+        Assert.Contains($"| GFM reference | {gfmFixtureCount} cmark-gfm extension smoke fixtures plus a focused upstream ignored-autolink crash regression |", compatibilityMatrix, StringComparison.Ordinal);
+
+        string competitorRoadmap = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.markdig-competitor-roadmap.md"));
+        Assert.Contains($"standards smoke baseline: {commonMarkFixtureCount} CommonMark `0.31.2` fixtures, {gfmFixtureCount} cmark-gfm extension fixtures", competitorRoadmap, StringComparison.Ordinal);
+
+        string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown/COMPATIBILITY.md"));
+        Assert.Contains($"includes {commonMarkFixtureCount} pinned CommonMark 0.31.2 fixtures, {gfmFixtureCount} cmark-gfm smoke fixtures", packageCompatibility, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Projects_DoNotReferenceImageSharpPackage() {
         var projectFiles = Directory.EnumerateFiles(GetRepositoryRoot(), "*.csproj", SearchOption.AllDirectories)
             .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
@@ -329,6 +345,15 @@ public sealed class PackageDependencyGuardrailTests {
             .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
             .Where(static path => new FileInfo(path).Length > 0)
             .ToArray();
+
+    private static int CountJsonArrayEntries(string relativePath) {
+        var path = GetRepositoryPath(relativePath);
+        Assert.True(File.Exists(path), "Fixture file is missing: " + path);
+
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(path));
+        Assert.Equal(JsonValueKind.Array, document.RootElement.ValueKind);
+        return document.RootElement.GetArrayLength();
+    }
 
     private static string AppendRepositoryPathSegment(string basePath, string segment) =>
         basePath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
