@@ -38,6 +38,18 @@ public sealed class MarkdownBlockSyntaxBuilderContext {
         MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(kind, inlines, span, literal);
 
     /// <summary>
+    /// Builds a syntax node for inline content with an explicit associated object.
+    /// Use this when a wrapper syntax node represents a semantic owner other than the inline sequence itself.
+    /// </summary>
+    public MarkdownSyntaxNode BuildInlineContainerNode(
+        MarkdownSyntaxKind kind,
+        InlineSequence inlines,
+        MarkdownSourceSpan? span,
+        string? literal,
+        object? associatedObject) =>
+        MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(kind, inlines, span, literal, associatedObject);
+
+    /// <summary>
     /// Computes an aggregate source span covering the supplied child nodes when possible.
     /// </summary>
     public MarkdownSourceSpan? GetAggregateSpan(IReadOnlyList<MarkdownSyntaxNode>? nodes) =>

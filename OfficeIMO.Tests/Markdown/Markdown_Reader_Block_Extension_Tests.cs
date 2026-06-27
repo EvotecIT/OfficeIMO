@@ -58,6 +58,26 @@ Paragraph line
     }
 
     [Fact]
+    public void Context_SyntaxBuilder_Can_Associate_Inline_Container_Syntax_With_Custom_Owner() {
+        var markdown = """
+:::panel Ops Notes
+Paragraph line
+:::
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
+
+        var panel = Assert.IsType<PanelBlock>(Assert.Single(result.Document.Blocks));
+        var panelSyntax = Assert.Single(result.FinalSyntaxTree.Children);
+        var titleSyntax = panelSyntax.Children[0];
+
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, titleSyntax.Kind);
+        Assert.Same(panel.TitleSyntaxOwner, titleSyntax.AssociatedObject);
+        Assert.IsNotType<InlineSequence>(titleSyntax.AssociatedObject);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void Context_SyntaxBuilder_Can_Use_Owned_Child_Syntax_For_Custom_Block_Containers() {
         var markdown = """
 :::panel Ops Notes
@@ -435,9 +455,11 @@ Paragraph line
         public PanelBlock(string title, IReadOnlyList<IMarkdownBlock> childBlocks) {
             Title = title ?? string.Empty;
             ChildBlocks = childBlocks ?? Array.Empty<IMarkdownBlock>();
+            TitleSyntaxOwner = new PanelTitleSyntaxOwner(Title);
         }
 
         public string Title { get; }
+        public object TitleSyntaxOwner { get; }
         public IReadOnlyList<IMarkdownBlock> ChildBlocks { get; }
 
         string IMarkdownBlock.RenderMarkdown() {
@@ -472,7 +494,9 @@ Paragraph line
             var titleNode = context.BuildInlineContainerNode(
                 MarkdownSyntaxKind.Paragraph,
                 new InlineSequence().Text(Title),
-                literal: Title);
+                span: null,
+                literal: Title,
+                associatedObject: TitleSyntaxOwner);
             var childNodes = context.BuildOwnedChildSyntaxNodes(this);
             var children = new List<MarkdownSyntaxNode>(childNodes.Count + 1) { titleNode };
             for (int i = 0; i < childNodes.Count; i++) {
@@ -487,5 +511,13 @@ Paragraph line
                 associatedObject: this,
                 customKind: "panel-block");
         }
+    }
+
+    private sealed class PanelTitleSyntaxOwner {
+        public PanelTitleSyntaxOwner(string title) {
+            Title = title ?? string.Empty;
+        }
+
+        public string Title { get; }
     }
 }
