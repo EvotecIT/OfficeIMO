@@ -518,6 +518,33 @@ Heading Title
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Autolink_Targets_And_Angle_Marker_Metadata() {
+        const string markdown = "Go <https://example.com/docs> and mailto:user@example.com";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var links = paragraph.Children.Where(node => node.Kind == MarkdownSyntaxKind.InlineLink).ToArray();
+
+        Assert.Equal(2, links.Length);
+
+        var angleTarget = Assert.Single(links[0].Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        Assert.Equal("https://example.com/docs", links[0].Literal);
+        Assert.Equal("https://example.com/docs", angleTarget.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 28), angleTarget.SourceSpan);
+
+        var angleMetadata = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile())
+            .EnumerateInlines()
+            .First(inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 4), Assert.Single(angleMetadata.Metadata, metadata => metadata.Name == "openingMarker").SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 29, 1, 29), Assert.Single(angleMetadata.Metadata, metadata => metadata.Name == "closingMarker").SourceSpan);
+
+        var bareTarget = Assert.Single(links[1].Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        Assert.Equal("mailto:user@example.com", bareTarget.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 35, 1, 57), bareTarget.SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, result.FindDeepestNodeAtPosition(1, 42)!.Kind);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Footnote_Reference_Label_Metadata_Node() {
         const string markdown = "A [^note]\n\n[^note]: Body";
 

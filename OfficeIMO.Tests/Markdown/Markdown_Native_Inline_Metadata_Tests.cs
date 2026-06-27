@@ -156,6 +156,49 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Autolink_Metadata_Preserves_Target_And_Angle_Markers_For_Edits_And_Snapshots() {
+        const string markdown = "Go <https://example.com/docs> and mailto:user@example.com\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var links = paragraph.InlineRuns.Where(inline => inline.Kind == MarkdownNativeInlineKind.Link).ToArray();
+        Assert.Equal(2, links.Length);
+
+        var angle = links[0];
+        var bare = links[1];
+        var angleTarget = Assert.Single(angle.Metadata, metadata => metadata.Name == "target");
+        var opening = Assert.Single(angle.Metadata, metadata => metadata.Name == "openingMarker");
+        var closing = Assert.Single(angle.Metadata, metadata => metadata.Name == "closingMarker");
+        var bareTarget = Assert.Single(bare.Metadata, metadata => metadata.Name == "target");
+
+        Assert.Equal("https://example.com/docs", angle.Text);
+        Assert.Equal("https://example.com/docs", angleTarget.Value);
+        Assert.Equal("<", opening.Value);
+        Assert.Equal(">", closing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 28), angleTarget.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 4), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 29, 1, 29), closing.SourceSpan);
+        Assert.Equal("mailto:user@example.com", bareTarget.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 35, 1, 57), bareTarget.SourceSpan);
+
+        var edited = native.CreateReplaceEdit(angleTarget, "https://contoso.test/docs").Apply(native.SourceMarkdown);
+        Assert.Equal("Go <https://contoso.test/docs> and mailto:user@example.com\n", edited);
+        edited = native.CreateReplaceEdit(opening, "[").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(closing, "]").Apply(edited);
+        Assert.Equal("Go [https://example.com/docs] and mailto:user@example.com\n", edited);
+        Assert.Equal("Go <https://example.com/docs> and mailto:team@example.com\n", native.CreateReplaceEdit(bareTarget, "mailto:team@example.com").Apply(native.SourceMarkdown));
+
+        var snapshotLinks = native.ToSnapshot().Blocks[0].Inlines.Where(inline => inline.Kind == MarkdownNativeInlineKind.Link).ToArray();
+        Assert.Equal("https://example.com/docs", snapshotLinks[0].Metadata["target"]);
+        Assert.Equal("<", snapshotLinks[0].Metadata["openingMarker"]);
+        Assert.Equal(">", snapshotLinks[0].Metadata["closingMarker"]);
+        Assert.Equal(5, snapshotLinks[0].MetadataSourceSpans["target"]!.StartColumn);
+        Assert.Equal(29, snapshotLinks[0].MetadataSourceSpans["closingMarker"]!.EndColumn);
+        Assert.Equal("mailto:user@example.com", snapshotLinks[1].Metadata["target"]);
+        Assert.Equal(35, snapshotLinks[1].MetadataSourceSpans["target"]!.StartColumn);
+    }
+
+    [Fact]
     public void Linked_Image_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "Paragraph [![Alt](img.png \"Img\")](https://example.com \"Link title\").";
 

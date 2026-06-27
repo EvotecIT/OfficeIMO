@@ -48,6 +48,30 @@ public static partial class MarkdownReader {
                 sourceMap?.GetSpan(start, length));
             AddRawNode(node, start, length);
         }
+        void AddAutolinkNode(
+            string label,
+            string resolvedHref,
+            int start,
+            int length,
+            int targetStart,
+            int targetLength,
+            bool angleWrapped) {
+            var link = new LinkInline(label, resolvedHref, null);
+            AddRawNode(link, start, length);
+            MarkdownInlineMetadataSourceSpans.SetLinkParts(
+                link,
+                sourceMap?.GetSpan(targetStart, targetLength),
+                null);
+
+            if (angleWrapped) {
+                MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
+                    link,
+                    "<",
+                    sourceMap?.GetSpan(start, 1),
+                    ">",
+                    sourceMap?.GetSpan(start + length - 1, 1));
+            }
+        }
         InlineSequence ParseNestedInlineSegment(int relativeStart, int length, bool nestedAllowLinks, bool nestedAllowImages) {
             if (relativeStart < 0 || length <= 0 || relativeStart >= text.Length) {
                 return new InlineSequence();
@@ -132,7 +156,7 @@ public static partial class MarkdownReader {
                 if (resolved is null) {
                     AddTextNode(url, pos, urlEnd - pos);
                 } else {
-                    AddRawNode(new LinkInline(url, resolved!, null), pos, urlEnd - pos);
+                    AddAutolinkNode(url, resolved!, pos, urlEnd - pos, pos, urlEnd - pos, angleWrapped: false);
                 }
                 pos = urlEnd; continue;
             }
@@ -147,7 +171,7 @@ public static partial class MarkdownReader {
                 if (resolved is null) {
                     AddTextNode(label, pos, wwwEnd - pos);
                 } else {
-                    AddRawNode(new LinkInline(label, resolved!, null), pos, wwwEnd - pos);
+                    AddAutolinkNode(label, resolved!, pos, wwwEnd - pos, pos, wwwEnd - pos, angleWrapped: false);
                 }
                 pos = wwwEnd; continue;
             }
@@ -158,7 +182,7 @@ public static partial class MarkdownReader {
                 if (resolved is null) {
                     AddTextNode(schemeLabel, pos, schemeEnd - pos);
                 } else {
-                    AddRawNode(new LinkInline(schemeLabel, resolved!, null), pos, schemeEnd - pos);
+                    AddAutolinkNode(schemeLabel, resolved!, pos, schemeEnd - pos, pos, schemeEnd - pos, angleWrapped: false);
                 }
                 pos = schemeEnd; continue;
             }
@@ -170,7 +194,7 @@ public static partial class MarkdownReader {
                 if (resolved is null) {
                     AddTextNode(email, pos, emailEnd - pos);
                 } else {
-                    AddRawNode(new LinkInline(email, resolved!, null), pos, emailEnd - pos);
+                    AddAutolinkNode(email, resolved!, pos, emailEnd - pos, pos, emailEnd - pos, angleWrapped: false);
                 }
                 pos = emailEnd; continue;
             }
@@ -357,12 +381,14 @@ public static partial class MarkdownReader {
                 if (resolved is null) {
                     AddTextNode(text.Substring(pos, consumedAngle), pos, consumedAngle);
                 } else {
-                    var link = new LinkInline(labelAngle, resolved!, null);
-                    AddRawNode(link, pos, consumedAngle);
-                    MarkdownInlineMetadataSourceSpans.SetLinkParts(
-                        link,
-                        sourceMap?.GetSpan(pos + 1, Math.Max(0, consumedAngle - 2)),
-                        null);
+                    AddAutolinkNode(
+                        labelAngle,
+                        resolved!,
+                        pos,
+                        consumedAngle,
+                        pos + 1,
+                        Math.Max(0, consumedAngle - 2),
+                        angleWrapped: true);
                 }
                 pos += consumedAngle;
                 continue;
