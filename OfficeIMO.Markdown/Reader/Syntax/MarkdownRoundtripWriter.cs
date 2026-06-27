@@ -32,7 +32,8 @@ public static class MarkdownRoundtripWriter {
             return GeneratedWithDiagnostic(
                 result,
                 DocumentTransformedId,
-                "The parsed document was changed by one or more document transforms. Generated markdown was emitted instead of claiming a byte-preserving roundtrip.");
+                "The parsed document was changed by one or more document transforms. Generated markdown was emitted instead of claiming a byte-preserving roundtrip.",
+                GetTransformFallbackSpan(result));
         }
 
         return new MarkdownRoundtripResult(result.OriginalMarkdown);
@@ -72,11 +73,13 @@ public static class MarkdownRoundtripWriter {
         if (result.TransformDiagnostics.Count > 0) {
             diagnostics.Add(new MarkdownRoundtripDiagnostic(
                 DocumentTransformedId,
-                "The parsed document was changed by one or more document transforms. Source edits were applied to normalized markdown instead of claiming a byte-preserving original-source roundtrip."));
+                "The parsed document was changed by one or more document transforms. Source edits were applied to normalized markdown instead of claiming a byte-preserving original-source roundtrip.",
+                GetTransformFallbackSpan(result) ?? editList[0].SourceSpan));
         } else if (!result.PreservesOriginalMarkdown) {
             diagnostics.Add(new MarkdownRoundtripDiagnostic(
                 PreserveTriviaRequiredId,
-                "The parse result does not contain original reader input. Source edits were applied to normalized markdown. Parse with PreserveTrivia enabled before requesting a lossless source-edit roundtrip."));
+                "The parse result does not contain original reader input. Source edits were applied to normalized markdown. Parse with PreserveTrivia enabled before requesting a lossless source-edit roundtrip.",
+                editList[0].SourceSpan));
         } else if (TryCreateOriginalReplacements(result, editList, diagnostics, out var originalReplacements)) {
             return ApplyReplacements(result.OriginalMarkdown, originalReplacements, diagnostics);
         }
@@ -90,10 +93,25 @@ public static class MarkdownRoundtripWriter {
     private static MarkdownRoundtripResult GeneratedWithDiagnostic(
         MarkdownParseResult result,
         string id,
-        string message) {
+        string message,
+        MarkdownSourceSpan? sourceSpan = null) {
         return new MarkdownRoundtripResult(
             result.Document.ToMarkdown(),
-            new[] { new MarkdownRoundtripDiagnostic(id, message) });
+            new[] { new MarkdownRoundtripDiagnostic(id, message, sourceSpan) });
+    }
+
+    private static MarkdownSourceSpan? GetTransformFallbackSpan(MarkdownParseResult result) {
+        for (var i = 0; i < result.TransformDiagnostics.Count; i++) {
+            var diagnostic = result.TransformDiagnostics[i];
+            var sourceSpan = diagnostic.AffectedSourceSpan
+                             ?? diagnostic.AffectedOriginalBlockSpan
+                             ?? diagnostic.AffectedFinalBlockSpan;
+            if (sourceSpan.HasValue) {
+                return sourceSpan;
+            }
+        }
+
+        return null;
     }
 
     private static bool TryCreateOriginalReplacements(

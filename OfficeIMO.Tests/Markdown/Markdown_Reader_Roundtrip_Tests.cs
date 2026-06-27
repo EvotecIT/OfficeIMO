@@ -424,6 +424,7 @@ Paragraph
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
             Assert.Equal("roundtrip.document-transformed", diagnostic.Id);
+            Assert.Equal(result.TransformDiagnostics[0].AffectedSourceSpan, diagnostic.SourceSpan);
             Assert.Equal(result.Document.ToMarkdown(), roundtrip.Markdown);
             Assert.NotEqual(result.OriginalMarkdown, roundtrip.Markdown);
         }
@@ -511,7 +512,29 @@ Paragraph
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
             Assert.Equal("roundtrip.preserve-trivia-required", diagnostic.Id);
+            Assert.Equal(edit.SourceSpan, diagnostic.SourceSpan);
             Assert.Equal("# New Title\n\nBody\n", roundtrip.Markdown);
+        }
+
+        [Fact]
+        public void MarkdownRoundtripWriter_Reports_Transform_SourceSpan_When_SourceEdits_Fallback_To_NormalizedMarkdown() {
+            const string markdown = "previous shutdown was unexpected### Reason";
+            var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+            options.PreserveTrivia = true;
+            options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
+            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var native = MarkdownNativeDocument.FromParseResult(result);
+            var affectedSourceSpan = result.TransformDiagnostics[0].AffectedSourceSpan;
+            Assert.True(affectedSourceSpan.HasValue);
+            var edit = native.CreateReplaceEdit(affectedSourceSpan.Value, "Updated");
+
+            var roundtrip = MarkdownRoundtripWriter.WriteWithSourceEdit(result, edit);
+
+            Assert.False(roundtrip.IsLossless);
+            var diagnostic = Assert.Single(roundtrip.Diagnostics);
+            Assert.Equal("roundtrip.document-transformed", diagnostic.Id);
+            Assert.Equal(affectedSourceSpan, diagnostic.SourceSpan);
+            Assert.Equal("Updated", roundtrip.Markdown);
         }
 
         [Fact]
