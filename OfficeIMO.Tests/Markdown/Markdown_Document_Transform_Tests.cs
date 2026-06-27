@@ -110,6 +110,8 @@ second
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), affectedSourceSpan);
         Assert.Equal("Document > Paragraph", diagnostic.AffectedOriginalBlockPath);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedOriginalBlockSpan);
+        Assert.Equal("Document > Paragraph > InlineText", diagnostic.AffectedOriginalNodePath);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedOriginalNodeSpan);
         Assert.Equal(2, transformed.Blocks.Count);
     }
 

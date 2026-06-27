@@ -9,6 +9,11 @@ internal static class MarkdownTransformDiagnosticSyntaxHelper {
             originalSyntaxTree,
             setPath: static (item, value) => item.AffectedOriginalBlockPath = value,
             setSpan: static (item, value) => item.AffectedOriginalBlockSpan = value);
+        PopulateNodeAnchor(
+            diagnostic,
+            originalSyntaxTree,
+            setPath: static (item, value) => item.AffectedOriginalNodePath = value,
+            setSpan: static (item, value) => item.AffectedOriginalNodeSpan = value);
     }
 
     internal static void PopulateFinalBlockAnchors(
@@ -24,6 +29,11 @@ internal static class MarkdownTransformDiagnosticSyntaxHelper {
                 finalSyntaxTree,
                 setPath: static (item, value) => item.AffectedFinalBlockPath = value,
                 setSpan: static (item, value) => item.AffectedFinalBlockSpan = value);
+            PopulateNodeAnchor(
+                diagnostics[i],
+                finalSyntaxTree,
+                setPath: static (item, value) => item.AffectedFinalNodePath = value,
+                setSpan: static (item, value) => item.AffectedFinalNodeSpan = value);
         }
     }
 
@@ -45,6 +55,24 @@ internal static class MarkdownTransformDiagnosticSyntaxHelper {
         setSpan(diagnostic, blockPath[blockPath.Count - 1].SourceSpan);
     }
 
+    private static void PopulateNodeAnchor(
+        MarkdownDocumentTransformDiagnostic diagnostic,
+        MarkdownSyntaxNode? syntaxTree,
+        Action<MarkdownDocumentTransformDiagnostic, string?> setPath,
+        Action<MarkdownDocumentTransformDiagnostic, MarkdownSourceSpan?> setSpan) {
+        if (diagnostic == null || syntaxTree == null || !diagnostic.AffectedSourceSpan.HasValue) {
+            return;
+        }
+
+        var nodePath = FindNodePath(syntaxTree, diagnostic.AffectedSourceSpan.Value);
+        if (nodePath.Count == 0) {
+            return;
+        }
+
+        setPath(diagnostic, string.Join(" > ", nodePath.Select(FormatPathSegment)));
+        setSpan(diagnostic, nodePath[nodePath.Count - 1].SourceSpan);
+    }
+
     private static IReadOnlyList<MarkdownSyntaxNode> FindBlockPath(MarkdownSyntaxNode syntaxTree, MarkdownSourceSpan span) {
         var path = syntaxTree.FindNodePathContainingSpan(span);
         if (path.Count == 0) {
@@ -63,6 +91,15 @@ internal static class MarkdownTransformDiagnosticSyntaxHelper {
         }
 
         return blockPath;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> FindNodePath(MarkdownSyntaxNode syntaxTree, MarkdownSourceSpan span) {
+        var path = syntaxTree.FindNodePathContainingSpan(span);
+        if (path.Count == 0) {
+            path = syntaxTree.FindNodePathOverlappingSpan(span);
+        }
+
+        return path;
     }
 
     private static string FormatPathSegment(MarkdownSyntaxNode node) {

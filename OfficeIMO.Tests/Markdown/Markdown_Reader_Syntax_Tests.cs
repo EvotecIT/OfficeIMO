@@ -193,8 +193,12 @@ Paragraph text
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedSourceSpan);
         Assert.Equal("Document > Paragraph", diagnostic.AffectedOriginalBlockPath);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedOriginalBlockSpan);
+        Assert.Equal("Document > Paragraph > InlineText", diagnostic.AffectedOriginalNodePath);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedOriginalNodeSpan);
         Assert.Equal("Document > Paragraph", diagnostic.AffectedFinalBlockPath);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedFinalBlockSpan);
+        Assert.Equal("Document > Paragraph", diagnostic.AffectedFinalNodePath);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedFinalNodeSpan);
         Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(2, result.FinalSyntaxTree.Children.Count);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), result.FinalSyntaxTree.Children[0].SourceSpan);

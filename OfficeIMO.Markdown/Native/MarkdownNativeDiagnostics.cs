@@ -52,7 +52,9 @@ public sealed class MarkdownNativeDiagnostic {
     public IReadOnlyList<MarkdownSourceSpan> RelatedSourceSpans { get; }
 
     internal static MarkdownNativeDiagnostic FromTransform(MarkdownDocumentTransformDiagnostic diagnostic) {
-        var sourceSpan = diagnostic.AffectedFinalBlockSpan
+        var sourceSpan = diagnostic.AffectedFinalNodeSpan
+            ?? diagnostic.AffectedFinalBlockSpan
+            ?? diagnostic.AffectedOriginalNodeSpan
             ?? diagnostic.AffectedOriginalBlockSpan
             ?? diagnostic.AffectedSourceSpan;
         var message = string.IsNullOrWhiteSpace(diagnostic.TransformName)
