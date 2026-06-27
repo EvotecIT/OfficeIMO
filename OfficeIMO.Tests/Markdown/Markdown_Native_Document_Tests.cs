@@ -1544,6 +1544,30 @@ ix:cached-tool-evidence:v1
     }
 
     [Fact]
+    public void Parse_Projects_Transform_Diagnostic_Related_SourceSpans_Into_Native_Snapshots() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new UppercaseParagraphsTransform());
+
+        var native = MarkdownNativeDocument.Parse("""
+alpha
+
+beta
+""", options);
+
+        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native.transform");
+        Assert.Equal(MarkdownNativeDiagnosticSeverity.Info, diagnostic.Severity);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 4), diagnostic.SourceSpan);
+        Assert.Equal(new[] { 1, 3 }, diagnostic.RelatedSourceSpans.Select(span => span.StartLine).ToArray());
+        Assert.Equal(new[] { 1, 3 }, diagnostic.RelatedSourceSpans.Select(span => span.EndLine).ToArray());
+
+        var snapshotDiagnostic = Assert.Single(native.ToSnapshot().Diagnostics, item => item.Id == "native.transform");
+        Assert.Equal(1, snapshotDiagnostic.SourceSpan!.StartLine);
+        Assert.Equal(3, snapshotDiagnostic.SourceSpan.EndLine);
+        Assert.Equal(new[] { 1, 3 }, snapshotDiagnostic.RelatedSourceSpans.Select(span => span.StartLine).ToArray());
+        Assert.Equal(new[] { 1, 3 }, snapshotDiagnostic.RelatedSourceSpans.Select(span => span.EndLine).ToArray());
+    }
+
+    [Fact]
     public void Parse_Reports_Fallback_Diagnostics_For_Unsupported_Blocks() {
         var native = MarkdownNativeDocument.Parse("[TOC]");
 
@@ -1559,6 +1583,21 @@ ix:cached-tool-evidence:v1
             clone.Add(new ParagraphBlock(new InlineSequence().Text("Same")));
             clone.Add(new ParagraphBlock(new InlineSequence().Text("Same")));
             return clone;
+        }
+    }
+
+    private sealed class UppercaseParagraphsTransform : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            var transformed = MarkdownDoc.Create();
+            foreach (var block in document.Blocks) {
+                if (block is ParagraphBlock paragraph) {
+                    transformed.Add(new ParagraphBlock(new InlineSequence().Text(paragraph.Inlines.RenderMarkdown().ToUpperInvariant())));
+                } else {
+                    transformed.Add(block);
+                }
+            }
+
+            return transformed;
         }
     }
 

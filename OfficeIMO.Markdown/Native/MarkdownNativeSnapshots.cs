@@ -440,6 +440,7 @@ public sealed class MarkdownNativeDiagnosticSnapshot {
         Severity = diagnostic.Severity;
         SourceSpan = diagnostic.SourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(diagnostic.SourceSpan.Value) : null;
         BlockId = diagnostic.Block?.Id;
+        RelatedSourceSpans = ToSourceSpanSnapshots(diagnostic.RelatedSourceSpans);
     }
 
     /// <summary>Diagnostic id.</summary>
@@ -454,6 +455,22 @@ public sealed class MarkdownNativeDiagnosticSnapshot {
     /// <summary>Source span snapshot when available.</summary>
     public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
 
+    /// <summary>Additional related source spans, such as individual transform input blocks.</summary>
+    public IReadOnlyList<MarkdownNativeSourceSpanSnapshot> RelatedSourceSpans { get; }
+
     /// <summary>Associated block id when available.</summary>
     public string? BlockId { get; }
+
+    private static IReadOnlyList<MarkdownNativeSourceSpanSnapshot> ToSourceSpanSnapshots(IReadOnlyList<MarkdownSourceSpan> spans) {
+        if (spans == null || spans.Count == 0) {
+            return Array.Empty<MarkdownNativeSourceSpanSnapshot>();
+        }
+
+        var snapshots = new List<MarkdownNativeSourceSpanSnapshot>(spans.Count);
+        for (var i = 0; i < spans.Count; i++) {
+            snapshots.Add(new MarkdownNativeSourceSpanSnapshot(spans[i]));
+        }
+
+        return snapshots;
+    }
 }

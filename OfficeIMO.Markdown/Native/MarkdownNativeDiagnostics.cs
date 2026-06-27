@@ -23,12 +23,14 @@ public sealed class MarkdownNativeDiagnostic {
         string message,
         MarkdownNativeDiagnosticSeverity severity,
         MarkdownSourceSpan? sourceSpan = null,
-        MarkdownNativeBlock? block = null) {
+        MarkdownNativeBlock? block = null,
+        IReadOnlyList<MarkdownSourceSpan>? relatedSourceSpans = null) {
         Id = string.IsNullOrWhiteSpace(id) ? "native.diagnostic" : id.Trim();
         Message = message ?? string.Empty;
         Severity = severity;
         SourceSpan = sourceSpan;
         Block = block;
+        RelatedSourceSpans = relatedSourceSpans ?? Array.Empty<MarkdownSourceSpan>();
     }
 
     /// <summary>Stable diagnostic identifier.</summary>
@@ -46,6 +48,9 @@ public sealed class MarkdownNativeDiagnostic {
     /// <summary>Native block associated with the diagnostic when available.</summary>
     public MarkdownNativeBlock? Block { get; }
 
+    /// <summary>Additional source spans related to the diagnostic, such as individual transform input blocks.</summary>
+    public IReadOnlyList<MarkdownSourceSpan> RelatedSourceSpans { get; }
+
     internal static MarkdownNativeDiagnostic FromTransform(MarkdownDocumentTransformDiagnostic diagnostic) {
         var sourceSpan = diagnostic.AffectedFinalBlockSpan
             ?? diagnostic.AffectedOriginalBlockSpan
@@ -58,6 +63,7 @@ public sealed class MarkdownNativeDiagnostic {
             "native.transform",
             message,
             MarkdownNativeDiagnosticSeverity.Info,
-            sourceSpan);
+            sourceSpan,
+            relatedSourceSpans: diagnostic.AffectedSourceSpans);
     }
 }
