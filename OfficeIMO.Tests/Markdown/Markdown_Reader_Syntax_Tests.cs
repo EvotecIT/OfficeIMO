@@ -277,7 +277,8 @@ Paragraph text
 
         var semanticOuterList = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
         var semanticOuterItem = Assert.IsType<ListItem>(Assert.Single(semanticOuterList.Items));
-        var semanticNestedList = Assert.IsType<UnorderedListBlock>(Assert.Single(semanticOuterItem.ChildBlocks));
+        var semanticOuterParagraph = Assert.IsType<ParagraphBlock>(semanticOuterItem.ChildBlocks[0]);
+        var semanticNestedList = Assert.IsType<UnorderedListBlock>(Assert.Single(semanticOuterItem.Children));
         var semanticNestedItem = Assert.IsType<ListItem>(Assert.Single(semanticNestedList.Items));
         var semanticNestedParagraphs = semanticNestedItem.ParagraphBlocks;
 
@@ -289,6 +290,7 @@ Paragraph text
 
         Assert.Same(semanticOuterList, finalOuterList.AssociatedObject);
         Assert.Same(semanticOuterItem, finalOuterItem.AssociatedObject);
+        Assert.Same(semanticOuterParagraph, finalOuterItem.Children[0].AssociatedObject);
         Assert.Same(semanticNestedList, finalNestedList.AssociatedObject);
         Assert.Same(semanticNestedItem, finalNestedItem.AssociatedObject);
         Assert.Equal(2, finalNestedParagraphs.Length);
@@ -1123,13 +1125,16 @@ Lead {{core}} tail
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
         var item = Assert.Single(list.Items);
-        var quote = Assert.IsType<QuoteBlock>(item.ChildBlocks[0]);
-        var ordered = Assert.IsType<OrderedListBlock>(item.ChildBlocks[1]);
+        var quote = Assert.IsType<QuoteBlock>(item.Children[0]);
+        var ordered = Assert.IsType<OrderedListBlock>(item.Children[1]);
         var nestedItem = Assert.Single(ordered.Items);
         var listSyntax = Assert.Single(result.FinalSyntaxTree.Children);
         var itemSyntax = Assert.Single(listSyntax.Children);
 
         Assert.Equal("outer", item.Content.RenderMarkdown());
+        Assert.Same(item.ParagraphBlocks[0], item.ChildBlocks[0]);
+        Assert.Same(quote, item.ChildBlocks[1]);
+        Assert.Same(ordered, item.ChildBlocks[2]);
         Assert.Equal("alpha", Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks)).Inlines.RenderMarkdown());
         Assert.Equal(10, ordered.Start);
         Assert.Equal("beta gamma", nestedItem.Content.RenderMarkdown());
@@ -1155,13 +1160,16 @@ Lead {{core}} tail
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
         var item = Assert.Single(list.Items);
-        var quote = Assert.IsType<QuoteBlock>(item.ChildBlocks[0]);
-        var ordered = Assert.IsType<OrderedListBlock>(item.ChildBlocks[1]);
+        var quote = Assert.IsType<QuoteBlock>(item.Children[0]);
+        var ordered = Assert.IsType<OrderedListBlock>(item.Children[1]);
         var nestedItem = Assert.Single(ordered.Items);
         var listSyntax = Assert.Single(result.FinalSyntaxTree.Children);
         var itemSyntax = Assert.Single(listSyntax.Children);
 
         Assert.Equal("outer", item.Content.RenderMarkdown());
+        Assert.Same(item.ParagraphBlocks[0], item.ChildBlocks[0]);
+        Assert.Same(quote, item.ChildBlocks[1]);
+        Assert.Same(ordered, item.ChildBlocks[2]);
         Assert.Equal("alpha", Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks)).Inlines.RenderMarkdown());
         Assert.Equal(10, ordered.Start);
         Assert.Equal("beta gamma", nestedItem.Content.RenderMarkdown());
@@ -1337,7 +1345,7 @@ Lead {{core}} tail
         }, finalItem.Children.Select(child => child.Kind).ToArray());
         Assert.Same(item.ParagraphBlocks[0], finalItem.Children[0].AssociatedObject);
         Assert.Same(item.ParagraphBlocks[1], finalItem.Children[1].AssociatedObject);
-        Assert.Same(item.ChildBlocks[0], finalItem.Children[2].AssociatedObject);
+        Assert.Same(item.Children[0], finalItem.Children[2].AssociatedObject);
     }
 
     [Fact]
