@@ -20,6 +20,11 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
     /// </summary>
     public IReadOnlyList<IMarkdownBlock> Blocks => _blocks;
     /// <summary>
+    /// Structured child blocks that form the canonical footnote body.
+    /// This is the AST-style alias for <see cref="Blocks"/> used by child-container consumers.
+    /// </summary>
+    public IReadOnlyList<IMarkdownBlock> ChildBlocks => Blocks;
+    /// <summary>
     /// Parsed paragraphs of the footnote definition, derived from <see cref="Blocks"/>.
     /// When empty, renderers may fall back to parsing <see cref="Text"/> as a single inline sequence.
     /// </summary>
@@ -41,6 +46,21 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
             text,
             Array.Empty<IMarkdownBlock>(),
             syntaxChildren: null) {
+    }
+
+    /// <summary>
+    /// Creates a footnote definition with structured body blocks.
+    /// Prefer this overload when the footnote body contains lists, code blocks, or other nested markdown structure.
+    /// </summary>
+    public FootnoteDefinitionBlock(string label, IEnumerable<IMarkdownBlock>? childBlocks)
+        : this(label, string.Empty, CopyBlocks(childBlocks), syntaxChildren: null) {
+    }
+
+    /// <summary>
+    /// Creates a footnote definition with structured body blocks and fallback text for empty-block scenarios.
+    /// </summary>
+    public FootnoteDefinitionBlock(string label, string text, IEnumerable<IMarkdownBlock>? childBlocks)
+        : this(label, text, CopyBlocks(childBlocks), syntaxChildren: null) {
     }
 
     internal FootnoteDefinitionBlock(string label, string text, IReadOnlyList<InlineSequence> paragraphs)
@@ -149,7 +169,7 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
         return sb.ToString();
     }
 
-    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => Blocks;
+    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
@@ -312,6 +332,18 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
         }
 
         return copy;
+    }
+
+    private static IReadOnlyList<IMarkdownBlock> CopyBlocks(IEnumerable<IMarkdownBlock>? blocks) {
+        if (blocks is IReadOnlyList<IMarkdownBlock> readOnlyBlocks) {
+            return CopyBlocks(readOnlyBlocks);
+        }
+
+        if (blocks == null) {
+            return Array.Empty<IMarkdownBlock>();
+        }
+
+        return blocks.Where(block => block != null).ToArray();
     }
 
     private static string RenderBlocksAsText(IReadOnlyList<IMarkdownBlock> blocks) {

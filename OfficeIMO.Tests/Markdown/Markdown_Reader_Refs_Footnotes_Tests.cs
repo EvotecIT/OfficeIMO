@@ -126,6 +126,23 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Footnote_Public_Structured_Constructor_Uses_ChildBlocks_As_Primary_Content() {
+            var paragraph = new ParagraphBlock(MarkdownReader.ParseInlineText("Intro"));
+            var list = new UnorderedListBlock();
+            list.Items.Add(ListItem.Text("first"));
+
+            var footnote = new FootnoteDefinitionBlock("audit", new IMarkdownBlock[] { paragraph, list });
+
+            Assert.Equal(2, footnote.ChildBlocks.Count);
+            Assert.Same(paragraph, footnote.ChildBlocks[0]);
+            Assert.Same(list, footnote.ChildBlocks[1]);
+            Assert.Equal(footnote.ChildBlocks, footnote.Blocks);
+            Assert.Equal(footnote.ChildBlocks, ((IChildMarkdownBlockContainer)footnote).ChildBlocks);
+            Assert.Equal("Intro\n\n- first", footnote.Text.Replace("\r\n", "\n"));
+            Assert.Equal("[^audit]: Intro\n\n  - first", ((IMarkdownBlock)footnote).RenderMarkdown().Replace("\r\n", "\n"));
+        }
+
+        [Fact]
         public void Reference_Link_Title_On_Next_Line_Is_Resolved() {
             var md = string.Join("\n", new[] {
                 "See [Docs][docs].",
