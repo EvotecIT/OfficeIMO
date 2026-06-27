@@ -144,7 +144,7 @@ jobs:
   test-ubuntu-matrix:
     name: 'Ubuntu ${{ matrix.framework }}'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -179,14 +179,21 @@ jobs:
 
       - name: Run tests
         run: |
-          # Keep the heavy Excel image visual gate on its dedicated script path; the broad matrix still covers fast contracts.
+          # Keep the heavy Excel image visual gate on its dedicated script path; run test projects
+          # explicitly so Ubuntu does not spend the job budget walking every solution project.
+          # OfficeIMO.Tests contains long-running graphics/PDF/image-export contracts, so emit
+          # normal per-test progress to avoid a quiet Linux test step being cancelled mid-run.
           test_filter='Category!=ExcelImageVisualGate'
+          officeimo_logger='console;verbosity=normal'
           # Collect coverage once on the primary Linux net8.0 leg; the other OS/framework legs stay as full test runs without coverage overhead.
           if [ "${{ matrix.collectCoverage }}" = "true" ]; then
-            dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "$test_filter" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+            dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --framework ${{ matrix.framework }} --filter "$test_filter" -m:1 --logger "$officeimo_logger" --logger trx --collect:"XPlat Code Coverage"
           else
-            dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "$test_filter" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --framework ${{ matrix.framework }} --filter "$test_filter" -m:1 --logger "$officeimo_logger" --logger trx
           fi
+          dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
