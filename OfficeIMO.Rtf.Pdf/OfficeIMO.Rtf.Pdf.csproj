@@ -3,7 +3,7 @@
     <Description>Bidirectional semantic RTF/PDF converter for OfficeIMO.Rtf using the dependency-free OfficeIMO.Pdf engine.</Description>
     <AssemblyName>OfficeIMO.Rtf.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Rtf.Pdf</AssemblyTitle>
-    <VersionPrefix>0.1.5</VersionPrefix>
+    <VersionPrefix>0.1.6</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
