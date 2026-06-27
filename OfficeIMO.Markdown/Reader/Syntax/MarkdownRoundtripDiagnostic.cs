@@ -5,9 +5,10 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class MarkdownRoundtripDiagnostic {
     /// <summary>Creates a roundtrip diagnostic.</summary>
-    public MarkdownRoundtripDiagnostic(string id, string message) {
+    public MarkdownRoundtripDiagnostic(string id, string message, MarkdownSourceSpan? sourceSpan = null) {
         Id = id ?? string.Empty;
         Message = message ?? string.Empty;
+        SourceSpan = sourceSpan;
     }
 
     /// <summary>Stable diagnostic identifier.</summary>
@@ -15,4 +16,7 @@ public sealed class MarkdownRoundtripDiagnostic {
 
     /// <summary>Human-readable diagnostic message.</summary>
     public string Message { get; }
+
+    /// <summary>Optional source span that caused or best explains the fallback.</summary>
+    public MarkdownSourceSpan? SourceSpan { get; }
 }

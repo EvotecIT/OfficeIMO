@@ -533,6 +533,7 @@ Paragraph
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
             Assert.Equal("roundtrip.original-source-slice-unavailable", diagnostic.Id);
+            Assert.Equal(edit.SourceSpan, diagnostic.SourceSpan);
             Assert.Equal("# New\n", roundtrip.Markdown);
         }
 
@@ -552,6 +553,7 @@ Paragraph
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
             Assert.Equal("roundtrip.overlapping-edits", diagnostic.Id);
+            Assert.Equal(edit.SourceSpan, diagnostic.SourceSpan);
             Assert.Equal(markdown, roundtrip.Markdown);
         }
 

@@ -82,7 +82,7 @@ public static class MarkdownRoundtripWriter {
         }
 
         var normalizedReplacements = editList
-            .Select(edit => new SourceReplacement(edit.StartOffset, edit.EndOffsetInclusive, edit.ReplacementMarkdown))
+            .Select(edit => new SourceReplacement(edit.StartOffset, edit.EndOffsetInclusive, edit.ReplacementMarkdown, edit.SourceSpan))
             .ToArray();
         return ApplyReplacements(result.SourceMarkdown, normalizedReplacements, diagnostics);
     }
@@ -107,12 +107,13 @@ public static class MarkdownRoundtripWriter {
             if (!result.TryCreateOriginalSourceSlice(edit.SourceSpan, out var slice)) {
                 diagnostics.Add(new MarkdownRoundtripDiagnostic(
                     OriginalSourceSliceUnavailableId,
-                    "At least one source edit could not be mapped back to original reader input. Source edits were applied to normalized markdown instead."));
+                    "At least one source edit could not be mapped back to original reader input. Source edits were applied to normalized markdown instead.",
+                    edit.SourceSpan));
                 replacements = Array.Empty<SourceReplacement>();
                 return false;
             }
 
-            replacementList.Add(new SourceReplacement(slice.StartOffset, slice.EndOffsetInclusive, edit.ReplacementMarkdown));
+            replacementList.Add(new SourceReplacement(slice.StartOffset, slice.EndOffsetInclusive, edit.ReplacementMarkdown, edit.SourceSpan));
         }
 
         replacements = replacementList.ToArray();
@@ -154,7 +155,8 @@ public static class MarkdownRoundtripWriter {
             if (ascending[i].StartOffset <= ascending[i - 1].EndOffsetInclusive) {
                 diagnostics.Add(new MarkdownRoundtripDiagnostic(
                     OverlappingEditsId,
-                    "Source edits overlap and cannot be applied deterministically."));
+                    "Source edits overlap and cannot be applied deterministically.",
+                    ascending[i].SourceSpan));
                 orderedReplacements = Array.Empty<SourceReplacement>();
                 return false;
             }
@@ -167,10 +169,15 @@ public static class MarkdownRoundtripWriter {
     }
 
     private readonly struct SourceReplacement {
-        public SourceReplacement(int startOffset, int endOffsetInclusive, string replacementMarkdown) {
+        public SourceReplacement(
+            int startOffset,
+            int endOffsetInclusive,
+            string replacementMarkdown,
+            MarkdownSourceSpan? sourceSpan) {
             StartOffset = startOffset;
             EndOffsetInclusive = endOffsetInclusive;
             ReplacementMarkdown = replacementMarkdown ?? string.Empty;
+            SourceSpan = sourceSpan;
         }
 
         public int StartOffset { get; }
@@ -178,5 +185,7 @@ public static class MarkdownRoundtripWriter {
         public int EndOffsetInclusive { get; }
 
         public string ReplacementMarkdown { get; }
+
+        public MarkdownSourceSpan? SourceSpan { get; }
     }
 }
