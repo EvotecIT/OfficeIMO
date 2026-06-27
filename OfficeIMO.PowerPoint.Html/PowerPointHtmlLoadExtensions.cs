@@ -303,11 +303,7 @@ public static class PowerPointHtmlLoadExtensions {
         }
 
         string tail = normalized.Substring(marker + "### Notes".Length);
-        string[] lines = tail.Split('\n')
-            .Select(line => line.Trim())
-            .Where(line => line.Length > 0)
-            .ToArray();
-        return string.Join(Environment.NewLine, lines);
+        return tail.Trim('\n').Replace("\n", Environment.NewLine);
     }
 
     private static bool TryAddChartByKind(PptCore.PowerPointSlide slide, string chartKind, PptCore.PowerPointChartData data, double left, double top, double width, double height, out PptCore.PowerPointChart? chart) {

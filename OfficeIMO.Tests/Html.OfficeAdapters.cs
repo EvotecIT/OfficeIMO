@@ -949,6 +949,31 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void PowerPointHtml_LoadPreservesPresenterNoteParagraphBreaks() {
+        string html = """
+            <main>
+              <section class="officeimo-slide">
+                <p>Notes slide</p>
+                <pre class="officeimo-source-markdown"># Notes slide
+
+            ### Notes
+            First line
+
+                Indented line
+            Third line</pre>
+              </section>
+            </main>
+            """;
+
+        PowerPointHtmlLoadResult result = html.LoadPowerPointFromHtmlWithResult();
+        using PowerPointPresentation imported = result.Presentation;
+
+        string expected = string.Join(Environment.NewLine, "First line", string.Empty, "    Indented line", "Third line");
+        Assert.Equal(1, result.Notes);
+        Assert.Equal(expected, imported.Slides[0].Notes.Text);
+    }
+
+    [Fact]
     public void PowerPointHtml_LoadPreservesNonPngImageMediaTypes() {
         string image = Convert.ToBase64String(OnePixelPng);
         string html = $"""

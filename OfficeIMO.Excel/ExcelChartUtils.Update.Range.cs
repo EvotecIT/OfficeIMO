@@ -57,6 +57,10 @@ namespace OfficeIMO.Excel {
             if (categoryCount <= 0) return null;
 
             if (horizontal) {
+                if (valR1 != r1 + 1 || !HorizontalSeriesRangesAreContiguous(seriesList, sheetName, valR1, c1, c2)) {
+                    return null;
+                }
+
                 bool hasHeaderColumn = HasHorizontalSeriesNameColumn(seriesList, sheetName, c1 - 1, valR1);
                 int horizontalStartColumn = hasHeaderColumn ? c1 - 1 : c1;
                 return new ExcelChartDataRange(
@@ -75,6 +79,29 @@ namespace OfficeIMO.Excel {
             int startColumn = c1;
 
             return new ExcelChartDataRange(sheetName, startRow, startColumn, categoryCount, seriesList.Count, hasHeaderRow);
+        }
+
+        private static bool HorizontalSeriesRangesAreContiguous(IReadOnlyList<OpenXmlCompositeElement> seriesList, string sheetName, int firstSeriesRow, int firstCategoryColumn, int lastCategoryColumn) {
+            for (int i = 0; i < seriesList.Count; i++) {
+                NumberReference? reference = GetSeriesValuesReference(seriesList[i]);
+                if (!TryParseSheetQualifiedRange(reference?.Formula?.Text, out string valuesSheet, out string valuesRange)) {
+                    return false;
+                }
+
+                if (!string.Equals(sheetName, valuesSheet, StringComparison.OrdinalIgnoreCase)) {
+                    return false;
+                }
+
+                if (!TryParseRange(valuesRange, out int row1, out int column1, out int row2, out int column2)) {
+                    return false;
+                }
+
+                if (row1 != firstSeriesRow + i || row2 != row1 || column1 != firstCategoryColumn || column2 != lastCategoryColumn) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static bool HasVerticalSeriesNameRow(IReadOnlyList<OpenXmlCompositeElement> seriesList, string sheetName, int headerRow) {
@@ -135,6 +162,14 @@ namespace OfficeIMO.Excel {
             row = nameR1;
             column = nameC1;
             return true;
+        }
+
+        private static NumberReference? GetSeriesValuesReference(OpenXmlCompositeElement seriesElement) {
+            if (seriesElement is ScatterChartSeries scatterSeries) {
+                return scatterSeries.GetFirstChild<YValues>()?.GetFirstChild<NumberReference>();
+            }
+
+            return seriesElement.GetFirstChild<Values>()?.GetFirstChild<NumberReference>();
         }
 
         private static IReadOnlyList<OpenXmlCompositeElement> GetChartSeries(PlotArea plotArea) {
@@ -236,6 +271,120 @@ namespace OfficeIMO.Excel {
             } catch {
                 return null;
             }
+        }
+
+        internal static ExcelChartData? TryReadChartData(ChartPart chartPart, ExcelSheet contextSheet) {
+            try {
+                var chart = chartPart.ChartSpace?.GetFirstChild<Chart>();
+                var plotArea = chart?.GetFirstChild<PlotArea>();
+                if (plotArea == null) {
+                    return null;
+                }
+
+                IReadOnlyList<OpenXmlCompositeElement> seriesList = GetChartSeries(plotArea);
+                if (seriesList.Count == 0) {
+                    return null;
+                }
+
+                if (!TryReadCategoryValues(seriesList[0], contextSheet, out IReadOnlyList<string>? categories) || categories == null || categories.Count == 0) {
+                    return null;
+                }
+
+                var series = new List<ExcelChartSeries>(seriesList.Count);
+                for (int i = 0; i < seriesList.Count; i++) {
+                    OpenXmlCompositeElement seriesElement = seriesList[i];
+                    NumberReference? valuesReference = GetSeriesValuesReference(seriesElement);
+                    if (!TryReadReferencedNumberValues(contextSheet, valuesReference?.Formula?.Text, out IReadOnlyList<double>? values)) {
+                        TryReadCachedNumberValues(valuesReference, out values);
+                    }
+
+                    if (values == null || values.Count != categories.Count) {
+                        return null;
+                    }
+
+                    string name = TryReadSeriesName(seriesElement, contextSheet, out string? resolvedName) && !string.IsNullOrWhiteSpace(resolvedName)
+                        ? resolvedName!
+                        : $"Series {i + 1}";
+                    series.Add(new ExcelChartSeries(name, values));
+                }
+
+                return new ExcelChartData(categories, series);
+            } catch {
+                return null;
+            }
+        }
+
+        private static bool TryReadCategoryValues(OpenXmlCompositeElement seriesElement, ExcelSheet contextSheet, out IReadOnlyList<string>? categories) {
+            categories = null;
+            if (seriesElement is ScatterChartSeries scatterSeries) {
+                NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
+                if (!TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out IReadOnlyList<double>? numericValues)) {
+                    TryReadCachedNumberValues(xReference, out numericValues);
+                }
+
+                if (numericValues == null) {
+                    return false;
+                }
+
+                categories = numericValues.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
+                return categories.Count > 0;
+            }
+
+            CategoryAxisData? categoryAxisData = seriesElement.GetFirstChild<CategoryAxisData>();
+            StringReference? stringReference = categoryAxisData?.GetFirstChild<StringReference>();
+            if (TryReadReferencedTextValues(contextSheet, stringReference?.Formula?.Text, out categories)) {
+                return true;
+            }
+
+            if (TryReadCachedStringValues(stringReference, out categories)) {
+                return true;
+            }
+
+            NumberReference? numberReference = categoryAxisData?.GetFirstChild<NumberReference>();
+            if (!TryReadReferencedNumberValues(contextSheet, numberReference?.Formula?.Text, out IReadOnlyList<double>? numberValues)) {
+                TryReadCachedNumberValues(numberReference, out numberValues);
+            }
+
+            if (numberValues == null) {
+                return false;
+            }
+
+            categories = numberValues.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
+            return categories.Count > 0;
+        }
+
+        private static bool TryReadSeriesName(OpenXmlCompositeElement seriesElement, ExcelSheet contextSheet, out string? name) {
+            name = null;
+            SeriesText? seriesText = seriesElement.GetFirstChild<SeriesText>();
+            StringReference? reference = seriesText?.GetFirstChild<StringReference>();
+            if (TryReadReferencedTextValues(contextSheet, reference?.Formula?.Text, out IReadOnlyList<string>? referencedValues) && referencedValues != null && referencedValues.Count > 0) {
+                name = referencedValues[0];
+                return true;
+            }
+
+            if (TryReadCachedStringValues(reference, out IReadOnlyList<string>? cachedValues) && cachedValues != null && cachedValues.Count > 0) {
+                name = cachedValues[0];
+                return true;
+            }
+
+            StringLiteral? literal = seriesText?.GetFirstChild<StringLiteral>();
+            string? literalText = literal?.Elements<StringPoint>()
+                .OrderBy(point => point.Index?.Value ?? uint.MaxValue)
+                .FirstOrDefault()?
+                .NumericValue?
+                .Text;
+            if (!string.IsNullOrWhiteSpace(literalText)) {
+                name = literalText;
+                return true;
+            }
+
+            string? directText = seriesText?.GetFirstChild<NumericValue>()?.Text;
+            if (!string.IsNullOrWhiteSpace(directText)) {
+                name = directText;
+                return true;
+            }
+
+            return false;
         }
 
         internal static ExcelChartData ApplyChartSeriesTypes(ChartPart chartPart, ExcelChartData data, ExcelChartType defaultType) {
@@ -351,6 +500,45 @@ namespace OfficeIMO.Excel {
 
             values = numericValues;
             return numericValues.Count > 0;
+        }
+
+        private static bool TryReadCachedStringValues(StringReference? reference, out IReadOnlyList<string>? values) {
+            values = null;
+            StringCache? cache = reference?.GetFirstChild<StringCache>();
+            if (cache == null) {
+                return false;
+            }
+
+            values = cache.Elements<StringPoint>()
+                .OrderBy(point => point.Index?.Value ?? uint.MaxValue)
+                .Select(point => point.NumericValue?.Text ?? string.Empty)
+                .ToArray();
+            return values.Count > 0;
+        }
+
+        private static bool TryReadReferencedTextValues(ExcelSheet contextSheet, string? formula, out IReadOnlyList<string>? values) {
+            values = null;
+            if (!TryParseSheetQualifiedRange(formula, out string sheetName, out string range) ||
+                !TryParseRange(range, out int r1, out int c1, out int r2, out int c2)) {
+                return false;
+            }
+
+            ExcelSheet sheet;
+            try {
+                sheet = contextSheet.Document[sheetName];
+            } catch {
+                return false;
+            }
+
+            var textValues = new List<string>();
+            for (int row = r1; row <= r2; row++) {
+                for (int column = c1; column <= c2; column++) {
+                    textValues.Add(sheet.TryGetCellText(row, column, out string? text) ? text ?? string.Empty : string.Empty);
+                }
+            }
+
+            values = textValues;
+            return textValues.Count > 0;
         }
 
         private static bool TryReadReferencedNumberValues(ExcelSheet contextSheet, string? formula, out IReadOnlyList<double>? values) {

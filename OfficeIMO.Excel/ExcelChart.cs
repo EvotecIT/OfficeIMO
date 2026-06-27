@@ -91,13 +91,10 @@ namespace OfficeIMO.Excel {
             try {
                 ChartPart chartPart = GetChartPart();
                 ExcelChartDataRange? range = _dataRange ?? ExcelChartUtils.TryExtractDataRange(chartPart);
-                if (range == null) {
-                    data = null!;
-                    return false;
-                }
-
-                ExcelSheet sheet = _document[range.SheetName];
-                ExcelChartData? chartData = ExcelChartUtils.TryReadChartData(sheet, range);
+                ExcelSheet sheet = range == null ? _document[_sheetName] : _document[range.SheetName];
+                ExcelChartData? chartData = range == null
+                    ? ExcelChartUtils.TryReadChartData(chartPart, sheet)
+                    : ExcelChartUtils.TryReadChartData(sheet, range);
                 if (chartData == null) {
                     data = null!;
                     return false;
@@ -106,7 +103,9 @@ namespace OfficeIMO.Excel {
                 chartData = ExcelChartUtils.ApplyChartSeriesTypes(chartPart, chartData, ChartType);
                 chartData = ExcelChartUtils.ApplyScatterSeriesXValues(chartPart, chartData, sheet);
                 chartData = ApplyImageExportSeriesStyles(chartPart, chartData, _document.WorkbookPartRoot);
-                _dataRange = range;
+                if (range != null) {
+                    _dataRange = range;
+                }
                 data = chartData;
                 return true;
             } catch {
