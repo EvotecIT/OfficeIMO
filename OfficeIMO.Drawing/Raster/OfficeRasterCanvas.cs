@@ -15,6 +15,8 @@ public sealed partial class OfficeRasterCanvas {
     private readonly OfficeTrueTypeFont? _font;
     private int CoverageSamples => _target != null && _target.Supersampling > 1 ? 1 : AntiAliasSamples;
 
+    private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+
     /// <summary>
     /// Creates a canvas over the supplied image.
     /// </summary>

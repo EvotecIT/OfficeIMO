@@ -117,7 +117,7 @@ public sealed partial class OfficeRasterCanvas {
 
         for (int i = 0; i < dashPattern.Count; i++) {
             double value = dashPattern[i];
-            if (double.IsFinite(value) && value > 0D) {
+            if (IsFinite(value) && value > 0D) {
                 pattern.Add(value);
             }
         }

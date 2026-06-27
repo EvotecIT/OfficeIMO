@@ -177,16 +177,16 @@ public sealed partial class OfficeRasterCanvas {
         double gapLength,
         ref double patternPosition) {
         double length = Distance(start.X, start.Y, end.X, end.Y);
-        if (!double.IsFinite(length) || length <= 0D) {
+        if (!IsFinite(length) || length <= 0D) {
             return;
         }
 
         double cycle = dashLength + gapLength;
-        if (!double.IsFinite(cycle) || cycle <= 0D) {
+        if (!IsFinite(cycle) || cycle <= 0D) {
             return;
         }
 
-        patternPosition = double.IsFinite(patternPosition) ? patternPosition % cycle : 0D;
+        patternPosition = IsFinite(patternPosition) ? patternPosition % cycle : 0D;
         double position = 0D;
         while (position < length) {
             bool inDash = patternPosition < dashLength || gapLength == 0D;
@@ -231,7 +231,7 @@ public sealed partial class OfficeRasterCanvas {
         IReadOnlyList<double> dashPattern,
         ref double patternPosition) {
         double length = Distance(start.X, start.Y, end.X, end.Y);
-        if (!double.IsFinite(length) || length <= 0D || dashPattern.Count == 0) {
+        if (!IsFinite(length) || length <= 0D || dashPattern.Count == 0) {
             return;
         }
 
@@ -240,11 +240,11 @@ public sealed partial class OfficeRasterCanvas {
             cycle += dashPattern[i];
         }
 
-        if (!double.IsFinite(cycle) || cycle <= 0D) {
+        if (!IsFinite(cycle) || cycle <= 0D) {
             return;
         }
 
-        patternPosition = double.IsFinite(patternPosition) ? patternPosition % cycle : 0D;
+        patternPosition = IsFinite(patternPosition) ? patternPosition % cycle : 0D;
         double position = 0D;
         while (position < length) {
             int patternIndex = 0;
