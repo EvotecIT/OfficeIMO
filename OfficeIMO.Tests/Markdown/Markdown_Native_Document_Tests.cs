@@ -1587,6 +1587,28 @@ beta
     }
 
     [Fact]
+    public void Parse_Projects_Nested_Transform_Diagnostic_Precise_Node_SourceSpan_Into_Native_Snapshots() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightColonSpacing = true
+        }));
+
+        var native = MarkdownNativeDocument.Parse("""
+> [!NOTE] Why it matters
+> coverage:missing evidence
+""", options);
+
+        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native.transform");
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 27), diagnostic.SourceSpan);
+
+        var snapshotDiagnostic = Assert.Single(native.ToSnapshot().Diagnostics, item => item.Id == "native.transform");
+        Assert.Equal(2, snapshotDiagnostic.SourceSpan!.StartLine);
+        Assert.Equal(3, snapshotDiagnostic.SourceSpan.StartColumn);
+        Assert.Equal(2, snapshotDiagnostic.SourceSpan.EndLine);
+        Assert.Equal(27, snapshotDiagnostic.SourceSpan.EndColumn);
+    }
+
+    [Fact]
     public void Parse_Reports_Fallback_Diagnostics_For_Unsupported_Blocks() {
         var native = MarkdownNativeDocument.Parse("[TOC]");
 

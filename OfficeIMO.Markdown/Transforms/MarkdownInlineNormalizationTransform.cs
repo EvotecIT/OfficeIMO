@@ -57,9 +57,11 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
                 continue;
             }
 
+            var beforeMarkdown = block.RenderMarkdown();
             var normalized = NormalizeBlock(block);
             rewritten.Add(normalized);
-            changed |= !ReferenceEquals(block, normalized);
+            changed |= !ReferenceEquals(block, normalized) ||
+                       !string.Equals(beforeMarkdown, normalized.RenderMarkdown(), StringComparison.Ordinal);
         }
 
         return rewritten;

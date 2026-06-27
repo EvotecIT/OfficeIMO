@@ -52,6 +52,7 @@ public static partial class MarkdownReader {
         var frontMatterSpan = GetFrontMatterSpan(document, originalSyntaxTree);
         var finalSyntaxTree = NormalizeFinalSyntaxTreeSpans(BuildSyntaxTree(document, blockSpans, frontMatterSpan));
         MarkdownTransformDiagnosticSyntaxHelper.PopulateFinalBlockAnchors(transformDiagnostics, finalSyntaxTree);
+        MarkdownTransformDiagnosticSyntaxHelper.PopulateChangedNodeAnchors(transformDiagnostics, originalSyntaxTree, finalSyntaxTree);
         return finalSyntaxTree;
     }
 

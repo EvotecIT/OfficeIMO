@@ -37,6 +37,19 @@ internal static class MarkdownTransformDiagnosticSyntaxHelper {
         }
     }
 
+    internal static void PopulateChangedNodeAnchors(
+        IReadOnlyList<MarkdownDocumentTransformDiagnostic>? diagnostics,
+        MarkdownSyntaxNode? originalSyntaxTree,
+        MarkdownSyntaxNode? finalSyntaxTree) {
+        if (diagnostics == null || originalSyntaxTree == null || finalSyntaxTree == null) {
+            return;
+        }
+
+        for (var i = 0; i < diagnostics.Count; i++) {
+            PopulateChangedNodeAnchors(diagnostics[i], originalSyntaxTree, finalSyntaxTree);
+        }
+    }
+
     internal static void PopulateOriginalChangedNodeAnchor(
         MarkdownDocumentTransformDiagnostic diagnostic,
         MarkdownSyntaxNode? beforeNode,
@@ -50,7 +63,12 @@ internal static class MarkdownTransformDiagnosticSyntaxHelper {
             return;
         }
 
-        var changedPath = FindChangedNodePath(beforeNode, afterNode);
+        var changedPaths = FindChangedNodePaths(beforeNode, afterNode);
+        if (changedPaths == null) {
+            return;
+        }
+
+        var changedPath = changedPaths.OriginalPath;
         if (changedPath.Count == 0) {
             return;
         }
@@ -62,6 +80,44 @@ internal static class MarkdownTransformDiagnosticSyntaxHelper {
 
         diagnostic.AffectedOriginalNodePath = "Document > " + string.Join(" > ", changedPath.Select(FormatPathSegment));
         diagnostic.AffectedOriginalNodeSpan = changedNode.SourceSpan;
+    }
+
+    private static void PopulateChangedNodeAnchors(
+        MarkdownDocumentTransformDiagnostic diagnostic,
+        MarkdownSyntaxNode originalSyntaxTree,
+        MarkdownSyntaxNode finalSyntaxTree) {
+        if (diagnostic == null ||
+            originalSyntaxTree == null ||
+            finalSyntaxTree == null ||
+            !diagnostic.AffectedSourceSpan.HasValue ||
+            diagnostic.ChangedBlockCountBefore != 1 ||
+            diagnostic.ChangedBlockCountAfter != 1) {
+            return;
+        }
+
+        var originalBlockPath = FindBlockPath(originalSyntaxTree, diagnostic.AffectedSourceSpan.Value);
+        var finalBlockPath = FindBlockPath(finalSyntaxTree, diagnostic.AffectedSourceSpan.Value);
+        if (originalBlockPath.Count == 0 || finalBlockPath.Count == 0) {
+            return;
+        }
+
+        var changedPaths = FindChangedNodePaths(
+            originalBlockPath[originalBlockPath.Count - 1],
+            finalBlockPath[finalBlockPath.Count - 1]);
+        if (changedPaths == null) {
+            return;
+        }
+
+        ApplyChangedNodePath(
+            diagnostic,
+            originalBlockPath,
+            changedPaths.OriginalPath,
+            isOriginal: true);
+        ApplyChangedNodePath(
+            diagnostic,
+            finalBlockPath,
+            changedPaths.FinalPath,
+            isOriginal: false);
     }
 
     private static void PopulateBlockAnchor(
@@ -129,39 +185,80 @@ internal static class MarkdownTransformDiagnosticSyntaxHelper {
         return path;
     }
 
-    private static IReadOnlyList<MarkdownSyntaxNode> FindChangedNodePath(
+    private static void ApplyChangedNodePath(
+        MarkdownDocumentTransformDiagnostic diagnostic,
+        IReadOnlyList<MarkdownSyntaxNode> blockPath,
+        IReadOnlyList<MarkdownSyntaxNode> changedPath,
+        bool isOriginal) {
+        if (diagnostic == null ||
+            blockPath == null ||
+            changedPath == null ||
+            blockPath.Count == 0 ||
+            changedPath.Count == 0) {
+            return;
+        }
+
+        var changedNode = changedPath[changedPath.Count - 1];
+        if (!changedNode.SourceSpan.HasValue) {
+            return;
+        }
+
+        var fullPath = new List<MarkdownSyntaxNode>(blockPath.Count + changedPath.Count);
+        for (var i = 0; i < blockPath.Count - 1; i++) {
+            fullPath.Add(blockPath[i]);
+        }
+
+        fullPath.AddRange(changedPath);
+        var pathText = string.Join(" > ", fullPath.Select(FormatPathSegment));
+        if (isOriginal) {
+            diagnostic.AffectedOriginalNodePath = pathText;
+            diagnostic.AffectedOriginalNodeSpan = changedNode.SourceSpan;
+        } else {
+            diagnostic.AffectedFinalNodePath = pathText;
+            diagnostic.AffectedFinalNodeSpan = changedNode.SourceSpan;
+        }
+    }
+
+    private static ChangedNodePaths? FindChangedNodePaths(
         MarkdownSyntaxNode beforeNode,
         MarkdownSyntaxNode afterNode) {
         if (beforeNode == null || afterNode == null) {
-            return Array.Empty<MarkdownSyntaxNode>();
+            return null;
         }
 
         if (NodeFingerprint(beforeNode) == NodeFingerprint(afterNode)) {
-            return Array.Empty<MarkdownSyntaxNode>();
+            return null;
         }
 
         if (beforeNode.Kind != afterNode.Kind ||
             !string.Equals(beforeNode.CustomKind, afterNode.CustomKind, StringComparison.Ordinal)) {
-            return new[] { beforeNode };
+            return new ChangedNodePaths(new[] { beforeNode }, new[] { afterNode });
         }
 
         var childChange = ComputeChildChange(beforeNode.Children, afterNode.Children);
         if (childChange.CountBefore == 1 && childChange.CountAfter == 1) {
             var beforeChild = beforeNode.Children[childChange.StartBefore];
             var afterChild = afterNode.Children[childChange.StartAfter];
-            var childPath = FindChangedNodePath(beforeChild, afterChild);
-            if (childPath.Count > 0) {
-                var path = new List<MarkdownSyntaxNode>(childPath.Count + 1) {
+            var childPaths = FindChangedNodePaths(beforeChild, afterChild);
+            if (childPaths != null) {
+                var originalPath = new List<MarkdownSyntaxNode>(childPaths.OriginalPath.Count + 1) {
                     beforeNode
                 };
-                path.AddRange(childPath);
-                return path;
+                originalPath.AddRange(childPaths.OriginalPath);
+
+                var finalPath = new List<MarkdownSyntaxNode>(childPaths.FinalPath.Count + 1) {
+                    afterNode
+                };
+                finalPath.AddRange(childPaths.FinalPath);
+                return new ChangedNodePaths(originalPath, finalPath);
             }
 
-            return new[] { beforeNode, beforeChild };
+            return new ChangedNodePaths(
+                new[] { beforeNode, beforeChild },
+                new[] { afterNode, afterChild });
         }
 
-        return new[] { beforeNode };
+        return new ChangedNodePaths(new[] { beforeNode }, new[] { afterNode });
     }
 
     private static MarkdownTransformSourceSpanHelper.ChangedBlockRange ComputeChildChange(
@@ -201,5 +298,18 @@ internal static class MarkdownTransformDiagnosticSyntaxHelper {
         }
 
         return node.Kind + "(" + node.CustomKind + ")";
+    }
+
+    private sealed class ChangedNodePaths {
+        internal ChangedNodePaths(
+            IReadOnlyList<MarkdownSyntaxNode> originalPath,
+            IReadOnlyList<MarkdownSyntaxNode> finalPath) {
+            OriginalPath = originalPath ?? Array.Empty<MarkdownSyntaxNode>();
+            FinalPath = finalPath ?? Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        internal IReadOnlyList<MarkdownSyntaxNode> OriginalPath { get; }
+
+        internal IReadOnlyList<MarkdownSyntaxNode> FinalPath { get; }
     }
 }

@@ -172,6 +172,32 @@ BETA
     }
 
     [Fact]
+    public void MarkdownReader_ParseWithSyntaxTreeAndDiagnostics_Collects_PreciseNestedChangedNodeAnchor() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightColonSpacing = true
+        }));
+
+        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+> [!NOTE] Why it matters
+> coverage:missing evidence
+""", options);
+
+        var diagnostic = Assert.Single(result.TransformDiagnostics);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 27), diagnostic.AffectedSourceSpan);
+        Assert.Equal("Document > Callout", diagnostic.AffectedOriginalBlockPath);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 27), diagnostic.AffectedOriginalBlockSpan);
+        Assert.Equal("Document > Callout > Paragraph > InlineText", diagnostic.AffectedOriginalNodePath);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 27), diagnostic.AffectedOriginalNodeSpan);
+        Assert.Equal(
+            NormalizeMarkdown("""
+> [!NOTE] Why it matters
+> coverage: missing evidence
+"""),
+            NormalizeMarkdown(result.Document.ToMarkdown()));
+    }
+
+    [Fact]
     public void MarkdownReader_ParseWithSyntaxTreeAndDiagnostics_Collects_TransformDiagnostics_InOneCall() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());

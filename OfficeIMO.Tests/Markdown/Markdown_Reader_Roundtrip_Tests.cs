@@ -471,6 +471,33 @@ beta
         }
 
         [Fact]
+        public void MarkdownRoundtripWriter_Reports_NestedTransform_PreciseNodeSourceSpan_When_UnchangedWrite_Falls_Back() {
+            var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+            options.PreserveTrivia = true;
+            options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+                NormalizeTightColonSpacing = true
+            }));
+
+            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+> [!NOTE] Why it matters
+> coverage:missing evidence
+""", options);
+
+            var roundtrip = MarkdownRoundtripWriter.WriteUnchanged(result);
+
+            Assert.False(roundtrip.IsLossless);
+            var diagnostic = Assert.Single(roundtrip.Diagnostics);
+            Assert.Equal("roundtrip.document-transformed", diagnostic.Id);
+            Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 27), diagnostic.SourceSpan);
+            Assert.Equal(
+                NormalizeMarkdown("""
+> [!NOTE] Why it matters
+> coverage: missing evidence
+"""),
+                NormalizeMarkdown(roundtrip.Markdown));
+        }
+
+        [Fact]
         public void MarkdownRoundtripWriter_Preserves_Unchanged_OriginalMarkdown_When_NoOpTransform_Ran() {
             const string markdown = "# Title\r\n\r\nBody\r\n";
             var options = new MarkdownReaderOptions {
@@ -758,6 +785,13 @@ beta
 
         private sealed class NoOpTransform : IMarkdownDocumentTransform {
             public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) => document;
+        }
+
+        private static string NormalizeMarkdown(string markdown) {
+            return (markdown ?? string.Empty)
+                .Replace("\r\n", "\n")
+                .Replace('\r', '\n')
+                .Trim();
         }
 
         private sealed class UppercaseParagraphsTransform : IMarkdownDocumentTransform {
