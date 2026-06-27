@@ -66,6 +66,7 @@ Current coverage:
 - reference-style link definitions now have effective parse-result/native metadata with definition-level spans, label/destination/title token spans, snapshots, and source-edit coverage instead of living only in internal parser state and syntax nodes
 - inline footnote references now expose label metadata spans in syntax and native snapshots, with native source-edit coverage for the label token
 - inline links, images, and linked images now expose target/title and alt/source/title-style metadata spans in native snapshots, with native source-edit coverage for replacing those tokens without replacing the whole paragraph
+- nested emphasis inlines now have native source-edit coverage through `MarkdownRoundtripWriter`, preserving original surrounding markdown and CRLF input while replacing the span-backed inline content
 - fenced code and semantic fenced blocks now expose info-string/content source spans in native projections and snapshots, with source-edit coverage for replacing those tokens without replacing the full block
 - CommonMark fenced-code smoke coverage now includes escaped/entity-decoded language tokens, tilde fences, longer closing fences, unclosed fences, empty fences, indented fences, blockquoted fences, and invalid backtick info strings that must remain paragraph/code-span text
 - raw HTML and HTML comment blocks now project as source-addressable native HTML blocks with snapshots and block-level source edits instead of falling through unsupported native projection paths
@@ -315,6 +316,7 @@ Current coverage:
 
 - native source edit helpers can replace a span-backed fenced code block while preserving surrounding normalized source
 - native source edit helpers can also replace a span-backed inline token while preserving surrounding normalized source
+- source-edit roundtrip coverage now includes replacing nested emphasis inline content in preserved original markdown while retaining surrounding formatting markers and CRLF trivia
 - syntax-backed parse results can materialize normalized source slices for span-backed nodes
 - `MarkdownReaderOptions.PreserveTrivia` retains raw reader input as parse-result metadata while keeping existing source spans tied to normalized markdown, and line-ending-equivalent original input, including CRLF and standalone CR, can now materialize original source slices through line/column coordinates
 - `MarkdownRoundtripWriter.WriteUnchanged` returns the captured original markdown byte-for-byte for unchanged parse results and reports diagnostics when it falls back to generated markdown

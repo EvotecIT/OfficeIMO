@@ -504,6 +504,26 @@ Paragraph
         }
 
         [Fact]
+        public void MarkdownRoundtripWriter_Applies_Nested_Inline_SourceEdit_To_OriginalMarkdown() {
+            const string markdown = "Start **bold and _em_** end\r\n";
+            var options = new MarkdownReaderOptions {
+                PreserveTrivia = true
+            };
+            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var native = MarkdownNativeDocument.FromParseResult(result);
+            var strong = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Strong);
+            var emphasis = Assert.Single(strong.Children, inline => inline.Kind == MarkdownNativeInlineKind.Emphasis);
+            Assert.Equal(new MarkdownSourceSpan(1, 19, 1, 20), emphasis.SourceSpan);
+            var edit = native.CreateReplaceEdit(emphasis, "updated");
+
+            var roundtrip = MarkdownRoundtripWriter.WriteWithSourceEdit(result, edit);
+
+            Assert.True(roundtrip.IsLossless);
+            Assert.Empty(roundtrip.Diagnostics);
+            Assert.Equal("Start **bold and _updated_** end\r\n", roundtrip.Markdown);
+        }
+
+        [Fact]
         public void Reader_Enumerates_Headings_And_Resolved_Anchors() {
             const string markdown = """
 # Title
