@@ -503,6 +503,7 @@ public static partial class MarkdownReader {
 
         int j = index;
         var collected = new List<string>();
+        var collectedSourceLines = new List<MarkdownSourceLineSlice>();
         while (j < lines.Length) {
             string raw = lines[j] ?? string.Empty;
             if (CountLeadingIndentColumns(raw) < continuationIndent) break;
@@ -511,16 +512,26 @@ public static partial class MarkdownReader {
             // Stop when the row no longer looks table-ish.
             if (!LooksLikeTableRow(part.TrimStart()) && !IsAlignmentRow(part.TrimStart())) break;
             collected.Add(part);
+            collectedSourceLines.Add(new MarkdownSourceLineSlice(
+                part,
+                state.SourceLineOffset + j + 1,
+                continuationIndent + 1));
             j++;
         }
 
         if (collected.Count == 0) return false;
-        if (TryParseCollectedNestedBlock(collected, options, state, index, out TableBlock? parsedTable)) {
-            table = parsedTable;
-            index = j;
-            return true;
+        var (blocks, _) = ParseNestedMarkdownBlocks(collectedSourceLines, options, state);
+        if (blocks.Count == 0 || blocks[0] is not TableBlock parsedTable) {
+            if (!TryParseCollectedNestedBlock(collected, options, state, index, out TableBlock? fallbackTable) || fallbackTable == null) {
+                return false;
+            }
+
+            parsedTable = fallbackTable;
         }
-        return false;
+
+        table = parsedTable;
+        index = j;
+        return true;
     }
 
     private static bool TryParseCollectedNestedBlock<TBlock>(
