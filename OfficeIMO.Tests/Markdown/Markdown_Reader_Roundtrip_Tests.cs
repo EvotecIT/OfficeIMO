@@ -447,6 +447,33 @@ Paragraph
         }
 
         [Fact]
+        public void MarkdownRoundtripWriter_Applies_SourceEdits_To_Multiline_Setext_Heading_Tokens() {
+            const string markdown = "Foo *bar\r\nbaz*\r\n====\r\n\r\nBody\r\n";
+            var options = new MarkdownReaderOptions {
+                PreserveTrivia = true
+            };
+            var native = MarkdownNativeDocument.Parse(markdown, options);
+            var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
+
+            Assert.Equal(1, heading.Level);
+            Assert.Equal("Foo bar baz", heading.Text);
+            Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 4), heading.LevelSourceSpan);
+            Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 4), heading.TextSourceSpan);
+
+            var textEdit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New **Title**");
+            var textRoundtrip = native.WriteWithSourceEdit(textEdit);
+            Assert.True(textRoundtrip.IsLossless);
+            Assert.Empty(textRoundtrip.Diagnostics);
+            Assert.Equal("New **Title**\r\n====\r\n\r\nBody\r\n", textRoundtrip.Markdown);
+
+            var levelEdit = native.CreateReplaceEdit(heading.LevelSourceSpan!.Value, "---");
+            var levelRoundtrip = native.WriteWithSourceEdit(levelEdit);
+            Assert.True(levelRoundtrip.IsLossless);
+            Assert.Empty(levelRoundtrip.Diagnostics);
+            Assert.Equal("Foo *bar\r\nbaz*\r\n---\r\n\r\nBody\r\n", levelRoundtrip.Markdown);
+        }
+
+        [Fact]
         public void MarkdownNativeDocument_Applies_Shuffled_SourceEdits_To_OriginalMarkdown() {
             const string markdown = "# Old **Title**\r\n\r\nSee [docs](old.md \"Old title\") and `code`.\r\n";
             var options = new MarkdownReaderOptions {

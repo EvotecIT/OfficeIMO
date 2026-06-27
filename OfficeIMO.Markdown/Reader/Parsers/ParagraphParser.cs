@@ -58,6 +58,13 @@ public static partial class MarkdownReader {
                 var trimmedUnderline = underline.Trim();
                 var markerStartColumn = underline.IndexOf(trimmedUnderline, StringComparison.Ordinal) + 1;
                 heading.SetLevelSourceInfo(paragraphLines.Count - 1, markerStartColumn, markerStartColumn + trimmedUnderline.Length - 1);
+                if (contentLines.Count > 0) {
+                    heading.SetTextSourceInfo(
+                        0,
+                        GetFirstNonWhitespaceColumn(contentLines[0]),
+                        contentLines.Count - 1,
+                        GetTrimmedEndColumn(contentLines[contentLines.Count - 1]));
+                }
                 doc.Add(heading);
                 i = j;
                 return true;
@@ -91,6 +98,51 @@ public static partial class MarkdownReader {
             return rb >= 2
                    && rb + 1 < trimmed.Length
                    && trimmed[rb + 1] == ':';
+        }
+
+        private static int GetFirstNonWhitespaceColumn(string line) {
+            if (string.IsNullOrEmpty(line)) {
+                return 1;
+            }
+
+            int column = 1;
+            for (int i = 0; i < line.Length; i++) {
+                char ch = line[i];
+                if (ch != ' ' && ch != '\t') {
+                    return column;
+                }
+
+                column += ch == '\t' ? 4 - ((column - 1) % 4) : 1;
+            }
+
+            return column;
+        }
+
+        private static int GetTrimmedEndColumn(string line) {
+            if (string.IsNullOrEmpty(line)) {
+                return 1;
+            }
+
+            int endIndex = line.Length - 1;
+            while (endIndex >= 0 && char.IsWhiteSpace(line[endIndex])) {
+                endIndex--;
+            }
+
+            if (endIndex < 0) {
+                return 1;
+            }
+
+            int column = 1;
+            for (int i = 0; i <= endIndex; i++) {
+                char ch = line[i];
+                if (ch == '\t') {
+                    column += 4 - ((column - 1) % 4);
+                } else if (i < endIndex) {
+                    column++;
+                }
+            }
+
+            return column;
         }
 
         private static bool IsReferenceLinkDefinitionStarter(string[] lines, int index, MarkdownReaderOptions options) {

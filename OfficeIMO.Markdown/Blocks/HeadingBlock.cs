@@ -16,6 +16,7 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     internal int LevelSourceEndColumn { get; private set; }
     internal bool HasTextSourceInfo { get; private set; }
     internal int TextSourceLineOffset { get; private set; }
+    internal int TextSourceEndLineOffset { get; private set; }
     internal int TextSourceStartColumn { get; private set; }
     internal int TextSourceEndColumn { get; private set; }
     /// <summary>
@@ -48,10 +49,18 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     }
 
     internal void SetTextSourceInfo(int lineOffset, int startColumn, int endColumn) {
+        SetTextSourceInfo(lineOffset, startColumn, lineOffset, endColumn);
+    }
+
+    internal void SetTextSourceInfo(int startLineOffset, int startColumn, int endLineOffset, int endColumn) {
         HasTextSourceInfo = true;
-        TextSourceLineOffset = Math.Max(0, lineOffset);
+        TextSourceLineOffset = Math.Max(0, startLineOffset);
+        TextSourceEndLineOffset = Math.Max(TextSourceLineOffset, endLineOffset);
         TextSourceStartColumn = Math.Max(1, startColumn);
-        TextSourceEndColumn = Math.Max(TextSourceStartColumn, endColumn);
+        TextSourceEndColumn = Math.Max(1, endColumn);
+        if (TextSourceEndLineOffset == TextSourceLineOffset) {
+            TextSourceEndColumn = Math.Max(TextSourceStartColumn, TextSourceEndColumn);
+        }
     }
 
     /// <inheritdoc />
@@ -145,7 +154,7 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
             return new MarkdownSourceSpan(
                 value.StartLine + TextSourceLineOffset,
                 TextSourceStartColumn,
-                value.StartLine + TextSourceLineOffset,
+                value.StartLine + TextSourceEndLineOffset,
                 TextSourceEndColumn);
         }
 
