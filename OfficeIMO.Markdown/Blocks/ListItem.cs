@@ -264,10 +264,68 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     private List<MarkdownSyntaxNode> BuildOwnedSyntaxChildren() {
         var blockChildren = BlockChildren;
         if (SyntaxChildren.Count > 0) {
-            return MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, blockChildren).ToList();
+            return BuildCanonicalSyntaxChildrenPreservingSyntaxOnlyNodes(blockChildren);
         }
 
         return MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(blockChildren).ToList();
+    }
+
+    private List<MarkdownSyntaxNode> BuildCanonicalSyntaxChildrenPreservingSyntaxOnlyNodes(IReadOnlyList<IMarkdownBlock> blockChildren) {
+        var canonicalChildren = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, blockChildren).ToList();
+        if (canonicalChildren.Count == 0 || !HasSyntaxOnlyReferenceDefinitionChildren()) {
+            return canonicalChildren;
+        }
+
+        var usedCanonicalChildren = new bool[canonicalChildren.Count];
+        var children = new List<MarkdownSyntaxNode>(canonicalChildren.Count + SyntaxChildren.Count);
+        for (int i = 0; i < SyntaxChildren.Count; i++) {
+            var syntaxChild = SyntaxChildren[i];
+            if (syntaxChild.Kind == MarkdownSyntaxKind.ReferenceLinkDefinition) {
+                children.Add(MarkdownBlockSyntaxBuilder.CloneSyntaxNode(syntaxChild));
+                continue;
+            }
+
+            var canonicalIndex = FindCanonicalChildForCachedSyntax(canonicalChildren, usedCanonicalChildren, syntaxChild);
+            if (canonicalIndex >= 0) {
+                children.Add(canonicalChildren[canonicalIndex]);
+                usedCanonicalChildren[canonicalIndex] = true;
+            }
+        }
+
+        for (int i = 0; i < canonicalChildren.Count; i++) {
+            if (!usedCanonicalChildren[i]) {
+                children.Add(canonicalChildren[i]);
+            }
+        }
+
+        return children;
+    }
+
+    private bool HasSyntaxOnlyReferenceDefinitionChildren() {
+        for (int i = 0; i < SyntaxChildren.Count; i++) {
+            if (SyntaxChildren[i].Kind == MarkdownSyntaxKind.ReferenceLinkDefinition) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static int FindCanonicalChildForCachedSyntax(
+        IReadOnlyList<MarkdownSyntaxNode> canonicalChildren,
+        bool[] usedCanonicalChildren,
+        MarkdownSyntaxNode syntaxChild) {
+        for (int i = 0; i < canonicalChildren.Count; i++) {
+            if (usedCanonicalChildren[i]) {
+                continue;
+            }
+
+            if (ReferenceEquals(canonicalChildren[i].AssociatedObject, syntaxChild.AssociatedObject)) {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     private void EnsureParagraphBlocks() {

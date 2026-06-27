@@ -153,9 +153,7 @@ public static partial class MarkdownReader {
     private static void SynchronizeListItemSyntaxChildren(ListItem listItem, IReadOnlyList<MarkdownSyntaxNode> syntaxChildren) {
         listItem.SyntaxChildren.Clear();
 
-        var blockChildrenCount = listItem.BlockChildren.Count;
-        var ownedChildCount = Math.Min(blockChildrenCount, syntaxChildren.Count);
-        for (int i = 0; i < ownedChildCount; i++) {
+        for (int i = 0; i < syntaxChildren.Count; i++) {
             listItem.SyntaxChildren.Add(syntaxChildren[i]);
         }
     }

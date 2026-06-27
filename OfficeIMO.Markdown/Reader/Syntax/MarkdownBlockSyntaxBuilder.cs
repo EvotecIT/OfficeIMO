@@ -83,9 +83,7 @@ internal static class MarkdownBlockSyntaxBuilder {
 
             var cachedSyntax = FindCanonicalSyntaxChild(syntaxChildren, block, i);
             if (cachedSyntax != null &&
-                IsSyntaxChildForBlock(cachedSyntax, block) &&
-                cachedSyntax.AssociatedObject is MarkdownObject markdownObject &&
-                markdownObject.Document != null) {
+                IsSyntaxChildForBlock(cachedSyntax, block)) {
                 children.Add(CloneSyntaxNode(cachedSyntax));
                 continue;
             }
