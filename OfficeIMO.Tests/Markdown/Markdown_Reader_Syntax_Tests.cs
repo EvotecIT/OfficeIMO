@@ -1094,6 +1094,33 @@ Lead {{core}} tail
     }
 
     [Fact]
+    public void ListItem_SyntaxChild_Owner_Interface_Drops_Stale_Cached_Children_After_Public_Projection_Changes() {
+        const string markdown = """
+- lead
+
+  second
+
+  > quoted
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
+        var item = Assert.Single(list.Items);
+        var quote = Assert.IsType<QuoteBlock>(Assert.Single(item.Children));
+        var originalQuoteSyntax = Assert.Single(item.SyntaxChildren, child => child.Kind == MarkdownSyntaxKind.Quote);
+
+        item.AdditionalParagraphs.Clear();
+
+        var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)item).BuildOwnedSyntaxChildren();
+
+        Assert.Equal(new[] { MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.Quote }, ownedChildren.Select(child => child.Kind).ToArray());
+        Assert.Same(item.ParagraphBlocks[0], ownedChildren[0].AssociatedObject);
+        Assert.Same(quote, ownedChildren[1].AssociatedObject);
+        Assert.Equal(originalQuoteSyntax.SourceSpan, ownedChildren[1].SourceSpan);
+        Assert.DoesNotContain(ownedChildren, child => child.Kind == MarkdownSyntaxKind.Paragraph && child.Literal == "second");
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Associates_ListItem_Paragraph_Syntax_To_ParagraphBlocks() {
         const string markdown = """
 - first paragraph
