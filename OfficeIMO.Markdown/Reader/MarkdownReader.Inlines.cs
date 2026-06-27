@@ -40,7 +40,14 @@ public static partial class MarkdownReader {
         }
         void AddTextNode(string literal, int start, int length) => AddRawNode(new TextRun(literal), start, length);
         void AddDecodedHtmlEntityNode(string literal, int start, int length) => AddRawNode(new DecodedHtmlEntityTextRun(literal), start, length);
-        void AddHardBreakNode(int start, int length) => AddRawNode(new HardBreakInline(), start, length);
+        void AddHardBreakNode(int start, int length) {
+            var node = new HardBreakInline();
+            MarkdownInlineMetadataSourceSpans.SetHardBreakMarker(
+                node,
+                sourceMap?.GetTokenLiteral(start, length) ?? text.Substring(start, length),
+                sourceMap?.GetSpan(start, length));
+            AddRawNode(node, start, length);
+        }
         InlineSequence ParseNestedInlineSegment(int relativeStart, int length, bool nestedAllowLinks, bool nestedAllowImages) {
             if (relativeStart < 0 || length <= 0 || relativeStart >= text.Length) {
                 return new InlineSequence();

@@ -44,12 +44,22 @@ internal static class MarkdownInlineMetadataSourceSpans {
         public FormattingMarkerState? State;
     }
 
+    private sealed class HardBreakMarkerState {
+        public string Marker = string.Empty;
+        public MarkdownSourceSpan? MarkerSpan;
+    }
+
+    private sealed class HardBreakMarkerHolder {
+        public HardBreakMarkerState? State;
+    }
+
     // These tables hold weak references to markdown inline keys, so entries disappear when the
     // owning inline objects are no longer referenced by the parse result or callers.
     private static readonly ConditionalWeakTable<LinkInline, LinkHolder> _linkSpans = new();
     private static readonly ConditionalWeakTable<ImageInline, ImageHolder> _imageSpans = new();
     private static readonly ConditionalWeakTable<ImageLinkInline, ImageLinkHolder> _imageLinkSpans = new();
     private static readonly ConditionalWeakTable<MarkdownInline, FormattingMarkerHolder> _formattingMarkerSpans = new();
+    private static readonly ConditionalWeakTable<HardBreakInline, HardBreakMarkerHolder> _hardBreakMarkerSpans = new();
 
     internal static void SetLinkParts(
         LinkInline? inline,
@@ -197,4 +207,29 @@ internal static class MarkdownInlineMetadataSourceSpans {
 
     internal static MarkdownSourceSpan? GetClosingMarkerSpan(MarkdownInline? inline) =>
         inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.ClosingMarkerSpan : null;
+
+    internal static void SetHardBreakMarker(
+        HardBreakInline? inline,
+        string marker,
+        MarkdownSourceSpan? markerSpan) {
+        if (inline == null) {
+            return;
+        }
+
+        if (string.IsNullOrEmpty(marker) && !markerSpan.HasValue) {
+            return;
+        }
+
+        var holder = _hardBreakMarkerSpans.GetValue(inline, static _ => new HardBreakMarkerHolder());
+        holder.State = new HardBreakMarkerState {
+            Marker = marker ?? string.Empty,
+            MarkerSpan = markerSpan
+        };
+    }
+
+    internal static string? GetHardBreakMarker(HardBreakInline? inline) =>
+        inline != null && _hardBreakMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.Marker : null;
+
+    internal static MarkdownSourceSpan? GetHardBreakMarkerSpan(HardBreakInline? inline) =>
+        inline != null && _hardBreakMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.MarkerSpan : null;
 }

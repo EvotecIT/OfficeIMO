@@ -117,6 +117,45 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Hard_Break_Marker_Metadata_Preserves_Source_Spelling_For_Edits_And_Snapshots() {
+        var spaces = MarkdownNativeDocument.Parse("Alpha  \nbravo\n");
+        var spacesBreak = Assert.Single(
+            Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(spaces.Blocks)).InlineRuns,
+            inline => inline.Kind == MarkdownNativeInlineKind.HardBreak);
+        var spacesMarker = Assert.Single(spacesBreak.Metadata, metadata => metadata.Name == "marker");
+
+        Assert.Equal("  ", spacesMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), spacesBreak.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), spacesMarker.SourceSpan);
+        Assert.Equal("Alpha\\\nbravo\n", spaces.CreateReplaceEdit(spacesMarker, "\\").Apply(spaces.SourceMarkdown));
+        Assert.Equal("  ", spaces.ToSnapshot().Blocks[0].Inlines.Single(inline => inline.Kind == MarkdownNativeInlineKind.HardBreak).Metadata["marker"]);
+        Assert.Equal(7, spaces.ToSnapshot().Blocks[0].Inlines.Single(inline => inline.Kind == MarkdownNativeInlineKind.HardBreak).MetadataSourceSpans["marker"]!.EndColumn);
+
+        var backslash = MarkdownNativeDocument.Parse("Alpha\\\nbravo\n");
+        var backslashBreak = Assert.Single(
+            Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(backslash.Blocks)).InlineRuns,
+            inline => inline.Kind == MarkdownNativeInlineKind.HardBreak);
+        var backslashMarker = Assert.Single(backslashBreak.Metadata, metadata => metadata.Name == "marker");
+
+        Assert.Equal("\\", backslashMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 6), backslashMarker.SourceSpan);
+        Assert.Equal("Alpha  \nbravo\n", backslash.CreateReplaceEdit(backslashMarker, "  ").Apply(backslash.SourceMarkdown));
+        Assert.Equal("\\", backslash.ToSnapshot().Blocks[0].Inlines.Single(inline => inline.Kind == MarkdownNativeInlineKind.HardBreak).Metadata["marker"]);
+
+        var html = MarkdownNativeDocument.Parse("Alpha<br />bravo\n");
+        var htmlBreak = Assert.Single(
+            Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(html.Blocks)).InlineRuns,
+            inline => inline.Kind == MarkdownNativeInlineKind.HardBreak);
+        var htmlMarker = Assert.Single(htmlBreak.Metadata, metadata => metadata.Name == "marker");
+
+        Assert.Equal("<br />", htmlMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 11), htmlBreak.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 11), htmlMarker.SourceSpan);
+        Assert.Equal("Alpha<br>bravo\n", html.CreateReplaceEdit(htmlMarker, "<br>").Apply(html.SourceMarkdown));
+        Assert.Equal("<br />", html.ToSnapshot().Blocks[0].Inlines.Single(inline => inline.Kind == MarkdownNativeInlineKind.HardBreak).Metadata["marker"]);
+    }
+
+    [Fact]
     public void Linked_Image_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "Paragraph [![Alt](img.png \"Img\")](https://example.com \"Link title\").";
 

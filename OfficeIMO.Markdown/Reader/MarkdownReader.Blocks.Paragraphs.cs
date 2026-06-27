@@ -62,6 +62,24 @@ public static partial class MarkdownReader {
         public int StartColumn { get; }
     }
 
+    private readonly struct ParagraphLineJoinInfo {
+        public ParagraphLineJoinInfo(
+            string text,
+            bool hardBreak,
+            string? hardBreakMarker,
+            MarkdownSourceSpan? hardBreakMarkerSpan) {
+            Text = text ?? string.Empty;
+            HardBreak = hardBreak;
+            HardBreakMarker = hardBreakMarker;
+            HardBreakMarkerSpan = hardBreakMarkerSpan;
+        }
+
+        public string Text { get; }
+        public bool HardBreak { get; }
+        public string? HardBreakMarker { get; }
+        public MarkdownSourceSpan? HardBreakMarkerSpan { get; }
+    }
+
     private static List<InlineSequence> ParseParagraphsFromLines(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
         var paragraphs = new List<InlineSequence>();
         if (lines == null || lines.Count == 0) {
@@ -706,33 +724,43 @@ public static partial class MarkdownReader {
         }
 
         var points = new MarkdownSourcePoint?[text.Length];
+        var tokenSpans = new MarkdownSourceSpan?[text.Length];
+        var tokenLiterals = new string?[text.Length];
         var cursor = 0;
         var previousLineForJoin = absoluteLineOffset + 1;
         var previousJoinColumn = 1;
+        MarkdownSourceSpan? previousHardBreakMarkerSpan = null;
+        string? previousHardBreakMarker = null;
 
         for (var i = 0; i < lines.Count; i++) {
             var raw = lines[i] ?? string.Empty;
-            var trimmed = raw.TrimEnd();
-            trimmed = ConsumeTrailingBackslashHardBreak(trimmed, options, out _);
+            var absoluteLine = absoluteLineOffset + i + 1;
+            var joinInfo = GetParagraphLineJoinInfo(raw, absoluteLine, 1, options, state.SourceTextMap);
 
             if (i > 0 && cursor < points.Length) {
-                points[cursor++] = state.SourceTextMap.CreatePoint(previousLineForJoin, previousJoinColumn);
+                points[cursor] = state.SourceTextMap.CreatePoint(previousLineForJoin, previousJoinColumn);
+                tokenSpans[cursor] = previousHardBreakMarkerSpan;
+                tokenLiterals[cursor] = previousHardBreakMarker;
+                cursor++;
             }
 
-            var absoluteLine = absoluteLineOffset + i + 1;
-            for (var charIndex = 0; charIndex < trimmed.Length && cursor < points.Length; charIndex++) {
+            for (var charIndex = 0; charIndex < joinInfo.Text.Length && cursor < points.Length; charIndex++) {
                 points[cursor++] = state.SourceTextMap.CreatePoint(absoluteLine, charIndex + 1);
             }
 
             previousLineForJoin = absoluteLine;
-            previousJoinColumn = Math.Max(1, trimmed.Length);
+            previousJoinColumn = Math.Max(1, joinInfo.Text.Length);
+            previousHardBreakMarkerSpan = joinInfo.HardBreak ? joinInfo.HardBreakMarkerSpan : null;
+            previousHardBreakMarker = joinInfo.HardBreak ? joinInfo.HardBreakMarker : null;
         }
 
         if (cursor < points.Length) {
             Array.Resize(ref points, cursor);
+            Array.Resize(ref tokenSpans, cursor);
+            Array.Resize(ref tokenLiterals, cursor);
         }
 
-        return (text, new MarkdownInlineSourceMap(points));
+        return (text, new MarkdownInlineSourceMap(points, tokenSpans, tokenLiterals));
     }
 
     private static (string Text, MarkdownInlineSourceMap? SourceMap) JoinParagraphSourceLinesWithSourceMap(
@@ -754,29 +782,41 @@ public static partial class MarkdownReader {
         }
 
         var points = new MarkdownSourcePoint?[text.Length];
+        var tokenSpans = new MarkdownSourceSpan?[text.Length];
+        var tokenLiterals = new string?[text.Length];
         var cursor = 0;
         var previousLine = lines[0].AbsoluteLine;
         var previousJoinColumn = lines[0].StartColumn;
+        MarkdownSourceSpan? previousHardBreakMarkerSpan = null;
+        string? previousHardBreakMarker = null;
 
         for (var i = 0; i < lines.Count; i++) {
             if (i > 0 && cursor < points.Length) {
-                points[cursor++] = state.SourceTextMap.CreatePoint(previousLine, previousJoinColumn);
+                points[cursor] = state.SourceTextMap.CreatePoint(previousLine, previousJoinColumn);
+                tokenSpans[cursor] = previousHardBreakMarkerSpan;
+                tokenLiterals[cursor] = previousHardBreakMarker;
+                cursor++;
             }
 
             var slice = lines[i];
-            for (var charIndex = 0; charIndex < slice.Text.Length && cursor < points.Length; charIndex++) {
+            var joinInfo = GetParagraphLineJoinInfo(slice.Text, slice.AbsoluteLine, slice.StartColumn, options, state.SourceTextMap);
+            for (var charIndex = 0; charIndex < joinInfo.Text.Length && cursor < points.Length; charIndex++) {
                 points[cursor++] = state.SourceTextMap.CreatePoint(slice.AbsoluteLine, slice.StartColumn + charIndex);
             }
 
             previousLine = slice.AbsoluteLine;
-            previousJoinColumn = slice.StartColumn + Math.Max(0, slice.Text.Length - 1);
+            previousJoinColumn = slice.StartColumn + Math.Max(0, joinInfo.Text.Length - 1);
+            previousHardBreakMarkerSpan = joinInfo.HardBreak ? joinInfo.HardBreakMarkerSpan : null;
+            previousHardBreakMarker = joinInfo.HardBreak ? joinInfo.HardBreakMarker : null;
         }
 
         if (cursor < points.Length) {
             Array.Resize(ref points, cursor);
+            Array.Resize(ref tokenSpans, cursor);
+            Array.Resize(ref tokenLiterals, cursor);
         }
 
-        return (text, new MarkdownInlineSourceMap(points));
+        return (text, new MarkdownInlineSourceMap(points, tokenSpans, tokenLiterals));
     }
 
     private static MarkdownInlineSourceMap? BuildInlineSourceMapForSingleLine(
@@ -803,6 +843,42 @@ public static partial class MarkdownReader {
         if (trimmed[trimmed.Length - 1] != '\\') return trimmed;
         hardBreak = true;
         return trimmed.Substring(0, trimmed.Length - 1);
+    }
+
+    private static ParagraphLineJoinInfo GetParagraphLineJoinInfo(
+        string raw,
+        int absoluteLine,
+        int startColumn,
+        MarkdownReaderOptions options,
+        MarkdownSourceTextMap? sourceTextMap) {
+        raw ??= string.Empty;
+
+        bool spaceHardBreak = EndsWithTwoSpacesLine(raw);
+        var trimmed = raw.TrimEnd();
+        var text = ConsumeTrailingBackslashHardBreak(trimmed, options, out bool backslashHardBreak);
+
+        if (backslashHardBreak) {
+            var markerColumn = startColumn + Math.Max(0, trimmed.Length - 1);
+            return new ParagraphLineJoinInfo(
+                text,
+                hardBreak: true,
+                hardBreakMarker: "\\",
+                hardBreakMarkerSpan: sourceTextMap?.CreateSpan(absoluteLine, markerColumn, absoluteLine, markerColumn));
+        }
+
+        if (spaceHardBreak) {
+            var markerStartIndex = raw.TrimEnd(' ').Length;
+            var markerLength = raw.Length - markerStartIndex;
+            var markerStartColumn = startColumn + markerStartIndex;
+            var markerEndColumn = startColumn + raw.Length - 1;
+            return new ParagraphLineJoinInfo(
+                text,
+                hardBreak: true,
+                hardBreakMarker: markerLength > 0 ? raw.Substring(markerStartIndex, markerLength) : string.Empty,
+                hardBreakMarkerSpan: sourceTextMap?.CreateSpan(absoluteLine, markerStartColumn, absoluteLine, markerEndColumn));
+        }
+
+        return new ParagraphLineJoinInfo(text, hardBreak: false, hardBreakMarker: null, hardBreakMarkerSpan: null);
     }
 
 }

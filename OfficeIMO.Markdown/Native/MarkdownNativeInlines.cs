@@ -208,6 +208,7 @@ internal static class MarkdownNativeInlineProjection {
         }
 
         AddFormattingMarkerMetadata(node, metadata);
+        AddHardBreakMarkerMetadata(node, metadata);
 
         if (metadata.Count == 0) {
             return Array.Empty<MarkdownNativeInlineMetadata>();
@@ -237,6 +238,21 @@ internal static class MarkdownNativeInlineProjection {
                 MarkdownInlineMetadataSourceSpans.GetClosingMarker(inline) ?? string.Empty,
                 node,
                 closingMarkerSpan));
+        }
+    }
+
+    private static void AddHardBreakMarkerMetadata(MarkdownSyntaxNode node, List<MarkdownNativeInlineMetadata> metadata) {
+        if (node.AssociatedObject is not HardBreakInline hardBreak) {
+            return;
+        }
+
+        var markerSpan = MarkdownInlineMetadataSourceSpans.GetHardBreakMarkerSpan(hardBreak);
+        if (markerSpan.HasValue) {
+            metadata.Add(new MarkdownNativeInlineMetadata(
+                "marker",
+                MarkdownInlineMetadataSourceSpans.GetHardBreakMarker(hardBreak) ?? string.Empty,
+                node,
+                markerSpan));
         }
     }
 
