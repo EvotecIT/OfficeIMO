@@ -145,6 +145,46 @@ Lead[^1]
     }
 
     [Fact]
+    public void Markdown_Block_Render_Extension_Can_Read_Final_Syntax_Node_And_Source_Slices() {
+        const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
+        var readerOptions = new MarkdownReaderOptions { PreserveTrivia = true };
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
+        MarkdownSyntaxNode? seenSyntax = null;
+        MarkdownSourceSlice normalizedSlice = default;
+        MarkdownSourceSlice originalSlice = default;
+        var normalizedOk = false;
+        var originalOk = false;
+
+        var options = new MarkdownWriteOptions { OutputLineEnding = "\n" };
+        options.BlockRenderExtensions.Add(MarkdownBlockMarkdownRenderExtension.CreateContextual(
+            "quote-source-aware",
+            typeof(QuoteBlock),
+            (block, context) => {
+                if (block is not QuoteBlock quote) {
+                    return null;
+                }
+
+                seenSyntax = context.FindSyntaxNode(quote);
+                normalizedOk = context.TryCreateSourceSlice(quote, out normalizedSlice);
+                originalOk = context.TryCreateOriginalSourceSlice(quote, out originalSlice);
+                return "> source-aware";
+            }));
+
+        var rendered = document.ToMarkdown(options);
+
+        Assert.Contains("> source-aware", rendered, StringComparison.Ordinal);
+        Assert.Contains("Tail", rendered, StringComparison.Ordinal);
+        Assert.NotNull(seenSyntax);
+        Assert.Equal(MarkdownSyntaxKind.Quote, seenSyntax!.Kind);
+        Assert.True(normalizedOk);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, normalizedSlice.TextKind);
+        Assert.Equal("> Alpha\n> Beta", normalizedSlice.Text);
+        Assert.True(originalOk);
+        Assert.Equal(MarkdownSourceTextKind.Original, originalSlice.TextKind);
+        Assert.Equal("> Alpha\r\n> Beta", originalSlice.Text);
+    }
+
+    [Fact]
     public void Markdown_Block_Render_Extension_Legacy_Constructor_Still_Uses_Options_And_Applies() {
         var doc = MarkdownReader.Parse("""
 > [!NOTE] Example
