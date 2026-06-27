@@ -166,6 +166,7 @@ public static class PowerPointHtmlConverterExtensions {
         string rotation = shape.Rotation.HasValue && Math.Abs(shape.Rotation.Value) > 0.001D
             ? "transform:rotate(" + FormatNumber(shape.Rotation.Value) + "deg);"
             : string.Empty;
+        string textFlow = shape is PptCore.PowerPointTextBox ? "white-space:pre-wrap;" : string.Empty;
 
         body.Append("<div class=\"officeimo-shape")
             .Append(contentClass)
@@ -181,6 +182,7 @@ public static class PowerPointHtmlConverterExtensions {
             .Append(FormatNumber(height))
             .Append("pt;")
             .Append(rotation)
+            .Append(textFlow)
             .Append("\">");
 
         if (shape is PptCore.PowerPointTextBox textBox) {

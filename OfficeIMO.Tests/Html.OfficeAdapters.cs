@@ -787,6 +787,20 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void PowerPointHtml_VisualReviewPreservesPositionedTextBoxLineBreaks() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.AddTextBoxPoints("Agenda\n  Owner", 72, 96, 240, 60);
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
+        });
+
+        Assert.Contains("white-space:pre-wrap", html, StringComparison.Ordinal);
+        Assert.Contains("Agenda\n  Owner", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PowerPointHtml_CapabilityGalleryWritesSharedManifestForRichPresentation() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.Slides[0];

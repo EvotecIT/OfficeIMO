@@ -153,6 +153,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_DefaultPngExportDoesNotExpandRangeForUnsupportedImages() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("UnsupportedImage");
+            sheet.CellValue(1, 1, "Visible");
+            sheet.AddImage(12, 8, CreateMinimalJpegHeader(), "image/jpeg", widthPixels: 64, heightPixels: 32, name: "JpegOutside");
+
+            OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });
+            ExcelRangeVisualSnapshot snapshot = sheet.CreateVisualSnapshot(new ExcelWorksheetImageExportOptions { ShowGridlines = false });
+
+            Assert.Equal("UnsupportedImage!A1:A1", png.Source);
+            Assert.NotEqual("A1:A1", snapshot.Range);
+            Assert.Contains(snapshot.Images, image => image.Name == "JpegOutside" && image.DetectedFormat == OfficeImageFormat.Jpeg);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportEvaluatesConditionalFormattingForMergeOriginOutsideSelectedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -183,6 +199,26 @@ namespace OfficeIMO.Tests {
             OfficeRasterImage image = new OfficeRasterImage(width, height, OfficeColor.Transparent);
             image.Fill(color);
             return OfficePngWriter.Encode(image);
+        }
+
+        private static byte[] CreateMinimalJpegHeader() {
+            return new byte[] {
+                0xFF, 0xD8,
+                0xFF, 0xE0, 0x00, 0x10,
+                0x4A, 0x46, 0x49, 0x46, 0x00,
+                0x01, 0x01, 0x00,
+                0x00, 0x01, 0x00, 0x01,
+                0x00, 0x00,
+                0xFF, 0xC0, 0x00, 0x11,
+                0x08,
+                0x00, 0x01,
+                0x00, 0x01,
+                0x03,
+                0x01, 0x11, 0x00,
+                0x02, 0x11, 0x00,
+                0x03, 0x11, 0x00,
+                0xFF, 0xD9
+            };
         }
     }
 }
