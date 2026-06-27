@@ -501,7 +501,8 @@ public static partial class MarkdownReader {
 
                 if (canClose && !preferInnerBold) {
                     while (remaining > 0) {
-                        if (!TryCloseFrame(stack, marker, remaining, out int consumedClose)) break;
+                        var closingIndex = pos + (runLen - remaining);
+                        if (!TryCloseFrame(stack, marker, remaining, sourceMap, closingIndex, out int consumedClose)) break;
                         remaining -= consumedClose;
                     }
                 }

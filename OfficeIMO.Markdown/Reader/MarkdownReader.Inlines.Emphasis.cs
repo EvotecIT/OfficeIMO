@@ -25,7 +25,13 @@ public static partial class MarkdownReader {
         public int OpenIndex { get; }
     }
 
-    private static bool TryCloseFrame(Stack<InlineFrame> stack, char marker, int remaining, out int consumed) {
+    private static bool TryCloseFrame(
+        Stack<InlineFrame> stack,
+        char marker,
+        int remaining,
+        MarkdownInlineSourceMap? sourceMap,
+        int closingIndex,
+        out int consumed) {
         consumed = 0;
         if (stack == null || stack.Count <= 1) return false;
         var top = stack.Peek();
@@ -35,6 +41,7 @@ public static partial class MarkdownReader {
         if (top.Kind == FrameKind.Italic && remaining >= 1) {
             stack.Pop();
             var node = new ItalicSequenceInline(top.Seq);
+            SetFormattingMarkerSpans(node, sourceMap, marker, top.OpenIndex, top.OpenLen, closingIndex, 1);
             stack.Peek().Seq.AddRaw(node);
             consumed = 1;
             return true;
@@ -42,6 +49,7 @@ public static partial class MarkdownReader {
         if (top.Kind == FrameKind.Bold && remaining >= 2) {
             stack.Pop();
             var node = new BoldSequenceInline(top.Seq);
+            SetFormattingMarkerSpans(node, sourceMap, marker, top.OpenIndex, top.OpenLen, closingIndex, 2);
             stack.Peek().Seq.AddRaw(node);
             consumed = 2;
             return true;
@@ -49,6 +57,7 @@ public static partial class MarkdownReader {
         if (top.Kind == FrameKind.Strike && remaining == top.OpenLen) {
             stack.Pop();
             var node = new StrikethroughSequenceInline(top.Seq);
+            SetFormattingMarkerSpans(node, sourceMap, marker, top.OpenIndex, top.OpenLen, closingIndex, top.OpenLen);
             stack.Peek().Seq.AddRaw(node);
             consumed = top.OpenLen;
             return true;
@@ -56,11 +65,32 @@ public static partial class MarkdownReader {
         if (top.Kind == FrameKind.Highlight && remaining >= 2) {
             stack.Pop();
             var node = new HighlightSequenceInline(top.Seq);
+            SetFormattingMarkerSpans(node, sourceMap, marker, top.OpenIndex, top.OpenLen, closingIndex, 2);
             stack.Peek().Seq.AddRaw(node);
             consumed = 2;
             return true;
         }
         return false;
+    }
+
+    private static void SetFormattingMarkerSpans(
+        MarkdownInline inline,
+        MarkdownInlineSourceMap? sourceMap,
+        char marker,
+        int openingIndex,
+        int openingLength,
+        int closingIndex,
+        int closingLength) {
+        if (inline == null || sourceMap == null) {
+            return;
+        }
+
+        MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
+            inline,
+            openingLength > 0 ? new string(marker, openingLength) : string.Empty,
+            sourceMap.GetSpan(openingIndex, openingLength),
+            closingLength > 0 ? new string(marker, closingLength) : string.Empty,
+            sourceMap.GetSpan(closingIndex, closingLength));
     }
 
     private static bool ShouldTreatSingleMarkerAsLiteralInsideBold(string text, int start, char marker, int runLen, Stack<InlineFrame> stack) {

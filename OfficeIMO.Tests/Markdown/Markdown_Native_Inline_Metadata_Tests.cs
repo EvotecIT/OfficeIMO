@@ -5,6 +5,46 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class Markdown_Native_Inline_Metadata_Tests {
     [Fact]
+    public void Formatting_Marker_Metadata_Is_Source_Addressable_In_Nested_Native_Inlines_And_Snapshots() {
+        const string markdown = "Start **bold and _em_** end\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var strong = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Strong);
+        var emphasis = Assert.Single(strong.Children, inline => inline.Kind == MarkdownNativeInlineKind.Emphasis);
+
+        var strongOpening = Assert.Single(strong.Metadata, metadata => metadata.Name == "openingMarker");
+        var strongClosing = Assert.Single(strong.Metadata, metadata => metadata.Name == "closingMarker");
+        var emphasisOpening = Assert.Single(emphasis.Metadata, metadata => metadata.Name == "openingMarker");
+        var emphasisClosing = Assert.Single(emphasis.Metadata, metadata => metadata.Name == "closingMarker");
+
+        Assert.Equal("**", strongOpening.Value);
+        Assert.Equal("**", strongClosing.Value);
+        Assert.Equal("_", emphasisOpening.Value);
+        Assert.Equal("_", emphasisClosing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 8), strongOpening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 22, 1, 23), strongClosing.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 18, 1, 18), emphasisOpening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 21, 1, 21), emphasisClosing.SourceSpan);
+
+        var edited = native.CreateReplaceEdit(emphasisClosing, "*").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(emphasisOpening, "*").Apply(edited);
+        Assert.Equal("Start **bold and *em*** end\n", edited);
+
+        var snapshotStrong = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Strong);
+        var snapshotEmphasis = Assert.Single(snapshotStrong.Children, inline => inline.Kind == MarkdownNativeInlineKind.Emphasis);
+
+        Assert.Equal("**", snapshotStrong.Metadata["openingMarker"]);
+        Assert.Equal("**", snapshotStrong.Metadata["closingMarker"]);
+        Assert.Equal("_", snapshotEmphasis.Metadata["openingMarker"]);
+        Assert.Equal("_", snapshotEmphasis.Metadata["closingMarker"]);
+        Assert.Equal(7, snapshotStrong.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(23, snapshotStrong.MetadataSourceSpans["closingMarker"]!.EndColumn);
+        Assert.Equal(18, snapshotEmphasis.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(21, snapshotEmphasis.MetadataSourceSpans["closingMarker"]!.EndColumn);
+    }
+
+    [Fact]
     public void Linked_Image_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "Paragraph [![Alt](img.png \"Img\")](https://example.com \"Link title\").";
 

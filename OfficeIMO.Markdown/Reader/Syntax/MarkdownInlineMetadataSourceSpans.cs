@@ -33,11 +33,23 @@ internal static class MarkdownInlineMetadataSourceSpans {
         public new ImageLinkState? State;
     }
 
+    private sealed class FormattingMarkerState {
+        public string OpeningMarker = string.Empty;
+        public MarkdownSourceSpan? OpeningMarkerSpan;
+        public string ClosingMarker = string.Empty;
+        public MarkdownSourceSpan? ClosingMarkerSpan;
+    }
+
+    private sealed class FormattingMarkerHolder {
+        public FormattingMarkerState? State;
+    }
+
     // These tables hold weak references to markdown inline keys, so entries disappear when the
     // owning inline objects are no longer referenced by the parse result or callers.
     private static readonly ConditionalWeakTable<LinkInline, LinkHolder> _linkSpans = new();
     private static readonly ConditionalWeakTable<ImageInline, ImageHolder> _imageSpans = new();
     private static readonly ConditionalWeakTable<ImageLinkInline, ImageLinkHolder> _imageLinkSpans = new();
+    private static readonly ConditionalWeakTable<MarkdownInline, FormattingMarkerHolder> _formattingMarkerSpans = new();
 
     internal static void SetLinkParts(
         LinkInline? inline,
@@ -147,4 +159,42 @@ internal static class MarkdownInlineMetadataSourceSpans {
 
     internal static MarkdownSourceSpan? GetImageLinkTitleSpan(ImageLinkInline? inline) =>
         inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.State?.LinkTitleSpan : null;
+
+    internal static void SetFormattingMarkers(
+        MarkdownInline? inline,
+        string openingMarker,
+        MarkdownSourceSpan? openingMarkerSpan,
+        string closingMarker,
+        MarkdownSourceSpan? closingMarkerSpan) {
+        if (inline == null) {
+            return;
+        }
+
+        if (string.IsNullOrEmpty(openingMarker) &&
+            string.IsNullOrEmpty(closingMarker) &&
+            !openingMarkerSpan.HasValue &&
+            !closingMarkerSpan.HasValue) {
+            return;
+        }
+
+        var holder = _formattingMarkerSpans.GetValue(inline, static _ => new FormattingMarkerHolder());
+        holder.State = new FormattingMarkerState {
+            OpeningMarker = openingMarker ?? string.Empty,
+            OpeningMarkerSpan = openingMarkerSpan,
+            ClosingMarker = closingMarker ?? string.Empty,
+            ClosingMarkerSpan = closingMarkerSpan
+        };
+    }
+
+    internal static string? GetOpeningMarker(MarkdownInline? inline) =>
+        inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.OpeningMarker : null;
+
+    internal static MarkdownSourceSpan? GetOpeningMarkerSpan(MarkdownInline? inline) =>
+        inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.OpeningMarkerSpan : null;
+
+    internal static string? GetClosingMarker(MarkdownInline? inline) =>
+        inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.ClosingMarker : null;
+
+    internal static MarkdownSourceSpan? GetClosingMarkerSpan(MarkdownInline? inline) =>
+        inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.ClosingMarkerSpan : null;
 }
