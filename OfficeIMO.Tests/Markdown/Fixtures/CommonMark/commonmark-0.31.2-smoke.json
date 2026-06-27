@@ -1032,6 +1032,13 @@
     "html": "<blockquote>\n<blockquote>\n<blockquote>\n<p>foo\nbar\nbaz</p>\n</blockquote>\n</blockquote>\n</blockquote>\n"
   },
   {
+    "example": 253,
+    "section": "List items",
+    "topLevelKinds": ["Paragraph", "CodeBlock", "Quote"],
+    "markdown": "A paragraph\nwith two lines.\n\n    indented code\n\n> A block quote.\n",
+    "html": "<p>A paragraph\nwith two lines.</p>\n<pre><code>indented code\n</code></pre>\n<blockquote>\n<p>A block quote.</p>\n</blockquote>\n"
+  },
+  {
     "example": 254,
     "section": "List items",
     "topLevelKinds": ["OrderedList"],
@@ -1071,6 +1078,13 @@
     ]
   },
   {
+    "example": 255,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList", "Paragraph"],
+    "markdown": "- one\n\n two\n",
+    "html": "<ul>\n<li>one</li>\n</ul>\n<p>two</p>\n"
+  },
+  {
     "example": 256,
     "section": "List items",
     "topLevelKinds": ["UnorderedList"],
@@ -1102,6 +1116,48 @@
         "expectedNearestBlockSpan": { "startLine": 3, "startColumn": 7, "endLine": 3, "endColumn": 9 }
       }
     ]
+  },
+  {
+    "example": 261,
+    "section": "List items",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "-one\n\n2.two\n",
+    "html": "<p>-one</p>\n<p>2.two</p>\n"
+  },
+  {
+    "example": 265,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "123456789. ok\n",
+    "html": "<ol start=\"123456789\">\n<li>ok</li>\n</ol>\n"
+  },
+  {
+    "example": 266,
+    "section": "List items",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "1234567890. not ok\n",
+    "html": "<p>1234567890. not ok</p>\n"
+  },
+  {
+    "example": 267,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "0. ok\n",
+    "html": "<ol start=\"0\">\n<li>ok</li>\n</ol>\n"
+  },
+  {
+    "example": 268,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "003. ok\n",
+    "html": "<ol start=\"3\">\n<li>ok</li>\n</ol>\n"
+  },
+  {
+    "example": 269,
+    "section": "List items",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "-1. not ok\n",
+    "html": "<p>-1. not ok</p>\n"
   },
   {
     "example": 273,
@@ -1710,6 +1766,20 @@
         "expectedNearestBlockKind": "CodeBlock"
       }
     ]
+  },
+  {
+    "example": 322,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- a\n",
+    "html": "<ul>\n<li>a</li>\n</ul>\n"
+  },
+  {
+    "example": 323,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- a\n  - b\n",
+    "html": "<ul>\n<li>a\n<ul>\n<li>b</li>\n</ul>\n</li>\n</ul>\n"
   },
   {
     "example": 324,

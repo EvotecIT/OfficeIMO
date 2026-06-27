@@ -20,7 +20,7 @@ Current scoreboard:
 - compatibility matrix: `Docs/officeimo.markdown.compatibility-matrix.md`
 - lossless roundtrip design: `Docs/officeimo.markdown.lossless-roundtrip-design.md`
 - external parity baseline: Markdig `1.3.2`
-- standards smoke baseline: 172 CommonMark `0.31.2` fixtures, 33 cmark-gfm extension fixtures, and a focused upstream ignored-autolink crash regression
+- standards smoke baseline: 182 CommonMark `0.31.2` fixtures, 33 cmark-gfm extension fixtures, and a focused upstream ignored-autolink crash regression
 - package guardrail baseline: tests and benchmarks must keep the same Markdig package version
 
 ## Where We Are Strong
