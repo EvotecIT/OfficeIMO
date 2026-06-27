@@ -265,14 +265,33 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-    public void Footnote_Text_Is_Derived_From_Blocks_When_BlockContent_Is_Available() {
-        var paragraph = new ParagraphBlock(MarkdownReader.ParseInlineText("fresh value"));
-        var footnote = new FootnoteDefinitionBlock("1", "stale value", new IMarkdownBlock[] { paragraph }, syntaxChildren: null);
+        public void Footnote_Text_Is_Derived_From_Blocks_When_BlockContent_Is_Available() {
+            var paragraph = new ParagraphBlock(MarkdownReader.ParseInlineText("fresh value"));
+            var footnote = new FootnoteDefinitionBlock("1", "stale value", new IMarkdownBlock[] { paragraph }, syntaxChildren: null);
 
-        Assert.Equal("fresh value", footnote.Text);
-        Assert.Same(paragraph, Assert.Single(footnote.Blocks));
-        Assert.Same(paragraph, Assert.Single(footnote.ParagraphBlocks));
-        Assert.Same(paragraph.Inlines, Assert.Single(footnote.Paragraphs));
+            Assert.Equal("fresh value", footnote.Text);
+            Assert.Same(paragraph, Assert.Single(footnote.Blocks));
+            Assert.Same(paragraph, Assert.Single(footnote.ParagraphBlocks));
+            Assert.Same(paragraph.Inlines, Assert.Single(footnote.Paragraphs));
+        }
+
+        [Fact]
+        public void Footnote_Syntax_Rebuilds_When_Cached_Children_Do_Not_Match_Canonical_Blocks() {
+            var staleParagraph = new ParagraphBlock(MarkdownReader.ParseInlineText("stale value"));
+            var staleSyntax = ((ISyntaxMarkdownBlock)staleParagraph).BuildSyntaxNode(new MarkdownSourceSpan(1, 7, 1, 17));
+            var freshParagraph = new ParagraphBlock(MarkdownReader.ParseInlineText("fresh value"));
+            var footnote = new FootnoteDefinitionBlock(
+                "1",
+                "fallback value",
+                new IMarkdownBlock[] { freshParagraph },
+                new[] { staleSyntax });
+
+            var syntax = ((ISyntaxMarkdownBlock)footnote).BuildSyntaxNode(new MarkdownSourceSpan(1, 1, 1, 18));
+            var paragraphSyntax = Assert.Single(syntax.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
+
+            Assert.Same(freshParagraph, paragraphSyntax.AssociatedObject);
+            Assert.Equal("fresh value", paragraphSyntax.Literal);
+            Assert.DoesNotContain(syntax.Children, child => ReferenceEquals(child.AssociatedObject, staleParagraph));
+        }
     }
-}
 }
