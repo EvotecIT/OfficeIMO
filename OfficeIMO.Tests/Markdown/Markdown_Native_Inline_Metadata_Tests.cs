@@ -240,6 +240,54 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Inline_Image_Metadata_Preserves_Source_Title_And_Delimiter_Markers_For_Edits_And_Snapshots() {
+        const string markdown = "Look ![Alt](img.png \"Title\") now\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var image = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Image);
+        var alt = Assert.Single(image.Metadata, metadata => metadata.Name == "alt");
+        var source = Assert.Single(image.Metadata, metadata => metadata.Name == "source");
+        var title = Assert.Single(image.Metadata, metadata => metadata.Name == "imageTitle");
+        var opening = Assert.Single(image.Metadata, metadata => metadata.Name == "openingMarker");
+        var closing = Assert.Single(image.Metadata, metadata => metadata.Name == "closingMarker");
+
+        Assert.Equal("Alt", alt.Value);
+        Assert.Equal("img.png", source.Value);
+        Assert.Equal("Title", title.Value);
+        Assert.Equal("![", opening.Value);
+        Assert.Equal(")", closing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 10), alt.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 13, 1, 19), source.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 22, 1, 26), title.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 28, 1, 28), closing.SourceSpan);
+
+        Assert.Equal(
+            "Look ![Logo](img.png \"Title\") now\n",
+            native.CreateReplaceEdit(alt, "Logo").Apply(native.SourceMarkdown));
+        Assert.Equal(
+            "Look ![Alt](logo.svg \"Title\") now\n",
+            native.CreateReplaceEdit(source, "logo.svg").Apply(native.SourceMarkdown));
+        Assert.Equal(
+            "Look ![Alt](img.png \"Diagram\") now\n",
+            native.CreateReplaceEdit(title, "Diagram").Apply(native.SourceMarkdown));
+
+        var edited = native.CreateReplaceEdit(opening, "?[").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(closing, "]").Apply(edited);
+        Assert.Equal("Look ?[Alt](img.png \"Title\"] now\n", edited);
+
+        var snapshotImage = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Image);
+        Assert.Equal("Alt", snapshotImage.Metadata["alt"]);
+        Assert.Equal("img.png", snapshotImage.Metadata["source"]);
+        Assert.Equal("Title", snapshotImage.Metadata["imageTitle"]);
+        Assert.Equal("![", snapshotImage.Metadata["openingMarker"]);
+        Assert.Equal(")", snapshotImage.Metadata["closingMarker"]);
+        Assert.Equal(6, snapshotImage.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(28, snapshotImage.MetadataSourceSpans["closingMarker"]!.EndColumn);
+    }
+
+    [Fact]
     public void Linked_Image_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "Paragraph [![Alt](img.png \"Img\")](https://example.com \"Link title\").";
 

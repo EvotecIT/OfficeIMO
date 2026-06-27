@@ -95,6 +95,35 @@ public static partial class MarkdownReader {
                 ")",
                 sourceMap?.GetSpan(start + length - 1, 1));
         }
+        void AddInlineImageNode(
+            string alt,
+            string resolvedSource,
+            string? title,
+            string plainAlt,
+            int start,
+            int length,
+            int altStart,
+            int altLength,
+            int sourceStart,
+            int sourceLength,
+            int? titleStart,
+            int? titleLength) {
+            var image = new ImageInline(alt, resolvedSource, title, plainAlt);
+            AddRawNode(image, start, length);
+            MarkdownInlineMetadataSourceSpans.SetImageParts(
+                image,
+                sourceMap?.GetSpan(altStart, altLength),
+                sourceMap?.GetSpan(sourceStart, sourceLength),
+                titleStart.HasValue && titleLength.HasValue
+                    ? sourceMap?.GetSpan(titleStart.Value, titleLength.Value)
+                    : null);
+            MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
+                image,
+                "![",
+                sourceMap?.GetSpan(start, 2),
+                ")",
+                sourceMap?.GetSpan(start + length - 1, 1));
+        }
         InlineSequence ParseNestedInlineSegment(int relativeStart, int length, bool nestedAllowLinks, bool nestedAllowImages) {
             if (relativeStart < 0 || length <= 0 || relativeStart >= text.Length) {
                 return new InlineSequence();
@@ -372,15 +401,19 @@ public static partial class MarkdownReader {
                             AddTextNode(string.IsNullOrEmpty(altImg) ? "image" : ExtractImageAltPlainText(altImg, options, state), pos, consumedImg);
                         } else {
                             var plainAltImg = ExtractImageAltPlainText(altImg, options, state);
-                            var image = new ImageInline(altImg, srcResolved!, titleImg, plainAltImg);
-                            AddRawNode(image, pos, consumedImg);
-                            MarkdownInlineMetadataSourceSpans.SetImageParts(
-                                image,
-                                sourceMap?.GetSpan(altStartImg, altLengthImg),
-                                sourceMap?.GetSpan(srcStartImg, srcLengthImg),
-                                titleStartImg.HasValue && titleLengthImg.HasValue
-                                    ? sourceMap?.GetSpan(titleStartImg.Value, titleLengthImg.Value)
-                                    : null);
+                            AddInlineImageNode(
+                                altImg,
+                                srcResolved!,
+                                titleImg,
+                                plainAltImg,
+                                pos,
+                                consumedImg,
+                                altStartImg,
+                                altLengthImg,
+                                srcStartImg,
+                                srcLengthImg,
+                                titleStartImg,
+                                titleLengthImg);
                         }
                         pos += consumedImg; continue;
                     }
