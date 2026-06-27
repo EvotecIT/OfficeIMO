@@ -195,18 +195,9 @@ public sealed partial class TableBlock {
                 ? structuredCells[i]?.SourceSpan ?? rowSpan
                 : rowSpan;
 
-            IReadOnlyList<MarkdownSyntaxNode> children;
-            if (structuredCells != null && i < structuredCells.Count && structuredCells[i]?.SyntaxChildren != null && structuredCells[i]!.SyntaxChildren!.Count > 0) {
-                children = structuredCells[i]!.SyntaxChildren!;
-            } else if (structuredCells != null && i < structuredCells.Count && structuredCells[i] != null && structuredCells[i].Blocks.Count > 0) {
-                var blockNodes = new List<MarkdownSyntaxNode>(structuredCells[i].Blocks.Count);
-                for (int blockIndex = 0; blockIndex < structuredCells[i].Blocks.Count; blockIndex++) {
-                    blockNodes.Add(MarkdownBlockSyntaxBuilder.BuildBlock(structuredCells[i].Blocks[blockIndex]));
-                }
-                children = blockNodes;
-            } else {
-                children = Array.Empty<MarkdownSyntaxNode>();
-            }
+            IReadOnlyList<MarkdownSyntaxNode> children = structuredCells != null && i < structuredCells.Count && structuredCells[i] != null
+                ? MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(structuredCells[i]!)
+                : Array.Empty<MarkdownSyntaxNode>();
 
             nodes.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.TableCell,

@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Typed table cell containing one or more markdown blocks.
 /// </summary>
-public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer {
+public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock {
     private int _columnSpan = 1;
     private int _rowSpan = 1;
 
@@ -116,5 +116,15 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer {
         }
 
         return sb.ToString();
+    }
+
+    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
+
+    IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
+        if (SyntaxChildren != null && SyntaxChildren.Count > 0) {
+            return SyntaxChildren;
+        }
+
+        return MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(ChildBlocks);
     }
 }

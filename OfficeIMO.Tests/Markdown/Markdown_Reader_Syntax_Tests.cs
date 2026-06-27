@@ -3499,6 +3499,32 @@ Lead[^1]
     }
 
     [Fact]
+    public void TableCell_SyntaxChild_Owner_Interface_Uses_Parsed_Cell_SyntaxChildren() {
+        const string markdown = """
+| Section | Notes |
+| --- | --- |
+| Alpha | Intro<br><br>- first<br>- second |
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var table = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
+        var cell = table.GetCell(0, 1);
+
+        Assert.NotNull(cell);
+        var providedChildren = ((ISyntaxChildrenMarkdownBlock)cell!).ProvidedSyntaxChildren;
+        var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)cell).BuildOwnedSyntaxChildren();
+        var finalCell = result.FinalSyntaxTree.Children[0].Children[2].Children[1];
+
+        Assert.NotNull(providedChildren);
+        Assert.Equal(new[] { MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.UnorderedList }, providedChildren!.Select(child => child.Kind).ToArray());
+        Assert.Equal(providedChildren.Count, ownedChildren.Count);
+        Assert.Same(providedChildren[0], ownedChildren[0]);
+        Assert.Same(providedChildren[1], ownedChildren[1]);
+        Assert.Equal(ownedChildren.Select(child => child.Kind), finalCell.Children.Select(child => child.Kind));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void Document_Can_Enumerate_Descendant_Tables_And_Table_Cells() {
         var markdown = """
 > | Name | Value |

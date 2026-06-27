@@ -138,6 +138,7 @@ Recent progress:
 - details summaries now carry through to native summary field spans, with source-edit coverage for replacing the summary element without replacing the whole disclosure block
 - `DefinitionListBlock.ChildBlocks` now exposes the same structured definition body blocks already owned by `DefinitionListDefinition`, aligning definition lists with the public child-container shape used by other nested blocks
 - `TableCell.ChildBlocks` now exposes each cell body through the same child-container shape as tables, lists, definitions, footnotes, and other nested semantic blocks
+- parsed `TableCell` objects now expose their owned syntax children through the same generic syntax-child path used by other structured containers, so table syntax generation no longer needs a cell-specific syntax branch
 - definition lists now have a specialized native projection with grouped terms, definition bodies, nested child blocks, source spans, and snapshot DTOs instead of falling through the generic native `Other` block path
 - footnote definitions now expose `LabelSourceSpan` and have a specialized native projection with label metadata and nested body blocks instead of falling through the generic native `Other` block path
 - CommonMark thematic breaks now have a specialized native projection and snapshot shape instead of reporting horizontal rules as unsupported native blocks
