@@ -52,7 +52,8 @@ namespace OfficeIMO.Excel {
                     var sheetName = sheet.Name?.Value ?? $"Sheet{sheetIndex + 1}";
                     var readerSheet = reader.GetSheet(sheetName);
                     var typedValues = BuildTypedCellMap(readerSheet);
-                    var hyperlinkMap = ExcelWorksheetHyperlinkResolver.BuildMap(worksheetPart);
+                    string usedRangeA1 = readerSheet.GetUsedRangeA1();
+                    var hyperlinkMap = ExcelWorksheetHyperlinkResolver.BuildMap(worksheetPart, usedRangeA1);
                     var commentMap = ExcelWorksheetCommentResolver.BuildLegacyCommentMap(worksheetPart);
                     var threadedCommentMap = ExcelWorksheetCommentResolver.BuildThreadedCommentMap(worksheetPart, threadedCommentPeople, sheetName);
 
@@ -74,7 +75,7 @@ namespace OfficeIMO.Excel {
                         TabColorArgb = ExcelThemeColorResolver.Resolve(worksheet.GetFirstChild<SheetProperties>()?.TabColor, workbookPart),
                         OutlineSummaryBelow = outlineProperties?.SummaryBelow?.Value,
                         OutlineSummaryRight = outlineProperties?.SummaryRight?.Value,
-                        UsedRangeA1 = readerSheet.GetUsedRangeA1(),
+                        UsedRangeA1 = usedRangeA1,
                     };
 
                     var pane = sheetView?.GetFirstChild<Pane>();

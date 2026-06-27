@@ -4,6 +4,19 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel.Utilities {
     internal static class ExcelWorksheetHyperlinkResolver {
         internal static Dictionary<string, ExcelHyperlinkSnapshot> BuildMap(WorksheetPart worksheetPart) {
+            return BuildMap(worksheetPart, 1, 1, A1.MaxRows, A1.MaxColumns);
+        }
+
+        internal static Dictionary<string, ExcelHyperlinkSnapshot> BuildMap(WorksheetPart worksheetPart, string? boundsRangeA1) {
+            if (!string.IsNullOrWhiteSpace(boundsRangeA1) &&
+                A1.TryParseRange(boundsRangeA1!, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                return BuildMap(worksheetPart, firstRow, firstColumn, lastRow, lastColumn);
+            }
+
+            return BuildMap(worksheetPart);
+        }
+
+        internal static Dictionary<string, ExcelHyperlinkSnapshot> BuildMap(WorksheetPart worksheetPart, int firstBoundRow, int firstBoundColumn, int lastBoundRow, int lastBoundColumn) {
             if (worksheetPart == null) {
                 throw new ArgumentNullException(nameof(worksheetPart));
             }
@@ -30,7 +43,7 @@ namespace OfficeIMO.Excel.Utilities {
                     continue;
                 }
 
-                AddReference(map, reference!, snapshot);
+                AddReference(map, reference!, snapshot, firstBoundRow, firstBoundColumn, lastBoundRow, lastBoundColumn);
             }
 
             return map;
@@ -58,9 +71,24 @@ namespace OfficeIMO.Excel.Utilities {
             };
         }
 
-        private static void AddReference(Dictionary<string, ExcelHyperlinkSnapshot> map, string reference, ExcelHyperlinkSnapshot hyperlink) {
+        private static void AddReference(
+            Dictionary<string, ExcelHyperlinkSnapshot> map,
+            string reference,
+            ExcelHyperlinkSnapshot hyperlink,
+            int firstBoundRow,
+            int firstBoundColumn,
+            int lastBoundRow,
+            int lastBoundColumn) {
             string normalized = reference.Trim().Replace("$", string.Empty);
             if (A1.TryParseRange(normalized, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                firstRow = Math.Max(firstRow, Math.Max(1, firstBoundRow));
+                firstColumn = Math.Max(firstColumn, Math.Max(1, firstBoundColumn));
+                lastRow = Math.Min(lastRow, Math.Min(A1.MaxRows, lastBoundRow));
+                lastColumn = Math.Min(lastColumn, Math.Min(A1.MaxColumns, lastBoundColumn));
+                if (firstRow > lastRow || firstColumn > lastColumn) {
+                    return;
+                }
+
                 for (int row = firstRow; row <= lastRow; row++) {
                     for (int column = firstColumn; column <= lastColumn; column++) {
                         map[A1.CellReference(row, column)] = hyperlink;
@@ -71,7 +99,10 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             (int singleRow, int singleColumn) = A1.ParseCellRef(normalized);
-            if (singleRow > 0 && singleColumn > 0) {
+            if (singleRow >= firstBoundRow &&
+                singleRow <= lastBoundRow &&
+                singleColumn >= firstBoundColumn &&
+                singleColumn <= lastBoundColumn) {
                 map[A1.CellReference(singleRow, singleColumn)] = hyperlink;
             }
         }

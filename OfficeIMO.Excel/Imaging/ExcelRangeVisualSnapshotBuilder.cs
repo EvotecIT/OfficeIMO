@@ -98,7 +98,14 @@ namespace OfficeIMO.Excel {
             }
 
             var cells = new List<ExcelVisualCell>();
-            Dictionary<string, ExcelHyperlinkSnapshot> hyperlinkMap = ExcelWorksheetHyperlinkResolver.BuildMap(sheet.WorksheetPart);
+            Dictionary<string, ExcelHyperlinkSnapshot> hyperlinkMap = rows.Count > 0 && columns.Count > 0
+                ? ExcelWorksheetHyperlinkResolver.BuildMap(
+                    sheet.WorksheetPart,
+                    rows.Min(row => row.Index),
+                    columns.Min(column => column.Index),
+                    rows.Max(row => row.Index),
+                    columns.Max(column => column.Index))
+                : new Dictionary<string, ExcelHyperlinkSnapshot>(StringComparer.OrdinalIgnoreCase);
             foreach (ExcelVisualRow row in rows) {
                 foreach (ExcelVisualColumn column in columns) {
                     string key = Key(row.Index, column.Index);
