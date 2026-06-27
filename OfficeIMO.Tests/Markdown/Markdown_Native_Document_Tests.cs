@@ -688,6 +688,35 @@ After
     }
 
     [Fact]
+    public void Parse_Projects_Empty_Table_Cell_SourceSpans_Into_Native_Snapshots_And_Edits() {
+        var markdown = """
+| Name |  |
+| --- | --- |
+| One |  |
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+
+        var table = Assert.IsType<MarkdownNativeTableBlock>(Assert.Single(native.Blocks));
+        var headerEmpty = table.HeaderCells[1];
+        var bodyEmpty = table.Rows[0][1];
+
+        Assert.Equal(string.Empty, headerEmpty.Text);
+        Assert.Equal(string.Empty, bodyEmpty.Text);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 10), headerEmpty.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 8, 3, 9), bodyEmpty.SourceSpan);
+
+        var snapshot = native.ToSnapshot().Blocks[0];
+        Assert.Equal(9, snapshot.HeaderCells[1].SourceSpan!.StartColumn);
+        Assert.Equal(10, snapshot.HeaderCells[1].SourceSpan!.EndColumn);
+        Assert.Equal(8, snapshot.Rows[0][1].SourceSpan!.StartColumn);
+        Assert.Equal(9, snapshot.Rows[0][1].SourceSpan!.EndColumn);
+
+        var edited = native.CreateReplaceEdit(bodyEmpty.SourceSpan!.Value, " 2 ").Apply(native.SourceMarkdown);
+        Assert.Equal("| One | 2 |", edited.Split('\n')[2]);
+    }
+
+    [Fact]
     public void Parse_Projects_Structured_Table_Cell_Blocks_As_Native_Children() {
         var markdown = """
 | Name | Detail |

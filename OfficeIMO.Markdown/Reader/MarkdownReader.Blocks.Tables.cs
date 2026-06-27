@@ -231,7 +231,9 @@ public static partial class MarkdownReader {
 
     private static TableCell BuildTableCell(TableCellSourceFragment cell, MarkdownReaderOptions options, MarkdownReaderState state) {
         if (string.IsNullOrEmpty(cell.Markdown)) {
-            return new TableCell();
+            return new TableCell() {
+                SourceSpan = cell.SourceSpan
+            };
         }
 
         var structuredCell = TryParseStructuredTableCellBlocks(cell, options, state);
@@ -413,12 +415,13 @@ public static partial class MarkdownReader {
             trimmedEndExclusive--;
         }
 
-        string markdown = trimmedStart < trimmedEndExclusive
+        bool hasContent = trimmedStart < trimmedEndExclusive;
+        string markdown = hasContent
             ? line.Substring(trimmedStart, trimmedEndExclusive - trimmedStart)
             : string.Empty;
         string text = UnescapeBackslashEscapesOutsideCodeSpans(markdown);
-        int startColumn = trimmedStart + 1;
-        int endColumn = trimmedStart < trimmedEndExclusive ? trimmedEndExclusive : startColumn;
+        int startColumn = hasContent ? trimmedStart + 1 : segmentStart + 1;
+        int endColumn = hasContent ? trimmedEndExclusive : Math.Max(startColumn, segmentEndExclusive);
         var span = CreateSpan(state, absoluteLine, startColumn, absoluteLine, endColumn);
         return new TableCellSourceFragment(markdown, text, span);
     }

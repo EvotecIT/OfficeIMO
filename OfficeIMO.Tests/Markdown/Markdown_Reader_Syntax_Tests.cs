@@ -3252,6 +3252,35 @@ Lead[^1]
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Empty_Table_Cell_SourceSpans_And_Semantic_Owners() {
+        var markdown = """
+| Name |  |
+| --- | --- |
+| One |  |
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var tableBlock = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
+        var tableSyntax = Assert.Single(result.SyntaxTree.Children);
+
+        var headerEmptySyntax = tableSyntax.Children[0].Children[1];
+        var bodyEmptySyntax = tableSyntax.Children[2].Children[1];
+        var headerEmptyCell = tableBlock.GetHeaderCell(1);
+        var bodyEmptyCell = tableBlock.GetCell(0, 1);
+
+        Assert.NotNull(headerEmptyCell);
+        Assert.NotNull(bodyEmptyCell);
+        Assert.Same(headerEmptyCell, headerEmptySyntax.AssociatedObject);
+        Assert.Same(bodyEmptyCell, bodyEmptySyntax.AssociatedObject);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 10), headerEmptySyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 10), headerEmptyCell!.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 8, 3, 9), bodyEmptySyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 8, 3, 9), bodyEmptyCell!.SourceSpan);
+
+        Assert.Equal(MarkdownSyntaxKind.TableCell, result.FindDeepestNodeAtPosition(3, 8)!.Kind);
+    }
+
+    [Fact]
     public void Table_Cells_Expose_Row_Column_Metadata_And_Targeted_Accessors() {
         var markdown = """
 | Name | Value |
