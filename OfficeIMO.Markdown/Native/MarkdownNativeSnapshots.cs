@@ -71,6 +71,7 @@ public sealed class MarkdownNativeBlockSnapshot {
     internal MarkdownNativeBlockSnapshot() {
         Fields = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         FieldSourceSpans = new Dictionary<string, MarkdownNativeSourceSpanSnapshot?>(StringComparer.OrdinalIgnoreCase);
+        SourceFields = Array.Empty<MarkdownNativeBlockSourceFieldSnapshot>();
         MarkerSourceSpans = Array.Empty<MarkdownNativeSourceSpanSnapshot>();
         Inlines = Array.Empty<MarkdownNativeInlineSnapshot>();
         Children = Array.Empty<MarkdownNativeBlockSnapshot>();
@@ -101,6 +102,9 @@ public sealed class MarkdownNativeBlockSnapshot {
     /// <summary>Source spans for block-specific metadata fields when available.</summary>
     public IReadOnlyDictionary<string, MarkdownNativeSourceSpanSnapshot?> FieldSourceSpans { get; internal set; }
 
+    /// <summary>Source-backed token and payload fields in source order, including repeated fields.</summary>
+    public IReadOnlyList<MarkdownNativeBlockSourceFieldSnapshot> SourceFields { get; internal set; }
+
     /// <summary>Source spans for repeated marker tokens owned by this block, such as blockquote markers.</summary>
     public IReadOnlyList<MarkdownNativeSourceSpanSnapshot> MarkerSourceSpans { get; internal set; }
 
@@ -121,6 +125,30 @@ public sealed class MarkdownNativeBlockSnapshot {
 
     /// <summary>Table body row snapshots.</summary>
     public IReadOnlyList<IReadOnlyList<MarkdownNativeTableCellSnapshot>> Rows { get; internal set; }
+}
+
+/// <summary>
+/// UI-safe snapshot of a source-backed token or payload field owned by a native block.
+/// </summary>
+public sealed class MarkdownNativeBlockSourceFieldSnapshot {
+    internal MarkdownNativeBlockSourceFieldSnapshot(MarkdownNativeBlockSourceField field) {
+        Name = field.Name;
+        Value = field.Value;
+        SourceSpan = new MarkdownNativeSourceSpanSnapshot(field.SourceSpan);
+        Index = field.Index;
+    }
+
+    /// <summary>Stable field name such as <c>level</c>, <c>infoString</c>, or <c>quoteMarker</c>.</summary>
+    public string Name { get; }
+
+    /// <summary>Semantic value represented by the field when one is available.</summary>
+    public string? Value { get; }
+
+    /// <summary>Source span for this field.</summary>
+    public MarkdownNativeSourceSpanSnapshot SourceSpan { get; }
+
+    /// <summary>Zero-based occurrence index for repeated fields, or <c>-1</c> for singular fields.</summary>
+    public int Index { get; }
 }
 
 /// <summary>

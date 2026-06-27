@@ -43,7 +43,7 @@ public sealed partial class MarkdownNativeDocument {
         return CreateReplaceEdit(field.SourceSpan, replacementMarkdown);
     }
 
-    private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateBlockSourceFields(MarkdownNativeBlock block) {
+    internal static IEnumerable<MarkdownNativeBlockSourceField> EnumerateBlockSourceFields(MarkdownNativeBlock block) {
         switch (block) {
             case MarkdownNativeHeadingBlock heading:
                 foreach (var field in EnumerateHeadingFields(heading)) {

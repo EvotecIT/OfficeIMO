@@ -156,6 +156,7 @@ Recent progress:
 - native inline metadata coverage now proves link target/title, image alt/source/title, and linked-image alt/source/image-title/link-target/link-title tokens carry source spans into snapshots and can be source-edited without replacing the surrounding paragraph
 - native document navigation now enumerates source-backed inline metadata leaves and resolves metadata by caret position, so editor hosts can directly target link, image, footnote-reference, autolink, and inline-token spans
 - native block source fields now provide first-class enumeration, name filtering, caret-position lookup, and source-edit targets over heading, fence, quote-marker, callout, details, footnote, table-alignment, and thematic-break token spans
+- native block snapshots now expose the same source-backed block fields through a repeat-aware `SourceFields` list, so serialized host projections can target the same tokens as live navigation APIs
 
 ## Recommended Phases
 

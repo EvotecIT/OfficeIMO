@@ -150,6 +150,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 break;
         }
 
+        snapshot.SourceFields = FromSourceFields(block);
         return snapshot;
     }
 
@@ -333,6 +334,20 @@ internal static class MarkdownNativeSnapshotFactory {
         var snapshots = new List<MarkdownNativeSourceSpanSnapshot>(spans.Count);
         for (var i = 0; i < spans.Count; i++) {
             snapshots.Add(new MarkdownNativeSourceSpanSnapshot(spans[i]));
+        }
+
+        return snapshots;
+    }
+
+    private static IReadOnlyList<MarkdownNativeBlockSourceFieldSnapshot> FromSourceFields(MarkdownNativeBlock block) {
+        var fields = MarkdownNativeDocument.EnumerateBlockSourceFields(block).ToArray();
+        if (fields.Length == 0) {
+            return Array.Empty<MarkdownNativeBlockSourceFieldSnapshot>();
+        }
+
+        var snapshots = new List<MarkdownNativeBlockSourceFieldSnapshot>(fields.Length);
+        for (var i = 0; i < fields.Length; i++) {
+            snapshots.Add(new MarkdownNativeBlockSourceFieldSnapshot(fields[i]));
         }
 
         return snapshots;
