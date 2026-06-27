@@ -80,25 +80,13 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
-        if (SyntaxChildren != null
-            && SyntaxChildren.Count > 0
-            && MarkdownBlockSyntaxBuilder.ChildSyntaxNodesMatchBlocks(SyntaxChildren, ChildBlocks)) {
-            var nodesWithSummary = new List<MarkdownSyntaxNode>();
-            if (Summary != null) {
-                nodesWithSummary.Add(MarkdownBlockSyntaxBuilder.BuildBlock(Summary));
-            }
-            for (int i = 0; i < SyntaxChildren.Count; i++) {
-                nodesWithSummary.Add(SyntaxChildren[i]);
-            }
-            return nodesWithSummary;
-        }
-
         var nodes = new List<MarkdownSyntaxNode>();
         if (Summary != null) {
             nodes.Add(MarkdownBlockSyntaxBuilder.BuildBlock(Summary));
         }
-        for (int i = 0; i < ChildBlocks.Count; i++) {
-            nodes.Add(MarkdownBlockSyntaxBuilder.BuildBlock(ChildBlocks[i]));
+        var bodyChildren = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, ChildBlocks);
+        for (int i = 0; i < bodyChildren.Count; i++) {
+            nodes.Add(bodyChildren[i]);
         }
         return nodes;
     }

@@ -2366,6 +2366,29 @@ See ![Badge][hero]
     }
 
     [Fact]
+    public void QuoteBlock_SyntaxChild_Owner_Interface_Drops_Stale_Cached_Children_After_Public_Projection_Changes() {
+        var result = MarkdownReader.ParseWithSyntaxTree("""
+> intro
+>
+> - first
+""");
+
+        var quoteBlock = Assert.IsType<QuoteBlock>(Assert.Single(result.Document.Blocks));
+        var listBlock = Assert.IsType<UnorderedListBlock>(quoteBlock.Children[1]);
+        var providedChildren = ((ISyntaxChildrenMarkdownBlock)quoteBlock).ProvidedSyntaxChildren;
+        var originalListSyntax = Assert.Single(providedChildren!, child => child.Kind == MarkdownSyntaxKind.UnorderedList);
+
+        quoteBlock.Children.RemoveAt(0);
+
+        var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)quoteBlock).BuildOwnedSyntaxChildren();
+
+        Assert.Equal(new[] { MarkdownSyntaxKind.UnorderedList }, ownedChildren.Select(child => child.Kind).ToArray());
+        Assert.Same(listBlock, ownedChildren[0].AssociatedObject);
+        Assert.Equal(originalListSyntax.SourceSpan, ownedChildren[0].SourceSpan);
+        Assert.DoesNotContain(ownedChildren, child => child.Kind == MarkdownSyntaxKind.Paragraph && child.Literal == "intro");
+    }
+
+    [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Rebuilds_Final_Quote_Syntax_After_Nested_Transform() {
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
@@ -3081,6 +3104,34 @@ original
     }
 
     [Fact]
+    public void DetailsBlock_SyntaxChild_Owner_Interface_Drops_Stale_Cached_Children_After_Public_Projection_Changes() {
+        var result = MarkdownReader.ParseWithSyntaxTree("""
+<details>
+<summary>Summary</summary>
+
+intro
+
+- first
+</details>
+""");
+
+        var detailsBlock = Assert.IsType<DetailsBlock>(Assert.Single(result.Document.Blocks));
+        var listBlock = Assert.IsType<UnorderedListBlock>(detailsBlock.Children[1]);
+        var providedChildren = ((ISyntaxChildrenMarkdownBlock)detailsBlock).ProvidedSyntaxChildren;
+        var originalListSyntax = Assert.Single(providedChildren!, child => child.Kind == MarkdownSyntaxKind.UnorderedList);
+
+        detailsBlock.Children.RemoveAt(0);
+
+        var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)detailsBlock).BuildOwnedSyntaxChildren();
+
+        Assert.Equal(new[] { MarkdownSyntaxKind.Summary, MarkdownSyntaxKind.UnorderedList }, ownedChildren.Select(child => child.Kind).ToArray());
+        Assert.Same(detailsBlock.Summary, ownedChildren[0].AssociatedObject);
+        Assert.Same(listBlock, ownedChildren[1].AssociatedObject);
+        Assert.Equal(originalListSyntax.SourceSpan, ownedChildren[1].SourceSpan);
+        Assert.DoesNotContain(ownedChildren, child => child.Kind == MarkdownSyntaxKind.Paragraph && child.Literal == "intro");
+    }
+
+    [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Absolute_SourceSpans_On_Rewritten_Nested_Details_Blocks() {
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
@@ -3754,8 +3805,12 @@ Lead[^1]
         Assert.NotNull(providedChildren);
         Assert.Equal(new[] { MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.UnorderedList }, providedChildren!.Select(child => child.Kind).ToArray());
         Assert.Equal(providedChildren.Count, ownedChildren.Count);
-        Assert.Same(providedChildren[0], ownedChildren[0]);
-        Assert.Same(providedChildren[1], ownedChildren[1]);
+        Assert.NotSame(providedChildren[0], ownedChildren[0]);
+        Assert.NotSame(providedChildren[1], ownedChildren[1]);
+        Assert.Equal(providedChildren[0].SourceSpan, ownedChildren[0].SourceSpan);
+        Assert.Equal(providedChildren[1].SourceSpan, ownedChildren[1].SourceSpan);
+        Assert.Same(cell.Blocks[0], ownedChildren[0].AssociatedObject);
+        Assert.Same(cell.Blocks[1], ownedChildren[1].AssociatedObject);
         Assert.Equal(ownedChildren.Select(child => child.Kind), finalCell.Children.Select(child => child.Kind));
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
@@ -3793,6 +3848,33 @@ Lead[^1]
         Assert.Same(replacement, rebuiltParagraph.AssociatedObject);
         Assert.Equal("Replacement", rebuiltParagraph.Literal);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(rebuiltSyntaxTree);
+    }
+
+    [Fact]
+    public void TableCell_SyntaxChild_Owner_Interface_Drops_Stale_Cached_Children_After_Public_Projection_Changes() {
+        const string markdown = """
+| Section | Notes |
+| --- | --- |
+| Alpha | Intro<br><br>- first |
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var table = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
+        var cell = table.GetCell(0, 1);
+
+        Assert.NotNull(cell);
+        var listBlock = Assert.IsType<UnorderedListBlock>(cell!.Blocks[1]);
+        var providedChildren = ((ISyntaxChildrenMarkdownBlock)cell).ProvidedSyntaxChildren;
+        var originalListSyntax = Assert.Single(providedChildren!, child => child.Kind == MarkdownSyntaxKind.UnorderedList);
+
+        cell.Blocks.RemoveAt(0);
+
+        var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)cell).BuildOwnedSyntaxChildren();
+
+        Assert.Equal(new[] { MarkdownSyntaxKind.UnorderedList }, ownedChildren.Select(child => child.Kind).ToArray());
+        Assert.Same(listBlock, ownedChildren[0].AssociatedObject);
+        Assert.Equal(originalListSyntax.SourceSpan, ownedChildren[0].SourceSpan);
+        Assert.DoesNotContain(ownedChildren, child => child.Kind == MarkdownSyntaxKind.Paragraph && child.Literal == "Intro");
     }
 
     [Fact]

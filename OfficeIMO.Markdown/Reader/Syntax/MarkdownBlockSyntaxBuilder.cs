@@ -67,6 +67,35 @@ internal static class MarkdownBlockSyntaxBuilder {
         return true;
     }
 
+    internal static IReadOnlyList<MarkdownSyntaxNode> BuildCanonicalChildSyntaxNodes(
+        IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren,
+        IReadOnlyList<IMarkdownBlock> blocks) {
+        if (blocks == null || blocks.Count == 0) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        var children = new List<MarkdownSyntaxNode>(blocks.Count);
+        for (int i = 0; i < blocks.Count; i++) {
+            var block = blocks[i];
+            if (block == null) {
+                continue;
+            }
+
+            var cachedSyntax = FindCanonicalSyntaxChild(syntaxChildren, block, i);
+            if (cachedSyntax != null &&
+                IsSyntaxChildForBlock(cachedSyntax, block) &&
+                cachedSyntax.AssociatedObject is MarkdownObject markdownObject &&
+                markdownObject.Document != null) {
+                children.Add(CloneSyntaxNode(cachedSyntax));
+                continue;
+            }
+
+            children.Add(BuildBlock(block, cachedSyntax?.SourceSpan));
+        }
+
+        return children;
+    }
+
     internal static IReadOnlyList<MarkdownSyntaxNode> GetOwnedSyntaxChildrenOrBuild(IChildMarkdownBlockContainer block) {
         if (block is IOwnedSyntaxChildrenMarkdownBlock ownedSyntaxChildren) {
             return ownedSyntaxChildren.BuildOwnedSyntaxChildren();
@@ -79,6 +108,88 @@ internal static class MarkdownBlockSyntaxBuilder {
         }
 
         return BuildChildSyntaxNodes(block.ChildBlocks);
+    }
+
+    private static MarkdownSyntaxNode? FindCanonicalSyntaxChild(
+        IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren,
+        IMarkdownBlock block,
+        int preferredIndex) {
+        if (syntaxChildren == null || syntaxChildren.Count == 0) {
+            return null;
+        }
+
+        var preferredSyntax = GetSyntaxChildOrNull(syntaxChildren, preferredIndex);
+        if (IsSyntaxChildForBlock(preferredSyntax, block)) {
+            return preferredSyntax;
+        }
+
+        for (int i = 0; i < syntaxChildren.Count; i++) {
+            if (IsSyntaxChildForBlock(syntaxChildren[i], block)) {
+                return syntaxChildren[i];
+            }
+        }
+
+        if (IsSyntaxChildCompatibleWithBlock(preferredSyntax, block)) {
+            return preferredSyntax;
+        }
+
+        for (int i = 0; i < syntaxChildren.Count; i++) {
+            if (IsSyntaxChildCompatibleWithBlock(syntaxChildren[i], block)) {
+                return syntaxChildren[i];
+            }
+        }
+
+        return null;
+    }
+
+    private static MarkdownSyntaxNode? GetSyntaxChildOrNull(IReadOnlyList<MarkdownSyntaxNode> syntaxChildren, int index) =>
+        index >= 0 && index < syntaxChildren.Count ? syntaxChildren[index] : null;
+
+    private static bool IsSyntaxChildForBlock(MarkdownSyntaxNode? syntaxNode, IMarkdownBlock block) =>
+        syntaxNode?.AssociatedObject != null && ReferenceEquals(syntaxNode.AssociatedObject, block);
+
+    private static MarkdownSyntaxNode CloneSyntaxNode(MarkdownSyntaxNode node) {
+        var children = node.Children.Count == 0
+            ? Array.Empty<MarkdownSyntaxNode>()
+            : node.Children.Select(CloneSyntaxNode).ToArray();
+
+        return new MarkdownSyntaxNode(
+            node.Kind,
+            node.SourceSpan,
+            node.Literal,
+            children,
+            node.AssociatedObject,
+            node.CustomKind);
+    }
+
+    private static bool IsSyntaxChildCompatibleWithBlock(MarkdownSyntaxNode? syntaxNode, IMarkdownBlock block) {
+        if (syntaxNode == null) {
+            return false;
+        }
+
+        return block switch {
+            ParagraphBlock => syntaxNode.Kind == MarkdownSyntaxKind.Paragraph,
+            HeadingBlock => syntaxNode.Kind == MarkdownSyntaxKind.Heading,
+            QuoteBlock => syntaxNode.Kind == MarkdownSyntaxKind.Quote,
+            UnorderedListBlock => syntaxNode.Kind == MarkdownSyntaxKind.UnorderedList,
+            OrderedListBlock => syntaxNode.Kind == MarkdownSyntaxKind.OrderedList,
+            CodeBlock => syntaxNode.Kind == MarkdownSyntaxKind.CodeBlock,
+            SemanticFencedBlock => syntaxNode.Kind == MarkdownSyntaxKind.SemanticFencedBlock,
+            TableBlock => syntaxNode.Kind == MarkdownSyntaxKind.Table,
+            HorizontalRuleBlock => syntaxNode.Kind == MarkdownSyntaxKind.HorizontalRule,
+            ImageBlock => syntaxNode.Kind == MarkdownSyntaxKind.Image,
+            CalloutBlock => syntaxNode.Kind == MarkdownSyntaxKind.Callout,
+            DefinitionListBlock => syntaxNode.Kind == MarkdownSyntaxKind.DefinitionList,
+            FootnoteDefinitionBlock => syntaxNode.Kind == MarkdownSyntaxKind.FootnoteDefinition,
+            DetailsBlock => syntaxNode.Kind == MarkdownSyntaxKind.Details,
+            SummaryBlock => syntaxNode.Kind == MarkdownSyntaxKind.Summary,
+            FrontMatterBlock => syntaxNode.Kind == MarkdownSyntaxKind.FrontMatter,
+            HtmlRawBlock => syntaxNode.Kind == MarkdownSyntaxKind.HtmlRaw,
+            HtmlCommentBlock => syntaxNode.Kind == MarkdownSyntaxKind.HtmlComment,
+            TocBlock => syntaxNode.Kind == MarkdownSyntaxKind.Toc,
+            TocMarkerBlock => syntaxNode.Kind == MarkdownSyntaxKind.Toc,
+            _ => false
+        };
     }
 
     internal static string NormalizeSyntaxLiteralLineEndings(string? value) {

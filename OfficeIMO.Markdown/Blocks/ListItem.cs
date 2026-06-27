@@ -262,103 +262,12 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() => BuildOwnedSyntaxChildren();
 
     private List<MarkdownSyntaxNode> BuildOwnedSyntaxChildren() {
-        var children = new List<MarkdownSyntaxNode>();
         var blockChildren = BlockChildren;
         if (SyntaxChildren.Count > 0) {
-            for (int i = 0; i < blockChildren.Count; i++) {
-                var block = blockChildren[i];
-                var cachedSyntax = FindSyntaxChildForBlock(block, i);
-                if (block is ParagraphBlock paragraph) {
-                    children.Add(BuildParagraphSyntaxNode(paragraph, cachedSyntax?.SourceSpan));
-                    continue;
-                }
-
-                if (cachedSyntax != null &&
-                    cachedSyntax.AssociatedObject is MarkdownObject markdownObject &&
-                    ReferenceEquals(markdownObject, block) &&
-                    markdownObject.Document != null) {
-                    children.Add(cachedSyntax);
-                    continue;
-                }
-
-                children.Add(MarkdownBlockSyntaxBuilder.BuildBlock(block, cachedSyntax?.SourceSpan));
-            }
-            return children;
+            return MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, blockChildren).ToList();
         }
 
-        for (int i = 0; i < blockChildren.Count; i++) {
-            if (blockChildren[i] is ParagraphBlock paragraph) {
-                children.Add(BuildParagraphSyntaxNode(paragraph));
-            } else {
-                children.Add(MarkdownBlockSyntaxBuilder.BuildBlock(blockChildren[i]));
-            }
-        }
-
-        return children;
-    }
-
-    private MarkdownSyntaxNode? FindSyntaxChildForBlock(IMarkdownBlock block, int preferredIndex) {
-        if (block == null || SyntaxChildren.Count == 0) {
-            return null;
-        }
-
-        var preferredSyntax = GetSyntaxChildOrNull(preferredIndex);
-        if (IsSyntaxChildForBlock(preferredSyntax, block)) {
-            return preferredSyntax;
-        }
-
-        for (int i = 0; i < SyntaxChildren.Count; i++) {
-            if (IsSyntaxChildForBlock(SyntaxChildren[i], block)) {
-                return SyntaxChildren[i];
-            }
-        }
-
-        if (IsSyntaxChildCompatibleWithBlock(preferredSyntax, block)) {
-            return preferredSyntax;
-        }
-
-        for (int i = 0; i < SyntaxChildren.Count; i++) {
-            if (IsSyntaxChildCompatibleWithBlock(SyntaxChildren[i], block)) {
-                return SyntaxChildren[i];
-            }
-        }
-
-        return null;
-    }
-
-    private MarkdownSyntaxNode? GetSyntaxChildOrNull(int index) =>
-        index >= 0 && index < SyntaxChildren.Count ? SyntaxChildren[index] : null;
-
-    private static bool IsSyntaxChildForBlock(MarkdownSyntaxNode? syntaxNode, IMarkdownBlock block) =>
-        syntaxNode?.AssociatedObject != null && ReferenceEquals(syntaxNode.AssociatedObject, block);
-
-    private static bool IsSyntaxChildCompatibleWithBlock(MarkdownSyntaxNode? syntaxNode, IMarkdownBlock block) {
-        if (syntaxNode == null) {
-            return false;
-        }
-
-        return block switch {
-            ParagraphBlock => syntaxNode.Kind == MarkdownSyntaxKind.Paragraph,
-            HeadingBlock => syntaxNode.Kind == MarkdownSyntaxKind.Heading,
-            QuoteBlock => syntaxNode.Kind == MarkdownSyntaxKind.Quote,
-            UnorderedListBlock => syntaxNode.Kind == MarkdownSyntaxKind.UnorderedList,
-            OrderedListBlock => syntaxNode.Kind == MarkdownSyntaxKind.OrderedList,
-            CodeBlock => syntaxNode.Kind == MarkdownSyntaxKind.CodeBlock,
-            SemanticFencedBlock => syntaxNode.Kind == MarkdownSyntaxKind.SemanticFencedBlock,
-            TableBlock => syntaxNode.Kind == MarkdownSyntaxKind.Table,
-            HorizontalRuleBlock => syntaxNode.Kind == MarkdownSyntaxKind.HorizontalRule,
-            ImageBlock => syntaxNode.Kind == MarkdownSyntaxKind.Image,
-            CalloutBlock => syntaxNode.Kind == MarkdownSyntaxKind.Callout,
-            DefinitionListBlock => syntaxNode.Kind == MarkdownSyntaxKind.DefinitionList,
-            FootnoteDefinitionBlock => syntaxNode.Kind == MarkdownSyntaxKind.FootnoteDefinition,
-            DetailsBlock => syntaxNode.Kind == MarkdownSyntaxKind.Details,
-            FrontMatterBlock => syntaxNode.Kind == MarkdownSyntaxKind.FrontMatter,
-            HtmlRawBlock => syntaxNode.Kind == MarkdownSyntaxKind.HtmlRaw,
-            HtmlCommentBlock => syntaxNode.Kind == MarkdownSyntaxKind.HtmlComment,
-            TocBlock => syntaxNode.Kind == MarkdownSyntaxKind.Toc,
-            TocMarkerBlock => syntaxNode.Kind == MarkdownSyntaxKind.Toc,
-            _ => false
-        };
+        return MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(blockChildren).ToList();
     }
 
     private void EnsureParagraphBlocks() {
@@ -407,11 +316,4 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         }
     }
 
-    private static MarkdownSyntaxNode BuildParagraphSyntaxNode(ParagraphBlock paragraph, MarkdownSourceSpan? span = null) =>
-        MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
-            MarkdownSyntaxKind.Paragraph,
-            paragraph.Inlines,
-            span: span ?? paragraph.SourceSpan,
-            literal: paragraph.Inlines.RenderMarkdown(),
-            associatedObject: paragraph);
 }

@@ -121,12 +121,6 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
-        if (SyntaxChildren != null
-            && SyntaxChildren.Count > 0
-            && MarkdownBlockSyntaxBuilder.ChildSyntaxNodesMatchBlocks(SyntaxChildren, Blocks)) {
-            return SyntaxChildren;
-        }
-
-        return MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(ChildBlocks);
+        return MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, ChildBlocks);
     }
 }
