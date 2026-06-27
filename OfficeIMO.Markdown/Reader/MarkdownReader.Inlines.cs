@@ -57,7 +57,14 @@ public static partial class MarkdownReader {
                 sourceMap?.GetSpan(start + 1, 1));
             AddRawNode(node, start, 2);
         }
-        void AddDecodedHtmlEntityNode(string literal, int start, int length) => AddRawNode(new DecodedHtmlEntityTextRun(literal), start, length);
+        void AddDecodedHtmlEntityNode(string literal, int start, int length) {
+            var node = new DecodedHtmlEntityTextRun(literal);
+            MarkdownInlineMetadataSourceSpans.SetDecodedEntity(
+                node,
+                text.Substring(start, length),
+                sourceMap?.GetSpan(start, length));
+            AddRawNode(node, start, length);
+        }
         void AddHardBreakNode(int start, int length) {
             var node = new HardBreakInline();
             MarkdownInlineMetadataSourceSpans.SetHardBreakMarker(

@@ -210,6 +210,7 @@ internal static class MarkdownNativeInlineProjection {
         AddFormattingMarkerMetadata(node, metadata);
         AddCodeSpanContentMetadata(node, metadata);
         AddEscapedTextMetadata(node, metadata);
+        AddDecodedEntityMetadata(node, metadata);
         AddHardBreakMarkerMetadata(node, metadata);
 
         if (metadata.Count == 0) {
@@ -288,6 +289,21 @@ internal static class MarkdownNativeInlineProjection {
                 MarkdownInlineMetadataSourceSpans.GetEscapedCharacter(text) ?? string.Empty,
                 node,
                 escapedCharacterSpan));
+        }
+    }
+
+    private static void AddDecodedEntityMetadata(MarkdownSyntaxNode node, List<MarkdownNativeInlineMetadata> metadata) {
+        if (node.AssociatedObject is not DecodedHtmlEntityTextRun decodedEntity) {
+            return;
+        }
+
+        var sourceTextSpan = MarkdownInlineMetadataSourceSpans.GetDecodedEntitySourceTextSpan(decodedEntity);
+        if (sourceTextSpan.HasValue) {
+            metadata.Add(new MarkdownNativeInlineMetadata(
+                "sourceText",
+                MarkdownInlineMetadataSourceSpans.GetDecodedEntitySourceText(decodedEntity) ?? string.Empty,
+                node,
+                sourceTextSpan));
         }
     }
 

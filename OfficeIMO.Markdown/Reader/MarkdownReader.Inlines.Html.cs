@@ -137,7 +137,9 @@ public static partial class MarkdownReader {
             if (!string.Equals(decoded, text.Text, StringComparison.Ordinal)) {
                 changed = true;
                 var decodedRun = new DecodedHtmlEntityTextRun(decoded);
-                MarkdownInlineSourceSpans.Set(decodedRun, MarkdownInlineSourceSpans.Get(text));
+                var sourceSpan = MarkdownInlineSourceSpans.Get(text);
+                MarkdownInlineSourceSpans.Set(decodedRun, sourceSpan);
+                MarkdownInlineMetadataSourceSpans.SetDecodedEntity(decodedRun, text.Text, sourceSpan);
                 return decodedRun;
             }
 

@@ -65,6 +65,15 @@ internal static class MarkdownInlineMetadataSourceSpans {
         public EscapedTextState? State;
     }
 
+    private sealed class DecodedEntityState {
+        public string SourceText = string.Empty;
+        public MarkdownSourceSpan? SourceTextSpan;
+    }
+
+    private sealed class DecodedEntityHolder {
+        public DecodedEntityState? State;
+    }
+
     private sealed class HardBreakMarkerState {
         public string Marker = string.Empty;
         public MarkdownSourceSpan? MarkerSpan;
@@ -82,6 +91,7 @@ internal static class MarkdownInlineMetadataSourceSpans {
     private static readonly ConditionalWeakTable<MarkdownInline, FormattingMarkerHolder> _formattingMarkerSpans = new();
     private static readonly ConditionalWeakTable<CodeSpanInline, CodeSpanHolder> _codeSpanSpans = new();
     private static readonly ConditionalWeakTable<TextRun, EscapedTextHolder> _escapedTextSpans = new();
+    private static readonly ConditionalWeakTable<DecodedHtmlEntityTextRun, DecodedEntityHolder> _decodedEntitySpans = new();
     private static readonly ConditionalWeakTable<HardBreakInline, HardBreakMarkerHolder> _hardBreakMarkerSpans = new();
 
     internal static void SetLinkParts(
@@ -296,6 +306,31 @@ internal static class MarkdownInlineMetadataSourceSpans {
 
     internal static MarkdownSourceSpan? GetEscapedCharacterSpan(TextRun? inline) =>
         inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapedCharacterSpan : null;
+
+    internal static void SetDecodedEntity(
+        DecodedHtmlEntityTextRun? inline,
+        string sourceText,
+        MarkdownSourceSpan? sourceTextSpan) {
+        if (inline == null) {
+            return;
+        }
+
+        if (string.IsNullOrEmpty(sourceText) && !sourceTextSpan.HasValue) {
+            return;
+        }
+
+        var holder = _decodedEntitySpans.GetValue(inline, static _ => new DecodedEntityHolder());
+        holder.State = new DecodedEntityState {
+            SourceText = sourceText ?? string.Empty,
+            SourceTextSpan = sourceTextSpan
+        };
+    }
+
+    internal static string? GetDecodedEntitySourceText(DecodedHtmlEntityTextRun? inline) =>
+        inline != null && _decodedEntitySpans.TryGetValue(inline, out var holder) ? holder.State?.SourceText : null;
+
+    internal static MarkdownSourceSpan? GetDecodedEntitySourceTextSpan(DecodedHtmlEntityTextRun? inline) =>
+        inline != null && _decodedEntitySpans.TryGetValue(inline, out var holder) ? holder.State?.SourceTextSpan : null;
 
     internal static void SetHardBreakMarker(
         HardBreakInline? inline,

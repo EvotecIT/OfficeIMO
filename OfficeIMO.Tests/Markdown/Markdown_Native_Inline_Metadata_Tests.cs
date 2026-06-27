@@ -127,6 +127,43 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Decoded_Html_Entity_Metadata_Preserves_Source_Text_For_Edits_And_Snapshots() {
+        const string markdown = "Use &amp; and &#35; symbols\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var entities = paragraph.InlineRuns
+            .Where(inline => inline.Kind == MarkdownNativeInlineKind.Text && inline.GetMetadata("sourceText") != null)
+            .ToArray();
+
+        Assert.Equal(2, entities.Length);
+        Assert.Equal("&", entities[0].Text);
+        Assert.Equal("#", entities[1].Text);
+
+        var ampSource = Assert.Single(entities[0].Metadata, metadata => metadata.Name == "sourceText");
+        var hashSource = Assert.Single(entities[1].Metadata, metadata => metadata.Name == "sourceText");
+
+        Assert.Equal("&amp;", ampSource.Value);
+        Assert.Equal("&#35;", hashSource.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 9), ampSource.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 15, 1, 19), hashSource.SourceSpan);
+        Assert.Equal("Use &lt; and &#35; symbols\n", native.CreateReplaceEdit(ampSource, "&lt;").Apply(native.SourceMarkdown));
+        Assert.Equal("Use &amp; and &#x23; symbols\n", native.CreateReplaceEdit(hashSource, "&#x23;").Apply(native.SourceMarkdown));
+
+        var snapshotEntities = native.ToSnapshot().Blocks[0].Inlines
+            .Where(inline => inline.Kind == MarkdownNativeInlineKind.Text && inline.Metadata.ContainsKey("sourceText"))
+            .ToArray();
+
+        Assert.Equal(2, snapshotEntities.Length);
+        Assert.Equal("&amp;", snapshotEntities[0].Metadata["sourceText"]);
+        Assert.Equal("&#35;", snapshotEntities[1].Metadata["sourceText"]);
+        Assert.Equal(5, snapshotEntities[0].MetadataSourceSpans["sourceText"]!.StartColumn);
+        Assert.Equal(9, snapshotEntities[0].MetadataSourceSpans["sourceText"]!.EndColumn);
+        Assert.Equal(15, snapshotEntities[1].MetadataSourceSpans["sourceText"]!.StartColumn);
+        Assert.Equal(19, snapshotEntities[1].MetadataSourceSpans["sourceText"]!.EndColumn);
+    }
+
+    [Fact]
     public void Inline_Html_Tag_Marker_Metadata_And_Nested_Inlines_Are_Source_Addressable() {
         const string markdown = "Use <u>under **bold**</u> now\n";
 
