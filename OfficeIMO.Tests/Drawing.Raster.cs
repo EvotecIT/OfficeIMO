@@ -1375,6 +1375,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_SkipsPatternedPolylineWithNonFiniteSegmentLength() {
+            OfficeRasterImage image = new OfficeRasterImage(8, 8, OfficeColor.Transparent);
+            new OfficeRasterCanvas(image).DrawPatternedPolyline(
+                new[] {
+                    new OfficePoint(1, 1),
+                    new OfficePoint(double.PositiveInfinity, 1)
+                },
+                OfficeColor.Black,
+                1D,
+                new[] { 1D, 1D });
+
+            Assert.Equal(0, CountPaintedPixels(image));
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_RendersTuplePolygonsThroughSharedRasterPrimitives() {
             OfficeRasterImage filled = new OfficeRasterImage(22, 22, OfficeColor.Transparent);
             OfficeRasterCanvas fillCanvas = new OfficeRasterCanvas(filled);

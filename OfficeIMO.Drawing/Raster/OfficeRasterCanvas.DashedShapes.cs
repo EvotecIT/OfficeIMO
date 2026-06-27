@@ -177,15 +177,16 @@ public sealed partial class OfficeRasterCanvas {
         double gapLength,
         ref double patternPosition) {
         double length = Distance(start.X, start.Y, end.X, end.Y);
-        if (length <= 0D) {
+        if (!double.IsFinite(length) || length <= 0D) {
             return;
         }
 
         double cycle = dashLength + gapLength;
-        if (cycle <= 0D) {
+        if (!double.IsFinite(cycle) || cycle <= 0D) {
             return;
         }
 
+        patternPosition = double.IsFinite(patternPosition) ? patternPosition % cycle : 0D;
         double position = 0D;
         while (position < length) {
             bool inDash = patternPosition < dashLength || gapLength == 0D;
@@ -198,6 +199,10 @@ public sealed partial class OfficeRasterCanvas {
 
             double next = Math.Min(length, position + patternRemaining);
             double consumed = next - position;
+            if (consumed <= MinimumDashSegmentAdvance) {
+                break;
+            }
+
             if (inDash) {
                 double startT = position / length;
                 double endT = next / length;
@@ -226,7 +231,7 @@ public sealed partial class OfficeRasterCanvas {
         IReadOnlyList<double> dashPattern,
         ref double patternPosition) {
         double length = Distance(start.X, start.Y, end.X, end.Y);
-        if (length <= 0D || dashPattern.Count == 0) {
+        if (!double.IsFinite(length) || length <= 0D || dashPattern.Count == 0) {
             return;
         }
 
@@ -235,11 +240,11 @@ public sealed partial class OfficeRasterCanvas {
             cycle += dashPattern[i];
         }
 
-        if (cycle <= 0D) {
+        if (!double.IsFinite(cycle) || cycle <= 0D) {
             return;
         }
 
-        patternPosition %= cycle;
+        patternPosition = double.IsFinite(patternPosition) ? patternPosition % cycle : 0D;
         double position = 0D;
         while (position < length) {
             int patternIndex = 0;
@@ -261,6 +266,10 @@ public sealed partial class OfficeRasterCanvas {
 
             double next = Math.Min(length, position + segmentRemaining);
             double consumed = next - position;
+            if (consumed <= MinimumDashSegmentAdvance) {
+                break;
+            }
+
             if ((patternIndex & 1) == 0) {
                 double startT = position / length;
                 double endT = next / length;
