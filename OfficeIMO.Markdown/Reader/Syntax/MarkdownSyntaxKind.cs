@@ -184,6 +184,8 @@ public enum MarkdownSyntaxKind {
     FrontMatterKey,
     /// <summary>Front matter entry value.</summary>
     FrontMatterValue,
+    /// <summary>Raw YAML payload between front matter fence markers.</summary>
+    FrontMatterBody,
     /// <summary>Raw HTML block.</summary>
     HtmlRaw,
     /// <summary>Opening tag token for a recognized raw HTML block frame.</summary>

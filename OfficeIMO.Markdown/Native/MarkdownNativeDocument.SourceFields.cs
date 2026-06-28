@@ -325,6 +325,10 @@ public sealed partial class MarkdownNativeDocument {
             }
         }
 
+        if (frontMatter.BodySourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("frontMatterBody", frontMatter.RawYaml, frontMatter.BodySourceSpan.Value, frontMatter);
+        }
+
         if (frontMatter.ClosingFenceSourceSpan.HasValue) {
             yield return new MarkdownNativeBlockSourceField("closingFence", null, frontMatter.ClosingFenceSourceSpan.Value, frontMatter);
         }

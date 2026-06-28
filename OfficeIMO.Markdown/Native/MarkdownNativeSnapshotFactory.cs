@@ -155,6 +155,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.Fields = FromFrontMatter(frontMatter);
                 snapshot.FieldSourceSpans = FieldSpans(
                     ("openingFence", frontMatter.OpeningFenceSourceSpan),
+                    ("frontMatterBody", frontMatter.BodySourceSpan),
                     ("closingFence", frontMatter.ClosingFenceSourceSpan));
                 break;
             case MarkdownNativeHtmlBlock html:
@@ -183,6 +184,10 @@ internal static class MarkdownNativeSnapshotFactory {
 
     private static IReadOnlyDictionary<string, string?> FromFrontMatter(MarkdownNativeFrontMatterBlock frontMatter) {
         var fields = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        if (frontMatter.RawYaml != null) {
+            fields["rawYaml"] = frontMatter.RawYaml;
+        }
+
         for (var i = 0; i < frontMatter.Entries.Count; i++) {
             fields[frontMatter.Entries[i].Key] = frontMatter.Entries[i].Value?.ToString();
         }

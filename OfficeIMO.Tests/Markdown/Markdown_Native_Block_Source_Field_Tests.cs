@@ -739,7 +739,9 @@ summary: |
         var native = MarkdownNativeDocument.Parse(markdown);
         var frontMatter = Assert.IsType<MarkdownNativeFrontMatterBlock>(native.Blocks[0]);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), frontMatter.OpeningFenceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 7, 13), frontMatter.BodySourceSpan);
         Assert.Equal(new MarkdownSourceSpan(8, 1, 8, 3), frontMatter.ClosingFenceSourceSpan);
+        Assert.Contains("summary: |", frontMatter.RawYaml!, StringComparison.Ordinal);
 
         Assert.Collection(frontMatter.Entries,
             entry => {
@@ -776,6 +778,10 @@ summary: |
         Assert.Equal("First line\nSecond line", values[3].Value!.Replace("\r\n", "\n"));
         Assert.Equal(new MarkdownSourceSpan(6, 3, 7, 13), values[3].SourceSpan);
 
+        var body = Assert.Single(native.EnumerateBlockSourceFields("frontMatterBody"));
+        Assert.Contains("tags: [a, b]", body.Value!, StringComparison.Ordinal);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 7, 13), body.SourceSpan);
+
         var openingFence = Assert.Single(native.EnumerateBlockSourceFields("openingFence"));
         Assert.Null(openingFence.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), openingFence.SourceSpan);
@@ -789,6 +795,9 @@ summary: |
         Assert.Equal(2, found.Index);
         Assert.Equal("a, b", found.Value);
 
+        var bodyFound = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(4, 5));
+        Assert.Equal("frontMatterBody", bodyFound.Name);
+
         var openingFound = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 2));
         Assert.Equal("openingFence", openingFound.Name);
 
@@ -796,7 +805,9 @@ summary: |
         Assert.Equal("closingFence", closingFound.Name);
 
         var snapshot = native.ToSnapshot().Blocks[0];
+        Assert.Equal(frontMatter.RawYaml, snapshot.Fields["rawYaml"]);
         Assert.Equal(1, snapshot.FieldSourceSpans["openingFence"]!.StartLine);
+        Assert.Equal(2, snapshot.FieldSourceSpans["frontMatterBody"]!.StartLine);
         Assert.Equal(8, snapshot.FieldSourceSpans["closingFence"]!.StartLine);
         Assert.Contains(snapshot.SourceFields, field =>
             field.Name == "frontMatterKey"
@@ -814,6 +825,11 @@ summary: |
             field.Name == "openingFence"
             && field.SourceSpan.StartLine == 1
             && field.SourceSpan.EndColumn == 3);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "frontMatterBody"
+            && field.Value!.Contains("summary: |", StringComparison.Ordinal)
+            && field.SourceSpan.StartLine == 2
+            && field.SourceSpan.EndLine == 7);
         Assert.Contains(snapshot.SourceFields, field =>
             field.Name == "closingFence"
             && field.SourceSpan.StartLine == 8

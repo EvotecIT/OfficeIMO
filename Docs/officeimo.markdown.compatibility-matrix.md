@@ -19,7 +19,7 @@ Status values:
 | CommonMark full inventory | 652 of 652 official CommonMark `0.31.2` examples currently match; 0 failures are reported in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM reference | 43 cmark-gfm extension smoke fixtures plus a focused upstream ignored-autolink crash regression |
 | GFM inventory | 43 tracked GFM fixtures currently measured in `Docs/officeimo.markdown.gfm-inventory.md`: 40 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 43 passing, 0 failing |
-| Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 5 covered, 12 partial, 4 intentional, 12 gap |
+| Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 6 covered, 11 partial, 4 intentional, 12 gap |
 | OfficeIMO core package | `OfficeIMO.Markdown` owns parsing, semantic AST, syntax tree, writing, and HTML projection |
 | Host renderer package | `OfficeIMO.MarkdownRenderer` owns WebView/browser shell rendering and incremental updates |
 | Benchmark evidence | `OfficeIMO.Markdown.Benchmarks` compares parse/syntax-tree parse/HTML render against the current Markdig baseline and now includes transform/diagnostics cost lanes over stable README, transcript, technical-doc, rich-AST, long-list, large-table, and normalization-heavy corpora |

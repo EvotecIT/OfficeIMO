@@ -10,7 +10,7 @@ public static partial class MarkdownReader {
                 for (int j = start; j < lines.Length; j++) { if (lines[j].Trim() == "---") { end = j; break; } }
                 if (end > start) {
                     var frontMatter = ParseFrontMatterBlock(lines, start, end - 1, state);
-                    if (frontMatter.Entries.Count > 0) doc.Add(frontMatter);
+                    if (frontMatter.Entries.Count > 0 || frontMatter.RawYaml != null) doc.Add(frontMatter);
                     i = end + 1;
                     if (i < lines.Length && string.IsNullOrWhiteSpace(lines[i])) i++;
                     return true;

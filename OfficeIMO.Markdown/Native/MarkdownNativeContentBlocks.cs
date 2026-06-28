@@ -305,6 +305,8 @@ public sealed class MarkdownNativeFrontMatterBlock : MarkdownNativeBlock {
             static entry => entry.Key,
             static entry => entry.Value,
             StringComparer.OrdinalIgnoreCase);
+        RawYaml = frontMatter.RawYaml;
+        BodySourceSpan = frontMatter.BodySourceSpan;
         OpeningFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.FrontMatterOpeningFence);
         ClosingFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.FrontMatterClosingFence);
     }
@@ -317,6 +319,12 @@ public sealed class MarkdownNativeFrontMatterBlock : MarkdownNativeBlock {
 
     /// <summary>Front matter values by key.</summary>
     public IReadOnlyDictionary<string, object?> Values { get; }
+
+    /// <summary>Raw YAML payload between the front matter fence markers when parsed from markdown.</summary>
+    public string? RawYaml { get; }
+
+    /// <summary>Source span for the raw YAML payload between the front matter fence markers.</summary>
+    public MarkdownSourceSpan? BodySourceSpan { get; }
 
     /// <summary>Source span for the opening front matter fence marker when parsed from markdown.</summary>
     public MarkdownSourceSpan? OpeningFenceSourceSpan { get; }

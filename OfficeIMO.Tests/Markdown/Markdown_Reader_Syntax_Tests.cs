@@ -5095,11 +5095,17 @@ title: Sample
                 Assert.Equal(new MarkdownSourceSpan(2, 8, 2, 13), node.SourceSpan);
             },
             node => {
+                Assert.Equal(MarkdownSyntaxKind.FrontMatterBody, node.Kind);
+                Assert.Equal("title: Sample", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 13), node.SourceSpan);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.FrontMatterClosingFence, node.Kind);
                 Assert.Equal("---", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), node.SourceSpan);
             });
         Assert.Equal(MarkdownSyntaxKind.FrontMatterOpeningFence, result.FindDeepestNodeAtPosition(1, 2)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.FrontMatterBody, result.FindDeepestNodeAtPosition(2, 6)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.FrontMatterValue, result.FindDeepestNodeAtPosition(2, 9)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.FrontMatterClosingFence, result.FindDeepestNodeAtPosition(3, 2)!.Kind);
     }

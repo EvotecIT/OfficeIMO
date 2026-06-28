@@ -22,8 +22,8 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Markdig extension-family rows | 33 |
-| Covered | 5 |
-| Partial | 12 |
+| Covered | 6 |
+| Partial | 11 |
 | Intentional | 4 |
 | Gap | 12 |
 
@@ -63,7 +63,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | `UseSmartyPants` | SmartyPants | `Gap` | No SmartyPants inline transform exists. | Consider as an optional inline transform after delimiter parsing stabilizes. |
 | `UseSoftlineBreakAsHardlineBreak` | Soft line break as hard line break | `Covered` | OfficeIMO exposes an explicit reader option that parses ordinary paragraph soft breaks as hard breaks while keeping CommonMark/GFM defaults unchanged, rendering HTML breaks, writing normalized hard-break markdown, and avoiding fake source marker metadata. | Keep the option covered alongside paragraph/list source-map and writer fixtures. |
 | `UseTaskLists` | Task lists | `Covered` | OfficeIMO has GFM task-list parsing for checked, unchecked, uppercase, nested, and invalid tight-marker cases; semantic AST flags; exact marker source spans; native snapshots/source edits; GitHub HTML rendering; and Markdown writer roundtrip proof. | Keep the GFM fixture corpus and marker source-edit coverage current. |
-| `UseYamlFrontMatter` | YAML front matter | `Partial` | OfficeIMO has front matter blocks with key/value and fence source spans, but not a Markdig YAML object-model parity claim. | Separate raw YAML preservation from parsed metadata helpers. |
+| `UseYamlFrontMatter` | YAML front matter | `Covered` | OfficeIMO preserves YAML front matter as a top-of-document raw YAML AST payload with body and fence source spans, structured key/value helpers for simple entries, native source fields and snapshots, HTML omission, and Markdown writer roundtrip behavior. | Keep raw YAML, parsed-entry helpers, and front-matter source-edit fixtures aligned as lossless trivia work expands. |
 
 ## Reflected Pipeline Entry Points
 

@@ -32,6 +32,12 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
     /// <summary>Structured front matter entries in insertion order.</summary>
     public IReadOnlyList<Entry> Entries => _entries;
 
+    /// <summary>Raw YAML payload between the opening and closing front matter fences when parsed from markdown.</summary>
+    public string? RawYaml { get; private set; }
+
+    /// <summary>Source span for the raw YAML payload between the opening and closing front matter fences.</summary>
+    public MarkdownSourceSpan? BodySourceSpan { get; private set; }
+
     /// <summary>Finds a front matter entry by key.</summary>
     public Entry? FindEntry(string key, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
         if (string.IsNullOrEmpty(key)) {
@@ -95,8 +101,10 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
         return fm;
     }
 
-    internal static FrontMatterBlock FromEntries(IEnumerable<Entry> entries) {
+    internal static FrontMatterBlock FromEntries(IEnumerable<Entry> entries, string? rawYaml = null, MarkdownSourceSpan? bodySourceSpan = null) {
         var fm = new FrontMatterBlock();
+        fm.RawYaml = rawYaml;
+        fm.BodySourceSpan = bodySourceSpan;
         foreach (var entry in entries) {
             if (entry == null) {
                 continue;
@@ -112,10 +120,18 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
     public string Render() {
         StringBuilder sb = new StringBuilder();
         sb.AppendLine("---");
-        for (int i = 0; i < Entries.Count; i++) {
-            var entry = Entries[i];
-            sb.AppendLine(entry.Key + ": " + YamlValue(entry.Value));
+        if (RawYaml != null) {
+            sb.Append(RawYaml);
+            if (RawYaml.Length > 0 && RawYaml[RawYaml.Length - 1] != '\n') {
+                sb.AppendLine();
+            }
+        } else {
+            for (int i = 0; i < Entries.Count; i++) {
+                var entry = Entries[i];
+                sb.AppendLine(entry.Key + ": " + YamlValue(entry.Value));
+            }
         }
+
         sb.Append("---");
         return sb.ToString();
     }
@@ -185,6 +201,10 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
             if (entry.ValueSourceSpan.HasValue) {
                 children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterValue, entry.ValueSourceSpan, FormatSyntaxValue(entry.Value), associatedObject: entry));
             }
+        }
+
+        if (RawYaml != null && BodySourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterBody, BodySourceSpan, RawYaml, associatedObject: this));
         }
 
         var closingFenceSpan = CreateFenceSpan(span, opening: false);

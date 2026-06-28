@@ -233,6 +233,51 @@ tags: [a, b]
         }
 
         [Fact]
+        public void Reader_Preserves_Raw_Yaml_FrontMatter_For_Markdig_Style_Block() {
+            const string markdown = """
+---
+title: Demo
+tags:
+ - a
+ - b
+layout:
+  name: docs
+  flags:
+    draft: false
+---
+
+# Demo
+""";
+
+            const string expectedRawYaml = """
+title: Demo
+tags:
+ - a
+ - b
+layout:
+  name: docs
+  flags:
+    draft: false
+""";
+
+            var parsed = MarkdownReader.Parse(markdown);
+            var frontMatter = Assert.IsType<FrontMatterBlock>(parsed.DocumentHeader);
+
+            Assert.Equal(expectedRawYaml, frontMatter.RawYaml);
+            Assert.Equal(new MarkdownSourceSpan(2, 1, 9, 16), frontMatter.BodySourceSpan);
+            Assert.Equal(
+                "---\n" + expectedRawYaml + "\n---",
+                frontMatter.Render().Replace("\r\n", "\n"));
+
+            var html = parsed.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, AutoHeadingIdentifiers = false }).Replace("\r\n", "\n");
+            Assert.Equal("<h1>Demo</h1>", html.Trim());
+
+            var roundtrip = parsed.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Contains("tags:\n - a\n - b\nlayout:\n  name: docs", roundtrip, StringComparison.Ordinal);
+            Assert.Contains("\n\n# Demo", roundtrip, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Reader_Exposes_TopLevel_Blocks_In_Document_Order() {
             const string markdown = """
 ---

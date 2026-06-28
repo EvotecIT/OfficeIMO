@@ -15,7 +15,10 @@ public static partial class MarkdownReader {
     }
 
     private static FrontMatterBlock ParseFrontMatterBlock(string[] lines, int start, int end, MarkdownReaderState state) =>
-        FrontMatterBlock.FromEntries(ParseFrontMatterEntries(lines, start, end, state));
+        FrontMatterBlock.FromEntries(
+            ParseFrontMatterEntries(lines, start, end, state),
+            CreateFrontMatterRawYaml(lines, start, end),
+            CreateFrontMatterBodySpan(lines, start, end, state));
 
     private static IReadOnlyList<FrontMatterBlock.Entry> ParseFrontMatterEntries(string[] lines, int start, int end, MarkdownReaderState? state) {
         var entries = new Dictionary<string, FrontMatterBlock.Entry>(StringComparer.OrdinalIgnoreCase);
@@ -82,5 +85,33 @@ public static partial class MarkdownReader {
         int absoluteEndLine = (state?.SourceLineOffset ?? 0) + endLineIndex + 1;
         int endColumn = Math.Max(3, lines[endLineIndex].Length);
         return CreateSpan(state, absoluteStartLine, 3, absoluteEndLine, endColumn);
+    }
+
+    private static string? CreateFrontMatterRawYaml(string[] lines, int startLineIndex, int endLineIndex) {
+        if (endLineIndex < startLineIndex) {
+            return null;
+        }
+
+        var sb = new StringBuilder();
+        for (int i = startLineIndex; i <= endLineIndex; i++) {
+            if (i > startLineIndex) {
+                sb.Append('\n');
+            }
+
+            sb.Append(lines[i]);
+        }
+
+        return sb.ToString();
+    }
+
+    private static MarkdownSourceSpan? CreateFrontMatterBodySpan(string[] lines, int startLineIndex, int endLineIndex, MarkdownReaderState? state) {
+        if (endLineIndex < startLineIndex) {
+            return null;
+        }
+
+        int absoluteStartLine = (state?.SourceLineOffset ?? 0) + startLineIndex + 1;
+        int absoluteEndLine = (state?.SourceLineOffset ?? 0) + endLineIndex + 1;
+        int endColumn = Math.Max(1, lines[endLineIndex].Length);
+        return CreateSpan(state, absoluteStartLine, 1, absoluteEndLine, endColumn);
     }
 }
