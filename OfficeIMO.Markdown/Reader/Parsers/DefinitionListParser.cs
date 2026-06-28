@@ -68,7 +68,9 @@ public static partial class MarkdownReader {
                     ref next,
                     CountLeadingIndentColumns(line) + DefinitionContinuationIndentOffset,
                     state.SourceLineOffset,
-                    definitionSourceLines);
+                    definitionSourceLines,
+                    options,
+                    allowLazyContinuation: false);
                 var (definitionBlocks, definitionSyntaxChildren) = ParseDefinitionBody(definitionSourceLines, options, state);
                 if (definitionSyntaxChildren.Count > 0) {
                     definitionSpan = MarkdownBlockSyntaxBuilder.GetAggregateSpan(definitionSyntaxChildren) ?? definitionSpan;
@@ -338,7 +340,9 @@ public static partial class MarkdownReader {
             ref next,
             markerIndent + DefinitionContinuationIndentOffset,
             state.SourceLineOffset,
-            definitionSourceLines);
+            definitionSourceLines,
+            options,
+            allowLazyContinuation: true);
         index = next;
 
         if (definitionSourceLines.Count == 0) {
@@ -397,7 +401,9 @@ public static partial class MarkdownReader {
         ref int index,
         int continuationIndent,
         int absoluteLineOffset,
-        List<MarkdownSourceLineSlice> definitionSourceLines) {
+        List<MarkdownSourceLineSlice> definitionSourceLines,
+        MarkdownReaderOptions options,
+        bool allowLazyContinuation) {
         if (lines == null || definitionSourceLines == null) {
             return;
         }
@@ -422,7 +428,18 @@ public static partial class MarkdownReader {
             }
 
             if (CountLeadingIndentColumns(line) < continuationIndent) {
-                return;
+                if (!allowLazyContinuation ||
+                    !ShouldConsumeMarkdigDefinitionLazyContinuation(lines, index, options)) {
+                    return;
+                }
+
+                int firstContentIndex = GetFirstNonWhitespaceIndex(line);
+                definitionSourceLines.Add(new MarkdownSourceLineSlice(
+                    firstContentIndex < line.Length ? line.Substring(firstContentIndex) : string.Empty,
+                    absoluteLineOffset + index + 1,
+                    firstContentIndex + 1));
+                index++;
+                continue;
             }
 
             var stripped = StripLeadingIndentColumns(line, continuationIndent);
@@ -432,6 +449,77 @@ public static partial class MarkdownReader {
                 GetStartColumnAfterStrippingIndent(line, continuationIndent)));
             index++;
         }
+    }
+
+    private static bool ShouldConsumeMarkdigDefinitionLazyContinuation(
+        string[] lines,
+        int index,
+        MarkdownReaderOptions options) {
+        if (lines == null || index < 0 || index >= lines.Length) {
+            return false;
+        }
+
+        var line = lines[index] ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(line)) {
+            return false;
+        }
+
+        if (TryGetMarkdigDefinitionMarker(line, out _, out _)) {
+            return false;
+        }
+
+        if (TryCollectMarkdigDefinitionTerms(lines, index, out _, out _)) {
+            return false;
+        }
+
+        var trimmed = line.TrimStart();
+        if (trimmed.Length == 0) {
+            return false;
+        }
+
+        if (IsAtxHeading(trimmed, out _, out _)) {
+            return false;
+        }
+
+        if (options?.FencedCode == true && IsCodeFenceOpen(trimmed, out _, out _, out _)) {
+            return false;
+        }
+
+        if (IsParagraphInterruptingThematicBreakLine(trimmed)) {
+            return false;
+        }
+
+        if (IsParagraphInterruptingUnorderedListLine(trimmed) ||
+            IsParagraphInterruptingOrderedListLine(trimmed)) {
+            return false;
+        }
+
+        if (trimmed[0] == '>') {
+            return false;
+        }
+
+        if (HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(line, options ?? new MarkdownReaderOptions())) {
+            return false;
+        }
+
+        if (StartsWithReferenceDefinitionLikeLabel(trimmed)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static int GetFirstNonWhitespaceIndex(string line) {
+        if (string.IsNullOrEmpty(line)) {
+            return 0;
+        }
+
+        int index = 0;
+        while (index < line.Length && char.IsWhiteSpace(line[index])) {
+            index++;
+        }
+
+        return index;
     }
 
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseDefinitionBody(

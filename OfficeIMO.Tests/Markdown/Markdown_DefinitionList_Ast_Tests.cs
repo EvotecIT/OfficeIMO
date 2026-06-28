@@ -19,6 +19,54 @@ public sealed class Markdown_DefinitionList_Ast_Tests {
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
     }
 
+    public static TheoryData<string> MarkdigDefinitionListContinuationCases => new() {
+        """
+Term
+:   First paragraph
+    continuation
+""",
+        """
+Term
+:   First paragraph
+lazy continuation
+""",
+        """
+Term
+:   First paragraph
+
+    Second paragraph
+""",
+        """
+Term
+:   First paragraph
+    - item
+""",
+        """
+Term
+:   First paragraph
+    > quote
+""",
+        """
+Term
+:   ```
+    code
+    ```
+"""
+    };
+
+    [Theory]
+    [MemberData(nameof(MarkdigDefinitionListContinuationCases))]
+    public void DefinitionList_MarkdigContinuationSyntax_Matches_MarkdigHtml(string markdown) {
+        var office = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+    }
+
     [Fact]
     public void DefinitionList_MarkdigMarkerSyntax_Maps_Multiple_Terms_And_Definitions_To_Grouped_Ast() {
         const string markdown = """
@@ -52,6 +100,31 @@ Term 2
         Assert.Same(group.TermItems[1], syntaxGroup.Children[1].AssociatedObject);
         Assert.Same(group.Definitions[0], syntaxGroup.Children[2].AssociatedObject);
         Assert.Same(group.Definitions[1], syntaxGroup.Children[3].AssociatedObject);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_MarkdigLazyContinuation_Stays_In_Definition_Paragraph_Source() {
+        const string markdown = """
+Term
+:   First paragraph
+lazy continuation
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks));
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var paragraphSyntax = Assert.Single(definitionValue.Children);
+
+        Assert.Equal("First paragraph lazy continuation", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 17), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 17), paragraphSyntax.SourceSpan);
+        Assert.Same(definition, definitionValue.AssociatedObject);
+        Assert.Same(paragraph, paragraphSyntax.AssociatedObject);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
