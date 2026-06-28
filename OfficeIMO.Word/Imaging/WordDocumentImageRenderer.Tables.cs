@@ -142,17 +142,19 @@ namespace OfficeIMO.Word {
                     ? OfficeTextVerticalAlignment.Bottom
                     : OfficeTextVerticalAlignment.Top;
             var padding = new OfficeTextPadding(marginLeft, marginTop, marginRight, marginBottom);
+            bool textFlowAdvanced = textTop > contentTop + 0.000001D;
+            double textBoxTop = textFlowAdvanced ? textTop - marginTop : top;
+            double textBoxHeight = textFlowAdvanced ? Math.Max(1D, contentBottom - textBoxTop) : height;
             List<OfficeRichTextRun> richRuns = CreateTableCellRichTextRuns(cell, colorScheme);
             if (ShouldRenderTableCellAsRichText(richRuns)) {
                 double maxFontSize = richRuns.Max(run => run.FontSize);
                 double lineHeight = Math.Max(maxFontSize * 1.25D, 12D);
-                double textBoxTop = textTop - marginTop;
                 drawing.AddRichText(
                     richRuns,
                     left,
                     textBoxTop,
                     width,
-                    Math.Max(1D, contentBottom - textBoxTop),
+                    textBoxHeight,
                     MapTextAlignment(firstParagraph?.ParagraphAlignment),
                     lineHeight,
                     verticalAlignment,
@@ -161,13 +163,12 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            double plainTextBoxTop = textTop - marginTop;
             drawing.AddText(
                 text,
                 left,
-                plainTextBoxTop,
+                textBoxTop,
                 width,
-                Math.Max(1D, contentBottom - plainTextBoxTop),
+                textBoxHeight,
                 font,
                 ResolveParagraphTextColor(firstParagraph, colorScheme),
                 MapTextAlignment(firstParagraph?.ParagraphAlignment),
