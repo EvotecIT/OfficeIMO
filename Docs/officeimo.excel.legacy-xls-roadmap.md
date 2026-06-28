@@ -318,53 +318,39 @@ This branch is no longer a planning-only branch. Current evidence is:
 
 ## Remaining Work Checklist
 
-This is the active end-to-end queue. Keep only unfinished work here. Completed
-implementation detail belongs in the support matrix and evidence summary above,
-not in this list.
+This is the active end-to-end queue. Completed implementation detail belongs in
+the support matrix and evidence summary above, not in this list.
 
-The implementation target is now feature-complete for the current release
-claim: BIFF8 normal workbook reads with no silent loss, plus native BIFF8 write
-for the supported OfficeIMO Excel feature surface. The remaining work is release
-closeout: prove CI, fix any real regressions, settle review, and then close the
-roadmap.
+The implementation target is now complete for the current release claim: BIFF8
+normal workbook reads with no silent loss, plus native BIFF8 write for the
+supported OfficeIMO Excel feature surface. The remaining work is release
+closeout.
 
-- [x] Inspect the failed GitHub Actions jobs from PR #2002 once logs are
-  available. Current live state: cross-platform build, Ubuntu net8.0/net10.0,
-  macOS platform smoke, and aggregate Ubuntu/macOS jobs are red; Windows and
-  CodeQL were still running at the checkpoint. Result: every failed build log
-  pointed to the same `netstandard2.0` compile error in
-  `LegacyXlsCommentWriter.cs`.
-- [x] Classify each CI failure as an XLS regression, an already-known unrelated
-  suite failure, or infrastructure/runner fallout. Do not expand the XLS scope
-  unless the failure proves a current `.xls` read/write contract is broken.
-  Result: this was a branch-caused `netstandard2.0` API compatibility issue, not
-  a support-scope expansion.
-- [x] Fix every valid XLS or branch-caused regression with the smallest
-  fixture-backed change. Result: replaced the unsupported `Enumerable.ToHashSet`
-  call with explicit `HashSet<string>` construction while preserving
-  case-insensitive comment-reference matching.
-- [x] Rerun the focused validation after any fix:
-  `dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter
-  "FullyQualifiedName~LegacyXls" --no-restore -v minimal /clp:ErrorsOnly`.
-  Result: 539/539 passed on `net472`, `net8.0`, and `net10.0`.
-- [ ] Rerun the rebase-sensitive rich-text/comment smoke filter if files touched
-  during the conflict resolution change again:
-  `FullyQualifiedName~Test_WorksheetComments_RichTextAuthoringAndUpdate|FullyQualifiedName~ExcelRange_ImageExportPreservesSingleLineRichTextRunsInSvg`.
-- [ ] Update this roadmap, `OfficeIMO.Excel/README.md`,
-  `OfficeIMO.Excel/COMPATIBILITY.md`, and the PR body only if the support claim
-  changes while fixing CI.
-- [ ] Push the CI fix or evidence-only documentation update, then record the new
-  head SHA.
-- [ ] Recheck PR #2002 checks, full paginated review threads, raw review
-  comments, reviews, PR comments, and PR-body reactions after the final push.
-- [ ] Resolve any addressed or outdated-but-fixed inline review threads.
-- [ ] Wait for one delayed reviewer/CI recheck after the final push. Treat a
+- [ ] Let the current PR #2002 GitHub Actions run finish and inspect only jobs
+  that fail. At the 2026-06-28 checkpoint, these jobs were still pending:
+  `Analyze (csharp)`, `Cross-platform build (windows-latest)`, `Windows`,
+  `Ubuntu net8.0`, and `Ubuntu net10.0`.
+- [ ] Fix any new branch-caused or XLS-contract regression found in those logs.
+  Do not expand the XLS feature scope unless a failure proves the current read
+  or native-write contract is wrong.
+- [ ] If code changes again, rerun focused local validation before pushing:
+  `dotnet build OfficeIMO.Excel\OfficeIMO.Excel.csproj -f netstandard2.0
+  --no-restore -v minimal /clp:ErrorsOnly`, the `LegacyXls` test lane, and the
+  rich-text/comment smoke filter.
+- [ ] If the support claim changes while fixing a real issue, update this
+  roadmap, `OfficeIMO.Excel/README.md`, `OfficeIMO.Excel/COMPATIBILITY.md`, and
+  the PR body in the same pass.
+- [ ] Recheck PR #2002 after the final CI result: checks, full paginated review
+  threads, raw review comments, reviews, PR comments, and PR-body reactions.
+- [ ] Resolve any new addressed or outdated-but-fixed inline review threads.
+- [ ] Wait for the delayed reviewer settlement on the current head. Treat a
   Codex/IX/Copilot `EYES` reaction as pending until it disappears or produces
   review output.
 - [ ] Declare the roadmap closed only when CI is green or every remaining red
   job is explicitly documented as non-XLS release-state context, no actionable
   review feedback remains, and the PR text still matches the final support
   shape.
+- [ ] Merge PR #2002 when the gates above are satisfied.
 - [ ] After merge or explicit closure, remove the Codex-created worktree/branch
   and any temporary validation artifacts.
 
