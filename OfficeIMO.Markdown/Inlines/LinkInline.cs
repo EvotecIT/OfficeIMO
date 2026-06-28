@@ -36,11 +36,53 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
         LabelInlines = label;
     }
     internal string RenderMarkdown() {
+        string? autolinkMarkdown = TryRenderAutolinkMarkdown();
+        if (autolinkMarkdown != null) {
+            return autolinkMarkdown;
+        }
+
         string title = MarkdownEscaper.FormatOptionalTitle(Title);
         if (LabelInlines != null) {
             return $"[{LabelInlines.RenderMarkdown()}]({MarkdownEscaper.EscapeLinkUrl(Url)}{title})";
         }
         return $"[{MarkdownEscaper.EscapeLinkText(Text)}]({MarkdownEscaper.EscapeLinkUrl(Url)}{title})";
+    }
+
+    private string? TryRenderAutolinkMarkdown() {
+        if (!string.IsNullOrEmpty(Title) || LabelInlines != null) {
+            return null;
+        }
+
+        if (!MarkdownInlineMetadataSourceSpans.GetLinkTargetSpan(this).HasValue) {
+            return null;
+        }
+
+        string? openingMarker = MarkdownInlineMetadataSourceSpans.GetOpeningMarker(this);
+        string? closingMarker = MarkdownInlineMetadataSourceSpans.GetClosingMarker(this);
+        string? separatorMarker = MarkdownInlineMetadataSourceSpans.GetSeparatorMarker(this);
+        if (string.Equals(openingMarker, "<", StringComparison.Ordinal) &&
+            string.Equals(closingMarker, ">", StringComparison.Ordinal) &&
+            string.IsNullOrEmpty(separatorMarker)) {
+            return "<" + Text + ">";
+        }
+
+        if (!string.IsNullOrEmpty(openingMarker) ||
+            !string.IsNullOrEmpty(closingMarker) ||
+            !string.IsNullOrEmpty(separatorMarker)) {
+            return null;
+        }
+
+        if (string.Equals(Text, Url, StringComparison.Ordinal) ||
+            (Url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) &&
+             string.Equals(Text, Url.Substring("mailto:".Length), StringComparison.Ordinal)) ||
+            (Url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+             string.Equals(Text, Url.Substring("http://".Length), StringComparison.Ordinal)) ||
+            (Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) &&
+             string.Equals(Text, Url.Substring("https://".Length), StringComparison.Ordinal))) {
+            return Text;
+        }
+
+        return null;
     }
     internal string RenderHtml() {
         string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";

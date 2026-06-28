@@ -549,4 +549,29 @@ public class Markdown_Reader_Autolinks_Tests {
 
         Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Autolinks_RenderMarkdown_Preserves_Source_Backed_Bare_And_Angle_Spelling() {
+        const string markdown = "See https://example.com and www.example.com and user@example.com and <https://example.com/docs> and mailto:team@example.com.";
+
+        var doc = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var written = doc.ToMarkdown().Replace("\r\n", "\n").Trim();
+
+        Assert.Equal(markdown, written);
+        Assert.DoesNotContain("[https://example.com](https://example.com)", written, StringComparison.Ordinal);
+        Assert.DoesNotContain("[www.example.com](http://www.example.com)", written, StringComparison.Ordinal);
+        Assert.DoesNotContain("[user@example.com](mailto:user@example.com)", written, StringComparison.Ordinal);
+        Assert.Contains("<https://example.com/docs>", written, StringComparison.Ordinal);
+        Assert.Contains("mailto:team@example.com", written, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Explicit_Links_RenderMarkdown_Do_Not_Become_Autolinks() {
+        const string markdown = "[https://example.com](https://example.com) and [www.example.com](https://www.example.com)";
+
+        var doc = MarkdownReader.Parse(markdown);
+        var written = doc.ToMarkdown().Replace("\r\n", "\n").Trim();
+
+        Assert.Equal(markdown, written);
+    }
 }
