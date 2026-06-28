@@ -217,7 +217,7 @@ public static class ExcelHtmlConverterExtensions {
             return images;
         }
 
-        return images.Where(image => image.HasAbsoluteAnchor || rowWindow.Value.ContainsRow(image.RowIndex));
+        return images.Where(image => !image.HasAbsoluteAnchor && rowWindow.Value.ContainsRow(image.RowIndex));
     }
 
     private static void AppendFormulaInventory(StringBuilder body, IReadOnlyList<ExcelFormulaCellInfo> formulas) {

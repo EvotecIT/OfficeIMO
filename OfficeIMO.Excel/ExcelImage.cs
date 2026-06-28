@@ -156,6 +156,30 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Sets the ending marker for a two-cell anchored image using 1-based worksheet marker coordinates.
+        /// </summary>
+        /// <param name="toRow">1-based ending row marker.</param>
+        /// <param name="toColumn">1-based ending column marker.</param>
+        /// <param name="toOffsetXPixels">Horizontal offset from the ending marker column.</param>
+        /// <param name="toOffsetYPixels">Vertical offset from the ending marker row.</param>
+        public ExcelImage SetTwoCellEndingMarker(int toRow, int toColumn, int toOffsetXPixels = 0, int toOffsetYPixels = 0) {
+            if (toRow < 1) throw new ArgumentOutOfRangeException(nameof(toRow));
+            if (toColumn < 1) throw new ArgumentOutOfRangeException(nameof(toColumn));
+            if (toOffsetXPixels < 0) throw new ArgumentOutOfRangeException(nameof(toOffsetXPixels));
+            if (toOffsetYPixels < 0) throw new ArgumentOutOfRangeException(nameof(toOffsetYPixels));
+            if (_anchor is not Xdr.TwoCellAnchor anchor || anchor.ToMarker == null) {
+                throw new InvalidOperationException("Only two-cell anchored images expose an ending marker.");
+            }
+
+            anchor.ToMarker.RowId = new Xdr.RowId((toRow - 1).ToString(CultureInfo.InvariantCulture));
+            anchor.ToMarker.ColumnId = new Xdr.ColumnId((toColumn - 1).ToString(CultureInfo.InvariantCulture));
+            anchor.ToMarker.RowOffset = new Xdr.RowOffset(PxToEmu(toOffsetYPixels).ToString(CultureInfo.InvariantCulture));
+            anchor.ToMarker.ColumnOffset = new Xdr.ColumnOffset(PxToEmu(toOffsetXPixels).ToString(CultureInfo.InvariantCulture));
+            Save();
+            return this;
+        }
+
+        /// <summary>
         /// Gets the left crop ratio authored on the image, where 0 means no crop and 1 means the full width.
         /// </summary>
         public double CropLeftRatio => GetCropRatio(CropRectangle?.Left?.Value);

@@ -983,8 +983,10 @@ public static partial class OfficeChartDrawingRenderer {
                     int categorySlot = GetHorizontalBarCategorySlotIndex(category, categories.Count, layout);
                     int seriesSlot = stacked ? 0 : series.Count - 1 - s;
                     double y = plotTop + categoryHeight * categorySlot + categoryHeight * 0.16D + (stacked ? 0D : rowHeight * seriesSlot);
-                    double x1 = ToPlotX(baseline, min, max, plotLeft, plotWidth);
-                    double x2 = ToPlotX(stacked ? baseline + plottedValue : plottedValue, min, max, plotLeft, plotWidth);
+                    double visibleBaseline = ClampValueToRange(baseline, min, max);
+                    double visibleValue = ClampValueToRange(stacked ? baseline + plottedValue : plottedValue, min, max);
+                    double x1 = ToPlotX(visibleBaseline, min, max, plotLeft, plotWidth);
+                    double x2 = ToPlotX(visibleValue, min, max, plotLeft, plotWidth);
                     double x = Math.Min(x1, x2);
                     double w = Math.Max(1D, Math.Abs(x2 - x1));
                     if (value != 0D) {
@@ -1008,8 +1010,10 @@ public static partial class OfficeChartDrawingRenderer {
                 } else {
                     int categorySlotIndex = GetCategorySlotIndex(category, categories.Count, layout);
                     double x = plotLeft + slot * categorySlotIndex + (slot - groupWidth) / 2D + (stacked ? 0D : barWidth * s);
-                    double y1 = ToPlotY(baseline, min, max, plotTop, plotHeight);
-                    double y2 = ToPlotY(stacked ? baseline + plottedValue : plottedValue, min, max, plotTop, plotHeight);
+                    double visibleBaseline = ClampValueToRange(baseline, min, max);
+                    double visibleValue = ClampValueToRange(stacked ? baseline + plottedValue : plottedValue, min, max);
+                    double y1 = ToPlotY(visibleBaseline, min, max, plotTop, plotHeight);
+                    double y2 = ToPlotY(visibleValue, min, max, plotTop, plotHeight);
                     double y = Math.Min(y1, y2);
                     double h = Math.Max(1D, Math.Abs(y2 - y1));
                     if (value != 0D) {
@@ -1033,6 +1037,9 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
     }
+
+    private static double ClampValueToRange(double value, double min, double max) =>
+        Math.Max(min, Math.Min(max, value));
 
     private static void AddAreaSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;

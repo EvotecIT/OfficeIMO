@@ -330,6 +330,34 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_RoundTripsSameCellTwoCellImageMarkers() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorkSheet("SameCellAnchor");
+        sheet.CellValue(1, 1, "Seed");
+        sheet.AddImageToRange("B2:B2", OnePixelPng, "image/png", name: "Same-cell image", altText: "Same-cell anchor")
+            .SetTwoCellEndingMarker(2, 2, 3, 4);
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+
+        Assert.Contains("data-officeimo-to-row=\"2\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-to-column=\"2\"", html, StringComparison.Ordinal);
+        ExcelHtmlLoadResult result = html.LoadExcelFromHtmlWithResult();
+        using ExcelDocument imported = result.Workbook;
+        ExcelSheet importedSheet = imported.Sheets.Single(importedSheet => importedSheet.Name == "SameCellAnchor");
+
+        ExcelImage importedImage = Assert.Single(importedSheet.Images);
+        Assert.True(importedImage.HasTwoCellAnchor);
+        Assert.Equal(2, importedImage.RowIndex);
+        Assert.Equal(2, importedImage.ColumnIndex);
+        Assert.Equal(2, importedImage.ToRowIndex);
+        Assert.Equal(2, importedImage.ToColumnIndex);
+        Assert.Equal(3, importedImage.ToOffsetXPixels);
+        Assert.Equal(4, importedImage.ToOffsetYPixels);
+    }
+
+    [Fact]
     public void ExcelHtml_LoadHonorsSemanticRangeOrigin() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorkSheet("Offset");
@@ -570,6 +598,7 @@ public class HtmlOfficeAdapters {
         sheet.SetComment(4, 1, "Truncated comment", "OfficeIMO");
         sheet.AddChartFromRange("A4:B5", row: 4, column: 4, widthPixels: 160, heightPixels: 90, type: ExcelChartType.ColumnClustered, title: "Truncated Chart");
         sheet.AddImage(4, 3, OnePixelPng, widthPixels: 24, heightPixels: 24, name: "Truncated Image", altText: "Truncated image");
+        sheet.AddImageAbsolute(0, 2000, OnePixelPng, widthPixels: 24, heightPixels: 24, name: "Truncated Absolute Image", altText: "Truncated absolute image");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
@@ -585,6 +614,7 @@ public class HtmlOfficeAdapters {
         Assert.DoesNotContain("Truncated comment", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Truncated Chart", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Truncated image", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Truncated absolute image", html, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -99,4 +99,30 @@ public class DrawingChartAxisLayoutTests {
         Assert.DoesNotContain("999", labels);
         Assert.DoesNotContain("NaN", labels);
     }
+
+    [Fact]
+    public void OfficeChartDrawingRenderer_ClampsColumnBaselineToExplicitVisibleAxisRange() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Visible axis minimum",
+            "Visible Axis Minimum",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 12D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(verticalAxisMinimum: 5D, verticalAxisMaximum: 15D, showLegend: false)));
+
+        OfficeDrawingShape[] filledRectangles = drawing.Elements
+            .OfType<OfficeDrawingShape>()
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.FillColor.HasValue)
+            .ToArray();
+
+        Assert.NotEmpty(filledRectangles);
+        Assert.All(filledRectangles, shape => Assert.True(
+            shape.Y + shape.Shape.Height <= drawing.Height,
+            "Column bars should stay inside the drawing when the visible value-axis range excludes zero."));
+    }
 }

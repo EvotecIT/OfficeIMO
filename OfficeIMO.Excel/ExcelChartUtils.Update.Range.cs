@@ -568,6 +568,34 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            uint? pointCount = container.GetFirstChild<PointCount>()?.Val?.Value;
+            if (pointCount.HasValue) {
+                if (pointCount.Value > int.MaxValue) {
+                    return false;
+                }
+
+                var indexedValues = Enumerable.Repeat(double.NaN, (int)pointCount.Value).ToArray();
+                int nextUnindexedIndex = 0;
+                bool hasValues = false;
+                foreach (NumericPoint point in container.Elements<NumericPoint>()) {
+                    string? text = point.NumericValue?.Text;
+                    if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
+                        return false;
+                    }
+
+                    uint index = point.Index?.Value ?? (uint)nextUnindexedIndex++;
+                    if (index >= pointCount.Value) {
+                        continue;
+                    }
+
+                    indexedValues[(int)index] = value;
+                    hasValues = true;
+                }
+
+                values = indexedValues;
+                return hasValues;
+            }
+
             var numericValues = new List<double>();
             foreach (NumericPoint point in container.Elements<NumericPoint>().OrderBy(point => point.Index?.Value ?? uint.MaxValue)) {
                 string? text = point.NumericValue?.Text;

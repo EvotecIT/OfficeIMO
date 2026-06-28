@@ -264,7 +264,7 @@ public static class ExcelHtmlLoadExtensions {
             int endColumn = Math.Max(column, toColumn - 1);
             int endOffsetX = Math.Max(0, ReadOptionalIntAttribute(item, "data-officeimo-to-offset-x") ?? 0);
             int endOffsetY = Math.Max(0, ReadOptionalIntAttribute(item, "data-officeimo-to-offset-y") ?? 0);
-            return sheet.AddImageToRange(
+            ExcelImage importedImage = sheet.AddImageToRange(
                 BuildRangeReference(row, column, endRow, endColumn),
                 bytes,
                 contentType,
@@ -274,6 +274,11 @@ public static class ExcelHtmlLoadExtensions {
                 endOffsetY,
                 name: name.Length == 0 ? null : name,
                 altText: description.Length == 0 ? null : description);
+            if (toRow <= row || toColumn <= column) {
+                importedImage.SetTwoCellEndingMarker(toRow, toColumn, endOffsetX, endOffsetY);
+            }
+
+            return importedImage;
         }
 
         result.Diagnostics.Add("Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used a two-cell anchor without semantic ending marker coordinates and was restored to its fallback cell anchor.");

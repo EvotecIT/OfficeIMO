@@ -1064,8 +1064,15 @@ namespace OfficeIMO.Tests {
             });
 
             RgbaPng image = DecodeRgbaPng(png);
+            int nonWhitePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 245 || image.Pixels[i + 1] < 245 || image.Pixels[i + 2] < 245) {
+                    nonWhitePixels++;
+                }
+            }
+
             Assert.False(IsBluePixel(image, 150, 100), "Expected stale preview metadata to avoid selecting an unrelated image relationship.");
-            Assert.True(IsWhitePixel(image, 150, 100), "Expected package preview fallback to leave the shape blank when no explicit image relationship matches.");
+            Assert.True(nonWhitePixels > 50, "Expected native PNG stencil artwork fallback when package preview metadata cannot be resolved.");
         }
 
         [Fact]

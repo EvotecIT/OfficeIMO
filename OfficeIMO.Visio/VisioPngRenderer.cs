@@ -122,8 +122,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (options.RenderStencilArtwork) {
-                if (!DrawPackagePreviewArtwork(canvas, page, shape) &&
-                    !VisioPackagePreviewArtwork.HasPreviewMetadata(shape)) {
+                if (!DrawPackagePreviewArtwork(canvas, page, shape)) {
                     DrawStencilArtwork(canvas, page, shape);
                 }
             }

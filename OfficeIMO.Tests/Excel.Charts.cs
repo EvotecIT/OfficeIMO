@@ -2615,6 +2615,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCharts_SnapshotPreservesSparseCachedValuePointIndexes() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SparseCachedValues.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Summary");
+                var data = new ExcelChartData(
+                    new[] { "Q1", "Q2", "Q3" },
+                    new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
+
+                sheet.AddChart(data, row: 1, column: 4, widthPixels: 480, heightPixels: 320,
+                    type: ExcelChartType.ColumnClustered, title: "Sparse cache");
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = GetWorksheetPartWithCharts(spreadsheet);
+                ChartPart chartPart = worksheetPart.DrawingsPart!.ChartParts.First();
+                C.NumberReference valueReference = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                    .GetFirstChild<C.PlotArea>()!
+                    .GetFirstChild<C.BarChart>()!
+                    .Elements<C.BarChartSeries>()
+                    .First()
+                    .GetFirstChild<C.Values>()!
+                    .GetFirstChild<C.NumberReference>()!;
+                valueReference.Formula!.Text = "Summary!#REF!";
+                C.NumberingCache cache = valueReference.GetFirstChild<C.NumberingCache>()!;
+                cache.PointCount!.Val = 3U;
+                cache.RemoveAllChildren<C.NumericPoint>();
+                cache.Append(
+                    new C.NumericPoint(new C.NumericValue("10")) { Index = 0U },
+                    new C.NumericPoint(new C.NumericValue("30")) { Index = 2U });
+                chartPart.ChartSpace.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelChart chart = Assert.Single(document.Sheets.Single(sheet => sheet.Name == "Summary").Charts);
+                Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+
+                double[] values = Assert.Single(snapshot.Data.Series).Values.ToArray();
+                Assert.Equal(3, values.Length);
+                Assert.Equal(10d, values[0]);
+                Assert.True(double.IsNaN(values[1]));
+                Assert.Equal(30d, values[2]);
+            }
+        }
+
+        [Fact]
         public void Test_ExcelCharts_HorizontalSnapshotReadsNonAdjacentValueRowFromSeriesFormula() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.HorizontalNonAdjacentValues.xlsx");
 
