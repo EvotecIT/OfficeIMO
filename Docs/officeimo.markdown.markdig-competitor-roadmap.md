@@ -114,7 +114,7 @@ Target direction:
 Recent progress:
 
 - the Markdig comparison baseline is now guarded so `OfficeIMO.Tests`, `OfficeIMO.Markdown.Benchmarks`, and the public compatibility docs cannot silently drift to different Markdig versions
-- parsed reference link definitions now expose source-backed opening and separator marker syntax tokens plus native metadata/snapshot spans around single-line and multiline labels
+- parsed reference link definitions now expose source-backed opening and separator marker syntax tokens plus native metadata, source-field enumeration, caret lookup, source edits, and snapshot fields around single-line and multiline labels
 - parsed inline footnote references now expose source-backed opening and closing delimiter syntax tokens while native label/marker metadata, source edits, and semantic traversal stay clean
 - parsed inline/reference links and images now expose source-backed delimiter marker syntax tokens while native metadata/source edits and semantic inline traversal remain stable
 - parsed hard breaks now expose source-backed marker syntax tokens for two-space, backslash, and inline HTML break spellings, while native hard-break metadata/source edits and semantic traversal stay clean
@@ -172,6 +172,7 @@ Recent progress:
 - native inline metadata coverage now proves link target/title, image alt/source/title, and linked-image alt/source/image-title/link-target/link-title tokens carry source spans into snapshots and can be source-edited without replacing the surrounding paragraph
 - native document navigation now enumerates source-backed inline metadata leaves and resolves metadata by caret position, so editor hosts can directly target link, image, footnote-reference, autolink, and inline-token spans
 - native block source fields now provide first-class enumeration, name filtering, caret-position lookup, and source-edit targets over heading, fence, quote-marker, callout, details, footnote, table-alignment, and thematic-break token spans
+- native reference-definition source fields now provide first-class enumeration, name filtering, caret-position lookup, source-edit targets, and snapshot projection over label-frame, destination, and title token spans
 - native block snapshots now expose the same source-backed block fields through a repeat-aware `SourceFields` list, so serialized host projections can target the same tokens as live navigation APIs
 
 ## Recommended Phases

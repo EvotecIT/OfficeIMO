@@ -839,6 +839,14 @@ After
         Assert.Equal(32, snapshotDefinition.UrlSourceSpan.EndColumn);
         Assert.Equal(35, snapshotDefinition.TitleSourceSpan!.StartColumn);
         Assert.Equal(44, snapshotDefinition.TitleSourceSpan.EndColumn);
+        Assert.Equal(
+            new[] { "openingMarker", "label", "separatorMarker", "url", "title" },
+            snapshotDefinition.SourceFields.Select(field => field.Name).ToArray());
+        Assert.Equal("[", snapshotDefinition.SourceFields[0].Value);
+        Assert.Equal("hero", snapshotDefinition.SourceFields[1].Value);
+        Assert.Equal("]:", snapshotDefinition.SourceFields[2].Value);
+        Assert.Equal("https://example.com/docs", snapshotDefinition.SourceFields[3].Value);
+        Assert.Equal("Docs title", snapshotDefinition.SourceFields[4].Value);
     }
 
     [Fact]
@@ -865,6 +873,41 @@ After
     }
 
     [Fact]
+    public void Native_Document_Enumerates_Reference_Definition_SourceFields_And_Position_Lookup() {
+        var native = MarkdownNativeDocument.Parse("""
+[hero]: https://example.com/docs "Docs title"
+
+[hero]
+""");
+
+        var definition = Assert.Single(native.ReferenceLinkDefinitions);
+        var fields = native.EnumerateReferenceLinkDefinitionFields().ToArray();
+
+        Assert.Equal(
+            new[] { "openingMarker", "label", "separatorMarker", "url", "title" },
+            fields.Select(field => field.Name).ToArray());
+        Assert.All(fields, field => Assert.Same(definition, field.Definition));
+        Assert.Equal("[", fields[0].Value);
+        Assert.Equal("hero", fields[1].Value);
+        Assert.Equal("]:", fields[2].Value);
+        Assert.Equal("https://example.com/docs", fields[3].Value);
+        Assert.Equal("Docs title", fields[4].Value);
+
+        var label = Assert.Single(native.EnumerateReferenceLinkDefinitionFields("label"));
+        Assert.Equal(new MarkdownSourceSpan(1, 2, 1, 5), label.SourceSpan);
+        Assert.Empty(native.EnumerateReferenceLinkDefinitionFields("missing"));
+        Assert.Same(definition, native.FindReferenceLinkDefinitionAtPosition(1, 1));
+        Assert.Same(definition, native.FindReferenceLinkDefinitionAtPosition(1, 40));
+        Assert.Equal("openingMarker", native.FindReferenceLinkDefinitionFieldAtPosition(1, 1)!.Name);
+        Assert.Equal("label", native.FindReferenceLinkDefinitionFieldAtPosition(1, 3)!.Name);
+        Assert.Equal("separatorMarker", native.FindReferenceLinkDefinitionFieldAtPosition(1, 6)!.Name);
+        Assert.Equal("url", native.FindReferenceLinkDefinitionFieldAtPosition(1, 12)!.Name);
+        Assert.Equal("title", native.FindReferenceLinkDefinitionFieldAtPosition(1, 39)!.Name);
+        Assert.Null(native.FindReferenceLinkDefinitionAtPosition(3, 1));
+        Assert.Null(native.FindReferenceLinkDefinitionFieldAtPosition(3, 1));
+    }
+
+    [Fact]
     public void Source_Edit_Helpers_Replace_Reference_Definition_And_Preserve_Surrounding_Source() {
         var markdown = """
 Before [hero]
@@ -888,10 +931,12 @@ Before [hero]
 After
 """), NormalizeLineEndings(updated));
 
-        var openingMarkerEdit = native.CreateReplaceEdit(definition.OpeningMarkerSourceSpan!.Value, "[ref-");
+        var openingMarker = Assert.Single(native.EnumerateReferenceLinkDefinitionFields("openingMarker"));
+        var openingMarkerEdit = native.CreateReplaceEdit(openingMarker, "[ref-");
         Assert.Contains("[ref-hero]: https://example.com/docs", openingMarkerEdit.Apply(native.SourceMarkdown), StringComparison.Ordinal);
 
-        var separatorMarkerEdit = native.CreateReplaceEdit(definition.SeparatorMarkerSourceSpan!.Value, "]: ");
+        var separatorMarker = Assert.Single(native.EnumerateReferenceLinkDefinitionFields("separatorMarker"));
+        var separatorMarkerEdit = native.CreateReplaceEdit(separatorMarker, "]: ");
         Assert.Contains("[hero]:  https://example.com/docs", separatorMarkerEdit.Apply(native.SourceMarkdown), StringComparison.Ordinal);
     }
 

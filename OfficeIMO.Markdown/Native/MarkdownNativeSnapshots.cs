@@ -42,6 +42,7 @@ public sealed class MarkdownNativeReferenceLinkDefinitionSnapshot {
         SeparatorMarkerSourceSpan = definition.SeparatorMarkerSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.SeparatorMarkerSourceSpan.Value) : null;
         UrlSourceSpan = definition.UrlSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.UrlSourceSpan.Value) : null;
         TitleSourceSpan = definition.TitleSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.TitleSourceSpan.Value) : null;
+        SourceFields = FromReferenceDefinitionFields(definition);
     }
 
     /// <summary>Normalized reference label.</summary>
@@ -70,6 +71,43 @@ public sealed class MarkdownNativeReferenceLinkDefinitionSnapshot {
 
     /// <summary>Source span for the optional title token, when available.</summary>
     public MarkdownNativeSourceSpanSnapshot? TitleSourceSpan { get; }
+
+    /// <summary>Source-backed token and payload fields in source order.</summary>
+    public IReadOnlyList<MarkdownNativeReferenceLinkDefinitionFieldSnapshot> SourceFields { get; }
+
+    private static IReadOnlyList<MarkdownNativeReferenceLinkDefinitionFieldSnapshot> FromReferenceDefinitionFields(MarkdownReferenceLinkDefinition definition) {
+        var fields = MarkdownNativeDocument.EnumerateReferenceLinkDefinitionFields(definition).ToArray();
+        if (fields.Length == 0) {
+            return Array.Empty<MarkdownNativeReferenceLinkDefinitionFieldSnapshot>();
+        }
+
+        var snapshots = new List<MarkdownNativeReferenceLinkDefinitionFieldSnapshot>(fields.Length);
+        for (var i = 0; i < fields.Length; i++) {
+            snapshots.Add(new MarkdownNativeReferenceLinkDefinitionFieldSnapshot(fields[i]));
+        }
+
+        return snapshots;
+    }
+}
+
+/// <summary>
+/// UI-safe snapshot of a source-backed token or payload field owned by a reference-style link definition.
+/// </summary>
+public sealed class MarkdownNativeReferenceLinkDefinitionFieldSnapshot {
+    internal MarkdownNativeReferenceLinkDefinitionFieldSnapshot(MarkdownNativeReferenceLinkDefinitionField field) {
+        Name = field.Name;
+        Value = field.Value;
+        SourceSpan = new MarkdownNativeSourceSpanSnapshot(field.SourceSpan);
+    }
+
+    /// <summary>Stable field name such as <c>openingMarker</c>, <c>label</c>, <c>separatorMarker</c>, <c>url</c>, or <c>title</c>.</summary>
+    public string Name { get; }
+
+    /// <summary>Semantic value represented by the field when one is available.</summary>
+    public string? Value { get; }
+
+    /// <summary>Source span for this field.</summary>
+    public MarkdownNativeSourceSpanSnapshot SourceSpan { get; }
 }
 
 /// <summary>
