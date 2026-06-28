@@ -1113,7 +1113,11 @@ After
         var comment = Assert.IsType<MarkdownNativeHtmlBlock>(native.Blocks[2]);
         Assert.True(comment.IsComment);
         Assert.Equal("<!-- keep\nthis comment\n-->", comment.Html);
+        Assert.Equal(" keep\nthis comment", comment.CommentBody);
         Assert.Equal(new MarkdownSourceSpan(5, 1, 7, 3), comment.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 4), comment.OpeningMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 5, 6, 12), comment.BodySourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(7, 1, 7, 3), comment.ClosingMarkerSourceSpan);
         Assert.Same(comment, native.FindBlockAtLine(6));
 
         var snapshot = native.ToSnapshot();
@@ -1122,6 +1126,10 @@ After
         Assert.Equal("true", snapshot.Blocks[2].Fields["isComment"]);
         Assert.Equal(5, snapshot.Blocks[2].SourceSpan!.StartLine);
         Assert.Equal(7, snapshot.Blocks[2].SourceSpan.EndLine);
+        Assert.Equal(5, snapshot.Blocks[2].FieldSourceSpans["htmlCommentOpeningMarker"]!.StartLine);
+        Assert.Equal(4, snapshot.Blocks[2].FieldSourceSpans["htmlCommentOpeningMarker"]!.EndColumn);
+        Assert.Equal(12, snapshot.Blocks[2].FieldSourceSpans["htmlCommentBody"]!.EndColumn);
+        Assert.Equal(7, snapshot.Blocks[2].FieldSourceSpans["htmlCommentClosingMarker"]!.StartLine);
 
         var edit = native.CreateReplaceEdit(comment, "<!-- updated -->");
         var updated = edit.Apply(native.SourceMarkdown);

@@ -227,6 +227,68 @@ Heading Title
     }
 
     [Fact]
+    public void Html_Comment_SourceFields_Use_Delimiter_And_Body_Token_Spans() {
+        const string markdown = """
+<!-- keep
+this comment
+-->
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var comment = Assert.IsType<MarkdownNativeHtmlBlock>(Assert.Single(native.Blocks));
+
+        Assert.True(comment.IsComment);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 4), comment.OpeningMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 2, 12), comment.BodySourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), comment.ClosingMarkerSourceSpan);
+        Assert.Equal(" keep\nthis comment", comment.CommentBody);
+
+        var html = Assert.Single(native.EnumerateBlockSourceFields("html"));
+        Assert.Same(comment, html.Block);
+        Assert.Equal("<!-- keep\nthis comment\n-->", html.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 3), html.SourceSpan);
+
+        var openingMarker = Assert.Single(native.EnumerateBlockSourceFields("htmlCommentOpeningMarker"));
+        Assert.Same(comment, openingMarker.Block);
+        Assert.Equal("<!--", openingMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 4), openingMarker.SourceSpan);
+
+        var body = Assert.Single(native.EnumerateBlockSourceFields("htmlCommentBody"));
+        Assert.Same(comment, body.Block);
+        Assert.Equal(" keep\nthis comment", body.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 2, 12), body.SourceSpan);
+
+        var closingMarker = Assert.Single(native.EnumerateBlockSourceFields("htmlCommentClosingMarker"));
+        Assert.Same(comment, closingMarker.Block);
+        Assert.Equal("-->", closingMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), closingMarker.SourceSpan);
+
+        Assert.Equal("htmlCommentOpeningMarker", native.FindBlockSourceFieldAtPosition(1, 2)!.Name);
+        Assert.Equal("htmlCommentBody", native.FindBlockSourceFieldAtPosition(2, 4)!.Name);
+        Assert.Equal("htmlCommentClosingMarker", native.FindBlockSourceFieldAtPosition(3, 2)!.Name);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal(1, snapshot.FieldSourceSpans["html"]!.StartLine);
+        Assert.Equal(4, snapshot.FieldSourceSpans["htmlCommentOpeningMarker"]!.EndColumn);
+        Assert.Equal(12, snapshot.FieldSourceSpans["htmlCommentBody"]!.EndColumn);
+        Assert.Equal(3, snapshot.FieldSourceSpans["htmlCommentClosingMarker"]!.EndColumn);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "htmlCommentBody"
+            && field.Value == " keep\nthis comment"
+            && field.SourceSpan.StartLine == 1
+            && field.SourceSpan.EndLine == 2);
+
+        var bodyEdited = native.CreateReplaceEdit(body, " updated\nbody").Apply(native.SourceMarkdown);
+        Assert.Equal("<!-- updated\nbody\n-->", bodyEdited.TrimEnd('\r', '\n'));
+
+        var openingEdited = native.CreateReplaceEdit(openingMarker, "<!--!").Apply(native.SourceMarkdown);
+        Assert.Equal("<!--! keep\nthis comment\n-->", openingEdited.TrimEnd('\r', '\n'));
+
+        var closingEdited = native.CreateReplaceEdit(closingMarker, "--!>").Apply(native.SourceMarkdown);
+        Assert.Equal("<!-- keep\nthis comment\n--!>", closingEdited.TrimEnd('\r', '\n'));
+    }
+
+    [Fact]
     public void Container_Body_SourceFields_Use_Structured_Child_Block_Spans() {
         var markdown = """
 > [!TIP] Title

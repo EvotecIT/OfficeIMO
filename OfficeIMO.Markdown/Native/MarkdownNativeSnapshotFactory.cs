@@ -161,6 +161,11 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.Text = html.Html;
                 snapshot.Markdown = html.Html;
                 snapshot.Fields = Fields(("isComment", html.IsComment ? "true" : "false"));
+                snapshot.FieldSourceSpans = FieldSpans(
+                    ("html", html.SourceSpan),
+                    ("htmlCommentOpeningMarker", html.OpeningMarkerSourceSpan),
+                    ("htmlCommentBody", html.BodySourceSpan),
+                    ("htmlCommentClosingMarker", html.ClosingMarkerSourceSpan));
                 break;
             case MarkdownNativeOtherBlock other:
                 snapshot.Markdown = other.Markdown;

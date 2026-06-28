@@ -587,8 +587,9 @@
         "description": "valid multiline comments interrupt paragraphs as HTML comment blocks",
         "line": 16,
         "column": 1,
-        "expectedPathKinds": ["Document", "HtmlComment"],
-        "expectedDeepestKind": "HtmlComment"
+        "expectedPathKinds": ["Document", "HtmlComment", "HtmlCommentOpeningMarker"],
+        "expectedDeepestKind": "HtmlCommentOpeningMarker",
+        "expectedNearestBlockKind": "HtmlComment"
       }
     ]
   },

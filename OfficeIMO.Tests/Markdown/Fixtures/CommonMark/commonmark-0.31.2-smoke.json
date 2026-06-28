@@ -939,8 +939,8 @@
         "description": "CommonMark HTML comments continue through blank lines until the closing comment marker",
         "line": 1,
         "column": 1,
-        "expectedPathKinds": ["Document", "HtmlComment"],
-        "expectedDeepestKind": "HtmlComment",
+        "expectedPathKinds": ["Document", "HtmlComment", "HtmlCommentOpeningMarker"],
+        "expectedDeepestKind": "HtmlCommentOpeningMarker",
         "expectedNearestBlockKind": "HtmlComment"
       }
     ]

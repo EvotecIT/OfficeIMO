@@ -5115,6 +5115,54 @@ title: Sample
         Assert.Equal(1, comment.SourceSpan!.Value.StartLine);
         Assert.Equal(1, comment.SourceSpan!.Value.EndLine);
         Assert.Equal(markdown, comment.Literal);
+        Assert.Collection(comment.Children,
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlCommentOpeningMarker, node.Kind);
+                Assert.Equal("<!--", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 4), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlCommentBody, node.Kind);
+                Assert.Equal(" keep me ", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 13), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlCommentClosingMarker, node.Kind);
+                Assert.Equal("-->", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 14, 1, 16), node.SourceSpan);
+            });
+        Assert.Equal(MarkdownSyntaxKind.HtmlCommentOpeningMarker, result.FindDeepestNodeAtPosition(1, 2)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.HtmlCommentBody, result.FindDeepestNodeAtPosition(1, 7)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.HtmlCommentClosingMarker, result.FindDeepestNodeAtPosition(1, 15)!.Kind);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Multiline_Html_Comment_Markers_And_Body() {
+        const string markdown = """
+<!-- keep
+this comment
+-->
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var comment = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.HtmlComment, comment.Kind);
+        Assert.Equal(markdown, comment.Literal);
+        Assert.Collection(comment.Children,
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlCommentOpeningMarker, node.Kind);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 4), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlCommentBody, node.Kind);
+                Assert.Equal(" keep\nthis comment", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 5, 2, 12), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlCommentClosingMarker, node.Kind);
+                Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), node.SourceSpan);
+            });
     }
 
     [Fact]

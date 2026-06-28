@@ -157,6 +157,38 @@ public sealed partial class MarkdownNativeDocument {
                 }
 
                 break;
+            case MarkdownNativeHtmlBlock html:
+                foreach (var field in EnumerateHtmlFields(html)) {
+                    yield return field;
+                }
+
+                break;
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateHtmlFields(MarkdownNativeHtmlBlock html) {
+        if (!html.IsComment) {
+            if (html.SourceSpan.HasValue) {
+                yield return new MarkdownNativeBlockSourceField("html", html.Html, html.SourceSpan.Value, html);
+            }
+
+            yield break;
+        }
+
+        if (html.OpeningMarkerSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("htmlCommentOpeningMarker", "<!--", html.OpeningMarkerSourceSpan.Value, html);
+        }
+
+        if (html.BodySourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("htmlCommentBody", html.CommentBody, html.BodySourceSpan.Value, html);
+        }
+
+        if (html.ClosingMarkerSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("htmlCommentClosingMarker", "-->", html.ClosingMarkerSourceSpan.Value, html);
+        }
+
+        if (html.SourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("html", html.Html, html.SourceSpan.Value, html);
         }
     }
 

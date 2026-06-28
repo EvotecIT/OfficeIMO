@@ -188,6 +188,12 @@ public enum MarkdownSyntaxKind {
     HtmlRaw,
     /// <summary>HTML comment block.</summary>
     HtmlComment,
+    /// <summary>Opening <c>&lt;!--</c> marker token for an HTML comment block.</summary>
+    HtmlCommentOpeningMarker,
+    /// <summary>Body content inside an HTML comment block.</summary>
+    HtmlCommentBody,
+    /// <summary>Closing <c>--&gt;</c> marker token for an HTML comment block.</summary>
+    HtmlCommentClosingMarker,
     /// <summary>Generated table of contents block.</summary>
     Toc,
     /// <summary>Placeholder table of contents block.</summary>

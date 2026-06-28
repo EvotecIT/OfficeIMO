@@ -342,6 +342,10 @@ public sealed class MarkdownNativeHtmlBlock : MarkdownNativeBlock {
         : base(MarkdownNativeBlockKind.Html, comment, syntaxNode) {
         Html = comment.Comment;
         IsComment = true;
+        CommentBody = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlCommentBody);
+        OpeningMarkerSourceSpan = comment.OpeningMarkerSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlCommentOpeningMarker);
+        BodySourceSpan = comment.BodySourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlCommentBody);
+        ClosingMarkerSourceSpan = comment.ClosingMarkerSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlCommentClosingMarker);
     }
 
     /// <summary>Raw HTML or comment text.</summary>
@@ -349,4 +353,22 @@ public sealed class MarkdownNativeHtmlBlock : MarkdownNativeBlock {
 
     /// <summary>Whether this block came from an HTML comment.</summary>
     public bool IsComment { get; }
+
+    /// <summary>HTML comment body without opening or closing comment markers when this block is an HTML comment.</summary>
+    public string? CommentBody { get; }
+
+    /// <summary>Source span for the opening <c>&lt;!--</c> marker when this block is an HTML comment.</summary>
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; }
+
+    /// <summary>Source span for the HTML comment body when this block is an HTML comment.</summary>
+    public MarkdownSourceSpan? BodySourceSpan { get; }
+
+    /// <summary>Source span for the closing <c>--&gt;</c> marker when this block is an HTML comment.</summary>
+    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; }
+
+    private static MarkdownSourceSpan? GetChildSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
+        syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.SourceSpan;
+
+    private static string? GetChildLiteral(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
+        syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.Literal;
 }
