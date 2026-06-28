@@ -60,7 +60,19 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
         if (Children.Count > 0) {
             var sb = new StringBuilder();
             sb.Append("<blockquote>");
-            foreach (var b in Children) sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(b));
+            foreach (var b in Children) {
+                var rendered = MarkdownBlockRenderDispatcher.RenderHtml(b);
+                if (RequiresRawHtmlBlockBoundary(rendered, b)) {
+                    sb.AppendLine();
+                    sb.Append(rendered);
+                    if (!EndsWithLineBreak(rendered)) {
+                        sb.AppendLine();
+                    }
+                    continue;
+                }
+
+                sb.Append(rendered);
+            }
             sb.Append("</blockquote>");
             return sb.ToString();
         }
@@ -70,6 +82,19 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
 
         var encoded = System.Net.WebUtility.HtmlEncode(string.Join("\n", Lines)).Replace("\n", "<br/>");
         return $"<blockquote><p>{encoded}</p></blockquote>";
+    }
+
+    private static bool RequiresRawHtmlBlockBoundary(string rendered, IMarkdownBlock block) {
+        if (string.IsNullOrEmpty(rendered)) {
+            return false;
+        }
+
+        return block is HtmlRawBlock or HtmlCommentBlock;
+    }
+
+    private static bool EndsWithLineBreak(string value) {
+        return value.EndsWith("\n", StringComparison.Ordinal) ||
+               value.EndsWith("\r", StringComparison.Ordinal);
     }
 
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;

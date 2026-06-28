@@ -9,13 +9,13 @@ The important distinction: parity is not "more tests." Parity means the parser, 
 | Area | Current state |
 | --- | --- |
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
-| CommonMark corpus | 296 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
-| CommonMark full inventory | 632 of 652 official CommonMark `0.31.2` examples currently match; 20 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
+| CommonMark corpus | 297 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| CommonMark full inventory | 633 of 652 official CommonMark `0.31.2` examples currently match; 19 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | GFM tracked inventory | 36 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 33 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 36 passing, 0 failing |
 | Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 0 covered, 15 partial, 4 intentional, 14 gap |
-| Covered CommonMark sections | ATX headings, Setext headings, thematic breaks, fenced code blocks, lists, paragraphs, soft breaks, links, images, autolinks, backslash escapes, link reference definitions |
-| Remaining CommonMark parser clusters | emphasis delimiter runs, container indentation/continuation, hard-line-break edge cases, CommonMark entity decoding, one HTML block boundary case |
+| Covered CommonMark sections | ATX headings, Setext headings, thematic breaks, fenced code blocks, HTML blocks, lists, paragraphs, soft breaks, links, images, autolinks, raw HTML, backslash escapes, link reference definitions |
+| Remaining CommonMark parser clusters | emphasis delimiter runs, container indentation/continuation, hard-line-break edge cases, CommonMark entity decoding |
 | Remaining Markdig-class architecture gaps | broader GFM corpus coverage, full lossless trivia capture, full parser pipeline parity, renderer/writer plugin parity, extension-family implementation breadth, release-mode benchmark review |
 
 ## Current Answer
@@ -26,7 +26,7 @@ Current truth:
 
 - [x] CommonMark, tracked GFM fixtures, and reflected Markdig extension families are measurable from checked-in reports.
 - [x] GFM smoke behavior is green for the fixture corpus we track today.
-- [ ] CommonMark is not closed: 20 official examples still fail.
+- [ ] CommonMark is not closed: 19 official examples still fail.
 - [ ] Markdig extension parity is not closed: 0 extension families meet the full `Covered` bar.
 - [ ] AST/source/lossless parity is not closed: full trivia, source edits, generated-node diagnostics, and source-aware extension paths are still partial.
 - [ ] Performance parity is not known: release-mode Markdig comparisons still need a stable benchmark pass after correctness stops moving.
@@ -37,7 +37,7 @@ Use this as the non-looping execution board. Each item must either move engine b
 
 ### Now: Close CommonMark Correctness
 
-- [ ] **HTML block/container boundary:** fix official CommonMark example #174, where a blockquote-contained HTML block must terminate at the right container boundary. This is engine work in block/container parsing, not another raw inline HTML patch.
+- [x] **HTML block/container boundary:** official CommonMark example #174 is pinned and passing after blockquote-contained raw HTML block rendering started preserving the boundary line break before the quote closes.
 - [ ] **Emphasis delimiter algorithm:** replace the simplified emphasis heuristics with the CommonMark delimiter-stack behavior for left/right flanking, punctuation, intraword `_`, nesting, opener/closer balancing, and precedence.
 - [ ] **Container indentation model:** make tabs, blockquote continuation, list continuation, and indented-code boundaries share a source-map-safe column model.
 - [ ] **Hard-line-break grammar:** finish the remaining hard-break failures while preserving marker source spans for two-space, backslash, and inline-HTML break spellings.
@@ -106,7 +106,7 @@ References:
 
 These are the actual parity gaps. The test work is listed only where it creates a missing scoreboard.
 
-- [ ] **CommonMark HTML block boundary parity.** Finish the remaining HTML block failure around blockquote/container boundaries; raw inline HTML and raw HTML section failures are currently green in the full inventory.
+- [x] **CommonMark HTML block boundary parity.** HTML blocks, raw HTML, and the blockquote-contained raw HTML boundary case are green in the full inventory.
 - [ ] **CommonMark emphasis engine parity.** Replace the simplified emphasis parser with the CommonMark delimiter-run algorithm covering left/right flanking, punctuation, intraword `_`, nesting, opener/closer balancing, and precedence.
 - [ ] **CommonMark container indentation parity.** Finish the 6 remaining failures around tabs, blockquote/list continuation, indented-code boundaries, and source-map-safe column handling.
 - [ ] **CommonMark hard-break and inline precedence parity.** Fix the 3 remaining hard-line-break failures while preserving marker source spans for two-space, backslash, and inline HTML break spellings.
@@ -120,7 +120,7 @@ These are the actual parity gaps. The test work is listed only where it creates 
 
 ## Immediate Work Order
 
-- [ ] Finish the remaining HTML block/container boundary case (#174) if it shares work with container continuation.
+- [x] Finish the remaining HTML block/container boundary case (#174), pin it as a smoke fixture, and refresh the inventory.
 - [ ] Tackle emphasis next because it is now the largest remaining CommonMark failure cluster and needs a deliberate delimiter-stack rewrite rather than local patches.
 - [ ] Use `Docs/officeimo.markdown.markdig-extension-inventory.md` to pick extension-family slices by row; do not promote `Partial` rows to `Covered` without parser, AST/source, renderer, writer, and fixture evidence.
 - [ ] Tackle container indentation and hard breaks as separate slices unless the source-map model forces a shared tab/column primitive.
@@ -136,7 +136,6 @@ These are the actual parity gaps. The test work is listed only where it creates 
 | Container indentation and continuation | 6 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #242, #252, #264 | Block parser and source-map column model |
 | Inline precedence and line-break grammar | 3 | Hard line breaks | #642, #643, #644 | Inline parser and marker source spans |
 | CommonMark entity decoder | 2 | Entity and numeric character references | #25, #26 | Shared character-reference decoder |
-| HTML block/raw HTML grammar | 1 | HTML blocks | #174 | Blockquote/container boundary |
 
 ## Pinned CommonMark Coverage By Section
 
@@ -146,7 +145,7 @@ This is fixture coverage, not a claim that unpinned examples fail. The generated
 | --- | ---: | ---: | ---: | --- |
 | Emphasis and strong emphasis | 11 | 132 | 121 | Inline delimiter algorithm |
 | Links | 27 | 90 | 63 | CommonMark inventory is green; remaining work is breadth and Markdig/GFM comparison |
-| HTML blocks | 19 | 44 | 25 | One remaining blockquote/container boundary failure |
+| HTML blocks | 20 | 44 | 24 | Current CommonMark inventory is green; keep broader source-span/writer coverage aligned |
 | Raw HTML | 8 | 20 | 12 | Current CommonMark inventory is green; keep broader source-span/writer coverage aligned |
 | Images | 2 | 22 | 20 | Breadth and source metadata, not current CommonMark failures |
 | Code spans | 8 | 22 | 14 | Current CommonMark inventory is green; keep delimiter/source-token coverage aligned |

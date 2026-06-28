@@ -323,6 +323,17 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             const string expected = "<p>foo <!--> foo --&gt;</p>\n<p>foo <!---> foo --&gt;</p>\n";
             Assert.Equal(CommonMarkHtmlComparison.Normalize(expected), CommonMarkHtmlComparison.Normalize(html));
         }
+
+        [Fact]
+        public void CommonMark_Profile_Renders_Blockquote_Raw_Html_Block_Boundary() {
+            string md = "> <div>\n> foo\n\nbar\n";
+
+            string html = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile())
+                .ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
+
+            const string expected = "<blockquote>\n<div>\nfoo\n</blockquote>\n<p>bar</p>\n";
+            Assert.Equal(CommonMarkHtmlComparison.Normalize(expected), CommonMarkHtmlComparison.Normalize(html));
+        }
     }
 }
 

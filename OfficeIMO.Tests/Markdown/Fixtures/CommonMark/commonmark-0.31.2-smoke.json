@@ -999,6 +999,31 @@
     "html": "<style\n  type=\"text/css\">\n\nfoo\n"
   },
   {
+    "example": 174,
+    "section": "HTML blocks",
+    "topLevelKinds": ["Quote", "Paragraph"],
+    "markdown": "> <div>\n> foo\n\nbar\n",
+    "html": "<blockquote>\n<div>\nfoo\n</blockquote>\n<p>bar</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "raw HTML inside a blockquote keeps the quote boundary before the following paragraph",
+        "line": 1,
+        "column": 3,
+        "expectedPathKinds": ["Document", "Quote", "HtmlRaw", "HtmlRawOpeningTag"],
+        "expectedDeepestKind": "HtmlRawOpeningTag",
+        "expectedNearestBlockKind": "HtmlRaw"
+      },
+      {
+        "description": "the unquoted line after the blank line starts a normal paragraph",
+        "line": 4,
+        "column": 1,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "bar",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
     "example": 179,
     "section": "HTML blocks",
     "topLevelKinds": ["HtmlComment", "Paragraph"],
