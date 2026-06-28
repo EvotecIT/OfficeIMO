@@ -12,6 +12,10 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     public MarkdownSourceSpan? BodySourceSpan { get; internal set; }
     /// <summary>Source span for a recognized matching closing raw HTML tag when available.</summary>
     public MarkdownSourceSpan? ClosingTagSourceSpan { get; internal set; }
+    /// <summary>Source span for a recognized raw HTML opening marker when available.</summary>
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; internal set; }
+    /// <summary>Source span for a recognized raw HTML closing marker when available.</summary>
+    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; internal set; }
 
     /// <summary>Create a new raw HTML block.</summary>
     /// <param name="html">HTML fragment.</param>
@@ -29,54 +33,76 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
-        if (!TryGetTagFrame(out var tagFrame)) {
+        if (!TryGetFrame(out var frame)) {
             return new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlRaw, span, Html, associatedObject: this);
         }
 
         var children = new List<MarkdownSyntaxNode>();
 
-        if (!OpeningTagSourceSpan.HasValue || (span.HasValue && !span.Value.Contains(OpeningTagSourceSpan.Value))) {
-            OpeningTagSourceSpan = HtmlBlockSourceSpanHelpers.GetSourceSpan(Html, span, tagFrame.OpeningStartIndex, tagFrame.OpeningEndIndex);
+        if (frame.Kind == RawHtmlFrameKind.Tag) {
+            if (!OpeningTagSourceSpan.HasValue || (span.HasValue && !span.Value.Contains(OpeningTagSourceSpan.Value))) {
+                OpeningTagSourceSpan = HtmlBlockSourceSpanHelpers.GetSourceSpan(Html, span, frame.OpeningStartIndex, frame.OpeningEndIndex);
+            }
+
+            if (!ClosingTagSourceSpan.HasValue || (span.HasValue && !span.Value.Contains(ClosingTagSourceSpan.Value))) {
+                ClosingTagSourceSpan = frame.HasClosing
+                    ? HtmlBlockSourceSpanHelpers.GetSourceSpan(Html, span, frame.ClosingStartIndex, frame.ClosingEndIndex)
+                    : null;
+            }
+        } else {
+            if (!OpeningMarkerSourceSpan.HasValue || (span.HasValue && !span.Value.Contains(OpeningMarkerSourceSpan.Value))) {
+                OpeningMarkerSourceSpan = HtmlBlockSourceSpanHelpers.GetSourceSpan(Html, span, frame.OpeningStartIndex, frame.OpeningEndIndex);
+            }
+
+            if (!ClosingMarkerSourceSpan.HasValue || (span.HasValue && !span.Value.Contains(ClosingMarkerSourceSpan.Value))) {
+                ClosingMarkerSourceSpan = frame.HasClosing
+                    ? HtmlBlockSourceSpanHelpers.GetSourceSpan(Html, span, frame.ClosingStartIndex, frame.ClosingEndIndex)
+                    : null;
+            }
         }
 
         if (!BodySourceSpan.HasValue || (span.HasValue && !span.Value.Contains(BodySourceSpan.Value))) {
-            BodySourceSpan = tagFrame.HasBody
-                ? HtmlBlockSourceSpanHelpers.GetSourceSpan(Html, span, tagFrame.BodyStartIndex, tagFrame.BodyEndIndex)
+            BodySourceSpan = frame.HasBody
+                ? HtmlBlockSourceSpanHelpers.GetSourceSpan(Html, span, frame.BodyStartIndex, frame.BodyEndIndex)
                 : null;
         }
 
-        if (!ClosingTagSourceSpan.HasValue || (span.HasValue && !span.Value.Contains(ClosingTagSourceSpan.Value))) {
-            ClosingTagSourceSpan = tagFrame.HasClosingTag
-                ? HtmlBlockSourceSpanHelpers.GetSourceSpan(Html, span, tagFrame.ClosingStartIndex, tagFrame.ClosingEndIndex)
-                : null;
-        }
-
-        if (OpeningTagSourceSpan.HasValue) {
-            children.Add(new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.HtmlRawOpeningTag,
-                OpeningTagSourceSpan,
-                GetSlice(tagFrame.OpeningStartIndex, tagFrame.OpeningEndIndex)));
+        if (frame.Kind == RawHtmlFrameKind.Tag && OpeningTagSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlRawOpeningTag, OpeningTagSourceSpan, GetSlice(frame.OpeningStartIndex, frame.OpeningEndIndex)));
+        } else if (frame.Kind != RawHtmlFrameKind.Tag && OpeningMarkerSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlRawOpeningMarker, OpeningMarkerSourceSpan, GetSlice(frame.OpeningStartIndex, frame.OpeningEndIndex)));
         }
 
         if (BodySourceSpan.HasValue) {
             children.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.HtmlRawBody,
                 BodySourceSpan,
-                GetSlice(tagFrame.BodyStartIndex, tagFrame.BodyEndIndex)));
+                GetSlice(frame.BodyStartIndex, frame.BodyEndIndex)));
         }
 
-        if (ClosingTagSourceSpan.HasValue) {
-            children.Add(new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.HtmlRawClosingTag,
-                ClosingTagSourceSpan,
-                GetSlice(tagFrame.ClosingStartIndex, tagFrame.ClosingEndIndex)));
+        if (frame.Kind == RawHtmlFrameKind.Tag && ClosingTagSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlRawClosingTag, ClosingTagSourceSpan, GetSlice(frame.ClosingStartIndex, frame.ClosingEndIndex)));
+        } else if (frame.Kind != RawHtmlFrameKind.Tag && ClosingMarkerSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlRawClosingMarker, ClosingMarkerSourceSpan, GetSlice(frame.ClosingStartIndex, frame.ClosingEndIndex)));
         }
 
         return new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlRaw, span, Html, children, this);
     }
 
-    private bool TryGetTagFrame(out TagFrame tagFrame) {
-        tagFrame = default;
+    private bool TryGetFrame(out RawHtmlFrame frame) {
+        if (TryGetTagFrame(out frame)) {
+            return true;
+        }
+
+        if (TryGetDelimitedFrame("<![CDATA[", "]]>", RawHtmlFrameKind.CData, out frame)) {
+            return true;
+        }
+
+        return TryGetDelimitedFrame("<?", "?>", RawHtmlFrameKind.ProcessingInstruction, out frame);
+    }
+
+    private bool TryGetTagFrame(out RawHtmlFrame frame) {
+        frame = default;
 
         var openingStart = Html.IndexOf('<');
         if (openingStart < 0 || !TryReadOpeningTag(openingStart, out var tagName, out var openingEnd, out var isSelfClosing)) {
@@ -84,7 +110,7 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         }
 
         if (isSelfClosing || !TryFindClosingTag(tagName, openingEnd, out var closingStart, out var closingEnd)) {
-            tagFrame = new TagFrame(openingStart, openingEnd, -1, -1, -1, -1);
+            frame = new RawHtmlFrame(RawHtmlFrameKind.Tag, openingStart, openingEnd, -1, -1, -1, -1);
             return true;
         }
 
@@ -99,7 +125,37 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
             bodyEnd--;
         }
 
-        tagFrame = new TagFrame(openingStart, openingEnd, bodyStart, bodyEnd, closingStart, closingEnd);
+        frame = new RawHtmlFrame(RawHtmlFrameKind.Tag, openingStart, openingEnd, bodyStart, bodyEnd, closingStart, closingEnd);
+        return true;
+    }
+
+    private bool TryGetDelimitedFrame(string openingMarker, string closingMarker, RawHtmlFrameKind kind, out RawHtmlFrame frame) {
+        frame = default;
+
+        var openingStart = Html.IndexOf(openingMarker, StringComparison.Ordinal);
+        if (openingStart < 0) {
+            return false;
+        }
+
+        var openingEnd = openingStart + openingMarker.Length - 1;
+        var closingStart = Html.LastIndexOf(closingMarker, StringComparison.Ordinal);
+        if (closingStart <= openingEnd) {
+            return false;
+        }
+
+        var closingEnd = closingStart + closingMarker.Length - 1;
+        var bodyStart = openingEnd + 1;
+        var bodyEnd = closingStart - 1;
+
+        while (bodyStart <= bodyEnd && Html[bodyStart] == '\n') {
+            bodyStart++;
+        }
+
+        while (bodyEnd >= bodyStart && Html[bodyEnd] == '\n') {
+            bodyEnd--;
+        }
+
+        frame = new RawHtmlFrame(kind, openingStart, openingEnd, bodyStart, bodyEnd, closingStart, closingEnd);
         return true;
     }
 
@@ -197,8 +253,15 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     private static bool IsAsciiLetter(char ch) =>
         ch is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
 
-    private readonly struct TagFrame {
-        internal TagFrame(int openingStartIndex, int openingEndIndex, int bodyStartIndex, int bodyEndIndex, int closingStartIndex, int closingEndIndex) {
+    private enum RawHtmlFrameKind {
+        Tag,
+        CData,
+        ProcessingInstruction
+    }
+
+    private readonly struct RawHtmlFrame {
+        internal RawHtmlFrame(RawHtmlFrameKind kind, int openingStartIndex, int openingEndIndex, int bodyStartIndex, int bodyEndIndex, int closingStartIndex, int closingEndIndex) {
+            Kind = kind;
             OpeningStartIndex = openingStartIndex;
             OpeningEndIndex = openingEndIndex;
             BodyStartIndex = bodyStartIndex;
@@ -207,6 +270,7 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
             ClosingEndIndex = closingEndIndex;
         }
 
+        internal RawHtmlFrameKind Kind { get; }
         internal int OpeningStartIndex { get; }
         internal int OpeningEndIndex { get; }
         internal int BodyStartIndex { get; }
@@ -214,6 +278,6 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         internal int ClosingStartIndex { get; }
         internal int ClosingEndIndex { get; }
         internal bool HasBody => BodyStartIndex >= 0 && BodyEndIndex >= BodyStartIndex;
-        internal bool HasClosingTag => ClosingStartIndex >= 0 && ClosingEndIndex >= ClosingStartIndex;
+        internal bool HasClosing => ClosingStartIndex >= 0 && ClosingEndIndex >= ClosingStartIndex;
     }
 }

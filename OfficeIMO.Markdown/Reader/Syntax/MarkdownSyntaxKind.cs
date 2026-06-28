@@ -188,8 +188,12 @@ public enum MarkdownSyntaxKind {
     HtmlRaw,
     /// <summary>Opening tag token for a recognized raw HTML block frame.</summary>
     HtmlRawOpeningTag,
+    /// <summary>Opening marker token for a recognized non-tag raw HTML block frame.</summary>
+    HtmlRawOpeningMarker,
     /// <summary>Body content inside a recognized raw HTML block frame.</summary>
     HtmlRawBody,
+    /// <summary>Closing marker token for a recognized non-tag raw HTML block frame.</summary>
+    HtmlRawClosingMarker,
     /// <summary>Closing tag token for a recognized raw HTML block frame.</summary>
     HtmlRawClosingTag,
     /// <summary>HTML comment block.</summary>

@@ -164,7 +164,9 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.FieldSourceSpans = FieldSpans(
                     ("html", html.SourceSpan),
                     ("htmlOpeningTag", html.OpeningTagSourceSpan),
+                    ("htmlOpeningMarker", html.RawOpeningMarkerSourceSpan),
                     ("htmlBody", html.RawBodySourceSpan),
+                    ("htmlClosingMarker", html.RawClosingMarkerSourceSpan),
                     ("htmlClosingTag", html.ClosingTagSourceSpan),
                     ("htmlCommentOpeningMarker", html.OpeningMarkerSourceSpan),
                     ("htmlCommentBody", html.BodySourceSpan),

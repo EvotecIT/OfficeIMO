@@ -5233,6 +5233,72 @@ Raw body
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Html_Raw_Processing_Instruction_Frame() {
+        const string markdown = """
+<?php
+
+  echo '>';
+
+?>
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var rawHtml = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.HtmlRaw, rawHtml.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 5, 2), rawHtml.SourceSpan);
+        Assert.Collection(
+            rawHtml.Children,
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawOpeningMarker, node.Kind);
+                Assert.Equal("<?", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 2), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawBody, node.Kind);
+                Assert.Equal("php\n\n  echo '>';", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 3, 3, 11), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawClosingMarker, node.Kind);
+                Assert.Equal("?>", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 2), node.SourceSpan);
+            });
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Html_Raw_CData_Frame() {
+        const string markdown = """
+<![CDATA[
+x < y
+]]>
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var rawHtml = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.HtmlRaw, rawHtml.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 3), rawHtml.SourceSpan);
+        Assert.Collection(
+            rawHtml.Children,
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawOpeningMarker, node.Kind);
+                Assert.Equal("<![CDATA[", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 9), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawBody, node.Kind);
+                Assert.Equal("x < y", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 5), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawClosingMarker, node.Kind);
+                Assert.Equal("]]>", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), node.SourceSpan);
+            });
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Toc_Placeholder_Block() {
         const string markdown = "[TOC]";
 

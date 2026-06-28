@@ -337,10 +337,14 @@ public sealed class MarkdownNativeHtmlBlock : MarkdownNativeBlock {
         Html = html.Html;
         IsComment = false;
         OpeningTag = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawOpeningTag);
+        OpeningMarker = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawOpeningMarker);
         Body = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawBody);
+        ClosingMarker = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawClosingMarker);
         ClosingTag = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawClosingTag);
         OpeningTagSourceSpan = html.OpeningTagSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawOpeningTag);
+        RawOpeningMarkerSourceSpan = html.OpeningMarkerSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawOpeningMarker);
         RawBodySourceSpan = html.BodySourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawBody);
+        RawClosingMarkerSourceSpan = html.ClosingMarkerSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawClosingMarker);
         ClosingTagSourceSpan = html.ClosingTagSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawClosingTag);
     }
 
@@ -363,8 +367,14 @@ public sealed class MarkdownNativeHtmlBlock : MarkdownNativeBlock {
     /// <summary>Opening raw HTML tag for recognized raw HTML tag-frame blocks.</summary>
     public string? OpeningTag { get; }
 
+    /// <summary>Opening raw HTML marker for recognized non-tag raw HTML frames.</summary>
+    public string? OpeningMarker { get; }
+
     /// <summary>Body content between recognized raw HTML opening and closing tags.</summary>
     public string? Body { get; }
+
+    /// <summary>Closing raw HTML marker for recognized non-tag raw HTML frames.</summary>
+    public string? ClosingMarker { get; }
 
     /// <summary>Closing raw HTML tag for recognized raw HTML tag-frame blocks.</summary>
     public string? ClosingTag { get; }
@@ -372,8 +382,14 @@ public sealed class MarkdownNativeHtmlBlock : MarkdownNativeBlock {
     /// <summary>Source span for a recognized raw HTML opening tag.</summary>
     public MarkdownSourceSpan? OpeningTagSourceSpan { get; }
 
+    /// <summary>Source span for a recognized raw HTML opening marker.</summary>
+    public MarkdownSourceSpan? RawOpeningMarkerSourceSpan { get; }
+
     /// <summary>Source span for body content between recognized raw HTML opening and closing tags.</summary>
     public MarkdownSourceSpan? RawBodySourceSpan { get; }
+
+    /// <summary>Source span for a recognized raw HTML closing marker.</summary>
+    public MarkdownSourceSpan? RawClosingMarkerSourceSpan { get; }
 
     /// <summary>Source span for a recognized raw HTML closing tag.</summary>
     public MarkdownSourceSpan? ClosingTagSourceSpan { get; }

@@ -172,8 +172,16 @@ public sealed partial class MarkdownNativeDocument {
                 yield return new MarkdownNativeBlockSourceField("htmlOpeningTag", html.OpeningTag, html.OpeningTagSourceSpan.Value, html);
             }
 
+            if (html.RawOpeningMarkerSourceSpan.HasValue) {
+                yield return new MarkdownNativeBlockSourceField("htmlOpeningMarker", html.OpeningMarker, html.RawOpeningMarkerSourceSpan.Value, html);
+            }
+
             if (html.RawBodySourceSpan.HasValue) {
                 yield return new MarkdownNativeBlockSourceField("htmlBody", html.Body, html.RawBodySourceSpan.Value, html);
+            }
+
+            if (html.RawClosingMarkerSourceSpan.HasValue) {
+                yield return new MarkdownNativeBlockSourceField("htmlClosingMarker", html.ClosingMarker, html.RawClosingMarkerSourceSpan.Value, html);
             }
 
             if (html.ClosingTagSourceSpan.HasValue) {

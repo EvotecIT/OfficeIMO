@@ -352,6 +352,57 @@ Raw body
     }
 
     [Fact]
+    public void Html_Raw_SourceFields_Use_Delimited_Marker_And_Body_Token_Spans() {
+        const string markdown = """
+<![CDATA[
+x < y
+]]>
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var html = Assert.IsType<MarkdownNativeHtmlBlock>(Assert.Single(native.Blocks));
+
+        Assert.False(html.IsComment);
+        Assert.Equal("<![CDATA[", html.OpeningMarker);
+        Assert.Equal("x < y", html.Body);
+        Assert.Equal("]]>", html.ClosingMarker);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 9), html.RawOpeningMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 5), html.RawBodySourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), html.RawClosingMarkerSourceSpan);
+
+        var openingMarker = Assert.Single(native.EnumerateBlockSourceFields("htmlOpeningMarker"));
+        Assert.Same(html, openingMarker.Block);
+        Assert.Equal("<![CDATA[", openingMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 9), openingMarker.SourceSpan);
+
+        var body = Assert.Single(native.EnumerateBlockSourceFields("htmlBody"));
+        Assert.Same(html, body.Block);
+        Assert.Equal("x < y", body.Value);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 5), body.SourceSpan);
+
+        var closingMarker = Assert.Single(native.EnumerateBlockSourceFields("htmlClosingMarker"));
+        Assert.Same(html, closingMarker.Block);
+        Assert.Equal("]]>", closingMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), closingMarker.SourceSpan);
+
+        Assert.Equal("htmlOpeningMarker", native.FindBlockSourceFieldAtPosition(1, 3)!.Name);
+        Assert.Equal("htmlBody", native.FindBlockSourceFieldAtPosition(2, 3)!.Name);
+        Assert.Equal("htmlClosingMarker", native.FindBlockSourceFieldAtPosition(3, 2)!.Name);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal(9, snapshot.FieldSourceSpans["htmlOpeningMarker"]!.EndColumn);
+        Assert.Equal(5, snapshot.FieldSourceSpans["htmlBody"]!.EndColumn);
+        Assert.Equal(3, snapshot.FieldSourceSpans["htmlClosingMarker"]!.EndColumn);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "htmlClosingMarker"
+            && field.Value == "]]>"
+            && field.SourceSpan.StartLine == 3);
+
+        var bodyEdited = native.CreateReplaceEdit(body, "a > b").Apply(native.SourceMarkdown);
+        Assert.Equal("<![CDATA[\na > b\n]]>", bodyEdited.TrimEnd('\r', '\n'));
+    }
+
+    [Fact]
     public void Container_Body_SourceFields_Use_Structured_Child_Block_Spans() {
         var markdown = """
 > [!TIP] Title
