@@ -77,6 +77,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal((ushort)0x0010, ReadUInt16(bofPayloads[1], 2));
 
                 byte[] fileBytes = File.ReadAllBytes(xlsOutputPath);
+                Assert.Equal(4096U, ReadUInt32(fileBytes, 56));
                 CompoundDirectoryEntry workbookEntry = Assert.Single(
                     ReadFirstCompoundDirectorySector(fileBytes),
                     entry => string.Equals(entry.Name, "Workbook", StringComparison.OrdinalIgnoreCase));
@@ -3276,6 +3277,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, legacySheet.Comments.Count);
                 byte[] drawingGroupPayload = Assert.Single(GetBiffRecordPayloads(xlsOutputPath, 0x00eb));
                 Assert.True(drawingGroupPayload.Length > 8);
+                IReadOnlyList<byte[]> drawingPayloads = GetBiffRecordPayloads(xlsOutputPath, 0x00ec);
+                Assert.Equal(2, drawingPayloads.Count);
+                Assert.All(drawingPayloads, payload => AssertCommentDrawingInfo(payload, expectedShapeCount: 2, expectedLastShapeId: 1026));
                 AssertBiffRecordOccursBefore(xlsOutputPath, 0x00eb, 0x0085);
 
                 LegacyXlsComment firstLegacyComment = Assert.Single(legacySheet.Comments, comment => comment.Row == 1 && comment.Column == 1);
@@ -4008,6 +4012,16 @@ namespace OfficeIMO.Tests {
             }
 
             TraverseCompoundDirectoryTree(entries, entry.RightSiblingId, names, visited);
+        }
+
+        private static void AssertCommentDrawingInfo(byte[] drawingPayload, uint expectedShapeCount, uint expectedLastShapeId) {
+            Assert.True(drawingPayload.Length >= 24);
+            Assert.Equal((ushort)0xf002, ReadUInt16(drawingPayload, 2));
+            const int drawingInfoOffset = 8;
+            Assert.Equal((ushort)0xf008, ReadUInt16(drawingPayload, drawingInfoOffset + 2));
+            Assert.Equal(8U, ReadUInt32(drawingPayload, drawingInfoOffset + 4));
+            Assert.Equal(expectedShapeCount, ReadUInt32(drawingPayload, drawingInfoOffset + 8));
+            Assert.Equal(expectedLastShapeId, ReadUInt32(drawingPayload, drawingInfoOffset + 12));
         }
 
         private static ushort ReadUInt16(byte[] bytes, int offset) {

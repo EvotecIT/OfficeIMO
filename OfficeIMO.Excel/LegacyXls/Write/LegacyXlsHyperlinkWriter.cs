@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private const uint IsAbsolute = 0x00000002;
         private const uint HasLocation = 0x00000008;
         private const uint HasDisplayName = 0x00000010;
+        private const int MaxTooltipCharacters = 255;
 
         private static readonly byte[] HLinkClsid = {
             0xd0, 0xc9, 0xea, 0x79, 0xf9, 0xba, 0xce, 0x11,
@@ -192,6 +193,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             records.Add(new LegacyXlsHyperlinkRecord((ushort)BiffRecordType.HLink, hyperlinkPayload));
             if (!string.IsNullOrWhiteSpace(tooltip)) {
+                if (tooltip!.Length > MaxTooltipCharacters) {
+                    reason = "hyperlink tooltips outside BIFF8 limits";
+                    return false;
+                }
+
                 byte[] tooltipPayload = BuildTooltipPayload(firstRow, firstColumn, lastRow, lastColumn, tooltip!);
                 if (tooltipPayload.Length > ushort.MaxValue) {
                     reason = "hyperlink tooltips outside BIFF8 limits";

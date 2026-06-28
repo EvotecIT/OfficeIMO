@@ -3,6 +3,8 @@ using System.Text;
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static class LegacyXlsCompoundFileWriter {
         private const int SectorSize = 512;
+        private const int MiniSectorSize = 64;
+        private const int MiniStreamCutoffSize = 4096;
         private const uint FreeSect = 0xffffffff;
         private const uint EndOfChain = 0xfffffffe;
         private const uint FatSect = 0xfffffffd;
@@ -24,25 +26,70 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 .Select(PadStream)
                 .OrderBy(stream => stream.Name, DirectoryNameComparer.Instance)
                 .ToArray();
-            int dataSectorCount = paddedStreams.Sum(stream => stream.PaddedBytes.Length / SectorSize);
+
+            MiniStreamLayout miniStreamLayout = MiniStreamLayout.Create(paddedStreams);
+            int regularStreamSectorCount = 0;
+            foreach (PaddedStream stream in paddedStreams) {
+                if (stream.IsMiniStream) {
+                    continue;
+                }
+
+                stream.StartSector = unchecked((uint)regularStreamSectorCount);
+                regularStreamSectorCount += stream.PaddedBytes.Length / SectorSize;
+            }
+
+            uint miniStreamStartSector = EndOfChain;
+            if (miniStreamLayout.StreamBytes.Length > 0) {
+                miniStreamStartSector = unchecked((uint)regularStreamSectorCount);
+                regularStreamSectorCount += miniStreamLayout.StreamBytes.Length / SectorSize;
+            }
+
             int directorySectorCount = CalculateDirectorySectorCount(paddedStreams.Length + 1);
-            int fatSectorCount = CalculateFatSectorCount(dataSectorCount, directorySectorCount);
+            int miniFatSectorCount = miniStreamLayout.FatBytes.Length / SectorSize;
+            int sectorCountBeforeFat = regularStreamSectorCount + directorySectorCount + miniFatSectorCount;
+            int fatSectorCount = CalculateFatSectorCount(sectorCountBeforeFat);
             if (fatSectorCount > 109) {
                 throw new NotSupportedException("Native XLS saving currently supports compound files with up to 109 FAT sectors.");
             }
 
-            int directorySector = dataSectorCount;
+            int directorySector = regularStreamSectorCount;
+            uint miniFatStartSector = miniFatSectorCount == 0
+                ? EndOfChain
+                : unchecked((uint)(directorySector + directorySectorCount));
             int firstFatSector = directorySector + directorySectorCount;
-            byte[] directory = BuildDirectory(paddedStreams, directorySectorCount);
-            byte[] fat = BuildFat(paddedStreams, dataSectorCount, directorySector, directorySectorCount, firstFatSector, fatSectorCount);
+            if (miniFatSectorCount > 0) {
+                firstFatSector += miniFatSectorCount;
+            }
+
+            byte[] directory = BuildDirectory(paddedStreams, directorySectorCount, miniStreamStartSector, miniStreamLayout.StreamLength);
+            byte[] fat = BuildFat(
+                paddedStreams,
+                miniStreamStartSector,
+                miniStreamLayout.StreamBytes.Length / SectorSize,
+                directorySector,
+                directorySectorCount,
+                miniFatStartSector,
+                miniFatSectorCount,
+                firstFatSector,
+                fatSectorCount);
 
             using var output = new MemoryStream();
-            output.Write(BuildHeader(directorySector, firstFatSector, fatSectorCount), 0, SectorSize);
+            output.Write(BuildHeader(directorySector, firstFatSector, fatSectorCount, miniFatStartSector, miniFatSectorCount), 0, SectorSize);
             foreach (PaddedStream stream in paddedStreams) {
-                output.Write(stream.PaddedBytes, 0, stream.PaddedBytes.Length);
+                if (!stream.IsMiniStream) {
+                    output.Write(stream.PaddedBytes, 0, stream.PaddedBytes.Length);
+                }
+            }
+
+            if (miniStreamLayout.StreamBytes.Length > 0) {
+                output.Write(miniStreamLayout.StreamBytes, 0, miniStreamLayout.StreamBytes.Length);
             }
 
             output.Write(directory, 0, directory.Length);
+            if (miniStreamLayout.FatBytes.Length > 0) {
+                output.Write(miniStreamLayout.FatBytes, 0, miniStreamLayout.FatBytes.Length);
+            }
+
             output.Write(fat, 0, fat.Length);
             return output.ToArray();
         }
@@ -51,10 +98,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return Math.Max(1, (checked(directoryEntryCount * 128) + SectorSize - 1) / SectorSize);
         }
 
-        private static int CalculateFatSectorCount(int dataSectorCount, int directorySectorCount) {
+        private static int CalculateFatSectorCount(int sectorCountBeforeFat) {
             int fatSectorCount = 1;
             while (true) {
-                int totalSectors = dataSectorCount + directorySectorCount + fatSectorCount;
+                int totalSectors = sectorCountBeforeFat + fatSectorCount;
                 int requiredFatSectors = (totalSectors + 127) / 128;
                 if (requiredFatSectors == fatSectorCount) {
                     return fatSectorCount;
@@ -64,7 +111,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
         }
 
-        private static byte[] BuildHeader(int directorySector, int firstFatSector, int fatSectorCount) {
+        private static byte[] BuildHeader(int directorySector, int firstFatSector, int fatSectorCount, uint miniFatStartSector, int miniFatSectorCount) {
             byte[] header = new byte[SectorSize];
             byte[] signature = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };
             Buffer.BlockCopy(signature, 0, header, 0, signature.Length);
@@ -75,8 +122,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteUInt16(header, 32, 0x0006);
             WriteUInt32(header, 44, unchecked((uint)fatSectorCount));
             WriteUInt32(header, 48, unchecked((uint)directorySector));
-            WriteUInt32(header, 56, 0);
-            WriteUInt32(header, 60, EndOfChain);
+            WriteUInt32(header, 56, MiniStreamCutoffSize);
+            WriteUInt32(header, 60, miniFatStartSector);
+            WriteUInt32(header, 64, unchecked((uint)miniFatSectorCount));
             WriteUInt32(header, 68, EndOfChain);
 
             for (int i = 0; i < 109; i++) {
@@ -87,12 +135,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return header;
         }
 
-        private static byte[] BuildDirectory(IReadOnlyList<PaddedStream> streams, int directorySectorCount) {
+        private static byte[] BuildDirectory(IReadOnlyList<PaddedStream> streams, int directorySectorCount, uint miniStreamStartSector, int miniStreamLength) {
             byte[] directory = new byte[checked(directorySectorCount * SectorSize)];
             DirectoryTreeLinks directoryLinks = DirectoryTreeLinks.Create(streams.Count);
-            WriteDirectoryEntry(directory, 0, "Root Entry", 5, EndOfChain, EndOfChain, directoryLinks.RootChild, EndOfChain, 0);
+            WriteDirectoryEntry(directory, 0, "Root Entry", 5, EndOfChain, EndOfChain, directoryLinks.RootChild, miniStreamStartSector, unchecked((ulong)miniStreamLength));
 
-            uint startSector = 0;
             for (int i = 0; i < streams.Count; i++) {
                 PaddedStream stream = streams[i];
                 WriteDirectoryEntry(
@@ -103,9 +150,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     directoryLinks.GetLeftSibling(i),
                     directoryLinks.GetRightSibling(i),
                     EndOfChain,
-                    startSector,
+                    stream.StartSector,
                     unchecked((ulong)stream.OriginalLength));
-                startSector += unchecked((uint)(stream.PaddedBytes.Length / SectorSize));
             }
 
             return directory;
@@ -113,9 +159,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private static byte[] BuildFat(
             IReadOnlyList<PaddedStream> streams,
-            int dataSectorCount,
+            uint miniStreamStartSector,
+            int miniStreamSectorCount,
             int directorySector,
             int directorySectorCount,
+            uint miniFatStartSector,
+            int miniFatSectorCount,
             int firstFatSector,
             int fatSectorCount) {
             byte[] fat = new byte[checked(fatSectorCount * SectorSize)];
@@ -123,24 +172,19 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 WriteUInt32(fat, offset, FreeSect);
             }
 
-            int streamStartSector = 0;
             foreach (PaddedStream stream in streams) {
-                int streamSectorCount = stream.PaddedBytes.Length / SectorSize;
-                for (int i = 0; i < streamSectorCount; i++) {
-                    bool lastSector = i + 1 == streamSectorCount;
-                    WriteFatEntry(fat, streamStartSector + i, lastSector ? EndOfChain : unchecked((uint)(streamStartSector + i + 1)));
+                if (!stream.IsMiniStream) {
+                    WriteFatChain(fat, stream.StartSector, stream.PaddedBytes.Length / SectorSize);
                 }
-
-                streamStartSector += streamSectorCount;
             }
 
-            if (streamStartSector != dataSectorCount) {
-                throw new InvalidOperationException("The compound file stream sector count is inconsistent.");
+            if (miniStreamSectorCount > 0) {
+                WriteFatChain(fat, miniStreamStartSector, miniStreamSectorCount);
             }
 
-            for (int i = 0; i < directorySectorCount; i++) {
-                bool lastDirectorySector = i + 1 == directorySectorCount;
-                WriteFatEntry(fat, directorySector + i, lastDirectorySector ? EndOfChain : unchecked((uint)(directorySector + i + 1)));
+            WriteFatChain(fat, unchecked((uint)directorySector), directorySectorCount);
+            if (miniFatSectorCount > 0) {
+                WriteFatChain(fat, miniFatStartSector, miniFatSectorCount);
             }
 
             for (int i = 0; i < fatSectorCount; i++) {
@@ -148,6 +192,18 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             return fat;
+        }
+
+        private static void WriteFatChain(byte[] fat, uint firstSector, int sectorCount) {
+            if (sectorCount == 0 || firstSector == EndOfChain) {
+                return;
+            }
+
+            for (int i = 0; i < sectorCount; i++) {
+                bool lastSector = i + 1 == sectorCount;
+                uint sector = unchecked(firstSector + (uint)i);
+                WriteFatEntry(fat, checked((int)sector), lastSector ? EndOfChain : unchecked(sector + 1));
+            }
         }
 
         private static void WriteDirectoryEntry(byte[] buffer, int offset, string name, byte type, uint left, uint right, uint child, uint startSector, ulong size) {
@@ -164,7 +220,18 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static byte[] PadToSector(byte[] data) {
-            int paddedLength = Math.Max(4096, ((data.Length + SectorSize - 1) / SectorSize) * SectorSize);
+            int paddedLength = ((data.Length + SectorSize - 1) / SectorSize) * SectorSize;
+            if (paddedLength == data.Length) {
+                return data;
+            }
+
+            byte[] padded = new byte[paddedLength];
+            Buffer.BlockCopy(data, 0, padded, 0, data.Length);
+            return padded;
+        }
+
+        private static byte[] PadToMiniSector(byte[] data) {
+            int paddedLength = ((data.Length + MiniSectorSize - 1) / MiniSectorSize) * MiniSectorSize;
             if (paddedLength == data.Length) {
                 return data;
             }
@@ -200,14 +267,18 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 throw new ArgumentException("Compound stream name is required.", nameof(stream));
             }
 
-            return new PaddedStream(stream.Name, stream.Bytes.Length, PadToSector(stream.Bytes));
+            bool isMiniStream = stream.Bytes.Length < MiniStreamCutoffSize;
+            byte[] paddedBytes = isMiniStream ? PadToMiniSector(stream.Bytes) : PadToSector(stream.Bytes);
+            return new PaddedStream(stream.Name, stream.Bytes.Length, paddedBytes, isMiniStream);
         }
 
         private sealed class PaddedStream {
-            internal PaddedStream(string name, int originalLength, byte[] paddedBytes) {
+            internal PaddedStream(string name, int originalLength, byte[] paddedBytes, bool isMiniStream) {
                 Name = name;
                 OriginalLength = originalLength;
                 PaddedBytes = paddedBytes;
+                IsMiniStream = isMiniStream;
+                StartSector = EndOfChain;
             }
 
             internal string Name { get; }
@@ -215,6 +286,58 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             internal int OriginalLength { get; }
 
             internal byte[] PaddedBytes { get; }
+
+            internal bool IsMiniStream { get; }
+
+            internal uint StartSector { get; set; }
+        }
+
+        private sealed class MiniStreamLayout {
+            private MiniStreamLayout(byte[] streamBytes, byte[] fatBytes, int streamLength) {
+                StreamBytes = streamBytes;
+                FatBytes = fatBytes;
+                StreamLength = streamLength;
+            }
+
+            internal byte[] StreamBytes { get; }
+
+            internal byte[] FatBytes { get; }
+
+            internal int StreamLength { get; }
+
+            internal static MiniStreamLayout Create(IReadOnlyList<PaddedStream> streams) {
+                var miniStreams = streams
+                    .Where(stream => stream.IsMiniStream && stream.PaddedBytes.Length > 0)
+                    .ToArray();
+                if (miniStreams.Length == 0) {
+                    return new MiniStreamLayout(Array.Empty<byte>(), Array.Empty<byte>(), 0);
+                }
+
+                int miniSectorCount = 0;
+                using var miniStream = new MemoryStream();
+                foreach (PaddedStream stream in miniStreams) {
+                    stream.StartSector = unchecked((uint)miniSectorCount);
+                    miniSectorCount += stream.PaddedBytes.Length / MiniSectorSize;
+                    miniStream.Write(stream.PaddedBytes, 0, stream.PaddedBytes.Length);
+                }
+
+                byte[] miniFat = new byte[(((miniSectorCount * 4) + SectorSize - 1) / SectorSize) * SectorSize];
+                for (int offset = 0; offset < miniFat.Length; offset += 4) {
+                    WriteUInt32(miniFat, offset, FreeSect);
+                }
+
+                foreach (PaddedStream stream in miniStreams) {
+                    int streamMiniSectorCount = stream.PaddedBytes.Length / MiniSectorSize;
+                    for (int i = 0; i < streamMiniSectorCount; i++) {
+                        bool lastSector = i + 1 == streamMiniSectorCount;
+                        uint sector = unchecked(stream.StartSector + (uint)i);
+                        WriteUInt32(miniFat, checked((int)sector * 4), lastSector ? EndOfChain : unchecked(sector + 1));
+                    }
+                }
+
+                byte[] streamBytes = PadToSector(miniStream.ToArray());
+                return new MiniStreamLayout(streamBytes, miniFat, checked(miniSectorCount * MiniSectorSize));
+            }
         }
 
         private sealed class DirectoryTreeLinks {

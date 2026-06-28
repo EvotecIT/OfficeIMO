@@ -1812,7 +1812,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksOversizedHyperlinkTooltipsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("hyperlink tooltips outside BIFF8 limits", (document, sheet) => {
                 sheet.CellValue(1, 1, "Oversized tooltip");
-                AddExternalHyperlink(sheet, "A1", "https://officeimo.net/legacy-xls", UriKind.Absolute, tooltip: new string('T', 40000));
+                AddExternalHyperlink(sheet, "A1", "https://officeimo.net/legacy-xls", UriKind.Absolute, tooltip: new string('T', 256));
             });
         }
 
