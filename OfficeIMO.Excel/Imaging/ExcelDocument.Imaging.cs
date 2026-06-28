@@ -64,11 +64,11 @@ namespace OfficeIMO.Excel {
             Directory.CreateDirectory(fullFolder);
             IReadOnlyList<OfficeImageExportResult> results = ExportImages(format, options);
             string extension = format == OfficeImageExportFormat.Svg ? ".svg" : ".png";
-            var usedNames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var usedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < results.Count; i++) {
                 OfficeImageExportResult result = results[i];
                 string name = string.IsNullOrWhiteSpace(result.Name) ? "sheet-" + (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) : result.Name!;
-                string path = Path.Combine(fullFolder, GetUniqueFileName(SanitizeFileName(name), extension, usedNames));
+                string path = Path.Combine(fullFolder, GetUniqueFileName(SanitizeFileName(name), extension, usedFileNames));
                 File.WriteAllBytes(path, result.Bytes);
             }
 
@@ -117,19 +117,23 @@ namespace OfficeIMO.Excel {
             return new string(chars).Trim();
         }
 
-        private static string GetUniqueFileName(string baseName, string extension, Dictionary<string, int> usedNames) {
+        private static string GetUniqueFileName(string baseName, string extension, ISet<string> usedFileNames) {
             if (string.IsNullOrWhiteSpace(baseName)) {
                 baseName = "sheet";
             }
 
-            if (!usedNames.TryGetValue(baseName, out int count)) {
-                usedNames[baseName] = 1;
-                return baseName + extension;
+            string candidate = baseName + extension;
+            if (usedFileNames.Add(candidate)) {
+                return candidate;
             }
 
-            count++;
-            usedNames[baseName] = count;
-            return baseName + "-" + count.ToString(System.Globalization.CultureInfo.InvariantCulture) + extension;
+            int suffix = 2;
+            do {
+                candidate = baseName + "-" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture) + extension;
+                suffix++;
+            } while (!usedFileNames.Add(candidate));
+
+            return candidate;
         }
     }
 }

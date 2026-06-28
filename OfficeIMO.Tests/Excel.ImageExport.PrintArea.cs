@@ -188,6 +188,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorkbook_SaveAsImagesKeepsGeneratedFileNamesUniqueWhenSheetNamesOverlapPageSuffixes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet report = document.AddWorkSheet("Report");
+            FillPageBreakGrid(report);
+            report.AddManualRowPageBreak(2, save: false);
+            ExcelSheet reportTwo = document.AddWorkSheet("Report-2");
+            reportTwo.CellValue(1, 1, "Overlapping sheet name");
+
+            string folderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO.Excel.Images." + Guid.NewGuid().ToString("N"));
+            IReadOnlyList<OfficeImageExportResult> results = document.SaveAsImages(folderPath, OfficeImageExportFormat.Png, new ExcelWorkbookImageExportOptions {
+                SplitWorksheetsByManualPageBreaks = true,
+                ShowGridlines = false
+            });
+
+            string[] fileNames = Directory.GetFiles(folderPath, "*.png")
+                .Select(file => Path.GetFileName(file)!)
+                .OrderBy(fileName => fileName, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            Assert.Equal(3, results.Count);
+            Assert.Equal(3, fileNames.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            Assert.Contains("Report.png", fileNames);
+            Assert.Contains("Report-2.png", fileNames);
+            Assert.Contains("Report-2-2.png", fileNames);
+        }
+
+        [Fact]
         public void ExcelWorksheet_ExportImagesSplitsRangeByManualPageBreaks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

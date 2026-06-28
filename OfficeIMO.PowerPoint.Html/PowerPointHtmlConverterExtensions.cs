@@ -102,7 +102,7 @@ public static class PowerPointHtmlConverterExtensions {
             }
         }
 
-        AppendSlideFeatureInventory(body, slide);
+        AppendSlideFeatureInventory(body, slide, options);
         AppendExtractionProof(body, extractionProof, options);
         body.Append("</section>");
     }
@@ -163,9 +163,7 @@ public static class PowerPointHtmlConverterExtensions {
             PptCore.PowerPointChart => " officeimo-shape-chart",
             _ => string.Empty
         };
-        string rotation = shape.Rotation.HasValue && Math.Abs(shape.Rotation.Value) > 0.001D
-            ? "transform:rotate(" + FormatNumber(shape.Rotation.Value) + "deg);"
-            : string.Empty;
+        string transform = BuildShapeTransformStyle(shape);
         string textFlow = shape is PptCore.PowerPointTextBox ? "white-space:pre-wrap;" : string.Empty;
 
         body.Append("<div class=\"officeimo-shape")
@@ -181,7 +179,7 @@ public static class PowerPointHtmlConverterExtensions {
             .Append("pt;height:")
             .Append(FormatNumber(height))
             .Append("pt;")
-            .Append(rotation)
+            .Append(transform)
             .Append(textFlow)
             .Append("\">");
 
@@ -202,9 +200,33 @@ public static class PowerPointHtmlConverterExtensions {
         body.Append("</div>");
     }
 
-    private static void AppendSlideFeatureInventory(StringBuilder body, PptCore.PowerPointSlide slide) {
-        AppendPictureInventory(body, slide.Pictures);
-        AppendChartInventory(body, slide.Charts);
+    private static string BuildShapeTransformStyle(PptCore.PowerPointShape shape) {
+        var transforms = new List<string>(3);
+        if (shape.Rotation.HasValue && Math.Abs(shape.Rotation.Value) > 0.001D) {
+            transforms.Add("rotate(" + FormatNumber(shape.Rotation.Value) + "deg)");
+        }
+
+        if (shape.HorizontalFlip == true) {
+            transforms.Add("scaleX(-1)");
+        }
+
+        if (shape.VerticalFlip == true) {
+            transforms.Add("scaleY(-1)");
+        }
+
+        return transforms.Count == 0 ? string.Empty : "transform:" + string.Join(" ", transforms) + ";";
+    }
+
+    private static void AppendSlideFeatureInventory(StringBuilder body, PptCore.PowerPointSlide slide, PowerPointHtmlSaveOptions options) {
+        IEnumerable<PptCore.PowerPointPicture> pictures = options.IncludeHiddenShapes
+            ? slide.Pictures
+            : slide.Pictures.Where(picture => !picture.Hidden);
+        IEnumerable<PptCore.PowerPointChart> charts = options.IncludeHiddenShapes
+            ? slide.Charts
+            : slide.Charts.Where(chart => !chart.Hidden);
+
+        AppendPictureInventory(body, pictures);
+        AppendChartInventory(body, charts);
     }
 
     private static void AppendPictureInventory(StringBuilder body, IEnumerable<PptCore.PowerPointPicture> pictures) {

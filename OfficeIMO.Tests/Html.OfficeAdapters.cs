@@ -898,6 +898,18 @@ public class HtmlOfficeAdapters {
         slide.AddTextBox("Visible briefing");
         PowerPointTextBox hidden = slide.AddTextBox("Hidden briefing");
         hidden.Hidden = true;
+        using (var image = new MemoryStream(OnePixelPng)) {
+            PowerPointPicture hiddenPicture = slide.AddPicturePoints(image, OfficeIMO.PowerPoint.ImagePartType.Png, 80, 90, 120, 72);
+            hiddenPicture.Name = "Hidden image marker";
+            hiddenPicture.Hidden = true;
+        }
+
+        PowerPointChartData hiddenChartData = new(
+            new[] { "Q1", "Q2" },
+            new[] { new PowerPointChartSeries("Hidden", new[] { 10D, 18D }) });
+        PowerPointChart hiddenChart = slide.AddChartPoints(hiddenChartData, 120, 90, 240, 140);
+        hiddenChart.SetTitle("Hidden chart marker");
+        hiddenChart.Hidden = true;
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -905,6 +917,8 @@ public class HtmlOfficeAdapters {
 
         Assert.Contains("Visible briefing", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Hidden briefing", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden image marker", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden chart marker", html, StringComparison.Ordinal);
 
         string htmlWithHidden = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides,
@@ -912,6 +926,8 @@ public class HtmlOfficeAdapters {
         });
 
         Assert.Contains("Hidden briefing", htmlWithHidden, StringComparison.Ordinal);
+        Assert.Contains("Hidden image marker", htmlWithHidden, StringComparison.Ordinal);
+        Assert.Contains("Hidden chart marker", htmlWithHidden, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -948,6 +964,22 @@ public class HtmlOfficeAdapters {
 
         Assert.Contains("white-space:pre-wrap", html, StringComparison.Ordinal);
         Assert.Contains("Agenda\n  Owner", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PowerPointHtml_VisualReviewPreservesShapeFlipTransforms() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointTextBox textBox = slide.AddTextBoxPoints("Flipped", 72, 96, 240, 60);
+        textBox.Rotation = 12.5D;
+        textBox.HorizontalFlip = true;
+        textBox.VerticalFlip = true;
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
+        });
+
+        Assert.Contains("transform:rotate(12.5deg) scaleX(-1) scaleY(-1);", html, StringComparison.Ordinal);
     }
 
     [Fact]
