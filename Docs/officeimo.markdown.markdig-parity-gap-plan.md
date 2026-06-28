@@ -9,8 +9,8 @@ The short version: parity is not "more tests." Parity means the engine, AST, ren
 | Area | Current state |
 | --- | --- |
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
-| CommonMark corpus | 277 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
-| CommonMark full inventory | 599 of 652 official CommonMark `0.31.2` examples currently match; 53 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
+| CommonMark corpus | 278 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| CommonMark full inventory | 601 of 652 official CommonMark `0.31.2` examples currently match; 51 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | Strong areas | ATX headings, Setext headings, thematic breaks, fenced code blocks, paragraphs, lists, autolinks, soft breaks |
 | Biggest remaining parser gaps | Link/reference grammar, HTML/raw HTML grammar, emphasis, container indentation, code spans, hard-break edge cases, entities |
@@ -27,8 +27,8 @@ References:
 
 This is the current `[ ]` work plan. Tests are not the goal; they are the proof that each engine slice is actually compatible.
 
-- [ ] Fix the 16 remaining link/reference failures: nested link precedence, inline precedence with HTML/code/autolinks, linked-image reference rendering, and shared image/link grammar.
-- [ ] Fix the 12 remaining HTML/raw HTML failures: table/pre block-boundary edge cases, blockquote HTML continuation, malformed raw HTML, and inline-vs-block raw HTML classification.
+- [ ] Fix the 15 remaining link/reference failures: nested link precedence, inline precedence with HTML/code/autolinks, linked-image reference rendering, and shared image/link grammar.
+- [ ] Fix the 11 remaining HTML/raw HTML failures: table/pre block-boundary edge cases, blockquote HTML continuation, malformed raw HTML, and inline-vs-block raw HTML classification.
 - [ ] Fix the 9 remaining emphasis failures by replacing simplified delimiter handling with the CommonMark delimiter-run algorithm.
 - [ ] Fix the 6 remaining container/indentation failures around tabs, blockquote/list continuation, and indented-code boundaries.
 - [ ] Fix the 4 remaining code-span failures around normalization, Unicode spaces, and precedence.
@@ -46,7 +46,7 @@ This table is fixture coverage, not a claim that every unpinned example currentl
 | Section | Pinned | Total | Missing | Primary lane |
 | --- | ---: | ---: | ---: | --- |
 | Emphasis and strong emphasis | 11 | 132 | 121 | Inline delimiter algorithm |
-| Links | 12 | 90 | 78 | Link/image/reference grammar |
+| Links | 13 | 90 | 77 | Link/image/reference grammar |
 | HTML blocks | 19 | 44 | 25 | HTML block tokenizer |
 | Raw HTML | 8 | 20 | 12 | Inline/raw HTML classification |
 | Images | 2 | 22 | 20 | Link/image/reference grammar |
@@ -143,7 +143,7 @@ Done means:
 
 ## Phase 4: Link, Reference, And Image Grammar
 
-Current observed failures include invalid angle destinations with newlines, invalid title tails, nested link label precedence, NBSP destination/title separation, and image/link nesting rules.
+Current observed failures include invalid title tails, nested link label precedence, NBSP destination/title separation, linked-image reference rendering, and image/link nesting rules.
 
 - [ ] Rework inline link destination parsing around the CommonMark grammar instead of ad hoc balanced scanning.
 - [ ] Rework optional title parsing so invalid extra tokens fall back to literal text.

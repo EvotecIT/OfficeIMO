@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace OfficeIMO.Markdown;
 
 internal sealed class MarkdownInlineSourceMap {
@@ -71,6 +73,57 @@ internal sealed class MarkdownInlineSourceMap {
         }
 
         return _tokenLiterals[startIndex];
+    }
+
+    internal bool ContainsSourceLineBreak(int startIndex, int length) {
+        if (length <= 0 || startIndex < 0 || startIndex >= _points.Length) {
+            return false;
+        }
+
+        var endExclusive = Math.Min(_points.Length, startIndex + length);
+        for (var i = startIndex; i < endExclusive; i++) {
+            if (i + 1 >= _points.Length) {
+                break;
+            }
+
+            var current = _points[i];
+            var next = _points[i + 1];
+            if (current.HasValue && next.HasValue && current.Value.Line != next.Value.Line) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    internal string RestoreSourceLineBreaks(string text, int startIndex, int length) {
+        if (string.IsNullOrEmpty(text) || length <= 0 || startIndex < 0 || startIndex >= text.Length) {
+            return string.Empty;
+        }
+
+        var endExclusive = Math.Min(text.Length, startIndex + length);
+        var sb = new StringBuilder(endExclusive - startIndex);
+        for (var i = startIndex; i < endExclusive; i++) {
+            var ch = text[i];
+            if (ch == ' ' && i + 1 < endExclusive && HasSourceLineTransitionAfter(i)) {
+                sb.Append('\n');
+                continue;
+            }
+
+            sb.Append(ch);
+        }
+
+        return sb.ToString();
+    }
+
+    private bool HasSourceLineTransitionAfter(int index) {
+        if (index < 0 || index + 1 >= _points.Length) {
+            return false;
+        }
+
+        var current = _points[index];
+        var next = _points[index + 1];
+        return current.HasValue && next.HasValue && current.Value.Line != next.Value.Line;
     }
 
     internal MarkdownInlineSourceMap Slice(int startIndex, int length) {

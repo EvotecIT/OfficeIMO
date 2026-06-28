@@ -15,10 +15,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Official examples | 652 |
-| Pinned smoke fixtures | 277 |
-| Passing pinned fixtures | 277 |
-| Passing unpinned examples | 322 |
-| Failing examples | 53 |
+| Pinned smoke fixtures | 278 |
+| Passing pinned fixtures | 278 |
+| Passing unpinned examples | 323 |
+| Failing examples | 51 |
 | Intentional deviations | 0 |
 
 ## Section Inventory
@@ -44,10 +44,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Inlines | 1 | 0 | 0 | 1 | 0 | 0 |
 | Code spans | 22 | 5 | 5 | 13 | 4 | 0 |
 | Emphasis and strong emphasis | 132 | 11 | 11 | 112 | 9 | 0 |
-| Links | 90 | 12 | 12 | 62 | 16 | 0 |
+| Links | 90 | 13 | 13 | 62 | 15 | 0 |
 | Images | 22 | 2 | 2 | 20 | 0 | 0 |
 | Autolinks | 19 | 12 | 12 | 7 | 0 | 0 |
-| Raw HTML | 20 | 8 | 8 | 3 | 9 | 0 |
+| Raw HTML | 20 | 8 | 8 | 4 | 8 | 0 |
 | Hard line breaks | 15 | 5 | 5 | 6 | 4 | 0 |
 | Soft line breaks | 2 | 2 | 2 | 0 | 0 | 0 |
 | Textual content | 3 | 0 | 0 | 3 | 0 | 0 |
@@ -56,8 +56,8 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 
 | Cluster | Failing | Sections | First examples |
 | --- | ---: | --- | --- |
-| Link/image/reference grammar | 16 | Links | #491, #518, #519, #520, #523, #524, #525, #526, #531, #532, #533, #536 |
-| HTML block/raw HTML grammar | 12 | HTML blocks, Raw HTML | #148, #174, #191, #615, #619, #621, #622, #625, #626, #627, #628, #629 |
+| Link/image/reference grammar | 15 | Links | #518, #519, #520, #523, #524, #525, #526, #531, #532, #533, #536, #537 |
+| HTML block/raw HTML grammar | 11 | HTML blocks, Raw HTML | #148, #174, #191, #619, #621, #622, #625, #626, #627, #628, #629 |
 | Emphasis delimiter algorithm | 9 | Emphasis and strong emphasis | #353, #408, #418, #432, #438, #441, #450, #453, #470 |
 | Container indentation and continuation | 6 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #242, #252, #264 |
 | Code span normalization and precedence | 4 | Code spans | #333, #334, #336, #342 |

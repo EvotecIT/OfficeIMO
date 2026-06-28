@@ -406,6 +406,7 @@ public static partial class MarkdownReader {
             if (TryParseImageLink(
                 text,
                 pos,
+                sourceMap,
                 out int consumed,
                 out var alt2,
                 out var img2,
@@ -507,6 +508,7 @@ public static partial class MarkdownReader {
                     if (TryParseInlineImage(
                         text,
                         pos,
+                        sourceMap,
                         out int consumedImg,
                         out var altImg,
                         out var srcImg,
@@ -572,7 +574,7 @@ public static partial class MarkdownReader {
             }
             if (text[pos] == '[') {
                 if (allowLinks) {
-                    if (TryParseLink(text, pos, out int consumed2, out var label2, out var href3, out var title2, out int hrefStart2, out int hrefLength2, out int? titleStart2, out int? titleLength2)) {
+                    if (TryParseLink(text, pos, sourceMap, out int consumed2, out var label2, out var href3, out var title2, out int hrefStart2, out int hrefLength2, out int? titleStart2, out int? titleLength2)) {
                         var labelSeq = ParseInlinesInternal(label2, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, label2.Length));
 
                         // Allow empty href: commonly used as placeholder or to be filled by the host.
@@ -779,8 +781,8 @@ public static partial class MarkdownReader {
                     continue;
                 }
 
-                if (TryConsumeRawInlineHtmlTag(text, pos, out int consumedRawHtmlTag)) {
-                    AddRawNode(new HtmlRawInline(text.Substring(pos, consumedRawHtmlTag)), pos, consumedRawHtmlTag);
+                if (TryConsumeRawInlineHtmlTag(text, pos, sourceMap, out int consumedRawHtmlTag, out string rawInlineHtml)) {
+                    AddRawNode(new HtmlRawInline(rawInlineHtml), pos, consumedRawHtmlTag);
                     pos += consumedRawHtmlTag;
                     continue;
                 }

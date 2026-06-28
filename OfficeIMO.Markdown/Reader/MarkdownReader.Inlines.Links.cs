@@ -113,6 +113,7 @@ public static partial class MarkdownReader {
     private static bool TryParseLink(
         string text,
         int start,
+        MarkdownInlineSourceMap? sourceMap,
         out int consumed,
         out string label,
         out string href,
@@ -132,7 +133,16 @@ public static partial class MarkdownReader {
         if (parenClose < 0) return false;
         label = text.Substring(start + 1, labelEnd - (start + 1));
         string inner = text.Substring(parenOpen + 1, parenClose - (parenOpen + 1));
-        if (!TrySplitUrlAndOptionalTitle(inner, out href, out title, out int hrefInnerStart, out int hrefInnerLength, out int? titleInnerStart, out int? titleInnerLength)) {
+        if (!TrySplitUrlAndOptionalTitle(
+            inner,
+            out href,
+            out title,
+            out int hrefInnerStart,
+            out int hrefInnerLength,
+            out int? titleInnerStart,
+            out int? titleInnerLength,
+            sourceMap,
+            parenOpen + 1)) {
             if (!TryParseTrimmedLiteralDestination(inner, out href, out hrefInnerStart, out hrefInnerLength)) return false;
             title = null;
             titleInnerStart = null;
@@ -157,7 +167,9 @@ public static partial class MarkdownReader {
         out int urlStart,
         out int urlLength,
         out int? titleStart,
-        out int? titleLength) {
+        out int? titleLength,
+        MarkdownInlineSourceMap? sourceMap = null,
+        int sourceOffset = 0) {
         url = string.Empty;
         title = null;
         urlStart = 0;
@@ -188,7 +200,8 @@ public static partial class MarkdownReader {
         if (inner[start] == '<') {
             int gt = inner.IndexOf('>', start + 1);
             if (gt >= start + 1 && gt < endExclusive) {
-                if (!IsValidAngleLinkDestination(inner, start + 1, gt)) {
+                if (!IsValidAngleLinkDestination(inner, start + 1, gt)
+                    || ContainsSourceLineBreak(sourceMap, sourceOffset + start + 1, gt - (start + 1))) {
                     return false;
                 }
 
@@ -256,6 +269,9 @@ public static partial class MarkdownReader {
 
     private static bool TrySplitUrlAndOptionalTitle(string? inner, out string url, out string? title) =>
         TrySplitUrlAndOptionalTitle(inner, out url, out title, out _, out _, out _, out _);
+
+    private static bool ContainsSourceLineBreak(MarkdownInlineSourceMap? sourceMap, int startIndex, int length) =>
+        sourceMap != null && sourceMap.ContainsSourceLineBreak(startIndex, length);
 
     private static bool TryParseTrimmedLiteralDestination(string inner, out string destination, out int destinationStart, out int destinationLength) {
         destination = string.Empty;

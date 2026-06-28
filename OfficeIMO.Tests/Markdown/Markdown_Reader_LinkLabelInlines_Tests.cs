@@ -52,5 +52,23 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("<strong><a href=\"/docs/installation/\">Installation</a></strong>", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Angle_Link_Destination_With_Source_Line_Break_Remains_Text() {
+        const string md = """
+[link](<foo
+bar>)
+""";
+
+        var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+
+        Assert.Empty(paragraph.Inlines.Items.OfType<LinkInline>());
+        var rawHtml = Assert.Single(paragraph.Inlines.Items.OfType<HtmlRawInline>());
+        Assert.Equal("<foo\nbar>", rawHtml.Html);
+
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("[link](<foo\nbar>)", html, StringComparison.Ordinal);
+    }
 }
 

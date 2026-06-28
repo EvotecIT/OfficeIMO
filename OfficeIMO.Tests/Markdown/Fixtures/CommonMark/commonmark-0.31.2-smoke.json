@@ -2687,6 +2687,13 @@
     ]
   },
   {
+    "example": 491,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[link](<foo\nbar>)\n",
+    "html": "<p>[link](<foo\nbar>)</p>\n"
+  },
+  {
     "example": 494,
     "section": "Links",
     "topLevelKinds": ["Paragraph"],

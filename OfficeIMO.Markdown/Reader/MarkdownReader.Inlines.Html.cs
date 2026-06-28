@@ -180,7 +180,17 @@ public static partial class MarkdownReader {
     }
 
     private static bool TryConsumeRawInlineHtmlTag(string text, int start, out int consumed) {
+        return TryConsumeRawInlineHtmlTag(text, start, null, out consumed, out _);
+    }
+
+    private static bool TryConsumeRawInlineHtmlTag(
+        string text,
+        int start,
+        MarkdownInlineSourceMap? sourceMap,
+        out int consumed,
+        out string html) {
         consumed = 0;
+        html = string.Empty;
 
         if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length || text[start] != '<') {
             return false;
@@ -204,6 +214,7 @@ public static partial class MarkdownReader {
 
             if (position < text.Length && text[position] == '>') {
                 consumed = position - start + 1;
+                html = RestoreRawInlineHtmlLiteral(text, start, consumed, sourceMap);
                 return true;
             }
 
@@ -249,6 +260,7 @@ public static partial class MarkdownReader {
 
             if (ch == '>') {
                 consumed = position - start + 1;
+                html = RestoreRawInlineHtmlLiteral(text, start, consumed, sourceMap);
                 return true;
             }
 
@@ -257,6 +269,9 @@ public static partial class MarkdownReader {
 
         return false;
     }
+
+    private static string RestoreRawInlineHtmlLiteral(string text, int start, int consumed, MarkdownInlineSourceMap? sourceMap) =>
+        sourceMap?.RestoreSourceLineBreaks(text, start, consumed) ?? text.Substring(start, consumed);
 
     private static int ConsumeHtmlTagName(string text, int position) {
         while (position < text.Length) {
