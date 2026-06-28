@@ -87,6 +87,37 @@ public class Markdown_Native_Block_Source_Field_Tests {
     }
 
     [Fact]
+    public void Heading_SourceFields_Use_Setext_Underline_Marker_Token_Span() {
+        const string markdown = """
+Heading Title
+-------------
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var heading = Assert.IsType<MarkdownNativeHeadingBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 13), heading.LevelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), heading.TextSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 13), heading.SetextUnderlineMarkerSourceSpan);
+        Assert.Equal("-------------", heading.SetextUnderlineMarkerText);
+
+        var underlineMarker = Assert.Single(native.EnumerateBlockSourceFields("setextUnderlineMarker"));
+        Assert.Same(heading, underlineMarker.Block);
+        Assert.Equal("-------------", underlineMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 13), underlineMarker.SourceSpan);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "setextUnderlineMarker"
+            && field.Value == "-------------"
+            && field.SourceSpan.StartLine == 2
+            && field.SourceSpan.EndColumn == 13);
+
+        var edited = native.CreateReplaceEdit(underlineMarker, "===").Apply(native.SourceMarkdown);
+        Assert.Equal("Heading Title\n===", edited.Replace("\r\n", "\n").TrimEnd('\n'));
+    }
+
+    [Fact]
     public void Footnote_Label_SourceField_Uses_Indented_Label_Token_Span() {
         const string markdown = """
   [^note]: Footnote body

@@ -14,6 +14,8 @@ public enum MarkdownSyntaxKind {
     HeadingOpeningMarker,
     /// <summary>Heading text payload.</summary>
     HeadingText,
+    /// <summary>Setext heading underline marker token.</summary>
+    HeadingSetextUnderlineMarker,
     /// <summary>Optional closing ATX heading marker token.</summary>
     HeadingClosingMarker,
     /// <summary>Plain text inline node.</summary>

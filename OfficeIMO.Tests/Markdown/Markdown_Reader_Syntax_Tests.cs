@@ -436,6 +436,34 @@ Heading Title
         Assert.NotNull(text.SourceSpan);
         Assert.Equal(1, text.SourceSpan!.Value.StartLine);
         Assert.Equal(1, text.SourceSpan!.Value.EndLine);
+
+        var underlineMarker = Assert.Single(heading.Children, child => child.Kind == MarkdownSyntaxKind.HeadingSetextUnderlineMarker);
+        Assert.Equal("-------------", underlineMarker.Literal);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 13), underlineMarker.SourceSpan);
+        Assert.Null(underlineMarker.AssociatedObject);
+        Assert.Equal(MarkdownSyntaxKind.HeadingLevel, result.FindDeepestNodeAtPosition(2, 4)!.Kind);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Multiline_Setext_Underline_Marker_Token_Syntax() {
+        var markdown = """
+Foo *bar
+baz*
+====
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var heading = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
+        Assert.Equal("Foo *bar baz*", heading.Literal);
+
+        var underlineMarker = Assert.Single(heading.Children, child => child.Kind == MarkdownSyntaxKind.HeadingSetextUnderlineMarker);
+        Assert.Equal("====", underlineMarker.Literal);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 4), underlineMarker.SourceSpan);
+
+        var text = Assert.Single(heading.Children, child => child.Kind == MarkdownSyntaxKind.HeadingText);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 4), text.SourceSpan);
     }
 
     [Fact]

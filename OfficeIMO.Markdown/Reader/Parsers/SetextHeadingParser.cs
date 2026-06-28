@@ -23,7 +23,15 @@ public static partial class MarkdownReader {
             var sourceMap = BuildInlineSourceMapForSingleLine(headingText, state.SourceLineOffset + i + 1, contentStart + 1, state);
             var heading = new HeadingBlock(level, ParseInlines(headingText, options, state, sourceMap));
             var markerStartColumn = next.IndexOf(t, StringComparison.Ordinal) + 1;
-            heading.SetLevelSourceInfo(1, markerStartColumn, markerStartColumn + t.Length - 1);
+            var markerEndColumn = markerStartColumn + t.Length - 1;
+            var absoluteMarkerLine = state.SourceLineOffset + i + 2;
+            heading.SetLevelSourceInfo(1, markerStartColumn, markerEndColumn);
+            heading.SetSetextUnderlineMarkerSourceInfo(
+                1,
+                markerStartColumn,
+                markerEndColumn,
+                t,
+                CreateSpan(state, absoluteMarkerLine, markerStartColumn, absoluteMarkerLine, markerEndColumn));
             if (headingText.Length > 0) {
                 heading.SetTextSourceInfo(0, contentStart + 1, contentStart + headingText.Length);
             }

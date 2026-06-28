@@ -182,6 +182,10 @@ public sealed partial class MarkdownNativeDocument {
             yield return new MarkdownNativeBlockSourceField("openingMarker", heading.OpeningMarkerText, heading.OpeningMarkerSourceSpan.Value, heading);
         }
 
+        if (heading.SetextUnderlineMarkerSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("setextUnderlineMarker", heading.SetextUnderlineMarkerText, heading.SetextUnderlineMarkerSourceSpan.Value, heading);
+        }
+
         if (heading.ClosingMarkerSourceSpan.HasValue) {
             yield return new MarkdownNativeBlockSourceField("closingMarker", heading.ClosingMarkerText, heading.ClosingMarkerSourceSpan.Value, heading);
         }

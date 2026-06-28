@@ -18,6 +18,10 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     internal int OpeningMarkerSourceLineOffset { get; private set; }
     internal int OpeningMarkerSourceStartColumn { get; private set; }
     internal int OpeningMarkerSourceEndColumn { get; private set; }
+    internal bool HasSetextUnderlineMarkerSourceInfo { get; private set; }
+    internal int SetextUnderlineMarkerSourceLineOffset { get; private set; }
+    internal int SetextUnderlineMarkerSourceStartColumn { get; private set; }
+    internal int SetextUnderlineMarkerSourceEndColumn { get; private set; }
     internal bool HasTextSourceInfo { get; private set; }
     internal int TextSourceLineOffset { get; private set; }
     internal int TextSourceEndLineOffset { get; private set; }
@@ -31,6 +35,10 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; private set; }
     /// <summary>Exact ATX opening marker token when parsed from markdown.</summary>
     public string? OpeningMarkerText { get; private set; }
+    /// <summary>Source span for a Setext underline marker token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? SetextUnderlineMarkerSourceSpan { get; private set; }
+    /// <summary>Exact Setext underline marker token when parsed from markdown.</summary>
+    public string? SetextUnderlineMarkerText { get; private set; }
     /// <summary>Source span for an optional ATX closing marker token when parsed from markdown.</summary>
     public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; private set; }
     /// <summary>Exact optional ATX closing marker token when parsed from markdown.</summary>
@@ -71,6 +79,15 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         OpeningMarkerSourceEndColumn = Math.Max(OpeningMarkerSourceStartColumn, endColumn);
         OpeningMarkerSourceSpan = sourceSpan;
         OpeningMarkerText = new string('#', OpeningMarkerSourceEndColumn - OpeningMarkerSourceStartColumn + 1);
+    }
+
+    internal void SetSetextUnderlineMarkerSourceInfo(int lineOffset, int startColumn, int endColumn, string markerText, MarkdownSourceSpan? sourceSpan = null) {
+        HasSetextUnderlineMarkerSourceInfo = true;
+        SetextUnderlineMarkerSourceLineOffset = Math.Max(0, lineOffset);
+        SetextUnderlineMarkerSourceStartColumn = Math.Max(1, startColumn);
+        SetextUnderlineMarkerSourceEndColumn = Math.Max(SetextUnderlineMarkerSourceStartColumn, endColumn);
+        SetextUnderlineMarkerSourceSpan = sourceSpan;
+        SetextUnderlineMarkerText = markerText ?? string.Empty;
     }
 
     internal void SetTextSourceInfo(int lineOffset, int startColumn, int endColumn) {
@@ -153,6 +170,14 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
                 OpeningMarkerText ?? new string('#', Level)));
         }
 
+        var setextUnderlineMarkerSpan = GetSetextUnderlineMarkerSourceSpan(span);
+        if (setextUnderlineMarkerSpan.HasValue) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.HeadingSetextUnderlineMarker,
+                setextUnderlineMarkerSpan,
+                SetextUnderlineMarkerText));
+        }
+
         var closingMarkerSpan = GetClosingMarkerSourceSpan(span);
         if (closingMarkerSpan.HasValue) {
             nodes.Add(new MarkdownSyntaxNode(
@@ -227,6 +252,24 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
             value.StartLine + OpeningMarkerSourceLineOffset,
             OpeningMarkerSourceEndColumn);
         return OpeningMarkerSourceSpan;
+    }
+
+    private MarkdownSourceSpan? GetSetextUnderlineMarkerSourceSpan(MarkdownSourceSpan? span) {
+        if (SetextUnderlineMarkerSourceSpan.HasValue) {
+            return SetextUnderlineMarkerSourceSpan;
+        }
+
+        if (!HasSetextUnderlineMarkerSourceInfo || !span.HasValue || !span.Value.StartColumn.HasValue) {
+            return null;
+        }
+
+        var value = span.Value;
+        SetextUnderlineMarkerSourceSpan = new MarkdownSourceSpan(
+            value.StartLine + SetextUnderlineMarkerSourceLineOffset,
+            SetextUnderlineMarkerSourceStartColumn,
+            value.StartLine + SetextUnderlineMarkerSourceLineOffset,
+            SetextUnderlineMarkerSourceEndColumn);
+        return SetextUnderlineMarkerSourceSpan;
     }
 
     private MarkdownSourceSpan? GetClosingMarkerSourceSpan(MarkdownSourceSpan? span) {

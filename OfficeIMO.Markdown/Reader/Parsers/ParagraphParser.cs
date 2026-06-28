@@ -59,7 +59,16 @@ public static partial class MarkdownReader {
                 var underline = paragraphLines[paragraphLines.Count - 1] ?? string.Empty;
                 var trimmedUnderline = underline.Trim();
                 var markerStartColumn = underline.IndexOf(trimmedUnderline, StringComparison.Ordinal) + 1;
-                heading.SetLevelSourceInfo(paragraphLines.Count - 1, markerStartColumn, markerStartColumn + trimmedUnderline.Length - 1);
+                var markerEndColumn = markerStartColumn + trimmedUnderline.Length - 1;
+                var markerLineOffset = paragraphLines.Count - 1;
+                var absoluteMarkerLine = state.SourceLineOffset + i + paragraphLines.Count;
+                heading.SetLevelSourceInfo(markerLineOffset, markerStartColumn, markerEndColumn);
+                heading.SetSetextUnderlineMarkerSourceInfo(
+                    markerLineOffset,
+                    markerStartColumn,
+                    markerEndColumn,
+                    trimmedUnderline,
+                    CreateSpan(state, absoluteMarkerLine, markerStartColumn, absoluteMarkerLine, markerEndColumn));
                 if (contentLines.Count > 0) {
                     heading.SetTextSourceInfo(
                         0,

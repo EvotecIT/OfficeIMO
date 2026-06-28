@@ -15,6 +15,8 @@ public sealed class MarkdownNativeHeadingBlock : MarkdownNativeBlock {
         TextSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingText);
         OpeningMarkerSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingOpeningMarker);
         OpeningMarkerText = heading.OpeningMarkerText;
+        SetextUnderlineMarkerSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingSetextUnderlineMarker);
+        SetextUnderlineMarkerText = heading.SetextUnderlineMarkerText;
         ClosingMarkerSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingClosingMarker);
         ClosingMarkerText = heading.ClosingMarkerText;
     }
@@ -45,6 +47,12 @@ public sealed class MarkdownNativeHeadingBlock : MarkdownNativeBlock {
 
     /// <summary>Exact ATX opening marker token when parsed from markdown.</summary>
     public string? OpeningMarkerText { get; }
+
+    /// <summary>Source span for the Setext underline marker token.</summary>
+    public MarkdownSourceSpan? SetextUnderlineMarkerSourceSpan { get; }
+
+    /// <summary>Exact Setext underline marker token when parsed from markdown.</summary>
+    public string? SetextUnderlineMarkerText { get; }
 
     /// <summary>Source span for the optional ATX closing marker token.</summary>
     public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; }
