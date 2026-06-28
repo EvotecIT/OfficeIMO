@@ -8,6 +8,7 @@ on:
 permissions:
   actions: write
   contents: read
+  packages: read
 
 concurrency:
   group: website-maintenance-${{ github.ref }}
