@@ -126,18 +126,44 @@ Heading Title
         var native = MarkdownNativeDocument.Parse(markdown);
         var footnote = Assert.IsType<MarkdownNativeFootnoteDefinitionBlock>(Assert.Single(native.Blocks));
 
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 4), footnote.OpeningMarkerSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), footnote.LabelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 10), footnote.SeparatorMarkerSourceSpan);
+
+        var openingMarker = Assert.Single(native.EnumerateBlockSourceFields("footnoteOpeningMarker"));
+        Assert.Same(footnote, openingMarker.Block);
+        Assert.Equal("[^", openingMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 4), openingMarker.SourceSpan);
 
         var label = Assert.Single(native.EnumerateBlockSourceFields("label"));
         Assert.Same(footnote, label.Block);
         Assert.Equal("note", label.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), label.SourceSpan);
+        var separatorMarker = Assert.Single(native.EnumerateBlockSourceFields("footnoteSeparatorMarker"));
+        Assert.Same(footnote, separatorMarker.Block);
+        Assert.Equal("]:", separatorMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 10), separatorMarker.SourceSpan);
         var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 6));
         Assert.Equal(label.Name, found.Name);
         Assert.Equal(label.Value, found.Value);
         Assert.Equal(label.SourceSpan, found.SourceSpan);
+        var foundOpeningMarker = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 3));
+        Assert.Equal(openingMarker.Name, foundOpeningMarker.Name);
+        Assert.Equal(openingMarker.SourceSpan, foundOpeningMarker.SourceSpan);
+        var foundSeparatorMarker = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 10));
+        Assert.Equal(separatorMarker.Name, foundSeparatorMarker.Name);
+        Assert.Equal(separatorMarker.SourceSpan, foundSeparatorMarker.SourceSpan);
 
         var snapshot = native.ToSnapshot().Blocks[0];
+        Assert.Equal(3, snapshot.FieldSourceSpans["footnoteOpeningMarker"]!.StartColumn);
+        Assert.Equal(4, snapshot.FieldSourceSpans["footnoteOpeningMarker"]!.EndColumn);
+        Assert.Equal(9, snapshot.FieldSourceSpans["footnoteSeparatorMarker"]!.StartColumn);
+        Assert.Equal(10, snapshot.FieldSourceSpans["footnoteSeparatorMarker"]!.EndColumn);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "footnoteOpeningMarker"
+            && field.Value == "[^"
+            && field.SourceSpan.StartColumn == 3
+            && field.SourceSpan.EndColumn == 4);
         var snapshotLabel = Assert.Single(snapshot.SourceFields, field => field.Name == "label");
         Assert.Equal("label", snapshotLabel.Name);
         Assert.Equal("note", snapshotLabel.Value);
@@ -146,6 +172,11 @@ Heading Title
         Assert.Equal(1, snapshotLabel.SourceSpan.EndLine);
         Assert.Equal(8, snapshotLabel.SourceSpan.EndColumn);
         Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "footnoteSeparatorMarker"
+            && field.Value == "]:"
+            && field.SourceSpan.StartColumn == 9
+            && field.SourceSpan.EndColumn == 10);
+        Assert.Contains(snapshot.SourceFields, field =>
             field.Name == "footnoteBody"
             && field.Value == "Footnote body"
             && field.SourceSpan.StartColumn == 12
@@ -153,6 +184,12 @@ Heading Title
 
         var edited = native.CreateReplaceEdit(label, "memo").Apply(native.SourceMarkdown);
         Assert.Equal("  [^memo]: Footnote body", edited.TrimEnd('\r', '\n'));
+
+        var editedOpening = native.CreateReplaceEdit(openingMarker, "[^x-").Apply(native.SourceMarkdown);
+        Assert.Equal("  [^x-note]: Footnote body", editedOpening.TrimEnd('\r', '\n'));
+
+        var editedSeparator = native.CreateReplaceEdit(separatorMarker, "]: ").Apply(native.SourceMarkdown);
+        Assert.Equal("  [^note]:  Footnote body", editedSeparator.TrimEnd('\r', '\n'));
     }
 
     [Fact]

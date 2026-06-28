@@ -6,8 +6,12 @@ namespace OfficeIMO.Markdown;
 public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock, IFootnoteSectionMarkdownBlock {
     /// <summary>Footnote label (identifier without the leading ^).</summary>
     public string Label { get; }
+    /// <summary>Source span for the opening <c>[^</c> marker when parsed from markdown.</summary>
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; internal set; }
     /// <summary>Source span for the footnote label token when parsed from markdown.</summary>
     public MarkdownSourceSpan? LabelSourceSpan { get; internal set; }
+    /// <summary>Source span for the <c>]:</c> separator marker when parsed from markdown.</summary>
+    public MarkdownSourceSpan? SeparatorMarkerSourceSpan { get; internal set; }
     private readonly string _fallbackText;
     private readonly string? _fallbackTextProjection;
     private readonly IReadOnlyList<IMarkdownBlock> _blocks;
@@ -202,12 +206,33 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
             LabelSourceSpan = GetFootnoteLabelSpan(span);
         }
 
-        var children = new List<MarkdownSyntaxNode> {
-            new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.FootnoteLabel,
-                LabelSourceSpan,
-                Label)
-        };
+        if (!OpeningMarkerSourceSpan.HasValue || (span.HasValue && !span.Value.Contains(OpeningMarkerSourceSpan.Value))) {
+            OpeningMarkerSourceSpan = GetFootnoteOpeningMarkerSpan(span);
+        }
+
+        if (!SeparatorMarkerSourceSpan.HasValue || (span.HasValue && !span.Value.Contains(SeparatorMarkerSourceSpan.Value))) {
+            SeparatorMarkerSourceSpan = GetFootnoteSeparatorMarkerSpan(LabelSourceSpan);
+        }
+
+        var children = new List<MarkdownSyntaxNode>();
+        if (OpeningMarkerSourceSpan.HasValue && SeparatorMarkerSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.FootnoteOpeningMarker,
+                OpeningMarkerSourceSpan,
+                "[^"));
+        }
+
+        children.Add(new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.FootnoteLabel,
+            LabelSourceSpan,
+            Label));
+
+        if (OpeningMarkerSourceSpan.HasValue && SeparatorMarkerSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.FootnoteSeparatorMarker,
+                SeparatorMarkerSourceSpan,
+                "]:"));
+        }
 
         var bodyChildren = ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren();
         for (int i = 0; i < bodyChildren.Count; i++) {
@@ -237,6 +262,30 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
             startColumn.Value + 2,
             footnoteSpan.Value.StartLine,
             startColumn.Value + 1 + Label.Length);
+    }
+
+    private static MarkdownSourceSpan? GetFootnoteOpeningMarkerSpan(MarkdownSourceSpan? footnoteSpan) {
+        if (!footnoteSpan.HasValue || !footnoteSpan.Value.StartColumn.HasValue) {
+            return null;
+        }
+
+        return new MarkdownSourceSpan(
+            footnoteSpan.Value.StartLine,
+            footnoteSpan.Value.StartColumn.Value,
+            footnoteSpan.Value.StartLine,
+            footnoteSpan.Value.StartColumn.Value + 1);
+    }
+
+    private static MarkdownSourceSpan? GetFootnoteSeparatorMarkerSpan(MarkdownSourceSpan? labelSpan) {
+        if (!labelSpan.HasValue || !labelSpan.Value.EndColumn.HasValue) {
+            return null;
+        }
+
+        return new MarkdownSourceSpan(
+            labelSpan.Value.EndLine,
+            labelSpan.Value.EndColumn.Value + 1,
+            labelSpan.Value.EndLine,
+            labelSpan.Value.EndColumn.Value + 2);
     }
 
     private string RenderMarkdown() {

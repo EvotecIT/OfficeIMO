@@ -169,7 +169,9 @@ public sealed class MarkdownNativeFootnoteDefinitionBlock : MarkdownNativeBlock 
         : base(MarkdownNativeBlockKind.FootnoteDefinition, footnote, syntaxNode) {
         Footnote = footnote;
         Label = footnote.Label;
+        OpeningMarkerSourceSpan = footnote.OpeningMarkerSourceSpan ?? FindFootnoteChildSourceSpan(syntaxNode, MarkdownSyntaxKind.FootnoteOpeningMarker);
         LabelSourceSpan = footnote.LabelSourceSpan ?? FindFootnoteLabelSourceSpan(syntaxNode);
+        SeparatorMarkerSourceSpan = footnote.SeparatorMarkerSourceSpan ?? FindFootnoteChildSourceSpan(syntaxNode, MarkdownSyntaxKind.FootnoteSeparatorMarker);
         Text = footnote.Text;
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
         BodySourceSpan = MarkdownNativeContainerSourceSpans.GetAggregateChildSourceSpan(Children);
@@ -181,8 +183,14 @@ public sealed class MarkdownNativeFootnoteDefinitionBlock : MarkdownNativeBlock 
     /// <summary>Footnote label without the leading caret marker.</summary>
     public string Label { get; }
 
+    /// <summary>Source span for the opening <c>[^</c> marker when available.</summary>
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; }
+
     /// <summary>Source span for the footnote label token when available.</summary>
     public MarkdownSourceSpan? LabelSourceSpan { get; }
+
+    /// <summary>Source span for the <c>]:</c> separator marker when available.</summary>
+    public MarkdownSourceSpan? SeparatorMarkerSourceSpan { get; }
 
     /// <summary>Rendered markdown text for the definition body.</summary>
     public string Text { get; }
@@ -194,8 +202,12 @@ public sealed class MarkdownNativeFootnoteDefinitionBlock : MarkdownNativeBlock 
     public IReadOnlyList<MarkdownNativeBlock> Children { get; }
 
     private static MarkdownSourceSpan? FindFootnoteLabelSourceSpan(MarkdownSyntaxNode syntaxNode) {
+        return FindFootnoteChildSourceSpan(syntaxNode, MarkdownSyntaxKind.FootnoteLabel);
+    }
+
+    private static MarkdownSourceSpan? FindFootnoteChildSourceSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) {
         for (int i = 0; i < syntaxNode.Children.Count; i++) {
-            if (syntaxNode.Children[i].Kind == MarkdownSyntaxKind.FootnoteLabel) {
+            if (syntaxNode.Children[i].Kind == kind) {
                 return syntaxNode.Children[i].SourceSpan;
             }
         }

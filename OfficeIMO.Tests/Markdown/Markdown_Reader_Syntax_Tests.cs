@@ -3921,23 +3921,35 @@ Lead[^1]
         Assert.Equal(3, footnote.SourceSpan!.Value.StartLine);
         Assert.Equal(6, footnote.SourceSpan!.Value.EndLine);
         Assert.Equal("1", footnote.Literal);
-        Assert.Equal(3, footnote.Children.Count);
+        Assert.Equal(5, footnote.Children.Count);
 
         var label = footnote.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.FootnoteOpeningMarker, label.Kind);
+        Assert.Equal("[^", label.Literal);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 2), label.SourceSpan);
+
+        label = footnote.Children[1];
         Assert.Equal(MarkdownSyntaxKind.FootnoteLabel, label.Kind);
         Assert.Equal("1", label.Literal);
         Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 3), label.SourceSpan);
         var semanticFootnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(result.Document.Blocks, block => block is FootnoteDefinitionBlock));
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 2), semanticFootnote.OpeningMarkerSourceSpan);
         Assert.Equal(label.SourceSpan, semanticFootnote.LabelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 4, 3, 5), semanticFootnote.SeparatorMarkerSourceSpan);
 
-        var firstParagraph = footnote.Children[1];
+        var separator = footnote.Children[2];
+        Assert.Equal(MarkdownSyntaxKind.FootnoteSeparatorMarker, separator.Kind);
+        Assert.Equal("]:", separator.Literal);
+        Assert.Equal(new MarkdownSourceSpan(3, 4, 3, 5), separator.SourceSpan);
+
+        var firstParagraph = footnote.Children[3];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, firstParagraph.Kind);
         Assert.NotNull(firstParagraph.SourceSpan);
         Assert.Equal(3, firstParagraph.SourceSpan!.Value.StartLine);
         Assert.Equal(4, firstParagraph.SourceSpan!.Value.EndLine);
         Assert.Equal("first line continued", firstParagraph.Literal);
 
-        var secondParagraph = footnote.Children[2];
+        var secondParagraph = footnote.Children[4];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, secondParagraph.Kind);
         Assert.NotNull(secondParagraph.SourceSpan);
         Assert.Equal(6, secondParagraph.SourceSpan!.Value.StartLine);
@@ -3976,18 +3988,26 @@ Lead[^1]
         Assert.NotNull(footnote.SourceSpan);
         Assert.Equal(3, footnote.SourceSpan!.Value.StartLine);
         Assert.Equal(6, footnote.SourceSpan!.Value.EndLine);
-        Assert.Equal(3, footnote.Children.Count);
+        Assert.Equal(5, footnote.Children.Count);
 
         var label = footnote.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.FootnoteOpeningMarker, label.Kind);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 2), label.SourceSpan);
+
+        label = footnote.Children[1];
         Assert.Equal(MarkdownSyntaxKind.FootnoteLabel, label.Kind);
         Assert.Equal("1", label.Literal);
         Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 3), label.SourceSpan);
 
-        var intro = footnote.Children[1];
+        var separator = footnote.Children[2];
+        Assert.Equal(MarkdownSyntaxKind.FootnoteSeparatorMarker, separator.Kind);
+        Assert.Equal(new MarkdownSourceSpan(3, 4, 3, 5), separator.SourceSpan);
+
+        var intro = footnote.Children[3];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, intro.Kind);
         Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 11), intro.SourceSpan);
 
-        var list = footnote.Children[2];
+        var list = footnote.Children[4];
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
         Assert.Equal(new MarkdownSourceSpan(5, 3, 6, 10), list.SourceSpan);
 
@@ -4031,15 +4051,25 @@ Lead[^note]
         var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown);
 
         var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(result.Document.Blocks, block => block is FootnoteDefinitionBlock));
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 4), footnote.OpeningMarkerSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 8), footnote.LabelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 9, 3, 10), footnote.SeparatorMarkerSourceSpan);
 
         var syntaxFootnote = Assert.Single(result.SyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
+        var syntaxOpeningMarker = Assert.Single(syntaxFootnote.Children, child => child.Kind == MarkdownSyntaxKind.FootnoteOpeningMarker);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 4), syntaxOpeningMarker.SourceSpan);
         var syntaxLabel = Assert.Single(syntaxFootnote.Children, child => child.Kind == MarkdownSyntaxKind.FootnoteLabel);
         Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 8), syntaxLabel.SourceSpan);
+        var syntaxSeparator = Assert.Single(syntaxFootnote.Children, child => child.Kind == MarkdownSyntaxKind.FootnoteSeparatorMarker);
+        Assert.Equal(new MarkdownSourceSpan(3, 9, 3, 10), syntaxSeparator.SourceSpan);
 
         var finalFootnote = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
+        var finalOpeningMarker = Assert.Single(finalFootnote.Children, child => child.Kind == MarkdownSyntaxKind.FootnoteOpeningMarker);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 4), finalOpeningMarker.SourceSpan);
         var finalLabel = Assert.Single(finalFootnote.Children, child => child.Kind == MarkdownSyntaxKind.FootnoteLabel);
         Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 8), finalLabel.SourceSpan);
+        var finalSeparator = Assert.Single(finalFootnote.Children, child => child.Kind == MarkdownSyntaxKind.FootnoteSeparatorMarker);
+        Assert.Equal(new MarkdownSourceSpan(3, 9, 3, 10), finalSeparator.SourceSpan);
     }
 
     [Fact]
@@ -4056,11 +4086,17 @@ Lead[^1]
         var finalFootnoteBlock = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(result.Document.Blocks, block => block is FootnoteDefinitionBlock));
         var finalFootnoteParagraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(finalFootnoteBlock.Blocks));
         var finalFootnote = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
-        Assert.Equal(2, finalFootnote.Children.Count);
-        var finalLabel = finalFootnote.Children[0];
+        Assert.Equal(4, finalFootnote.Children.Count);
+        var finalOpeningMarker = finalFootnote.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.FootnoteOpeningMarker, finalOpeningMarker.Kind);
+        Assert.Equal("[^", finalOpeningMarker.Literal);
+        var finalLabel = finalFootnote.Children[1];
         Assert.Equal(MarkdownSyntaxKind.FootnoteLabel, finalLabel.Kind);
         Assert.Equal("1", finalLabel.Literal);
-        var finalParagraph = finalFootnote.Children[1];
+        var finalSeparator = finalFootnote.Children[2];
+        Assert.Equal(MarkdownSyntaxKind.FootnoteSeparatorMarker, finalSeparator.Kind);
+        Assert.Equal("]:", finalSeparator.Literal);
+        var finalParagraph = finalFootnote.Children[3];
         var finalText = Assert.Single(finalParagraph.Children);
 
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -4254,8 +4290,11 @@ Lead[^1]
         var finalParagraphBlocks = finalListItemBlock.ParagraphBlocks.ToArray();
 
         var finalFootnote = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
-        Assert.Equal(2, finalFootnote.Children.Count);
-        var finalList = finalFootnote.Children[1];
+        Assert.Equal(4, finalFootnote.Children.Count);
+        Assert.Equal(MarkdownSyntaxKind.FootnoteOpeningMarker, finalFootnote.Children[0].Kind);
+        Assert.Equal(MarkdownSyntaxKind.FootnoteLabel, finalFootnote.Children[1].Kind);
+        Assert.Equal(MarkdownSyntaxKind.FootnoteSeparatorMarker, finalFootnote.Children[2].Kind);
+        var finalList = finalFootnote.Children[3];
         var finalListItem = Assert.Single(finalList.Children);
         var finalParagraphs = finalListItem.Children.Where(child => child.Kind == MarkdownSyntaxKind.Paragraph).ToArray();
 
@@ -4288,8 +4327,11 @@ Lead[^1]
         Assert.All(footnote.Blocks, block => Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 16), Assert.IsType<ParagraphBlock>(block).SourceSpan));
 
         var finalFootnote = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
-        Assert.Equal(3, finalFootnote.Children.Count);
-        var finalParagraphs = finalFootnote.Children.Skip(1).ToArray();
+        Assert.Equal(5, finalFootnote.Children.Count);
+        Assert.Equal(MarkdownSyntaxKind.FootnoteOpeningMarker, finalFootnote.Children[0].Kind);
+        Assert.Equal(MarkdownSyntaxKind.FootnoteLabel, finalFootnote.Children[1].Kind);
+        Assert.Equal(MarkdownSyntaxKind.FootnoteSeparatorMarker, finalFootnote.Children[2].Kind);
+        var finalParagraphs = finalFootnote.Children.Skip(3).ToArray();
         Assert.Equal(2, finalParagraphs.Length);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
         Assert.Same(footnote, finalFootnote.AssociatedObject);

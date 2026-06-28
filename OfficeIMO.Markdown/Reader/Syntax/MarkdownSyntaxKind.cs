@@ -152,8 +152,12 @@ public enum MarkdownSyntaxKind {
     DefinitionValue,
     /// <summary>Footnote definition block.</summary>
     FootnoteDefinition,
+    /// <summary>Opening <c>[^</c> token for a footnote definition label.</summary>
+    FootnoteOpeningMarker,
     /// <summary>Footnote definition label/identifier.</summary>
     FootnoteLabel,
+    /// <summary>Closing bracket and colon token for a footnote definition label.</summary>
+    FootnoteSeparatorMarker,
     /// <summary>Reference-style link definition consumed during parsing.</summary>
     ReferenceLinkDefinition,
     /// <summary>Opening bracket token for a reference-style link definition label.</summary>
