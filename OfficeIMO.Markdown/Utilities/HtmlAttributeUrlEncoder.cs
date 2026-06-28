@@ -30,7 +30,100 @@ internal static class HtmlAttributeUrlEncoder {
             return string.Empty;
         }
 
+        if (TryNormalizeAbsoluteUrlWithIdn(value, out var normalized)) {
+            return normalized;
+        }
+
         return PercentEncodeRelativeUrl(value);
+    }
+
+    private static bool TryNormalizeAbsoluteUrlWithIdn(string value, out string normalized) {
+        normalized = string.Empty;
+        if (!ContainsNonAscii(value)) {
+            return false;
+        }
+
+        var schemeSeparator = value.IndexOf("://", System.StringComparison.Ordinal);
+        if (schemeSeparator <= 0) {
+            return false;
+        }
+
+        var scheme = value.Substring(0, schemeSeparator);
+        if (!string.Equals(scheme, "http", System.StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(scheme, "https", System.StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        var builder = new System.Text.StringBuilder(value.Length);
+        var authorityStart = schemeSeparator + 3;
+        var authorityEnd = value.Length;
+        for (var i = authorityStart; i < value.Length; i++) {
+            var current = value[i];
+            if (current == '/' || current == '?' || current == '#') {
+                authorityEnd = i;
+                break;
+            }
+        }
+
+        var authority = value.Substring(authorityStart, authorityEnd - authorityStart);
+        if (authority.Length == 0) {
+            return false;
+        }
+
+        builder.Append(scheme).Append("://").Append(NormalizeAuthorityHost(authority));
+        builder.Append(PercentEncodeRelativeUrl(value.Substring(authorityEnd)));
+        normalized = builder.ToString();
+        return true;
+    }
+
+    private static string NormalizeAuthorityHost(string authority) {
+        var userInfoEnd = authority.LastIndexOf('@');
+        var hostStart = userInfoEnd >= 0 ? userInfoEnd + 1 : 0;
+        var hostEnd = authority.Length;
+
+        if (hostStart < authority.Length && authority[hostStart] == '[') {
+            var bracketEnd = authority.IndexOf(']', hostStart + 1);
+            if (bracketEnd >= 0) {
+                hostEnd = bracketEnd + 1;
+            }
+        } else {
+            var colon = authority.LastIndexOf(':');
+            if (colon > hostStart) {
+                hostEnd = colon;
+            }
+        }
+
+        var prefix = authority.Substring(0, hostStart);
+        var host = authority.Substring(hostStart, hostEnd - hostStart);
+        var suffix = authority.Substring(hostEnd);
+        if (host.Length == 0 || host[0] == '[' || !ContainsNonAscii(host)) {
+            return authority;
+        }
+
+        var labels = host.Split('.');
+        for (var i = 0; i < labels.Length; i++) {
+            if (!ContainsNonAscii(labels[i])) {
+                continue;
+            }
+
+            try {
+                labels[i] = new System.Globalization.IdnMapping().GetAscii(labels[i]);
+            } catch {
+                return authority;
+            }
+        }
+
+        return prefix + string.Join(".", labels) + suffix;
+    }
+
+    private static bool ContainsNonAscii(string value) {
+        for (var i = 0; i < value.Length; i++) {
+            if (value[i] > 0x7F) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string PercentEncodeRelativeUrl(string value) {

@@ -153,6 +153,96 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Gfm_Autolinks_Render_Unicode_Http_Domain_As_Idn_While_Preserving_Source_Metadata() {
+        const string markdown = "Visit https://пример.рф/path now\n";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
+        var target = Assert.Single(link.Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
+        var semanticLink = Assert.Single(semanticParagraph.Inlines.Nodes.OfType<LinkInline>());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var nativeLink = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var nativeTarget = Assert.Single(nativeLink.Metadata, metadata => metadata.Name == "target");
+        var written = result.Document.ToMarkdown().Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<a href=\"https://xn--e1afmkfd.xn--p1ai/path\">https://пример.рф/path</a>", html, StringComparison.Ordinal);
+        Assert.Equal("https://пример.рф/path", semanticLink.Text);
+        Assert.Equal("https://пример.рф/path", semanticLink.Url);
+        Assert.Equal("https://пример.рф/path", link.Literal);
+        Assert.Equal("https://пример.рф/path", target.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 28), target.SourceSpan);
+        Assert.Equal("https://пример.рф/path", nativeTarget.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 28), nativeTarget.SourceSpan);
+        Assert.Equal("Visit https://пример.рф/path now", written);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void Gfm_Autolinks_Render_Unicode_Http_Path_As_PercentEncoded_Href_While_Preserving_Display_And_Source() {
+        const string markdown = "Visit https://example.com/ścieżka?q=zażółć now\n";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
+        var target = Assert.Single(link.Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
+        var semanticLink = Assert.Single(semanticParagraph.Inlines.Nodes.OfType<LinkInline>());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var nativeLink = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var nativeTarget = Assert.Single(nativeLink.Metadata, metadata => metadata.Name == "target");
+        var written = result.Document.ToMarkdown().Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<a href=\"https://example.com/%C5%9Bcie%C5%BCka?q=za%C5%BC%C3%B3%C5%82%C4%87\">https://example.com/ścieżka?q=zażółć</a>", html, StringComparison.Ordinal);
+        Assert.Equal("https://example.com/ścieżka?q=zażółć", semanticLink.Text);
+        Assert.Equal("https://example.com/ścieżka?q=zażółć", semanticLink.Url);
+        Assert.Equal("https://example.com/ścieżka?q=zażółć", link.Literal);
+        Assert.Equal("https://example.com/ścieżka?q=zażółć", target.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 42), target.SourceSpan);
+        Assert.Equal("https://example.com/ścieżka?q=zażółć", nativeTarget.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 42), nativeTarget.SourceSpan);
+        Assert.Equal("Visit https://example.com/ścieżka?q=zażółć now", written);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void Gfm_Autolinks_Render_Unicode_Www_Domain_As_Idn_While_Preserving_Source_Literal() {
+        const string markdown = "Visit www.пример.рф/path now\n";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
+        var target = Assert.Single(link.Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
+        var semanticLink = Assert.Single(semanticParagraph.Inlines.Nodes.OfType<LinkInline>());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var nativeLink = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var nativeTarget = Assert.Single(nativeLink.Metadata, metadata => metadata.Name == "target");
+        var written = result.Document.ToMarkdown().Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<a href=\"http://www.xn--e1afmkfd.xn--p1ai/path\">www.пример.рф/path</a>", html, StringComparison.Ordinal);
+        Assert.Equal("www.пример.рф/path", semanticLink.Text);
+        Assert.Equal("http://www.пример.рф/path", semanticLink.Url);
+        Assert.Equal("http://www.пример.рф/path", link.Literal);
+        Assert.Equal("http://www.пример.рф/path", target.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 24), target.SourceSpan);
+        Assert.Equal("http://www.пример.рф/path", nativeTarget.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 24), nativeTarget.SourceSpan);
+        Assert.Equal("Visit www.пример.рф/path now", written);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void Gfm_Autolinks_Link_Balanced_Parentheses_Before_Trailing_Punctuation_With_Source_Metadata() {
         const string markdown = "Visit https://example.com/path_(x)). now\n";
 

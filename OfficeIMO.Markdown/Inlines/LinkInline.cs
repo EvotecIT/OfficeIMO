@@ -96,13 +96,13 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
         var o = HtmlRenderContext.Options;
         if (!UrlOriginPolicy.IsAllowedHttpLink(o, Url)) {
             if (LabelInlines != null) return LabelInlines.RenderHtml();
-            return System.Net.WebUtility.HtmlEncode(Text);
+            return HtmlTextEncoder.Encode(Text);
         }
         string extra = LinkHtmlAttributes.BuildLinkAttributes(o, Url, LinkTarget, LinkRel);
         if (LabelInlines != null) {
             return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(Url)}\"{title}{extra}>{LabelInlines.RenderHtml()}</a>";
         }
-        return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(Url)}\"{title}{extra}>{System.Net.WebUtility.HtmlEncode(Text)}</a>";
+        return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(Url)}\"{title}{extra}>{HtmlTextEncoder.Encode(Text)}</a>";
     }
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
