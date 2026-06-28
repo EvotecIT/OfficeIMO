@@ -168,6 +168,18 @@ public sealed partial class MarkdownNativeDocument {
 
     private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateHtmlFields(MarkdownNativeHtmlBlock html) {
         if (!html.IsComment) {
+            if (html.OpeningTagSourceSpan.HasValue) {
+                yield return new MarkdownNativeBlockSourceField("htmlOpeningTag", html.OpeningTag, html.OpeningTagSourceSpan.Value, html);
+            }
+
+            if (html.RawBodySourceSpan.HasValue) {
+                yield return new MarkdownNativeBlockSourceField("htmlBody", html.Body, html.RawBodySourceSpan.Value, html);
+            }
+
+            if (html.ClosingTagSourceSpan.HasValue) {
+                yield return new MarkdownNativeBlockSourceField("htmlClosingTag", html.ClosingTag, html.ClosingTagSourceSpan.Value, html);
+            }
+
             if (html.SourceSpan.HasValue) {
                 yield return new MarkdownNativeBlockSourceField("html", html.Html, html.SourceSpan.Value, html);
             }

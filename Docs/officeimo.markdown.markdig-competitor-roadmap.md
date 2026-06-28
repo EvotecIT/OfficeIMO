@@ -113,6 +113,7 @@ Target direction:
 
 Recent progress:
 
+- parsed simple raw HTML tag frames now expose source-backed opening tag, body, and closing tag syntax tokens plus native source fields, caret lookup, source edits, and snapshot projection while declarations, CDATA, processing instructions, and malformed raw HTML stay on the whole-block fallback
 - the Markdig comparison baseline is now guarded so `OfficeIMO.Tests`, `OfficeIMO.Markdown.Benchmarks`, and the public compatibility docs cannot silently drift to different Markdig versions
 - parsed HTML comment blocks now expose source-backed opening marker, body, and closing marker syntax tokens plus native source fields, caret lookup, source edits, and snapshot projection without claiming broader raw-HTML tag tokenization
 - parsed footnote definitions now expose source-backed opening and separator marker syntax tokens plus native source fields, caret lookup, source edits, and snapshot projection while keeping label/body semantics stable

@@ -5167,7 +5167,7 @@ this comment
 
     [Fact]
     public void ParseWithSyntaxTree_Captures_Html_Raw_Block() {
-        const string markdown = "<div class=\"note\">Hello</div>";
+        const string markdown = "<div>Raw</div>";
 
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
 
@@ -5177,6 +5177,59 @@ this comment
         Assert.Equal(1, rawHtml.SourceSpan!.Value.StartLine);
         Assert.Equal(1, rawHtml.SourceSpan!.Value.EndLine);
         Assert.Equal(markdown, rawHtml.Literal);
+        Assert.Collection(
+            rawHtml.Children,
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawOpeningTag, node.Kind);
+                Assert.Equal("<div>", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 5), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawBody, node.Kind);
+                Assert.Equal("Raw", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 8), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawClosingTag, node.Kind);
+                Assert.Equal("</div>", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 14), node.SourceSpan);
+            });
+        Assert.Equal(MarkdownSyntaxKind.HtmlRawOpeningTag, result.FindDeepestNodeAtPosition(1, 2)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.HtmlRawBody, result.FindDeepestNodeAtPosition(1, 7)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.HtmlRawClosingTag, result.FindDeepestNodeAtPosition(1, 10)!.Kind);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Html_Raw_Tag_Frame_Across_Lines() {
+        const string markdown = """
+<div>
+Raw body
+</div>
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var rawHtml = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.HtmlRaw, rawHtml.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 6), rawHtml.SourceSpan);
+        Assert.Equal("<div>\nRaw body\n</div>", rawHtml.Literal);
+        Assert.Collection(
+            rawHtml.Children,
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawOpeningTag, node.Kind);
+                Assert.Equal("<div>", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 5), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawBody, node.Kind);
+                Assert.Equal("Raw body", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 8), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawClosingTag, node.Kind);
+                Assert.Equal("</div>", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 6), node.SourceSpan);
+            });
     }
 
     [Fact]

@@ -336,6 +336,12 @@ public sealed class MarkdownNativeHtmlBlock : MarkdownNativeBlock {
         : base(MarkdownNativeBlockKind.Html, html, syntaxNode) {
         Html = html.Html;
         IsComment = false;
+        OpeningTag = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawOpeningTag);
+        Body = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawBody);
+        ClosingTag = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawClosingTag);
+        OpeningTagSourceSpan = html.OpeningTagSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawOpeningTag);
+        RawBodySourceSpan = html.BodySourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawBody);
+        ClosingTagSourceSpan = html.ClosingTagSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawClosingTag);
     }
 
     internal MarkdownNativeHtmlBlock(HtmlCommentBlock comment, MarkdownSyntaxNode syntaxNode)
@@ -353,6 +359,24 @@ public sealed class MarkdownNativeHtmlBlock : MarkdownNativeBlock {
 
     /// <summary>Whether this block came from an HTML comment.</summary>
     public bool IsComment { get; }
+
+    /// <summary>Opening raw HTML tag for recognized raw HTML tag-frame blocks.</summary>
+    public string? OpeningTag { get; }
+
+    /// <summary>Body content between recognized raw HTML opening and closing tags.</summary>
+    public string? Body { get; }
+
+    /// <summary>Closing raw HTML tag for recognized raw HTML tag-frame blocks.</summary>
+    public string? ClosingTag { get; }
+
+    /// <summary>Source span for a recognized raw HTML opening tag.</summary>
+    public MarkdownSourceSpan? OpeningTagSourceSpan { get; }
+
+    /// <summary>Source span for body content between recognized raw HTML opening and closing tags.</summary>
+    public MarkdownSourceSpan? RawBodySourceSpan { get; }
+
+    /// <summary>Source span for a recognized raw HTML closing tag.</summary>
+    public MarkdownSourceSpan? ClosingTagSourceSpan { get; }
 
     /// <summary>HTML comment body without opening or closing comment markers when this block is an HTML comment.</summary>
     public string? CommentBody { get; }

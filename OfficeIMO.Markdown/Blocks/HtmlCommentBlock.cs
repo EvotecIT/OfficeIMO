@@ -37,17 +37,17 @@ public sealed class HtmlCommentBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMar
         var children = new List<MarkdownSyntaxNode>();
 
         if (!OpeningMarkerSourceSpan.HasValue || (span.HasValue && !span.Value.Contains(OpeningMarkerSourceSpan.Value))) {
-            OpeningMarkerSourceSpan = GetSourceSpan(span, commentParts.OpeningStartIndex, commentParts.OpeningEndIndex);
+            OpeningMarkerSourceSpan = HtmlBlockSourceSpanHelpers.GetSourceSpan(Comment, span, commentParts.OpeningStartIndex, commentParts.OpeningEndIndex);
         }
 
         if (!BodySourceSpan.HasValue || (span.HasValue && !span.Value.Contains(BodySourceSpan.Value))) {
             BodySourceSpan = commentParts.HasBody
-                ? GetSourceSpan(span, commentParts.BodyStartIndex, commentParts.BodyEndIndex)
+                ? HtmlBlockSourceSpanHelpers.GetSourceSpan(Comment, span, commentParts.BodyStartIndex, commentParts.BodyEndIndex)
                 : null;
         }
 
         if (!ClosingMarkerSourceSpan.HasValue || (span.HasValue && !span.Value.Contains(ClosingMarkerSourceSpan.Value))) {
-            ClosingMarkerSourceSpan = GetSourceSpan(span, commentParts.ClosingStartIndex, commentParts.ClosingEndIndex);
+            ClosingMarkerSourceSpan = HtmlBlockSourceSpanHelpers.GetSourceSpan(Comment, span, commentParts.ClosingStartIndex, commentParts.ClosingEndIndex);
         }
 
         if (OpeningMarkerSourceSpan.HasValue) {
@@ -107,32 +107,6 @@ public sealed class HtmlCommentBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMar
         }
 
         return Comment.Substring(parts.BodyStartIndex, parts.BodyEndIndex - parts.BodyStartIndex + 1);
-    }
-
-    private MarkdownSourceSpan? GetSourceSpan(MarkdownSourceSpan? blockSpan, int startIndex, int endIndex) {
-        if (!blockSpan.HasValue || !blockSpan.Value.StartColumn.HasValue || startIndex < 0 || endIndex < startIndex || endIndex >= Comment.Length) {
-            return null;
-        }
-
-        var start = GetPoint(blockSpan.Value, startIndex);
-        var end = GetPoint(blockSpan.Value, endIndex);
-        return new MarkdownSourceSpan(start.Line, start.Column, end.Line, end.Column);
-    }
-
-    private (int Line, int Column) GetPoint(MarkdownSourceSpan blockSpan, int index) {
-        var line = blockSpan.StartLine;
-        var column = blockSpan.StartColumn ?? 1;
-
-        for (var i = 0; i < index && i < Comment.Length; i++) {
-            if (Comment[i] == '\n') {
-                line++;
-                column = 1;
-            } else {
-                column++;
-            }
-        }
-
-        return (line, column);
     }
 
     private readonly struct CommentParts {

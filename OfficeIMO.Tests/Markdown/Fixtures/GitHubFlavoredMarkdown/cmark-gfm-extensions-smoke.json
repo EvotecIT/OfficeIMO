@@ -570,11 +570,11 @@
         "expectedNearestBlockKind": "Paragraph"
       },
       {
-        "description": "filtered raw HTML block tags keep their raw block syntax node",
+        "description": "filtered raw HTML block tags keep source-addressable raw body syntax",
         "line": 3,
         "column": 12,
-        "expectedPathKinds": ["Document", "HtmlRaw"],
-        "expectedDeepestKind": "HtmlRaw"
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawBody"],
+        "expectedDeepestKind": "HtmlRawBody"
       },
       {
         "description": "invalid comment-like declarations stay paragraph text",

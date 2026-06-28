@@ -847,8 +847,8 @@
         "description": "CommonMark type 6 HTML blocks can interrupt after paragraph text",
         "line": 2,
         "column": 1,
-        "expectedPathKinds": ["Document", "HtmlRaw"],
-        "expectedDeepestKind": "HtmlRaw",
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawOpeningTag"],
+        "expectedDeepestKind": "HtmlRawOpeningTag",
         "expectedNearestBlockKind": "HtmlRaw"
       },
       {
@@ -872,8 +872,8 @@
         "description": "CommonMark table HTML blocks preserve their raw block until the blank-line boundary",
         "line": 1,
         "column": 1,
-        "expectedPathKinds": ["Document", "HtmlRaw"],
-        "expectedDeepestKind": "HtmlRaw",
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawOpeningTag"],
+        "expectedDeepestKind": "HtmlRawOpeningTag",
         "expectedNearestBlockKind": "HtmlRaw"
       },
       {
@@ -897,8 +897,8 @@
         "description": "CommonMark type 1 pre blocks continue through blank lines until their matching end tag",
         "line": 1,
         "column": 1,
-        "expectedPathKinds": ["Document", "HtmlRaw"],
-        "expectedDeepestKind": "HtmlRaw",
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawOpeningTag"],
+        "expectedDeepestKind": "HtmlRawOpeningTag",
         "expectedNearestBlockKind": "HtmlRaw"
       },
       {
@@ -922,8 +922,8 @@
         "description": "CommonMark type 1 script blocks continue through blank lines until their matching end tag",
         "line": 1,
         "column": 1,
-        "expectedPathKinds": ["Document", "HtmlRaw"],
-        "expectedDeepestKind": "HtmlRaw",
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawOpeningTag"],
+        "expectedDeepestKind": "HtmlRawOpeningTag",
         "expectedNearestBlockKind": "HtmlRaw"
       }
     ]
@@ -1015,8 +1015,8 @@
         "description": "CommonMark table HTML blocks may preserve blank-line separated sections as one raw block",
         "line": 6,
         "column": 1,
-        "expectedPathKinds": ["Document", "HtmlRaw"],
-        "expectedDeepestKind": "HtmlRaw",
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawBody"],
+        "expectedDeepestKind": "HtmlRawBody",
         "expectedNearestBlockKind": "HtmlRaw"
       }
     ]

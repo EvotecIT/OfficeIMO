@@ -289,6 +289,69 @@ this comment
     }
 
     [Fact]
+    public void Html_Raw_SourceFields_Use_Tag_Frame_And_Body_Token_Spans() {
+        const string markdown = """
+<div>
+Raw body
+</div>
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var html = Assert.IsType<MarkdownNativeHtmlBlock>(Assert.Single(native.Blocks));
+
+        Assert.False(html.IsComment);
+        Assert.Equal("<div>", html.OpeningTag);
+        Assert.Equal("Raw body", html.Body);
+        Assert.Equal("</div>", html.ClosingTag);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 5), html.OpeningTagSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 8), html.RawBodySourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 6), html.ClosingTagSourceSpan);
+
+        var whole = Assert.Single(native.EnumerateBlockSourceFields("html"));
+        Assert.Same(html, whole.Block);
+        Assert.Equal("<div>\nRaw body\n</div>", whole.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 6), whole.SourceSpan);
+
+        var openingTag = Assert.Single(native.EnumerateBlockSourceFields("htmlOpeningTag"));
+        Assert.Same(html, openingTag.Block);
+        Assert.Equal("<div>", openingTag.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 5), openingTag.SourceSpan);
+
+        var body = Assert.Single(native.EnumerateBlockSourceFields("htmlBody"));
+        Assert.Same(html, body.Block);
+        Assert.Equal("Raw body", body.Value);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 8), body.SourceSpan);
+
+        var closingTag = Assert.Single(native.EnumerateBlockSourceFields("htmlClosingTag"));
+        Assert.Same(html, closingTag.Block);
+        Assert.Equal("</div>", closingTag.Value);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 6), closingTag.SourceSpan);
+
+        Assert.Equal("htmlOpeningTag", native.FindBlockSourceFieldAtPosition(1, 3)!.Name);
+        Assert.Equal("htmlBody", native.FindBlockSourceFieldAtPosition(2, 4)!.Name);
+        Assert.Equal("htmlClosingTag", native.FindBlockSourceFieldAtPosition(3, 3)!.Name);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal(5, snapshot.FieldSourceSpans["htmlOpeningTag"]!.EndColumn);
+        Assert.Equal(8, snapshot.FieldSourceSpans["htmlBody"]!.EndColumn);
+        Assert.Equal(6, snapshot.FieldSourceSpans["htmlClosingTag"]!.EndColumn);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "htmlBody"
+            && field.Value == "Raw body"
+            && field.SourceSpan.StartLine == 2
+            && field.SourceSpan.EndColumn == 8);
+
+        var openingEdited = native.CreateReplaceEdit(openingTag, "<section>").Apply(native.SourceMarkdown);
+        Assert.Equal("<section>\nRaw body\n</div>", openingEdited.TrimEnd('\r', '\n'));
+
+        var bodyEdited = native.CreateReplaceEdit(body, "Updated").Apply(native.SourceMarkdown);
+        Assert.Equal("<div>\nUpdated\n</div>", bodyEdited.TrimEnd('\r', '\n'));
+
+        var closingEdited = native.CreateReplaceEdit(closingTag, "</section>").Apply(native.SourceMarkdown);
+        Assert.Equal("<div>\nRaw body\n</section>", closingEdited.TrimEnd('\r', '\n'));
+    }
+
+    [Fact]
     public void Container_Body_SourceFields_Use_Structured_Child_Block_Spans() {
         var markdown = """
 > [!TIP] Title

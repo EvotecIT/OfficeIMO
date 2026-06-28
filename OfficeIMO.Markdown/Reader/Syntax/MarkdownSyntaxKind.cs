@@ -186,6 +186,12 @@ public enum MarkdownSyntaxKind {
     FrontMatterValue,
     /// <summary>Raw HTML block.</summary>
     HtmlRaw,
+    /// <summary>Opening tag token for a recognized raw HTML block frame.</summary>
+    HtmlRawOpeningTag,
+    /// <summary>Body content inside a recognized raw HTML block frame.</summary>
+    HtmlRawBody,
+    /// <summary>Closing tag token for a recognized raw HTML block frame.</summary>
+    HtmlRawClosingTag,
     /// <summary>HTML comment block.</summary>
     HtmlComment,
     /// <summary>Opening <c>&lt;!--</c> marker token for an HTML comment block.</summary>
