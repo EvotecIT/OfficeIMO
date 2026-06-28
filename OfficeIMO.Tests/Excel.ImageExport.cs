@@ -41,6 +41,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ToImageFluentExportsScaledPng() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Data");
+            sheet.CellValue(1, 1, "Name");
+            sheet.CellValue(1, 2, "Value");
+            sheet.Range("A1:B1").SetFillColor("D9EAF7").SetBold();
+
+            OfficeImageExportResult png = sheet.Range("A1:B1")
+                .ToImage()
+                .WithoutGridlines()
+                .Preview()
+                .AtScale(2D)
+                .ExportPng();
+
+            Assert.Equal(OfficeImageExportFormat.Png, png.Format);
+            OfficeImageInfo info = OfficeImageReader.Identify(png.Bytes);
+            Assert.Equal(png.Width, info.Width);
+            Assert.Equal(png.Height, info.Height);
+            Assert.Empty(png.Diagnostics);
+        }
+
+        [Fact]
+        public void ExcelRange_ToImageFriendlyAliasesExportPngAndSvg() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Data");
+            sheet.CellValue(1, 1, "Friendly Excel image export");
+
+            byte[] png = sheet.Range("A1:A1")
+                .ToImage()
+                .WithoutGridlines()
+                .ToPng();
+            string svg = sheet.Range("A1:A1")
+                .ToImage()
+                .WithoutGridlines()
+                .ToSvg();
+
+            Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png.Take(4).ToArray());
+            Assert.Contains("<svg", svg, StringComparison.Ordinal);
+            Assert.Contains("Friendly Excel image export", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReportsUnresolvedCellFontFamilyFallback() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -951,6 +995,60 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportAppliesConditionalDifferentialFontStyle() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("FontRules");
+            sheet.CellValue(1, 1, 5);
+            sheet.CellValue(2, 1, 20);
+            sheet.CellValue(3, 1, 30);
+            sheet.SetColumnWidth(1, 16);
+            sheet.SetRowHeight(1, 24);
+            sheet.SetRowHeight(2, 24);
+            sheet.SetRowHeight(3, 24);
+            sheet.AddConditionalRule("A1:A3", ConditionalFormattingOperatorValues.GreaterThan, "10");
+            uint differentialFormatId = sheet.AppendConditionalDifferentialFormat(new X.DifferentialFormat(
+                new X.Font(
+                    new X.Bold(),
+                    new X.Italic(),
+                    new X.Underline(),
+                    new X.FontSize { Val = 18D },
+                    new X.FontName { Val = "Aptos Display" },
+                    new X.Color { Rgb = "FFFF0000" })));
+            sheet.SetLastConditionalFormattingRuleDifferentialFormatId(differentialFormatId);
+
+            ExcelRange range = sheet.Range("A1:A3");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+
+            ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A1:A3"));
+            Assert.Equal("FFFF0000", rule.DifferentialFontColorArgb);
+            Assert.True(rule.DifferentialFontBold);
+            Assert.True(rule.DifferentialFontItalic);
+            Assert.True(rule.DifferentialFontUnderline);
+            Assert.Equal("Aptos Display", rule.DifferentialFontName);
+            Assert.Equal(18D, rule.DifferentialFontSize);
+            Assert.Null(snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style.FontColorArgb);
+            ExcelVisualCell firstMatched = snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 1);
+            Assert.Equal("FFFF0000", firstMatched.Style.FontColorArgb);
+            Assert.True(firstMatched.Style.Bold);
+            Assert.True(firstMatched.Style.Italic);
+            Assert.True(firstMatched.Style.Underline);
+            Assert.Equal("Aptos Display", firstMatched.Style.FontName);
+            Assert.Equal(18D, firstMatched.Style.FontSize);
+            Assert.Equal("FFFF0000", snapshot.Cells.Single(cell => cell.Row == 3 && cell.Column == 1).Style.FontColorArgb);
+            Assert.Contains("fill=\"#FF0000\"", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
+            Assert.Contains("font-style=\"italic\"", svg, StringComparison.Ordinal);
+            Assert.Contains("font-family=\"Aptos Display", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("font-size=\"18\"", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("text-decoration=\"underline\"", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ConditionalDifferentialFormatUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReportsUnsupportedConditionalRuleShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -1670,6 +1768,119 @@ namespace OfficeIMO.Tests {
             OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
             Assert.Equal("Jpeg!PhotoJpeg", diagnostic.Source);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRendersBmpThroughSharedRasterDecoder() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Bitmap");
+            sheet.CellValue(1, 1, "Bitmap");
+            OfficeColor color = OfficeColor.FromRgb(18, 52, 86);
+            sheet.AddImage(1, 2, CreateBmp24(2, 2, new[] { color, color, color, color }), "image/bmp", widthPixels: 24, heightPixels: 18, name: "BitmapOverlay");
+
+            ExcelRange range = sheet.Range("A1:C3");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg);
+
+            ExcelVisualImage image = Assert.Single(snapshot.Images);
+            Assert.Equal(OfficeImageFormat.Bmp, image.DetectedFormat);
+            Assert.Equal("image/bmp", image.ContentType);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImagePngDecodeUnavailable);
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported);
+            string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.True(
+                ContainsPixelNear(rendered!, image.X, image.Y, image.X + image.Width, image.Y + image.Height, color, tolerance: 8),
+                "Expected Excel PNG export to contain decoded BMP pixels from the shared raster decoder.");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRendersTopDownBmpThroughSharedRasterDecoder() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("TopDownBitmap");
+            sheet.CellValue(1, 1, "Top-down bitmap");
+            OfficeColor color = OfficeColor.FromRgb(24, 96, 144);
+            sheet.AddImage(1, 2, CreateBmp24(2, 2, new[] { color, color, color, color }, topDown: true), "image/bmp", widthPixels: 24, heightPixels: 18, name: "TopDownBitmapOverlay");
+
+            ExcelRange range = sheet.Range("A1:C3");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg);
+
+            ExcelVisualImage image = Assert.Single(snapshot.Images);
+            Assert.Equal(OfficeImageFormat.Bmp, image.DetectedFormat);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.True(
+                ContainsPixelNear(rendered!, image.X, image.Y, image.X + image.Width, image.Y + image.Height, color, tolerance: 8),
+                "Expected Excel PNG export to contain decoded top-down BMP pixels from the shared raster decoder.");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRendersBmp32AlphaThroughSharedRasterDecoder() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("BitmapAlpha");
+            sheet.CellValue(1, 1, "Bitmap alpha");
+            byte[] bmp = CreateBmp32(2, 2, new[] {
+                OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128),
+                OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128)
+            });
+            sheet.AddImage(1, 2, bmp, "image/bmp", widthPixels: 24, heightPixels: 18, name: "BitmapAlphaOverlay");
+
+            ExcelRange range = sheet.Range("A1:C3");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg);
+
+            ExcelVisualImage image = Assert.Single(snapshot.Images);
+            Assert.Equal(OfficeImageFormat.Bmp, image.DetectedFormat);
+            Assert.Equal("image/bmp", image.ContentType);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImagePngDecodeUnavailable);
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported);
+            string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.True(
+                ContainsPixelNear(rendered!, image.X, image.Y, image.X + image.Width, image.Y + image.Height, OfficeColor.FromRgb(255, 127, 127), tolerance: 8),
+                "Expected Excel PNG export to contain alpha-blended BMP32 pixels from the shared raster decoder.");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRendersGifThroughSharedRasterDecoder() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Gif");
+            sheet.CellValue(1, 1, "GIF");
+            sheet.AddImage(1, 2, CreateSinglePixelGif(), "image/gif", widthPixels: 24, heightPixels: 18, name: "GifOverlay");
+
+            ExcelRange range = sheet.Range("A1:C3");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg);
+
+            ExcelVisualImage image = Assert.Single(snapshot.Images);
+            Assert.Equal(OfficeImageFormat.Gif, image.DetectedFormat);
+            Assert.Equal("image/gif", image.ContentType);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImagePngDecodeUnavailable);
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported);
+            string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("data:image/gif;base64,", svgText, StringComparison.Ordinal);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.True(
+                ContainsPixelNear(rendered!, image.X, image.Y, image.X + image.Width, image.Y + image.Height, OfficeColor.White, tolerance: 2),
+                "Expected Excel PNG export to contain decoded GIF pixels from the shared raster decoder.");
         }
 
         [Fact]
@@ -3122,6 +3333,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelDocument_ToImagesFluentExportsSelectedSheetsThroughSharedBatchBuilder() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-Excel-Fluent-Images-" + Guid.NewGuid().ToString("N"));
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet first = document.AddWorkSheet("First");
+            first.CellValue(1, 1, "One");
+            ExcelSheet second = document.AddWorkSheet("Second");
+            second.CellValue(1, 1, "Two");
+
+            IReadOnlyList<OfficeImageExportResult> results = document
+                .ToImages()
+                .ForSheets("Second")
+                .WithoutGridlines()
+                .As(OfficeImageExportFormat.Svg)
+                .SaveTo(folder);
+
+            OfficeImageExportResult result = Assert.Single(results);
+            Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
+            Assert.Equal("Second", result.Name);
+            Assert.True(File.Exists(Path.Combine(folder, "Second.svg")));
+            Assert.False(File.Exists(Path.Combine(folder, "First.svg")));
+            string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
+            Assert.Contains("Two", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("One", svg, StringComparison.Ordinal);
+            Assert.Empty(result.Diagnostics);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportHonorsCellVerticalTextAlignment() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -3375,6 +3614,80 @@ namespace OfficeIMO.Tests {
             OfficeRasterImage image = new OfficeRasterImage(width, height, OfficeColor.Transparent);
             image.Fill(color);
             return OfficePngWriter.Encode(image);
+        }
+
+        private static byte[] CreateSinglePixelGif() =>
+            Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+
+        private static byte[] CreateBmp24(int width, int height, IReadOnlyList<OfficeColor> pixels, bool topDown = false) {
+            int rowStride = ((width * 24) + 31) / 32 * 4;
+            int pixelOffset = 54;
+            byte[] bytes = new byte[pixelOffset + (rowStride * height)];
+            bytes[0] = (byte)'B';
+            bytes[1] = (byte)'M';
+            WriteInt32LittleEndian(bytes, 2, bytes.Length);
+            WriteInt32LittleEndian(bytes, 10, pixelOffset);
+            WriteInt32LittleEndian(bytes, 14, 40);
+            WriteInt32LittleEndian(bytes, 18, width);
+            WriteInt32LittleEndian(bytes, 22, topDown ? -height : height);
+            WriteUInt16LittleEndian(bytes, 26, 1);
+            WriteUInt16LittleEndian(bytes, 28, 24);
+
+            for (int y = 0; y < height; y++) {
+                int sourceY = topDown ? y : height - 1 - y;
+                int rowOffset = pixelOffset + (y * rowStride);
+                for (int x = 0; x < width; x++) {
+                    OfficeColor color = pixels[(sourceY * width) + x];
+                    int offset = rowOffset + (x * 3);
+                    bytes[offset] = color.B;
+                    bytes[offset + 1] = color.G;
+                    bytes[offset + 2] = color.R;
+                }
+            }
+
+            return bytes;
+        }
+
+        private static byte[] CreateBmp32(int width, int height, IReadOnlyList<OfficeColor> pixels) {
+            int rowStride = width * 4;
+            int pixelOffset = 54;
+            byte[] bytes = new byte[pixelOffset + (rowStride * height)];
+            bytes[0] = (byte)'B';
+            bytes[1] = (byte)'M';
+            WriteInt32LittleEndian(bytes, 2, bytes.Length);
+            WriteInt32LittleEndian(bytes, 10, pixelOffset);
+            WriteInt32LittleEndian(bytes, 14, 40);
+            WriteInt32LittleEndian(bytes, 18, width);
+            WriteInt32LittleEndian(bytes, 22, height);
+            WriteUInt16LittleEndian(bytes, 26, 1);
+            WriteUInt16LittleEndian(bytes, 28, 32);
+
+            for (int y = 0; y < height; y++) {
+                int sourceY = height - 1 - y;
+                int rowOffset = pixelOffset + (y * rowStride);
+                for (int x = 0; x < width; x++) {
+                    OfficeColor color = pixels[(sourceY * width) + x];
+                    int offset = rowOffset + (x * 4);
+                    bytes[offset] = color.B;
+                    bytes[offset + 1] = color.G;
+                    bytes[offset + 2] = color.R;
+                    bytes[offset + 3] = color.A;
+                }
+            }
+
+            return bytes;
+        }
+
+        private static void WriteInt32LittleEndian(byte[] bytes, int offset, int value) {
+            bytes[offset] = (byte)value;
+            bytes[offset + 1] = (byte)(value >> 8);
+            bytes[offset + 2] = (byte)(value >> 16);
+            bytes[offset + 3] = (byte)(value >> 24);
+        }
+
+        private static void WriteUInt16LittleEndian(byte[] bytes, int offset, int value) {
+            bytes[offset] = (byte)value;
+            bytes[offset + 1] = (byte)(value >> 8);
         }
 
         private static byte[] CreateHorizontalCropPng() {

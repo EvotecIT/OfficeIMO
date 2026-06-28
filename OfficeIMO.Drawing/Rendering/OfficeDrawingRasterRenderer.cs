@@ -23,15 +23,25 @@ public static class OfficeDrawingRasterRenderer {
         int height = Math.Max(1, (int)Math.Ceiling(drawing.Height * scale));
         OfficeRasterImage image = new OfficeRasterImage(width, height, background);
         OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
-        foreach (OfficeDrawingElement element in drawing.Elements) {
+        RenderElements(canvas, drawing.Elements, scale);
+
+        return image;
+    }
+
+    private static void RenderElements(OfficeRasterCanvas canvas, IEnumerable<OfficeDrawingElement> elements, double scale) {
+        foreach (OfficeDrawingElement element in elements) {
             if (element is OfficeDrawingShape shape) {
                 RenderShape(canvas, shape, scale);
             } else if (element is OfficeDrawingText text) {
                 RenderText(canvas, text, scale);
+            } else if (element is OfficeDrawingRichText richText) {
+                RenderRichText(canvas, richText, scale);
+            } else if (element is OfficeDrawingImage drawingImage) {
+                RenderImage(canvas, drawingImage, scale);
+            } else if (element is OfficeDrawingGroup drawingGroup) {
+                RenderGroup(canvas, drawingGroup, scale);
             }
         }
-
-        return image;
     }
 
     /// <summary>
@@ -39,6 +49,42 @@ public static class OfficeDrawingRasterRenderer {
     /// </summary>
     public static byte[] ToPng(OfficeDrawing drawing, double scale = 1D, OfficeColor? background = null) =>
         OfficePngWriter.Encode(Render(drawing, scale, background));
+
+    private static void RenderGroup(OfficeRasterCanvas canvas, OfficeDrawingGroup drawingGroup, double scale) {
+        using (PushGroupClip(canvas, drawingGroup, scale)) {
+            var translated = new OfficeDrawing(
+                Math.Max(1D, drawingGroup.X + drawingGroup.InnerDrawing.Width),
+                Math.Max(1D, drawingGroup.Y + drawingGroup.InnerDrawing.Height));
+            if (drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform) {
+                translated.AddDrawing(drawingGroup.InnerDrawing, drawingGroup.X, drawingGroup.Y, drawingGroup.FrameTransform.Value);
+            } else {
+                translated.AddDrawing(drawingGroup.InnerDrawing, drawingGroup.X, drawingGroup.Y);
+            }
+
+            RenderElements(canvas, translated.Elements, scale);
+        }
+    }
+
+    private static IDisposable PushGroupClip(OfficeRasterCanvas canvas, OfficeDrawingGroup drawingGroup, double scale) {
+        if (drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform) {
+            OfficeTransform transform = drawingGroup.FrameTransform.Value.CreateDestinationTransform();
+            return canvas.PushClipPolygon(new[] {
+                ScalePoint(transform.TransformPoint(new OfficePoint(drawingGroup.X, drawingGroup.Y)), scale),
+                ScalePoint(transform.TransformPoint(new OfficePoint(drawingGroup.X + drawingGroup.ClipPath.Width, drawingGroup.Y)), scale),
+                ScalePoint(transform.TransformPoint(new OfficePoint(drawingGroup.X + drawingGroup.ClipPath.Width, drawingGroup.Y + drawingGroup.ClipPath.Height)), scale),
+                ScalePoint(transform.TransformPoint(new OfficePoint(drawingGroup.X, drawingGroup.Y + drawingGroup.ClipPath.Height)), scale)
+            });
+        }
+
+        return canvas.PushClipRectangle(
+            drawingGroup.X * scale,
+            drawingGroup.Y * scale,
+            drawingGroup.ClipPath.Width * scale,
+            drawingGroup.ClipPath.Height * scale);
+    }
+
+    private static OfficePoint ScalePoint(OfficePoint point, double scale) =>
+        new OfficePoint(point.X * scale, point.Y * scale);
 
     private static void RenderShape(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale) {
         if (TryCreateShadowShape(drawingShape, out OfficeDrawingShape shadowShape)) {
@@ -129,13 +175,22 @@ public static class OfficeDrawingRasterRenderer {
     }
 
     private static void RenderText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale) {
-        if (!text.WrapText && !text.ShrinkToFit && Math.Abs(text.RotationDegrees) <= 0.000001D && text.VerticalAlignment == OfficeTextVerticalAlignment.Top) {
+        OfficeTextPadding scaledPadding = text.Padding.Scale(scale);
+        double contentX = (text.X * scale) + scaledPadding.Left;
+        double contentY = (text.Y * scale) + scaledPadding.Top;
+        double contentWidth = (text.Width * scale) - scaledPadding.Horizontal;
+        double contentHeight = (text.Height * scale) - scaledPadding.Vertical;
+        if (contentWidth <= 0D || contentHeight <= 0D) {
+            return;
+        }
+
+        if (!text.WrapText && !text.ShrinkToFit && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding) {
             canvas.DrawText(
                 text.Text,
-                text.X * scale,
-                text.Y * scale,
-                text.Width * scale,
-                text.Height * scale,
+                contentX,
+                contentY,
+                contentWidth,
+                contentHeight,
                 text.Color ?? OfficeColor.Black,
                 text.Font.Size * scale,
                 text.Alignment,
@@ -145,8 +200,7 @@ public static class OfficeDrawingRasterRenderer {
         }
 
         double fontSize = Math.Max(1D, text.Font.Size * scale);
-        double textWidth = text.Width * scale;
-        double textHeight = text.Height * scale;
+        OfficeTextParagraphIndent paragraphIndent = text.ParagraphIndent.Scale(scale);
         double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
             ? Math.Max(1D, (text.LineHeight.Value * scale) / fontSize)
             : 1.2D;
@@ -156,8 +210,8 @@ public static class OfficeDrawingRasterRenderer {
             ? OfficeTextLayoutEngine.LayoutStackedTextBlock(
                 text.Text,
                 fontSize,
-                textWidth,
-                textHeight,
+                contentWidth,
+                contentHeight,
                 lineHeightFactor,
                 minimumFontSize,
                 measure,
@@ -166,28 +220,30 @@ public static class OfficeDrawingRasterRenderer {
             ? OfficeTextLayoutEngine.FitWrappedText(
                 text.Text,
                 fontSize,
-                textWidth,
-                textHeight,
+                contentWidth,
+                contentHeight,
                 lineHeightFactor,
                 minimumFontSize,
-                measure)
+                measure,
+                paragraphIndent)
             : OfficeTextLayoutEngine.LayoutTextBlock(
                 text.Text,
                 fontSize,
-                textWidth,
-                textHeight,
+                contentWidth,
+                contentHeight,
                 lineHeightFactor,
                 minimumFontSize,
                 measure,
                 wrap: text.WrapText,
-                shrinkToFit: text.ShrinkToFit);
+                shrinkToFit: text.ShrinkToFit,
+                paragraphIndent: paragraphIndent);
         OfficeTextBlockRenderer.DrawRasterTextBlock(
             canvas,
             layout,
-            text.X * scale,
-            text.Y * scale,
-            textWidth,
-            textHeight,
+            contentX,
+            contentY,
+            contentWidth,
+            contentHeight,
             text.Color ?? OfficeColor.Black,
             text.Alignment,
             text.VerticalAlignment,
@@ -198,7 +254,82 @@ public static class OfficeDrawingRasterRenderer {
             text.RotationCenterX * scale,
             text.RotationCenterY * scale,
             strikethrough: (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
-            fontFamily: text.Font.FamilyName);
+            fontFamily: text.Font.FamilyName,
+            flipHorizontal: text.FlipHorizontal,
+            flipVertical: text.FlipVertical);
+    }
+
+    private static void RenderRichText(OfficeRasterCanvas canvas, OfficeDrawingRichText text, double scale) {
+        OfficeTextPadding scaledPadding = text.Padding.Scale(scale);
+        double contentX = (text.X * scale) + scaledPadding.Left;
+        double contentY = (text.Y * scale) + scaledPadding.Top;
+        double contentWidth = (text.Width * scale) - scaledPadding.Horizontal;
+        double contentHeight = (text.Height * scale) - scaledPadding.Vertical;
+        if (contentWidth <= 0D || contentHeight <= 0D) {
+            return;
+        }
+
+        IReadOnlyList<OfficeRichTextRun> scaledRuns = ScaleRichTextRuns(text.Runs, scale);
+        OfficeTextParagraphIndent paragraphIndent = text.ParagraphIndent.Scale(scale);
+        double maxFontSize = 10D * scale;
+        for (int i = 0; i < scaledRuns.Count; i++) {
+            maxFontSize = Math.Max(maxFontSize, scaledRuns[i].FontSize);
+        }
+
+        double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
+            ? Math.Max(1D, (text.LineHeight.Value * scale) / maxFontSize)
+            : 1.2D;
+        double minimumFontSize = Math.Min(6D * scale, maxFontSize);
+        Func<string?, double, string?, double> measure = (value, size, family) => canvas.MeasureText(value, size, family);
+        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+            scaledRuns,
+            contentWidth,
+            contentHeight,
+            lineHeightFactor,
+            measure,
+            text.WrapText,
+            text.ShrinkToFit,
+            minimumFontSize,
+            paragraphIndent);
+        OfficeTextBlockRenderer.DrawRasterRichTextBlock(
+            canvas,
+            layout,
+            contentX,
+            contentY,
+            contentWidth,
+            contentHeight,
+            text.Alignment,
+            text.VerticalAlignment,
+            text.RotationDegrees,
+            text.RotationCenterX * scale,
+            text.RotationCenterY * scale,
+            flipHorizontal: text.FlipHorizontal,
+            flipVertical: text.FlipVertical);
+    }
+
+    private static IReadOnlyList<OfficeRichTextRun> ScaleRichTextRuns(IReadOnlyList<OfficeRichTextRun> runs, double scale) {
+        var scaled = new List<OfficeRichTextRun>(runs.Count);
+        for (int i = 0; i < runs.Count; i++) {
+            OfficeRichTextRun run = runs[i];
+            scaled.Add(new OfficeRichTextRun(
+                run.Text,
+                run.FontSize * scale,
+                run.Color,
+                run.Bold,
+                run.Italic,
+                run.Underline,
+                run.FontFamily,
+                run.Strikethrough,
+                run.BackgroundColor));
+        }
+
+        return scaled;
+    }
+
+    private static void RenderImage(OfficeRasterCanvas canvas, OfficeDrawingImage drawingImage, double scale) {
+        if (OfficeRasterImageDecoder.TryDecode(drawingImage.Bytes, out OfficeRasterImage? image) && image != null) {
+            canvas.DrawImage(image, drawingImage.Projection.Scale(scale));
+        }
     }
 
     private static void RenderTransformedShape(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale) {
@@ -233,6 +364,7 @@ public static class OfficeDrawingRasterRenderer {
             OfficePoint a = TransformShapePoint(drawingShape, shape.Points[0], scale);
             OfficePoint b = TransformShapePoint(drawingShape, shape.Points[1], scale);
             canvas.DrawStyledLine(a.X, a.Y, b.X, b.Y, color, strokeWidth, shape.StrokeDashStyle);
+            RenderLineMarkers(canvas, shape, a, b, color, scale);
         }
     }
 
@@ -283,9 +415,27 @@ public static class OfficeDrawingRasterRenderer {
         if (shape.Points.Count >= 2) {
             OfficePoint a = shape.Points[0];
             OfficePoint b = shape.Points[1];
-            canvas.DrawStyledLine(x + (a.X * scale), y + (a.Y * scale), x + (b.X * scale), y + (b.Y * scale), color, strokeWidth, shape.StrokeDashStyle);
+            OfficePoint start = new OfficePoint(x + (a.X * scale), y + (a.Y * scale));
+            OfficePoint end = new OfficePoint(x + (b.X * scale), y + (b.Y * scale));
+            canvas.DrawStyledLine(start.X, start.Y, end.X, end.Y, color, strokeWidth, shape.StrokeDashStyle);
+            RenderLineMarkers(canvas, shape, start, end, color, scale);
         }
     }
+
+    private static void RenderLineMarkers(OfficeRasterCanvas canvas, OfficeShape shape, OfficePoint start, OfficePoint end, OfficeColor color, double scale) {
+        RenderLineMarker(canvas, shape.StrokeStartMarker, start, new OfficePoint(start.X - end.X, start.Y - end.Y), color, scale);
+        RenderLineMarker(canvas, shape.StrokeEndMarker, end, new OfficePoint(end.X - start.X, end.Y - start.Y), color, scale);
+    }
+
+    private static void RenderLineMarker(OfficeRasterCanvas canvas, OfficeLineMarker? marker, OfficePoint tip, OfficePoint lineDirection, OfficeColor color, double scale) {
+        IReadOnlyList<OfficePoint> contour = OfficeLineMarkerGeometry.CreateContour(ScaleLineMarker(marker, scale), tip, lineDirection);
+        if (contour.Count >= 3) {
+            canvas.FillPolygon(contour, color);
+        }
+    }
+
+    private static OfficeLineMarker? ScaleLineMarker(OfficeLineMarker? marker, double scale) =>
+        marker == null ? null : new OfficeLineMarker(marker.Kind, marker.Width * scale, marker.Length * scale);
 
     private static void RenderPolygon(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeColor? stroke, double strokeWidth) {
         List<OfficePoint> points = OffsetPoints(shape.Points, x, y, scale);
@@ -322,6 +472,36 @@ public static class OfficeDrawingRasterRenderer {
                     : contours[i].Points;
                 canvas.DrawStyledPolyline(points, stroke.Value, strokeWidth, dashStyle);
             }
+
+            RenderPathMarkers(canvas, shape, contours, stroke.Value, scale);
+        }
+    }
+
+    private static void RenderPathMarkers(OfficeRasterCanvas canvas, OfficeShape shape, IReadOnlyList<OfficeFlattenedPathContour> contours, OfficeColor color, double scale) {
+        if (shape.StrokeStartMarker == null && shape.StrokeEndMarker == null) {
+            return;
+        }
+
+        OfficeFlattenedPathContour? firstOpen = null;
+        OfficeFlattenedPathContour? lastOpen = null;
+        for (int i = 0; i < contours.Count; i++) {
+            if (!contours[i].Closed && contours[i].Points.Count >= 2) {
+                firstOpen ??= contours[i];
+                lastOpen = contours[i];
+            }
+        }
+
+        if (firstOpen != null) {
+            OfficePoint start = firstOpen.Points[0];
+            OfficePoint next = firstOpen.Points[1];
+            RenderLineMarker(canvas, shape.StrokeStartMarker, start, new OfficePoint(start.X - next.X, start.Y - next.Y), color, scale);
+        }
+
+        if (lastOpen != null) {
+            IReadOnlyList<OfficePoint> points = lastOpen.Points;
+            OfficePoint end = points[points.Count - 1];
+            OfficePoint previous = points[points.Count - 2];
+            RenderLineMarker(canvas, shape.StrokeEndMarker, end, new OfficePoint(end.X - previous.X, end.Y - previous.Y), color, scale);
         }
     }
 

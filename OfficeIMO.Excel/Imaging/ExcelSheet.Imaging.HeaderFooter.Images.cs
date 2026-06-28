@@ -65,10 +65,10 @@ namespace OfficeIMO.Excel {
 
         private static bool CanRenderHeaderFooterImage(OfficeImageExportFormat format, HeaderFooterImageSnapshot image) {
             if (format == OfficeImageExportFormat.Svg) {
-                return OfficeSvgImageRenderer.TryResolveEmbeddableContentType(image.ContentType, image.Bytes, null, out _);
+                return OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, image.Bytes, null, out _);
             }
 
-            return OfficePngReader.TryDecode(image.Bytes, out _);
+            return OfficeRasterImageDecoder.TryDecode(image.Bytes, out _);
         }
 
         private static void DrawHeaderFooterRasterImages(
@@ -92,7 +92,7 @@ namespace OfficeIMO.Excel {
             double bandHeight,
             double scale,
             OfficeTextAlignment alignment) {
-            if (image == null || !OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster) || raster == null) {
+            if (image == null || !OfficeRasterImageDecoder.TryDecode(image.Bytes, out OfficeRasterImage? raster) || raster == null) {
                 return;
             }
 
@@ -124,7 +124,7 @@ namespace OfficeIMO.Excel {
             double scale,
             OfficeTextAlignment alignment,
             string clipSuffix) {
-            if (image == null || !OfficeSvgImageRenderer.TryResolveEmbeddableContentType(image.ContentType, image.Bytes, null, out string contentType)) {
+            if (image == null || !OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, image.Bytes, null, out string dataUri)) {
                 return;
             }
 
@@ -132,7 +132,7 @@ namespace OfficeIMO.Excel {
             string clipId = "xl-header-footer-" + clipSuffix;
             OfficeSvgImageRenderer.AppendImageInViewport(
                 builder,
-                OfficeSvgImageRenderer.CreateDataUri(contentType, image.Bytes),
+                dataUri,
                 new OfficeImageProjection(new OfficeImagePlacement(x, y, width, height)),
                 clipId,
                 new OfficeImagePlacement(zone.X, bandTop, zone.Width, bandHeight));

@@ -28,6 +28,8 @@ namespace OfficeIMO.Word {
         private readonly WordTableRow _wordTableRow;
         private readonly WordDocument _document;
 
+        internal WordDocument Document => _document;
+
         /// <summary>
         /// Gets the row that owns this cell.
         /// </summary>

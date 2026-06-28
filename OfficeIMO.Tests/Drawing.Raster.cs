@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class DrawingRasterTests {
+    public partial class DrawingRasterTests {
         [Fact]
         public void OfficePngWriter_EncodesValidRgbaPng() {
             OfficeRasterImage image = new OfficeRasterImage(4, 3, OfficeColor.White);
@@ -16,6 +16,150 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4, info.Width);
             Assert.Equal(3, info.Height);
             Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png.Take(4).ToArray());
+        }
+
+        [Fact]
+        public void OfficeRasterImageDecoder_DecodesUncompressedBmp24RowsThroughSharedRasterPath() {
+            byte[] bmp = CreateBmp24(
+                2,
+                2,
+                new[] {
+                    OfficeColor.Red, OfficeColor.Lime,
+                    OfficeColor.Blue, OfficeColor.White
+                });
+
+            Assert.True(OfficeRasterImageDecoder.TryDecode(bmp, out OfficeRasterImage? image));
+            Assert.Equal(2, image!.Width);
+            Assert.Equal(2, image.Height);
+            Assert.Equal(OfficeColor.Red, image.GetPixel(0, 0));
+            Assert.Equal(OfficeColor.Lime, image.GetPixel(1, 0));
+            Assert.Equal(OfficeColor.Blue, image.GetPixel(0, 1));
+            Assert.Equal(OfficeColor.White, image.GetPixel(1, 1));
+        }
+
+        [Fact]
+        public void OfficeRasterImageDecoder_DecodesTopDownBmp24RowsThroughSharedRasterPath() {
+            byte[] bmp = CreateBmp24(
+                2,
+                2,
+                new[] {
+                    OfficeColor.Red, OfficeColor.Lime,
+                    OfficeColor.Blue, OfficeColor.White
+                },
+                topDown: true);
+
+            Assert.True(OfficeRasterImageDecoder.TryDecode(bmp, out OfficeRasterImage? image));
+            Assert.Equal(2, image!.Width);
+            Assert.Equal(2, image.Height);
+            Assert.Equal(OfficeColor.Red, image.GetPixel(0, 0));
+            Assert.Equal(OfficeColor.Lime, image.GetPixel(1, 0));
+            Assert.Equal(OfficeColor.Blue, image.GetPixel(0, 1));
+            Assert.Equal(OfficeColor.White, image.GetPixel(1, 1));
+        }
+
+        [Fact]
+        public void OfficeRasterImageDecoder_DecodesUncompressedBmp32AlphaThroughSharedRasterPath() {
+            byte[] bmp = CreateBmp32(
+                2,
+                2,
+                new[] {
+                    OfficeColor.FromRgba(255, 0, 0, 255), OfficeColor.FromRgba(0, 255, 0, 192),
+                    OfficeColor.FromRgba(0, 0, 255, 128), OfficeColor.FromRgba(255, 255, 255, 64)
+                });
+
+            Assert.True(OfficeRasterImageDecoder.TryDecode(bmp, out OfficeRasterImage? image));
+            Assert.Equal(2, image!.Width);
+            Assert.Equal(2, image.Height);
+            Assert.Equal(OfficeColor.FromRgba(255, 0, 0, 255), image.GetPixel(0, 0));
+            Assert.Equal(OfficeColor.FromRgba(0, 255, 0, 192), image.GetPixel(1, 0));
+            Assert.Equal(OfficeColor.FromRgba(0, 0, 255, 128), image.GetPixel(0, 1));
+            Assert.Equal(OfficeColor.FromRgba(255, 255, 255, 64), image.GetPixel(1, 1));
+        }
+
+        [Fact]
+        public void OfficeRasterImageDecoder_DecodesTopDownBmp32AlphaThroughSharedRasterPath() {
+            byte[] bmp = CreateBmp32(
+                2,
+                2,
+                new[] {
+                    OfficeColor.FromRgba(255, 0, 0, 255), OfficeColor.FromRgba(0, 255, 0, 192),
+                    OfficeColor.FromRgba(0, 0, 255, 128), OfficeColor.FromRgba(255, 255, 255, 64)
+                },
+                topDown: true);
+
+            Assert.True(OfficeRasterImageDecoder.TryDecode(bmp, out OfficeRasterImage? image));
+            Assert.Equal(2, image!.Width);
+            Assert.Equal(2, image.Height);
+            Assert.Equal(OfficeColor.FromRgba(255, 0, 0, 255), image.GetPixel(0, 0));
+            Assert.Equal(OfficeColor.FromRgba(0, 255, 0, 192), image.GetPixel(1, 0));
+            Assert.Equal(OfficeColor.FromRgba(0, 0, 255, 128), image.GetPixel(0, 1));
+            Assert.Equal(OfficeColor.FromRgba(255, 255, 255, 64), image.GetPixel(1, 1));
+        }
+
+        [Fact]
+        public void OfficeDrawingRasterRenderer_PaintsDecodedBmpImages() {
+            byte[] bmp = CreateBmp24(1, 1, new[] { OfficeColor.FromRgb(18, 52, 86) });
+            OfficeDrawing drawing = new OfficeDrawing(20, 16);
+            drawing.AddImage(
+                bmp,
+                "image/bmp",
+                new OfficeImageProjection(new OfficeImagePlacement(4, 3, 8, 6)),
+                "BMP marker");
+
+            OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing);
+
+            Assert.Equal(OfficeColor.FromRgb(18, 52, 86), rendered.GetPixel(7, 5));
+        }
+
+        [Fact]
+        public void OfficeDrawingRasterRenderer_BlendsDecodedBmp32AlphaImages() {
+            byte[] bmp = CreateBmp32(1, 1, new[] { OfficeColor.FromRgba(255, 0, 0, 128) });
+            OfficeDrawing drawing = new OfficeDrawing(20, 16);
+            drawing.AddImage(
+                bmp,
+                "image/bmp",
+                new OfficeImageProjection(new OfficeImagePlacement(4, 3, 8, 6)),
+                "BMP alpha marker");
+
+            OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+            OfficeColor blended = rendered.GetPixel(7, 5);
+
+            Assert.True(blended.R >= 252, $"Expected red channel to stay near full after alpha blend, got {blended.R}.");
+            Assert.InRange(blended.G, 124, 130);
+            Assert.InRange(blended.B, 124, 130);
+            Assert.Equal(255, blended.A);
+        }
+
+        [Fact]
+        public void OfficeSvgImageRenderer_CreatesPngDataUriForDecodedBmpImages() {
+            byte[] bmp = CreateBmp24(1, 1, new[] { OfficeColor.FromRgb(18, 52, 86) });
+
+            Assert.False(OfficeSvgImageRenderer.TryResolveEmbeddableContentType("image/bmp", bmp, null, out string directContentType));
+            Assert.Equal(string.Empty, directContentType);
+            Assert.True(OfficeSvgImageRenderer.TryCreateDataUri("image/bmp", bmp, null, out string dataUri));
+
+            const string prefix = "data:image/png;base64,";
+            Assert.StartsWith(prefix, dataUri, StringComparison.Ordinal);
+            byte[] png = Convert.FromBase64String(dataUri.Substring(prefix.Length));
+            Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? decoded));
+            Assert.Equal(OfficeColor.FromRgb(18, 52, 86), decoded!.GetPixel(0, 0));
+        }
+
+        [Fact]
+        public void OfficeDrawingSvgExporter_EmbedsDecodedBmpImagesAsPngDataUris() {
+            byte[] bmp = CreateBmp24(1, 1, new[] { OfficeColor.FromRgb(18, 52, 86) });
+            OfficeDrawing drawing = new OfficeDrawing(20, 16);
+            drawing.AddImage(
+                bmp,
+                "image/bmp",
+                new OfficeImageProjection(new OfficeImagePlacement(4, 3, 8, 6)),
+                "BMP marker");
+
+            string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+            Assert.Contains("<image", svg, StringComparison.Ordinal);
+            Assert.Contains("data:image/png;base64,", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("data:image/bmp", svg, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -300,8 +444,8 @@ namespace OfficeIMO.Tests {
             IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines("  A  B\tC", 1D, 20D, Measure);
 
             OfficeTextLine line = Assert.Single(lines);
-            Assert.Equal("  A  B\tC", line.Text);
-            Assert.Equal(8D, line.Width);
+            Assert.Equal("  A  B  C", line.Text);
+            Assert.Equal(9D, line.Width);
         }
 
         [Fact]
@@ -312,6 +456,64 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(lines, line => line.Text.Length == 0);
             Assert.Equal("diagnostic", lines[lines.Count - 1].Text);
+        }
+
+        [Fact]
+        public void OfficeTextLayoutEngine_ExpandsTabsThroughPlainAndRichTextLayout() {
+            static double Measure(string? value, double size) => (value?.Length ?? 0) * size;
+
+            IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines("A\tB", 10D, 100D, Measure);
+            OfficeTextLine singleLine = OfficeTextLayoutEngine.TrimLineToWidth("A\tB", 10D, 100D, Measure, out bool clipped);
+            OfficeRichTextBlockLayout rich = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                new[] { new OfficeRichTextRun("A\tB", 10D, OfficeColor.Black) },
+                100D,
+                30D,
+                lineHeightFactor: 1.2D,
+                (value, size, _) => Measure(value, size),
+                wrap: true);
+
+            Assert.False(clipped);
+            Assert.Equal("A   B", lines.Single().Text);
+            Assert.Equal(50D, lines.Single().Width);
+            Assert.Equal("A   B", singleLine.Text);
+            Assert.Equal(50D, singleLine.Width);
+            Assert.Equal("A   B", string.Concat(rich.Lines.Single().Segments.Select(segment => segment.Text)));
+            Assert.Equal(50D, rich.Lines.Single().Width);
+        }
+
+        [Fact]
+        public void OfficeTextLayoutEngine_ProjectsParagraphIndentThroughPlainAndRichTextLines() {
+            static double Measure(string? value, double size) => (value?.Length ?? 0) * size;
+
+            OfficeTextParagraphIndent hanging = OfficeTextParagraphIndent.Hanging(2D);
+            OfficeTextBlockLayout plain = OfficeTextLayoutEngine.LayoutTextBlock(
+                "Alpha Beta Gamma",
+                1D,
+                8D,
+                50D,
+                1.2D,
+                1D,
+                Measure,
+                wrap: true,
+                paragraphIndent: hanging);
+            OfficeRichTextBlockLayout rich = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                new[] { new OfficeRichTextRun("Alpha Beta Gamma", 1D, OfficeColor.Black) },
+                8D,
+                50D,
+                1.2D,
+                (value, size, _) => Measure(value, size),
+                wrap: true,
+                paragraphIndent: hanging);
+
+            Assert.Equal(new[] { "Alpha", "Beta", "Gamma" }, plain.Lines.Select(line => line.Text).ToArray());
+            Assert.Equal(0D, plain.Lines[0].OffsetX);
+            Assert.Equal(2D, plain.Lines[1].OffsetX);
+            Assert.Equal(2D, plain.Lines[2].OffsetX);
+            Assert.Equal(7D, plain.Width);
+            Assert.Equal(0D, rich.Lines[0].OffsetX);
+            Assert.Equal(2D, rich.Lines[1].OffsetX);
+            Assert.Equal(2D, rich.Lines[2].OffsetX);
+            Assert.Equal(7D, rich.Width);
         }
 
         [Fact]
@@ -1762,7 +1964,7 @@ namespace OfficeIMO.Tests {
             OfficeRasterImage image = new OfficeRasterImage(140, 72, OfficeColor.Transparent);
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
             var line = new OfficeRichTextLine(new[] {
-                new OfficeRichTextSegment("Red", canvas.MeasureText("Red", 14D), 14D, OfficeColor.Red, bold: true, italic: false, underline: true, fontFamily: "Aptos"),
+                new OfficeRichTextSegment("Red", canvas.MeasureText("Red", 14D), 14D, OfficeColor.Red, bold: true, italic: false, underline: true, fontFamily: "Aptos", backgroundColor: OfficeColor.Yellow),
                 new OfficeRichTextSegment(" Blue", canvas.MeasureText(" Blue", 14D), 14D, OfficeColor.Blue, bold: false, italic: true, underline: false, fontFamily: "Aptos", strikethrough: true)
             });
             var layout = new OfficeRichTextBlockLayout(new[] { line }, lineHeight: 18D, width: line.Width, height: 18D);
@@ -1783,6 +1985,7 @@ namespace OfficeIMO.Tests {
                 .ToList();
 
             Assert.NotEmpty(painted);
+            Assert.True(CountPixelsNear(image, OfficeColor.Yellow) > 20, "Expected the first rich text run background to render yellow.");
             Assert.True(CountPixelsNear(image, OfficeColor.Red) > 20, "Expected the first rich text run to render red ink.");
             Assert.True(CountPixelsNear(image, OfficeColor.Blue) > 20, "Expected the second rich text run to render blue ink.");
             Assert.True(painted.Min(pixel => pixel.X) > 20, "Expected centered rich text placement.");
@@ -1831,6 +2034,103 @@ namespace OfficeIMO.Tests {
             Assert.Contains("transform=\"rotate(15 50 20)\"", svg);
             Assert.Contains(">A&amp;B</text>", svg);
             Assert.Contains(">Beta</text>", svg);
+        }
+
+        [Fact]
+        public void OfficeTextBlockRenderer_AppendsSvgTextBlockWithLineOffsets() {
+            var builder = new System.Text.StringBuilder();
+            var layout = new OfficeTextBlockLayout(
+                new[] {
+                    new OfficeTextLine("First", 20D),
+                    new OfficeTextLine("Rest", 20D, 10D)
+                },
+                fontSize: 10D,
+                lineHeight: 12D,
+                width: 30D,
+                height: 24D);
+
+            builder.AppendSvgTextBlock(
+                layout,
+                left: 0D,
+                top: 0D,
+                width: 100D,
+                height: 40D,
+                color: OfficeColor.Black,
+                fontFamily: "Aptos");
+
+            string svg = builder.ToString();
+            Assert.Contains("<text x=\"0\"", svg, StringComparison.Ordinal);
+            Assert.Contains("<text x=\"10\"", svg, StringComparison.Ordinal);
+            Assert.Contains(">First</text>", svg, StringComparison.Ordinal);
+            Assert.Contains(">Rest</text>", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void OfficeTextBlockRenderer_AppendsSvgJustifiedTextBlockWithTextLength() {
+            var builder = new System.Text.StringBuilder();
+            var layout = new OfficeTextBlockLayout(
+                new[] {
+                    new OfficeTextLine("Alpha Beta", 48D),
+                    new OfficeTextLine("Gamma", 25D)
+                },
+                fontSize: 10D,
+                lineHeight: 12D,
+                width: 48D,
+                height: 24D);
+
+            builder.AppendSvgTextBlock(
+                layout,
+                left: 0D,
+                top: 0D,
+                width: 100D,
+                height: 40D,
+                color: OfficeColor.Black,
+                fontFamily: "Aptos",
+                horizontalAlignment: OfficeTextAlignment.Justify);
+
+            string svg = builder.ToString();
+            Assert.Contains("<text x=\"0\"", svg, StringComparison.Ordinal);
+            Assert.Contains("textLength=\"100\" lengthAdjust=\"spacing\"", svg, StringComparison.Ordinal);
+            Assert.Contains(">Alpha Beta</text>", svg, StringComparison.Ordinal);
+            Assert.Contains(">Gamma</text>", svg, StringComparison.Ordinal);
+            Assert.Equal(1, svg.Split(new[] { "textLength=" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
+        public void OfficeTextBlockRenderer_AppendsSvgJustifiedRichTextBlockWithTextLengthAndTspans() {
+            var builder = new System.Text.StringBuilder();
+            var firstLine = new OfficeRichTextLine(new[] {
+                new OfficeRichTextSegment("Alpha ", width: 30D, fontSize: 10D, color: OfficeColor.Red, bold: true, italic: false, underline: false, fontFamily: "Aptos"),
+                new OfficeRichTextSegment("Beta", width: 20D, fontSize: 12D, color: OfficeColor.Blue, bold: false, italic: true, underline: true, fontFamily: "Aptos", strikethrough: true)
+            });
+            var secondLine = new OfficeRichTextLine(new[] {
+                new OfficeRichTextSegment("Tail", width: 18D, fontSize: 10D, color: OfficeColor.Black, bold: false, italic: false, underline: false, fontFamily: "Aptos")
+            });
+            var layout = new OfficeRichTextBlockLayout(
+                new[] { firstLine, secondLine },
+                lineHeight: 14D,
+                width: firstLine.Width,
+                height: 28D);
+
+            builder.AppendSvgRichTextBlock(
+                layout,
+                left: 0D,
+                top: 0D,
+                width: 100D,
+                height: 40D,
+                horizontalAlignment: OfficeTextAlignment.Justify);
+
+            string svg = builder.ToString();
+            Assert.Contains("<text x=\"0\" y=\"11.08\"", svg, StringComparison.Ordinal);
+            Assert.Contains("textLength=\"100\" lengthAdjust=\"spacing\"", svg, StringComparison.Ordinal);
+            Assert.Contains("<tspan", svg, StringComparison.Ordinal);
+            Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
+            Assert.Contains("font-style=\"italic\"", svg, StringComparison.Ordinal);
+            Assert.Contains("text-decoration=\"underline line-through\"", svg, StringComparison.Ordinal);
+            Assert.Contains(">Alpha </tspan>", svg, StringComparison.Ordinal);
+            Assert.Contains(">Beta</tspan>", svg, StringComparison.Ordinal);
+            Assert.Contains(">Tail</text>", svg, StringComparison.Ordinal);
+            Assert.Equal(1, svg.Split(new[] { "textLength=" }, StringSplitOptions.None).Length - 1);
         }
 
         [Fact]
@@ -1901,7 +2201,7 @@ namespace OfficeIMO.Tests {
         public void OfficeTextBlockRenderer_AppendsSvgRichTextBlockWithSharedPlacement() {
             var builder = new System.Text.StringBuilder();
             var firstLine = new OfficeRichTextLine(new[] {
-                new OfficeRichTextSegment("Red", width: 20D, fontSize: 10D, color: OfficeColor.Red, bold: true, italic: false, underline: true, fontFamily: "Aptos"),
+                new OfficeRichTextSegment("Red", width: 20D, fontSize: 10D, color: OfficeColor.Red, bold: true, italic: false, underline: true, fontFamily: "Aptos", backgroundColor: OfficeColor.Yellow),
                 new OfficeRichTextSegment("Blue", width: 30D, fontSize: 10D, color: OfficeColor.Blue, bold: false, italic: true, underline: false, fontFamily: "Aptos", strikethrough: true)
             });
             var secondLine = new OfficeRichTextLine(new[] {
@@ -1933,6 +2233,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains("font-style=\"italic\"", svg);
             Assert.Contains("text-decoration=\"line-through\"", svg);
             Assert.Contains("transform=\"rotate(15 50 25)\"", svg);
+            Assert.Contains("<rect", svg, StringComparison.Ordinal);
+            Assert.Contains("fill=\"#FFFF00\"", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.True(svg.IndexOf("<rect", StringComparison.Ordinal) < svg.IndexOf(">Red</text>", StringComparison.Ordinal));
             Assert.Contains(">Red</text>", svg);
             Assert.Contains(">Blue</text>", svg);
             Assert.Contains(">Tail</text>", svg);
@@ -2053,6 +2356,77 @@ namespace OfficeIMO.Tests {
         private static int CountPaintedPixels(OfficeRasterImage image) =>
             Enumerable.Range(0, image.Width * image.Height)
                 .Count(index => image.GetPixel(index % image.Width, index / image.Width).A > 0);
+
+        private static byte[] CreateBmp24(int width, int height, IReadOnlyList<OfficeColor> pixels, bool topDown = false) {
+            int rowStride = ((width * 24) + 31) / 32 * 4;
+            int pixelOffset = 54;
+            byte[] bytes = new byte[pixelOffset + (rowStride * height)];
+            bytes[0] = (byte)'B';
+            bytes[1] = (byte)'M';
+            WriteInt32LittleEndian(bytes, 2, bytes.Length);
+            WriteInt32LittleEndian(bytes, 10, pixelOffset);
+            WriteInt32LittleEndian(bytes, 14, 40);
+            WriteInt32LittleEndian(bytes, 18, width);
+            WriteInt32LittleEndian(bytes, 22, topDown ? -height : height);
+            WriteUInt16LittleEndian(bytes, 26, 1);
+            WriteUInt16LittleEndian(bytes, 28, 24);
+
+            for (int y = 0; y < height; y++) {
+                int sourceY = topDown ? y : height - 1 - y;
+                int rowOffset = pixelOffset + (y * rowStride);
+                for (int x = 0; x < width; x++) {
+                    OfficeColor color = pixels[(sourceY * width) + x];
+                    int offset = rowOffset + (x * 3);
+                    bytes[offset] = color.B;
+                    bytes[offset + 1] = color.G;
+                    bytes[offset + 2] = color.R;
+                }
+            }
+
+            return bytes;
+        }
+
+        private static byte[] CreateBmp32(int width, int height, IReadOnlyList<OfficeColor> pixels, bool topDown = false) {
+            int rowStride = width * 4;
+            int pixelOffset = 54;
+            byte[] bytes = new byte[pixelOffset + (rowStride * height)];
+            bytes[0] = (byte)'B';
+            bytes[1] = (byte)'M';
+            WriteInt32LittleEndian(bytes, 2, bytes.Length);
+            WriteInt32LittleEndian(bytes, 10, pixelOffset);
+            WriteInt32LittleEndian(bytes, 14, 40);
+            WriteInt32LittleEndian(bytes, 18, width);
+            WriteInt32LittleEndian(bytes, 22, topDown ? -height : height);
+            WriteUInt16LittleEndian(bytes, 26, 1);
+            WriteUInt16LittleEndian(bytes, 28, 32);
+
+            for (int y = 0; y < height; y++) {
+                int sourceY = topDown ? y : height - 1 - y;
+                int rowOffset = pixelOffset + (y * rowStride);
+                for (int x = 0; x < width; x++) {
+                    OfficeColor color = pixels[(sourceY * width) + x];
+                    int offset = rowOffset + (x * 4);
+                    bytes[offset] = color.B;
+                    bytes[offset + 1] = color.G;
+                    bytes[offset + 2] = color.R;
+                    bytes[offset + 3] = color.A;
+                }
+            }
+
+            return bytes;
+        }
+
+        private static void WriteInt32LittleEndian(byte[] bytes, int offset, int value) {
+            bytes[offset] = (byte)value;
+            bytes[offset + 1] = (byte)(value >> 8);
+            bytes[offset + 2] = (byte)(value >> 16);
+            bytes[offset + 3] = (byte)(value >> 24);
+        }
+
+        private static void WriteUInt16LittleEndian(byte[] bytes, int offset, int value) {
+            bytes[offset] = (byte)value;
+            bytes[offset + 1] = (byte)(value >> 8);
+        }
 
         private static int CountPixelsNear(OfficeRasterImage image, OfficeColor expected) =>
             Enumerable.Range(0, image.Width * image.Height)

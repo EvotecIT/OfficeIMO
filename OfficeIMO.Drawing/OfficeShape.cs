@@ -33,6 +33,12 @@ public sealed class OfficeShape {
     /// <summary>Optional stroke corner style for connected path segments. Null lets each renderer choose its default.</summary>
     public OfficeStrokeLineJoin? StrokeLineJoin { get; set; }
 
+    /// <summary>Optional marker drawn at the first point of open line shapes.</summary>
+    public OfficeLineMarker? StrokeStartMarker { get; set; }
+
+    /// <summary>Optional marker drawn at the last point of open line shapes.</summary>
+    public OfficeLineMarker? StrokeEndMarker { get; set; }
+
     /// <summary>Optional fill color. Null means transparent fill.</summary>
     public OfficeColor? FillColor { get; set; }
 
@@ -263,6 +269,8 @@ public sealed class OfficeShape {
         StrokeDashStyle = StrokeDashStyle,
         StrokeLineCap = StrokeLineCap,
         StrokeLineJoin = StrokeLineJoin,
+        StrokeStartMarker = StrokeStartMarker?.Clone(),
+        StrokeEndMarker = StrokeEndMarker?.Clone(),
         FillColor = FillColor,
         FillGradient = FillGradient?.Clone(),
         Shadow = Shadow?.Clone(),

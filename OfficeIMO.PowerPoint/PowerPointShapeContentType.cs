@@ -51,6 +51,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     The shape represents an embedded OLE object.
         /// </summary>
-        OleObject
+        OleObject,
+
+        /// <summary>
+        ///     The shape is a native PowerPoint connector.
+        /// </summary>
+        Connector
     }
 }

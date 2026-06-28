@@ -142,6 +142,11 @@ namespace OfficeIMO.Word {
         public bool IsExternal => _externalRelationshipId != null;
 
         /// <summary>
+        /// Gets the content type of the embedded image part, or an empty string for external images.
+        /// </summary>
+        public string ContentType => _imagePart?.ContentType ?? string.Empty;
+
+        /// <summary>
         /// Gets the URI of the externally linked image.
         /// </summary>
         public Uri? ExternalUri {

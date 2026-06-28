@@ -35,6 +35,12 @@ namespace OfficeIMO.Excel {
                         StopIfTrue = rule.StopIfTrue?.Value ?? false,
                         DifferentialFormatId = differentialFormatId,
                         DifferentialFillColorArgb = ReadDifferentialFillColor(stylesheet, workbookPart, differentialFormatId),
+                        DifferentialFontColorArgb = ReadDifferentialFontColor(stylesheet, workbookPart, differentialFormatId),
+                        DifferentialFontBold = ReadDifferentialFontBold(stylesheet, differentialFormatId),
+                        DifferentialFontItalic = ReadDifferentialFontItalic(stylesheet, differentialFormatId),
+                        DifferentialFontUnderline = ReadDifferentialFontUnderline(stylesheet, differentialFormatId),
+                        DifferentialFontName = ReadDifferentialFontName(stylesheet, differentialFormatId),
+                        DifferentialFontSize = ReadDifferentialFontSize(stylesheet, differentialFormatId),
                         Formulas = rule.Elements<Formula>().Select(f => f.Text ?? string.Empty).ToArray(),
                         ColorScaleColors = ReadColorScaleColors(rule),
                         ColorScaleThresholds = ReadColorScaleThresholds(rule),
@@ -616,6 +622,46 @@ namespace OfficeIMO.Excel {
 
             return ExcelThemeColorResolver.Resolve(pattern.ForegroundColor, workbookPart)
                 ?? ExcelThemeColorResolver.Resolve(pattern.BackgroundColor, workbookPart);
+        }
+
+        private static string? ReadDifferentialFontColor(Stylesheet? stylesheet, DocumentFormat.OpenXml.Packaging.WorkbookPart? workbookPart, uint? differentialFormatId) {
+            DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
+            return ExcelThemeColorResolver.Resolve(format?.Font?.Color, workbookPart);
+        }
+
+        private static bool? ReadDifferentialFontBold(Stylesheet? stylesheet, uint? differentialFormatId) {
+            DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
+            return format?.Font?.Bold == null ? null : true;
+        }
+
+        private static bool? ReadDifferentialFontItalic(Stylesheet? stylesheet, uint? differentialFormatId) {
+            DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
+            return format?.Font?.Italic == null ? null : true;
+        }
+
+        private static bool? ReadDifferentialFontUnderline(Stylesheet? stylesheet, uint? differentialFormatId) {
+            DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
+            return format?.Font?.Underline == null ? null : true;
+        }
+
+        private static string? ReadDifferentialFontName(Stylesheet? stylesheet, uint? differentialFormatId) {
+            DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
+            string? fontName = format?.Font?.FontName?.Val?.Value;
+            return string.IsNullOrWhiteSpace(fontName) ? null : fontName;
+        }
+
+        private static double? ReadDifferentialFontSize(Stylesheet? stylesheet, uint? differentialFormatId) {
+            DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
+            double? fontSize = format?.Font?.FontSize?.Val?.Value;
+            return fontSize is > 0D ? fontSize : null;
+        }
+
+        private static DifferentialFormat? GetDifferentialFormat(Stylesheet? stylesheet, uint? differentialFormatId) {
+            if (!differentialFormatId.HasValue || stylesheet?.DifferentialFormats == null) {
+                return null;
+            }
+
+            return stylesheet.DifferentialFormats.Elements<DifferentialFormat>().ElementAtOrDefault((int)differentialFormatId.Value);
         }
 
         internal uint AppendConditionalDifferentialFormat(DifferentialFormat differentialFormat) {

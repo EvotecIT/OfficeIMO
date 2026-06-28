@@ -109,6 +109,7 @@ namespace OfficeIMO.PowerPoint {
         private int? GetRotation() {
             return Element switch {
                 Shape s => s.ShapeProperties?.Transform2D?.Rotation?.Value,
+                ConnectionShape c => c.ShapeProperties?.Transform2D?.Rotation?.Value,
                 Picture p => p.ShapeProperties?.Transform2D?.Rotation?.Value,
                 GraphicFrame g => g.Transform?.Rotation?.Value,
                 _ => null
@@ -121,6 +122,11 @@ namespace OfficeIMO.PowerPoint {
                     s.ShapeProperties ??= new ShapeProperties();
                     s.ShapeProperties.Transform2D ??= new A.Transform2D();
                     s.ShapeProperties.Transform2D.Rotation = rotation;
+                    break;
+                case ConnectionShape c:
+                    c.ShapeProperties ??= new ShapeProperties();
+                    c.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    c.ShapeProperties.Transform2D.Rotation = rotation;
                     break;
                 case Picture p:
                     p.ShapeProperties ??= new ShapeProperties();
@@ -137,6 +143,7 @@ namespace OfficeIMO.PowerPoint {
         private bool? GetHorizontalFlip() {
             return Element switch {
                 Shape s => s.ShapeProperties?.Transform2D?.HorizontalFlip?.Value,
+                ConnectionShape c => c.ShapeProperties?.Transform2D?.HorizontalFlip?.Value,
                 Picture p => p.ShapeProperties?.Transform2D?.HorizontalFlip?.Value,
                 GraphicFrame g => g.Transform?.HorizontalFlip?.Value,
                 _ => null
@@ -149,6 +156,11 @@ namespace OfficeIMO.PowerPoint {
                     s.ShapeProperties ??= new ShapeProperties();
                     s.ShapeProperties.Transform2D ??= new A.Transform2D();
                     s.ShapeProperties.Transform2D.HorizontalFlip = value;
+                    break;
+                case ConnectionShape c:
+                    c.ShapeProperties ??= new ShapeProperties();
+                    c.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    c.ShapeProperties.Transform2D.HorizontalFlip = value;
                     break;
                 case Picture p:
                     p.ShapeProperties ??= new ShapeProperties();
@@ -165,6 +177,7 @@ namespace OfficeIMO.PowerPoint {
         private bool? GetVerticalFlip() {
             return Element switch {
                 Shape s => s.ShapeProperties?.Transform2D?.VerticalFlip?.Value,
+                ConnectionShape c => c.ShapeProperties?.Transform2D?.VerticalFlip?.Value,
                 Picture p => p.ShapeProperties?.Transform2D?.VerticalFlip?.Value,
                 GraphicFrame g => g.Transform?.VerticalFlip?.Value,
                 _ => null
@@ -177,6 +190,11 @@ namespace OfficeIMO.PowerPoint {
                     s.ShapeProperties ??= new ShapeProperties();
                     s.ShapeProperties.Transform2D ??= new A.Transform2D();
                     s.ShapeProperties.Transform2D.VerticalFlip = value;
+                    break;
+                case ConnectionShape c:
+                    c.ShapeProperties ??= new ShapeProperties();
+                    c.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    c.ShapeProperties.Transform2D.VerticalFlip = value;
                     break;
                 case Picture p:
                     p.ShapeProperties ??= new ShapeProperties();

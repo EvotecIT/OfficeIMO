@@ -260,7 +260,8 @@ public static partial class OfficeTextLayoutEngine {
                     run.Italic,
                     run.Underline,
                     run.FontFamily,
-                    run.Strikethrough)
+                    run.Strikethrough,
+                    run.BackgroundColor)
             }, lineHeight));
         }
 
@@ -316,7 +317,8 @@ public static partial class OfficeTextLayoutEngine {
                     run.Italic,
                     run.Underline,
                     run.FontFamily,
-                    run.Strikethrough));
+                    run.Strikethrough,
+                    run.BackgroundColor));
             }
         }
 
@@ -324,5 +326,5 @@ public static partial class OfficeTextLayoutEngine {
     }
 
     private static string NormalizeStackedText(string? text) =>
-        (text ?? string.Empty).Replace("\r\n", string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
+        ExpandTabs(text ?? string.Empty).Replace("\r\n", string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
 }

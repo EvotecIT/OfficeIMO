@@ -6,13 +6,13 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>No explicit slide background fill is present.</summary>
         None,
 
-        /// <summary>The slide background uses a solid RGB color.</summary>
+        /// <summary>The slide background uses a solid RGB or RGBA color.</summary>
         SolidColor,
 
         /// <summary>The slide background uses an embedded image.</summary>
         Image,
 
-        /// <summary>The slide background uses a two-stop linear RGB gradient.</summary>
+        /// <summary>The slide background uses a two-stop linear RGB or RGBA gradient.</summary>
         LinearGradient,
 
         /// <summary>The slide background uses an Office fill that is not yet exposed as reusable data.</summary>
@@ -52,7 +52,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Background kind.</summary>
         public PowerPointSlideBackgroundKind Kind { get; }
 
-        /// <summary>Solid background color as a six-digit RGB hex value when <see cref="Kind"/> is <see cref="PowerPointSlideBackgroundKind.SolidColor"/>.</summary>
+        /// <summary>Solid background color as RGB or RGBA hex when <see cref="Kind"/> is <see cref="PowerPointSlideBackgroundKind.SolidColor"/>.</summary>
         public string? Color { get; }
 
         /// <summary>Embedded background image bytes when <see cref="Kind"/> is <see cref="PowerPointSlideBackgroundKind.Image"/>.</summary>
@@ -76,10 +76,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>True when the image background carries a source crop.</summary>
         public bool HasImageCrop => ImageCropLeft > 0D || ImageCropTop > 0D || ImageCropRight > 0D || ImageCropBottom > 0D;
 
-        /// <summary>First linear gradient color as a six-digit RGB hex value when <see cref="Kind"/> is <see cref="PowerPointSlideBackgroundKind.LinearGradient"/>.</summary>
+        /// <summary>First linear gradient color as RGB or RGBA hex when <see cref="Kind"/> is <see cref="PowerPointSlideBackgroundKind.LinearGradient"/>.</summary>
         public string? GradientStartColor { get; }
 
-        /// <summary>Last linear gradient color as a six-digit RGB hex value when <see cref="Kind"/> is <see cref="PowerPointSlideBackgroundKind.LinearGradient"/>.</summary>
+        /// <summary>Last linear gradient color as RGB or RGBA hex when <see cref="Kind"/> is <see cref="PowerPointSlideBackgroundKind.LinearGradient"/>.</summary>
         public string? GradientEndColor { get; }
 
         /// <summary>PowerPoint linear gradient angle in degrees when available.</summary>

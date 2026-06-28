@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel {
                     diagnostics);
             }
 
-            if (!OfficePngReader.TryDecode(content.Bytes, out OfficeRasterImage? contentImage) || contentImage == null) {
+            if (!OfficeRasterImageDecoder.TryDecode(content.Bytes, out OfficeRasterImage? contentImage) || contentImage == null) {
                 return content;
             }
 

@@ -23,6 +23,18 @@ namespace OfficeIMO.Excel {
         public uint? DifferentialFormatId { get; set; }
         /// <summary>Gets or sets the resolved ARGB fill color from the rule's differential format, when present.</summary>
         public string? DifferentialFillColorArgb { get; set; }
+        /// <summary>Gets or sets the resolved ARGB font color from the rule's differential format, when present.</summary>
+        public string? DifferentialFontColorArgb { get; set; }
+        /// <summary>Gets or sets whether the rule's differential format requests bold text, when present.</summary>
+        public bool? DifferentialFontBold { get; set; }
+        /// <summary>Gets or sets whether the rule's differential format requests italic text, when present.</summary>
+        public bool? DifferentialFontItalic { get; set; }
+        /// <summary>Gets or sets whether the rule's differential format requests underlined text, when present.</summary>
+        public bool? DifferentialFontUnderline { get; set; }
+        /// <summary>Gets or sets the rule's differential format font family, when present.</summary>
+        public string? DifferentialFontName { get; set; }
+        /// <summary>Gets or sets the rule's differential format font size in points, when present.</summary>
+        public double? DifferentialFontSize { get; set; }
         /// <summary>Gets or sets formulas attached to the rule.</summary>
         public IReadOnlyList<string> Formulas { get; set; } = Array.Empty<string>();
         /// <summary>Gets or sets ARGB colors attached to a color-scale rule, in rule order.</summary>

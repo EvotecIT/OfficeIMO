@@ -97,9 +97,7 @@ namespace OfficeIMO.Excel {
                 UsePrintArea = source.UsePrintArea,
                 SplitByManualPageBreaks = source.SplitByManualPageBreaks
             };
-            if (resolved.Scale <= 0D || double.IsNaN(resolved.Scale) || double.IsInfinity(resolved.Scale)) {
-                throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
-            }
+            OfficeImageExportOptions.ValidateScale(resolved.Scale, nameof(options));
 
             return resolved;
         }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Xml;
 
@@ -7,7 +8,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Renders measured text blocks through the shared dependency-free Drawing primitives.
 /// </summary>
-public static class OfficeTextBlockRenderer {
+public static partial class OfficeTextBlockRenderer {
     /// <summary>
     /// Draws a measured text block on a raster canvas.
     /// </summary>
@@ -30,6 +31,8 @@ public static class OfficeTextBlockRenderer {
     /// <param name="underlineOffsetFactor">Underline baseline offset as a factor of the resolved font size.</param>
     /// <param name="strikethrough">Whether to render a strikethrough for each visible line.</param>
     /// <param name="fontFamily">Requested font family fallback list.</param>
+    /// <param name="flipHorizontal">Whether to mirror each rendered line horizontally around the rotation center before rotation.</param>
+    /// <param name="flipVertical">Whether to mirror each rendered line vertically around the rotation center before rotation.</param>
     public static void DrawRasterTextBlock(
         OfficeRasterCanvas canvas,
         OfficeTextBlockLayout layout,
@@ -49,7 +52,9 @@ public static class OfficeTextBlockRenderer {
         bool centerLineInLineHeight = true,
         double underlineOffsetFactor = 0.86D,
         bool strikethrough = false,
-        string? fontFamily = null) {
+        string? fontFamily = null,
+        bool flipHorizontal = false,
+        bool flipVertical = false) {
         if (canvas == null) {
             throw new ArgumentNullException(nameof(canvas));
         }
@@ -63,14 +68,38 @@ public static class OfficeTextBlockRenderer {
         }
 
         double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment);
-        double anchorX = OfficeTextPlacement.ResolveAnchorX(left, width, horizontalAlignment);
         for (int i = 0; i < layout.Lines.Count; i++) {
             OfficeTextLine line = layout.Lines[i];
+            double lineLeft = left + line.OffsetX;
+            double lineWidth = Math.Max(0D, width - line.OffsetX);
+            double anchorX = OfficeTextPlacement.ResolveAnchorX(lineLeft, lineWidth, horizontalAlignment);
             double lineTop = textTop + (i * layout.LineHeight);
             double runTop = centerLineInLineHeight
                 ? lineTop + Math.Max(0D, (layout.LineHeight - layout.FontSize) / 2D)
                 : lineTop;
-            canvas.DrawTextLine(line.Text, anchorX, runTop, layout.FontSize, color, bold, italic, horizontalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough, fontFamily);
+            if (ShouldJustifyLine(line, i, layout.Lines.Count, lineWidth, horizontalAlignment)) {
+                DrawRasterJustifiedTextLine(
+                    canvas,
+                    line.Text,
+                    lineLeft,
+                    lineWidth,
+                    runTop,
+                    layout.FontSize,
+                    color,
+                    bold,
+                    italic,
+                    rotationDegrees,
+                    rotationCenterX,
+                    rotationCenterY,
+                    underline,
+                    strikethrough,
+                    fontFamily,
+                    flipHorizontal,
+                    flipVertical);
+                continue;
+            }
+
+            canvas.DrawTextLine(line.Text, anchorX, runTop, layout.FontSize, color, bold, italic, horizontalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough, fontFamily, flipHorizontal, flipVertical);
         }
     }
 
@@ -168,6 +197,8 @@ public static class OfficeTextBlockRenderer {
     /// <param name="rotationCenterX">Rotation center X coordinate.</param>
     /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
     /// <param name="centerLineInLineHeight">Whether each run glyph box should be vertically centered inside its measured line height.</param>
+    /// <param name="flipHorizontal">Whether to mirror each rendered segment horizontally around the rotation center before rotation.</param>
+    /// <param name="flipVertical">Whether to mirror each rendered segment vertically around the rotation center before rotation.</param>
     public static void DrawRasterRichTextBlock(
         OfficeRasterCanvas canvas,
         OfficeRichTextBlockLayout layout,
@@ -180,7 +211,9 @@ public static class OfficeTextBlockRenderer {
         double rotationDegrees = 0D,
         double rotationCenterX = 0D,
         double rotationCenterY = 0D,
-        bool centerLineInLineHeight = true) {
+        bool centerLineInLineHeight = true,
+        bool flipHorizontal = false,
+        bool flipVertical = false) {
         if (canvas == null) {
             throw new ArgumentNullException(nameof(canvas));
         }
@@ -208,10 +241,29 @@ public static class OfficeTextBlockRenderer {
                 ? lineTop + Math.Max(0D, (lineHeight - lineFontSize) / 2D)
                 : lineTop;
             double baseline = runTop + (lineFontSize * 0.84D);
-            double cursor = OfficeTextPlacement.ResolveLineLeft(left, width, line.Width, horizontalAlignment);
+            double lineLeft = left + line.OffsetX;
+            double lineWidth = Math.Max(0D, width - line.OffsetX);
+            if (ShouldJustifyRichTextLine(line, lineIndex, layout.Lines.Count, lineWidth, horizontalAlignment)) {
+                DrawRasterJustifiedRichTextLine(
+                    canvas,
+                    line,
+                    lineLeft,
+                    lineWidth,
+                    baseline,
+                    rotationDegrees,
+                    rotationCenterX,
+                    rotationCenterY,
+                    flipHorizontal,
+                    flipVertical);
+                lineTop += lineHeight;
+                continue;
+            }
+
+            double cursor = OfficeTextPlacement.ResolveLineLeft(lineLeft, lineWidth, line.Width, horizontalAlignment);
             for (int segmentIndex = 0; segmentIndex < line.Segments.Count; segmentIndex++) {
                 OfficeRichTextSegment segment = line.Segments[segmentIndex];
                 double segmentTop = baseline - (segment.FontSize * 0.84D);
+                DrawRasterRichTextSegmentBackground(canvas, segment, cursor, segmentTop, rotationDegrees, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
                 canvas.DrawTextLine(
                     segment.Text,
                     cursor,
@@ -226,7 +278,9 @@ public static class OfficeTextBlockRenderer {
                     rotationCenterY,
                     segment.Underline,
                     segment.Strikethrough,
-                    segment.FontFamily);
+                    segment.FontFamily,
+                    flipHorizontal,
+                    flipVertical);
                 cursor += segment.Width;
             }
 
@@ -290,9 +344,18 @@ public static class OfficeTextBlockRenderer {
                 ? lineTop + Math.Max(0D, (lineHeight - lineFontSize) / 2D)
                 : lineTop;
             double baseline = runTop + (lineFontSize * 0.84D);
-            double cursor = OfficeTextPlacement.ResolveLineLeft(left, width, line.Width, horizontalAlignment);
+            double lineLeft = left + line.OffsetX;
+            double lineWidth = Math.Max(0D, width - line.OffsetX);
+            if (ShouldJustifyRichTextLine(line, lineIndex, layout.Lines.Count, lineWidth, horizontalAlignment)) {
+                builder.AppendSvgJustifiedRichTextLine(line, lineLeft, baseline, lineWidth, rotationDegrees, rotationCenterX, rotationCenterY);
+                lineTop += lineHeight;
+                continue;
+            }
+
+            double cursor = OfficeTextPlacement.ResolveLineLeft(lineLeft, lineWidth, line.Width, horizontalAlignment);
             for (int segmentIndex = 0; segmentIndex < line.Segments.Count; segmentIndex++) {
                 OfficeRichTextSegment segment = line.Segments[segmentIndex];
+                builder.AppendSvgRichTextSegmentBackground(segment, cursor, baseline, rotationDegrees, rotationCenterX, rotationCenterY);
                 builder.AppendSvgRichTextSegment(segment, cursor, baseline, rotationDegrees, rotationCenterX, rotationCenterY);
                 cursor += segment.Width;
             }
@@ -358,14 +421,17 @@ public static class OfficeTextBlockRenderer {
 
         string textAnchor = GetSvgTextAnchor(horizontalAlignment);
         double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment);
-        double anchorX = OfficeTextPlacement.ResolveAnchorX(left, width, horizontalAlignment);
         for (int i = 0; i < layout.Lines.Count; i++) {
             OfficeTextLine line = layout.Lines[i];
+            double lineLeft = left + line.OffsetX;
+            double lineWidth = Math.Max(0D, width - line.OffsetX);
+            double anchorX = OfficeTextPlacement.ResolveAnchorX(lineLeft, lineWidth, horizontalAlignment);
             double lineTop = textTop + (i * layout.LineHeight);
             double runTop = centerLineInLineHeight
                 ? lineTop + Math.Max(0D, (layout.LineHeight - layout.FontSize) / 2D)
                 : lineTop;
             double baseline = runTop + (layout.FontSize * 0.84D);
+            bool justifyLine = ShouldJustifyLine(line, i, layout.Lines.Count, lineWidth, horizontalAlignment);
             builder.Append("<text")
                 .AppendNumberAttribute("x", anchorX)
                 .AppendNumberAttribute("y", baseline)
@@ -373,6 +439,11 @@ public static class OfficeTextBlockRenderer {
                 .AppendAttribute("font-family", string.IsNullOrWhiteSpace(fontFamily) ? "Arial, sans-serif" : fontFamily)
                 .AppendNumberAttribute("font-size", layout.FontSize)
                 .AppendAttribute("text-anchor", textAnchor);
+            if (justifyLine) {
+                builder.AppendNumberAttribute("textLength", lineWidth)
+                    .AppendAttribute("lengthAdjust", "spacing");
+            }
+
             if (RequiresSvgWhitespacePreserve(line.Text)) {
                 builder.Append(" xml:space=\"preserve\"");
             }
@@ -534,6 +605,100 @@ public static class OfficeTextBlockRenderer {
             strikethrough: segment.Strikethrough);
     }
 
+    private static void DrawRasterRichTextSegmentBackground(
+        OfficeRasterCanvas canvas,
+        OfficeRichTextSegment segment,
+        double x,
+        double top,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool flipHorizontal,
+        bool flipVertical) {
+        if (!segment.BackgroundColor.HasValue || segment.BackgroundColor.Value.A == 0 || segment.Width <= 0D || segment.FontSize <= 0D) {
+            return;
+        }
+
+        double height = Math.Max(1D, segment.FontSize * 1.05D);
+        if (Math.Abs(rotationDegrees) <= 0.000001D && !flipHorizontal && !flipVertical) {
+            canvas.FillRectangle(x, top, segment.Width, height, segment.BackgroundColor.Value);
+            return;
+        }
+
+        canvas.FillPolygon(
+            CreateTransformedTextRectangle(x, top, segment.Width, height, rotationDegrees, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical),
+            segment.BackgroundColor.Value);
+    }
+
+    private static StringBuilder AppendSvgRichTextSegmentBackground(
+        this StringBuilder builder,
+        OfficeRichTextSegment segment,
+        double x,
+        double baseline,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY) {
+        if (!segment.BackgroundColor.HasValue || segment.BackgroundColor.Value.A == 0 || segment.Width <= 0D || segment.FontSize <= 0D) {
+            return builder;
+        }
+
+        double top = baseline - (segment.FontSize * 0.84D);
+        double height = Math.Max(1D, segment.FontSize * 1.05D);
+        builder.Append("<rect")
+            .AppendNumberAttribute("x", x)
+            .AppendNumberAttribute("y", top)
+            .AppendNumberAttribute("width", segment.Width)
+            .AppendNumberAttribute("height", height);
+        if (Math.Abs(rotationDegrees) > 0.000001D) {
+            builder.AppendRotateTransformAttribute(rotationDegrees, rotationCenterX, rotationCenterY);
+        }
+
+        builder.AppendPaintAttribute("fill", segment.BackgroundColor.Value)
+            .Append("/>");
+        return builder;
+    }
+
+    private static IReadOnlyList<OfficePoint> CreateTransformedTextRectangle(
+        double x,
+        double y,
+        double width,
+        double height,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool flipHorizontal,
+        bool flipVertical) {
+        double radians = OfficeGeometry.DegreesToRadians(rotationDegrees);
+        return new[] {
+            TransformTextRectanglePoint(new OfficePoint(x, y), radians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical),
+            TransformTextRectanglePoint(new OfficePoint(x + width, y), radians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical),
+            TransformTextRectanglePoint(new OfficePoint(x + width, y + height), radians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical),
+            TransformTextRectanglePoint(new OfficePoint(x, y + height), radians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical)
+        };
+    }
+
+    private static OfficePoint TransformTextRectanglePoint(
+        OfficePoint point,
+        double rotationRadians,
+        double centerX,
+        double centerY,
+        bool flipHorizontal,
+        bool flipVertical) {
+        double x = flipHorizontal ? centerX - (point.X - centerX) : point.X;
+        double y = flipVertical ? centerY - (point.Y - centerY) : point.Y;
+        if (Math.Abs(rotationRadians) <= 0.000001D) {
+            return new OfficePoint(x, y);
+        }
+
+        double dx = x - centerX;
+        double dy = y - centerY;
+        double cos = Math.Cos(rotationRadians);
+        double sin = Math.Sin(rotationRadians);
+        return new OfficePoint(
+            centerX + (dx * cos) - (dy * sin),
+            centerY + (dx * sin) + (dy * cos));
+    }
+
     /// <summary>
     /// Writes an SVG text block using one <c>text</c> element with measured-line <c>tspan</c> children.
     /// </summary>
@@ -589,10 +754,10 @@ public static class OfficeTextBlockRenderer {
         }
 
         double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment);
-        double anchorX = OfficeTextPlacement.ResolveAnchorX(left, width, horizontalAlignment);
+        double firstAnchorX = OfficeTextPlacement.ResolveAnchorX(left + layout.Lines[0].OffsetX, Math.Max(0D, width - layout.Lines[0].OffsetX), horizontalAlignment);
         writer.WriteStartElement("text", svgNamespace);
         configureTextAttributes?.Invoke(writer);
-        writer.WriteNumberAttribute("x", anchorX);
+        writer.WriteNumberAttribute("x", firstAnchorX);
         writer.WriteNumberAttribute("y", textTop + (layout.FontSize / 2D));
         writer.WriteAttributeString("font-family", string.IsNullOrWhiteSpace(fontFamily) ? "Arial, sans-serif" : fontFamily);
         writer.WriteNumberAttribute("font-size", layout.FontSize);
@@ -618,10 +783,18 @@ public static class OfficeTextBlockRenderer {
         }
 
         for (int i = 0; i < layout.Lines.Count; i++) {
+            OfficeTextLine line = layout.Lines[i];
+            double lineAnchorX = OfficeTextPlacement.ResolveAnchorX(left + line.OffsetX, Math.Max(0D, width - line.OffsetX), horizontalAlignment);
             writer.WriteStartElement("tspan", svgNamespace);
-            writer.WriteNumberAttribute("x", anchorX);
+            writer.WriteNumberAttribute("x", lineAnchorX);
             writer.WriteNumberAttribute("dy", i == 0 ? 0D : layout.LineHeight);
-            writer.WriteString(layout.Lines[i].Text);
+            double lineWidth = Math.Max(0D, width - line.OffsetX);
+            if (ShouldJustifyLine(line, i, layout.Lines.Count, lineWidth, horizontalAlignment)) {
+                writer.WriteNumberAttribute("textLength", lineWidth);
+                writer.WriteAttributeString("lengthAdjust", "spacing");
+            }
+
+            writer.WriteString(line.Text);
             writer.WriteEndElement();
         }
 
@@ -721,6 +894,62 @@ public static class OfficeTextBlockRenderer {
             default:
                 return "start";
         }
+    }
+
+    private static bool ShouldJustifyLine(OfficeTextLine line, int lineIndex, int lineCount, double availableWidth, OfficeTextAlignment alignment) {
+        return alignment == OfficeTextAlignment.Justify &&
+            lineIndex < lineCount - 1 &&
+            availableWidth > line.Width + 0.01D &&
+            CountJustifiableWords(line.Text) > 1;
+    }
+
+    private static void DrawRasterJustifiedTextLine(
+        OfficeRasterCanvas canvas,
+        string text,
+        double left,
+        double availableWidth,
+        double top,
+        double fontSize,
+        OfficeColor color,
+        bool bold,
+        bool italic,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool underline,
+        bool strikethrough,
+        string? fontFamily,
+        bool flipHorizontal,
+        bool flipVertical) {
+        string[] words = SplitJustifiableWords(text);
+        if (words.Length <= 1) {
+            canvas.DrawTextLine(text, left, top, fontSize, color, bold, italic, OfficeTextAlignment.Left, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough, fontFamily, flipHorizontal, flipVertical);
+            return;
+        }
+
+        double wordsWidth = 0D;
+        var widths = new double[words.Length];
+        for (int i = 0; i < words.Length; i++) {
+            widths[i] = canvas.MeasureText(words[i], fontSize, fontFamily);
+            wordsWidth += widths[i];
+        }
+
+        double gap = Math.Max(0D, (availableWidth - wordsWidth) / Math.Max(1, words.Length - 1));
+        double cursor = left;
+        for (int i = 0; i < words.Length; i++) {
+            canvas.DrawTextLine(words[i], cursor, top, fontSize, color, bold, italic, OfficeTextAlignment.Left, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough, fontFamily, flipHorizontal, flipVertical);
+            cursor += widths[i] + gap;
+        }
+    }
+
+    private static int CountJustifiableWords(string text) => SplitJustifiableWords(text).Length;
+
+    private static string[] SplitJustifiableWords(string text) {
+        if (string.IsNullOrWhiteSpace(text)) {
+            return Array.Empty<string>();
+        }
+
+        return text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
     }
 
     private static double ResolveRichTextRenderLineHeight(OfficeRichTextLine line, double fallbackLineHeight) =>

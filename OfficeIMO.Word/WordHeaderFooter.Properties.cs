@@ -30,6 +30,21 @@ namespace OfficeIMO.Word {
         protected WordDocument _document = null!;
 
         /// <summary>
+        /// Gets the parent document for internal renderers that need native OpenXML traversal.
+        /// </summary>
+        internal WordDocument Document => _document;
+
+        /// <summary>
+        /// Gets direct native header/footer children without flattening paragraphs into run wrappers.
+        /// </summary>
+        internal OpenXmlElementList ChildElements {
+            get {
+                var container = (OpenXmlCompositeElement?)_header ?? _footer;
+                return container?.ChildElements ?? default;
+            }
+        }
+
+        /// <summary>
         /// Gets all paragraphs contained in the header or footer.
         /// </summary>
         public List<WordParagraph> Paragraphs {

@@ -444,6 +444,11 @@ namespace OfficeIMO.PowerPoint {
                     s.ShapeProperties.Transform2D ??= new A.Transform2D();
                     s.ShapeProperties.Transform2D.Offset ??= new A.Offset();
                     return s.ShapeProperties.Transform2D.Offset;
+                case ConnectionShape c:
+                    c.ShapeProperties ??= new ShapeProperties();
+                    c.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    c.ShapeProperties.Transform2D.Offset ??= new A.Offset();
+                    return c.ShapeProperties.Transform2D.Offset;
                 case Picture p:
                     p.ShapeProperties ??= new ShapeProperties();
                     p.ShapeProperties.Transform2D ??= new A.Transform2D();
@@ -469,6 +474,11 @@ namespace OfficeIMO.PowerPoint {
                     s.ShapeProperties.Transform2D ??= new A.Transform2D();
                     s.ShapeProperties.Transform2D.Extents ??= new A.Extents();
                     return s.ShapeProperties.Transform2D.Extents;
+                case ConnectionShape c:
+                    c.ShapeProperties ??= new ShapeProperties();
+                    c.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    c.ShapeProperties.Transform2D.Extents ??= new A.Extents();
+                    return c.ShapeProperties.Transform2D.Extents;
                 case Picture p:
                     p.ShapeProperties ??= new ShapeProperties();
                     p.ShapeProperties.Transform2D ??= new A.Transform2D();
@@ -494,6 +504,7 @@ namespace OfficeIMO.PowerPoint {
             cy = 0L;
             (A.Offset? offset, A.Extents? extents) = Element switch {
                 Shape s => (s.ShapeProperties?.Transform2D?.Offset, s.ShapeProperties?.Transform2D?.Extents),
+                ConnectionShape c => (c.ShapeProperties?.Transform2D?.Offset, c.ShapeProperties?.Transform2D?.Extents),
                 Picture p => (p.ShapeProperties?.Transform2D?.Offset, p.ShapeProperties?.Transform2D?.Extents),
                 GraphicFrame g => (g.Transform?.Offset, g.Transform?.Extents),
                 GroupShape g => (g.GroupShapeProperties?.TransformGroup?.Offset, g.GroupShapeProperties?.TransformGroup?.Extents),

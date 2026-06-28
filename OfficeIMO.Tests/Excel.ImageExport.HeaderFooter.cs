@@ -417,6 +417,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_PageSlicedImageExportRendersHeaderFooterBmpImagesThroughSharedDecoder() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetHeaderImage(HeaderFooterPosition.Center, CreateHeaderFooterLogoBmp(), "image/bmp", widthPoints: 36D, heightPoints: 16D);
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            var options = new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            };
+            OfficeImageExportResult png = sheet.ExportImages(OfficeImageExportFormat.Png, options)[1];
+            OfficeImageExportResult svg = sheet.ExportImages(OfficeImageExportFormat.Svg, options)[1];
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageUnsupported);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageUnsupported);
+            Assert.Contains(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation);
+            Assert.Contains(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation);
+            Assert.Contains("data:image/png;base64,", svgText);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.NotNull(image);
+            Assert.True(CountRedHeaderPixels(image!) >= 30);
+        }
+
+        [Fact]
         public void ExcelWorksheet_PageSlicedPngExportDiagnosesUnsupportedHeaderFooterImageFormat() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -452,6 +482,60 @@ namespace OfficeIMO.Tests {
             canvas.FillRectangle(0, 0, 24, 12, OfficeColor.FromRgb(220, 38, 38));
             canvas.FillRectangle(4, 3, 16, 6, OfficeColor.FromRgb(255, 255, 255));
             return OfficePngWriter.Encode(image, OfficePngCompression.Stored);
+        }
+
+        private static byte[] CreateHeaderFooterLogoBmp() {
+            OfficeColor red = OfficeColor.FromRgb(220, 38, 38);
+            OfficeColor white = OfficeColor.White;
+            var pixels = new List<OfficeColor>(24 * 12);
+            for (int y = 0; y < 12; y++) {
+                for (int x = 0; x < 24; x++) {
+                    pixels.Add(x >= 4 && x < 20 && y >= 3 && y < 9 ? white : red);
+                }
+            }
+
+            return CreateBmp24(24, 12, pixels);
+        }
+
+        private static byte[] CreateBmp24(int width, int height, IReadOnlyList<OfficeColor> pixels) {
+            int rowStride = ((width * 24) + 31) / 32 * 4;
+            int pixelOffset = 54;
+            byte[] bytes = new byte[pixelOffset + (rowStride * height)];
+            bytes[0] = (byte)'B';
+            bytes[1] = (byte)'M';
+            WriteInt32LittleEndian(bytes, 2, bytes.Length);
+            WriteInt32LittleEndian(bytes, 10, pixelOffset);
+            WriteInt32LittleEndian(bytes, 14, 40);
+            WriteInt32LittleEndian(bytes, 18, width);
+            WriteInt32LittleEndian(bytes, 22, height);
+            WriteUInt16LittleEndian(bytes, 26, 1);
+            WriteUInt16LittleEndian(bytes, 28, 24);
+
+            for (int y = 0; y < height; y++) {
+                int sourceY = height - 1 - y;
+                int rowOffset = pixelOffset + (y * rowStride);
+                for (int x = 0; x < width; x++) {
+                    OfficeColor color = pixels[(sourceY * width) + x];
+                    int offset = rowOffset + (x * 3);
+                    bytes[offset] = color.B;
+                    bytes[offset + 1] = color.G;
+                    bytes[offset + 2] = color.R;
+                }
+            }
+
+            return bytes;
+        }
+
+        private static void WriteInt32LittleEndian(byte[] bytes, int offset, int value) {
+            bytes[offset] = (byte)value;
+            bytes[offset + 1] = (byte)(value >> 8);
+            bytes[offset + 2] = (byte)(value >> 16);
+            bytes[offset + 3] = (byte)(value >> 24);
+        }
+
+        private static void WriteUInt16LittleEndian(byte[] bytes, int offset, int value) {
+            bytes[offset] = (byte)value;
+            bytes[offset + 1] = (byte)(value >> 8);
         }
 
         private static int CountRedHeaderPixels(OfficeRasterImage image) {

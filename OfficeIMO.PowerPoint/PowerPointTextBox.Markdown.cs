@@ -157,6 +157,10 @@ namespace OfficeIMO.PowerPoint {
                 run.Italic = true;
             }
 
+            if (inlineRun.Strikethrough) {
+                run.Strikethrough = true;
+            }
+
             if (inlineRun.Code) {
                 run.FontName = "Consolas";
                 run.HighlightColor = "F2F2F2";
@@ -182,6 +186,12 @@ namespace OfficeIMO.PowerPoint {
                 if (TryParseDelimited(text, index, "__", out MarkdownInlineRun underscoreBoldRun, bold: true)) {
                     runs.Add(underscoreBoldRun);
                     index += underscoreBoldRun.SourceLength;
+                    continue;
+                }
+
+                if (TryParseDelimited(text, index, "~~", out MarkdownInlineRun strikeRun, strikethrough: true)) {
+                    runs.Add(strikeRun);
+                    index += strikeRun.SourceLength;
                     continue;
                 }
 
@@ -219,7 +229,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool TryParseDelimited(string text, int index, string delimiter, out MarkdownInlineRun run,
-            bool bold = false, bool italic = false, bool code = false) {
+            bool bold = false, bool italic = false, bool code = false, bool strikethrough = false) {
             run = default;
             if (!text.Substring(index).StartsWith(delimiter, StringComparison.Ordinal)) {
                 return false;
@@ -232,7 +242,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             string content = text.Substring(contentStart, end - contentStart);
-            run = new MarkdownInlineRun(content, end + delimiter.Length - index, bold, italic, code);
+            run = new MarkdownInlineRun(content, end + delimiter.Length - index, bold, italic, code, strikethrough);
             return true;
         }
 
@@ -261,7 +271,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static int FindNextMarkdownMarker(string text, int start) {
             int next = text.Length;
-            foreach (char marker in new[] { '*', '_', '`', '[' }) {
+            foreach (char marker in new[] { '*', '_', '`', '[', '~' }) {
                 int markerIndex = text.IndexOf(marker, start);
                 if (markerIndex >= 0 && markerIndex < next) {
                     next = markerIndex;
@@ -280,12 +290,13 @@ namespace OfficeIMO.PowerPoint {
 
         private readonly struct MarkdownInlineRun {
             public MarkdownInlineRun(string text, int sourceLength, bool bold = false, bool italic = false,
-                bool code = false, string? link = null) {
+                bool code = false, bool strikethrough = false, string? link = null) {
                 Text = text;
                 SourceLength = sourceLength;
                 Bold = bold;
                 Italic = italic;
                 Code = code;
+                Strikethrough = strikethrough;
                 Link = link;
             }
 
@@ -298,6 +309,8 @@ namespace OfficeIMO.PowerPoint {
             public bool Italic { get; }
 
             public bool Code { get; }
+
+            public bool Strikethrough { get; }
 
             public string? Link { get; }
         }

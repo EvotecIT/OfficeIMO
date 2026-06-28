@@ -18,20 +18,20 @@ namespace OfficeIMO.Excel {
 
         private static void RenderRasterImage(OfficeRasterCanvas canvas, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
             double scale = options.Scale;
-            if (image.DetectedFormat != OfficeImageFormat.Png) {
+            if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, out OfficeRasterImage? raster) || raster == null) {
+                if (image.DetectedFormat == OfficeImageFormat.Png) {
+                    diagnostics?.Add(new OfficeImageExportDiagnostic(
+                        OfficeImageExportDiagnosticSeverity.Warning,
+                        ExcelImageExportDiagnosticCodes.ImagePngDecodeUnavailable,
+                        "Worksheet PNG image bytes could not be decoded for PNG output.",
+                        image.Source));
+                    return;
+                }
+
                 diagnostics?.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported,
                     "Worksheet image " + DescribeImageFormat(image) + " cannot be rasterized to PNG by the dependency-free image renderer yet.",
-                    image.Source));
-                return;
-            }
-
-            if (!OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster) || raster == null) {
-                diagnostics?.Add(new OfficeImageExportDiagnostic(
-                    OfficeImageExportDiagnosticSeverity.Warning,
-                    ExcelImageExportDiagnosticCodes.ImagePngDecodeUnavailable,
-                    "Worksheet PNG image bytes could not be decoded for PNG output.",
                     image.Source));
                 return;
             }
@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendSvgImage(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, ref int index) {
             double scale = options.Scale;
-            if (!OfficeSvgImageRenderer.TryResolveEmbeddableContentType(image.ContentType, image.Bytes, null, out string contentType)) {
+            if (!OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, image.Bytes, null, out string dataUri)) {
                 diagnostics?.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported,
@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel {
             OfficeImageProjection projection = CreateImageProjection(image, scale);
             OfficeSvgImageRenderer.AppendImageInViewport(
                 builder,
-                OfficeSvgImageRenderer.CreateDataUri(contentType, image.Bytes),
+                dataUri,
                 projection,
                 clipId,
                 new OfficeImagePlacement(0D, 0D, snapshot.Width * scale, snapshot.Height * scale));

@@ -121,7 +121,7 @@ namespace OfficeIMO.Excel {
                     height);
             }
 
-            if (!OfficePngReader.TryDecode(content.Bytes, out OfficeRasterImage? image) || image == null) {
+            if (!OfficeRasterImageDecoder.TryDecode(content.Bytes, out OfficeRasterImage? image) || image == null) {
                 return null;
             }
 

@@ -12,10 +12,10 @@ namespace OfficeIMO.Excel {
         private static bool CanEvaluateTextRule(ExcelConditionalFormattingInfo rule) =>
             !string.IsNullOrEmpty(rule.Text);
 
-        private static void ApplyTextRuleFill(
+        private static void ApplyTextRuleFormat(
             IReadOnlyList<ExcelVisualCell> cells,
             ExcelConditionalFormattingInfo rule,
-            Dictionary<string, string> fills,
+            Dictionary<string, ExcelConditionalCellFormat> formats,
             HashSet<string> stoppedCells) {
             if (!CanEvaluateTextRule(rule)) {
                 return;
@@ -27,9 +27,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) && !fills.ContainsKey(key)) {
-                    fills[key] = rule.DifferentialFillColorArgb!;
-                }
+                ApplyDifferentialFormat(rule, key, formats);
 
                 if (rule.StopIfTrue) {
                     stoppedCells.Add(key);

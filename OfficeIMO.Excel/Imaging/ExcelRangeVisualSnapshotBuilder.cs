@@ -157,8 +157,8 @@ namespace OfficeIMO.Excel {
             ExcelConditionalVisualState conditionalVisuals = options.IncludeConditionalFormatting
                 ? ExcelConditionalVisualEvaluator.Evaluate(sheet, cells, range, options.ConditionalFormattingDate ?? DateTime.Today, diagnostics)
                 : ExcelConditionalVisualState.Empty;
-            if (conditionalVisuals.FillColors.Count > 0) {
-                cells = ApplyConditionalFills(cells, conditionalVisuals.FillColors);
+            if (conditionalVisuals.CellFormats.Count > 0) {
+                cells = ApplyConditionalCellFormats(cells, conditionalVisuals.CellFormats);
             }
 
             List<ExcelVisualSparkline> sparklines = BuildSparklines(sheet, firstRow, firstColumn, lastRow, lastColumn, columnsByIndex, rowsByIndex, diagnostics);
@@ -191,10 +191,10 @@ namespace OfficeIMO.Excel {
                 diagnostics.AsReadOnly());
         }
 
-        private static List<ExcelVisualCell> ApplyConditionalFills(IReadOnlyList<ExcelVisualCell> cells, IReadOnlyDictionary<string, string> fillColors) {
+        private static List<ExcelVisualCell> ApplyConditionalCellFormats(IReadOnlyList<ExcelVisualCell> cells, IReadOnlyDictionary<string, ExcelConditionalCellFormat> formats) {
             var resolved = new List<ExcelVisualCell>(cells.Count);
             foreach (ExcelVisualCell cell in cells) {
-                if (fillColors.TryGetValue(Key(cell.Row, cell.Column), out string? fillColor)) {
+                if (formats.TryGetValue(Key(cell.Row, cell.Column), out ExcelConditionalCellFormat? format)) {
                     resolved.Add(new ExcelVisualCell(
                         cell.Row,
                         cell.Column,
@@ -203,7 +203,7 @@ namespace OfficeIMO.Excel {
                         cell.Width,
                         cell.Height,
                         cell.Text,
-                        CloneStyleWithFill(cell.Style, fillColor),
+                        CloneStyleWithConditionalFormat(cell.Style, format),
                         cell.CoveredByMerge,
                         cell.Hyperlink,
                         cell.RichTextRuns,
@@ -420,27 +420,28 @@ namespace OfficeIMO.Excel {
             return drawingObjects;
         }
 
-        private static ExcelCellStyleSnapshot CloneStyleWithFill(ExcelCellStyleSnapshot style, string fillColorArgb) {
+        private static ExcelCellStyleSnapshot CloneStyleWithConditionalFormat(ExcelCellStyleSnapshot style, ExcelConditionalCellFormat format) {
+            string? fillColorArgb = string.IsNullOrWhiteSpace(format.FillColorArgb) ? null : format.FillColorArgb;
             return new ExcelCellStyleSnapshot {
                 StyleIndex = style.StyleIndex,
                 NumberFormatId = style.NumberFormatId,
                 NumberFormatCode = style.NumberFormatCode,
                 IsDateLike = style.IsDateLike,
-                Bold = style.Bold,
-                Italic = style.Italic,
-                Underline = style.Underline,
-                FontName = style.FontName,
-                FontSize = style.FontSize,
+                Bold = format.FontBold ?? style.Bold,
+                Italic = format.FontItalic ?? style.Italic,
+                Underline = format.FontUnderline ?? style.Underline,
+                FontName = string.IsNullOrWhiteSpace(format.FontName) ? style.FontName : format.FontName,
+                FontSize = format.FontSize ?? style.FontSize,
                 TextRotation = style.TextRotation,
-                FontColorArgb = style.FontColorArgb,
-                FillColorArgb = fillColorArgb,
-                FillPatternType = "solid",
-                FillPatternForegroundColorArgb = fillColorArgb,
-                FillPatternBackgroundColorArgb = fillColorArgb,
-                FillGradientUnsupported = false,
-                FillGradientStartColorArgb = null,
-                FillGradientEndColorArgb = null,
-                FillGradientDegree = null,
+                FontColorArgb = string.IsNullOrWhiteSpace(format.FontColorArgb) ? style.FontColorArgb : format.FontColorArgb,
+                FillColorArgb = fillColorArgb ?? style.FillColorArgb,
+                FillPatternType = fillColorArgb == null ? style.FillPatternType : "solid",
+                FillPatternForegroundColorArgb = fillColorArgb ?? style.FillPatternForegroundColorArgb,
+                FillPatternBackgroundColorArgb = fillColorArgb ?? style.FillPatternBackgroundColorArgb,
+                FillGradientUnsupported = fillColorArgb == null && style.FillGradientUnsupported,
+                FillGradientStartColorArgb = fillColorArgb == null ? style.FillGradientStartColorArgb : null,
+                FillGradientEndColorArgb = fillColorArgb == null ? style.FillGradientEndColorArgb : null,
+                FillGradientDegree = fillColorArgb == null ? style.FillGradientDegree : null,
                 Border = style.Border,
                 HorizontalAlignment = style.HorizontalAlignment,
                 VerticalAlignment = style.VerticalAlignment,

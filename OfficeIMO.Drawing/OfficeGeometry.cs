@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Reusable dependency-free geometry helpers shared by OfficeIMO renderers.
 /// </summary>
-public static class OfficeGeometry {
+public static partial class OfficeGeometry {
     private const double DefaultArrowheadWingAngleRadians = Math.PI / 7D;
     private const double GeometryTolerance = 1e-9D;
 

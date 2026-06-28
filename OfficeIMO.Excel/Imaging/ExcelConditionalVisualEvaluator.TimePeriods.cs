@@ -12,12 +12,12 @@ namespace OfficeIMO.Excel {
             TryGetTimePeriodBounds(rule.TimePeriod!, referenceDate, out _, out _) &&
             GetRuleCells(cells, rule.Range).Any(cell => TryGetCellDate(sheet, cell, out _));
 
-        private static void ApplyTimePeriodFill(
+        private static void ApplyTimePeriodFormat(
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             ExcelConditionalFormattingInfo rule,
             DateTime referenceDate,
-            Dictionary<string, string> fills,
+            Dictionary<string, ExcelConditionalCellFormat> formats,
             HashSet<string> stoppedCells) {
             if (string.IsNullOrWhiteSpace(rule.TimePeriod) ||
                 !TryGetTimePeriodBounds(rule.TimePeriod!, referenceDate, out DateTime start, out DateTime endExclusive)) {
@@ -33,9 +33,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) && !fills.ContainsKey(key)) {
-                    fills[key] = rule.DifferentialFillColorArgb!;
-                }
+                ApplyDifferentialFormat(rule, key, formats);
 
                 if (rule.StopIfTrue) {
                     stoppedCells.Add(key);
