@@ -217,23 +217,17 @@ internal static class HtmlRenderer {
             var fallback = new ParagraphBlock(new InlineSequence().Text(footnote.Text));
             sb.Append(AppendBackrefsToParagraphHtml(RenderBodyBlock(fallback, context), info.Value));
         } else {
-            int lastParagraphIndex = -1;
-            for (int i = blocks.Count - 1; i >= 0; i--) {
-                if (blocks[i] is ParagraphBlock) {
-                    lastParagraphIndex = i;
-                    break;
-                }
-            }
-
+            int finalBlockIndex = blocks.Count - 1;
+            bool appendBackrefsToFinalParagraph = blocks[finalBlockIndex] is ParagraphBlock;
             for (int i = 0; i < blocks.Count; i++) {
                 var rendered = RenderBodyBlock(blocks[i], context);
-                if (i == lastParagraphIndex) {
+                if (appendBackrefsToFinalParagraph && i == finalBlockIndex) {
                     rendered = AppendBackrefsToParagraphHtml(rendered, info.Value);
                 }
                 sb.Append(rendered);
             }
 
-            if (lastParagraphIndex < 0) {
+            if (!appendBackrefsToFinalParagraph) {
                 sb.Append(BuildGitHubBackrefsHtml(info.Value));
             }
         }

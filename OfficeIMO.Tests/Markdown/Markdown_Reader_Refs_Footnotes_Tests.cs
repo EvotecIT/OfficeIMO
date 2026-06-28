@@ -158,6 +158,60 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Footnote_RenderMarkdown_Roundtrips_Structured_Body_With_Gfm_Profile() {
+            var quote = new QuoteBlock();
+            quote.Children.Add(new ParagraphBlock(MarkdownReader.ParseInlineText("Quoted *note*")));
+
+            var footnote = new FootnoteDefinitionBlock(
+                "shape",
+                new IMarkdownBlock[] {
+                    new ParagraphBlock(MarkdownReader.ParseInlineText("Intro *value*")),
+                    quote,
+                    new CodeBlock("text", "line 1\nline 2")
+                });
+
+            var doc = MarkdownDoc.Create()
+                .Add(new ParagraphBlock(MarkdownReader.ParseInlineText("See [^shape].", MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile())))
+                .Add(footnote);
+
+            string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
+
+            Assert.Contains("See [^shape].", markdown, StringComparison.Ordinal);
+            Assert.Contains("[^shape]: Intro *value*", markdown, StringComparison.Ordinal);
+            Assert.Contains("\n\n  > Quoted *note*", markdown, StringComparison.Ordinal);
+            Assert.Contains("\n\n  ```text\n  line 1\n  line 2\n  ```", markdown, StringComparison.Ordinal);
+
+            var reparsed = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+            var reparsedFootnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(reparsed.Blocks, block => block is FootnoteDefinitionBlock));
+
+            Assert.Collection(
+                reparsedFootnote.Blocks,
+                block => Assert.Equal("Intro *value*", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => {
+                    var reparsedQuote = Assert.IsType<QuoteBlock>(block);
+                    var quotedParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(reparsedQuote.Children));
+                    Assert.Equal("Quoted *note*", quotedParagraph.Inlines.RenderMarkdown());
+                },
+                block => {
+                    var code = Assert.IsType<CodeBlock>(block);
+                    Assert.Equal("text", code.InfoString);
+                    Assert.Equal("line 1\nline 2", code.Content);
+                });
+
+            string html = reparsed.ToHtmlFragment(GfmHtmlComparison.CreatePlainHtmlOptions());
+
+            Assert.Contains("<section class=\"footnotes\" data-footnotes>", html, StringComparison.Ordinal);
+            Assert.Contains("id=\"fn-shape\"", html, StringComparison.Ordinal);
+            Assert.Contains("<blockquote><p>Quoted <em>note</em></p></blockquote>", html, StringComparison.Ordinal);
+            Assert.Contains("<pre><code class=\"language-text\">line 1\nline 2\n</code></pre>", html, StringComparison.Ordinal);
+
+            int codeIndex = html.IndexOf("<pre><code class=\"language-text\">", StringComparison.Ordinal);
+            int backrefIndex = html.IndexOf("href=\"#fnref-shape\"", StringComparison.Ordinal);
+            Assert.True(codeIndex >= 0, html);
+            Assert.True(backrefIndex > codeIndex, html);
+        }
+
+        [Fact]
         public void Reference_Link_Title_On_Next_Line_Is_Resolved() {
             var md = string.Join("\n", new[] {
                 "See [Docs][docs].",

@@ -22,8 +22,8 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Markdig extension-family rows | 33 |
-| Covered | 2 |
-| Partial | 13 |
+| Covered | 3 |
+| Partial | 12 |
 | Intentional | 4 |
 | Gap | 14 |
 
@@ -46,7 +46,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | `UseEmphasisExtras` | Emphasis extras | `Partial` | OfficeIMO has strikethrough and highlight/mark-style inlines, but not the full Markdig emphasis-extra set. | Inventory exact delimiter options before changing inline parsing. |
 | `UseFigures` | Figures | `Partial` | OfficeIMO has image/figure import and publisher figure rendering paths, but not Markdig figure syntax parity. | Separate HTML-import figure recovery from Markdown parser extension support. |
 | `UseFooters` | Footers | `Gap` | No footer block parser or semantic node exists. | Leave out of scope unless document footer semantics become a Markdown requirement. |
-| `UseFootnotes` | Footnotes | `Partial` | OfficeIMO has footnote definitions/references, source spans, native metadata, and GFM smoke coverage, but not broad Markdig spec coverage. | Expand footnote corpus and preserve label/body source mapping. |
+| `UseFootnotes` | Footnotes | `Covered` | OfficeIMO has GFM footnote parsing and GitHub HTML rendering for first-reference ordering, repeated-reference backrefs, missing/unused definitions, nested block bodies, source/native label and marker spans, and structured Markdown writer roundtrip proof. | Keep the GFM footnote fixture corpus and structured-body writer coverage current. |
 | `UseGenericAttributes` | Generic attributes | `Partial` | OfficeIMO captures fenced-code brace metadata, but not generic attributes on arbitrary blocks/inlines. | Design attribute storage on semantic and syntax nodes before broad support. |
 | `UseGlobalization` | Globalization | `Gap` | No Markdig globalization extension equivalent is documented for OfficeIMO. | Revisit only if a real consumer needs culture-sensitive Markdown behavior. |
 | `UseGridTables` | Grid tables | `Gap` | OfficeIMO has pipe tables only; grid table parsing is absent. | Decide if grid tables belong in core or an optional extension package. |
