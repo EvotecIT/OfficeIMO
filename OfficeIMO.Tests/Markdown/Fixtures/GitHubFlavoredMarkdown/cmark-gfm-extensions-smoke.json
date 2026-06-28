@@ -477,9 +477,9 @@
         "description": "GFM autolinks percent-encode non-ASCII URL destinations while keeping the source label",
         "line": 1,
         "column": 21,
-        "expectedPathKinds": ["Document", "Paragraph", "InlineLink"],
-        "expectedDeepestKind": "InlineLink",
-        "expectedDeepestLiteral": "http://google.com/å",
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink", "InlineClosingMarker"],
+        "expectedDeepestKind": "InlineClosingMarker",
+        "expectedDeepestLiteral": ">",
         "expectedNearestBlockKind": "Paragraph"
       },
       {

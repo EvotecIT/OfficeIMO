@@ -114,6 +114,7 @@ Target direction:
 Recent progress:
 
 - the Markdig comparison baseline is now guarded so `OfficeIMO.Tests`, `OfficeIMO.Markdown.Benchmarks`, and the public compatibility docs cannot silently drift to different Markdig versions
+- parsed inline/reference links and images now expose source-backed delimiter marker syntax tokens while native metadata/source edits and semantic inline traversal remain stable
 - parsed hard breaks now expose source-backed marker syntax tokens for two-space, backslash, and inline HTML break spellings, while native hard-break metadata/source edits and semantic traversal stay clean
 - parsed backslash escapes and decoded HTML entities now expose source-backed syntax token children under `InlineText`, while native text metadata/source edits and semantic inline traversal remain stable
 - parsed code spans now expose opening delimiter, raw content, and closing delimiter syntax tokens, while native code inlines keep their existing source-addressable marker/content metadata and semantic traversal shape

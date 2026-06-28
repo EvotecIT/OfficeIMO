@@ -296,10 +296,22 @@ internal static class MarkdownInlineSyntaxBuilder {
         string? linkTarget,
         string? linkRel) {
         var nodes = new List<MarkdownSyntaxNode>();
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineOpeningMarker,
+            MarkdownInlineMetadataSourceSpans.GetOpeningMarker(owner),
+            MarkdownInlineMetadataSourceSpans.GetOpeningMarkerSpan(owner));
+
         var labelChildren = BuildInlineLabelChildren(labelInlines, fallbackText);
         for (int i = 0; i < labelChildren.Count; i++) {
             nodes.Add(labelChildren[i]);
         }
+
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineSeparatorMarker,
+            MarkdownInlineMetadataSourceSpans.GetSeparatorMarker(owner),
+            MarkdownInlineMetadataSourceSpans.GetSeparatorMarkerSpan(owner));
 
         nodes.Add(new MarkdownSyntaxNode(
             MarkdownSyntaxKind.InlineLinkTarget,
@@ -326,6 +338,12 @@ internal static class MarkdownInlineSyntaxBuilder {
                 MarkdownInlineMetadataSourceSpans.GetLinkHtmlRelSpan(owner),
                 literal: linkRel));
         }
+
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineClosingMarker,
+            MarkdownInlineMetadataSourceSpans.GetClosingMarker(owner),
+            MarkdownInlineMetadataSourceSpans.GetClosingMarkerSpan(owner));
 
         return nodes;
     }
@@ -367,16 +385,28 @@ internal static class MarkdownInlineSyntaxBuilder {
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildInlineImageChildren(ImageInline image) {
-        var nodes = new List<MarkdownSyntaxNode>(3) {
-            new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.ImageAlt,
-                MarkdownInlineMetadataSourceSpans.GetImageAltSpan(image),
-                literal: image.Alt ?? string.Empty),
-            new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.ImageSource,
-                MarkdownInlineMetadataSourceSpans.GetImageSourceSpan(image),
-                literal: image.Src ?? string.Empty)
-        };
+        var nodes = new List<MarkdownSyntaxNode>(6);
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineOpeningMarker,
+            MarkdownInlineMetadataSourceSpans.GetOpeningMarker(image),
+            MarkdownInlineMetadataSourceSpans.GetOpeningMarkerSpan(image));
+
+        nodes.Add(new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.ImageAlt,
+            MarkdownInlineMetadataSourceSpans.GetImageAltSpan(image),
+            literal: image.Alt ?? string.Empty));
+
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineSeparatorMarker,
+            MarkdownInlineMetadataSourceSpans.GetSeparatorMarker(image),
+            MarkdownInlineMetadataSourceSpans.GetSeparatorMarkerSpan(image));
+
+        nodes.Add(new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.ImageSource,
+            MarkdownInlineMetadataSourceSpans.GetImageSourceSpan(image),
+            literal: image.Src ?? string.Empty));
 
         if (!string.IsNullOrEmpty(image.Title)) {
             nodes.Add(new MarkdownSyntaxNode(
@@ -385,24 +415,49 @@ internal static class MarkdownInlineSyntaxBuilder {
                 literal: image.Title));
         }
 
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineClosingMarker,
+            MarkdownInlineMetadataSourceSpans.GetClosingMarker(image),
+            MarkdownInlineMetadataSourceSpans.GetClosingMarkerSpan(image));
+
         return nodes;
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildInlineImageLinkChildren(ImageLinkInline imageLink) {
-        var nodes = new List<MarkdownSyntaxNode>(5) {
-            new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.ImageAlt,
-                MarkdownInlineMetadataSourceSpans.GetImageAltSpan(imageLink),
-                literal: imageLink.Alt ?? string.Empty),
-            new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.ImageSource,
-                MarkdownInlineMetadataSourceSpans.GetImageSourceSpan(imageLink),
-                literal: imageLink.ImageUrl ?? string.Empty),
-            new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.ImageLinkTarget,
-                MarkdownInlineMetadataSourceSpans.GetImageLinkTargetSpan(imageLink),
-                literal: imageLink.LinkUrl ?? string.Empty)
-        };
+        var nodes = new List<MarkdownSyntaxNode>(8);
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineOpeningMarker,
+            MarkdownInlineMetadataSourceSpans.GetOpeningMarker(imageLink),
+            MarkdownInlineMetadataSourceSpans.GetOpeningMarkerSpan(imageLink));
+
+        nodes.Add(new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.ImageAlt,
+            MarkdownInlineMetadataSourceSpans.GetImageAltSpan(imageLink),
+            literal: imageLink.Alt ?? string.Empty));
+        nodes.Add(new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.ImageSource,
+            MarkdownInlineMetadataSourceSpans.GetImageSourceSpan(imageLink),
+            literal: imageLink.ImageUrl ?? string.Empty));
+
+        if (!string.IsNullOrEmpty(imageLink.Title)) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.ImageTitle,
+                MarkdownInlineMetadataSourceSpans.GetImageTitleSpan(imageLink),
+                literal: imageLink.Title));
+        }
+
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineSeparatorMarker,
+            MarkdownInlineMetadataSourceSpans.GetSeparatorMarker(imageLink),
+            MarkdownInlineMetadataSourceSpans.GetSeparatorMarkerSpan(imageLink));
+
+        nodes.Add(new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.ImageLinkTarget,
+            MarkdownInlineMetadataSourceSpans.GetImageLinkTargetSpan(imageLink),
+            literal: imageLink.LinkUrl ?? string.Empty));
 
         if (!string.IsNullOrEmpty(imageLink.LinkTitle)) {
             nodes.Add(new MarkdownSyntaxNode(
@@ -411,12 +466,11 @@ internal static class MarkdownInlineSyntaxBuilder {
                 literal: imageLink.LinkTitle));
         }
 
-        if (!string.IsNullOrEmpty(imageLink.Title)) {
-            nodes.Add(new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.ImageTitle,
-                MarkdownInlineMetadataSourceSpans.GetImageTitleSpan(imageLink),
-                literal: imageLink.Title));
-        }
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineClosingMarker,
+            MarkdownInlineMetadataSourceSpans.GetClosingMarker(imageLink),
+            MarkdownInlineMetadataSourceSpans.GetClosingMarkerSpan(imageLink));
 
         return nodes;
     }

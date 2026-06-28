@@ -622,12 +622,16 @@ baz*
 
         var link = paragraph.Children[3];
         Assert.Equal("https://example.com", link.Literal);
-        Assert.Equal(2, link.Children.Count);
-        Assert.Equal(MarkdownSyntaxKind.InlineText, link.Children[0].Kind);
-        Assert.Equal("docs", link.Children[0].Literal);
-        Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, link.Children[1].Kind);
-        Assert.Equal("https://example.com", link.Children[1].Literal);
-        Assert.Equal(new MarkdownSourceSpan(1, 21, 1, 39), link.Children[1].SourceSpan);
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.InlineOpeningMarker,
+            MarkdownSyntaxKind.InlineText,
+            MarkdownSyntaxKind.InlineSeparatorMarker,
+            MarkdownSyntaxKind.InlineLinkTarget,
+            MarkdownSyntaxKind.InlineClosingMarker
+        }, link.Children.Select(node => node.Kind).ToArray());
+        Assert.Equal("docs", link.Children[1].Literal);
+        Assert.Equal("https://example.com", link.Children[3].Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 21, 1, 39), link.Children[3].SourceSpan);
 
         var code = paragraph.Children[5];
         Assert.Equal(MarkdownSyntaxKind.InlineCodeSpan, code.Kind);
@@ -799,8 +803,20 @@ baz*
         Assert.Equal("https://example.com", link.Literal);
         Assert.Collection(link.Children,
             node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, node.Kind);
+                Assert.Equal("[", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), node.SourceSpan);
+                Assert.Null(node.AssociatedObject);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.InlineText, node.Kind);
                 Assert.Equal("docs", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, node.Kind);
+                Assert.Equal("](", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), node.SourceSpan);
+                Assert.Null(node.AssociatedObject);
             },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, node.Kind);
@@ -811,7 +827,17 @@ baz*
                 Assert.Equal(MarkdownSyntaxKind.InlineLinkTitle, node.Kind);
                 Assert.Equal("Example title", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(1, 29, 1, 41), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, node.Kind);
+                Assert.Equal(")", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 43, 1, 43), node.SourceSpan);
+                Assert.Null(node.AssociatedObject);
             });
+
+        Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, result.FindDeepestNodeAtPosition(1, 1)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, result.FindDeepestNodeAtPosition(1, 6)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, result.FindDeepestNodeAtPosition(1, 43)!.Kind);
     }
 
     [Fact]
@@ -828,6 +854,22 @@ baz*
         Assert.Equal("https://example.com/docs", links[0].Literal);
         Assert.Equal("https://example.com/docs", angleTarget.Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 28), angleTarget.SourceSpan);
+        Assert.Collection(links[0].Children,
+            openingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind);
+                Assert.Equal("<", openingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 4), openingMarker.SourceSpan);
+            },
+            label => {
+                Assert.Equal(MarkdownSyntaxKind.InlineText, label.Kind);
+                Assert.Equal("https://example.com/docs", label.Literal);
+            },
+            target => Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, target.Kind),
+            closingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind);
+                Assert.Equal(">", closingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 29, 1, 29), closingMarker.SourceSpan);
+            });
 
         var angleMetadata = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile())
             .EnumerateInlines()
@@ -912,7 +954,7 @@ baz*
         var link = paragraph.Children[3];
         Assert.Equal(14, link.SourceSpan!.Value.StartColumn);
         Assert.Equal(40, link.SourceSpan!.Value.EndColumn);
-        Assert.Equal(new MarkdownSourceSpan(1, 21, 1, 39), link.Children[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 21, 1, 39), Assert.Single(link.Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget).SourceSpan);
 
         var code = paragraph.Children[5];
         Assert.Equal(46, code.SourceSpan!.Value.StartColumn);
@@ -1783,18 +1825,30 @@ Lead {{core}} tail
         var image = paragraph.Children[1];
         Assert.Equal("image.png", image.Literal);
         Assert.Equal(new[] {
+            MarkdownSyntaxKind.InlineOpeningMarker,
             MarkdownSyntaxKind.ImageAlt,
+            MarkdownSyntaxKind.InlineSeparatorMarker,
             MarkdownSyntaxKind.ImageSource,
-            MarkdownSyntaxKind.ImageTitle
+            MarkdownSyntaxKind.ImageTitle,
+            MarkdownSyntaxKind.InlineClosingMarker
         }, image.Children.Select(node => node.Kind).ToArray());
-        Assert.Equal("Alt", image.Children[0].Literal);
-        Assert.Equal("image.png", image.Children[1].Literal);
-        Assert.Equal("Title", image.Children[2].Literal);
-        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 9), image.Children[0].SourceSpan);
-        Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 20), image.Children[1].SourceSpan);
-        Assert.Equal(new MarkdownSourceSpan(1, 23, 1, 27), image.Children[2].SourceSpan);
+        Assert.Equal("![", image.Children[0].Literal);
+        Assert.Equal("Alt", image.Children[1].Literal);
+        Assert.Equal("](", image.Children[2].Literal);
+        Assert.Equal("image.png", image.Children[3].Literal);
+        Assert.Equal("Title", image.Children[4].Literal);
+        Assert.Equal(")", image.Children[5].Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 6), image.Children[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 9), image.Children[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 11), image.Children[2].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 20), image.Children[3].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 23, 1, 27), image.Children[4].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 29, 1, 29), image.Children[5].SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, result.FindDeepestNodeAtPosition(1, 5)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, result.FindDeepestNodeAtPosition(1, 10)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ImageSource, result.FindDeepestNodeAtPosition(1, 15)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ImageTitle, result.FindDeepestNodeAtPosition(1, 24)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, result.FindDeepestNodeAtPosition(1, 29)!.Kind);
     }
 
     [Fact]
@@ -1814,6 +1868,11 @@ Lead {{core}} tail
         Assert.Equal("https://example.com/docs", imageLink.Literal);
         Assert.Collection(imageLink.Children,
             node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, node.Kind);
+                Assert.Equal("[", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 5), node.SourceSpan);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.ImageAlt, node.Kind);
                 Assert.Equal("Alt text", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 15), node.SourceSpan);
@@ -1822,6 +1881,16 @@ Lead {{core}} tail
                 Assert.Equal(MarkdownSyntaxKind.ImageSource, node.Kind);
                 Assert.Equal("https://example.com/image.png", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(1, 18, 1, 46), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageTitle, node.Kind);
+                Assert.Equal("Image title", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 49, 1, 59), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, node.Kind);
+                Assert.Equal("](", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 62, 1, 63), node.SourceSpan);
             },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.ImageLinkTarget, node.Kind);
@@ -1834,14 +1903,17 @@ Lead {{core}} tail
                 Assert.Equal(new MarkdownSourceSpan(1, 90, 1, 99), node.SourceSpan);
             },
             node => {
-                Assert.Equal(MarkdownSyntaxKind.ImageTitle, node.Kind);
-                Assert.Equal("Image title", node.Literal);
-                Assert.Equal(new MarkdownSourceSpan(1, 49, 1, 59), node.SourceSpan);
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, node.Kind);
+                Assert.Equal(")", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 101, 1, 101), node.SourceSpan);
             });
 
+        Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, result.FindDeepestNodeAtPosition(1, 5)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ImageSource, result.FindDeepestNodeAtPosition(1, 25)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ImageTitle, result.FindDeepestNodeAtPosition(1, 52)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, result.FindDeepestNodeAtPosition(1, 62)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ImageLinkTitle, result.FindDeepestNodeAtPosition(1, 92)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, result.FindDeepestNodeAtPosition(1, 101)!.Kind);
     }
 
     [Fact]
@@ -1854,12 +1926,27 @@ Lead {{core}} tail
 
         Assert.Collection(image.Children,
             node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, node.Kind);
+                Assert.Equal("![", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), node.SourceSpan);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.ImageAlt, node.Kind);
                 Assert.Equal("foo *bar*", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 16), node.SourceSpan);
             },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, node.Kind);
+                Assert.Equal("](", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 17, 1, 18), node.SourceSpan);
+            },
             node => Assert.Equal(MarkdownSyntaxKind.ImageSource, node.Kind),
-            node => Assert.Equal(MarkdownSyntaxKind.ImageTitle, node.Kind));
+            node => Assert.Equal(MarkdownSyntaxKind.ImageTitle, node.Kind),
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, node.Kind);
+                Assert.Equal(")", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 45, 1, 45), node.SourceSpan);
+            });
 
         var html = result.Document.ToHtmlFragment(new HtmlOptions {
             Style = HtmlStyle.Plain,
@@ -1883,11 +1970,23 @@ Lead {{core}} tail
         Assert.Equal("train.jpg", image.Literal);
         Assert.Collection(image.Children,
             node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, node.Kind);
+                Assert.Equal("![", node.Literal);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.ImageAlt, node.Kind);
                 Assert.Equal("foo *bar*", node.Literal);
             },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, node.Kind);
+                Assert.Equal("](", node.Literal);
+            },
             node => Assert.Equal(MarkdownSyntaxKind.ImageSource, node.Kind),
-            node => Assert.Equal(MarkdownSyntaxKind.ImageTitle, node.Kind));
+            node => Assert.Equal(MarkdownSyntaxKind.ImageTitle, node.Kind),
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, node.Kind);
+                Assert.Equal(")", node.Literal);
+            });
     }
 
     [Fact]
@@ -2081,8 +2180,18 @@ Lead {{core}} tail
         var full = paragraph.Children[0];
         Assert.Collection(full.Children,
             node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, node.Kind);
+                Assert.Equal("[", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), node.SourceSpan);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.InlineText, node.Kind);
                 Assert.Equal("Full", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, node.Kind);
+                Assert.Equal("][", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), node.SourceSpan);
             },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, node.Kind);
@@ -2093,13 +2202,28 @@ Lead {{core}} tail
                 Assert.Equal(MarkdownSyntaxKind.InlineLinkTitle, node.Kind);
                 Assert.Equal("Full title", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(3, 35, 3, 44), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, node.Kind);
+                Assert.Equal("]", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 12), node.SourceSpan);
             });
 
         var collapsed = paragraph.Children[2];
         Assert.Collection(collapsed.Children,
             node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, node.Kind);
+                Assert.Equal("[", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 14, 1, 14), node.SourceSpan);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.InlineText, node.Kind);
                 Assert.Equal("collapsed", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, node.Kind);
+                Assert.Equal("][", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 24, 1, 25), node.SourceSpan);
             },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, node.Kind);
@@ -2110,10 +2234,20 @@ Lead {{core}} tail
                 Assert.Equal(MarkdownSyntaxKind.InlineLinkTitle, node.Kind);
                 Assert.Equal("Collapsed title", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(4, 45, 4, 59), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, node.Kind);
+                Assert.Equal("]", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 26, 1, 26), node.SourceSpan);
             });
 
         var shortcut = paragraph.Children[4];
         Assert.Collection(shortcut.Children,
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, node.Kind);
+                Assert.Equal("[", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 28, 1, 28), node.SourceSpan);
+            },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.InlineText, node.Kind);
                 Assert.Equal("shortcut", node.Literal);
@@ -2127,6 +2261,11 @@ Lead {{core}} tail
                 Assert.Equal(MarkdownSyntaxKind.InlineLinkTitle, node.Kind);
                 Assert.Equal("Shortcut title", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(5, 43, 5, 56), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, node.Kind);
+                Assert.Equal("]", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 37, 1, 37), node.SourceSpan);
             });
     }
 
@@ -2193,9 +2332,19 @@ See ![Badge][hero]
         Assert.Equal("https://example.com/badge.svg", image.Literal);
         Assert.Collection(image.Children,
             node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, node.Kind);
+                Assert.Equal("![", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 6), node.SourceSpan);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.ImageAlt, node.Kind);
                 Assert.Equal("Badge", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 11), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, node.Kind);
+                Assert.Equal("][", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 13), node.SourceSpan);
             },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.ImageSource, node.Kind);
@@ -2206,6 +2355,11 @@ See ![Badge][hero]
                 Assert.Equal(MarkdownSyntaxKind.ImageTitle, node.Kind);
                 Assert.Equal("Build badge", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(3, 40, 3, 50), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, node.Kind);
+                Assert.Equal("]", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 18, 1, 18), node.SourceSpan);
             });
     }
 
@@ -2273,6 +2427,11 @@ See ![Badge][hero]
         Assert.Equal(MarkdownSyntaxKind.InlineLink, link.Kind);
         Assert.Collection(link.Children,
             node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, node.Kind);
+                Assert.Equal("[", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), node.SourceSpan);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.InlineText, node.Kind);
                 Assert.Equal("Foo bar", node.Literal);
             },
@@ -2285,6 +2444,11 @@ See ![Badge][hero]
                 Assert.Equal(MarkdownSyntaxKind.InlineLinkTitle, node.Kind);
                 Assert.Equal("title", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(5, 2, 5, 6), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, node.Kind);
+                Assert.Equal("]", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 9), node.SourceSpan);
             });
 
         var definition = result.SyntaxTree.Children[1];
@@ -2332,6 +2496,11 @@ See ![Badge][hero]
 
         Assert.Collection(link.Children,
             node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, node.Kind);
+                Assert.Equal("[", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 1), node.SourceSpan);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.InlineText, node.Kind);
                 Assert.Equal("hero", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(4, 2, 4, 5), node.SourceSpan);
@@ -2345,6 +2514,11 @@ See ![Badge][hero]
                 Assert.Equal(MarkdownSyntaxKind.InlineLinkTitle, node.Kind);
                 Assert.Equal("Docs title", node.Literal);
                 Assert.Null(node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, node.Kind);
+                Assert.Equal("]", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(4, 6, 4, 6), node.SourceSpan);
             });
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
@@ -2385,13 +2559,28 @@ See ![Badge][hero]
         Assert.Equal(MarkdownSyntaxKind.InlineLink, link.Kind);
         Assert.Collection(link.Children,
             node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, node.Kind);
+                Assert.Equal("[", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 1), node.SourceSpan);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.InlineText, node.Kind);
                 Assert.Equal("Baz", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, node.Kind);
+                Assert.Equal("][", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(4, 5, 4, 6), node.SourceSpan);
             },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, node.Kind);
                 Assert.Equal("/url", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(2, 9, 2, 12), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, node.Kind);
+                Assert.Equal("]", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(4, 14, 4, 14), node.SourceSpan);
             });
 
         Assert.Equal(MarkdownSyntaxKind.ReferenceLinkLabel, result.FindDeepestNodeAtPosition(2, 4)!.Kind);

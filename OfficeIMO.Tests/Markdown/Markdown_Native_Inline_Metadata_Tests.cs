@@ -363,6 +363,16 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 5), opening.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 11), separator.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 39, 1, 39), closing.SourceSpan);
+        Assert.Collection(link.SyntaxNode.Children,
+            openingMarker => Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind),
+            label => Assert.Equal(MarkdownSyntaxKind.InlineText, label.Kind),
+            separatorMarker => Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, separatorMarker.Kind),
+            targetToken => Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, targetToken.Kind),
+            titleToken => Assert.Equal(MarkdownSyntaxKind.InlineLinkTitle, titleToken.Kind),
+            closingMarker => Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind));
+        var linkLabel = Assert.Single(link.Children);
+        Assert.Equal(MarkdownNativeInlineKind.Text, linkLabel.Kind);
+        Assert.Equal("docs", linkLabel.Text);
 
         Assert.Equal(
             "See [docs](https://contoso.test \"Title\") now\n",
@@ -539,6 +549,20 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 16), fullClosing.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 22, 1, 23), shortcutOpening.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 28, 1, 28), shortcutClosing.SourceSpan);
+        Assert.Collection(images[0].SyntaxNode.Children,
+            openingMarker => Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind),
+            altToken => Assert.Equal(MarkdownSyntaxKind.ImageAlt, altToken.Kind),
+            separatorMarker => Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, separatorMarker.Kind),
+            sourceToken => Assert.Equal(MarkdownSyntaxKind.ImageSource, sourceToken.Kind),
+            titleToken => Assert.Equal(MarkdownSyntaxKind.ImageTitle, titleToken.Kind),
+            closingMarker => Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind));
+        Assert.Empty(images[0].Children);
+        Assert.Collection(images[1].SyntaxNode.Children,
+            openingMarker => Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind),
+            altToken => Assert.Equal(MarkdownSyntaxKind.ImageAlt, altToken.Kind),
+            sourceToken => Assert.Equal(MarkdownSyntaxKind.ImageSource, sourceToken.Kind),
+            closingMarker => Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind));
+        Assert.Empty(images[1].Children);
 
         var referenceEdited = native.CreateReplaceEdit(fullSeparator, "](").Apply(native.SourceMarkdown);
         referenceEdited = native.CreateReplaceEdit(fullClosing, ")").Apply(referenceEdited);
@@ -598,6 +622,16 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 11), opening.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 33, 1, 34), separator.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 67, 1, 67), closing.SourceSpan);
+        Assert.Collection(imageLink.SyntaxNode.Children,
+            openingMarker => Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind),
+            altToken => Assert.Equal(MarkdownSyntaxKind.ImageAlt, altToken.Kind),
+            sourceToken => Assert.Equal(MarkdownSyntaxKind.ImageSource, sourceToken.Kind),
+            imageTitleToken => Assert.Equal(MarkdownSyntaxKind.ImageTitle, imageTitleToken.Kind),
+            separatorMarker => Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, separatorMarker.Kind),
+            targetToken => Assert.Equal(MarkdownSyntaxKind.ImageLinkTarget, targetToken.Kind),
+            titleToken => Assert.Equal(MarkdownSyntaxKind.ImageLinkTitle, titleToken.Kind),
+            closingMarker => Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind));
+        Assert.Empty(imageLink.Children);
 
         Assert.Equal(
             "Paragraph [![Logo](img.png \"Img\")](https://example.com \"Link title\").",
