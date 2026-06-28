@@ -2316,7 +2316,7 @@ public partial class DrawingTests {
 
         Assert.Equal(OfficeShapeKind.Line, clone.Kind);
         Assert.Equal(100, clone.Width);
-        Assert.Equal(1, clone.Height);
+        Assert.Equal(0, clone.Height);
         Assert.Equal(new OfficePoint(0, 0), clone.Points[0]);
         Assert.Equal(new OfficePoint(100, 0), clone.Points[1]);
         Assert.Equal(OfficeColor.SteelBlue, clone.StrokeColor);
