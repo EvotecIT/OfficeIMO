@@ -72,7 +72,7 @@ Paragraph line
         Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 3), panel.ParserSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 22), panel.TitleSourceSpan);
         Assert.Equal(panel.TitleSourceSpan, titleSyntax.SourceSpan);
-        Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 14), titleStrong.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 16), titleStrong.SourceSpan);
         Assert.Same(panel.TitleSyntaxOwner, titleSyntax.AssociatedObject);
     }
 

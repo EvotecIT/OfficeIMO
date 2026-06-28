@@ -52,6 +52,12 @@ public enum MarkdownSyntaxKind {
     InlineHardBreak,
     /// <summary>Inline HTML tag wrapper node.</summary>
     InlineHtmlTag,
+    /// <summary>Opening delimiter or marker token for a source-backed inline wrapper.</summary>
+    InlineOpeningMarker,
+    /// <summary>Middle delimiter or separator token for a source-backed inline wrapper.</summary>
+    InlineSeparatorMarker,
+    /// <summary>Closing delimiter or marker token for a source-backed inline wrapper.</summary>
+    InlineClosingMarker,
     /// <summary>Raw inline HTML node.</summary>
     InlineHtmlRaw,
     /// <summary>Footnote reference inline node.</summary>

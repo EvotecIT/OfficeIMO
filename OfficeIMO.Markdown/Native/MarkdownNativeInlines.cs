@@ -11,7 +11,7 @@ public sealed class MarkdownNativeInline {
         IReadOnlyList<MarkdownNativeInlineMetadata> metadata) {
         Kind = kind;
         SyntaxNode = syntaxNode ?? throw new ArgumentNullException(nameof(syntaxNode));
-        SourceSpan = syntaxNode.SourceSpan;
+        SourceSpan = ResolveNativeSourceSpan(syntaxNode);
         SourceInline = syntaxNode.AssociatedObject as IMarkdownInline;
         Literal = syntaxNode.Literal ?? string.Empty;
         Children = children ?? Array.Empty<MarkdownNativeInline>();
@@ -99,6 +99,29 @@ public sealed class MarkdownNativeInline {
 
         return literal ?? string.Empty;
     }
+
+    private static MarkdownSourceSpan? ResolveNativeSourceSpan(MarkdownSyntaxNode syntaxNode) {
+        if (!UsesContentSpanForNativeInline(syntaxNode.Kind) || syntaxNode.Children.Count == 0) {
+            return syntaxNode.SourceSpan;
+        }
+
+        var contentChildren = syntaxNode.Children
+            .Where(child => !IsInlineMarkerKind(child.Kind))
+            .ToArray();
+        return MarkdownBlockSyntaxBuilder.GetAggregateSpan(contentChildren) ?? syntaxNode.SourceSpan;
+    }
+
+    private static bool UsesContentSpanForNativeInline(MarkdownSyntaxKind kind) =>
+        kind == MarkdownSyntaxKind.InlineStrong
+        || kind == MarkdownSyntaxKind.InlineEmphasis
+        || kind == MarkdownSyntaxKind.InlineStrongEmphasis
+        || kind == MarkdownSyntaxKind.InlineStrikethrough
+        || kind == MarkdownSyntaxKind.InlineHighlight;
+
+    private static bool IsInlineMarkerKind(MarkdownSyntaxKind kind) =>
+        kind == MarkdownSyntaxKind.InlineOpeningMarker
+        || kind == MarkdownSyntaxKind.InlineSeparatorMarker
+        || kind == MarkdownSyntaxKind.InlineClosingMarker;
 }
 
 internal static class MarkdownNativeInlineProjection {

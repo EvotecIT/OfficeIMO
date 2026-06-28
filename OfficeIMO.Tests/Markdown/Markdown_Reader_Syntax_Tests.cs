@@ -552,8 +552,24 @@ baz*
         Assert.Equal(3, text.SourceSpan!.Value.StartColumn);
         Assert.Equal(20, text.SourceSpan!.Value.EndColumn);
         Assert.NotNull(text.Children[0].SourceSpan);
-        Assert.Equal(5, text.Children[0].SourceSpan!.Value.StartColumn);
-        Assert.Equal(11, text.Children[0].SourceSpan!.Value.EndColumn);
+        Assert.Equal(3, text.Children[0].SourceSpan!.Value.StartColumn);
+        Assert.Equal(13, text.Children[0].SourceSpan!.Value.EndColumn);
+        Assert.Collection(text.Children[0].Children,
+            openingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind);
+                Assert.Equal("**", openingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 4), openingMarker.SourceSpan);
+            },
+            strongText => {
+                Assert.Equal(MarkdownSyntaxKind.InlineText, strongText.Kind);
+                Assert.Equal("Heading", strongText.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 11), strongText.SourceSpan);
+            },
+            closingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind);
+                Assert.Equal("**", closingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 13), closingMarker.SourceSpan);
+            });
         Assert.NotNull(text.Children[1].SourceSpan);
         Assert.Equal(14, text.Children[1].SourceSpan!.Value.StartColumn);
         Assert.Equal(14, text.Children[1].SourceSpan!.Value.EndColumn);
@@ -584,6 +600,25 @@ baz*
 
         var strong = paragraph.Children[1];
         Assert.Equal("bold", strong.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 12), strong.SourceSpan);
+        Assert.Collection(strong.Children,
+            openingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind);
+                Assert.Equal("**", openingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 6), openingMarker.SourceSpan);
+                Assert.Null(openingMarker.AssociatedObject);
+            },
+            strongText => {
+                Assert.Equal(MarkdownSyntaxKind.InlineText, strongText.Kind);
+                Assert.Equal("bold", strongText.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 10), strongText.SourceSpan);
+            },
+            closingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind);
+                Assert.Equal("**", closingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 12), closingMarker.SourceSpan);
+                Assert.Null(closingMarker.AssociatedObject);
+            });
 
         var link = paragraph.Children[3];
         Assert.Equal("https://example.com", link.Literal);
@@ -700,8 +735,9 @@ baz*
         Assert.Equal(custom.SourceSpan, ((DoubleBraceInline)custom.AssociatedObject!).SourceSpan);
 
         var nestedStrong = custom.Children[0];
-        Assert.Equal(10, nestedStrong.SourceSpan!.Value.StartColumn);
-        Assert.Equal(13, nestedStrong.SourceSpan!.Value.EndColumn);
+        Assert.Equal(8, nestedStrong.SourceSpan!.Value.StartColumn);
+        Assert.Equal(15, nestedStrong.SourceSpan!.Value.EndColumn);
+        Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, result.FindDeepestNodeAtPosition(1, 9)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(1, 18)!.Kind);
     }
 
@@ -716,8 +752,9 @@ baz*
         Assert.Equal(markdown.Length, paragraph.SourceSpan!.Value.EndColumn);
 
         var strong = paragraph.Children[1];
-        Assert.Equal(7, strong.SourceSpan!.Value.StartColumn);
-        Assert.Equal(10, strong.SourceSpan!.Value.EndColumn);
+        Assert.Equal(5, strong.SourceSpan!.Value.StartColumn);
+        Assert.Equal(12, strong.SourceSpan!.Value.EndColumn);
+        Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, result.FindDeepestNodeAtPosition(1, 5)!.Kind);
 
         var link = paragraph.Children[3];
         Assert.Equal(14, link.SourceSpan!.Value.StartColumn);
@@ -3012,8 +3049,9 @@ Other: `code`
         Assert.Equal(new[] { MarkdownSyntaxKind.InlineStrong }, firstTerm.Children.Select(node => node.Kind).ToArray());
         Assert.Equal(1, firstTerm.SourceSpan!.Value.StartColumn);
         Assert.Equal(8, firstTerm.SourceSpan!.Value.EndColumn);
-        Assert.Equal(3, firstTerm.Children[0].SourceSpan!.Value.StartColumn);
-        Assert.Equal(6, firstTerm.Children[0].SourceSpan!.Value.EndColumn);
+        Assert.Equal(1, firstTerm.Children[0].SourceSpan!.Value.StartColumn);
+        Assert.Equal(8, firstTerm.Children[0].SourceSpan!.Value.EndColumn);
+        Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, result.FindDeepestNodeAtPosition(1, 1)!.Kind);
 
         Assert.Equal(new[] {
             MarkdownSyntaxKind.InlineText,

@@ -193,7 +193,7 @@ public sealed class Markdown_Inline_Extension_Tests {
             MarkdownSyntaxKind.InlineStrong,
             MarkdownSyntaxKind.InlineText
         }, paragraph.Children.Select(node => node.Kind).ToArray());
-        Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 11), paragraph.Children[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 13), paragraph.Children[1].SourceSpan);
         Assert.Null(paragraph.Children[2].SourceSpan);
     }
 

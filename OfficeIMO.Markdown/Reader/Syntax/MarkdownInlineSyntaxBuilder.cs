@@ -89,11 +89,13 @@ internal static class MarkdownInlineSyntaxBuilder {
             case UnderlineInline underline:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineUnderline, span, literal: underline.Text, associatedObject: underline);
             case HtmlTagSequenceInline htmlTag:
+                var htmlTagChildren = BuildChildren(htmlTag.Inlines);
+                var htmlTagMarkerChildren = BuildInlineMarkerChildren(htmlTag, htmlTagChildren);
                 return new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.InlineHtmlTag,
-                    span,
+                    span ?? MarkdownBlockSyntaxBuilder.GetAggregateSpan(htmlTagMarkerChildren),
                     literal: htmlTag.TagName,
-                    children: BuildChildren(htmlTag.Inlines),
+                    children: htmlTagMarkerChildren,
                     associatedObject: htmlTag);
             case HtmlRawInline html:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineHtmlRaw, span, literal: html.Html, associatedObject: html);
@@ -113,12 +115,55 @@ internal static class MarkdownInlineSyntaxBuilder {
 
     private static MarkdownSyntaxNode BuildContainerNode(MarkdownSyntaxKind kind, MarkdownInline owner, InlineSequence sequence, MarkdownSourceSpan? span) {
         var children = BuildChildren(sequence);
+        var markerChildren = BuildInlineMarkerChildren(owner, children);
         return new MarkdownSyntaxNode(
             kind,
-            span ?? MarkdownBlockSyntaxBuilder.GetAggregateSpan(children),
+            span ?? MarkdownBlockSyntaxBuilder.GetAggregateSpan(markerChildren),
             literal: sequence.RenderMarkdown(),
-            children: children,
+            children: markerChildren,
             associatedObject: owner);
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildInlineMarkerChildren(MarkdownInline owner, IReadOnlyList<MarkdownSyntaxNode> contentChildren) {
+        var openingMarkerSpan = MarkdownInlineMetadataSourceSpans.GetOpeningMarkerSpan(owner);
+        var separatorMarkerSpan = MarkdownInlineMetadataSourceSpans.GetSeparatorMarkerSpan(owner);
+        var closingMarkerSpan = MarkdownInlineMetadataSourceSpans.GetClosingMarkerSpan(owner);
+
+        if (!openingMarkerSpan.HasValue && !separatorMarkerSpan.HasValue && !closingMarkerSpan.HasValue) {
+            return contentChildren;
+        }
+
+        var nodes = new List<MarkdownSyntaxNode>(contentChildren.Count + 3);
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineOpeningMarker,
+            MarkdownInlineMetadataSourceSpans.GetOpeningMarker(owner),
+            openingMarkerSpan);
+
+        for (int i = 0; i < contentChildren.Count; i++) {
+            nodes.Add(contentChildren[i]);
+        }
+
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineSeparatorMarker,
+            MarkdownInlineMetadataSourceSpans.GetSeparatorMarker(owner),
+            separatorMarkerSpan);
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineClosingMarker,
+            MarkdownInlineMetadataSourceSpans.GetClosingMarker(owner),
+            closingMarkerSpan);
+
+        return nodes;
+    }
+
+    private static void AddMarkerNode(List<MarkdownSyntaxNode> nodes, MarkdownSyntaxKind kind, string? marker, MarkdownSourceSpan? span) {
+        if (!span.HasValue) {
+            return;
+        }
+
+        nodes.Add(new MarkdownSyntaxNode(kind, span, literal: marker ?? string.Empty));
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildInlineLabelChildren(InlineSequence? labelInlines, string fallbackText) {
