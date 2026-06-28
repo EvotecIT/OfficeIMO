@@ -81,6 +81,32 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void Shape_AllowsHorizontalAndVerticalLineBounds() {
+        OfficeShape horizontalLine = OfficeShape.Line(0, 0, 80, 0);
+        horizontalLine.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        horizontalLine.StrokeWidth = 2D;
+
+        OfficeShape verticalLine = OfficeShape.Line(0, 0, 0, 50);
+        verticalLine.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        verticalLine.StrokeWidth = 2D;
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180,
+                MarginLeft = 24,
+                MarginRight = 24,
+                MarginTop = 24,
+                MarginBottom = 24,
+                CompressContentStreams = false
+            })
+            .Shape(horizontalLine)
+            .Shape(verticalLine)
+            .ToBytes();
+
+        Assert.NotEmpty(bytes);
+    }
+
+    [Fact]
     public void CanvasDrawing_RendersSharedVectorSceneInsideFixedFrame() {
         var drawing = new OfficeDrawing(50, 20);
         var shape = OfficeShape.Rectangle(20, 10);
@@ -118,6 +144,27 @@ public class PdfDocumentCanvasTests {
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
         Assert.Contains("SceneText", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Drawing_AllowsHorizontalAndVerticalLineBounds() {
+        var drawing = new OfficeDrawing(100, 70)
+            .AddShape(OfficeShape.Line(0, 0, 80, 0), 10, 10)
+            .AddShape(OfficeShape.Line(0, 0, 0, 50), 20, 10);
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180,
+                MarginLeft = 24,
+                MarginRight = 24,
+                MarginTop = 24,
+                MarginBottom = 24,
+                CompressContentStreams = false
+            })
+            .Drawing(drawing)
+            .ToBytes();
+
+        Assert.NotEmpty(bytes);
     }
 
     [Fact]
