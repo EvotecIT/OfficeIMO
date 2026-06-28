@@ -46,7 +46,7 @@ internal static class CommonMarkHtmlComparison {
                 continue;
             }
 
-            if (char.IsWhiteSpace(ch)) {
+            if (IsHtmlSpace(ch)) {
                 lastWasWhitespace = true;
                 continue;
             }
@@ -85,4 +85,7 @@ internal static class CommonMarkHtmlComparison {
 
         return normalized.Trim();
     }
+
+    private static bool IsHtmlSpace(char ch) =>
+        ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f';
 }

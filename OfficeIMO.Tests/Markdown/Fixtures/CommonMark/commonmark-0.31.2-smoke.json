@@ -2568,6 +2568,20 @@
     "html": "<p><code>``</code></p>\n"
   },
   {
+    "example": 333,
+    "section": "Code spans",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "`\u00A0b\u00A0`\n",
+    "html": "<p><code>\u00A0b\u00A0</code></p>\n"
+  },
+  {
+    "example": 334,
+    "section": "Code spans",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "`\u00A0`\n`  `\n",
+    "html": "<p><code>\u00A0</code>\n<code>  </code></p>\n"
+  },
+  {
     "example": 336,
     "section": "Code spans",
     "topLevelKinds": ["Paragraph"],
