@@ -2403,9 +2403,19 @@ See ![Badge][hero]
         Assert.Equal(new MarkdownSourceSpan(3, 1, 4, 14), definition.SourceSpan);
         Assert.Collection(definition.Children,
             node => {
+                Assert.Equal(MarkdownSyntaxKind.ReferenceLinkOpeningMarker, node.Kind);
+                Assert.Equal("[", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 1), node.SourceSpan);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.ReferenceLinkLabel, node.Kind);
                 Assert.Equal("hero", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(3, 2, 3, 5), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ReferenceLinkSeparatorMarker, node.Kind);
+                Assert.Equal("]:", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(3, 6, 3, 7), node.SourceSpan);
             },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.ReferenceLinkUrl, node.Kind);
@@ -2418,6 +2428,9 @@ See ![Badge][hero]
                 Assert.Equal(new MarkdownSourceSpan(4, 4, 4, 13), node.SourceSpan);
             });
 
+        Assert.Equal(MarkdownSyntaxKind.ReferenceLinkOpeningMarker, result.FindDeepestNodeAtPosition(3, 1)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.ReferenceLinkLabel, result.FindDeepestNodeAtPosition(3, 3)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.ReferenceLinkSeparatorMarker, result.FindDeepestNodeAtPosition(3, 6)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ReferenceLinkUrl, result.FindDeepestNodeAtPosition(3, 15)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ReferenceLinkTitle, result.FindDeepestNodeAtPosition(4, 6)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ReferenceLinkDefinition, result.FindNearestBlockAtPosition(4, 6)!.Kind);
@@ -2475,9 +2488,19 @@ See ![Badge][hero]
         Assert.Equal(new MarkdownSourceSpan(3, 1, 5, 7), definition.SourceSpan);
         Assert.Collection(definition.Children,
             node => {
+                Assert.Equal(MarkdownSyntaxKind.ReferenceLinkOpeningMarker, node.Kind);
+                Assert.Equal("[", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 1), node.SourceSpan);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.ReferenceLinkLabel, node.Kind);
                 Assert.Equal("foo bar", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(3, 2, 3, 8), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ReferenceLinkSeparatorMarker, node.Kind);
+                Assert.Equal("]:", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(3, 9, 3, 10), node.SourceSpan);
             },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.ReferenceLinkUrl, node.Kind);
@@ -2490,6 +2513,8 @@ See ![Badge][hero]
                 Assert.Equal(new MarkdownSourceSpan(5, 2, 5, 6), node.SourceSpan);
             });
 
+        Assert.Equal(MarkdownSyntaxKind.ReferenceLinkOpeningMarker, result.FindDeepestNodeAtPosition(3, 1)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.ReferenceLinkSeparatorMarker, result.FindDeepestNodeAtPosition(3, 9)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ReferenceLinkUrl, result.FindDeepestNodeAtPosition(4, 3)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ReferenceLinkTitle, result.FindDeepestNodeAtPosition(5, 3)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ReferenceLinkDefinition, result.FindNearestBlockAtPosition(5, 3)!.Kind);
@@ -2564,9 +2589,19 @@ See ![Badge][hero]
         Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 12), definition.SourceSpan);
         Assert.Collection(definition.Children,
             node => {
+                Assert.Equal(MarkdownSyntaxKind.ReferenceLinkOpeningMarker, node.Kind);
+                Assert.Equal("[", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), node.SourceSpan);
+            },
+            node => {
                 Assert.Equal(MarkdownSyntaxKind.ReferenceLinkLabel, node.Kind);
                 Assert.Equal("foo bar", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(1, 2, 2, 5), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ReferenceLinkSeparatorMarker, node.Kind);
+                Assert.Equal("]:", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(2, 6, 2, 7), node.SourceSpan);
             },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.ReferenceLinkUrl, node.Kind);
@@ -2604,6 +2639,7 @@ See ![Badge][hero]
             });
 
         Assert.Equal(MarkdownSyntaxKind.ReferenceLinkLabel, result.FindDeepestNodeAtPosition(2, 4)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.ReferenceLinkSeparatorMarker, result.FindDeepestNodeAtPosition(2, 6)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ReferenceLinkDefinition, result.FindNearestBlockAtPosition(2, 4)!.Kind);
     }
 

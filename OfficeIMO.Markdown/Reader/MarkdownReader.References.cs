@@ -116,9 +116,8 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        var children = new List<MarkdownSyntaxNode>(3) {
-            new MarkdownSyntaxNode(MarkdownSyntaxKind.ReferenceLinkLabel, labelSpan, label)
-        };
+        var children = new List<MarkdownSyntaxNode>(5);
+        AddReferenceDefinitionLabelFrameChildren(children, state, labelSpan, label);
 
         if (!string.IsNullOrEmpty(url)) {
             children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ReferenceLinkUrl, urlSpan, url));
@@ -142,6 +141,28 @@ public static partial class MarkdownReader {
             literal,
             children);
         return true;
+    }
+
+    private static void AddReferenceDefinitionLabelFrameChildren(
+        List<MarkdownSyntaxNode> children,
+        MarkdownReaderState state,
+        MarkdownSourceSpan? labelSpan,
+        string label) {
+        if (labelSpan.HasValue && labelSpan.Value.StartColumn.HasValue && labelSpan.Value.EndColumn.HasValue) {
+            var span = labelSpan.Value;
+            children.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.ReferenceLinkOpeningMarker,
+                CreateSpan(state, span.StartLine, span.StartColumn.Value - 1, span.StartLine, span.StartColumn.Value - 1),
+                "["));
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ReferenceLinkLabel, labelSpan, label));
+            children.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.ReferenceLinkSeparatorMarker,
+                CreateSpan(state, span.EndLine, span.EndColumn.Value + 1, span.EndLine, span.EndColumn.Value + 2),
+                "]:"));
+            return;
+        }
+
+        children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ReferenceLinkLabel, labelSpan, label));
     }
 
     private static bool TryParseReferenceLinkDefinition(

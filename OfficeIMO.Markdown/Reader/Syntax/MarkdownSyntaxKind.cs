@@ -156,8 +156,12 @@ public enum MarkdownSyntaxKind {
     FootnoteLabel,
     /// <summary>Reference-style link definition consumed during parsing.</summary>
     ReferenceLinkDefinition,
+    /// <summary>Opening bracket token for a reference-style link definition label.</summary>
+    ReferenceLinkOpeningMarker,
     /// <summary>Reference-style link definition label/identifier.</summary>
     ReferenceLinkLabel,
+    /// <summary>Closing bracket and colon token for a reference-style link definition label.</summary>
+    ReferenceLinkSeparatorMarker,
     /// <summary>Reference-style link definition URL/destination.</summary>
     ReferenceLinkUrl,
     /// <summary>Reference-style link definition optional title.</summary>

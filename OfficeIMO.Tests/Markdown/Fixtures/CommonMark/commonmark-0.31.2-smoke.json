@@ -2077,12 +2077,12 @@
         "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
       },
       {
-        "description": "reference definitions inside list items remain addressable as hidden block children in the original tree",
+        "description": "reference definition opening markers inside list items remain addressable as hidden block children in the original tree",
         "line": 4,
         "column": 3,
-        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "ReferenceLinkDefinition"],
-        "expectedDeepestLiteral": "[ref]: /url",
-        "expectedDeepestSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 13 },
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "ReferenceLinkDefinition", "ReferenceLinkOpeningMarker"],
+        "expectedDeepestLiteral": "[",
+        "expectedDeepestSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 3 },
         "expectedNearestBlockKind": "ReferenceLinkDefinition",
         "expectedNearestBlockSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 13 }
       }
@@ -2099,12 +2099,12 @@
         "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
       },
       {
-        "description": "reference definitions inside list items remain addressable as hidden block children after the final tree rebuild",
+        "description": "reference definition opening markers inside list items remain addressable as hidden block children after the final tree rebuild",
         "line": 4,
         "column": 3,
-        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "ReferenceLinkDefinition"],
-        "expectedDeepestLiteral": "[ref]: /url",
-        "expectedDeepestSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 13 },
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "ReferenceLinkDefinition", "ReferenceLinkOpeningMarker"],
+        "expectedDeepestLiteral": "[",
+        "expectedDeepestSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 3 },
         "expectedNearestBlockKind": "ReferenceLinkDefinition",
         "expectedNearestBlockSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 13 }
       }
