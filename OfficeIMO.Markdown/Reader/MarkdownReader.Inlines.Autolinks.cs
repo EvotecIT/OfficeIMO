@@ -105,9 +105,7 @@ public static partial class MarkdownReader {
         var rem = text.Substring(start);
         if (!(rem.StartsWith("http://") || rem.StartsWith("https://"))) return false;
         int rawEnd = ConsumeLiteralUrl(text, start);
-        int i = rawEnd;
-        // Trim trailing punctuation commonly outside URLs
-        while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
+        int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
         if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
         if (!options.AutolinkAllowQueryAndFragmentSpecialCharacters && ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
         if (!options.AutolinkAllowBalancedParenthesesWithTrailingPunctuation && ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
@@ -120,12 +118,13 @@ public static partial class MarkdownReader {
         if (start + 4 > text.Length) return false;
         if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
         if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
-        if (!(text.Substring(start).StartsWith("www.", StringComparison.OrdinalIgnoreCase))) return false;
+        if (options.AutolinkRequireLowercaseWwwPrefix) {
+            if (!text.Substring(start).StartsWith("www.", StringComparison.Ordinal)) return false;
+        } else if (!text.Substring(start).StartsWith("www.", StringComparison.OrdinalIgnoreCase)) return false;
 
         int rawEnd = ConsumeLiteralUrl(text, start);
-        int i = rawEnd;
+        int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
         int scanEnd = rawEnd;
-        while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
         if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
         if (!options.AutolinkAllowQueryAndFragmentSpecialCharacters && ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
         if (!options.AutolinkAllowBalancedParenthesesWithTrailingPunctuation && ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
@@ -193,7 +192,7 @@ public static partial class MarkdownReader {
 
         if (StartsWithOrdinalIgnoreCase(text, start, "ftp://")) {
             int rawEnd = ConsumeLiteralUrl(text, start);
-            int i = TrimTrailingBareSchemePunctuation(text, start, rawEnd);
+            int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
             if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
             if (!options.AutolinkAllowQueryAndFragmentSpecialCharacters && ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
             if (!options.AutolinkAllowBalancedParenthesesWithTrailingPunctuation && ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
@@ -208,7 +207,7 @@ public static partial class MarkdownReader {
         if (StartsWithOrdinalIgnoreCase(text, start, "tel:")) {
             int valueStart = start + "tel:".Length;
             int rawEnd = ConsumeLiteralUrl(text, start);
-            int i = TrimTrailingBareSchemePunctuation(text, start, rawEnd);
+            int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
             if (i <= valueStart) return false;
             end = i;
             label = text.Substring(valueStart, end - valueStart);
@@ -218,7 +217,7 @@ public static partial class MarkdownReader {
 
         if (StartsWithOrdinalIgnoreCase(text, start, "xmpp:")) {
             int rawEnd = ConsumeLiteralUrl(text, start);
-            int i = TrimTrailingBareSchemePunctuation(text, start, rawEnd);
+            int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
             if (i <= start + "xmpp:".Length) return false;
             end = i;
             label = text.Substring(start, end - start);
@@ -271,10 +270,31 @@ public static partial class MarkdownReader {
             || c == 'x' || c == 'X';
     }
 
-    private static int TrimTrailingBareSchemePunctuation(string text, int start, int rawEnd) {
+    private static int TrimTrailingAutolinkPunctuation(string text, int start, int rawEnd, MarkdownReaderOptions options) {
         int i = rawEnd;
-        while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
+        while (i > start && IsTrailingAutolinkPunctuation(text[i - 1])) {
+            if (text[i - 1] == '.'
+                && options.AutolinkAllowTrailingPeriodBeforeClosingParenthesis
+                && rawEnd < text.Length
+                && text[rawEnd] == ')') {
+                break;
+            }
+
+            i--;
+        }
+
         return i;
+    }
+
+    private static bool IsTrailingAutolinkPunctuation(char c) {
+        return c == '.'
+            || c == ','
+            || c == ';'
+            || c == ':'
+            || c == '!'
+            || c == '?'
+            || c == '\''
+            || c == '"';
     }
 
     private static bool HasInvalidAutolinkLeftBoundary(string text, int start, MarkdownReaderOptions? options = null) {

@@ -33,6 +33,8 @@ public static partial class MarkdownReader {
             AutolinkAllowDomainWithoutPeriod = source.AutolinkAllowDomainWithoutPeriod,
             AutolinkAllowQueryAndFragmentSpecialCharacters = source.AutolinkAllowQueryAndFragmentSpecialCharacters,
             AutolinkAllowBalancedParenthesesWithTrailingPunctuation = source.AutolinkAllowBalancedParenthesesWithTrailingPunctuation,
+            AutolinkAllowTrailingPeriodBeforeClosingParenthesis = source.AutolinkAllowTrailingPeriodBeforeClosingParenthesis,
+            AutolinkRequireLowercaseWwwPrefix = source.AutolinkRequireLowercaseWwwPrefix,
             AutolinkValidPreviousCharacters = source.AutolinkValidPreviousCharacters,
             AutolinkBareSchemeUrls = source.AutolinkBareSchemeUrls,
             AutolinkWwwUrls = source.AutolinkWwwUrls,

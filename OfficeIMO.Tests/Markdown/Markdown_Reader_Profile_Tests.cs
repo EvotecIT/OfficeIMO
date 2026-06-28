@@ -76,6 +76,8 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.AutolinkAllowDomainWithoutPeriod);
         Assert.True(options.AutolinkAllowQueryAndFragmentSpecialCharacters);
         Assert.True(options.AutolinkAllowBalancedParenthesesWithTrailingPunctuation);
+        Assert.False(options.AutolinkAllowTrailingPeriodBeforeClosingParenthesis);
+        Assert.True(options.AutolinkRequireLowercaseWwwPrefix);
         Assert.Null(options.AutolinkValidPreviousCharacters);
         Assert.True(options.AutolinkBareSchemeUrls);
         Assert.True(options.AutolinkWwwUrls);
@@ -110,6 +112,8 @@ public class Markdown_Reader_Profile_Tests {
         Assert.True(office.Callouts);
         Assert.False(office.PreserveTrivia);
         Assert.False(office.AutolinkAllowBalancedParenthesesWithTrailingPunctuation);
+        Assert.False(office.AutolinkAllowTrailingPeriodBeforeClosingParenthesis);
+        Assert.False(office.AutolinkRequireLowercaseWwwPrefix);
         Assert.Equal(3, office.BlockParserExtensions.Count);
         Assert.Empty(office.InlineParserExtensions);
         Assert.False(commonMark.Callouts);

@@ -95,6 +95,7 @@ public sealed class MarkdownReaderOptions {
             AutolinkAllowDomainWithoutPeriod = false,
             AutolinkAllowQueryAndFragmentSpecialCharacters = true,
             AutolinkAllowBalancedParenthesesWithTrailingPunctuation = true,
+            AutolinkRequireLowercaseWwwPrefix = true,
             AutolinkBareSchemeUrls = true,
             AutolinkWwwUrls = true,
             AutolinkWwwScheme = "http://",
@@ -238,6 +239,19 @@ public sealed class MarkdownReaderOptions {
     /// parser; the GitHub Flavored Markdown profile enables this for Markdig/GFM-style autolinks.
     /// </summary>
     public bool AutolinkAllowBalancedParenthesesWithTrailingPunctuation { get; set; } = false;
+
+    /// <summary>
+    /// When <c>true</c>, bare URL autolinks may keep a final period inside the link when the
+    /// next source character is a closing parenthesis outside the URL. Markdig <c>UseAutoLinks</c>
+    /// keeps that period; cmark-gfm trims it in the comparable GFM case, so this remains opt-in.
+    /// </summary>
+    public bool AutolinkAllowTrailingPeriodBeforeClosingParenthesis { get; set; } = false;
+
+    /// <summary>
+    /// When <c>true</c>, bare <c>www.</c> autolinks require the prefix itself to be lowercase.
+    /// The host portion after the prefix may still use mixed case.
+    /// </summary>
+    public bool AutolinkRequireLowercaseWwwPrefix { get; set; } = false;
 
     /// <summary>
     /// Optional previous-character allow-list for bare URL/email autolinks. When set, a bare

@@ -24,38 +24,35 @@ We are not doing only tests. Tests are the measuring system. Parity work means i
 
 Current truth:
 
-- [x] CommonMark, tracked GFM fixtures, and reflected Markdig extension families are measurable from checked-in reports.
-- [x] GFM smoke behavior is green for the fixture corpus we track today.
-- [x] CommonMark official inventory is closed: 0 official examples are failing.
-- [ ] Markdig extension parity is not closed: 7 extension families meet the full `Covered` bar; the remaining extension families still need implementation, proof, or intentional-out-of-scope decisions.
-- [ ] AST/source/lossless parity is not closed: full trivia, source edits, generated-node diagnostics, and source-aware extension paths are still partial.
-- [ ] Performance parity is not known: release-mode Markdig comparisons still need a stable benchmark pass after correctness stops moving.
+- [x] CommonMark is closed for the official `0.31.2` inventory: 652 of 652 examples currently match.
+- [x] Core GFM features are real engine behavior now, not just fixtures: pipe tables, task lists, footnotes, strikethrough, auto identifiers, soft-line-as-hard-line, front matter, and current tracked GFM smoke fixtures are green.
+- [x] The comparison system exists: CommonMark inventory, GFM inventory, Markdig extension inventory, compatibility matrix, benchmarks, and this plan are checked in.
+- [ ] Markdig extension parity is not closed: 7 extension families are `Covered`, 11 are `Partial`, 4 are `Intentional`, and 11 are `Gap`.
+- [ ] AST/source/lossless parity is not closed: full trivia, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, source edits, and source-aware extension paths are still partial.
+- [ ] Performance parity is not known: release-mode Markdig comparisons still need a stable pass after correctness and source behavior stop moving.
 
-## Parity Closure Checklist
+## Missing Parity Plan
 
-This is the short board to keep us out of loops. A row is not done because it has tests; a row is done when the reusable engine behavior and its proof are both complete.
+This is the non-looping checklist. A row is not done because it has tests; a row is done when the reusable engine behavior, public contract, and proof all exist.
 
-- [x] **CommonMark correctness baseline:** all 652 official CommonMark `0.31.2` examples currently match.
-- [x] **Core GFM features already promoted:** pipe tables, task lists, footnotes, strikethrough, auto identifiers, soft-line-as-hard-line option, and current tracked GFM smoke fixtures are green.
-- [x] **Scoreboards exist:** CommonMark inventory, GFM inventory, Markdig extension inventory, compatibility matrix, and this plan are checked in.
-- [x] **Finish `UseEmphasisExtras`:** strikethrough, inserted text, highlight/mark, superscript, and subscript now have parser, AST/source/native, HTML render, Markdown write, Markdig comparison, and explicit GFM single-tilde profile evidence.
-- [ ] **Close `UseAutoLinks`:** finish extended bare URL, `www`, email, scheme, boundary, punctuation, Unicode, table-cell, writer, and source/native evidence before promoting from `Partial`.
-- [ ] **Close raw HTML and GFM tag-filter separation:** keep CommonMark raw HTML parsing, GFM tag filtering, sanitizer/escape/strip/allow behavior, URL policy, source metadata, and writer behavior as separate contracts.
-- [ ] **Close `UseDefinitionLists`:** finish source-map and writer edge breadth for marker groups, lazy continuation, nested blocks, loose definitions, empty markers, and reparsing.
-- [ ] **Close high-value partial Markdig rows:** work through `UseAlertBlocks`, `UseGenericAttributes`, `UsePreciseSourceLocation`, and parser/render extension rows with the same engine-plus-proof bar.
-- [ ] **Make scope decisions for gap rows before coding them:** `UseCustomContainers`, `UseGridTables`, `UseSmartyPants`, `UseCitations`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, `UseFigures`, `UseListExtras`, and similar rows must be assigned to core, optional extension, renderer/host policy, or intentional out-of-scope.
-- [ ] **Finish canonical AST cleanup:** remove duplicated/adapted node shapes so semantic blocks, syntax nodes, native snapshots, renderer contexts, writer contexts, and source edits use one ownership model.
-- [ ] **Finish lossless/source architecture:** complete trivia capture, delimiter-token capture, original-to-normalized mapping, generated-node diagnostics, caret/source-edit coverage, and source-preserving roundtrip fallbacks.
-- [ ] **Finish renderer/writer extension parity:** custom nodes must render and write through source-aware extension contracts without downstream string rescanning.
-- [ ] **Run performance proof last:** after correctness and source behavior settle, capture release-mode Markdig comparisons for parse, parse-with-syntax, render, write, transforms, source edits, and allocations.
+- [ ] **1. Close `UseAutoLinks` as the next parser slice.** Finish the remaining bare URL, `www`, email, scheme, previous-character, boundary, punctuation, Unicode, table-cell, source/native, and writer breadth. Current work is engine work: Markdig-style period-before-outside-`)` and lowercase `www.` prefix behavior are options, but the row stays `Partial` until the wider corpus is covered.
+- [ ] **2. Split raw HTML, GFM tag filtering, and security policy.** Treat CommonMark raw HTML parsing, cmark-gfm tag filtering, OfficeIMO allow/strip/escape/sanitize modes, URL policy, source metadata, and Markdown writing as separate contracts so security behavior does not get counted as parser parity.
+- [ ] **3. Close `UseDefinitionLists`.** Finish source-map and writer edge breadth for marker groups, lazy continuation, nested blocks, loose definitions, empty markers, and reparsing before promoting from `Partial`.
+- [ ] **4. Close high-value partial Markdig rows.** Work through `UseAlertBlocks`, `UseGenericAttributes`, `UsePreciseSourceLocation`, parser/render extensions, `UseAbbreviations`, `UseCjkFriendlyEmphasis`, `UseDiagrams`, `UseFigures`, `UseMathematics`, and `UseMediaLinks` with parser, AST/source, renderer, writer, and fixture evidence.
+- [ ] **5. Decide the real scope for gap rows before coding them.** Assign `UseCustomContainers`, `UseGridTables`, `UseSmartyPants`, `UseCitations`, `UseEmojiAndSmiley`, `UseFooters`, `UseGlobalization`, `UseJiraLinks`, `UseListExtras`, `UsePragmaLines`, and `UseReferralLinks` to core, optional extension, renderer/host policy, deferred, or intentional out-of-scope.
+- [ ] **6. Finish canonical AST cleanup.** Remove duplicated or adapter-heavy node shapes so semantic blocks, syntax nodes, native snapshots, renderer contexts, writer contexts, and source edits use one ownership model.
+- [ ] **7. Finish lossless/source architecture.** Complete whitespace/blank-line/tab trivia capture, delimiter-token capture, original-to-normalized mapping, generated-node diagnostics, caret/source-edit coverage, and source-preserving roundtrip fallbacks.
+- [ ] **8. Finish renderer/writer extension parity.** Custom nodes must render and write through source-aware extension contracts without downstream string rescanning.
+- [ ] **9. Expand the GFM inventory beyond the current smoke corpus.** Add broader cmark-gfm-compatible cases for autolinks, strikethrough delimiter edges, tag filtering, tables, task lists, footnotes, and extension interactions where the behavior is enabled.
+- [ ] **10. Run performance proof last.** After correctness and source behavior stabilize, capture release-mode Markdig comparisons for parse, parse-with-syntax, render, write, transforms, source edits, and allocations.
 
-Immediate execution queue:
+## Immediate Work Queue
 
-- [x] **1. Commit the superscript implementation slice.** This was engine work, not just tests.
-- [x] **2. Decide the subscript/profile rule.** Markdig-style subscript uses `~sub~`; GFM keeps single-tilde as strikethrough by disabling subscript in that profile.
-- [x] **3. Finish and promote `UseEmphasisExtras`.**
-- [ ] **4. Pick the next partial row from the Markdig inventory, not from nearby tests.** Recommended order: autolinks, raw HTML/tag-filter/security split, definition lists, generic attributes/source-location.
-- [x] **5. Do one scope pass over the gap rows before large feature work.** The generated Markdig inventory now records route and promotion-bar decisions for every row; future implementation can refine those decisions with evidence.
+- [x] **1. Commit the superscript/subscript/emphasis-extra slice.** This was engine behavior plus proof, and `UseEmphasisExtras` is now `Covered`.
+- [x] **2. Record extension-family routes.** Every reflected Markdig row has a route and promotion bar so future slices start from owner and done criteria instead of nearby tests.
+- [ ] **3. Finish the current autolink slice.** Validate and commit the engine/profile split for Markdig period-before-outside-`)` behavior versus cmark-gfm trimming, plus lowercase-only `www.` prefix matching.
+- [ ] **4. Continue `UseAutoLinks` until it can promote or the remaining deltas are explicit.** The next autolink pass should broaden email, `www`, scheme, Unicode, boundary, and writer/source cases rather than only adding one-off fixtures.
+- [ ] **5. Move to raw HTML/tag-filter/security or definition lists only after the autolink row has a clear promotion decision.**
 
 ## Missing Work Plan
 
@@ -64,7 +61,7 @@ This is the non-looping backlog. Parity slices are grouped by what they actually
 ### A. Engine And Parser Behavior
 
 - [ ] **GFM breadth is still thin.** The current GFM inventory is green, but only 44 tracked fixtures are imported. Missing work: broaden autolinks, strikethrough delimiter edges, HTML tag filtering, and extension-interaction fixtures against upstream-compatible behavior.
-- [ ] **Autolinks are still partial.** CommonMark angle autolinks are green, Markdig-style previous-character/domain-without-period/query-fragment/balanced-parenthesis punctuation options exist, bare `ftp://` and `tel:` scheme autolinks now have Markdig/source/writer evidence, and source-backed Markdown writing preserves parsed bare and angle autolink spelling, but `UseAutoLinks` remains partial because extended bare URL, `www`, plain-email, scheme, boundary, punctuation, and Unicode edge breadth still need broader Markdig/GFM evidence before promotion.
+- [ ] **Autolinks are still partial.** CommonMark angle autolinks are green, Markdig-style previous-character/domain-without-period/query-fragment/balanced-parenthesis punctuation, period-before-closing-parenthesis punctuation, and lowercase `www.` prefix options exist, bare `ftp://` and `tel:` scheme autolinks now have Markdig/source/writer evidence, and source-backed Markdown writing preserves parsed bare and angle autolink spelling, but `UseAutoLinks` remains partial because extended bare URL, `www`, plain-email, scheme, boundary, punctuation, and Unicode edge breadth still need broader Markdig/GFM evidence before promotion.
 - [ ] **Raw HTML and GFM tag filtering are still partial.** CommonMark raw HTML is green and cmark-gfm HTML output now has a first-class `HtmlOptions` profile, but broader GFM tag-filter corpus coverage, sanitizer/escape/strip/allow mode evidence, source/writer behavior, and URL policy still need to stay separated so parser parity is not confused with security policy.
 - [ ] **Definition-list syntax breadth is partial.** OfficeIMO now parses the pinned Markdig colon-marker form, including multiple terms, multiple definitions, grouped AST/source/native/html proof, Markdig lazy paragraph and nested block continuation, loose-definition HTML, edge-continuation comparison, empty-marker first-continuation source mapping, grouped Markdown writing that preserves the marker form for reparsing, loose-definition writer preservation, and blank-separated marker-group writer preservation. Remaining source-map and writer edge breadth still need focused comparison before `UseDefinitionLists` can move to `Covered`.
 - [x] **Emphasis extras are covered.** Strikethrough, inserted text, mark/highlight, superscript, and subscript have first-class parser/source/native/render/write coverage, with GFM single-tilde strikethrough kept explicit through profile settings.

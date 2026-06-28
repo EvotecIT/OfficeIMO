@@ -184,6 +184,53 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Markdig_Autolinks_Keep_Trailing_Period_Before_Closing_Parenthesis_With_Source_Metadata() {
+        const string markdown = "Visit https://example.com/path.) now\n";
+
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.AutolinkAllowTrailingPeriodBeforeClosingParenthesis = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
+        var target = Assert.Single(link.Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
+        var semanticLink = Assert.Single(semanticParagraph.Inlines.Nodes.OfType<LinkInline>());
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeLink = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var nativeTarget = Assert.Single(nativeLink.Metadata, metadata => metadata.Name == "target");
+        var written = result.Document.ToMarkdown().Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<a href=\"https://example.com/path.\">https://example.com/path.</a>) now", html, StringComparison.Ordinal);
+        Assert.Equal("https://example.com/path.", semanticLink.Text);
+        Assert.Equal("https://example.com/path.", semanticLink.Url);
+        Assert.Equal("https://example.com/path.", link.Literal);
+        Assert.Equal("https://example.com/path.", target.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 31), target.SourceSpan);
+        Assert.Equal("https://example.com/path.", nativeTarget.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 31), nativeTarget.SourceSpan);
+        Assert.Equal("Visit https://example.com/path.\\) now", written);
+        Assert.DoesNotContain("[https://example.com/path.](https://example.com/path.)", written, StringComparison.Ordinal);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void Gfm_Autolinks_Require_Lowercase_Www_Prefix_But_Allow_Mixed_Case_Host() {
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var upperPrefix = MarkdownReader.Parse("Visit WWW.example.com now", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var mixedHost = MarkdownReader.Parse("Visit www.Example.com now", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=", upperPrefix, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit WWW.example.com now</p>", upperPrefix, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"http://www.Example.com\">www.Example.com</a>", mixedHost, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_DoNot_Link_Http_Urls_With_Fragment_Ampersands() {
         var doc = MarkdownReader.Parse("Visit https://example.com/path#frag&next now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
