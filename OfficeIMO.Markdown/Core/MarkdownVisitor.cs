@@ -130,6 +130,9 @@ public abstract class MarkdownVisitor {
             case InsertedSequenceInline insertedSequence:
                 VisitInsertedSequenceInline(insertedSequence);
                 break;
+            case SuperscriptSequenceInline superscriptSequence:
+                VisitSuperscriptSequenceInline(superscriptSequence);
+                break;
             case TextRun textRun:
                 VisitTextRun(textRun);
                 break;
@@ -159,6 +162,9 @@ public abstract class MarkdownVisitor {
                 break;
             case InsertedInline inserted:
                 VisitInsertedInline(inserted);
+                break;
+            case SuperscriptInline superscript:
+                VisitSuperscriptInline(superscript);
                 break;
             case UnderlineInline underline:
                 VisitUnderlineInline(underline);
@@ -240,6 +246,7 @@ public abstract class MarkdownVisitor {
     protected virtual void VisitStrikethroughSequenceInline(StrikethroughSequenceInline inline) => VisitInline(inline);
     protected virtual void VisitHighlightSequenceInline(HighlightSequenceInline inline) => VisitInline(inline);
     protected virtual void VisitInsertedSequenceInline(InsertedSequenceInline inline) => VisitInline(inline);
+    protected virtual void VisitSuperscriptSequenceInline(SuperscriptSequenceInline inline) => VisitInline(inline);
     protected virtual void VisitTextRun(TextRun inline) => VisitInline(inline);
     protected virtual void VisitCodeSpanInline(CodeSpanInline inline) => VisitInline(inline);
     protected virtual void VisitFootnoteRefInline(FootnoteRefInline inline) => VisitInline(inline);
@@ -250,6 +257,7 @@ public abstract class MarkdownVisitor {
     protected virtual void VisitStrikethroughInline(StrikethroughInline inline) => VisitInline(inline);
     protected virtual void VisitHighlightInline(HighlightInline inline) => VisitInline(inline);
     protected virtual void VisitInsertedInline(InsertedInline inline) => VisitInline(inline);
+    protected virtual void VisitSuperscriptInline(SuperscriptInline inline) => VisitInline(inline);
     protected virtual void VisitUnderlineInline(UnderlineInline inline) => VisitInline(inline);
     protected virtual void VisitHtmlRawInline(HtmlRawInline inline) => VisitInline(inline);
 }

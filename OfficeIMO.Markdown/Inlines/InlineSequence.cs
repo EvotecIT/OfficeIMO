@@ -39,8 +39,8 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     public InlineSequence Highlight(string text) { _inlines.Add(new HighlightInline(text)); return this; }
     /// <summary>Adds underlined text (HTML-only in Markdown).</summary>
     public InlineSequence Underline(string text) { _inlines.Add(new UnderlineInline(text)); return this; }
-    /// <summary>Adds superscript text rendered via inline HTML.</summary>
-    public InlineSequence Superscript(string text) { _inlines.Add(new HtmlTagSequenceInline("sup", new InlineSequence().Text(text))); return this; }
+    /// <summary>Adds superscript text rendered as <c>^text^</c> in Markdown and <c>&lt;sup&gt;</c> in HTML.</summary>
+    public InlineSequence Superscript(string text) { _inlines.Add(new SuperscriptInline(text)); return this; }
     /// <summary>Adds subscript text rendered via inline HTML.</summary>
     public InlineSequence Subscript(string text) { _inlines.Add(new HtmlTagSequenceInline("sub", new InlineSequence().Text(text))); return this; }
     /// <summary>Adds inserted text rendered as <c>++text++</c> in Markdown and <c>&lt;ins&gt;</c> in HTML.</summary>

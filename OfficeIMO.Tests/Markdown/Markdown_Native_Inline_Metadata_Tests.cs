@@ -5,6 +5,57 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class Markdown_Native_Inline_Metadata_Tests {
     [Fact]
+    public void Superscript_Marker_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
+        const string markdown = "Power 2^10^ and ^nested *em*^\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var superscripts = paragraph.InlineRuns
+            .Where(inline => inline.Kind == MarkdownNativeInlineKind.Superscript)
+            .ToArray();
+
+        Assert.Equal(2, superscripts.Length);
+
+        var simple = superscripts[0];
+        var nested = superscripts[1];
+        var emphasis = Assert.Single(nested.Children, inline => inline.Kind == MarkdownNativeInlineKind.Emphasis);
+
+        Assert.Equal("10", simple.Text);
+        Assert.Equal("nested em", nested.Text);
+        Assert.Equal("em", emphasis.Text);
+
+        var simpleOpening = Assert.Single(simple.Metadata, metadata => metadata.Name == "openingMarker");
+        var simpleClosing = Assert.Single(simple.Metadata, metadata => metadata.Name == "closingMarker");
+        var nestedOpening = Assert.Single(nested.Metadata, metadata => metadata.Name == "openingMarker");
+        var nestedClosing = Assert.Single(nested.Metadata, metadata => metadata.Name == "closingMarker");
+
+        Assert.Equal("^", simpleOpening.Value);
+        Assert.Equal("^", simpleClosing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 8), simpleOpening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 11), simpleClosing.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 17, 1, 17), nestedOpening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 29, 1, 29), nestedClosing.SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.InlineSuperscript, simple.SyntaxNode.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineSuperscript, nested.SyntaxNode.Kind);
+
+        Assert.Collection(nested.SyntaxNode.Children,
+            openingMarker => Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind),
+            text => Assert.Equal(MarkdownSyntaxKind.InlineText, text.Kind),
+            nestedEmphasis => Assert.Equal(MarkdownSyntaxKind.InlineEmphasis, nestedEmphasis.Kind),
+            closingMarker => Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind));
+
+        var edited = native.CreateReplaceEdit(simpleClosing, "</sup>").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(simpleOpening, "<sup>").Apply(edited);
+        Assert.Equal("Power 2<sup>10</sup> and ^nested *em*^\n", edited);
+
+        var snapshotSuperscript = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Superscript && inline.Text == "10");
+        Assert.Equal("^", snapshotSuperscript.Metadata["openingMarker"]);
+        Assert.Equal("^", snapshotSuperscript.Metadata["closingMarker"]);
+        Assert.Equal(8, snapshotSuperscript.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(11, snapshotSuperscript.MetadataSourceSpans["closingMarker"]!.EndColumn);
+    }
+
+    [Fact]
     public void Inserted_Marker_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "Add ++inserted *em*++ text\n";
 

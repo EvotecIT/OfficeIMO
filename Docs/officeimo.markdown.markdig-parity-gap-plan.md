@@ -31,6 +31,32 @@ Current truth:
 - [ ] AST/source/lossless parity is not closed: full trivia, source edits, generated-node diagnostics, and source-aware extension paths are still partial.
 - [ ] Performance parity is not known: release-mode Markdig comparisons still need a stable benchmark pass after correctness stops moving.
 
+## Parity Closure Checklist
+
+This is the short board to keep us out of loops. A row is not done because it has tests; a row is done when the reusable engine behavior and its proof are both complete.
+
+- [x] **CommonMark correctness baseline:** all 652 official CommonMark `0.31.2` examples currently match.
+- [x] **Core GFM features already promoted:** pipe tables, task lists, footnotes, strikethrough, auto identifiers, soft-line-as-hard-line option, and current tracked GFM smoke fixtures are green.
+- [x] **Scoreboards exist:** CommonMark inventory, GFM inventory, Markdig extension inventory, compatibility matrix, and this plan are checked in.
+- [ ] **Finish the active `UseEmphasisExtras` engine row:** commit the superscript slice, then decide Markdig subscript versus GFM single-tilde behavior, implement the chosen subscript/profile model, and prove parser, AST/source/native, HTML render, Markdown write, and Markdig comparison behavior.
+- [ ] **Close `UseAutoLinks`:** finish extended bare URL, `www`, email, scheme, boundary, punctuation, Unicode, table-cell, writer, and source/native evidence before promoting from `Partial`.
+- [ ] **Close raw HTML and GFM tag-filter separation:** keep CommonMark raw HTML parsing, GFM tag filtering, sanitizer/escape/strip/allow behavior, URL policy, source metadata, and writer behavior as separate contracts.
+- [ ] **Close `UseDefinitionLists`:** finish source-map and writer edge breadth for marker groups, lazy continuation, nested blocks, loose definitions, empty markers, and reparsing.
+- [ ] **Close high-value partial Markdig rows:** work through `UseAlertBlocks`, `UseGenericAttributes`, `UsePreciseSourceLocation`, and parser/render extension rows with the same engine-plus-proof bar.
+- [ ] **Make scope decisions for gap rows before coding them:** `UseCustomContainers`, `UseGridTables`, `UseAbbreviations`, `UseSmartyPants`, `UseCitations`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, `UseFigures`, `UseListExtras`, and similar rows must be assigned to core, optional extension, renderer/host policy, or intentional out-of-scope.
+- [ ] **Finish canonical AST cleanup:** remove duplicated/adapted node shapes so semantic blocks, syntax nodes, native snapshots, renderer contexts, writer contexts, and source edits use one ownership model.
+- [ ] **Finish lossless/source architecture:** complete trivia capture, delimiter-token capture, original-to-normalized mapping, generated-node diagnostics, caret/source-edit coverage, and source-preserving roundtrip fallbacks.
+- [ ] **Finish renderer/writer extension parity:** custom nodes must render and write through source-aware extension contracts without downstream string rescanning.
+- [ ] **Run performance proof last:** after correctness and source behavior settle, capture release-mode Markdig comparisons for parse, parse-with-syntax, render, write, transforms, source edits, and allocations.
+
+Immediate execution queue:
+
+- [ ] **1. Commit the current superscript implementation slice.** This is engine work already validated locally, not just tests.
+- [ ] **2. Decide the subscript/profile rule.** Markdig uses `~sub~`; GFM also uses single-tilde strikethrough in some profiles, so this needs an explicit OfficeIMO profile decision before code.
+- [ ] **3. Finish and promote `UseEmphasisExtras` only if the full row is covered.**
+- [ ] **4. Pick the next partial row from the Markdig inventory, not from nearby tests.** Recommended order: autolinks, raw HTML/tag-filter/security split, definition lists, generic attributes/source-location.
+- [ ] **5. Do one scope pass over the gap rows before large feature work.** The output should be decisions first, implementation second.
+
 ## Missing Work Plan
 
 This is the non-looping backlog. Parity slices are grouped by what they actually move. Test-only work is allowed only when it creates a missing scoreboard, proves a newly fixed contract, or documents an intentional Markdig difference.
@@ -41,7 +67,7 @@ This is the non-looping backlog. Parity slices are grouped by what they actually
 - [ ] **Autolinks are still partial.** CommonMark angle autolinks are green, Markdig-style previous-character/domain-without-period/query-fragment options exist, and source-backed Markdown writing preserves parsed bare and angle autolink spelling, but `UseAutoLinks` remains partial because extended bare URL, `www`, plain-email, scheme, boundary, punctuation, and Unicode edge breadth still need broader Markdig/GFM evidence before promotion.
 - [ ] **Raw HTML and GFM tag filtering are still partial.** CommonMark raw HTML is green and cmark-gfm HTML output now has a first-class `HtmlOptions` profile, but broader GFM tag-filter corpus coverage, sanitizer/escape/strip/allow mode evidence, source/writer behavior, and URL policy still need to stay separated so parser parity is not confused with security policy.
 - [ ] **Definition-list syntax breadth is partial.** OfficeIMO now parses the pinned Markdig colon-marker form, including multiple terms, multiple definitions, grouped AST/source/native/html proof, Markdig lazy paragraph and nested block continuation, loose-definition HTML, edge-continuation comparison, empty-marker first-continuation source mapping, grouped Markdown writing that preserves the marker form for reparsing, loose-definition writer preservation, and blank-separated marker-group writer preservation. Remaining source-map and writer edge breadth still need focused comparison before `UseDefinitionLists` can move to `Covered`.
-- [ ] **Emphasis extras are partial.** Strikethrough, inserted text, and mark/highlight-style inlines exist with parser-owned source markers for the implemented forms, but Markdig subscript/superscript and the single-tilde subscript versus GFM strikethrough profile decision remain open.
+- [ ] **Emphasis extras are partial.** Strikethrough, inserted text, superscript, and mark/highlight-style inlines exist with parser-owned source markers for the implemented forms, but Markdig subscript and the single-tilde subscript versus GFM strikethrough profile decision remain open.
 
 ### B. Markdig Extension Scope Decisions
 

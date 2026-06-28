@@ -191,6 +191,13 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "inserted", "++inserted++" };
         yield return new object[] { "inserted-with-nested-emphasis", "++inserted *and emphasized*++" };
         yield return new object[] { "single-plus-stays-literal", "+inserted+" };
+        yield return new object[] { "superscript", "2^10^" };
+        yield return new object[] { "superscript-after-space", "x ^10^" };
+        yield return new object[] { "superscript-at-start", "^alone^" };
+        yield return new object[] { "nested-superscript", "2^^10^^" };
+        yield return new object[] { "superscript-with-nested-emphasis", "^super *em*^" };
+        yield return new object[] { "superscript-with-trailing-text", "2^10^tail" };
+        yield return new object[] { "superscript-with-whitespace-before-close-stays-literal", "2^10 ^" };
     }
 
     [Theory]
@@ -244,7 +251,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     [Theory]
     [MemberData(nameof(EmphasisExtrasExtensionCases))]
-    public void MarkdownReader_Insertions_Match_Markdig_EmphasisExtras_Extension(string _, string markdown) {
+    public void MarkdownReader_EmphasisExtras_Match_Markdig_EmphasisExtras_Extension(string _, string markdown) {
         var htmlOptions = new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,

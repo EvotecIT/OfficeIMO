@@ -672,8 +672,8 @@ public static partial class MarkdownReader {
                 }
             }
 
-            // Emphasis / strong / strike / highlight / inserted using delimiter-run rules + an open-frame stack.
-            if (text[pos] == '*' || text[pos] == '_' || text[pos] == '~' || text[pos] == '=' || text[pos] == '+') {
+            // Emphasis / strong / strike / highlight / inserted / superscript using delimiter-run rules + an open-frame stack.
+            if (text[pos] == '*' || text[pos] == '_' || text[pos] == '~' || text[pos] == '=' || text[pos] == '+' || text[pos] == '^') {
                 char marker = text[pos];
                 int runLen = 1;
                 while (pos + runLen < text.Length && text[pos + runLen] == marker) runLen++;
@@ -807,6 +807,12 @@ public static partial class MarkdownReader {
                                 continue;
                             }
                             break;
+                        }
+
+                        if (marker == '^') {
+                            stack.Push(new InlineFrame(FrameKind.Superscript, marker, 1, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                            remaining -= 1;
+                            continue;
                         }
 
                         if (remaining >= 2) {

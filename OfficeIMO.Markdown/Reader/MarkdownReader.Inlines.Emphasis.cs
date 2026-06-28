@@ -8,6 +8,7 @@ public static partial class MarkdownReader {
         Strike,
         Highlight,
         Inserted,
+        Superscript,
     }
 
     private sealed class InlineFrame {
@@ -77,6 +78,14 @@ public static partial class MarkdownReader {
             SetFormattingMarkerSpans(node, sourceMap, marker, top.OpenIndex, top.OpenLen, closingIndex, 2);
             stack.Peek().Seq.AddRaw(node);
             consumed = 2;
+            return true;
+        }
+        if (top.Kind == FrameKind.Superscript && remaining >= 1) {
+            stack.Pop();
+            var node = new SuperscriptSequenceInline(top.Seq);
+            SetFormattingMarkerSpans(node, sourceMap, marker, top.OpenIndex, top.OpenLen, closingIndex, 1);
+            stack.Peek().Seq.AddRaw(node);
+            consumed = 1;
             return true;
         }
         return false;
@@ -492,6 +501,13 @@ public static partial class MarkdownReader {
             // Markdig emphasis extras: "++" opens/closes inserted text when it hugs non-whitespace text.
             canOpen = runLen >= 2 && !nextWs;
             canClose = runLen >= 2 && !prevWs;
+            return;
+        }
+
+        if (marker == '^') {
+            // Markdig emphasis extras: "^" opens/closes superscript when it hugs non-whitespace text.
+            canOpen = !nextWs;
+            canClose = !prevWs;
             return;
         }
 

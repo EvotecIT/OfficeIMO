@@ -56,6 +56,8 @@ public enum MarkdownSyntaxKind {
     InlineHighlight,
     /// <summary>Inserted inline node.</summary>
     InlineInserted,
+    /// <summary>Superscript inline node.</summary>
+    InlineSuperscript,
     /// <summary>Underline inline node.</summary>
     InlineUnderline,
     /// <summary>Hard line break inline node.</summary>

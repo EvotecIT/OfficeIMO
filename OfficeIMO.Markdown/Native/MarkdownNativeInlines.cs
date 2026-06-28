@@ -117,7 +117,8 @@ public sealed class MarkdownNativeInline {
         || kind == MarkdownSyntaxKind.InlineStrongEmphasis
         || kind == MarkdownSyntaxKind.InlineStrikethrough
         || kind == MarkdownSyntaxKind.InlineHighlight
-        || kind == MarkdownSyntaxKind.InlineInserted;
+        || kind == MarkdownSyntaxKind.InlineInserted
+        || kind == MarkdownSyntaxKind.InlineSuperscript;
 
     private static bool IsInlineMarkerKind(MarkdownSyntaxKind kind) =>
         kind == MarkdownSyntaxKind.InlineOpeningMarker
@@ -399,6 +400,8 @@ internal static class MarkdownNativeInlineProjection {
                 return MarkdownNativeInlineKind.Highlight;
             case MarkdownSyntaxKind.InlineInserted:
                 return MarkdownNativeInlineKind.Inserted;
+            case MarkdownSyntaxKind.InlineSuperscript:
+                return MarkdownNativeInlineKind.Superscript;
             case MarkdownSyntaxKind.InlineUnderline:
                 return MarkdownNativeInlineKind.Underline;
             case MarkdownSyntaxKind.InlineHardBreak:
@@ -430,6 +433,7 @@ internal static class MarkdownNativeInlineProjection {
             case MarkdownSyntaxKind.InlineStrikethrough:
             case MarkdownSyntaxKind.InlineHighlight:
             case MarkdownSyntaxKind.InlineInserted:
+            case MarkdownSyntaxKind.InlineSuperscript:
             case MarkdownSyntaxKind.InlineUnderline:
             case MarkdownSyntaxKind.InlineHardBreak:
             case MarkdownSyntaxKind.InlineHtmlTag:

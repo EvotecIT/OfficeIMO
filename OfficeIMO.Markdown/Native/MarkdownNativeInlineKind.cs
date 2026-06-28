@@ -26,6 +26,8 @@ public enum MarkdownNativeInlineKind {
     Highlight,
     /// <summary>Inserted inline content.</summary>
     Inserted,
+    /// <summary>Superscript inline content.</summary>
+    Superscript,
     /// <summary>Underline inline content.</summary>
     Underline,
     /// <summary>Hard line break.</summary>

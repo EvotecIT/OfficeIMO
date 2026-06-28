@@ -21,6 +21,7 @@ internal static class MarkdownEscaper {
     internal static string EscapeLiteralTableCellText(string? text) => EncodeLiteralMarkdownText(text, encodeEntityLikeAmpersands: false);
     internal static string EscapeEmphasis(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeHighlightText(string? text) => Escape(text, HighlightReserved);
+    internal static string EscapeSuperscriptText(string? text) => Escape(text, ['\\', '[', ']', '(', ')', '|', '*', '_', '^']);
     internal static string EscapeLinkText(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeLinkUrl(string? text) => Escape(text, UrlReserved);
     internal static string EscapeImageAlt(string? text) => Escape(text, GeneralReserved);

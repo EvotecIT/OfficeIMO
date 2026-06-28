@@ -13,6 +13,7 @@ public static partial class MarkdownReader {
         lookup['~'] = true;
         lookup['='] = true;
         lookup['+'] = true;
+        lookup['^'] = true;
         return lookup;
     }
 
