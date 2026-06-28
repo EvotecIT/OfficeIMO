@@ -49,11 +49,6 @@ internal static class HtmlAttributeUrlEncoder {
         }
 
         var scheme = value.Substring(0, schemeSeparator);
-        if (!string.Equals(scheme, "http", System.StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(scheme, "https", System.StringComparison.OrdinalIgnoreCase)) {
-            return false;
-        }
-
         var builder = new System.Text.StringBuilder(value.Length);
         var authorityStart = schemeSeparator + 3;
         var authorityEnd = value.Length;

@@ -181,7 +181,8 @@ public static partial class MarkdownReader {
         if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
         if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
 
-        if (StartsWithAutolinkScheme(text, start, "mailto:", options)) {
+        if (IsBareSchemePrefixEnabled(options, "mailto:") &&
+            StartsWithAutolinkScheme(text, start, "mailto:", options)) {
             int emailStart = start + "mailto:".Length;
             if (!TryConsumeBareMailtoAddress(text, emailStart, out int emailEnd, out string email)) return false;
             end = emailEnd;
@@ -192,7 +193,8 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        if (StartsWithAutolinkScheme(text, start, "ftp://", options)) {
+        if (IsBareSchemePrefixEnabled(options, "ftp://") &&
+            StartsWithAutolinkScheme(text, start, "ftp://", options)) {
             int rawEnd = ConsumeLiteralUrl(text, start);
             int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
             if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
@@ -206,7 +208,8 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        if (StartsWithAutolinkScheme(text, start, "tel:", options)) {
+        if (IsBareSchemePrefixEnabled(options, "tel:") &&
+            StartsWithAutolinkScheme(text, start, "tel:", options)) {
             int valueStart = start + "tel:".Length;
             int rawEnd = ConsumeLiteralUrl(text, start);
             int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
@@ -217,7 +220,8 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        if (StartsWithAutolinkScheme(text, start, "xmpp:", options)) {
+        if (IsBareSchemePrefixEnabled(options, "xmpp:") &&
+            StartsWithAutolinkScheme(text, start, "xmpp:", options)) {
             int rawEnd = ConsumeLiteralUrl(text, start);
             int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
             if (i <= start + "xmpp:".Length) return false;
@@ -225,6 +229,20 @@ public static partial class MarkdownReader {
             label = text.Substring(start, end - start);
             href = label;
             return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsBareSchemePrefixEnabled(MarkdownReaderOptions options, string prefix) {
+        if (options.AutolinkBareSchemePrefixes == null) {
+            return true;
+        }
+
+        for (int i = 0; i < options.AutolinkBareSchemePrefixes.Length; i++) {
+            if (string.Equals(options.AutolinkBareSchemePrefixes[i], prefix, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
         }
 
         return false;

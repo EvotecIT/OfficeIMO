@@ -39,6 +39,9 @@ public static partial class MarkdownReader {
             AutolinkBareMailtoDisplayAddressOnly = source.AutolinkBareMailtoDisplayAddressOnly,
             AutolinkValidPreviousCharacters = source.AutolinkValidPreviousCharacters,
             AutolinkBareSchemeUrls = source.AutolinkBareSchemeUrls,
+            AutolinkBareSchemePrefixes = source.AutolinkBareSchemePrefixes == null
+                ? null
+                : (string[])source.AutolinkBareSchemePrefixes.Clone(),
             AutolinkWwwUrls = source.AutolinkWwwUrls,
             AutolinkWwwScheme = source.AutolinkWwwScheme,
             AutolinkEmails = source.AutolinkEmails,

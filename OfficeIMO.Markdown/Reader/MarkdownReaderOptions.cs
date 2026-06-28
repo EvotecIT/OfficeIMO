@@ -278,10 +278,18 @@ public sealed class MarkdownReaderOptions {
 
     /// <summary>
     /// When <c>true</c>, auto-detects selected bare URI schemes such as <c>mailto:</c>, <c>ftp://</c>,
-    /// <c>tel:</c>, and <c>xmpp:</c>.
+    /// <c>tel:</c>, and <c>xmpp:</c>. Use <see cref="AutolinkBareSchemePrefixes"/> to narrow the
+    /// scheme set for a compatibility profile.
     /// Default: <c>false</c>; enabled by <see cref="CreateGitHubFlavoredMarkdownProfile"/>.
     /// </summary>
     public bool AutolinkBareSchemeUrls { get; set; } = false;
+
+    /// <summary>
+    /// Optional bare-scheme prefix allow-list used when <see cref="AutolinkBareSchemeUrls"/> is enabled.
+    /// Prefixes should include their punctuation, for example <c>mailto:</c>, <c>ftp://</c>, or <c>tel:</c>.
+    /// When <c>null</c>, OfficeIMO's built-in selected scheme set is used.
+    /// </summary>
+    public string[]? AutolinkBareSchemePrefixes { get; set; }
 
     /// <summary>
     /// When <c>true</c>, auto-detects plain <c>www.example.com</c> URLs in text and turns them into links.

@@ -198,6 +198,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "unicode-http-domain", "Visit https://пример.рф/path now" };
         yield return new object[] { "unicode-http-path", "Visit https://example.com/ścieżka?q=zażółć now" };
         yield return new object[] { "unicode-www-domain", "Visit www.пример.рф/path now" };
+        yield return new object[] { "unicode-ftp-domain", "Visit ftp://пример.рф/path now" };
         yield return new object[] { "ftp-url", "Visit ftp://example.com/file.txt now" };
         yield return new object[] { "ftp-url-query-ampersand", "Visit ftp://example.com/path?q=1&next=2 now" };
         yield return new object[] { "ftp-url-query-parens", "Visit ftp://example.com/search?q=(x) now" };
@@ -206,11 +207,19 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "tel-url", "Call tel:+123456789 now" };
         yield return new object[] { "tel-url-trailing-dot", "Call tel:+123-456. now" };
         yield return new object[] { "tel-url-parentheses", "Call tel:(123)456 now" };
+        yield return new object[] { "xmpp-url", "Chat xmpp:user@example.com now" };
         yield return new object[] { "uppercase-ftp-stays-literal", "Visit FTP://example.com/file now" };
         yield return new object[] { "uppercase-tel-stays-literal", "Call TEL:+123-456 now" };
         yield return new object[] { "lowercase-mailto-links", "Contact mailto:user@example.com now" };
         yield return new object[] { "uppercase-mailto-stays-literal", "Contact MAILTO:user@example.com now" };
         yield return new object[] { "plain-email-stays-literal", "Contact user@example.com now" };
+    }
+
+    public static IEnumerable<object[]> AutoLinksPipeTableExtensionCases() {
+        yield return new object[] { "table-http-query-ampersand", "| Link |\n| --- |\n| https://example.com/path?q=1&next=2 |\n" };
+        yield return new object[] { "table-www-query-parens", "| Link |\n| --- |\n| www.example.com/search?q=(x) |\n" };
+        yield return new object[] { "table-mailto-url", "| Link |\n| --- |\n| mailto:user@example.com |\n" };
+        yield return new object[] { "table-plain-email-stays-literal", "| Link |\n| --- |\n| user@example.com |\n" };
     }
 
     public static IEnumerable<object[]> EmphasisExtrasExtensionCases() {
@@ -291,6 +300,33 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         officeOptions.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
         officeOptions.AutolinkEmails = false;
         officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
+        officeOptions.AutolinkBareSchemePrefixes = new[] { "mailto:", "ftp://", "tel:" };
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(AutoLinksPipeTableExtensionCases))]
+    public void MarkdownReader_GfmAutolinks_In_PipeTables_Match_Markdig_Extensions(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UsePipeTables(builder);
+        Markdig.MarkdownExtensions.UseAutoLinks(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        officeOptions.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
+        officeOptions.AutolinkEmails = false;
+        officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
+        officeOptions.AutolinkBareSchemePrefixes = new[] { "mailto:", "ftp://", "tel:" };
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)

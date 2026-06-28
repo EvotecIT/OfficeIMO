@@ -200,6 +200,9 @@ public sealed partial class TableBlock {
         clone.AutolinkBareMailtoDisplayAddressOnly = source.AutolinkBareMailtoDisplayAddressOnly;
         clone.AutolinkValidPreviousCharacters = source.AutolinkValidPreviousCharacters;
         clone.AutolinkBareSchemeUrls = source.AutolinkBareSchemeUrls;
+        clone.AutolinkBareSchemePrefixes = source.AutolinkBareSchemePrefixes == null
+            ? null
+            : (string[])source.AutolinkBareSchemePrefixes.Clone();
         clone.AutolinkWwwUrls = source.AutolinkWwwUrls;
         clone.AutolinkWwwScheme = source.AutolinkWwwScheme;
         clone.AutolinkEmails = source.AutolinkEmails;

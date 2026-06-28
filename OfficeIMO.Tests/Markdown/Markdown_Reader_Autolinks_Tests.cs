@@ -183,6 +183,36 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Gfm_Autolinks_Render_Unicode_Ftp_Domain_As_Idn_While_Preserving_Source_Metadata() {
+        const string markdown = "Visit ftp://пример.рф/path now\n";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
+        var target = Assert.Single(link.Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
+        var semanticLink = Assert.Single(semanticParagraph.Inlines.Nodes.OfType<LinkInline>());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var nativeLink = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var nativeTarget = Assert.Single(nativeLink.Metadata, metadata => metadata.Name == "target");
+        var written = result.Document.ToMarkdown().Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<a href=\"ftp://xn--e1afmkfd.xn--p1ai/path\">ftp://пример.рф/path</a>", html, StringComparison.Ordinal);
+        Assert.Equal("ftp://пример.рф/path", semanticLink.Text);
+        Assert.Equal("ftp://пример.рф/path", semanticLink.Url);
+        Assert.Equal("ftp://пример.рф/path", link.Literal);
+        Assert.Equal("ftp://пример.рф/path", target.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 26), target.SourceSpan);
+        Assert.Equal("ftp://пример.рф/path", nativeTarget.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 26), nativeTarget.SourceSpan);
+        Assert.Equal("Visit ftp://пример.рф/path now", written);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void Gfm_Autolinks_Render_Unicode_Http_Path_As_PercentEncoded_Href_While_Preserving_Display_And_Source() {
         const string markdown = "Visit https://example.com/ścieżka?q=zażółć now\n";
 
@@ -384,6 +414,22 @@ public class Markdown_Reader_Autolinks_Tests {
         Assert.DoesNotContain("href=\"MAILTO:user@example.com\"", html, StringComparison.Ordinal);
         Assert.Contains("MAILTO:user@example.com", html, StringComparison.Ordinal);
         Assert.Contains("<a href=\"mailto:user@example.com\">mailto:user@example.com</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Gfm_Autolinks_Can_Narrow_Bare_Scheme_Prefixes_For_Markdig_Compatibility() {
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.AutolinkBareSchemePrefixes = new[] { "mailto:", "ftp://", "tel:" };
+
+        var html = MarkdownReader
+            .Parse("Use mailto:user@example.com, ftp://example.com/file, tel:+123, and xmpp:user@example.com.", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<a href=\"mailto:user@example.com\">mailto:user@example.com</a>", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"ftp://example.com/file\">ftp://example.com/file</a>", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"tel:+123\">+123</a>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"xmpp:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("xmpp:user@example.com", html, StringComparison.Ordinal);
     }
 
     [Fact]
