@@ -10,9 +10,10 @@ The short version: parity is not "more tests." Parity means the engine, AST, ren
 | --- | --- |
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
 | CommonMark corpus | 247 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| CommonMark full inventory | 570 of 652 official CommonMark `0.31.2` examples currently match; 82 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | Strong areas | ATX headings, Setext headings, thematic breaks, fenced code blocks, paragraphs, lists, soft breaks |
-| Biggest remaining parser gaps | Emphasis, links/reference definitions/images, raw HTML/HTML blocks, code spans, entities, tabs, autolinks, hard-break edge cases |
+| Biggest remaining parser gaps | HTML/raw HTML grammar, link/reference grammar, emphasis, container indentation, code spans, autolinks, hard-break edge cases, entities |
 | Biggest Markdig-class architecture gaps | Full lossless trivia capture, full parser pipeline parity, full renderer/writer plugin parity, broader extension set, release-mode benchmark review |
 
 References:
@@ -66,10 +67,10 @@ This table is fixture coverage, not a claim that every unpinned example currentl
 
 ## Phase 0: Build The Gap Inventory
 
-- [ ] Add a repo-owned CommonMark inventory tool or test mode that runs all 652 official examples and writes a categorized report without making every failure fail CI at once.
-- [ ] Split the report into `passing-unpinned`, `failing`, and `intentional-deviation` groups.
-- [ ] Group failures by root parser cause, not by example number.
-- [ ] Add a small checked-in summary artifact with counts per section and top failure clusters.
+- [x] Add a repo-owned CommonMark inventory tool or test mode that runs all 652 official examples and writes a categorized report without making every failure fail CI at once.
+- [x] Split the report into `passing-unpinned`, `failing`, and `intentional-deviation` groups.
+- [x] Group failures by root parser cause, not by example number.
+- [x] Add a small checked-in summary artifact with counts per section and top failure clusters.
 - [ ] Add the same inventory style for enabled cmark-gfm extensions.
 - [ ] Add a Markdig comparison inventory that separates OfficeIMO profile differences from portable/CommonMark profile differences.
 

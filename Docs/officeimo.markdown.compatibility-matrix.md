@@ -16,6 +16,7 @@ Status values:
 | --- | --- |
 | External comparison package | Markdig `1.3.2` in `OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks`; guarded by `PackageDependencyGuardrailTests.MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline` and `MarkdownCompatibilityDocs_TrackCurrentMarkdigBaselineVersion`; verified current against NuGet and `dotnet list ... package --outdated` on 2026-06-27 |
 | CommonMark reference | 247 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| CommonMark full inventory | 570 of 652 official CommonMark `0.31.2` examples currently match; 82 failures are grouped by root cause in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM reference | 36 cmark-gfm extension smoke fixtures plus a focused upstream ignored-autolink crash regression |
 | OfficeIMO core package | `OfficeIMO.Markdown` owns parsing, semantic AST, syntax tree, writing, and HTML projection |
 | Host renderer package | `OfficeIMO.MarkdownRenderer` owns WebView/browser shell rendering and incremental updates |
