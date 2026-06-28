@@ -11,8 +11,8 @@ The important distinction: parity is not "more tests." Parity means the parser, 
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
 | CommonMark corpus | 316 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
 | CommonMark full inventory | 652 of 652 official CommonMark `0.31.2` examples currently match; 0 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
-| GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
-| GFM tracked inventory | 36 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 33 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 36 passing, 0 failing |
+| GFM corpus | 43 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
+| GFM tracked inventory | 43 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 40 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 43 passing, 0 failing |
 | Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 0 covered, 15 partial, 4 intentional, 14 gap |
 | Covered CommonMark sections | ATX headings, Setext headings, thematic breaks, indented code blocks, fenced code blocks, HTML blocks, block quotes, list items, lists, paragraphs, hard breaks, soft breaks, links, images, autolinks, raw HTML, backslash escapes, entity and numeric character references, link reference definitions, tabs |
 | Remaining CommonMark parser clusters | None in the official CommonMark `0.31.2` inventory |
@@ -54,7 +54,7 @@ Use this as the non-looping execution board. Each item must either move engine b
 
 ### Next: Broaden GFM And Markdig Extension Coverage
 
-- [ ] **GFM fixture breadth:** expand beyond the current 36 tracked fixtures for tables, task lists, autolinks, strikethrough, tag filtering, footnotes, and extension interactions.
+- [ ] **GFM fixture breadth:** expand beyond the current 43 tracked fixtures for task lists, autolinks, strikethrough, tag filtering, footnotes, and extension interactions.
 - [ ] **Pipe tables:** move from current partial support to covered support by proving malformed delimiters, alignment, containers, source spans, renderer output, and writer behavior.
 - [ ] **Task lists:** move from current partial support to covered support by proving nested markers, exact marker source spans, native snapshots, renderer output, and writer/source-edit behavior.
 - [ ] **Footnotes:** move from current partial support to covered support by proving Markdig/GFM breadth, label/body source mapping, renderer output, backlink behavior, and writer behavior.
@@ -123,7 +123,7 @@ These are the actual parity gaps. The test work is listed only where it creates 
   - [x] Make blank-line continuation rules shared between root indented code and nested indented code.
   - [x] Make blockquote parsing respect CommonMark precedence: indented code wins at four columns, quote marker stripping removes at most one following space, and a blank line between quoted paragraphs closes the current quote.
   - [x] Promote #9, #111, #231, #242, #252, and #264 after the engine behavior was fixed and pinned with syntax-tree invariant coverage.
-- [ ] **GFM corpus expansion.** Extend the generated GFM inventory beyond the current tracked fixture corpus so table, task-list, autolink, strikethrough, tag-filter, footnote, and interop behavior are measured against broader upstream-compatible coverage.
+- [ ] **GFM corpus expansion.** Continue extending the generated GFM inventory beyond the current tracked fixture corpus so task-list, autolink, strikethrough, tag-filter, footnote, and interop behavior are measured against broader upstream-compatible coverage.
 - [ ] **Markdig extension implementation breadth.** Move selected partial/gap rows from the generated Markdig extension inventory into real parser, AST/source, renderer, writer, fixture, or intentional-deviation work.
 - [ ] **AST/source/lossless completeness.** Finish canonical node cleanup, full trivia capture, delimiter-token capture, original-to-normalized mapping, generated-node diagnostics, and broader byte-preserving source edits.
 - [ ] **Renderer/writer extension parity.** Make parser, transform, renderer, and writer extension APIs source-slice aware where custom nodes need to render or roundtrip without string rescanning.

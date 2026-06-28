@@ -17,8 +17,8 @@ Status values:
 | External comparison package | Markdig `1.3.2` in `OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks`; guarded by `PackageDependencyGuardrailTests.MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline` and `MarkdownCompatibilityDocs_TrackCurrentMarkdigBaselineVersion`; verified current against NuGet and `dotnet list ... package --outdated` on 2026-06-28 |
 | CommonMark reference | 316 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
 | CommonMark full inventory | 652 of 652 official CommonMark `0.31.2` examples currently match; 0 failures are reported in `Docs/officeimo.markdown.commonmark-inventory.md` |
-| GFM reference | 36 cmark-gfm extension smoke fixtures plus a focused upstream ignored-autolink crash regression |
-| GFM inventory | 36 tracked GFM fixtures currently measured in `Docs/officeimo.markdown.gfm-inventory.md`: 33 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 36 passing, 0 failing |
+| GFM reference | 43 cmark-gfm extension smoke fixtures plus a focused upstream ignored-autolink crash regression |
+| GFM inventory | 43 tracked GFM fixtures currently measured in `Docs/officeimo.markdown.gfm-inventory.md`: 40 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 43 passing, 0 failing |
 | Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 0 covered, 15 partial, 4 intentional, 14 gap |
 | OfficeIMO core package | `OfficeIMO.Markdown` owns parsing, semantic AST, syntax tree, writing, and HTML projection |
 | Host renderer package | `OfficeIMO.MarkdownRenderer` owns WebView/browser shell rendering and incremental updates |
@@ -83,6 +83,7 @@ Generated scoreboards: `Docs/officeimo.markdown.gfm-inventory.md` tracks the cur
 
 ## Recent Parity Slices
 
+- 2026-06-28: GFM table body parsing now continues plain text rows without pipe characters until a blank line or another block-level construct starts, matching the official table extension case where `bar` becomes a single-cell row. The checked-in GFM inventory now includes the seven missing official `test/spec.txt` table-extension examples, moving tracked GFM fixtures from 36 to 43 and table fixtures from 19 to 26.
 - 2026-06-28: Link destinations and titles now decode HTML character references after backslash unescaping before URL attribute encoding, adding official CommonMark examples 32, 503, and 506 for inline/reference-shared destination/title parity.
 - 2026-06-28: CommonMark type 7 HTML blocks now require only whitespace after the completed non-block tag, keeping inline HTML with trailing content inside paragraph parsing; official CommonMark examples 168, 344, 613, 614, 616, 618, 620, and 623 are now pinned as smoke fixtures, moving the full inventory from 570/652 to 575/652.
 - 2026-06-28: Link destination/title parsing now uses CommonMark link whitespace instead of .NET Unicode whitespace, rejects malformed angle destinations before literal fallback, and rejects unescaped matching title delimiters; official CommonMark examples 201, 494, 507, and 508 are now pinned as smoke fixtures, moving the full inventory from 575/652 to 579/652.

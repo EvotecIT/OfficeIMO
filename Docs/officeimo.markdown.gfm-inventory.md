@@ -14,10 +14,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_GFM_INVENTORY
 
 | Metric | Count |
 | --- | ---: |
-| Tracked fixtures | 36 |
-| Upstream cmark-gfm fixtures | 33 |
+| Tracked fixtures | 43 |
+| Upstream cmark-gfm fixtures | 40 |
 | OfficeIMO supplement fixtures | 3 |
-| Passing fixtures | 36 |
+| Passing fixtures | 43 |
 | Failing fixtures | 0 |
 | Intentional deviations | 0 |
 
@@ -25,7 +25,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_GFM_INVENTORY
 
 | Section | Tracked | Upstream | Supplements | Passing | Failing | Intentional |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Tables | 19 | 16 | 3 | 19 | 0 | 0 |
+| Tables | 26 | 23 | 3 | 26 | 0 | 0 |
 | Strikethroughs | 3 | 3 | 0 | 3 | 0 | 0 |
 | Autolinks | 4 | 4 | 0 | 4 | 0 | 0 |
 | HTML tag filter | 1 | 1 | 0 | 1 | 0 | 0 |
@@ -38,6 +38,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_GFM_INVENTORY
 | Source | Tracked | Passing | Failing |
 | --- | ---: | ---: | ---: |
 | github/cmark-gfm test/extensions.txt | 33 | 33 | 0 |
+| github/cmark-gfm test/spec.txt tables extension | 7 | 7 | 0 |
 | officeimo/gfm-container-table-smoke | 2 | 2 | 0 |
 | officeimo/gfm-table-smoke | 1 | 1 | 0 |
 

@@ -29,7 +29,7 @@ public static partial class MarkdownReader {
     }
 
     private static bool StartsTable(string[] lines, int index, MarkdownReaderOptions options) =>
-        TryGetTableExtent(lines, index, out _, out _, allowHeaderlessTables: options?.AllowHeaderlessTables ?? true);
+        TryGetTableExtent(lines, index, out _, out _, allowHeaderlessTables: options?.AllowHeaderlessTables ?? true, options: options);
 
     private static bool TryGetTableExtent(
         string[] lines,
@@ -37,7 +37,8 @@ public static partial class MarkdownReader {
         out int end,
         out bool hasOuterPipes,
         bool allowSingleRowHeaderless = false,
-        bool allowHeaderlessTables = true) {
+        bool allowHeaderlessTables = true,
+        MarkdownReaderOptions? options = null) {
         end = start;
         hasOuterPipes = false;
         if (lines is null || start < 0 || start >= lines.Length) return false;
@@ -103,7 +104,7 @@ public static partial class MarkdownReader {
                 j++;
             }
         } else {
-            while (j < lines.Length && LooksLikeTableBodyRow(lines[j])) j++;
+            while (j < lines.Length && LooksLikeTableBodyRow(lines, j, options)) j++;
         }
 
         end = j - 1;
@@ -314,9 +315,42 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool LooksLikeTableBodyRow(string line) {
+    private static bool LooksLikeTableBodyRow(string[] lines, int index, MarkdownReaderOptions options) {
+        if (lines is null || index < 0 || index >= lines.Length) return false;
+        var line = lines[index];
         if (string.IsNullOrWhiteSpace(line)) return false;
-        return line.Trim().Contains('|');
+
+        return !IsTableTerminatingBlockStart(lines, index, options);
+    }
+
+    private static bool IsTableTerminatingBlockStart(string[] lines, int index, MarkdownReaderOptions options) {
+        var line = lines[index] ?? string.Empty;
+        if (CountLeadingIndentColumns(line) >= 4) return true;
+        if (IsAtxHeading(line, out _, out _)) return true;
+        if (IsCodeFenceOpen(line, out _, out _, out _)) return true;
+        if (IsParagraphInterruptingThematicBreakLine(line)) return true;
+        if (IsParagraphInterruptingUnorderedListLine(line)) return true;
+        if (IsParagraphInterruptingOrderedListLine(line)) return true;
+        if (IsQuoteStarter(line)) return true;
+        if (HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(line, options)) return true;
+        if (TryParseReferenceLinkDefinition(lines, index, options, out _, out _, out _, out _)) return true;
+        if (options?.Footnotes == true && IsTableTerminatingFootnoteDefinitionStart(line)) return true;
+        return false;
+    }
+
+    private static bool IsTableTerminatingFootnoteDefinitionStart(string line) {
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        if (CountLeadingIndentColumns(line) > 3) return false;
+
+        var trimmed = line.TrimStart();
+        if (!(trimmed.Length > 4 && trimmed[0] == '[' && trimmed[1] == '^')) {
+            return false;
+        }
+
+        int closing = trimmed.IndexOf(']');
+        return closing >= 2
+               && closing + 1 < trimmed.Length
+               && trimmed[closing + 1] == ':';
     }
 
     private static ColumnAlignment ParseAlignmentCell(string cell) {
