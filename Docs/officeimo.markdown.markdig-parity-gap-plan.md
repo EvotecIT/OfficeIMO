@@ -20,38 +20,67 @@ The important distinction: parity is not "more tests." Parity means the parser, 
 
 ## Current Answer
 
-We are not doing only tests. The inventories are the measuring system. They tell us which engine contract to improve next and stop us from calling isolated fixture additions "parity."
+We are not doing only tests. Tests are the measuring system. Parity work means improving the reusable `OfficeIMO.Markdown` engine and then using inventories, fixtures, native snapshots, renderer checks, writer checks, and benchmarks to prove the contract moved.
 
-The current state is:
+Current truth:
 
-- [x] We can measure CommonMark, tracked GFM fixtures, and reflected Markdig extension families from checked-in reports.
+- [x] CommonMark, tracked GFM fixtures, and reflected Markdig extension families are measurable from checked-in reports.
 - [x] GFM smoke behavior is green for the fixture corpus we track today.
-- [ ] CommonMark is not closed: 20 official examples still fail, led by emphasis, containers, hard breaks, entities, and one HTML block boundary case.
-- [ ] Markdig extension parity is not closed: 15 extension families are partial, 14 are gaps, 4 are intentional differences, and 0 meet the full `Covered` bar.
-- [ ] AST/source/lossless parity is not closed: parser nodes, native snapshots, trivia, source edits, renderer contexts, and writer contexts still need to line up everywhere.
+- [ ] CommonMark is not closed: 20 official examples still fail.
+- [ ] Markdig extension parity is not closed: 0 extension families meet the full `Covered` bar.
+- [ ] AST/source/lossless parity is not closed: full trivia, source edits, generated-node diagnostics, and source-aware extension paths are still partial.
 - [ ] Performance parity is not known: release-mode Markdig comparisons still need a stable benchmark pass after correctness stops moving.
 
-So the real work now is engine-first:
+## Parity Work Board
 
-1. [ ] Fix a parser/AST/renderer/writer behavior slice.
-2. [ ] Refresh the inventory that proves the moved count.
-3. [ ] Promote only the official examples that now represent understood contracts.
-4. [ ] Update this plan and the relevant compatibility report.
-5. [ ] Validate across the Markdown lanes before committing.
+Use this as the non-looping execution board. Each item must either move engine behavior, mark a deliberate out-of-scope choice, or improve a scoreboard that is missing.
 
-## Execution Checklist
+### Now: Close CommonMark Correctness
 
-Use this order unless a later discovery proves a dependency should move earlier.
+- [ ] **HTML block/container boundary:** fix official CommonMark example #174, where a blockquote-contained HTML block must terminate at the right container boundary. This is engine work in block/container parsing, not another raw inline HTML patch.
+- [ ] **Emphasis delimiter algorithm:** replace the simplified emphasis heuristics with the CommonMark delimiter-stack behavior for left/right flanking, punctuation, intraword `_`, nesting, opener/closer balancing, and precedence.
+- [ ] **Container indentation model:** make tabs, blockquote continuation, list continuation, and indented-code boundaries share a source-map-safe column model.
+- [ ] **Hard-line-break grammar:** finish the remaining hard-break failures while preserving marker source spans for two-space, backslash, and inline-HTML break spellings.
+- [ ] **CommonMark character references:** replace narrow runtime HTML decoding with a CommonMark-complete named/numeric character-reference decoder, including invalid numeric replacement behavior.
+- [ ] **CommonMark inventory closure:** refresh the generated full-corpus inventory after each parser slice and promote only newly understood official examples into smoke fixtures.
 
-- [ ] **Slice 1: Finish the last CommonMark HTML block boundary case.** The raw HTML section is green; HTML block/raw HTML is down to example #174, which is container interaction rather than inline raw HTML tokenization.
-- [ ] **Slice 2: CommonMark emphasis delimiter algorithm.** Replace local emphasis heuristics with delimiter-stack behavior that handles flanking, punctuation, intraword underscores, nesting, opener/closer balancing, and precedence.
-- [ ] **Slice 3: CommonMark container indentation.** Make tabs, blockquote continuation, list continuation, and indented-code boundaries share a source-map-safe column model.
-- [ ] **Slice 4: CommonMark hard breaks and entities.** Finish hard-line-break marker handling and replace narrow HTML decoding with a CommonMark-complete named/numeric character reference decoder.
-- [ ] **Slice 5: GFM breadth.** Keep the current green GFM smoke corpus, then broaden table/task/autolink/strikethrough/tag-filter/footnote/interoperability fixtures from upstream-compatible sources.
-- [ ] **Slice 6: Markdig extension family decisions.** For each `Partial` or `Gap` row, choose one of: implement in core, implement as an optional extension, route to renderer/host policy, or document as intentional out of scope.
-- [ ] **Slice 7: AST/source/lossless closure.** Finish canonical node cleanup, trivia capture, delimiter-token capture, source edits, generated-node diagnostics, and native snapshot consistency.
-- [ ] **Slice 8: Renderer/writer extension parity.** Make custom parser nodes render and write from typed/source-aware contexts rather than downstream string rescanning.
-- [ ] **Slice 9: Performance parity proof.** Run release-mode Markdig comparisons over parse, parse-with-syntax, HTML render, Markdown write, source-edit roundtrip, transforms, allocations, and representative corpora.
+### Next: Broaden GFM And Markdig Extension Coverage
+
+- [ ] **GFM fixture breadth:** expand beyond the current 36 tracked fixtures for tables, task lists, autolinks, strikethrough, tag filtering, footnotes, and extension interactions.
+- [ ] **Pipe tables:** move from current partial support to covered support by proving malformed delimiters, alignment, containers, source spans, renderer output, and writer behavior.
+- [ ] **Task lists:** move from current partial support to covered support by proving nested markers, exact marker source spans, native snapshots, renderer output, and writer/source-edit behavior.
+- [ ] **Footnotes:** move from current partial support to covered support by proving Markdig/GFM breadth, label/body source mapping, renderer output, backlink behavior, and writer behavior.
+- [ ] **Autolinks and tag filter:** separate CommonMark autolinks, GFM extended autolinks, and GFM tag-filter behavior into explicit parser/render/security contracts.
+- [ ] **Extension-family decisions:** for every `Partial` or `Gap` row in `Docs/officeimo.markdown.markdig-extension-inventory.md`, choose one outcome: implement in core, implement as optional extension, route to renderer/host policy, or mark intentional out of scope.
+
+### Next: Finish AST, Source, And Lossless Claims
+
+- [ ] **Canonical node model:** finish cleanup for duplicated or adapter-heavy nodes so semantic blocks, syntax nodes, native snapshots, renderer contexts, writer contexts, and source-edit helpers agree on boundaries.
+- [ ] **Trivia capture:** capture whitespace, blank lines, tabs, delimiter trivia, and raw source slices in parser-owned data rather than reconstructing them downstream.
+- [ ] **Delimiter token capture:** cover all inline delimiter spellings for emphasis, links, images, code spans, escapes, entities, hard breaks, HTML tags, footnotes, and extension inlines.
+- [ ] **Original-to-normalized mapping:** make source spans reliable across CRLF/LF/CR inputs, tab expansion, nested containers, generated nodes, and normalized paragraph text.
+- [ ] **Lossless edits:** broaden `MarkdownRoundtripWriter` from unchanged documents and explicit native edits toward general source-preserving edits with precise fallback diagnostics.
+- [ ] **Native/document snapshots:** keep every editor-addressable token and canonical node visible through native snapshots, source fields, caret lookup, and source-edit helpers.
+
+### Then: Renderer, Writer, Security, And Performance
+
+- [ ] **Renderer profile parity:** keep CommonMark and GFM HTML output spec-compatible while preserving explicit OfficeIMO profile behavior for raw HTML, images, tables, and document-specific rendering.
+- [ ] **Writer parity:** ensure Markdown writing can roundtrip parser-owned syntax and extension nodes without downstream string rescanning.
+- [ ] **Extension rendering:** make parser, transform, renderer, and writer extension APIs source-slice aware for custom containers, alerts, diagrams, math, attributes, media links, and other in-scope extension nodes.
+- [ ] **Security profiles:** independently test raw HTML allow/strip/escape/sanitize/GFM-tag-filter behavior and URL policy behavior so security choices are not confused with parser parity.
+- [ ] **Benchmarks:** capture release-mode Markdig comparisons for parse, parse-with-syntax, HTML render, Markdown write, source-edit roundtrip, transforms, allocations, and representative README/docs/chat corpora.
+
+## Per-Slice Acceptance Checklist
+
+Every parity slice should use this checklist before it is called done.
+
+- [ ] Name the scoreboard row being moved: CommonMark, GFM, Markdig extension family, AST/source/lossless, renderer/writer, security profile, or benchmark proof.
+- [ ] Fix the reusable engine/core behavior first when behavior is missing.
+- [ ] Add or update focused contract tests only after the behavior contract is understood.
+- [ ] Refresh generated inventories when the scoreboard should move.
+- [ ] Promote official fixtures only when they prove a stable contract, not merely because they happen to pass.
+- [ ] Update the compatibility matrix and this plan when counts, priority, or scope changed.
+- [ ] Validate the relevant Markdown lanes across the framework targets affected by the slice.
 
 References:
 
