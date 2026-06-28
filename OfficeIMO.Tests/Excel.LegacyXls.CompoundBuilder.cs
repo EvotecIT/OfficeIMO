@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text;
 
 namespace OfficeIMO.Tests {
@@ -14,12 +15,32 @@ namespace OfficeIMO.Tests {
                 return CreateWorkbookCompoundFile(workbookStream, includeVbaProjectStorage: false, includeOleObjectStorage: false);
             }
 
+            internal static byte[] CreateWorkbookCompoundFileWithDocumentPropertyStreams(
+                byte[] workbookStream,
+                byte[] summaryInformationStream,
+                byte[] documentSummaryInformationStream) {
+                var streams = new[] {
+                    new CompoundStreamSpec("Workbook", workbookStream),
+                    new CompoundStreamSpec("\u0005SummaryInformation", summaryInformationStream),
+                    new CompoundStreamSpec("\u0005DocumentSummaryInformation", documentSummaryInformationStream)
+                };
+                return CreateRootStreamCompoundFile(streams);
+            }
+
             internal static byte[] CreateWorkbookCompoundFileWithVbaProjectStorage(byte[] workbookStream) {
                 return CreateWorkbookCompoundFile(workbookStream, includeVbaProjectStorage: true, includeOleObjectStorage: false);
             }
 
             internal static byte[] CreateWorkbookCompoundFileWithOleObjectStorage(byte[] workbookStream) {
                 return CreateWorkbookCompoundFile(workbookStream, includeVbaProjectStorage: false, includeOleObjectStorage: true);
+            }
+
+            internal static byte[] CreateWorkbookCompoundFileWithDigitalSignatureStream(byte[] workbookStream) {
+                var streams = new[] {
+                    new CompoundStreamSpec("Workbook", workbookStream),
+                    new CompoundStreamSpec("_signatures", Encoding.ASCII.GetBytes("synthetic legacy digital signature"))
+                };
+                return CreateRootStreamCompoundFile(streams);
             }
 
             internal static byte[] CreateCompoundHeaderWithInvalidSectorChain() {
@@ -29,6 +50,19 @@ namespace OfficeIMO.Tests {
                 bytes[30] = 9;
                 bytes[32] = 6;
                 return bytes;
+            }
+
+            internal static byte[] CreateNonExcelCompoundFile() {
+                byte[] streamBytes = PadToRegularStream(Encoding.UTF8.GetBytes("not an Excel workbook stream"));
+                byte[] directoryBytes = BuildNonExcelDirectory(streamBytes.Length);
+                byte[] fatBytes = BuildFat(streamBytes.Length / SectorSize);
+
+                using var output = new MemoryStream();
+                output.Write(BuildHeader(streamBytes.Length / SectorSize), 0, SectorSize);
+                output.Write(streamBytes, 0, streamBytes.Length);
+                output.Write(directoryBytes, 0, directoryBytes.Length);
+                output.Write(fatBytes, 0, fatBytes.Length);
+                return output.ToArray();
             }
 
             internal static byte[] CreateMiniStreamWorkbookCompoundFile(byte[] workbookStream) {
@@ -83,6 +117,32 @@ namespace OfficeIMO.Tests {
                 using var output = new MemoryStream();
                 output.Write(BuildHeader(workbookSectorCount), 0, SectorSize);
                 output.Write(workbookBytes, 0, workbookBytes.Length);
+                output.Write(directoryBytes, 0, directoryBytes.Length);
+                output.Write(fatBytes, 0, fatBytes.Length);
+                return output.ToArray();
+            }
+
+            private static byte[] CreateRootStreamCompoundFile(IReadOnlyList<CompoundStreamSpec> streams) {
+                if (streams.Count == 0 || streams.Count > 3) {
+                    throw new ArgumentException("The test compound builder supports one to three root streams.", nameof(streams));
+                }
+
+                var paddedStreams = streams
+                    .Select(stream => {
+                        byte[] padded = PadToRegularStream(stream.Bytes);
+                        return new CompoundStreamSpec(stream.Name, padded, padded.Length);
+                    })
+                    .ToArray();
+                int dataSectorCount = paddedStreams.Sum(stream => stream.Bytes.Length / SectorSize);
+                byte[] directoryBytes = BuildRootStreamDirectory(paddedStreams);
+                byte[] fatBytes = BuildRootStreamFat(paddedStreams);
+
+                using var output = new MemoryStream();
+                output.Write(BuildHeader(dataSectorCount), 0, SectorSize);
+                foreach (CompoundStreamSpec stream in paddedStreams) {
+                    output.Write(stream.Bytes, 0, stream.Bytes.Length);
+                }
+
                 output.Write(directoryBytes, 0, directoryBytes.Length);
                 output.Write(fatBytes, 0, fatBytes.Length);
                 return output.ToArray();
@@ -168,6 +228,37 @@ namespace OfficeIMO.Tests {
                 return directory;
             }
 
+            private static byte[] BuildRootStreamDirectory(IReadOnlyList<CompoundStreamSpec> streams) {
+                byte[] directory = new byte[SectorSize];
+                WriteDirectoryEntry(directory, 0, "Root Entry", 5, EndOfChain, EndOfChain, 1, EndOfChain, 0);
+
+                uint startSector = 0;
+                for (int i = 0; i < streams.Count; i++) {
+                    CompoundStreamSpec stream = streams[i];
+                    uint rightSibling = i + 1 < streams.Count ? (uint)(i + 2) : EndOfChain;
+                    WriteDirectoryEntry(
+                        directory,
+                        (i + 1) * 128,
+                        stream.Name,
+                        2,
+                        EndOfChain,
+                        rightSibling,
+                        EndOfChain,
+                        startSector,
+                        (ulong)stream.OriginalSize);
+                    startSector += (uint)(stream.Bytes.Length / SectorSize);
+                }
+
+                return directory;
+            }
+
+            private static byte[] BuildNonExcelDirectory(int streamSize) {
+                byte[] directory = new byte[SectorSize];
+                WriteDirectoryEntry(directory, 0, "Root Entry", 5, EndOfChain, EndOfChain, 1, EndOfChain, 0);
+                WriteDirectoryEntry(directory, 128, "NotExcel", 2, EndOfChain, EndOfChain, EndOfChain, 0, (ulong)streamSize);
+                return directory;
+            }
+
             private static byte[] BuildDifatDirectory(int workbookSize) {
                 byte[] directory = new byte[SectorSize];
                 WriteDirectoryEntry(directory, 0, "Root Entry", 5, EndOfChain, EndOfChain, 1, EndOfChain, 0);
@@ -191,6 +282,28 @@ namespace OfficeIMO.Tests {
                 WriteUInt32(fat, workbookSectorCount * 4, EndOfChain);
                 WriteUInt32(fat, (workbookSectorCount + 1) * 4, FatSect);
                 for (int offset = (workbookSectorCount + 2) * 4; offset < fat.Length; offset += 4) {
+                    WriteUInt32(fat, offset, FreeSect);
+                }
+
+                return fat;
+            }
+
+            private static byte[] BuildRootStreamFat(IReadOnlyList<CompoundStreamSpec> streams) {
+                int dataSectorCount = streams.Sum(stream => stream.Bytes.Length / SectorSize);
+                byte[] fat = new byte[SectorSize];
+                int sector = 0;
+                foreach (CompoundStreamSpec stream in streams) {
+                    int streamSectorCount = stream.Bytes.Length / SectorSize;
+                    for (int i = 0; i < streamSectorCount; i++) {
+                        WriteUInt32(fat, (sector + i) * 4, i + 1 == streamSectorCount ? EndOfChain : (uint)(sector + i + 1));
+                    }
+
+                    sector += streamSectorCount;
+                }
+
+                WriteUInt32(fat, dataSectorCount * 4, EndOfChain);
+                WriteUInt32(fat, (dataSectorCount + 1) * 4, FatSect);
+                for (int offset = (dataSectorCount + 2) * 4; offset < fat.Length; offset += 4) {
                     WriteUInt32(fat, offset, FreeSect);
                 }
 
@@ -289,6 +402,23 @@ namespace OfficeIMO.Tests {
 
             private static void WriteFatEntry(byte[] fat, int sector, uint value) {
                 WriteUInt32(fat, checked(sector * 4), value);
+            }
+
+            private sealed class CompoundStreamSpec {
+                internal CompoundStreamSpec(string name, byte[] bytes) : this(name, bytes, bytes.Length) {
+                }
+
+                internal CompoundStreamSpec(string name, byte[] bytes, int originalSize) {
+                    Name = name;
+                    Bytes = bytes;
+                    OriginalSize = originalSize;
+                }
+
+                internal string Name { get; }
+
+                internal byte[] Bytes { get; }
+
+                internal int OriginalSize { get; }
             }
         }
     }

@@ -31,6 +31,18 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         OleStream,
 
         /// <summary>The entry is an embedded OLE object storage.</summary>
-        OleObjectStorage
+        OleObjectStorage,
+
+        /// <summary>The entry is a CryptoAPI digital signature stream.</summary>
+        DigitalSignatureStream,
+
+        /// <summary>The entry is a CryptoAPI digital signature storage.</summary>
+        DigitalSignatureStorage,
+
+        /// <summary>The entry is an XML digital signature storage.</summary>
+        XmlDigitalSignatureStorage,
+
+        /// <summary>The entry is an XML digital signature stream.</summary>
+        XmlDigitalSignatureStream
     }
 }

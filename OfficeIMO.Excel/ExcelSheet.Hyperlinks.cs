@@ -14,7 +14,8 @@ namespace OfficeIMO.Excel {
         /// <param name="url">Target URL.</param>
         /// <param name="display">Optional display text. When null/empty, the URL is displayed.</param>
         /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
-        public void SetHyperlink(int row, int column, string url, string? display = null, bool style = true) {
+        /// <param name="tooltip">Optional ScreenTip text shown by spreadsheet applications.</param>
+        public void SetHyperlink(int row, int column, string url, string? display = null, bool style = true, string? tooltip = null) {
             if (string.IsNullOrWhiteSpace(url)) throw new ArgumentNullException(nameof(url));
 
             WriteLock(() => {
@@ -38,7 +39,11 @@ namespace OfficeIMO.Excel {
 
                 // Add external relationship
                 var rel = _worksheetPart.AddHyperlinkRelationship(new Uri(url), true);
-                var hl = new Hyperlink { Reference = reference, Id = rel.Id };
+                var hl = new Hyperlink {
+                    Reference = reference,
+                    Id = rel.Id,
+                    Tooltip = string.IsNullOrWhiteSpace(tooltip) ? null : tooltip
+                };
                 hyperlinks.Append(hl);
                 if (style) ApplyHyperlinkStyle(cell);
             });
@@ -47,7 +52,7 @@ namespace OfficeIMO.Excel {
         /// sheet.SetHyperlink(2, 1, "https://example.org", display: "Example", style: true);
         /// </example>
 
-        internal void AddExternalHyperlinkReference(string reference, string url, bool style = true) {
+        internal void AddExternalHyperlinkReference(string reference, string url, bool style = true, string? tooltip = null) {
             if (string.IsNullOrWhiteSpace(reference)) throw new ArgumentNullException(nameof(reference));
             if (string.IsNullOrWhiteSpace(url)) throw new ArgumentNullException(nameof(url));
             Uri uri = CreateExternalHyperlinkUri(url);
@@ -64,7 +69,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 var rel = _worksheetPart.AddHyperlinkRelationship(uri, true);
-                hyperlinks.Append(new Hyperlink { Reference = reference, Id = rel.Id });
+                hyperlinks.Append(new Hyperlink {
+                    Reference = reference,
+                    Id = rel.Id,
+                    Tooltip = string.IsNullOrWhiteSpace(tooltip) ? null : tooltip
+                });
                 if (style) {
                     ApplyHyperlinkStyle(reference);
                 }
@@ -84,7 +93,7 @@ namespace OfficeIMO.Excel {
             throw new ArgumentException("Hyperlink URL must be an absolute URI or relative external target.", nameof(url));
         }
 
-        internal void AddInternalHyperlinkReference(string reference, string location, bool style = true, bool normalizeLocation = true) {
+        internal void AddInternalHyperlinkReference(string reference, string location, bool style = true, bool normalizeLocation = true, string? tooltip = null) {
             if (string.IsNullOrWhiteSpace(reference)) throw new ArgumentNullException(nameof(reference));
             if (string.IsNullOrWhiteSpace(location)) throw new ArgumentNullException(nameof(location));
             string normalizedLocation = normalizeLocation
@@ -102,7 +111,11 @@ namespace OfficeIMO.Excel {
                     RemoveHyperlinksByReference(hyperlinks, reference);
                 }
 
-                hyperlinks.Append(new Hyperlink { Reference = reference, Location = normalizedLocation });
+                hyperlinks.Append(new Hyperlink {
+                    Reference = reference,
+                    Location = normalizedLocation,
+                    Tooltip = string.IsNullOrWhiteSpace(tooltip) ? null : tooltip
+                });
                 if (style) {
                     ApplyHyperlinkStyle(reference);
                 }
@@ -145,7 +158,8 @@ namespace OfficeIMO.Excel {
 
                 result[reference!] = new ExcelHyperlinkSnapshot {
                     IsExternal = isExternal,
-                    Target = target!
+                    Target = target!,
+                    Tooltip = string.IsNullOrWhiteSpace(hyperlink.Tooltip?.Value) ? null : hyperlink.Tooltip!.Value
                 };
             }
 
@@ -159,10 +173,11 @@ namespace OfficeIMO.Excel {
         /// <param name="url">Target URL.</param>
         /// <param name="display">Optional display text. When null/empty, the URL is displayed.</param>
         /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
-        public void SetHyperlink(string a1, string url, string? display = null, bool style = true) {
+        /// <param name="tooltip">Optional ScreenTip text shown by spreadsheet applications.</param>
+        public void SetHyperlink(string a1, string url, string? display = null, bool style = true, string? tooltip = null) {
             var col = GetColumnIndex(a1);
             var row = GetRowIndex(a1);
-            SetHyperlink(row, col, url, display, style);
+            SetHyperlink(row, col, url, display, style, tooltip);
         }
         /// <example>
         /// sheet.SetHyperlink("B5", "https://contoso.com");
@@ -176,7 +191,8 @@ namespace OfficeIMO.Excel {
         /// <param name="location">Target location inside the workbook (e.g., "'Summary'!A1").</param>
         /// <param name="display">Optional display text. When null/empty, <paramref name="location"/> is displayed.</param>
         /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
-        public void SetInternalLink(int row, int column, string location, string? display = null, bool style = true) {
+        /// <param name="tooltip">Optional ScreenTip text shown by spreadsheet applications.</param>
+        public void SetInternalLink(int row, int column, string location, string? display = null, bool style = true, string? tooltip = null) {
             if (string.IsNullOrWhiteSpace(location)) throw new ArgumentNullException(nameof(location));
             string normalizedLocation = SheetNameLookup.NormalizeExistingInternalLocation(_excelDocument.Sheets, location);
             WriteLock(() => {
@@ -192,7 +208,11 @@ namespace OfficeIMO.Excel {
                 } else {
                     RemoveHyperlinksByReference(hyperlinks, reference);
                 }
-                var hl = new Hyperlink { Reference = reference, Location = normalizedLocation };
+                var hl = new Hyperlink {
+                    Reference = reference,
+                    Location = normalizedLocation,
+                    Tooltip = string.IsNullOrWhiteSpace(tooltip) ? null : tooltip
+                };
                 hyperlinks.Append(hl);
                 // Defer save to caller; final document Save() will persist
                 var cell = GetCell(row, column);
@@ -213,11 +233,12 @@ namespace OfficeIMO.Excel {
         /// <param name="a1">A1 reference on the target sheet.</param>
         /// <param name="display">Optional display text. When null/empty, the location is displayed.</param>
         /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
-        public void SetInternalLink(int row, int column, ExcelSheet target, string a1, string? display = null, bool style = true) {
+        /// <param name="tooltip">Optional ScreenTip text shown by spreadsheet applications.</param>
+        public void SetInternalLink(int row, int column, ExcelSheet target, string a1, string? display = null, bool style = true, string? tooltip = null) {
             if (target == null) throw new ArgumentNullException(nameof(target));
             if (string.IsNullOrWhiteSpace(a1)) throw new ArgumentNullException(nameof(a1));
             string loc = $"'{EscapeSheetNameForLink(target.Name)}'!{a1}";
-            SetInternalLink(row, column, loc, display, style);
+            SetInternalLink(row, column, loc, display, style, tooltip);
         }
 
         private void ApplyHyperlinkStyle(Cell cell) {

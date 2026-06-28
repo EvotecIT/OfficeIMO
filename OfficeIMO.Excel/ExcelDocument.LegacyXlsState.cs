@@ -1,5 +1,7 @@
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -54,19 +56,115 @@ namespace OfficeIMO.Excel {
             return document;
         }
 
-        private void EnsureLegacyXlsCanSaveToPath(string path) {
-            if (!WasLoadedFromLegacyXls) {
-                return;
+        private void EnsureLegacyBinaryExcelSaveTargetSupported(string path, bool allowNativeXls) {
+            if (ExcelDocumentLoadRouting.HasLegacyXlsExtension(path)) {
+                if (allowNativeXls) {
+                    return;
+                }
+
+                throw new NotSupportedException("Native XLS encrypted saving is not supported. Save encrypted workbooks to an .xlsx path instead.");
             }
 
             if (!ExcelDocumentLoadRouting.HasLegacyBinaryExcelExtension(path)) {
                 return;
             }
 
+            if (!WasLoadedFromLegacyXls) {
+                throw new NotSupportedException("Native XLS saving currently supports .xls workbook files only. Legacy .xlt, .xla, .xlm, and .xlw save targets are not supported.");
+            }
+
             string source = string.IsNullOrWhiteSpace(_legacyXlsSourcePath)
-                ? "a legacy binary .xls source"
-                : $"legacy binary .xls source '{_legacyXlsSourcePath}'";
-            throw new NotSupportedException($"Native XLS saving is not supported. This workbook was loaded from {source}; save it to an .xlsx path instead.");
+                ? "a legacy binary Excel source"
+                : $"legacy binary Excel source '{_legacyXlsSourcePath}'";
+            throw new NotSupportedException($"Native XLS saving currently supports .xls workbook files only. This workbook was loaded from {source}; legacy .xlt, .xla, .xlm, and .xlw save targets are not supported.");
+        }
+
+        private bool TrySaveNativeLegacyXlsToFile(string path, bool openExcel, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
+            if (!ExcelDocumentLoadRouting.HasLegacyXlsExtension(path)) {
+                return false;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            PrepareWorkbookForSave(options);
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
+            cancellationToken.ThrowIfCancellationRequested();
+            CommitPreparedPackageToFile(path, xlsBytes);
+            FilePath = path;
+            MarkPackageClean(null);
+            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
+
+            if (openExcel) {
+                Helpers.Open(path, true);
+            }
+
+            return true;
+        }
+
+        private async Task<bool> TrySaveNativeLegacyXlsToFileAsync(string path, bool openExcel, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
+            if (!ExcelDocumentLoadRouting.HasLegacyXlsExtension(path)) {
+                return false;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            PrepareWorkbookForSave(options);
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
+            cancellationToken.ThrowIfCancellationRequested();
+            await CommitPreparedPackageToFileAsync(path, xlsBytes, cancellationToken).ConfigureAwait(false);
+            FilePath = path;
+            MarkPackageClean(null);
+            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
+
+            if (openExcel) {
+                Open(path, true);
+            }
+
+            return true;
+        }
+
+        private bool TrySaveNativeLegacyXlsToStream(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
+            if (options?.StreamFormat != ExcelStreamSaveFormat.LegacyXls) {
+                return false;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            PrepareWorkbookForSave(options);
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
+            cancellationToken.ThrowIfCancellationRequested();
+            PrepareDestinationStreamForWrite(destination);
+            destination.Write(xlsBytes, 0, xlsBytes.Length);
+            try { destination.Flush(); } catch (NotSupportedException) { }
+            MarkPackageClean(null);
+            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS stream save used the first-party BIFF8 writer.");
+            return true;
+        }
+
+        private async Task<bool> TrySaveNativeLegacyXlsToStreamAsync(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
+            if (options?.StreamFormat != ExcelStreamSaveFormat.LegacyXls) {
+                return false;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            PrepareWorkbookForSave(options);
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
+            cancellationToken.ThrowIfCancellationRequested();
+            PrepareDestinationStreamForWrite(destination);
+            await destination.WriteAsync(xlsBytes, 0, xlsBytes.Length, cancellationToken).ConfigureAwait(false);
+            try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
+            MarkPackageClean(null);
+            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS stream save used the first-party BIFF8 writer.");
+            return true;
+        }
+
+        private static void EnsureLegacyBinaryEncryptedSaveTargetSupported(string path) {
+            if (!ExcelDocumentLoadRouting.HasLegacyBinaryExcelExtension(path)) {
+                return;
+            }
+
+            throw new NotSupportedException("Encrypted saving is supported for Office Open XML workbooks only. Save encrypted workbooks to an .xlsx path instead.");
         }
     }
 }

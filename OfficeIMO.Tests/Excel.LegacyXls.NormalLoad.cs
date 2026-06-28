@@ -67,6 +67,163 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task LegacyXls_NormalLoad_SaveAsyncPathProducesValidXlsx() {
+            byte[] compound = CreateMinimalLegacyXlsCompound();
+            string sourcePath = WriteTempWorkbook(compound, ".xls");
+            string outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+
+            try {
+                using ExcelDocument document = ExcelDocument.Load(sourcePath);
+
+                await document.SaveAsync(outputPath, openExcel: false);
+
+                using ExcelDocument converted = ExcelDocument.Load(outputPath);
+                Assert.False(converted.WasLoadedFromLegacyXls);
+                Assert.True(converted.Sheets[0].TryGetCellText(1, 1, out string? header));
+                Assert.Equal("Name", header);
+                Assert.True(converted.Sheets[0].TryGetCellText(2, 2, out string? amount));
+                Assert.Equal("42", amount);
+            } finally {
+                TryDelete(sourcePath);
+                TryDelete(outputPath);
+            }
+        }
+
+        [Fact]
+        public async Task LegacyXls_NormalLoad_SaveAsyncStreamProducesValidXlsx() {
+            byte[] compound = CreateMinimalLegacyXlsCompound();
+
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(compound));
+            using var output = new MemoryStream();
+
+            await document.SaveAsync(output);
+
+            output.Position = 0;
+            using ExcelDocument converted = ExcelDocument.Load(output);
+            Assert.False(converted.WasLoadedFromLegacyXls);
+            Assert.True(converted.Sheets[0].TryGetCellText(1, 1, out string? header));
+            Assert.Equal("Name", header);
+            Assert.True(converted.Sheets[0].TryGetCellText(2, 2, out string? amount));
+            Assert.Equal("42", amount);
+        }
+
+        [Fact]
+        public void LegacyXls_NormalLoad_SaveEncryptedPathProducesEncryptedXlsx() {
+            const string password = "legacy-xls-secret";
+            byte[] compound = CreateMinimalLegacyXlsCompound();
+            string sourcePath = WriteTempWorkbook(compound, ".xls");
+            string outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+
+            try {
+                using ExcelDocument document = ExcelDocument.Load(sourcePath);
+
+                document.SaveEncrypted(outputPath, password);
+
+                Assert.ThrowsAny<Exception>(() => SpreadsheetDocument.Open(outputPath, false).Dispose());
+                using ExcelDocument decrypted = ExcelDocument.LoadEncrypted(outputPath, password);
+                Assert.False(decrypted.WasLoadedFromLegacyXls);
+                Assert.True(decrypted.Sheets[0].TryGetCellText(1, 1, out string? header));
+                Assert.Equal("Name", header);
+                Assert.True(decrypted.Sheets[0].TryGetCellText(2, 2, out string? amount));
+                Assert.Equal("42", amount);
+            } finally {
+                TryDelete(sourcePath);
+                TryDelete(outputPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NormalLoad_SaveEncryptedStreamProducesEncryptedXlsx() {
+            const string password = "legacy-xls-secret";
+            byte[] compound = CreateMinimalLegacyXlsCompound();
+
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(compound));
+            using var output = new MemoryStream();
+
+            document.SaveEncrypted(output, password);
+
+            output.Position = 0;
+            Assert.ThrowsAny<Exception>(() => SpreadsheetDocument.Open(output, false).Dispose());
+
+            output.Position = 0;
+            using ExcelDocument decrypted = ExcelDocument.LoadEncrypted(output, password);
+            Assert.False(decrypted.WasLoadedFromLegacyXls);
+            Assert.True(decrypted.Sheets[0].TryGetCellText(1, 1, out string? header));
+            Assert.Equal("Name", header);
+            Assert.True(decrypted.Sheets[0].TryGetCellText(2, 2, out string? amount));
+            Assert.Equal("42", amount);
+        }
+
+        [Fact]
+        public void LegacyXls_NormalLoad_RenamedOpenXmlWithXlsExtensionUsesOpenXmlLoader() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string renamedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorkSheet("OpenXml");
+                    sheet.CellValue(1, 1, "Open XML payload");
+                    document.Save();
+                }
+
+                File.Copy(openXmlPath, renamedPath);
+
+                using ExcelDocument renamed = ExcelDocument.Load(renamedPath);
+                Assert.False(renamed.WasLoadedFromLegacyXls);
+                Assert.Equal(renamedPath, renamed.FilePath);
+                Assert.True(renamed.Sheets[0].TryGetCellText(1, 1, out string? value));
+                Assert.Equal("Open XML payload", value);
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(renamedPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NormalLoad_EmptyXlsExtensionThrowsClearCompoundDiagnostic() {
+            string sourcePath = WriteTempWorkbook(Array.Empty<byte>(), ".xls");
+
+            try {
+                InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(sourcePath));
+
+                Assert.Contains("Legacy XLS import failed", exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("XLS-COMPOUND-SIGNATURE", exception.Message, StringComparison.Ordinal);
+            } finally {
+                TryDelete(sourcePath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NormalLoad_ShortOleSignatureThrowsClearCompoundDiagnostic() {
+            byte[] bytes = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(new MemoryStream(bytes)));
+
+            Assert.Contains("Legacy XLS import failed", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("XLS-COMPOUND-SIGNATURE", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void LegacyXls_NormalLoad_CorruptOleCompoundThrowsClearCompoundDiagnostic() {
+            byte[] bytes = LegacyXlsCompoundTestBuilder.CreateCompoundHeaderWithInvalidSectorChain();
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(new MemoryStream(bytes)));
+
+            Assert.Contains("Legacy XLS import failed", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("XLS-COMPOUND-CORRUPT", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void LegacyXls_NormalLoad_NonExcelOleCompoundThrowsMissingWorkbookDiagnostic() {
+            byte[] bytes = LegacyXlsCompoundTestBuilder.CreateNonExcelCompoundFile();
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(new MemoryStream(bytes)));
+
+            Assert.Contains("Legacy XLS import failed", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("XLS-WORKBOOK-STREAM-MISSING", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public async Task LegacyXls_NormalLoad_AsyncStreamProjectsToExcelDocument() {
             byte[] compound = CreateMinimalLegacyXlsCompound();
 
@@ -92,7 +249,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NormalLoad_RejectsNativeXlsSaveTargets() {
+        public void LegacyXls_NormalLoad_SavesNativeXlsTargets() {
             byte[] compound = CreateMinimalLegacyXlsCompound();
             string sourcePath = WriteTempWorkbook(compound, ".xls");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
@@ -100,22 +257,26 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = ExcelDocument.Load(sourcePath);
 
-                NotSupportedException implicitSave = Assert.Throws<NotSupportedException>(() => document.Save());
-                NotSupportedException explicitSave = Assert.Throws<NotSupportedException>(() => document.Save(xlsOutputPath));
+                document.Save();
+                AssertNativeXlsRoundTrip(sourcePath);
 
-                Assert.Contains("Native XLS saving is not supported", implicitSave.Message, StringComparison.OrdinalIgnoreCase);
-                Assert.Contains("Native XLS saving is not supported", explicitSave.Message, StringComparison.OrdinalIgnoreCase);
+                document.Save(xlsOutputPath);
+                AssertNativeXlsRoundTrip(xlsOutputPath);
             } finally {
                 TryDelete(sourcePath);
                 TryDelete(xlsOutputPath);
             }
         }
 
-        [Fact]
-        public void LegacyXls_NormalLoad_RejectsLegacyTemplateSaveTargets() {
+        [Theory]
+        [InlineData(".xlt")]
+        [InlineData(".xla")]
+        [InlineData(".xlm")]
+        [InlineData(".xlw")]
+        public void LegacyXls_NormalLoad_RejectsLegacyBinaryExcelSaveTargets(string extension) {
             byte[] compound = CreateMinimalLegacyXlsCompound();
-            string sourcePath = WriteTempWorkbook(compound, ".xlt");
-            string xltOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlt");
+            string sourcePath = WriteTempWorkbook(compound, extension);
+            string outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
 
             try {
                 using ExcelDocument document = ExcelDocument.Load(sourcePath);
@@ -123,15 +284,47 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.WasLoadedFromLegacyXls);
                 Assert.Equal(sourcePath, document.FilePath);
                 Assert.Throws<NotSupportedException>(() => document.Save());
-                Assert.Throws<NotSupportedException>(() => document.Save(xltOutputPath));
+                Assert.Throws<NotSupportedException>(() => document.Save(outputPath));
             } finally {
                 TryDelete(sourcePath);
-                TryDelete(xltOutputPath);
+                TryDelete(outputPath);
+            }
+        }
+
+        [Theory]
+        [InlineData(".xlt")]
+        [InlineData(".xla")]
+        [InlineData(".xlm")]
+        [InlineData(".xlw")]
+        public void LegacyXls_ExplicitLoad_RejectsLegacyBinaryExcelSaveTargets(string extension) {
+            byte[] compound = CreateMinimalLegacyXlsCompound();
+            string sourcePath = WriteTempWorkbook(compound, extension);
+            string outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
+
+            try {
+                using (ExcelDocument document = ExcelDocument.LoadLegacyXls(sourcePath)) {
+                    Assert.True(document.WasLoadedFromLegacyXls);
+                    Assert.Equal(sourcePath, document.FilePath);
+
+                    AssertLegacyBinarySaveTargetRejected(() => document.Save());
+                    AssertLegacyBinarySaveTargetRejected(() => document.Save(outputPath));
+                }
+
+                using (LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(sourcePath)) {
+                    Assert.True(result.Document.WasLoadedFromLegacyXls);
+                    Assert.Equal(sourcePath, result.Document.FilePath);
+
+                    AssertLegacyBinarySaveTargetRejected(() => result.Document.Save());
+                    AssertLegacyBinarySaveTargetRejected(() => result.Document.Save(outputPath));
+                }
+            } finally {
+                TryDelete(sourcePath);
+                TryDelete(outputPath);
             }
         }
 
         [Fact]
-        public void LegacyXls_ExplicitLoad_RejectsNativeXlsSaveTargets() {
+        public void LegacyXls_ExplicitLoad_SavesNativeXlsTargets() {
             byte[] compound = CreateMinimalLegacyXlsCompound();
             string sourcePath = WriteTempWorkbook(compound, ".xls");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
@@ -141,8 +334,11 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.WasLoadedFromLegacyXls);
                 Assert.Equal(sourcePath, document.FilePath);
-                Assert.Throws<NotSupportedException>(() => document.Save());
-                Assert.Throws<NotSupportedException>(() => document.Save(xlsOutputPath));
+                document.Save();
+                AssertNativeXlsRoundTrip(sourcePath);
+
+                document.Save(xlsOutputPath);
+                AssertNativeXlsRoundTrip(xlsOutputPath);
             } finally {
                 TryDelete(sourcePath);
                 TryDelete(xlsOutputPath);
@@ -150,7 +346,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_ExplicitLoadWithReport_RejectsNativeXlsSaveTargets() {
+        public void LegacyXls_ExplicitLoadWithReport_SavesNativeXlsTargets() {
             byte[] compound = CreateMinimalLegacyXlsCompound();
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
@@ -158,8 +354,32 @@ namespace OfficeIMO.Tests {
                 using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound));
 
                 Assert.True(result.Document.WasLoadedFromLegacyXls);
-                Assert.Throws<NotSupportedException>(() => result.Document.Save(xlsOutputPath));
+                result.Document.Save(xlsOutputPath);
+                AssertNativeXlsRoundTrip(xlsOutputPath);
             } finally {
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NativeSave_WritesBasicScalarWorkbook() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(2, 1, "Alice");
+                    sheet.CellValue(2, 2, 42);
+                    sheet.CellValue(3, 1, true);
+
+                    document.Save(xlsOutputPath);
+                }
+
+                AssertNativeXlsRoundTrip(xlsOutputPath, expectedRow2Name: "Alice");
+            } finally {
+                TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
             }
         }
@@ -254,9 +474,61 @@ namespace OfficeIMO.Tests {
             Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
         }
 
+        [Fact]
+        public void LegacyXls_LoadPolicyGuards_ShowHowCallersCanRejectUnsafeConversions() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedFeatureWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            result.EnsureNoImportErrors();
+            InvalidOperationException unsupported = Assert.Throws<InvalidOperationException>(() => result.EnsureNoUnsupportedFeatures());
+            Assert.Contains("unsupported or preserve-only features", unsupported.Message, StringComparison.OrdinalIgnoreCase);
+
+            ExcelFeatureReport featureReport = result.Document.InspectFeatures();
+            Assert.Throws<InvalidOperationException>(() => featureReport.EnsureNoUnsupportedFeatures());
+            Assert.Throws<InvalidOperationException>(() => featureReport.EnsureNoAdvancedFeatures());
+        }
+
+        private static void AssertLegacyBinarySaveTargetRejected(Action saveAction) {
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(saveAction);
+            Assert.Contains(".xls workbook files only", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(".xlt, .xla, .xlm, and .xlw", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
         private static byte[] CreateMinimalLegacyXlsCompound() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
             return LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+        }
+
+        private static void AssertNativeXlsRoundTrip(string path, string expectedName = "Name", string expectedAmount = "42", string expectedFlag = "1", string? expectedRow2Name = null) {
+            byte[] bytes = File.ReadAllBytes(path);
+            Assert.True(bytes.Length > 8);
+            Assert.Equal(0xd0, bytes[0]);
+            Assert.Equal(0xcf, bytes[1]);
+            Assert.Equal(0x11, bytes[2]);
+            Assert.Equal(0xe0, bytes[3]);
+
+            using ExcelDocument normal = ExcelDocument.Load(path);
+            Assert.True(normal.WasLoadedFromLegacyXls);
+            Assert.True(normal.Sheets[0].TryGetCellText(1, 1, out string? name));
+            Assert.Equal(expectedName, name);
+            if (expectedRow2Name != null) {
+                Assert.True(normal.Sheets[0].TryGetCellText(2, 1, out string? row2Name));
+                Assert.Equal(expectedRow2Name, row2Name);
+            }
+
+            Assert.True(normal.Sheets[0].TryGetCellText(2, 2, out string? amount));
+            Assert.Equal(expectedAmount, amount);
+            Assert.True(normal.Sheets[0].TryGetCellText(3, 1, out string? flag));
+            Assert.Equal(expectedFlag, flag);
+
+            using ExcelDocument explicitLoad = ExcelDocument.LoadLegacyXls(path);
+            Assert.True(explicitLoad.WasLoadedFromLegacyXls);
+            Assert.True(explicitLoad.Sheets[0].TryGetCellText(1, 1, out string? explicitName));
+            Assert.Equal(expectedName, explicitName);
         }
 
         private static string WriteTempWorkbook(byte[] bytes, string extension) {

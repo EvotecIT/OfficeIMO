@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -429,7 +430,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PivotTable && feature.DetailCode == "PivotTable:Sxvs");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.FeatureExtension && feature.DetailCode == "FeatureExtension:Feat");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting && feature.DetailCode == "ConditionalFormatting:Dxf");
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.TableStyle && feature.DetailCode == "TableStyle:TableStyles");
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.TableStyle && feature.DetailCode == "TableStyle:TableStyles");
             LegacyXlsThemeRecord themeRecord = Assert.Single(legacy.ThemeRecords);
             Assert.Equal(0x0896, themeRecord.RecordType);
             Assert.Equal(124226U, themeRecord.ThemeVersion);
@@ -438,7 +439,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Theme && feature.DetailCode == "Theme:Theme" && feature.RecordType == 0x0896);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject && feature.DetailCode == "Drawing:ShapePropsStream");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Chart && feature.DetailCode == "Chart:CrtLayout12");
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PhoneticGuide && feature.DetailCode == "PhoneticGuide:PhoneticInfo");
+            Assert.Contains(legacy.Worksheets, sheet => sheet.PhoneticSettings != null);
+            Assert.Contains(legacy.Worksheets.SelectMany(sheet => sheet.MetadataRecords), record => record.Kind == LegacyXlsWorksheetMetadataKind.PhoneticSettings && record.RecordType == (ushort)BiffRecordType.PhoneticInfo);
             Assert.Equal(legacy.UnsupportedFeatures.Count, legacy.PreservedFeatureRecords.Count);
             LegacyXlsExternalQueryConnection queryConnection = Assert.Single(legacy.ExternalQueryConnections);
             Assert.Equal((ushort)BiffRecordType.DbQueryExt, queryConnection.RecordType);
@@ -458,7 +460,7 @@ namespace OfficeIMO.Tests {
 
             LegacyXlsImportReport report = legacy.CreateImportReport();
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:Dxf"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["TableStyle|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED|TableStyle:TableStyles"]);
+            Assert.DoesNotContain("TableStyle|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED|TableStyle:TableStyles", report.UnsupportedFeaturesByDetail.Keys);
             Assert.Equal(10, report.WorkbookFutureMetadataRecordCount);
             Assert.Equal(1, report.WorkbookFutureMetadataRecordsByKind["PageLayoutView"]);
             Assert.Equal(1, report.WorkbookFutureMetadataRecordsByKind["Compatibility12"]);
@@ -758,10 +760,21 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(layout.FreezePane);
             Assert.Equal(2, layout.FreezePane!.TopRows);
             Assert.Equal(1, layout.FreezePane.LeftColumns);
+            Assert.True(layout.FrozenWithoutSplit);
             Assert.False(layout.ShowGridLines);
+            Assert.True(layout.ShowFormulas);
             Assert.False(layout.ShowRowColumnHeadings);
             Assert.False(layout.ShowZeroValues);
             Assert.True(layout.RightToLeft);
+            Assert.False(layout.DefaultGridColor);
+            Assert.Equal((ushort)22, layout.GridLineColorIndex);
+            Assert.False(layout.ShowOutlineSymbols);
+            Assert.True(layout.TabSelected);
+            Assert.True(layout.PageBreakPreview);
+            Assert.Equal(120U, layout.ZoomScale);
+            Assert.Equal(90U, layout.ZoomScaleNormal);
+            Assert.Equal(4, layout.FirstVisibleRow);
+            Assert.Equal(2, layout.FirstVisibleColumn);
             Assert.Equal(18.5d, layout.DefaultRowHeight);
             Assert.False(layout.DefaultRowsHidden);
             Assert.Equal(11d, layout.DefaultColumnWidth);
@@ -811,6 +824,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(18.5d, projected.DefaultRowHeight);
             Assert.False(projected.DefaultRowsHidden);
             Assert.Equal(11d, projected.DefaultColumnWidth);
+            ExcelWorksheetViewInfo projectedView = projected.GetViewInfo();
+            Assert.Equal(120U, projectedView.ZoomScale);
+            Assert.Equal(90U, projectedView.ZoomScaleNormal);
 
             using var output = new MemoryStream();
             document.Save(output);
@@ -830,11 +846,20 @@ namespace OfficeIMO.Tests {
             Row openXmlRow = worksheet.GetFirstChild<SheetData>()!.Elements<Row>().Single(r => r.RowIndex!.Value == 2U);
             Assert.Equal(2d, pane.VerticalSplit!.Value);
             Assert.Equal(1d, pane.HorizontalSplit!.Value);
-            Assert.Equal(PaneStateValues.Frozen, pane.State!.Value);
+            Assert.Equal(PaneStateValues.FrozenSplit, pane.State!.Value);
             Assert.False(sheetView.ShowGridLines!.Value);
+            Assert.True(sheetView.ShowFormulas!.Value);
             Assert.False(sheetView.ShowRowColHeaders!.Value);
             Assert.False(sheetView.ShowZeros!.Value);
             Assert.True(sheetView.RightToLeft!.Value);
+            Assert.False(sheetView.DefaultGridColor!.Value);
+            Assert.Equal(22U, sheetView.ColorId!.Value);
+            Assert.False(sheetView.ShowOutlineSymbols!.Value);
+            Assert.True(sheetView.TabSelected!.Value);
+            Assert.Equal(SheetViewValues.PageBreakPreview, sheetView.View!.Value);
+            Assert.Equal(120U, sheetView.ZoomScale!.Value);
+            Assert.Equal(90U, sheetView.ZoomScaleNormal!.Value);
+            Assert.Equal("C5", sheetView.TopLeftCell!.Value);
             Assert.Equal(18.5d, sheetFormat.DefaultRowHeight!.Value);
             Assert.Equal(11d, sheetFormat.DefaultColumnWidth!.Value);
             Assert.True(sheetFormat.CustomHeight!.Value);
@@ -842,6 +867,41 @@ namespace OfficeIMO.Tests {
             Assert.True(openXmlColumn.Collapsed!.Value);
             Assert.Equal(1, openXmlRow.OutlineLevel!.Value);
             Assert.True(openXmlRow.Collapsed!.Value);
+        }
+
+        [Fact]
+        public void LegacyXls_LoadLegacyXls_ImportsAndProjectsNonFrozenSplitPaneRecords() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateSplitPaneWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.Empty(result.UnsupportedFeatures.Where(item =>
+                item.Kind == LegacyXlsUnsupportedFeatureKind.WorksheetView
+                && item.RecordType == (ushort)BiffRecordType.Pane));
+            Assert.DoesNotContain(result.Diagnostics, diagnostic =>
+                diagnostic.Code == "XLS-BIFF-FEATURE-WORKSHEET-VIEW-UNSUPPORTED"
+                && diagnostic.RecordType == (ushort)BiffRecordType.Pane);
+
+            LegacyXlsWorksheet legacySheet = Assert.Single(result.Workbook.Worksheets);
+            Assert.NotNull(legacySheet.SplitPane);
+            Assert.Equal((ushort)1200, legacySheet.SplitPane!.HorizontalSplit);
+            Assert.Equal((ushort)900, legacySheet.SplitPane.VerticalSplit);
+            Assert.Equal((ushort)900, legacySheet.SplitPane.TopRow);
+            Assert.Equal((ushort)1200, legacySheet.SplitPane.LeftColumn);
+            Assert.Equal((byte)0, legacySheet.SplitPane.ActivePane);
+
+            Pane projectedPane = result.Document.Sheets.Single().WorksheetPart.Worksheet
+                .GetFirstChild<SheetViews>()!
+                .GetFirstChild<SheetView>()!
+                .GetFirstChild<Pane>()!;
+            Assert.Equal(PaneStateValues.Split, projectedPane.State!.Value);
+            Assert.Equal(1200D, projectedPane.HorizontalSplit!.Value);
+            Assert.Equal(900D, projectedPane.VerticalSplit!.Value);
+            Assert.Equal(A1.CellReference(901, 1201), projectedPane.TopLeftCell!.Value);
+            Assert.Equal(PaneValues.BottomRight, projectedPane.ActivePane!.Value);
         }
 
         [Fact]
@@ -929,6 +989,8 @@ namespace OfficeIMO.Tests {
             Assert.True(legacy.Fonts[4].Underline);
             Assert.True(legacy.Fonts[4].Strikeout);
             Assert.Equal(LegacyXlsFontEscapement.Superscript, legacy.Fonts[4].Escapement);
+            Assert.Equal((byte)2, legacy.Fonts[4].Family);
+            Assert.Equal((byte)238, legacy.Fonts[4].CharacterSet);
             Assert.Equal("Courier New", legacy.Fonts[5].Name);
             Assert.Equal(LegacyXlsFontEscapement.Subscript, legacy.Fonts[5].Escapement);
             Assert.Equal(56, legacy.PaletteColors.Count);
@@ -1072,6 +1134,9 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(projectedFont.Underline);
             Assert.NotNull(projectedFont.Strike);
             Assert.Equal(VerticalAlignmentRunValues.Superscript, projectedFont.VerticalTextAlignment!.Val!.Value);
+            Assert.True(projectedFont.FontFamilyNumbering!.Val!.Value == 2U);
+            OpenXmlElement projectedCharset = Assert.Single(projectedFont.ChildElements, child => child.LocalName == "charset");
+            Assert.Equal("238", projectedCharset.GetAttribute("val", string.Empty).Value);
 
             Cell subscriptCell = cells["K1"];
             Assert.NotNull(subscriptCell.StyleIndex);
@@ -1502,6 +1567,25 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreateSplitPaneWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long splitBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "SplitPane"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int splitSheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Split"));
+                WriteRecord(stream, 0x023e, BuildWindow2Payload(frozen: false));
+                WriteRecord(stream, 0x0041, BuildPanePayload(leftColumns: 1200, topRows: 900));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(splitSheetOffset), 0, bytes, checked((int)splitBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase3LayoutWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -1520,7 +1604,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Merged"));
                 WriteRecord(stream, 0x007d, BuildColInfoPayload(1, 1, 12.5d, hidden: true, styleIndex: 3, outlineLevel: 2, collapsed: true));
                 WriteRecord(stream, 0x0208, BuildRowPayload(1, 18d, hidden: true, customHeight: true, outlineLevel: 1, collapsed: true));
-                WriteRecord(stream, 0x023e, BuildWindow2Payload(frozen: true, showGridlines: false, showRowColumnHeadings: false, showZeroValues: false, rightToLeft: true));
+                WriteRecord(stream, 0x023e, BuildWindow2Payload(frozen: true, frozenWithoutSplit: true, showFormulas: true, showGridlines: false, showRowColumnHeadings: false, showZeroValues: false, defaultGridColor: false, gridLineColorIndex: 22, rightToLeft: true, showOutlineSymbols: false, tabSelected: true, pageBreakPreview: true, firstVisibleRow: 4, firstVisibleColumn: 2, pageBreakPreviewZoom: 120, normalZoom: 90));
                 WriteRecord(stream, 0x0041, BuildPanePayload(leftColumns: 1, topRows: 2));
                 WriteRecord(stream, 0x001d, BuildSelectionPayload(pane: 3));
                 WriteRecord(stream, 0x00e5, BuildMergeCellsPayload((0, 0, 0, 2)));
@@ -1552,7 +1636,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0031, BuildFontPayload("Arial", 11d, bold: true, italic: false, underline: false));
                 WriteRecord(stream, 0x0031, BuildFontPayload("Arial", 11d, bold: false, italic: true, underline: false));
                 WriteRecord(stream, 0x0031, BuildFontPayload("Arial", 11d, bold: true, italic: true, underline: false));
-                WriteRecord(stream, 0x0031, BuildFontPayload("Consolas", 14d, bold: true, italic: true, underline: true, strikeout: true, colorIndex: 0x0008, escapement: 1));
+                WriteRecord(stream, 0x0031, BuildFontPayload("Consolas", 14d, bold: true, italic: true, underline: true, strikeout: true, colorIndex: 0x0008, escapement: 1, family: 2, characterSet: 238));
                 WriteRecord(stream, 0x0031, BuildFontPayload("Courier New", 11d, bold: false, italic: false, underline: false, escapement: 2));
                 WriteRecord(stream, 0x0092, BuildPalettePayload("FF123456", "FFABCDEF", "FF654321"));
                 WriteRecord(stream, 0x041e, BuildFormatPayload(164, "yyyy-mm-dd"));
@@ -2164,7 +2248,7 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            private static byte[] BuildFontPayload(string name, double size, bool bold, bool italic, bool underline, bool strikeout = false, ushort colorIndex = 0x7FFF, ushort escapement = 0) {
+            private static byte[] BuildFontPayload(string name, double size, bool bold, bool italic, bool underline, bool strikeout = false, ushort colorIndex = 0x7FFF, ushort escapement = 0, byte family = 2, byte characterSet = 0) {
                 byte[] nameBytes = Encoding.ASCII.GetBytes(name);
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, checked((ushort)Math.Round(size * 20d)));
@@ -2182,8 +2266,8 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, bold ? (ushort)700 : (ushort)400);
                 WriteUInt16(stream, escapement);
                 stream.WriteByte(underline ? (byte)1 : (byte)0);
-                stream.WriteByte(2);
-                stream.WriteByte(0);
+                stream.WriteByte(family);
+                stream.WriteByte(characterSet);
                 stream.WriteByte(0);
                 stream.WriteByte(checked((byte)name.Length));
                 stream.WriteByte(0);
@@ -2278,9 +2362,13 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            private static byte[] BuildWindow2Payload(bool frozen, bool showGridlines = true, bool showRowColumnHeadings = true, bool showZeroValues = true, bool rightToLeft = false) {
+            private static byte[] BuildWindow2Payload(bool frozen, bool frozenWithoutSplit = false, bool showFormulas = false, bool showGridlines = true, bool showRowColumnHeadings = true, bool showZeroValues = true, bool defaultGridColor = true, ushort gridLineColorIndex = 64, bool rightToLeft = false, bool showOutlineSymbols = true, bool tabSelected = false, bool pageBreakPreview = false, ushort firstVisibleRow = 0, ushort firstVisibleColumn = 0, ushort pageBreakPreviewZoom = 0, ushort normalZoom = 0) {
                 using var stream = new MemoryStream();
                 ushort options = 0;
+                if (showFormulas) {
+                    options |= 0x0001;
+                }
+
                 if (showGridlines) {
                     options |= 0x0002;
                 }
@@ -2297,17 +2385,37 @@ namespace OfficeIMO.Tests {
                     options |= 0x0010;
                 }
 
+                if (defaultGridColor) {
+                    options |= 0x0020;
+                }
+
                 if (rightToLeft) {
                     options |= 0x0040;
                 }
 
+                if (showOutlineSymbols) {
+                    options |= 0x0080;
+                }
+
+                if (frozen && frozenWithoutSplit) {
+                    options |= 0x0100;
+                }
+
+                if (tabSelected) {
+                    options |= 0x0200;
+                }
+
+                if (pageBreakPreview) {
+                    options |= 0x0800;
+                }
+
                 WriteUInt16(stream, options);
+                WriteUInt16(stream, firstVisibleRow);
+                WriteUInt16(stream, firstVisibleColumn);
+                WriteUInt16(stream, gridLineColorIndex);
                 WriteUInt16(stream, 0);
-                WriteUInt16(stream, 0);
-                WriteUInt16(stream, 64);
-                WriteUInt16(stream, 0);
-                WriteUInt16(stream, 0);
-                WriteUInt16(stream, 0);
+                WriteUInt16(stream, pageBreakPreviewZoom);
+                WriteUInt16(stream, normalZoom);
                 WriteUInt16(stream, 0);
                 WriteUInt16(stream, 0);
                 return stream.ToArray();

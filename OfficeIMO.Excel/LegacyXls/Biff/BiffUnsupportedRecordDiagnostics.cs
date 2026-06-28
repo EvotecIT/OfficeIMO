@@ -179,6 +179,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 code = "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED";
                 message = "Conditional formatting records are present but conditional formatting import is not implemented in this phase.";
                 detailCode = "ConditionalFormatting:" + GetBiffRecordName(type);
+            } else if (type == (ushort)BiffRecordType.Pane) {
+                kind = LegacyXlsUnsupportedFeatureKind.WorksheetView;
+                code = "XLS-BIFF-FEATURE-WORKSHEET-VIEW-UNSUPPORTED";
+                message = "A split pane record is present but non-frozen split panes are not projected by the current legacy XLS import phase.";
+                detailCode = "WorksheetView:Pane:Split";
             } else if (IsStyleExtensionRecord(type)) {
                 kind = LegacyXlsUnsupportedFeatureKind.StyleExtension;
                 code = "XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED";
@@ -189,6 +194,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 code = "XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED";
                 message = "Table style records are present but extended table style projection is not implemented in this phase.";
                 detailCode = "TableStyle:" + GetBiffRecordName(type);
+            } else if (IsTableDefinitionRecord(type)) {
+                kind = LegacyXlsUnsupportedFeatureKind.TableDefinition;
+                code = "XLS-BIFF-FEATURE-TABLE-DEFINITION-UNSUPPORTED";
+                message = "Legacy table/list definition records are present but editable worksheet table projection is not implemented in this phase.";
+                detailCode = "TableDefinition:" + GetBiffRecordName(type);
             } else if (IsThemeRecord(type)) {
                 kind = LegacyXlsUnsupportedFeatureKind.Theme;
                 code = "XLS-BIFF-FEATURE-THEME-UNSUPPORTED";
@@ -272,6 +282,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0042: return "CodePage";
                 case 0x004D: return "Pls";
                 case 0x0051: return "DConRef";
+                case 0x0052: return "DConName";
                 case 0x0059: return "Xct";
                 case 0x005A: return "Crn";
                 case 0x005C: return "WriteAccess";
@@ -376,7 +387,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0864: return "SxAddl";
                 case 0x0866: return "HFPicture";
                 case 0x0867: return "Feat";
+                case 0x0868: return "Feat";
+                case 0x0871: return "FeatHdr11";
+                case 0x0872: return "Feature11";
                 case 0x0875: return "DConn";
+                case 0x0877: return "List12";
+                case 0x0878: return "Feature12";
                 case 0x087A: return "Cf12";
                 case 0x087B: return "CfEx";
                 case 0x087C: return "XFCRC";
@@ -466,6 +482,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private static bool IsExternalReferenceRecord(ushort type) {
             return type == (ushort)BiffRecordType.ExternName
                 || type == (ushort)BiffRecordType.DConRef
+                || type == (ushort)BiffRecordType.DConName
                 || type == 0x0059 // XCT
                 || type == 0x005A // CRN
                 || type == 0x0801 // WebPub
@@ -510,6 +527,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || type == (ushort)BiffRecordType.TableStyleElement;
         }
 
+        private static bool IsTableDefinitionRecord(ushort type) {
+            return type == (ushort)BiffRecordType.FeatHdr11
+                || type == (ushort)BiffRecordType.Feature11
+                || type == (ushort)BiffRecordType.List12
+                || type == (ushort)BiffRecordType.Feature12;
+        }
+
         private static bool IsThemeRecord(ushort type) {
             return type == (ushort)BiffRecordType.Theme;
         }
@@ -527,12 +551,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || type == (ushort)BiffRecordType.FnGrp12
                 || type == (ushort)BiffRecordType.NameFnGrp12
                 || type == (ushort)BiffRecordType.MtrSettings
-                || type == (ushort)BiffRecordType.CompressPictures
-                || type == (ushort)BiffRecordType.HeaderFooter;
+                || type == (ushort)BiffRecordType.CompressPictures;
         }
 
         private static bool IsFeatureExtensionRecord(ushort type) {
-            return type == (ushort)BiffRecordType.Feat;
+            return type == (ushort)BiffRecordType.FeatHdr
+                || type == (ushort)BiffRecordType.Feat;
         }
 
         private static bool IsPhoneticGuideRecord(ushort type) {

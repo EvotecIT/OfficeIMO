@@ -75,6 +75,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.HiddenObjects, record.Offset, record.Type);
                     return true;
 
+                case BiffRecordType.FileSharing:
+                    if (TryReadFileSharing(record, diagnostics, out bool readOnlyRecommended, out ushort? passwordHash, out string? reservationUserName)) {
+                        workbook.SetWriteReservation(readOnlyRecommended, passwordHash, reservationUserName);
+                    }
+
+                    workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.FileSharing, record.Offset, record.Type);
+                    return true;
+
                 case BiffRecordType.InterfaceHdr:
                     if (TryReadUInt16(record, diagnostics, out ushort interfaceCodePage)) {
                         workbook.SetUserInterfaceCodePage(interfaceCodePage);
@@ -331,6 +339,48 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     recordOffset: record.Offset,
                     recordType: record.Type));
                 userName = null;
+                return false;
+            }
+        }
+
+        private static bool TryReadFileSharing(
+            BiffRecord record,
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            out bool readOnlyRecommended,
+            out ushort? passwordHash,
+            out string? userName) {
+            readOnlyRecommended = false;
+            passwordHash = null;
+            userName = null;
+            if (record.Payload.Length < 6) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-FILESHARING-SHORT",
+                    "The FileSharing workbook metadata record was too short to parse.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+                return false;
+            }
+
+            readOnlyRecommended = BiffRecordReader.ReadUInt16(record.Payload, 0) != 0;
+            ushort rawPasswordHash = BiffRecordReader.ReadUInt16(record.Payload, 2);
+            if (rawPasswordHash == 0) {
+                return true;
+            }
+
+            passwordHash = rawPasswordHash;
+            try {
+                int offset = 4;
+                string value = BiffStringReader.ReadUnicodeString(record.Payload, ref offset).TrimEnd('\0', ' ');
+                userName = string.IsNullOrWhiteSpace(value) ? null : value;
+                return true;
+            } catch (InvalidDataException ex) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-FILESHARING-USERNAME-INVALID",
+                    $"The FileSharing write-reservation user name could not be read. {ex.Message}",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
                 return false;
             }
         }

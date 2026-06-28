@@ -75,6 +75,35 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
         }
 
+        internal static bool TryReadFormula(
+            byte[] formulaBytes,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            IReadOnlyList<string> sheetNames,
+            IReadOnlyList<string?> definedNames,
+            out string? formulaText,
+            out BiffFormulaReadFailure? failure) {
+            formulaText = null;
+            failure = null;
+            if (formulaBytes.Length == 0) {
+                failure = BiffFormulaReadFailure.InvalidPayload("Defined-name formula token stream was empty.");
+                return false;
+            }
+
+            byte[] payload = PrefixFormulaLength(formulaBytes);
+            return BiffFormulaTextReader.TryRead(
+                payload,
+                parsedFormulaOffset: 0,
+                formulaRow: 0,
+                formulaColumn: 0,
+                externSheets,
+                externalReferences,
+                sheetNames,
+                definedNames,
+                out formulaText,
+                out failure);
+        }
+
         internal static bool TryReadPrintTitles(
             byte[] formulaBytes,
             IReadOnlyList<BiffExternSheetReference> externSheets,
@@ -183,6 +212,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static bool Is3dAreaToken(byte token) {
             return token == 0x3b || token == 0x5b || token == 0x7b;
+        }
+
+        private static byte[] PrefixFormulaLength(byte[] formulaBytes) {
+            byte[] payload = new byte[checked(formulaBytes.Length + 2)];
+            payload[0] = (byte)(formulaBytes.Length & 0xff);
+            payload[1] = (byte)((formulaBytes.Length >> 8) & 0xff);
+            Buffer.BlockCopy(formulaBytes, 0, payload, 2, formulaBytes.Length);
+            return payload;
         }
     }
 }

@@ -159,8 +159,8 @@ namespace OfficeIMO.Excel {
                 EvenFooterRight = efr,
                 DifferentFirstPage = hf?.DifferentFirst?.Value ?? false,
                 DifferentOddEven = hf?.DifferentOddEven?.Value ?? false,
-                HeaderHasPicturePlaceholder = (hl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hr.IndexOf("&G", StringComparison.Ordinal) >= 0) || hasHeaderImageRel,
-                FooterHasPicturePlaceholder = (fl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fr.IndexOf("&G", StringComparison.Ordinal) >= 0) || hasFooterImageRel,
+                HeaderHasPicturePlaceholder = HasPicturePlaceholder(hl, hc, hr, fhl, fhc, fhr, ehl, ehc, ehr) || hasHeaderImageRel,
+                FooterHasPicturePlaceholder = HasPicturePlaceholder(fl, fc, fr, ffl, ffc, ffr, efl, efc, efr) || hasFooterImageRel,
                 HeaderLeftImage = imagesByShapeId.TryGetValue("LH", out var headerLeftImage) ? headerLeftImage : null,
                 HeaderCenterImage = imagesByShapeId.TryGetValue("CH", out var headerCenterImage) ? headerCenterImage : null,
                 HeaderRightImage = imagesByShapeId.TryGetValue("RH", out var headerRightImage) ? headerRightImage : null,
@@ -168,6 +168,16 @@ namespace OfficeIMO.Excel {
                 FooterCenterImage = imagesByShapeId.TryGetValue("CF", out var footerCenterImage) ? footerCenterImage : null,
                 FooterRightImage = imagesByShapeId.TryGetValue("RF", out var footerRightImage) ? footerRightImage : null
             };
+        }
+
+        private static bool HasPicturePlaceholder(params string[] values) {
+            foreach (string value in values) {
+                if (value.IndexOf("&G", StringComparison.Ordinal) >= 0) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private Dictionary<string, HeaderFooterImageSnapshot> ReadHeaderFooterImages() {
@@ -361,8 +371,8 @@ namespace OfficeIMO.Excel {
 
                 hf.DifferentFirst = differentFirstPage ? true : (bool?)null;
                 hf.DifferentOddEven = differentOddEven ? true : (bool?)null;
-                hf.AlignWithMargins = alignWithMargins ? true : (bool?)null;
-                hf.ScaleWithDoc = scaleWithDoc ? true : (bool?)null;
+                hf.AlignWithMargins = alignWithMargins;
+                hf.ScaleWithDoc = scaleWithDoc;
 
                 var oddHeader = BuildHeaderFooterSections(headerLeft, headerCenter, headerRight);
                 var oddFooter = BuildHeaderFooterSections(footerLeft, footerCenter, footerRight);

@@ -204,28 +204,39 @@ namespace OfficeIMO.Excel {
             return Path.Combine(directory, $".{fileName}.{Guid.NewGuid():N}.bak");
         }
 
+        private static void ExecuteFileCommitOperationWithRetry(Action operation) {
+            for (int attempt = 0; attempt < 10; attempt++) {
+                try {
+                    operation();
+                    return;
+                } catch (IOException) when (attempt < 9) {
+                    Thread.Sleep(Math.Min(50 * (attempt + 1), 500));
+                }
+            }
+        }
+
         private static void ReplaceTargetFile(string temporaryPath, string targetPath) {
             if (!File.Exists(targetPath)) {
-                File.Move(temporaryPath, targetPath);
+                ExecuteFileCommitOperationWithRetry(() => File.Move(temporaryPath, targetPath));
                 return;
             }
 
             IOException? lastIOException = null;
-            for (int attempt = 0; attempt < 5; attempt++) {
+            for (int attempt = 0; attempt < 10; attempt++) {
                 try {
                     File.Replace(temporaryPath, targetPath, destinationBackupFileName: null);
                     return;
-                } catch (IOException ex) when (attempt < 4) {
+                } catch (IOException ex) when (attempt < 9) {
                     lastIOException = ex;
-                    Thread.Sleep(50 * (attempt + 1));
+                    Thread.Sleep(Math.Min(50 * (attempt + 1), 500));
                 }
             }
 
             var backupPath = CreateTemporaryBackupPath(targetPath);
             try {
-                File.Move(targetPath, backupPath);
+                ExecuteFileCommitOperationWithRetry(() => File.Move(targetPath, backupPath));
                 try {
-                    File.Move(temporaryPath, targetPath);
+                    ExecuteFileCommitOperationWithRetry(() => File.Move(temporaryPath, targetPath));
                     temporaryPath = string.Empty;
                     DeleteFileIfExists(backupPath);
                     return;

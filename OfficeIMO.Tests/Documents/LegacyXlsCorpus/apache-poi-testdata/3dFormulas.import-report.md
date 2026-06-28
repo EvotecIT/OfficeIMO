@@ -19,6 +19,7 @@ External cell caches: 0
 External cached cells: 0
 External query connections: 0
 Data consolidation references: 0
+Data consolidation named sources: 0
 Pivot table records: 5
 Chart records: 0
 Drawing records: 0
@@ -49,9 +50,9 @@ Worksheet metadata records: 15
 Worksheet future metadata records: 0
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 8
+Unsupported features: 5
 Unsupported projection gaps: 0
-Preserved feature records: 8
+Preserved feature records: 5
 Errors: 0
 Warnings: 0
 
@@ -59,7 +60,6 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 5 |
 
 ## Formula Tokens By Name
@@ -249,21 +249,18 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 5 |
 
 ## Unsupported Features By Kind
 
 | Key | Count |
 | --- | --- |
-| FeatureExtension | 3 |
 | PivotTable | 5 |
 
 ## Unsupported Feature Record Types
 
 | Key | Count |
 | --- | --- |
-| FeatureExtension\|XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|0x0867 | 3 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 3 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
@@ -272,7 +269,6 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| FeatureExtension\|XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|FeatureExtension:Feat | 3 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 3 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
@@ -281,9 +277,6 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|S2 | 1 |
-| XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|Sh3 | 1 |
-| XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|Sheet1 | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|S2 | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Sh3 | 1 |
@@ -549,14 +542,12 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| FeatureExtension | 3 |
 | PivotTable | 5 |
 
 ## Preserved Feature Record Details
 
 | Key | Count |
 | --- | --- |
-| FeatureExtension\|XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|FeatureExtension:Feat | 3 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 3 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |

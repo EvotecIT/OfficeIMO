@@ -32,6 +32,25 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase4HyperlinkTooltipWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Links"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "OfficeIMO"));
+                WriteRecord(stream, 0x01b8, BuildExternalUrlHLinkPayload(0, 0, 0, 0, "https://officeimo.net/legacy-xls", "OfficeIMO"));
+                WriteRecord(stream, 0x0800, BuildHLinkTooltipPayload(0, 0, 0, 0, "Open OfficeIMO XLS docs"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase4InternalHyperlinkWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -769,6 +788,28 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x08a5, BuildDrawingFutureStreamPayload(0x08a5, flags: 0, "rich"));
                 WriteRecord(stream, 0x1002, Array.Empty<byte>());
                 WriteRecord(stream, 0x00b0, Array.Empty<byte>());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)dataBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreatePhase5TableDefinitionFeatureWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long dataBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ListTable"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Name"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 1, "Amount"));
+                WriteRecord(stream, (ushort)BiffRecordType.FeatHdr11, BuildFutureRecordPayload((ushort)BiffRecordType.FeatHdr11, 16));
+                WriteRecord(stream, (ushort)BiffRecordType.Feature11, BuildFutureRecordPayload((ushort)BiffRecordType.Feature11, 20));
+                WriteRecord(stream, (ushort)BiffRecordType.List12, BuildFutureRecordPayload((ushort)BiffRecordType.List12, 12));
+                WriteRecord(stream, (ushort)BiffRecordType.Feature12, BuildFutureRecordPayload((ushort)BiffRecordType.Feature12, 20));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1594,6 +1635,23 @@ namespace OfficeIMO.Tests {
                 byte[] urlBytes = Encoding.Unicode.GetBytes(url + '\0');
                 WriteUInt32(stream, checked((uint)urlBytes.Length));
                 stream.Write(urlBytes, 0, urlBytes.Length);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildHLinkTooltipPayload(
+                ushort firstRow,
+                ushort firstColumn,
+                ushort lastRow,
+                ushort lastColumn,
+                string tooltip) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x0800);
+                WriteUInt16(stream, firstRow);
+                WriteUInt16(stream, lastRow);
+                WriteUInt16(stream, firstColumn);
+                WriteUInt16(stream, lastColumn);
+                byte[] tooltipBytes = Encoding.Unicode.GetBytes(tooltip + '\0');
+                stream.Write(tooltipBytes, 0, tooltipBytes.Length);
                 return stream.ToArray();
             }
 

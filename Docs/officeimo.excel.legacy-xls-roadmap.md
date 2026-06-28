@@ -1,373 +1,416 @@
-# OfficeIMO.Excel Legacy XLS Roadmap
+# OfficeIMO.Excel Legacy XLS Read And Native Write Roadmap
 
-This roadmap tracks native legacy `.xls` support without adding spreadsheet dependencies.
-The intent is to grow support through a clean legacy workbook model instead of wiring BIFF
-records directly into `ExcelDocument`.
+This roadmap tracks what is still missing before we can confidently advertise
+legacy `.xls` read support and native `.xls` write support.
 
-## Architecture Boundary
+## Goal
 
-Legacy `.xls` import follows this pipeline:
+Close this roadmap by bringing legacy BIFF8 `.xls` read behavior to the same
+confidence model as the `.xlsx` reader: every workbook feature family is either
+projected into the normal OfficeIMO model, readable through cached values,
+preserved in place, diagnosed before conversion, or blocked with a clear error.
 
-```text
-OLE compound file
-  -> BIFF record stream
-  -> Legacy XLS workbook model
-  -> OfficeIMO.Excel projection
-  -> normal OfficeIMO .xlsx editing and save APIs
-```
+The same confidence model applies to native `.xls` write: every normal
+OfficeIMO feature family must either serialize to BIFF8, intentionally degrade
+with documented diagnostics, or fail before writing so callers do not get silent
+data loss.
 
-The parser owns binary format details. The legacy model owns workbook concepts. The
-projector owns mapping decisions into OfficeIMO's Open XML workbook model.
+## Honest Support Statement
 
-## Current Public API Shape
+Current target wording:
 
-Legacy `.xls` import is part of the normal workbook loading flow. Callers use
-`ExcelDocument.Load(...)` for both Open XML workbooks and legacy binary `.xls`
-workbooks:
+> OfficeIMO.Excel can import BIFF8 legacy `.xls` workbooks through
+> `ExcelDocument.Load(...)`, project supported workbook and worksheet content into
+> the normal OfficeIMO Excel model, expose diagnostics for unsupported or
+> preserve-only legacy features, save converted output as `.xlsx`, and write a
+> first native `.xls` subset for basic worksheets, scalar cell values, worksheet
+> layout and views, worksheet tab colors, sheet visibility, workbook and
+> worksheet calculation metadata, number formats, basic font styles including
+> BIFF-backed family, character-set, underline styles, superscript/subscript,
+> outline, shadow, condense, and extend metadata,
+> solid/patterned fills including gray125 and resolved theme/tint colors, BIFF-backed
+> alignment, borders, cell protection styles, quote-prefix markers, rich-text
+> cell runs with OfficeIMO/Open XML projection for BIFF-backed run font family,
+> character-set, underline styles, superscript/subscript, outline, shadow, condense, and extend
+> metadata, supported cached formula cells, internal defined names and print
+> names, supported hyperlinks with ScreenTips, protection metadata,
+> write-reservation metadata, document properties, page setup, supported
+> worksheet comments, supported worksheet AutoFilter ranges, criteria, and
+> date-group criteria written as equivalent serial-date comparison ranges, and
+> supported data validation, classic conditional-formatting rules, and supported
+> data-consolidation settings including start-label normalization,
+> same-workbook source references, and
+> workbook- and sheet-scoped named sources, plus supported external workbook link
+> metadata with sheet names and custom external defined names.
 
-```csharp
-using var document = ExcelDocument.Load("legacy.xls");
-document.Save("converted.xlsx");
-```
+Do not claim:
 
-OfficeIMO detects ZIP/Open XML packages and routes them through the existing
-Open XML loader. OLE compound legacy workbooks are routed through the first-party
-legacy XLS importer, then projected into the normal `ExcelDocument` model.
-Saving produces Open XML `.xlsx` content. Native `.xls` writing is not supported;
-attempts to save a legacy-loaded document to `.xls`, including implicit
-`Save()` back to the original `.xls` path, throw a clear exception.
+> OfficeIMO supports all `.xls` files.
 
-`ExcelDocument.LoadLegacyXls(...)` and `ExcelDocument.LoadLegacyXlsWithReport(...)`
-remain available for tests and advanced diagnostics. Normal callers should not
-need a separate method. Import diagnostics and preserve-only/unsupported legacy
-features are attached to the loaded `ExcelDocument` and surfaced through
-`InspectFeatures()`; hard blockers such as encrypted/password-protected legacy
-workbooks or unsupported BIFF versions fail the normal load.
+That stronger claim would be misleading today because some file types, sheet
+types, and feature families are hard blockers or diagnostics-only.
 
-## Phase 1 - Foundation
+## What Parity With XLSX Reader Means
 
-- Detect true OLE compound `.xls` files and locate the `Workbook` or `Book` stream.
-- Read BIFF record headers safely with length and corruption diagnostics.
-- Parse workbook globals needed for tabular import: `BOF`, `EOF`, `BoundSheet8`, and `SST`.
-- Parse initial worksheet records: `NUMBER`, `LABELSST`, `LABEL`, `BOOLERR`, `BLANK`.
-- Project parsed cells into a normal `ExcelDocument`.
+`.xlsx` loading can often keep unknown Open XML package parts around during
+round-trip saves. `.xls` import cannot rely on that: once we convert to `.xlsx`,
+every legacy feature must be either projected into the OfficeIMO/Open XML model
+or reported clearly as unsupported or preserve-only before save.
 
-Current implementation reads the workbook stream from regular FAT chains, MiniFAT
-mini-stream chains below the compound-file mini stream cutoff, and extended FAT
-sector lists that continue through DIFAT sectors. Corrupt container headers,
-sector chains, and missing workbook streams are reported as import diagnostics
-instead of escaping as raw parser failures.
+For XLS read support to be on par with the `.xlsx` reader, each feature family
+needs one of these outcomes:
 
-## Phase 2 - Value Fidelity
+- **Projected**: loaded into the normal OfficeIMO model and saved as `.xlsx`.
+- **Cached**: readable enough to preserve user-visible values, usually formulas
+  with cached results, while reporting missing live formula projection.
+- **Diagnosed**: reported through `LoadLegacyXlsWithReport(...)`,
+  `InspectFeatures()`, and corpus reports so callers can reject the conversion.
+- **Blocked**: failed early with a clear error when the workbook cannot be
+  imported safely.
 
-- Add compact numeric records: `RK` and `MULRK`.
-- Add repeated label/blank records and richer boolean/error handling.
-- Support date system detection and serial date projection policies.
-- Expand string parsing for rich text and phonetic/extended string payloads.
+## Known Not-All-XLS Boundaries
 
-Current implementation covers `RK`, `MULRK`, `MULBLANK`, inline `LABEL`, BIFF
-error-code text mapping, and `Date1904` detection. Shared string tables continued
-across `Continue` records are imported when the continuation boundary falls between
-complete string entries, and when a continuation splits inside the character data
-of an `XLUnicodeRichExtendedString` segment. Shared strings carrying rich-text run
-metadata and extended/phonetic payload blocks import their plain text while skipping
-the variable metadata payload. Numeric cells with date-like BIFF
-formats project as dates, including conversion from 1904-system serials to the
-equivalent Open XML date serial.
+- BIFF8 is the supported target. Older BIFF versions are explicit blockers.
+- Password-to-open encrypted XLS files are explicit blockers.
+- Normal loading is content-first for true OLE compound BIFF workbooks, but
+  extension-only fallback is limited to `.xls`; `.xlt`, `.xla`, `.xlm`, and
+  `.xlw` are blocked native save targets, not separately advertised import
+  formats until fixtures prove them.
+- Normal worksheets are the projection target. Chart sheets, macro sheets,
+  dialog sheets, and VBA module sheets are not normal worksheet projections.
+- Native `.xls` save/write has started with a first-party BIFF8 writer for
+  basic workbooks, normal worksheets, scalar text/number/boolean cells,
+  explicitly styled blank cells, supported rich-text cells, supported cached
+  formula cells, internal defined names and print names, worksheet layout and
+  views, worksheet tab colors, sheet visibility, workbook and worksheet
+  calculation metadata, write-reservation metadata, document properties, and
+  number formats plus basic cell font styles, solid/patterned fills including
+  gray125,
+  BIFF-backed alignment, basic borders, cell protection styles, and
+  quote-prefix markers. Richer workbook features are explicitly blocked before
+  native write unless they are listed as supported in the matrix below.
+- Unsupported BIFF/OLE content is not silently preserved into the converted
+  `.xlsx`; it must be projected or diagnosed.
 
-## Phase 3 - Formatting And Layout
+## XLSX/XLS Support Matrix
 
-- Parse `FORMAT`, `XF`, `FONT`, palette, row heights, column widths, hidden rows/columns,
-  merged ranges, freeze panes, and basic sheet visibility.
-- Map supported formatting to OfficeIMO styles.
-- Report unsupported formatting as diagnostics rather than silently dropping it.
+Legend:
 
-Current implementation covers layout metadata for `COLINFO`, `ROW`, `MERGECELLS`,
-`WINDOW2` frozen panes with `PANE`, and `BoundSheet8` visibility. These project to
-OfficeIMO column width/hidden state, row height/hidden state, merged ranges, frozen
-panes, hidden sheets, very-hidden sheets, worksheet gridline visibility,
-right-to-left view state, and row/column heading plus zero-value view visibility.
-Default empty-row height and default column width import
-through the normal OfficeIMO sheet-format API, and row/column outline levels with
-collapsed states import through normal OfficeIMO sheet outline APIs. It also parses style table basics from `FORMAT` and `XF`,
-resolves built-in and custom number formats, detects date-like numeric cells, and
-projects number formats and serial dates through normal OfficeIMO cell/style APIs.
-`FONT` records are parsed for name, point size, weight, italic, underline,
-strikethrough, and superscript/subscript escapement, and XF font references
-project through the normal OfficeIMO style model. Palette records
-and `IcvFont` values are resolved for font color projection, including custom palette
-entries and the default BIFF color table. Solid and patterned XF fills project
-through normal OfficeIMO style APIs. Horizontal/vertical alignment, wrap text,
-rotation, indentation, shrink-to-fit, and reading order are projected from XF
-alignment fields. XF side and diagonal borders project with palette-backed colors
-and mapped border styles. XF locked and formula-hidden protection flags project
-through normal Open XML cell style protection, and XF quote-prefix markers project
-to Open XML quote-prefix styles. Cell XF records now preserve their raw parent
-style index and apply-facet bits in the legacy model, and projection resolves
-inherited number format, font, fill, alignment, border, and protection facets from
-parent style XF records before writing normal OfficeIMO/Open XML styles. `COLINFO` default XF indexes now project as real
-Open XML column style definitions, and formatted `ROW` default XF indexes project as
-real Open XML row style definitions. Additional edge-case formatting remains a
-later Phase 3 hardening slice.
+- **Projected**: loaded into normal OfficeIMO APIs and saved as `.xlsx`.
+- **Cached**: user-visible values are readable, but live feature semantics are
+  not fully projected.
+- **Diagnosed**: reported before conversion or save so callers can decide.
+- **Blocked**: intentionally rejected with a clear error.
 
-## Phase 4 - Workbook Features
+| Feature family | XLSX reader today | XLS read status | Native XLS write status | What remains |
+| --- | --- | --- | --- | --- |
+| Package detection | Projected | Projected for BIFF8 OLE and renamed Open XML workbooks | Normal `Save("*.xls")` and stream `LegacyXls` route to the BIFF writer | Keep future corrupt/ambiguous input cases corpus-driven. |
+| Older workbook formats | Not applicable | Blocked for pre-BIFF8 | `.xlt`, `.xla`, `.xlm`, and `.xlw` save targets blocked | No broader format claim until fixtures justify it. |
+| Password-to-open encryption | Supported for supported OOXML encryption paths | Blocked for XLS `FilePass` | Blocked | Native XLS decryption/encryption is out of scope unless separately approved. |
+| Worksheets | Projected | Projected for normal worksheets; unsupported sheet types diagnosed | Normal worksheets written | Chart, macro, dialog, and VBA module sheets remain diagnosed/blocked. |
+| Scalar values and dates | Projected | Projected | Text, number, Boolean, error, blank, styled blank, numeric dates, explicit Open XML date cells, and cached formula values written | Keep expanding date-system and unusual cached-value corpus coverage. |
+| Rich text and phonetics | Projected | Projected for supported rich text including BIFF-backed run font family, character-set, underline styles, superscript/subscript, outline, shadow, condense, and extend metadata, plus worksheet-level phonetic defaults; cell phonetic guide payloads and range-scoped guide text are explicit boundaries | Rich-text cells and comments plus BIFF-backed run font family, character-set, underline styles, superscript/subscript, outline, shadow, condense, and extend metadata, and worksheet-level phonetic defaults written | Cell phonetic guide payloads, range-scoped guide text, and non-BIFF rich-text metadata remain diagnosed/blocked. |
+| Styles and number formats | Projected | Projected for common BIFF8 formats, fonts including BIFF family, character-set, underline styles, superscript/subscript, outline, shadow, condense, and extend metadata, fills, borders, alignment, protection, quote prefix, and selected conditional-formatting DXF payloads; Theme and style-extension records are diagnostics/preserve-only | Supported styles written, including sparse style inheritance, BIFF-backed font family, character-set, underline styles, superscript/subscript, outline, shadow, condense, and extend metadata, gray125 pattern fills, explicit general alignment, and resolved theme/tint colors | Gradient fills, style-extension payloads, and uncommon facets remain blocked. |
+| Layout, views, panes, and print metadata | Projected | Projected for common row/column, merge, pane, view, page setup, printer, tab color, option metadata, multiple workbook and worksheet window/view records, ignored-error metadata, cell watches, worksheet scenarios, data-consolidation settings including start-label normalization, same-workbook and external virtual-path data-consolidation source references, and workbook-, sheet-, and external-source named data-consolidation sources; custom/named sheet views are explicit boundaries | Current BIFF-backed subset written, including worksheet protection permission exceptions, protected ranges, ignored errors, multiple workbook and worksheet window/view records, cell watches, worksheet scenarios, data-consolidation settings including start-label normalization, same-workbook and external virtual-path data-consolidation source references, and workbook-, sheet-, and external-source named data-consolidation sources | Header/footer images, custom workbook views, custom/named sheet views, richer scenario metadata, sheet-qualified external data-consolidation source references, and named data-consolidation source references with explicit ranges remain blocked. |
+| Formulas | Projected as formula text; calculation remains partial | Projected when BIFF token stream is supported; cached/diagnosed otherwise | Broad supported encoder subset written, including common functions, operators, arrays, shared formulas, internal names, contiguous 3D ranges, explicit workbook-internal 3D unions, supported external-workbook sheet references, and workbook- and sheet-scoped external defined-name operands | Future unsupported token families remain blocked. |
+| Named ranges and print names | Projected | Projected for supported internal references/formulas | Supported workbook/sheet names, formula names, print areas, print titles, external-workbook sheet references, and workbook- and sheet-scoped external defined-name operands written | Unsupported built-in names remain blocked. |
+| AutoFilter | Projected/partially editable | Projected for supported range/dropdown/simple criteria metadata | BIFF range, dropdown, equality/custom/blank, blank-or-single-value, top-bottom, and supported date-group criteria written; date groups save as equivalent serial-date custom comparisons | Dynamic, color, icon, blank-plus-multiple-value, larger equality-list, unsupported date-group shapes, and richer control metadata remain diagnosed or blocked. |
+| Sort metadata | Projected/partially editable | Projected for BIFF `Sort` records without custom-list ordering; BIFF custom-list order indexes are parsed in the legacy model and reported as unsupported projection gaps | BIFF `Sort` records written for up to three value-based A1-reference keys, descending flags, left-to-right sort, case sensitivity, and PinYin sort method | More than three keys, color/icon/custom-list sort conditions, worksheet sort maps, and BIFF custom-list index to Open XML custom-list string reconstruction remain blocked. |
+| Data validation | Projected/partially editable | Projected for supported simple rules | Inline, range, sheet-range, defined-name, external-workbook sheet reference, workbook- and sheet-scoped external defined-name operand, and scalar formula validations written | Richer formulas/shapes remain blocked. |
+| Conditional formatting | Projected/partially editable | Projected for supported classic rules | Classic unstyled BIFF rules, including supported external-workbook sheet reference and workbook- and sheet-scoped external defined-name operand formulas, and minimal `CfEx` metadata written | DXF/visual rules and richer rule families remain blocked. |
+| Comments and notes | Projected/partially editable | Projected for supported cell comments, rich text, visible state, and anchors | Supported comment text, rich runs, colors, authors, visibility, and anchors written | Uncommon comment object metadata remains blocked. |
+| Hyperlinks | Projected/editable for supported targets | Projected for supported URL/file/internal targets and ScreenTips | Supported `HLINK` and `HLinkTooltip` records written | Unsupported monikers and unsafe schemes remain diagnosed/blocked. |
+| Tables and table styles | Projected/partially editable | Default table/PivotTable style names project; legacy table definitions and custom style definitions remain diagnosed/report-only | Default table/PivotTable style names and custom workbook table-style definitions written; worksheet table parts, table definition parts, and single-cell table parts are blocked before native write | Worksheet table definitions remain outside the native XLS write subset. |
+| Images, drawings, charts, and PivotTables | Projected/partially editable in `.xlsx`; some package content preserved | Diagnostics/preserve-only report model with decoded metadata for BIFF drawing/object records, OfficeArt/image-store records, chart records, chart sheets, and PivotTable records | Blocked | Read parity is a documented no-silent-loss boundary, not editable Open XML projection. Native write remains a separate boundary. |
+| External links and external data | Preserved/diagnosed in `.xlsx` | Supported external workbook links, external sheet names, external defined names, and external workbook formulas project; add-in, DDE/OLE, DBQueryExt, query-table tag, and external cache metadata are diagnostics/preserve-only | Supported external-workbook sheet formula references, workbook- and sheet-scoped external defined-name operands, and simple external workbook link parts with sheet names and custom external defined names write the required BIFF `SupBook`/`ExternSheet`/`ExternName` metadata | Read parity is a documented no-silent-loss boundary for non-projected external data. Native write still blocks add-in, DDE/OLE, external caches, unsupported external-link relationship types, built-in external names, connections, and query tables before save. |
+| VBA, OLE packages, form controls, rich data, signatures | Preserved or diagnosed in `.xlsx` depending on package shape | Diagnosed, not executed or projected | Blocked | Keep no-silent-loss diagnostics; do not execute VBA or silently drop signed/embedded content. |
+| Document properties | Projected | Projected for supported OLE core/application/custom property types | Supported OLE property streams written | Vector, clipboard, stream/storage, and other exotic custom VARTYPEs remain diagnosed. |
 
-- Import formulas as formulas where token decoding is supported and as cached values otherwise.
-- Add hyperlinks, comments, named ranges, print settings, protection metadata, and basic sheet settings.
-- Add inspection/preflight output for features that are import-only or preserve-only.
+## Current Evidence
 
-Current implementation imports `Formula` cached results for numeric, boolean, error,
-blank-string, and following-`String` text results. It also decodes a first scoped
-set of BIFF formula tokens into live Open XML formulas for same-sheet references,
-areas, relative `PtgRefN`/`PtgAreaN` references resolved from the formula cell,
-workbook-internal 3D `PtgRef3d`/`PtgArea3d` references resolved through
-`ExternSheet`, external-workbook 3D cell/range references when the supporting
-`SupBook` sheet table is present, invalid references through `PtgRefErr`, `PtgAreaErr`,
-`PtgRefErr3d`, and `PtgAreaErr3d`, numeric and Boolean constants, arithmetic/comparison operators,
-percent, explicit parentheses, reference operators (`PtgIsect`, `PtgUnion`, and
-`PtgRange`), string literal `PtgStr` operands for concatenation formulas, error
-constants through `PtgErr`, missing function arguments through `PtgMissArg`,
-same-workbook defined-name operands through `PtgName`, external defined-name and
-add-in function-name operands through `PtgNameX`,
-fixed-arity `PtgFunc` calls such as `ROUND`, `AND`, and `OR`, and scoped aggregate `PtgFuncVar`
-calls such as `SUM`. Add-in user-defined functions encoded as `PtgFuncVar` with
-the legacy `0x00FF` function id now decode when the leading argument resolves to
-a supported external name. Conditional `IF` formulas using `PtgAttrIf`, `PtgAttrGoto`,
-and `PtgFuncVar`, plus `CHOOSE` formulas using `PtgAttrChoose`, now decode to
-normal Open XML formulas. Optimized `PtgAttrSum` formula attributes now decode to
-normal `SUM(...)` formulas during Open XML projection, while `PtgAttrSpace` and
-`PtgAttrSpaceSemi` display tokens are consumed and normalized away.
-Unsupported token streams still import as cached values and now report
-detail-coded formula-token diagnostics when unsupported-record reporting is enabled.
-Formula token import reports also group observed tokens and blockers by worksheet
-and by formula context plus worksheet, so corpus analysis can identify which sheets
-and formula sources drive the next decoder gaps without dumping cell-level detail.
-They also group decoded operand categories by formula context, making it easier
-to compare cell, shared, defined-name, chart, validation, and formatting token
-streams without manually cross-joining report sections.
-Variable-function tokens using the legacy add-in/user-defined `0x00FF` function
-id are now classified as `UserDefinedFunction` in function-name and argument-count
-diagnostics while retaining the raw function id bucket.
-It also imports external
-URL `HLink` records that use Office shared URL monikers and projects them through
-normal OfficeIMO hyperlink relationships without rewriting the linked cell value.
-Location-only same-workbook `HLink` records now project as normal Open XML internal
-hyperlink locations without creating external relationships. Absolute local, UNC,
-and relative file `HLink` records saved with Office shared `FileMoniker` data now
-project as normal external file hyperlink relationships. Composite/item monikers
-and other hyperlink target shapes remain diagnostic-only. Workbook- and worksheet-level
-`Protect`, `Password`, `ObjProtect`, and `ScenarioProtect` records now project as
-Open XML protection metadata, preserving the legacy 16-bit password verifier and
-worksheet object/scenario protection flags when present. This is workbook/sheet
-UI protection metadata only, not password-to-open file encryption. Basic print page
-setup now imports margin records plus `Setup` scale, fit width/height, orientation,
-and header/footer margins through the normal OfficeIMO page setup APIs. Print
-options for row/column headings, printed gridlines, and horizontal/vertical page
-centering import through the normal OfficeIMO print-options API. Manual row and
-column page breaks import through the normal OfficeIMO manual page-break APIs.
-Worksheet view zoom imports from `Scl` records through the normal OfficeIMO sheet
-view API. `Header` and `Footer` records now import raw Excel section/token strings
-into the legacy model and project them through the normal OfficeIMO header/footer
-API. The first defined-name slice imports `Lbl` records backed by single 3D
-cell/range references, including sheet-local names, hidden names, and built-in
-`Print_Area`, through normal OfficeIMO defined-name and print-area APIs. Built-in
-`Print_Titles` names backed by 3D whole-row/whole-column references and `PtgUnion`
-now import through the normal OfficeIMO print-title API. Hidden built-in
-`_FilterDatabase` names backed by scoped 3D areas now project through the normal
-OfficeIMO AutoFilter API while retaining the imported defined-name metadata. Plain
-legacy cell comments backed by `Note`, note-type `Obj`, `TxO`, and `Continue`
-records now import through the normal OfficeIMO comment API. TxO formatting-run
-boundaries and font indexes are preserved in the legacy comment model, supported
-font properties project through the normal OfficeIMO rich comment API, and comment
-OBJ common-object type/flag metadata is available for diagnostics. Adjacent OfficeArt
-client-anchor geometry is preserved in the legacy comment model and corpus import
-reports; projecting comment placement through the normal OfficeIMO comment API remains
-future hardening work. Worksheet `DIMENSIONS` records
-now import as explicit legacy-model declared used-range metadata, including empty
-worksheet declarations. Open XML projection continues to let OfficeIMO compute the
-saved `.xlsx` sheet dimension from projected cells and structures to avoid stale
-dimension repair prompts. `ExcelDocument.LoadLegacyXlsWithReport(...)` now returns
-the projected `ExcelDocument` together with the parsed `LegacyXlsWorkbook`,
-diagnostics, and unsupported-feature report from the same parse so callers can
-preflight import-only and preserve-only content without leaving the normal OfficeIMO
-document path. The result exposes `EnsureNoImportErrors()` and
-`EnsureNoUnsupportedFeatures()` guards for corpus and CI checks.
-Simple BIFF `DVal`/`Dv` whole-number, decimal, date, time, and text-length data
-validation rules with constant numeric formulas, plus inline literal, same-sheet
-range-backed, workbook defined-name-backed, and sheet-local defined-name-backed
-list validations, cross-sheet range-backed list validations, and decodable custom
-formula validations now import into the legacy model and project through the
-normal OfficeIMO data validation APIs, including prompt and error message
-metadata. More complex formula shapes remain preserve-only diagnostics for later
-slices. Classic BIFF `CondFmt`/`CF` conditional formatting rules now import for
-simple cell-value comparison rules and formula-expression rules when the rule
-formulas are decodable by the existing BIFF formula reader. These project through
-the normal OfficeIMO conditional-formatting APIs. `CfEx` priority and stop-if-true
-metadata now attach to imported classic rules, and `DXF` differential formats can
-project decoded fill colors, text color, bold and italic font styling, and side
-border color/style formatting plus number-format ids/codes when a single workbook
-differential style is available. Richer visual rule families and multi-style rule
-association remain future hardening work. Simple BIFF
-`AUTOFILTERINFO`/`AUTOFILTER` criteria import now covers decodable string
-equality and numeric/string custom comparisons, stores them in the legacy model,
-and projects through the normal OfficeIMO AutoFilter APIs.
+This branch is no longer a planning-only branch. Current evidence is:
 
-## Phase 5 - Compatibility Corpus And Preservation
+- Every row in the XLSX/XLS support matrix has been audited to one current read
+  and native-write status: projected, cached, preserved/diagnosed, blocked, or
+  written with explicit boundaries.
+- `LegacyXls_NormalLoad` covers path, stream, sync, async, and converted `.xlsx`
+  save/reload flows.
+- The checked-in normal and diagnostic corpora have approved import-report
+  baselines.
+- `projection-gap-summary.md` reports zero unsupported projection gaps for the
+  normal corpus and keeps hard-error fixtures in the diagnostic corpus.
+- Formula corpus baselines are clean across the checked-in normal and diagnostic
+  reports: zero unsupported projection gaps, formula token blocker rows, and
+  chart data-source formula projection failures.
+- Native formula writer coverage has no current corpus-reported in-scope token
+  family left open. Supported external-workbook sheet formula and defined-name
+  references now write BIFF `SupBook` and `ExternSheet` metadata, and
+  workbook- and sheet-scoped external defined-name operands write BIFF `ExternName`
+  metadata.
+- Native external-link writer coverage now consumes simple Open XML external
+  workbook link parts with sheet names and custom external defined names and
+  writes the matching BIFF supporting-link metadata, while unsupported external
+  relationship types remain preflight blockers.
+- Native `.xls` save goes through the normal OfficeIMO save APIs for file paths
+  and `ExcelStreamSaveFormat.LegacyXls` streams.
+- The full `LegacyXls` test lane passes across `net472`, `net8.0`, and
+  `net10.0` for the current checkpoint.
+- Import/projection tests prove BIFF-backed font family, character-set, underline styles, superscript/subscript,
+  outline, shadow, condense, and extend metadata
+  project into Open XML font styles, and native writer tests prove save/reload through the OfficeIMO legacy reader for
+  the current supported subset: scalar values, styled blanks, dates, Open XML
+  formula cached dates, formulas,
+  shared and array formulas, styles, rich text, names, hyperlinks, comments,
+  layout, views, page setup, printer settings, workbook protection password-only
+  metadata, protection permission exceptions, protected ranges, write reservation,
+  document properties, AutoFilter including blank-or-single-value criteria and
+  date-group criteria written as serial-date comparison ranges,
+  sort metadata, BIFF-backed font family, character-set, underline styles, superscript/subscript,
+  outline, shadow, condense, and extend metadata, data validation,
+  conditional formatting, ignored-error metadata, cell watches, worksheet
+  scenarios, data-consolidation settings including start-label normalization,
+  same-workbook and external virtual-path data-consolidation
+  source references, workbook-, sheet-, and external-source named data-consolidation sources,
+  default and custom workbook table-style definitions, and sparse style
+  inheritance from parent style formats.
+- AutoFilter, sort, data-validation, and conditional-formatting read coverage is
+  split into a tested supported subset plus explicit boundaries: simple and
+  common Excel-authored shapes project into the OfficeIMO/Open XML model, while
+  custom-list sort indexes, unsupported data-validation records/formula tokens,
+  and unsupported conditional-formatting records/formula tokens are reported as
+  unsupported projection gaps or preserve-only diagnostics.
+- Legacy worksheet table/list definition records are a closed native-write
+  boundary and documented read boundary:
+  `FeatHdr11`, `Feature11`, `List12`, and `Feature12` are classified as
+  table-definition preserve-only diagnostics, while default table and PivotTable
+  style names continue to project from `TableStyles`. Native write keeps
+  worksheet table parts, table definition parts, and single-cell table parts as
+  explicit `tables` preflight blockers instead of silently dropping them.
+- Drawings, embedded images, charts, chart sheets, and PivotTables have a closed
+  native-write boundary and explicit XLS read contract: BIFF drawing/object
+  records, OfficeArt/image-store records, chart records, chart-sheet metadata,
+  and PivotTable records are decoded into diagnostics/report models and
+  preserved as no-silent-loss boundaries instead of being projected as editable
+  Open XML drawing, chart, or PivotTable parts. Native write blocks worksheet
+  drawing/image/chart parts, direct image and 3D model relationships, chart
+  sheets, and PivotTable markers before save.
+- External links and external data have a closed native-write boundary and
+  explicit XLS read contract: supported external workbook links, external sheet
+  names, external defined names, and external workbook formulas project into Open
+  XML external-link parts and formula text. Native write supports simple external
+  workbook link metadata, external workbook formula references, external defined
+  name operands, external virtual-path data-consolidation source references, and
+  the workbook refresh marker. Add-in, DDE/OLE, DBQueryExt connection records,
+  PivotTable query-table tags, XCT/CRN external cell caches, workbook
+  connections, and worksheet query tables remain diagnostics, preserve-only
+  report models, or `connections or query tables` preflight blockers.
+- Style, theme, rich-text, phonetic, layout, and view edge cases now have an
+  explicit XLS read contract: common BIFF8 styles, fonts, fills, borders,
+  alignment, rich text, panes, row/column layout, worksheet views, and workbook
+  windows project; `XFCRC`, `XfExt`, `StyleExt`, `Theme`, phonetic guide
+  payloads, custom/named views, and other richer XLSX-only metadata are
+  diagnostics/preserve-only or native-write blockers.
+- Preflight tests prove unsupported workbook and worksheet feature families block
+  before native write instead of being silently dropped, including digital
+  signature package metadata, unsupported workbook calculation metadata,
+  unsupported AutoFilter sort, extension, dropdown-control, column, criteria metadata,
+  unsupported date-group shapes, dynamic, color, icon, larger equality-list, and
+  blank-plus-multiple-value criteria,
+  unsupported sort-state metadata,
+  duplicated AutoFilter criteria containers,
+  unsupported data-validation collection, extension, and IME metadata,
+  duplicated data-validation formula elements and unsupported formula metadata,
+  data-validation formulas outside the native XLS formula subset, missing
+  required data-validation formulas, invalid data-validation ranges, too many
+  data-validation ranges, and data-validation ranges outside BIFF8 limits,
+  unsupported conditional-formatting pivot, extension, collection, rule, and formula metadata,
+  conditional-formatting differential formats, visual payloads, unsupported
+  operators and rule types, formulas outside the native XLS formula subset,
+  formula-backed multi-range rules, invalid ranges, too many ranges, and ranges
+  outside BIFF8 limits,
+  worksheet table parts, table definition parts, single-cell table parts,
+  drawing/image/chart/chart-sheet/PivotTable parts, unsupported external workbook link metadata,
+  query tables/connections, OLE objects/packages, form controls,
+  slicers/timelines, digital signatures, and non-comment VML shapes,
+  unsupported comment object shape, fill, line, shadow, textbox, path, and client metadata,
+  unsupported comment rich-text run metadata,
+  oversized defined-name formula payloads,
+  oversized formula token payloads,
+  oversized data-validation and conditional-formatting formula token payloads,
+  oversized data-validation text payloads,
+  oversized data-consolidation source reference payloads,
+  unsupported data-consolidation source-reference collection metadata,
+  oversized worksheet scenario payloads,
+  oversized protected-range payloads,
+  unsupported protected-range metadata,
+  unsupported ignored-error collection metadata,
+  unsupported cell-watch collection metadata,
+  unsupported hyperlink collection and item metadata,
+  oversized comment text and author payloads,
+  invalid legacy protection and write-reservation hashes,
+  modern workbook, workbook-revision, and worksheet protection hashes,
+  invalid Open XML date cells and formula cached dates,
+  gradient fills,
+  style-extension payloads,
+  oversized cell and cached formula text,
+  oversized custom number formats,
+  oversized hyperlink payloads and tooltips,
+  oversized header/footer text,
+  header/footer images,
+  custom workbook views,
+  custom sheet views,
+  named sheet views,
+  worksheet sort maps,
+  worksheet custom properties,
+  oversized worksheet printer settings payloads,
+  multiple worksheet printer settings parts,
+  unsupported rich-text cell run and font metadata beyond BIFF-backed family,
+  character-set, underline styles, superscript/subscript, outline, shadow, condense, and extend metadata,
+  unsupported cell font metadata beyond BIFF-backed family, character-set,
+  underline styles, superscript/subscript, outline, shadow, condense, and extend metadata,
+  duplicated workbook singleton metadata elements,
+  duplicated worksheet singleton metadata, layout, print, and feature collection elements,
+  duplicated font style properties,
+  duplicated fill and border style child elements,
+  duplicated cell-format alignment and protection child elements,
+  manual page breaks outside BIFF8 worksheet limits,
+  VBA projects and macro sheet parts,
+  unsupported chart/dialog/macro sheet types,
+  PivotTable cache markers,
+  unsupported external workbook link metadata,
+  external workbook formula references outside the supported sheet-reference subset,
+  external defined-name references outside the supported workbook- and sheet-scoped operand subset,
+  workbook connections and worksheet query tables,
+  embedded OLE objects and packages,
+  form controls,
+  worksheet slicers and timelines,
+  digital signature package metadata,
+  direct worksheet image and 3D model relationships,
+  worksheet drawings/images/charts, and
+  unsupported worksheet phonetic settings,
+  phonetic cell text,
+  workbook and worksheet data-part relationships,
+  workbook metadata extensions,
+  rich data features,
+  rich styles,
+  volatile dependency metadata,
+  revision or user data,
+  attached toolbars, and
+  sparklines,
+  non-comment VML drawing shapes, and
+  custom workbook table-style metadata.
+- Load-policy tests prove the public failure choices: normal
+  `ExcelDocument.Load(...)` fails only hard XLS import errors such as unsupported
+  password-to-open encryption, non-fatal unsupported BIFF features flow into
+  `InspectFeatures()`, and advanced callers can reject preserve-only imports
+  with `EnsureNoImportErrors()`, `EnsureNoUnsupportedFeatures()`, and
+  `InspectFeatures().EnsureNoAdvancedFeatures()`.
+- Unsupported sheet tests and corpus/report coverage expose skipped sheet
+  substreams by kind, name, visibility, diagnostics, projection-gap state, and
+  chart-sheet metadata such as `PrintSize`, text-object counts, chart record
+  categories, and chart type families.
+- Compound-feature and object-shape tests prove macro and embedded-content
+  boundaries are explicit instead of silent: VBA project storage is preserve-only
+  with module/name/size summaries, embedded OLE object storage is preserve-only,
+  digital signature streams are diagnosed, and BIFF drawing/form-control object
+  records such as pictures, buttons, checkboxes, and dropdown lists are reported
+  through drawing-object diagnostics and metadata buckets.
 
-- Build a corpus of real-world `.xls` files with expected import diagnostics.
-- Add feature reports for macros, charts, pivots, OLE objects, external links, and unsupported BIFF records.
-- Keep `.xls` write support out of scope until the read/import model is mature.
+## Remaining Work Checklist
 
-Current implementation has the first diagnostics contract: `FilePass` encrypted
-workbooks stop import with an explicit unsupported-encryption error, while unsupported
-BIFF versions older than BIFF8 are reported as explicit unsupported-version
-errors from workbook-global and worksheet BOF records before BIFF8-specific
-record layouts are interpreted. The import report groups these hard file-format
-blockers by detail, BIFF record type/name, and workbook or sheet location so
-diagnostic corpus baselines can distinguish the exact blocker surface. Unsupported
-hyperlink, worksheet drawing/object, PivotTable, and chart records are reported with
-feature-specific diagnostic codes when unsupported-record reporting is enabled.
-Legacy AutoFilter control and criteria records outside the supported simple
-criteria subset are likewise reported as preserve-only unsupported filter
-criteria; this is separate from `_FilterDatabase` defined-name range projection,
-which continues to use the normal OfficeIMO AutoFilter API.
-BIFF `DVal` and `Dv` records outside the supported simple constant-formula,
-inline-list, same-sheet and cross-sheet range-list, defined-name-list, and
-decodable custom-formula validation subset are reported as preserve-only data
-validation features so corpus tooling can flag validation rules before broader
-native projection is implemented.
-BIFF conditional-formatting records outside the supported simple classic
-`CondFmt`/`CF` rule subset are reported as preserve-only conditional-formatting
-features. Extended `CF12` rules and richer `CFEx`/`DXF` payloads beyond the
-currently decoded priority, stop-if-true, fill, font-style, border-style, and
-number-format subset remain diagnostics-first until their broader rule and
-differential-formatting models are implemented.
-The BIFF12-adjacent `PLV`, `Compat12`, and `DXF` record ids are aligned to MS-XLS
-record values (`0x088B`, `0x088C`, and `0x088D` respectively), so Page Layout view
-metadata and compatibility-check metadata are reported separately while Excel-authored
-DXF records feed differential-format evidence instead of generic unsupported-record
-gaps.
-`BoundSheet8` entries for macro sheets, chart sheets, and VBA module sheets are also
-reported as explicit feature diagnostics while worksheet sheets continue to import.
-Unsupported sheet substreams are scanned for preserve-only feature records, so
-chart-sheet-local chart and drawing records now appear with their sheet location
-without projecting chart sheets as worksheets or importing chart definitions.
-Unsupported sheet entries are preserved in the legacy workbook model, and `WsBool`
-dialog sheets are classified as unsupported dialog sheets instead of being projected
-as normal worksheets. OLE compound containers with VBA project storage are now
-reported as preserve-only macro content independently of BIFF sheet entries, so
-corpus tooling can flag macro-enabled legacy workbooks even when the workbook
-stream itself imports cleanly. OLE compound containers with embedded object pool
-storage are likewise reported as preserve-only embedded OLE object content.
-`SupBook` supporting links are preserved as external-reference
-metadata for external workbook, add-in, DDE/OLE, same-sheet, self, and unused links,
-including parsed external/add-in name tables from supported `ExternName` records,
-with per-flag report buckets for advise, picture, OLE, OLE-link, and icon states,
-and with external-link diagnostics for unsupported external-reference records. External
-cell cache sections from `XCT` and typed cached values from `CRN` records are now
-preserved under the supporting-link model and counted in import reports. Supported
-external workbook links now project into Open XML external-link workbook parts with
-sheet-name and external-name metadata, while unsupported add-in, DDE/OLE, self,
-same-sheet, and unused link shapes remain preserve-only diagnostics; supported
-formulas still project as text formulas using the information available in the
-legacy model.
-PivotCache cache item records for numeric, integer, Boolean, error, string, date/time,
-and empty values are now decoded into the preserve-only PivotTable model, with
-import-report buckets limited to type/value-state metadata rather than dumping raw
-source values. PivotCache stream identifiers, source-data type records, and the fixed
-`SXDB` cache-property header now decode into preserve-only PivotTable metadata,
-including compact report buckets for cache stream names, source types, cache record
-and field counts, property flags, and last-refresh-user presence. PivotTable
-`SXDI` data items now carry stable display-calculation reference names and report
-raw display-calculation ids alongside semantic field/item reference states. PivotTable
-`SxAddl` future records now also report future-record type, future flags, class
-sequence indexes, and class/type payload-length buckets.
-Chart `CatSerRange` records now decode preserve-only category/series axis
-crossing and interval metadata, `AxcExt` records now decode preserve-only
-date-axis ranges, units, automatic flags, and reserved-byte state, `AxisLineFormat`
-records now decode the formatted axis component target, `Line` and `Area` records now decode
-preserve-only chart group stacking, percentage, shadow, and reserved-bit
-states, `PieFormat` records now decode preserve-only pie/doughnut
-explosion percentages, chart `SerFmt` records now decode preserve-only series-format
-smooth-line, 3-D bubble, shadow, and reserved-bit states, chart `ClrtClient` records
-now decode preserve-only client color palettes, chart `Legend` records now report
-spacing, reserved-bit, automatic-position, and data-table consistency states, and chart `AttachedLabel` records now decode preserve-only
-data-label display flags for value, percent, category label, bubble size, and
-series name states. `StartBlock`, `EndBlock`, `Units`, `ChartFormat`, `SerToCrt`, `SeriesList`, `SBaseRef`, `CatLab`,
-`CrtLayout12`, `CrtLayout12A`, `ChartFrtInfo`, and `CrtMlFrt` records now decode preserve-only chart-group
-drawing order, reserved unit metadata, future-record block scopes, series-to-chart-group links, series-list membership, PivotTable-view reference ranges,
-axis-label offset/alignment/count-state metadata, chart layout modes/checksums,
-plot-area layout bounds, chart future-record version/range envelopes, and XmlTkChain byte-count envelopes, with compact import-report
-buckets for axis intervals, axis-line targets, chart-group state, series links,
-enabled data-label flags, full flag-state shapes, axis-label states, chart
-layout states, reserved unit states, plot-area layout states, future-record block scopes, future-record range states, XmlTkChain completion states, series-format states, and pie explosion percentages.
-Chart `BRAI` data-source formulas now also surface projected source-reference
-formula text in import reports, so chart category/title/value ranges are visible
-in corpus baselines without projecting legacy charts into `.xlsx` chart parts.
-Chart `LineFormat`, `AreaFormat`, and `MarkerFormat` reports now also expose
-decoded color, color-index, and flag-state buckets for preserve-only chart
-formatting evidence. Chart `Dat` data-table options now report reserved-bit
-state separately from the decoded display flags. Chart `SerAuxErrBar` records now decode preserve-only
-error-bar direction, value source, tee-top, fixed/custom values, and reserved-byte
-state for corpus evidence before native chart projection exists.
-BIFF `TableStyles`, `TableStyle`, and `TableStyleElement` records now decode into
-preserve-only workbook table-style metadata and import-report buckets for default
-table/PivotTable styles, applicability, declared/parsed element counts, element
-types, differential-format indexes, and stripe sizes. Native projection or custom
-table-style recreation remains future work.
-Client color palette buckets capture declared and decoded color counts, expected-count
-state, completeness, and foreground/background/neutral colors.
-Drawing `ShapePropsStream`, `TextPropsStream`, and `RichTextStream` future-record
-streams now have first-class preserve-only drawing kinds plus decoded FRT headers,
-including compact report buckets for wrapped record type, flags, range-reference
-state, attached range, and remaining stream byte count.
-OfficeArt FBSE image-store entries now preserve stable image UID metadata plus
-available embedded BLIP payload length and SHA-256 fingerprints in import reports,
-so embedded pictures can be compared and traced across corpus runs before native
-image extraction or DrawingML projection is implemented.
-Picture diagnostics now also report object, BLIP-store, BLIP-reference, and
-decoded picture-frame count coverage so grouped or partially decoded drawing
-structures are visible in corpus baselines.
-OfficeArt shape entries now also report whether their FSP flag field contains
-only decoded shape flags or extra reserved bits.
-Unsupported and preserve-only feature occurrences now also populate a structured
-`LegacyXlsWorkbook.UnsupportedFeatures` report with stable codes, feature kind,
-sheet name, record type, record offset, and stable feature-detail keys such as
-`Chart:Chart`, `Drawing:MsoDrawing`, `PivotTable:SxView`, and
-`Compound:VbaProjectStorage` so corpus tooling can reason about unsupported
-content without parsing diagnostic text or decoding raw BIFF ids by hand.
-`LegacyXlsImportReport`
-now exposes compact worksheet, cell, formula, comment, hyperlink, data-validation,
-conditional-formatting, AutoFilter criteria, defined-name, external-reference,
-external cached-cell, diagnostic-code, and unsupported-feature counts
-for corpus baselines through both `LegacyXlsWorkbook.CreateImportReport()` and
-`ExcelDocument.LoadLegacyXlsWithReport(...).ImportReport`.
-`OfficeIMO.Tests/Documents/LegacyXlsCorpus` now defines the optional real-world
-`.xls` corpus contract: every collected workbook can carry an approved
-`*.import-report.md` baseline, and the corpus test compares current import reports
-against those baselines with an explicit refresh environment variable for
-intentional changes. The current approved `openpreserve-format-corpus` baseline
-has no remaining generic formula-token blockers, which keeps future formula work
-anchored to named gaps instead of a single opaque bucket. Collecting approved
-non-sensitive real-world fixtures remains future Phase 5 work. The Excel-authored
-`excel-com-generated` corpus now includes controlled BIFF8 files for worksheet
-features, PivotTables, chart sheets, embedded charts, drawing objects, embedded
-pictures, form controls, supported formula token combinations, protection
-metadata, and same-folder external workbook references with cached external cell
-values, with approved import-report baselines and optional desktop Excel
-open/import/open validation. The public `apache-poi-testdata` corpus bucket adds
-Apache-2.0 fixtures pinned to an upstream Apache POI commit for 3D formula
-references, reference operator tokens, comments, hyperlinks, AutoFilter metadata,
-and extended style records, all with approved import-report baselines and no
-remaining projection gaps. A separate `LegacyXlsDiagnosticCorpus` now keeps
-expected-error fixtures, starting with Excel-authored password-to-open BIFF8 and
-Excel 5.0/95 BIFF5 workbooks that prove `FilePass` encryption and pre-BIFF8
-workbook versions are reported as explicit hard file-format blockers without
-mixing those files into the normal import corpus.
+This is the active end-to-end queue. Keep only unfinished work here. When a
+slice is finished, move its final status into the support matrix and evidence
+summary instead of leaving old completed detail in this list.
 
-## Non-Goals For The Initial Work
+The closeout target is not "every historical file with an `.xls` extension."
+The target is a release-ready statement that OfficeIMO supports BIFF8 normal
+workbook reads with no silent loss, plus a native BIFF8 writer for the supported
+OfficeIMO Excel feature surface. The current evidence says read parity is a
+guardrail, not the main open implementation queue: the normal corpus has zero
+unsupported projection gaps, and the diagnostic corpus contains the expected
+hard blockers.
 
-- No external spreadsheet dependency.
-- No native `.xls` save/write path.
-- No hidden conversion through Excel/COM.
-- No parser shortcuts that mutate `ExcelDocument` directly.
+### 1. Read Parity Proof
+
+These are closeout checks, not feature-discovery loops. If one fails, add the
+smallest fixture-backed read fix and return here.
+
+- [x] Run normal and diagnostic corpus baseline tests.
+- [x] Run normal and diagnostic projection-gap summary tests.
+- [x] Confirm the normal corpus still reports zero unsupported projection gaps.
+- [x] Confirm diagnostic fixtures such as older BIFF and password-to-open
+  encryption remain documented hard errors, not marketed as normal reads.
+- [x] Confirm read boundaries stay visible for older BIFF, password-to-open
+  encryption, non-normal sheet types, VBA/OLE, drawings, images, charts, chart
+  sheets, PivotTables, query/external caches, signatures, and embedded packages.
+
+### 2. Native Write Proof
+
+Apply this checklist to each remaining decision above.
+
+- [x] Keep or add focused preflight tests for every accepted native-write
+  boundary.
+- [x] Add save/reload tests through `ExcelDocument.LoadLegacyXlsWithReport` for
+  every newly supported native-write shape.
+- [x] Update the support matrix and support statement in the same slice that
+  changes behavior.
+- [x] Run the focused test filter for the slice.
+- [x] Run the full `LegacyXls` test lane after each meaningful slice.
+
+### 3. Permanent Boundaries To Keep Explicit
+
+These are verified release boundaries, not planned implementation slices. They
+stay in the roadmap so the support statement remains honest, but they should not
+keep expanding the active XLS queue unless a separate compatibility project is
+approved.
+
+- [x] Password-to-open native BIFF `FilePass` encryption stays unsupported:
+  diagnostic fixtures report a hard import blocker, and native XLS encryption is
+  not attempted.
+- [x] Native save targets outside `.xls` stay unsupported: `.xlt`, `.xla`,
+  `.xlm`, and `.xlw` are rejected by normal and explicit legacy load/save paths.
+- [x] VBA execution or signed native XLS preservation stays unsupported:
+  VBA/macro content is diagnosed or preserve-only on read and blocked before
+  native write.
+- [x] Embedded OLE package rewrite stays unsupported: embedded packages and OLE
+  objects are diagnosed or preserve-only on read and blocked before native
+  write.
+- [x] Digital-signature preservation or re-signing stays unsupported: signature
+  streams and package metadata are diagnosed on read and blocked before native
+  write.
+
+### 4. Final Release Closeout
+
+- [x] Run the full repo test lane, or document the exact residual risk if full
+  validation is impractical. Current checkpoint: the full `OfficeIMO.Tests`
+  project was run without restore and failed outside the XLS lane with Markdown
+  image rendering assertions, PDF raster baseline differences, and one
+  `net472` Word encrypted-load memory-stream failure. The focused `LegacyXls`
+  lane passes across `net472`, `net8.0`, and `net10.0`.
+- [x] Refresh public docs/examples so callers know which `.xls` features are
+  projected, cached, diagnosed, blocked, or natively written.
+- [x] Do one final branch diff review and remove or collapse any stale roadmap
+  language that no longer describes the current implementation.
+- [x] Commit and push the branch with the intended XLS implementation, corpus,
+  test, and documentation files.
+- [x] Open the PR and use a title/body that describe the final support shape:
+  BIFF8 normal-read support with explicit no-silent-loss diagnostics plus native
+  `.xls` save for the supported OfficeIMO Excel feature surface.
+- [ ] Recheck CI and reviewer threads after the final push before declaring the
+  roadmap closed. If CI repeats the currently known non-XLS failures, keep that
+  as release-state context; if CI finds a new XLS regression, fix it here and
+  rerun the focused `LegacyXls` lane.
+
+## Confidence Statement
+
+The confidence bar for this branch is no silent data loss. A feature may be
+fully projected, cached with diagnostics, preserve-only/diagnosed, or blocked
+before write, but it must not disappear without a report or preflight failure.
+
+## Guardrails
+
+- Keep parser, legacy model, and Open XML projection separated.
+- Keep normal OfficeIMO APIs as the integration path.
+- Do not add Excel/COM conversion to production code.
+- Do not add external spreadsheet dependencies.
+- Do not disguise Open XML `.xlsx` bytes with a legacy `.xls` extension.

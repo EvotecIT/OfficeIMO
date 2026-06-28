@@ -19,6 +19,7 @@ External cell caches: 6
 External cached cells: 8
 External query connections: 0
 Data consolidation references: 0
+Data consolidation named sources: 0
 Pivot table records: 27
 Chart records: 1134
 Drawing records: 46
@@ -45,7 +46,7 @@ Array formula records: 0
 Future function aliases: 0
 Workbook metadata records: 17
 Workbook future metadata records: 0
-Worksheet metadata records: 39
+Worksheet metadata records: 41
 Worksheet future metadata records: 0
 Unsupported sheet metadata records: 8
 Unsupported sheet future metadata records: 0
@@ -2450,6 +2451,7 @@ Warnings: 0
 | --- | --- |
 | GridSet | 7 |
 | OutlineLevels | 7 |
+| PhoneticSettings | 2 |
 | PrintSize | 4 |
 | RowBlockIndex | 7 |
 | Selection | 7 |

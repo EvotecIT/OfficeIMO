@@ -149,8 +149,30 @@ namespace OfficeIMO.Excel {
             font.Underline = underline ? new Underline() : null;
         }
 
+        private static void SetUnderline(DocumentFormat.OpenXml.Spreadsheet.Font font, UnderlineValues? underlineStyle) {
+            font.Underline = underlineStyle.HasValue && underlineStyle.Value != UnderlineValues.None
+                ? new Underline { Val = underlineStyle.Value }
+                : null;
+        }
+
         private static void SetStrike(DocumentFormat.OpenXml.Spreadsheet.Font font, bool strike) {
             font.Strike = strike ? new Strike() : null;
+        }
+
+        private static void SetOutline(DocumentFormat.OpenXml.Spreadsheet.Font font, bool outline) {
+            font.Outline = outline ? new Outline() : null;
+        }
+
+        private static void SetShadow(DocumentFormat.OpenXml.Spreadsheet.Font font, bool shadow) {
+            font.Shadow = shadow ? new Shadow() : null;
+        }
+
+        private static void SetCondense(DocumentFormat.OpenXml.Spreadsheet.Font font, bool condense) {
+            font.Condense = condense ? new Condense() : null;
+        }
+
+        private static void SetExtend(DocumentFormat.OpenXml.Spreadsheet.Font font, bool extend) {
+            font.Extend = extend ? new Extend() : null;
         }
 
         private static void SetVerticalTextAlignment(DocumentFormat.OpenXml.Spreadsheet.Font font, VerticalAlignmentRunValues? verticalTextAlignment) {
@@ -175,6 +197,31 @@ namespace OfficeIMO.Excel {
             font.FontSize = new FontSize {
                 Val = fontSize
             };
+        }
+
+        private static void SetFontFamily(DocumentFormat.OpenXml.Spreadsheet.Font font, byte family) {
+            font.FontFamilyNumbering = family == 0
+                ? null
+                : new FontFamilyNumbering { Val = family };
+        }
+
+        private static void SetFontCharacterSet(DocumentFormat.OpenXml.Spreadsheet.Font font, byte characterSet) {
+            foreach (OpenXmlElement existing in font.ChildElements.Where(child => IsSpreadsheetFontElement(child, "charset")).ToList()) {
+                existing.Remove();
+            }
+
+            if (characterSet == 1) {
+                return;
+            }
+
+            var charset = new OpenXmlUnknownElement(string.Empty, "charset", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
+            charset.SetAttribute(new OpenXmlAttribute("val", string.Empty, characterSet.ToString(CultureInfo.InvariantCulture)));
+            font.AppendChild(charset);
+        }
+
+        private static bool IsSpreadsheetFontElement(OpenXmlElement element, string localName) {
+            return string.Equals(element.LocalName, localName, StringComparison.Ordinal)
+                && string.Equals(element.NamespaceUri, "http://schemas.openxmlformats.org/spreadsheetml/2006/main", StringComparison.Ordinal);
         }
 
         private static void SetUniformBorder(Border border, BorderStyleValues style, string? hexColor) {

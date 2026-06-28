@@ -278,6 +278,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalCachedCellCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Sum(cache => cache.Cells.Count));
             ExternalQueryConnectionCount = workbook.ExternalQueryConnections.Count;
             DataConsolidationReferenceCount = workbook.DataConsolidationReferences.Count;
+            DataConsolidationNameCount = workbook.DataConsolidationNames.Count;
             PivotTableRecordCount = workbook.PivotTableRecords.Count;
             ChartRecordCount = workbook.ChartRecords.Count;
             DrawingRecordCount = workbook.DrawingRecords.Count;
@@ -577,6 +578,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             DataConsolidationReferencesByShape = CountByCode(workbook.DataConsolidationReferences.Select(reference => $"Rows:{reference.RowSpan};Columns:{reference.ColumnSpan}"));
             DataConsolidationReferencesBySourceAndRange = CountByCode(workbook.DataConsolidationReferences.Select(reference => $"{reference.Source}|{reference.CellRange}"));
             DataConsolidationReferencesByUnusedByteCount = CountByCode(workbook.DataConsolidationReferences.Select(reference => $"UnusedBytes:{reference.UnusedByteCount}"));
+            DataConsolidationNamesBySourceKind = CountByCode(workbook.DataConsolidationNames.Select(name => name.SourceKind.ToString()));
+            DataConsolidationNamesByName = CountByCode(workbook.DataConsolidationNames.Select(name => name.Name));
+            DataConsolidationNamesBySource = CountByCode(workbook.DataConsolidationNames.Select(GetDataConsolidationNameSourceKey));
+            DataConsolidationNamesByNameAndSource = CountByCode(workbook.DataConsolidationNames.Select(name => $"{name.Name}|{GetDataConsolidationNameSourceKey(name)}"));
+            DataConsolidationNamesByUnusedByteCount = CountByCode(workbook.DataConsolidationNames.Select(name => $"UnusedBytes:{name.UnusedByteCount}"));
             ThemeRecordsByVersion = CountByCode(workbook.ThemeRecords.Select(record => record.ThemeVersionName));
             ThemeRecordsByRawVersion = CountByCode(workbook.ThemeRecords.Select(record => $"Version:{record.ThemeVersion}"));
             ThemeRecordsByContentState = CountByCode(workbook.ThemeRecords.Select(record => record.HasThemeBytes ? "EmbeddedThemeBytes" : "NoEmbeddedThemeBytes"));
@@ -2041,6 +2047,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of preserve-only DConRef source range records decoded during import.</summary>
         public int DataConsolidationReferenceCount { get; }
 
+        /// <summary>Gets the number of DConName named consolidation source records decoded during import.</summary>
+        public int DataConsolidationNameCount { get; }
+
         /// <summary>Gets the number of preserve-only PivotTable BIFF records discovered during import.</summary>
         public int PivotTableRecordCount { get; }
 
@@ -2547,6 +2556,21 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets DConRef records grouped by trailing unused byte count.</summary>
         public IReadOnlyDictionary<string, int> DataConsolidationReferencesByUnusedByteCount { get; }
+
+        /// <summary>Gets DConName records grouped by decoded source kind.</summary>
+        public IReadOnlyDictionary<string, int> DataConsolidationNamesBySourceKind { get; }
+
+        /// <summary>Gets DConName records grouped by defined-name reference.</summary>
+        public IReadOnlyDictionary<string, int> DataConsolidationNamesByName { get; }
+
+        /// <summary>Gets DConName records grouped by external source, or self-reference marker.</summary>
+        public IReadOnlyDictionary<string, int> DataConsolidationNamesBySource { get; }
+
+        /// <summary>Gets DConName records grouped by defined name and source.</summary>
+        public IReadOnlyDictionary<string, int> DataConsolidationNamesByNameAndSource { get; }
+
+        /// <summary>Gets DConName records grouped by trailing unused byte count.</summary>
+        public IReadOnlyDictionary<string, int> DataConsolidationNamesByUnusedByteCount { get; }
 
         /// <summary>Gets Theme records grouped by decoded theme version.</summary>
         public IReadOnlyDictionary<string, int> ThemeRecordsByVersion { get; }
@@ -3840,6 +3864,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"External cached cells: {ExternalCachedCellCount}");
             builder.AppendLine($"External query connections: {ExternalQueryConnectionCount}");
             builder.AppendLine($"Data consolidation references: {DataConsolidationReferenceCount}");
+            builder.AppendLine($"Data consolidation named sources: {DataConsolidationNameCount}");
             builder.AppendLine($"Pivot table records: {PivotTableRecordCount}");
             builder.AppendLine($"Chart records: {ChartRecordCount}");
             builder.AppendLine($"Drawing records: {DrawingRecordCount}");
@@ -4118,6 +4143,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Data Consolidation References By Shape", DataConsolidationReferencesByShape);
             AppendDictionary(builder, "Data Consolidation References By Source And Range", DataConsolidationReferencesBySourceAndRange);
             AppendDictionary(builder, "Data Consolidation References By Unused Byte Count", DataConsolidationReferencesByUnusedByteCount);
+            AppendDictionary(builder, "Data Consolidation Names By Source Kind", DataConsolidationNamesBySourceKind);
+            AppendDictionary(builder, "Data Consolidation Names By Name", DataConsolidationNamesByName);
+            AppendDictionary(builder, "Data Consolidation Names By Source", DataConsolidationNamesBySource);
+            AppendDictionary(builder, "Data Consolidation Names By Name And Source", DataConsolidationNamesByNameAndSource);
+            AppendDictionary(builder, "Data Consolidation Names By Unused Byte Count", DataConsolidationNamesByUnusedByteCount);
             AppendDictionary(builder, "Theme Records By Version", ThemeRecordsByVersion);
             AppendDictionary(builder, "Theme Records By Raw Version", ThemeRecordsByRawVersion);
             AppendDictionary(builder, "Theme Records By Content State", ThemeRecordsByContentState);
@@ -4669,6 +4699,10 @@ namespace OfficeIMO.Excel.LegacyXls {
                     LegacyXlsUnsupportedFeatureKind.OleObject,
                     "XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED",
                     detailCode: "Compound:OleObjectStorage"),
+                LegacyXlsCompoundFeatureRecordKind.DigitalSignature => GetProjectedFeatureKey(
+                    LegacyXlsUnsupportedFeatureKind.DigitalSignature,
+                    "XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED",
+                    detailCode: "Compound:DigitalSignature"),
                 _ => null
             };
         }
@@ -5426,6 +5460,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             return reference.SourcePrefix.HasValue
                 ? $"Prefix:0x{reference.SourcePrefix.Value:X2}"
                 : "Prefix:None";
+        }
+
+        private static string GetDataConsolidationNameSourceKey(LegacyXlsDataConsolidationName name) {
+            return string.IsNullOrWhiteSpace(name.Source)
+                ? "(self)"
+                : name.Source;
         }
 
         private static string NormalizeExternalReferenceTarget(string target) {

@@ -54,6 +54,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case BiffRecordType.Plv:
                     kind = LegacyXlsWorkbookMetadataKind.PageLayoutView;
                     return true;
+                case BiffRecordType.SheetExt:
+                    kind = LegacyXlsWorkbookMetadataKind.SheetExtension;
+                    return true;
                 case BiffRecordType.Compat12:
                     kind = LegacyXlsWorkbookMetadataKind.Compatibility12;
                     return true;

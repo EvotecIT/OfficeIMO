@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal static LegacyXlsWorkbook Parse(byte[] workbookStream, LegacyXlsImportOptions options) {
             var workbook = new LegacyXlsWorkbook();
             IReadOnlyList<BiffRecord> records = ReadWorkbookGlobalRecords(workbookStream, workbook.MutableDiagnostics);
-            var sharedStrings = new List<string>();
+            var sharedStrings = new List<BiffStringReader.BiffStringValue>();
             var numberFormatsById = new Dictionary<ushort, string>();
             var externSheets = new List<BiffExternSheetReference>();
             var boundSheetNames = new List<string>();
@@ -20,6 +20,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (!LegacyBiffVersionValidator.ValidateWorkbookGlobals(records, workbook)) {
                 return workbook;
             }
+
+            PopulateDefinedNameTable(records, definedNameTable);
 
             for (int i = 0; i < records.Count; i++) {
                 BiffRecord record = records[i];
@@ -65,7 +67,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     ReadProtect(record, workbook);
                 } else if (record.Type == (ushort)BiffRecordType.Sst) {
                     IReadOnlyList<byte[]> payloads = CollectContinuedPayloads(records, ref i);
-                    sharedStrings = BiffStringReader.ReadSharedStrings(payloads, workbook.MutableDiagnostics, record.Offset);
+                    sharedStrings = BiffStringReader.ReadSharedStringValues(payloads, workbook.MutableDiagnostics, record.Offset);
                 } else if (record.Type == (ushort)BiffRecordType.SupBook) {
                     currentExternalReference = ReadSupBook(record, workbook, workbook.MutableDiagnostics, options);
                     currentExternalCellCache = null;
@@ -91,9 +93,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                     continue;
                 } else if (BiffTableStyleReader.TryRead(record, workbook, workbook.MutableDiagnostics)) {
-                    AddUnsupportedRecordFeature(workbook, record, sheetName: null);
-                    if (options.ReportUnsupportedRecords) {
-                        BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
+                    if (record.Type != (ushort)BiffRecordType.TableStyles) {
+                        AddUnsupportedRecordFeature(workbook, record, sheetName: null);
+                        if (options.ReportUnsupportedRecords) {
+                            BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
+                        }
                     }
 
                     continue;
@@ -115,8 +119,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     }
                 } else if (BiffDataConsolidationReferenceReader.TryRead(record, workbook.MutableDiagnostics, out LegacyXlsDataConsolidationReference? dataConsolidationReference)) {
                     workbook.MutableDataConsolidationReferences.Add(dataConsolidationReference!);
-                    AddUnsupportedRecordFeature(workbook, record, sheetName: null);
-                    if (options.ReportUnsupportedRecords) {
+                    if (dataConsolidationReference!.SourceKind == LegacyXlsDataConsolidationSourceKind.Unknown) {
+                        AddUnsupportedRecordFeature(workbook, record, sheetName: null);
+                    }
+
+                    if (options.ReportUnsupportedRecords && dataConsolidationReference.SourceKind == LegacyXlsDataConsolidationSourceKind.Unknown) {
+                        BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
+                    }
+                } else if (BiffDataConsolidationNameReader.TryRead(record, workbook.MutableDiagnostics, out LegacyXlsDataConsolidationName? dataConsolidationName)) {
+                    workbook.MutableDataConsolidationNames.Add(dataConsolidationName!);
+                    if (dataConsolidationName!.SourceKind == LegacyXlsDataConsolidationSourceKind.Unknown) {
+                        AddUnsupportedRecordFeature(workbook, record, sheetName: null);
+                    }
+
+                    if (options.ReportUnsupportedRecords && dataConsolidationName.SourceKind == LegacyXlsDataConsolidationSourceKind.Unknown) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                     }
                 } else if (BiffExternalQueryConnectionReader.TryRead(record, sheetName: null, workbook.MutableDiagnostics, out LegacyXlsExternalQueryConnection? externalQueryConnection)) {
@@ -433,6 +449,35 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
         }
 
+        private static void PopulateDefinedNameTable(IReadOnlyList<BiffRecord> records, List<string?> definedNameTable) {
+            foreach (BiffRecord record in records) {
+                if (record.Type != (ushort)BiffRecordType.Lbl) {
+                    continue;
+                }
+
+                definedNameTable.Add(TryReadDefinedNameTableEntry(record.Payload, out string? name) ? name : null);
+            }
+        }
+
+        private static bool TryReadDefinedNameTableEntry(byte[] payload, out string? name) {
+            name = null;
+            try {
+                if (payload.Length < 14) {
+                    return false;
+                }
+
+                ushort flags = BiffRecordReader.ReadUInt16(payload, 0);
+                bool builtIn = (flags & 0x0020) != 0;
+                int nameCharCount = payload[3];
+                int offset = 14;
+                string rawName = BiffStringReader.ReadUnicodeStringNoCch(payload, ref offset, nameCharCount);
+                name = builtIn ? GetBuiltInName(rawName) : rawName;
+                return !string.IsNullOrWhiteSpace(name);
+            } catch (Exception ex) when (ex is InvalidDataException || ex is OverflowException) {
+                return false;
+            }
+        }
+
         private static void ReadDefinedName(
             BiffRecord record,
             LegacyXlsWorkbook workbook,
@@ -443,7 +488,6 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<string?> definedNameTable,
             List<LegacyXlsFormulaTokenRecord> formulaTokenRecords,
             List<LegacyXlsImportDiagnostic> diagnostics) {
-            string? formulaName = null;
             try {
                 if (record.Payload.Length < 14) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
@@ -468,7 +512,6 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
 
                 string? name = builtIn ? GetBuiltInName(rawName) : rawName;
-                formulaName = name;
                 if (string.IsNullOrWhiteSpace(name)) {
                     return;
                 }
@@ -487,7 +530,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 BiffFormulaReadFailure? formulaFailure;
                 bool formulaRead = string.Equals(name, "_xlnm.Print_Titles", StringComparison.OrdinalIgnoreCase)
                     ? BiffNameFormulaReader.TryReadPrintTitles(formulaBytes, externSheets, externalReferences, sheetNames, out reference, out formulaFailure)
-                    : BiffNameFormulaReader.TryReadReference(formulaBytes, externSheets, externalReferences, sheetNames, out reference, out formulaFailure);
+                    : BiffNameFormulaReader.TryReadFormula(formulaBytes, externSheets, externalReferences, sheetNames, definedNameTable, out reference, out formulaFailure);
                 if (!formulaRead) {
                     if (TryAddFutureFunctionAlias(workbook, name!, record, formulaFailure)) {
                         return;
@@ -560,8 +603,6 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     $"A Lbl record could not be parsed. {ex.Message}",
                     recordOffset: record.Offset,
                     recordType: record.Type));
-            } finally {
-                definedNameTable.Add(formulaName);
             }
         }
 
@@ -622,6 +663,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 ushort weight = BiffRecordReader.ReadUInt16(record.Payload, 6);
                 ushort escapement = BiffRecordReader.ReadUInt16(record.Payload, 8);
                 byte underline = record.Payload[10];
+                byte family = record.Payload[11];
+                byte characterSet = record.Payload[12];
                 int nameOffset = 14;
                 string name = BiffStringReader.ReadShortUnicodeString(record.Payload, ref nameOffset);
 
@@ -634,7 +677,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     (options & 0x0002) != 0,
                     underline != 0,
                     (options & 0x0008) != 0,
-                    ToFontEscapement(escapement)));
+                    underline,
+                    ToFontEscapement(escapement),
+                    family,
+                    characterSet,
+                    outline: (options & 0x0010) != 0,
+                    shadow: (options & 0x0020) != 0,
+                    condense: (options & 0x0040) != 0,
+                    extend: (options & 0x0080) != 0));
             } catch (Exception ex) when (ex is InvalidDataException || ex is OverflowException) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
