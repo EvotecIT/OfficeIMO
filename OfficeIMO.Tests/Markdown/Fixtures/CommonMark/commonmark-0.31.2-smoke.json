@@ -3123,6 +3123,20 @@
     "html": "<p><em><em>foo</em> bar</em></p>\n"
   },
   {
+    "example": 418,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "*foo **bar *baz* bim** bop*\n",
+    "html": "<p><em>foo <strong>bar <em>baz</em> bim</strong> bop</em></p>\n"
+  },
+  {
+    "example": 432,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "**foo *bar **baz**\nbim* bop**\n",
+    "html": "<p><strong>foo <em>bar <strong>baz</strong>\nbim</em> bop</strong></p>\n"
+  },
+  {
     "example": 438,
     "section": "Emphasis and strong emphasis",
     "topLevelKinds": ["Paragraph"],

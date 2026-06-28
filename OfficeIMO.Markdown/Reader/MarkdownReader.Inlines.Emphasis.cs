@@ -136,23 +136,33 @@ public static partial class MarkdownReader {
 
         if (splitDoubleRunIntoDualItalic) return false;
 
-        int nextRun = FindNextDelimiterRunLength(text, start + 2, marker);
+        int nextRunIndex = FindNextDelimiterRunIndex(text, start + 2, marker, out int nextRun);
         if (nextRun != 1) return false;
+
+        GetDelimiterFlags(text, nextRunIndex, marker, nextRun, out bool nextCanOpen, out bool nextCanClose);
+        if (nextCanOpen && !nextCanClose) return false;
 
         literalRunLength = 2;
         return true;
     }
 
     private static int FindNextDelimiterRunLength(string text, int start, char marker) {
-        if (string.IsNullOrEmpty(text)) return 0;
+        _ = FindNextDelimiterRunIndex(text, start, marker, out int runLength);
+        return runLength;
+    }
+
+    private static int FindNextDelimiterRunIndex(string text, int start, char marker, out int runLength) {
+        runLength = 0;
+        if (string.IsNullOrEmpty(text)) return -1;
         for (int i = Math.Max(0, start); i < text.Length; i++) {
             if (text[i] != marker) continue;
 
             int run = 1;
             while (i + run < text.Length && text[i + run] == marker) run++;
-            return run;
+            runLength = run;
+            return i;
         }
-        return 0;
+        return -1;
     }
 
     private static bool TryRebalanceLeadingBoldInsideItalic(Stack<InlineFrame> stack, char marker, int remaining, out int consumed) {
@@ -368,11 +378,36 @@ public static partial class MarkdownReader {
         int singleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 1);
         if (singleClose < 0) return false;
 
+        int immediateDoubleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 2);
+        if (immediateDoubleClose >= 0 && immediateDoubleClose < singleClose) return false;
+
+        if (HasOpeningDelimiterRunBefore(text, start + 2, singleClose, marker, requiredRunLength: 1)) return false;
+
         int doubleClose = FindNextClosingDelimiterRunIndex(text, singleClose + 1, marker, requiredRunLength: 2);
         if (doubleClose < 0) return false;
 
         int afterSingle = singleClose + 1;
         return afterSingle < text.Length && char.IsWhiteSpace(text[afterSingle]);
+    }
+
+    private static bool HasOpeningDelimiterRunBefore(string text, int start, int endExclusive, char marker, int requiredRunLength) {
+        if (string.IsNullOrEmpty(text)) return false;
+        if (requiredRunLength <= 0) requiredRunLength = 1;
+        if (endExclusive <= start) return false;
+
+        for (int i = Math.Max(0, start); i < Math.Min(text.Length, endExclusive); i++) {
+            if (text[i] != marker) continue;
+
+            int runLen = 1;
+            while (i + runLen < text.Length && text[i + runLen] == marker) runLen++;
+
+            GetDelimiterFlags(text, i, marker, runLen, out bool canOpen, out _);
+            if (canOpen && runLen == requiredRunLength) return true;
+
+            i += runLen - 1;
+        }
+
+        return false;
     }
 
     private static int FindNextClosingDelimiterIndex(string text, int start, char marker, int minimumRunLength) {
