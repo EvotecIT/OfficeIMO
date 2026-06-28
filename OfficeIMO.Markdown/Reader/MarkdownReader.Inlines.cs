@@ -574,8 +574,8 @@ public static partial class MarkdownReader {
             }
             if (text[pos] == '[') {
                 if (allowLinks) {
-                    if (TryParseLink(text, pos, sourceMap, out int consumed2, out var label2, out var href3, out var title2, out int hrefStart2, out int hrefLength2, out int? titleStart2, out int? titleLength2)) {
-                        var labelSeq = ParseInlinesInternal(label2, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, label2.Length));
+                    if (TryParseLink(text, pos, sourceMap, state, out int consumed2, out var label2, out var href3, out var title2, out int hrefStart2, out int hrefLength2, out int? titleStart2, out int? titleLength2)) {
+                        var labelSeq = ParseInlinesInternal(label2, options, state, allowLinks: false, allowImages: true, SliceMap(pos + 1, label2.Length));
 
                         // Allow empty href: commonly used as placeholder or to be filled by the host.
                         if (string.IsNullOrWhiteSpace(href3)) {
@@ -594,7 +594,13 @@ public static partial class MarkdownReader {
 
                     if (state != null && TryParseCollapsedRef(text, pos, out int consumedC, out var lbl2)) {
                         var key = NormalizeReferenceLabel(lbl2);
-                        var labelSeq = ParseInlinesInternal(lbl2, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, lbl2.Length));
+                        if (ContainsResolvedLinkInLabel(lbl2, state)) {
+                            AddTextNode("[", pos, 1);
+                            pos++;
+                            continue;
+                        }
+
+                        var labelSeq = ParseInlinesInternal(lbl2, options, state, allowLinks: false, allowImages: true, SliceMap(pos + 1, lbl2.Length));
                         if (state.LinkRefs.TryGetValue(key, out var def2)) {
                             var resolved = ResolveUrl(def2.Url, options);
                             if (resolved is null) {
@@ -610,7 +616,13 @@ public static partial class MarkdownReader {
                     }
                     if (state != null && TryParseRefLink(text, pos, out int consumedR, out var lbl, out var refLabel)) {
                         var key = NormalizeReferenceLabel(refLabel);
-                        var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, lbl.Length));
+                        if (ContainsResolvedLinkInLabel(lbl, state)) {
+                            AddTextNode("[", pos, 1);
+                            pos++;
+                            continue;
+                        }
+
+                        var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages: true, SliceMap(pos + 1, lbl.Length));
                         if (state.LinkRefs.TryGetValue(key, out var def)) {
                             var resolved = ResolveUrl(def.Url, options);
                             if (resolved is null) {
@@ -623,7 +635,13 @@ public static partial class MarkdownReader {
                     }
                     if (state != null && TryParseShortcutRef(text, pos, out int consumedS, out var lbl3)) {
                         var key = NormalizeReferenceLabel(lbl3);
-                        var labelSeq = ParseInlinesInternal(lbl3, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, lbl3.Length));
+                        if (ContainsResolvedLinkInLabel(lbl3, state)) {
+                            AddTextNode("[", pos, 1);
+                            pos++;
+                            continue;
+                        }
+
+                        var labelSeq = ParseInlinesInternal(lbl3, options, state, allowLinks: false, allowImages: true, SliceMap(pos + 1, lbl3.Length));
                         if (state.LinkRefs.TryGetValue(key, out var def3)) {
                             var resolved = ResolveUrl(def3.Url, options);
                             if (resolved is null) {
@@ -634,8 +652,15 @@ public static partial class MarkdownReader {
                             pos += consumedS; continue;
                         }
 
+                        if (stack.Count > 1) {
+                            AddTextNode("[", pos, 1);
+                            pos++;
+                            continue;
+                        }
+
                         AddTextNode(text.Substring(pos, consumedS), pos, consumedS);
-                        pos += consumedS; continue;
+                        pos += consumedS;
+                        continue;
                     }
                 }
             }

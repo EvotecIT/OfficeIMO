@@ -110,10 +110,62 @@ public static partial class MarkdownReader {
         return true;
     }
 
+    private static bool ContainsResolvedLinkInLabel(string label, MarkdownReaderState? state) {
+        if (string.IsNullOrEmpty(label)) return false;
+
+        for (int i = 0; i < label.Length; i++) {
+            if (label[i] != '[') {
+                continue;
+            }
+
+            if (i > 0 && label[i - 1] == '!') {
+                continue;
+            }
+
+            if (TryParseLink(
+                label,
+                i,
+                sourceMap: null,
+                state,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _)) {
+                return true;
+            }
+
+            if (state == null) {
+                continue;
+            }
+
+            if (TryParseRefLink(label, i, out _, out _, out var referenceLabel)
+                && state.LinkRefs.ContainsKey(NormalizeReferenceLabel(referenceLabel))) {
+                return true;
+            }
+
+            if (TryParseCollapsedRef(label, i, out _, out var collapsedLabel)
+                && state.LinkRefs.ContainsKey(NormalizeReferenceLabel(collapsedLabel))) {
+                return true;
+            }
+
+            if (TryParseShortcutRef(label, i, out _, out var shortcutLabel)
+                && state.LinkRefs.ContainsKey(NormalizeReferenceLabel(shortcutLabel))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool TryParseLink(
         string text,
         int start,
         MarkdownInlineSourceMap? sourceMap,
+        MarkdownReaderState? state,
         out int consumed,
         out string label,
         out string href,
@@ -132,6 +184,8 @@ public static partial class MarkdownReader {
         int parenClose = FindMatchingParen(text, parenOpen);
         if (parenClose < 0) return false;
         label = text.Substring(start + 1, labelEnd - (start + 1));
+        if (ContainsResolvedLinkInLabel(label, state)) return false;
+
         string inner = text.Substring(parenOpen + 1, parenClose - (parenOpen + 1));
         if (!TrySplitUrlAndOptionalTitle(
             inner,

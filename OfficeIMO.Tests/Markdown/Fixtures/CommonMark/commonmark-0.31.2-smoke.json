@@ -2743,6 +2743,55 @@
     "html": "<p>[link](/url &quot;title &quot;and&quot; title&quot;)</p>\n"
   },
   {
+    "example": 518,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[foo [bar](/uri)](/uri)\n",
+    "html": "<p>[foo <a href=\"/uri\">bar</a>](/uri)</p>\n"
+  },
+  {
+    "example": 519,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[foo *[bar [baz](/uri)](/uri)*](/uri)\n",
+    "html": "<p>[foo <em>[bar <a href=\"/uri\">baz</a>](/uri)</em>](/uri)</p>\n"
+  },
+  {
+    "example": 520,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "![[[foo](uri1)](uri2)](uri3)\n",
+    "html": "<p><img src=\"uri3\" alt=\"[foo](uri2)\" /></p>\n"
+  },
+  {
+    "example": 523,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "*foo [bar* baz]\n",
+    "html": "<p><em>foo [bar</em> baz]</p>\n"
+  },
+  {
+    "example": 531,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[![moon](moon.jpg)][ref]\n\n[ref]: /uri\n",
+    "html": "<p><a href=\"/uri\"><img src=\"moon.jpg\" alt=\"moon\" /></a></p>\n"
+  },
+  {
+    "example": 532,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo [bar](/uri)][ref]\n\n[ref]: /uri\n",
+    "html": "<p>[foo <a href=\"/uri\">bar</a>]<a href=\"/uri\">ref</a></p>\n"
+  },
+  {
+    "example": 533,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo *bar [baz][ref]*][ref]\n\n[ref]: /uri\n",
+    "html": "<p>[foo <em>bar <a href=\"/uri\">baz</a></em>]<a href=\"/uri\">ref</a></p>\n"
+  },
+  {
     "example": 594,
     "section": "Autolinks",
     "topLevelKinds": ["Paragraph"],

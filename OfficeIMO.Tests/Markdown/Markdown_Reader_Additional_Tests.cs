@@ -787,6 +787,38 @@ span`
         }
 
         [Fact]
+        public void Link_Label_With_Nested_Link_Deactivates_Outer_Link_Opener() {
+            const string md = "[foo [bar](/uri)](/outer)";
+
+            var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var link = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
+
+            Assert.Equal("bar", link.Text);
+            Assert.Equal("/uri", link.Url);
+            Assert.Contains("[foo <a href=\"/uri\">bar</a>](/outer)", doc.ToHtmlFragment());
+        }
+
+        [Fact]
+        public void Reference_Link_Label_Allows_Inline_Image_Content() {
+            const string md = """
+[![moon](moon.jpg)][ref]
+
+[ref]: /uri
+""";
+
+            var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var link = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
+            var image = Assert.Single(link.LabelInlines!.Nodes.OfType<ImageInline>());
+
+            Assert.Equal("/uri", link.Url);
+            Assert.Equal("moon.jpg", image.Src);
+            Assert.Equal("moon", image.PlainAlt);
+            Assert.Contains("<a href=\"/uri\"><img src=\"moon.jpg\" alt=\"moon\" /></a>", doc.ToHtmlFragment());
+        }
+
+        [Fact]
         public void Reference_Definitions_Support_Single_Quote_Titles() {
             string md = """
 [x][r]
