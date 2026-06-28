@@ -22,8 +22,8 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Markdig extension-family rows | 33 |
-| Covered | 0 |
-| Partial | 15 |
+| Covered | 1 |
+| Partial | 14 |
 | Intentional | 4 |
 | Gap | 14 |
 
@@ -62,7 +62,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | `UseSelfPipeline` | Self pipeline | `Intentional` | This is a Markdig pipeline composition helper, not a Markdown feature OfficeIMO should mirror directly. | Keep extension composition in OfficeIMO reader/render/write options. |
 | `UseSmartyPants` | SmartyPants | `Gap` | No SmartyPants inline transform exists. | Consider as an optional inline transform after delimiter parsing stabilizes. |
 | `UseSoftlineBreakAsHardlineBreak` | Soft line break as hard line break | `Gap` | OfficeIMO has hard/soft break nodes, but no Markdig-compatible softbreak-as-hardbreak switch. | Add only as an explicit profile/render option with tests. |
-| `UseTaskLists` | Task lists | `Partial` | OfficeIMO has task-list parsing, AST flags, marker source spans, and tracked GFM fixtures. | Broaden nested/task marker corpus and writer/source-edit proof. |
+| `UseTaskLists` | Task lists | `Covered` | OfficeIMO has GFM task-list parsing for checked, unchecked, uppercase, nested, and invalid tight-marker cases; semantic AST flags; exact marker source spans; native snapshots/source edits; GitHub HTML rendering; and Markdown writer roundtrip proof. | Keep the GFM fixture corpus and marker source-edit coverage current. |
 | `UseYamlFrontMatter` | YAML front matter | `Partial` | OfficeIMO has front matter blocks with key/value and fence source spans, but not a Markdig YAML object-model parity claim. | Separate raw YAML preservation from parsed metadata helpers. |
 
 ## Reflected Pipeline Entry Points

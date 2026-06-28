@@ -59,6 +59,44 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void MarkdownWriter_Renders_Unordered_Task_List_Markers_And_Roundtrips_State() {
+            var doc = MarkdownDoc.Create()
+                .Ul(ul => ul
+                    .ItemTask("Open")
+                    .ItemTask("Done", true)
+                    .Item("Plain"));
+
+            string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
+
+            Assert.Contains("- [ ] Open", markdown, StringComparison.Ordinal);
+            Assert.Contains("- [x] Done", markdown, StringComparison.Ordinal);
+            Assert.Contains("- Plain", markdown, StringComparison.Ordinal);
+
+            var parsed = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+            var list = Assert.IsType<UnorderedListBlock>(Assert.Single(parsed.Blocks));
+
+            Assert.Collection(
+                list.Items,
+                item => {
+                    Assert.True(item.IsTask);
+                    Assert.False(item.Checked);
+                    Assert.Equal("Open", InlinePlainText.Extract(item.Content));
+                },
+                item => {
+                    Assert.True(item.IsTask);
+                    Assert.True(item.Checked);
+                    Assert.Equal("Done", InlinePlainText.Extract(item.Content));
+                },
+                item => {
+                    Assert.False(item.IsTask);
+                    Assert.Equal("Plain", InlinePlainText.Extract(item.Content));
+                });
+
+            string reparsed = parsed.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Equal(markdown.TrimEnd(), reparsed.TrimEnd());
+        }
+
+        [Fact]
         public void Reader_Roundtrips_Linked_Image_Block() {
             var md = MarkdownDoc.Create()
                 .Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", linkUrl: "https://example.com/docs", linkTitle: "Documentation"))
