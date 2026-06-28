@@ -62,6 +62,11 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 6), opening.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 17), content.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 18, 1, 19), closing.SourceSpan);
+        Assert.Collection(code.SyntaxNode.Children,
+            openingMarker => Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind),
+            contentToken => Assert.Equal(MarkdownSyntaxKind.InlineCodeSpanContent, contentToken.Kind),
+            closingMarker => Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind));
+        Assert.Empty(code.Children);
 
         var edited = native.CreateReplaceEdit(closing, "```").Apply(native.SourceMarkdown);
         edited = native.CreateReplaceEdit(opening, "```").Apply(edited);

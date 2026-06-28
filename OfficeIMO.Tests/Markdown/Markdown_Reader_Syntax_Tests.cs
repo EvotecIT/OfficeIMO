@@ -632,6 +632,57 @@ baz*
         var code = paragraph.Children[5];
         Assert.Equal(MarkdownSyntaxKind.InlineCodeSpan, code.Kind);
         Assert.Equal("code", code.Literal);
+        Assert.Collection(code.Children,
+            openingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind);
+                Assert.Equal("`", openingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 46, 1, 46), openingMarker.SourceSpan);
+            },
+            content => {
+                Assert.Equal(MarkdownSyntaxKind.InlineCodeSpanContent, content.Kind);
+                Assert.Equal("code", content.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 47, 1, 50), content.SourceSpan);
+            },
+            closingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind);
+                Assert.Equal("`", closingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 51, 1, 51), closingMarker.SourceSpan);
+            });
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Code_Span_Marker_And_Content_Tokens() {
+        const string markdown = "Use ``code ` tick`` now";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var code = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineCodeSpan);
+
+        Assert.Equal("code ` tick", code.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 19), code.SourceSpan);
+        Assert.Collection(code.Children,
+            openingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind);
+                Assert.Equal("``", openingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 6), openingMarker.SourceSpan);
+                Assert.Null(openingMarker.AssociatedObject);
+            },
+            content => {
+                Assert.Equal(MarkdownSyntaxKind.InlineCodeSpanContent, content.Kind);
+                Assert.Equal("code ` tick", content.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 17), content.SourceSpan);
+                Assert.Null(content.AssociatedObject);
+            },
+            closingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind);
+                Assert.Equal("``", closingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 18, 1, 19), closingMarker.SourceSpan);
+                Assert.Null(closingMarker.AssociatedObject);
+            });
+
+        Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, result.FindDeepestNodeAtPosition(1, 5)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineCodeSpanContent, result.FindDeepestNodeAtPosition(1, 12)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, result.FindDeepestNodeAtPosition(1, 19)!.Kind);
     }
 
     [Fact]
@@ -767,13 +818,19 @@ baz*
 
         Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(1, 8)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, result.FindDeepestNodeAtPosition(1, 30)!.Kind);
-        Assert.Equal(MarkdownSyntaxKind.InlineCodeSpan, result.FindDeepestNodeAtPosition(1, 48)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineCodeSpanContent, result.FindDeepestNodeAtPosition(1, 48)!.Kind);
         Assert.Equal(new[] {
             MarkdownSyntaxKind.Document,
             MarkdownSyntaxKind.Paragraph,
             MarkdownSyntaxKind.InlineLink,
             MarkdownSyntaxKind.InlineLinkTarget
         }, result.FindNodePathAtPosition(1, 30).Select(node => node.Kind).ToArray());
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.Document,
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.InlineCodeSpan,
+            MarkdownSyntaxKind.InlineCodeSpanContent
+        }, result.FindNodePathAtPosition(1, 48).Select(node => node.Kind).ToArray());
         Assert.Equal(MarkdownSyntaxKind.Paragraph, result.FindNearestBlockAtPosition(1, 48)!.Kind);
     }
 

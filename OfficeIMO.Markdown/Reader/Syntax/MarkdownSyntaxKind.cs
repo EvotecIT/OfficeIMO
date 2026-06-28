@@ -22,6 +22,8 @@ public enum MarkdownSyntaxKind {
     InlineText,
     /// <summary>Inline code span node.</summary>
     InlineCodeSpan,
+    /// <summary>Code span content token.</summary>
+    InlineCodeSpanContent,
     /// <summary>Hyperlink inline node.</summary>
     InlineLink,
     /// <summary>Hyperlink destination URL metadata.</summary>

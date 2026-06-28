@@ -109,7 +109,7 @@
         "description": "pipes inside code spans stay inside the same table cell",
         "line": 3,
         "column": 15,
-        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineCodeSpan"],
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineCodeSpan", "InlineCodeSpanContent"],
         "expectedDeepestLiteral": "x|y",
         "expectedNearestBlockKind": "Paragraph"
       }
@@ -133,7 +133,7 @@
         "description": "escaped pipes inside GFM table code spans are normalized before code-span parsing",
         "line": 4,
         "column": 12,
-        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineCodeSpan"],
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineCodeSpan", "InlineCodeSpanContent"],
         "expectedDeepestLiteral": "|code| is okay",
         "expectedNearestBlockKind": "Paragraph"
       },
@@ -141,7 +141,7 @@
         "description": "escaped pipes inside nested table-cell code spans keep the nested inline AST shape",
         "line": 5,
         "column": 9,
-        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineEmphasis", "InlineStrong", "InlineCodeSpan"],
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineEmphasis", "InlineStrong", "InlineCodeSpan", "InlineCodeSpanContent"],
         "expectedDeepestLiteral": "c|",
         "expectedNearestBlockKind": "Paragraph"
       },

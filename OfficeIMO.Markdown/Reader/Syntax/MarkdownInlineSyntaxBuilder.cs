@@ -35,7 +35,13 @@ internal static class MarkdownInlineSyntaxBuilder {
             case DecodedHtmlEntityTextRun text:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineText, span, literal: text.Text, associatedObject: text);
             case CodeSpanInline code:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineCodeSpan, span, literal: code.Text, associatedObject: code);
+                var codeSpanChildren = BuildCodeSpanChildren(code);
+                return new MarkdownSyntaxNode(
+                    MarkdownSyntaxKind.InlineCodeSpan,
+                    span ?? MarkdownBlockSyntaxBuilder.GetAggregateSpan(codeSpanChildren),
+                    literal: code.Text,
+                    children: codeSpanChildren,
+                    associatedObject: code);
             case FootnoteRefInline footnote:
                 return new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.InlineFootnoteRef,
@@ -153,6 +159,38 @@ internal static class MarkdownInlineSyntaxBuilder {
             nodes,
             MarkdownSyntaxKind.InlineClosingMarker,
             MarkdownInlineMetadataSourceSpans.GetClosingMarker(owner),
+            closingMarkerSpan);
+
+        return nodes;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildCodeSpanChildren(CodeSpanInline code) {
+        var openingMarkerSpan = MarkdownInlineMetadataSourceSpans.GetOpeningMarkerSpan(code);
+        var contentSpan = MarkdownInlineMetadataSourceSpans.GetCodeSpanContentSpan(code);
+        var closingMarkerSpan = MarkdownInlineMetadataSourceSpans.GetClosingMarkerSpan(code);
+
+        if (!openingMarkerSpan.HasValue && !contentSpan.HasValue && !closingMarkerSpan.HasValue) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        var nodes = new List<MarkdownSyntaxNode>(3);
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineOpeningMarker,
+            MarkdownInlineMetadataSourceSpans.GetOpeningMarker(code),
+            openingMarkerSpan);
+
+        if (contentSpan.HasValue) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.InlineCodeSpanContent,
+                contentSpan,
+                literal: code.Text));
+        }
+
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineClosingMarker,
+            MarkdownInlineMetadataSourceSpans.GetClosingMarker(code),
             closingMarkerSpan);
 
         return nodes;

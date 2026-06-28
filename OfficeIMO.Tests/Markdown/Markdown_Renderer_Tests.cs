@@ -1265,7 +1265,7 @@ x^2 + 1
 
         Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(1, 8)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, result.FindDeepestNodeAtPosition(1, 30)!.Kind);
-        Assert.Equal(MarkdownSyntaxKind.InlineCodeSpan, result.FindDeepestNodeAtPosition(1, 48)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineCodeSpanContent, result.FindDeepestNodeAtPosition(1, 48)!.Kind);
         Assert.Equal(new[] { MarkdownSyntaxKind.Document, MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.InlineLink, MarkdownSyntaxKind.InlineLinkTarget }, result.FindNodePathAtPosition(1, 30).Select(node => node.Kind).ToArray());
         Assert.Equal(MarkdownSyntaxKind.Paragraph, result.FindNearestBlockAtPosition(1, 48)!.Kind);
     }
