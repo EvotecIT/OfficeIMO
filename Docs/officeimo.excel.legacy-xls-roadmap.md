@@ -318,88 +318,55 @@ This branch is no longer a planning-only branch. Current evidence is:
 
 ## Remaining Work Checklist
 
-This is the active end-to-end queue. Keep only unfinished work here. When a
-slice is finished, move its final status into the support matrix and evidence
-summary instead of leaving old completed detail in this list.
+This is the active end-to-end queue. Keep only unfinished work here. Completed
+implementation detail belongs in the support matrix and evidence summary above,
+not in this list.
 
-The closeout target is not "every historical file with an `.xls` extension."
-The target is a release-ready statement that OfficeIMO supports BIFF8 normal
-workbook reads with no silent loss, plus a native BIFF8 writer for the supported
-OfficeIMO Excel feature surface. The current evidence says read parity is a
-guardrail, not the main open implementation queue: the normal corpus has zero
-unsupported projection gaps, and the diagnostic corpus contains the expected
-hard blockers.
+The implementation target is now feature-complete for the current release
+claim: BIFF8 normal workbook reads with no silent loss, plus native BIFF8 write
+for the supported OfficeIMO Excel feature surface. The remaining work is release
+closeout: prove CI, fix any real regressions, settle review, and then close the
+roadmap.
 
-### 1. Read Parity Proof
-
-These are closeout checks, not feature-discovery loops. If one fails, add the
-smallest fixture-backed read fix and return here.
-
-- [x] Run normal and diagnostic corpus baseline tests.
-- [x] Run normal and diagnostic projection-gap summary tests.
-- [x] Confirm the normal corpus still reports zero unsupported projection gaps.
-- [x] Confirm diagnostic fixtures such as older BIFF and password-to-open
-  encryption remain documented hard errors, not marketed as normal reads.
-- [x] Confirm read boundaries stay visible for older BIFF, password-to-open
-  encryption, non-normal sheet types, VBA/OLE, drawings, images, charts, chart
-  sheets, PivotTables, query/external caches, signatures, and embedded packages.
-
-### 2. Native Write Proof
-
-Apply this checklist to each remaining decision above.
-
-- [x] Keep or add focused preflight tests for every accepted native-write
-  boundary.
-- [x] Add save/reload tests through `ExcelDocument.LoadLegacyXlsWithReport` for
-  every newly supported native-write shape.
-- [x] Update the support matrix and support statement in the same slice that
-  changes behavior.
-- [x] Run the focused test filter for the slice.
-- [x] Run the full `LegacyXls` test lane after each meaningful slice.
-
-### 3. Permanent Boundaries To Keep Explicit
-
-These are verified release boundaries, not planned implementation slices. They
-stay in the roadmap so the support statement remains honest, but they should not
-keep expanding the active XLS queue unless a separate compatibility project is
-approved.
-
-- [x] Password-to-open native BIFF `FilePass` encryption stays unsupported:
-  diagnostic fixtures report a hard import blocker, and native XLS encryption is
-  not attempted.
-- [x] Native save targets outside `.xls` stay unsupported: `.xlt`, `.xla`,
-  `.xlm`, and `.xlw` are rejected by normal and explicit legacy load/save paths.
-- [x] VBA execution or signed native XLS preservation stays unsupported:
-  VBA/macro content is diagnosed or preserve-only on read and blocked before
-  native write.
-- [x] Embedded OLE package rewrite stays unsupported: embedded packages and OLE
-  objects are diagnosed or preserve-only on read and blocked before native
-  write.
-- [x] Digital-signature preservation or re-signing stays unsupported: signature
-  streams and package metadata are diagnosed on read and blocked before native
-  write.
-
-### 4. Final Release Closeout
-
-- [x] Run the full repo test lane, or document the exact residual risk if full
-  validation is impractical. Current checkpoint: the full `OfficeIMO.Tests`
-  project was run without restore and failed outside the XLS lane with Markdown
-  image rendering assertions, PDF raster baseline differences, and one
-  `net472` Word encrypted-load memory-stream failure. The focused `LegacyXls`
-  lane passes across `net472`, `net8.0`, and `net10.0`.
-- [x] Refresh public docs/examples so callers know which `.xls` features are
-  projected, cached, diagnosed, blocked, or natively written.
-- [x] Do one final branch diff review and remove or collapse any stale roadmap
-  language that no longer describes the current implementation.
-- [x] Commit and push the branch with the intended XLS implementation, corpus,
-  test, and documentation files.
-- [x] Open the PR and use a title/body that describe the final support shape:
-  BIFF8 normal-read support with explicit no-silent-loss diagnostics plus native
-  `.xls` save for the supported OfficeIMO Excel feature surface.
-- [ ] Recheck CI and reviewer threads after the final push before declaring the
-  roadmap closed. If CI repeats the currently known non-XLS failures, keep that
-  as release-state context; if CI finds a new XLS regression, fix it here and
-  rerun the focused `LegacyXls` lane.
+- [x] Inspect the failed GitHub Actions jobs from PR #2002 once logs are
+  available. Current live state: cross-platform build, Ubuntu net8.0/net10.0,
+  macOS platform smoke, and aggregate Ubuntu/macOS jobs are red; Windows and
+  CodeQL were still running at the checkpoint. Result: every failed build log
+  pointed to the same `netstandard2.0` compile error in
+  `LegacyXlsCommentWriter.cs`.
+- [x] Classify each CI failure as an XLS regression, an already-known unrelated
+  suite failure, or infrastructure/runner fallout. Do not expand the XLS scope
+  unless the failure proves a current `.xls` read/write contract is broken.
+  Result: this was a branch-caused `netstandard2.0` API compatibility issue, not
+  a support-scope expansion.
+- [x] Fix every valid XLS or branch-caused regression with the smallest
+  fixture-backed change. Result: replaced the unsupported `Enumerable.ToHashSet`
+  call with explicit `HashSet<string>` construction while preserving
+  case-insensitive comment-reference matching.
+- [x] Rerun the focused validation after any fix:
+  `dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter
+  "FullyQualifiedName~LegacyXls" --no-restore -v minimal /clp:ErrorsOnly`.
+  Result: 539/539 passed on `net472`, `net8.0`, and `net10.0`.
+- [ ] Rerun the rebase-sensitive rich-text/comment smoke filter if files touched
+  during the conflict resolution change again:
+  `FullyQualifiedName~Test_WorksheetComments_RichTextAuthoringAndUpdate|FullyQualifiedName~ExcelRange_ImageExportPreservesSingleLineRichTextRunsInSvg`.
+- [ ] Update this roadmap, `OfficeIMO.Excel/README.md`,
+  `OfficeIMO.Excel/COMPATIBILITY.md`, and the PR body only if the support claim
+  changes while fixing CI.
+- [ ] Push the CI fix or evidence-only documentation update, then record the new
+  head SHA.
+- [ ] Recheck PR #2002 checks, full paginated review threads, raw review
+  comments, reviews, PR comments, and PR-body reactions after the final push.
+- [ ] Resolve any addressed or outdated-but-fixed inline review threads.
+- [ ] Wait for one delayed reviewer/CI recheck after the final push. Treat a
+  Codex/IX/Copilot `EYES` reaction as pending until it disappears or produces
+  review output.
+- [ ] Declare the roadmap closed only when CI is green or every remaining red
+  job is explicitly documented as non-XLS release-state context, no actionable
+  review feedback remains, and the PR text still matches the final support
+  shape.
+- [ ] After merge or explicit closure, remove the Codex-created worktree/branch
+  and any temporary validation artifacts.
 
 ## Confidence Statement
 

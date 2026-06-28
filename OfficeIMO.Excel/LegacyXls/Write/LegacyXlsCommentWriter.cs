@@ -50,11 +50,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return Array.Empty<CommentInfo>();
             }
 
-            HashSet<string> commentReferences = comments.CommentList.Elements<Comment>()
-                .Select(comment => comment.Reference?.Value)
-                .Where(reference => !string.IsNullOrWhiteSpace(reference))
-                .Select(reference => reference!)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var commentReferences = new HashSet<string>(
+                comments.CommentList.Elements<Comment>()
+                    .Select(comment => comment.Reference?.Value)
+                    .Where(reference => !string.IsNullOrWhiteSpace(reference))
+                    .Select(reference => reference!),
+                StringComparer.OrdinalIgnoreCase);
             Dictionary<string, CommentShapeInfo> shapes = ReadCommentShapes(sheet, commentReferences, out reason);
             if (reason != null) {
                 return Array.Empty<CommentInfo>();
