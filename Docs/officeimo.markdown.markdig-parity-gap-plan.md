@@ -9,13 +9,13 @@ The important distinction: parity is not "more tests." Parity means the parser, 
 | Area | Current state |
 | --- | --- |
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
-| CommonMark corpus | 297 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
-| CommonMark full inventory | 633 of 652 official CommonMark `0.31.2` examples currently match; 19 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
+| CommonMark corpus | 299 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| CommonMark full inventory | 635 of 652 official CommonMark `0.31.2` examples currently match; 17 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | GFM tracked inventory | 36 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 33 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 36 passing, 0 failing |
 | Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 0 covered, 15 partial, 4 intentional, 14 gap |
 | Covered CommonMark sections | ATX headings, Setext headings, thematic breaks, fenced code blocks, HTML blocks, lists, paragraphs, soft breaks, links, images, autolinks, raw HTML, backslash escapes, link reference definitions |
-| Remaining CommonMark parser clusters | emphasis delimiter runs, container indentation/continuation, hard-line-break edge cases, CommonMark entity decoding |
+| Remaining CommonMark parser clusters | emphasis delimiter runs, container indentation/continuation, hard-line-break edge cases |
 | Remaining Markdig-class architecture gaps | broader GFM corpus coverage, full lossless trivia capture, full parser pipeline parity, renderer/writer plugin parity, extension-family implementation breadth, release-mode benchmark review |
 
 ## Current Answer
@@ -26,7 +26,7 @@ Current truth:
 
 - [x] CommonMark, tracked GFM fixtures, and reflected Markdig extension families are measurable from checked-in reports.
 - [x] GFM smoke behavior is green for the fixture corpus we track today.
-- [ ] CommonMark is not closed: 19 official examples still fail.
+- [ ] CommonMark is not closed: 17 official examples still fail.
 - [ ] Markdig extension parity is not closed: 0 extension families meet the full `Covered` bar.
 - [ ] AST/source/lossless parity is not closed: full trivia, source edits, generated-node diagnostics, and source-aware extension paths are still partial.
 - [ ] Performance parity is not known: release-mode Markdig comparisons still need a stable benchmark pass after correctness stops moving.
@@ -38,10 +38,10 @@ Use this as the non-looping execution board. Each item must either move engine b
 ### Now: Close CommonMark Correctness
 
 - [x] **HTML block/container boundary:** official CommonMark example #174 is pinned and passing after blockquote-contained raw HTML block rendering started preserving the boundary line break before the quote closes.
+- [x] **CommonMark character references:** official CommonMark examples #25 and #26 are pinned and passing after reusable named/numeric decoding started handling the remaining HTML5 named references and invalid numeric replacement behavior.
 - [ ] **Emphasis delimiter algorithm:** replace the simplified emphasis heuristics with the CommonMark delimiter-stack behavior for left/right flanking, punctuation, intraword `_`, nesting, opener/closer balancing, and precedence.
 - [ ] **Container indentation model:** make tabs, blockquote continuation, list continuation, and indented-code boundaries share a source-map-safe column model.
 - [ ] **Hard-line-break grammar:** finish the remaining hard-break failures while preserving marker source spans for two-space, backslash, and inline-HTML break spellings.
-- [ ] **CommonMark character references:** replace narrow runtime HTML decoding with a CommonMark-complete named/numeric character-reference decoder, including invalid numeric replacement behavior.
 - [ ] **CommonMark inventory closure:** refresh the generated full-corpus inventory after each parser slice and promote only newly understood official examples into smoke fixtures.
 
 ### Next: Broaden GFM And Markdig Extension Coverage
@@ -93,7 +93,7 @@ References:
 
 - [x] A repo-owned CommonMark inventory that runs all 652 official examples without forcing every known failure to fail CI.
 - [x] A checked-in failure-cluster report so we can pick work by root cause instead of nearby example numbers.
-- [x] A pinned CommonMark smoke lane with 296 official examples.
+- [x] A pinned CommonMark smoke lane with 299 official examples.
 - [x] CommonMark code spans are green in the generated inventory after preserving NBSP as non-collapsible text in the HTML comparison harness and pinning official examples 333 and 334.
 - [x] CommonMark links are green in the generated inventory after fixing link-label inline-span precedence.
 - [x] Strong current coverage for headings, thematic breaks, fenced code, lists, paragraphs, soft breaks, backslash escapes, autolinks, images, and link reference definitions.
@@ -107,10 +107,10 @@ References:
 These are the actual parity gaps. The test work is listed only where it creates a missing scoreboard.
 
 - [x] **CommonMark HTML block boundary parity.** HTML blocks, raw HTML, and the blockquote-contained raw HTML boundary case are green in the full inventory.
+- [x] **CommonMark entity decoder parity.** Entity and numeric character references are green in the full inventory after shared CommonMark decoding covered the remaining official named/numeric examples.
 - [ ] **CommonMark emphasis engine parity.** Replace the simplified emphasis parser with the CommonMark delimiter-run algorithm covering left/right flanking, punctuation, intraword `_`, nesting, opener/closer balancing, and precedence.
 - [ ] **CommonMark container indentation parity.** Finish the 6 remaining failures around tabs, blockquote/list continuation, indented-code boundaries, and source-map-safe column handling.
 - [ ] **CommonMark hard-break and inline precedence parity.** Fix the 3 remaining hard-line-break failures while preserving marker source spans for two-space, backslash, and inline HTML break spellings.
-- [ ] **CommonMark entity decoder parity.** Replace narrow runtime HTML decoding with a CommonMark-complete named/numeric character reference decoder, including invalid numeric replacement behavior.
 - [ ] **GFM corpus expansion.** Extend the generated GFM inventory beyond the current tracked fixture corpus so table, task-list, autolink, strikethrough, tag-filter, footnote, and interop behavior are measured against broader upstream-compatible coverage.
 - [ ] **Markdig extension implementation breadth.** Move selected partial/gap rows from the generated Markdig extension inventory into real parser, AST/source, renderer, writer, fixture, or intentional-deviation work.
 - [ ] **AST/source/lossless completeness.** Finish canonical node cleanup, full trivia capture, delimiter-token capture, original-to-normalized mapping, generated-node diagnostics, and broader byte-preserving source edits.
@@ -121,10 +121,10 @@ These are the actual parity gaps. The test work is listed only where it creates 
 ## Immediate Work Order
 
 - [x] Finish the remaining HTML block/container boundary case (#174), pin it as a smoke fixture, and refresh the inventory.
+- [x] Tackle the entity decoder as a reusable parser service and route the required decode contexts through it.
 - [ ] Tackle emphasis next because it is now the largest remaining CommonMark failure cluster and needs a deliberate delimiter-stack rewrite rather than local patches.
 - [ ] Use `Docs/officeimo.markdown.markdig-extension-inventory.md` to pick extension-family slices by row; do not promote `Partial` rows to `Covered` without parser, AST/source, renderer, writer, and fixture evidence.
 - [ ] Tackle container indentation and hard breaks as separate slices unless the source-map model forces a shared tab/column primitive.
-- [ ] Tackle the entity decoder as a reusable parser service and route every required decode context through it.
 - [ ] Return to AST/source/lossless completion once the major parser clusters stop moving node boundaries every slice.
 - [ ] Run release-mode benchmarks only after correctness stabilizes enough for the numbers to mean something.
 
@@ -135,7 +135,6 @@ These are the actual parity gaps. The test work is listed only where it creates 
 | Emphasis delimiter algorithm | 8 | Emphasis and strong emphasis | #408, #418, #432, #438, #441, #450, #453, #470 | Inline parser rewrite |
 | Container indentation and continuation | 6 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #242, #252, #264 | Block parser and source-map column model |
 | Inline precedence and line-break grammar | 3 | Hard line breaks | #642, #643, #644 | Inline parser and marker source spans |
-| CommonMark entity decoder | 2 | Entity and numeric character references | #25, #26 | Shared character-reference decoder |
 
 ## Pinned CommonMark Coverage By Section
 
@@ -154,7 +153,7 @@ This is fixture coverage, not a claim that unpinned examples fail. The generated
 | Autolinks | 12 | 19 | 7 | Official CommonMark is green; keep GFM/profile extensions separate |
 | Indented code blocks | 1 | 12 | 11 | Indent/tab/list interaction |
 | Tabs | 0 | 11 | 11 | Source map and indentation model |
-| Entity and numeric character references | 7 | 17 | 10 | CommonMark entity decoder |
+| Entity and numeric character references | 9 | 17 | 8 | Current CommonMark inventory is green; keep broader entity/source-span/writer coverage aligned |
 | Hard line breaks | 6 | 15 | 9 | Inline break parser |
 | List items | 38 | 48 | 10 | Remaining edge cases only |
 | Backslash escapes | 8 | 13 | 5 | Breadth, not current CommonMark failures |
@@ -192,7 +191,7 @@ Done means:
 - [ ] Containers: implement tab expansion and continuation indentation as parser/source-map primitives.
 - [ ] Hard breaks: finish CommonMark line-break grammar without losing marker source spans.
 - [x] Code spans: clear the NBSP/equivalence bucket and pin the official cases.
-- [ ] Entities: implement a CommonMark-complete character reference decoder.
+- [x] Entities: clear the remaining official named/numeric character-reference cases with a shared decoder.
 
 Done means:
 

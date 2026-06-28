@@ -15,10 +15,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Official examples | 652 |
-| Pinned smoke fixtures | 297 |
-| Passing pinned fixtures | 297 |
+| Pinned smoke fixtures | 299 |
+| Passing pinned fixtures | 299 |
 | Passing unpinned examples | 336 |
-| Failing examples | 19 |
+| Failing examples | 17 |
 | Intentional deviations | 0 |
 
 ## Section Inventory
@@ -27,7 +27,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Tabs | 11 | 0 | 0 | 10 | 1 | 0 |
 | Backslash escapes | 13 | 8 | 8 | 5 | 0 | 0 |
-| Entity and numeric character references | 17 | 7 | 7 | 8 | 2 | 0 |
+| Entity and numeric character references | 17 | 9 | 9 | 8 | 0 | 0 |
 | Precedence | 1 | 0 | 0 | 1 | 0 | 0 |
 | Thematic breaks | 19 | 19 | 19 | 0 | 0 | 0 |
 | ATX headings | 18 | 18 | 18 | 0 | 0 | 0 |
@@ -59,7 +59,6 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Emphasis delimiter algorithm | 8 | Emphasis and strong emphasis | #408, #418, #432, #438, #441, #450, #453, #470 |
 | Container indentation and continuation | 6 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #242, #252, #264 |
 | Inline precedence and line-break grammar | 3 | Hard line breaks | #642, #643, #644 |
-| CommonMark entity decoder | 2 | Entity and numeric character references | #25, #26 |
 
 ## Next Use
 

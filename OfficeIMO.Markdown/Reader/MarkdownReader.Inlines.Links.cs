@@ -147,8 +147,7 @@ public static partial class MarkdownReader {
 
     private static string DecodeLinkDestinationOrTitle(string value) {
         var unescaped = UnescapeMarkdownBackslashEscapes(value);
-        var decoded = System.Net.WebUtility.HtmlDecode(unescaped);
-        return decoded ?? unescaped;
+        return CommonMarkCharacterReference.DecodeAll(unescaped);
     }
 
     private static bool TryParseRefLink(string text, int start, out int consumed, out string label, out string refLabel) {

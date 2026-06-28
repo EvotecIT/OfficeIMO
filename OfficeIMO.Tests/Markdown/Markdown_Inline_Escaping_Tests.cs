@@ -31,6 +31,28 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void CommonMark_Profile_Decodes_Html5_Named_Character_References() {
+            const string markdown = "&nbsp; &amp; &copy; &AElig; &Dcaron;\n&frac34; &HilbertSpace; &DifferentialD;\n&ClockwiseContourIntegral; &ngE;\n";
+            const string expected = "<p>  &amp; © Æ Ď\n¾ ℋ ⅆ\n∲ ≧̸</p>\n";
+
+            var document = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var html = document.ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
+
+            Assert.Equal(CommonMarkHtmlComparison.Normalize(expected), CommonMarkHtmlComparison.Normalize(html));
+        }
+
+        [Fact]
+        public void CommonMark_Profile_Decodes_Numeric_Character_References_With_Replacement() {
+            const string markdown = "&#35; &#1234; &#992; &#0;\n";
+            const string expected = "<p># Ӓ Ϡ �</p>\n";
+
+            var document = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var html = document.ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
+
+            Assert.Equal(CommonMarkHtmlComparison.Normalize(expected), CommonMarkHtmlComparison.Normalize(html));
+        }
+
+        [Fact]
         public void LinkAndImageInline_EscapeTextAndUrls() {
             var link = new LinkInline("[text]", "path(1)|two\\end", "see [ref] | note");
             var image = new ImageInline("alt[text]", "image(path)|pipe\\end", "badge [info] | note");

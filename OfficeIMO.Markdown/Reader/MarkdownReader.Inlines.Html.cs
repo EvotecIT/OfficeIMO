@@ -133,7 +133,7 @@ public static partial class MarkdownReader {
 
     private static IMarkdownInline DecodeHtmlEntitiesInInlineNode(IMarkdownInline node, ref bool changed) {
         if (node is TextRun text) {
-            string decoded = System.Net.WebUtility.HtmlDecode(text.Text);
+            string decoded = CommonMarkCharacterReference.DecodeAll(text.Text);
             if (!string.Equals(decoded, text.Text, StringComparison.Ordinal)) {
                 changed = true;
                 var decodedRun = new DecodedHtmlEntityTextRun(decoded);
@@ -156,27 +156,7 @@ public static partial class MarkdownReader {
     }
 
     private static bool TryConsumeHtmlEntityText(string text, int start, out int consumed, out string decoded) {
-        consumed = 0;
-        decoded = string.Empty;
-
-        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length || text[start] != '&') {
-            return false;
-        }
-
-        int semicolon = text.IndexOf(';', start + 1);
-        if (semicolon < 0 || semicolon == start + 1 || semicolon - start > 32) {
-            return false;
-        }
-
-        string candidate = text.Substring(start, semicolon - start + 1);
-        string htmlDecoded = System.Net.WebUtility.HtmlDecode(candidate);
-        if (string.Equals(htmlDecoded, candidate, StringComparison.Ordinal)) {
-            return false;
-        }
-
-        consumed = candidate.Length;
-        decoded = htmlDecoded;
-        return true;
+        return CommonMarkCharacterReference.TryDecode(text, start, out consumed, out decoded);
     }
 
     private static bool TryConsumeRawInlineHtmlTag(string text, int start, out int consumed) {

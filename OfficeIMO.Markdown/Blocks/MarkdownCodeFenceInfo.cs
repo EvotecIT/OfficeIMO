@@ -214,8 +214,7 @@ public sealed class MarkdownCodeFenceInfo {
         }
 
         var decoded = DecodeBackslashEscapes(token);
-        var htmlDecoded = System.Net.WebUtility.HtmlDecode(decoded);
-        return htmlDecoded ?? decoded;
+        return CommonMarkCharacterReference.DecodeAll(decoded);
     }
 
     private static string DecodeBackslashEscapes(string value) {

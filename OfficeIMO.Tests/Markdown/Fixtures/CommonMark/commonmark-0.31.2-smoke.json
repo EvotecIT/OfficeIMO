@@ -35,6 +35,20 @@
     "html": "<pre><code class=\"language-foo+bar\">foo\n</code></pre>\n"
   },
   {
+    "example": 25,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "&nbsp; &amp; &copy; &AElig; &Dcaron;\n&frac34; &HilbertSpace; &DifferentialD;\n&ClockwiseContourIntegral; &ngE;\n",
+    "html": "<p>  &amp; © Æ Ď\n¾ ℋ ⅆ\n∲ ≧̸</p>\n"
+  },
+  {
+    "example": 26,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "&#35; &#1234; &#992; &#0;\n",
+    "html": "<p># Ӓ Ϡ �</p>\n"
+  },
+  {
     "example": 32,
     "section": "Entity and numeric character references",
     "topLevelKinds": ["Paragraph"],
