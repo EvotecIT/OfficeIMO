@@ -263,11 +263,11 @@ public sealed partial class MarkdownNativeDocument {
             throw new ArgumentNullException(nameof(listItem));
         }
 
-        if (!listItem.SourceSpan.HasValue) {
+        if (!listItem.ContentSourceSpan.HasValue) {
             throw new InvalidOperationException("The native list item does not have a source-backed content span.");
         }
 
-        return CreateReplaceEdit(listItem.SourceSpan.Value, replacementMarkdown);
+        return CreateReplaceEdit(listItem.ContentSourceSpan.Value, replacementMarkdown);
     }
 
     /// <summary>Creates a non-mutating source edit that replaces a reference-style link definition.</summary>

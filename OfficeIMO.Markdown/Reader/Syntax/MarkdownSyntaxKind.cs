@@ -62,6 +62,10 @@ public enum MarkdownSyntaxKind {
     OrderedList,
     /// <summary>List item node.</summary>
     ListItem,
+    /// <summary>List item marker token such as <c>-</c>, <c>*</c>, <c>1.</c>, or <c>1)</c>.</summary>
+    ListMarker,
+    /// <summary>Task list marker token such as <c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>.</summary>
+    TaskListMarker,
     /// <summary>Fenced or indented code block.</summary>
     CodeBlock,
     /// <summary>Host-defined semantic fenced block.</summary>

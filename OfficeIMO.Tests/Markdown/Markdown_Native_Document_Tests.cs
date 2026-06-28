@@ -252,6 +252,7 @@ After
         var outer = Assert.Single(list.Items);
         var nested = Assert.Single(outer.Children.OfType<MarkdownNativeListBlock>());
         var oldItem = nested.Items[0];
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 2, 7), oldItem.ContentSourceSpan);
 
         var edited = native.CreateReplaceEdit(oldItem, "new\n    continuation").Apply(native.SourceMarkdown);
 
@@ -277,6 +278,7 @@ After
         var outer = Assert.Single(list.Items);
         var nested = Assert.Single(outer.Children.OfType<MarkdownNativeListBlock>());
         var oldItem = nested.Items[0];
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 2, 7), oldItem.ContentSourceSpan);
 
         var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(oldItem, "new\r\n    continuation"));
 

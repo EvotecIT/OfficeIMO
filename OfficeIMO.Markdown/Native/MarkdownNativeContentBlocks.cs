@@ -79,6 +79,7 @@ public sealed class MarkdownNativeListItem {
         Item = item ?? throw new ArgumentNullException(nameof(item));
         SyntaxNode = syntaxNode ?? throw new ArgumentNullException(nameof(syntaxNode));
         SourceSpan = syntaxNode.SourceSpan ?? item.SourceSpan;
+        ContentSourceSpan = GetContentSourceSpan(syntaxNode);
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
         Text = InlinePlainText.Extract(item.Content);
         Inlines = item.Content;
@@ -103,8 +104,11 @@ public sealed class MarkdownNativeListItem {
     /// <summary>Syntax node that produced this list item.</summary>
     public MarkdownSyntaxNode SyntaxNode { get; }
 
-    /// <summary>Source span in the normalized markdown text when available.</summary>
+    /// <summary>Full list-item source span in the normalized markdown text when available.</summary>
     public MarkdownSourceSpan? SourceSpan { get; }
+
+    /// <summary>Source span for the list-item content, excluding list and task marker tokens, when available.</summary>
+    public MarkdownSourceSpan? ContentSourceSpan { get; }
 
     /// <summary>Plain-text lead content.</summary>
     public string Text { get; }
@@ -141,6 +145,20 @@ public sealed class MarkdownNativeListItem {
 
     /// <summary>Indentation level from the source list item.</summary>
     public int Level { get; }
+
+    private static MarkdownSourceSpan? GetContentSourceSpan(MarkdownSyntaxNode syntaxNode) {
+        var children = new List<MarkdownSyntaxNode>();
+        for (var i = 0; i < syntaxNode.Children.Count; i++) {
+            var child = syntaxNode.Children[i];
+            if (child.Kind == MarkdownSyntaxKind.ListMarker || child.Kind == MarkdownSyntaxKind.TaskListMarker) {
+                continue;
+            }
+
+            children.Add(child);
+        }
+
+        return MarkdownBlockSyntaxBuilder.GetAggregateSpan(children);
+    }
 }
 
 internal static class MarkdownNativeListItemId {

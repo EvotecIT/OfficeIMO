@@ -294,7 +294,8 @@ Paragraph text
 
         Assert.Same(semanticOuterList, finalOuterList.AssociatedObject);
         Assert.Same(semanticOuterItem, finalOuterItem.AssociatedObject);
-        Assert.Same(semanticOuterParagraph, finalOuterItem.Children[0].AssociatedObject);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, finalOuterItem.Children[0].Kind);
+        Assert.Same(semanticOuterParagraph, finalOuterItem.Children[1].AssociatedObject);
         Assert.Same(semanticNestedList, finalNestedList.AssociatedObject);
         Assert.Same(semanticNestedItem, finalNestedItem.AssociatedObject);
         Assert.Equal(2, finalNestedParagraphs.Length);
@@ -1089,7 +1090,8 @@ Lead {{core}} tail
         Assert.Same(item.ParagraphBlocks[0], ownedChildren[0].AssociatedObject);
         Assert.Same(item.ParagraphBlocks[1], ownedChildren[1].AssociatedObject);
         Assert.Same(item.Children[0], ownedChildren[2].AssociatedObject);
-        Assert.Equal(ownedChildren.Select(child => child.Kind), finalItem.Children.Select(child => child.Kind));
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, finalItem.Children[0].Kind);
+        Assert.Equal(ownedChildren.Select(child => child.Kind), finalItem.Children.Skip(1).Select(child => child.Kind));
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
@@ -1135,12 +1137,56 @@ Lead {{core}} tail
         var itemSyntax = Assert.Single(listSyntax.Children);
 
         Assert.Equal(2, item.ParagraphBlocks.Count);
-        Assert.Equal(2, itemSyntax.Children.Count);
-        Assert.All(itemSyntax.Children, child => Assert.Equal(MarkdownSyntaxKind.Paragraph, child.Kind));
-        Assert.Same(item.ParagraphBlocks[0], itemSyntax.Children[0].AssociatedObject);
-        Assert.Same(item.ParagraphBlocks[1], itemSyntax.Children[1].AssociatedObject);
-        Assert.Equal(item.ParagraphBlocks[0].SourceSpan, itemSyntax.Children[0].SourceSpan);
-        Assert.Equal(item.ParagraphBlocks[1].SourceSpan, itemSyntax.Children[1].SourceSpan);
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.ListMarker,
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.Paragraph
+        }, itemSyntax.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal("-", itemSyntax.Children[0].Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), itemSyntax.Children[0].SourceSpan);
+        Assert.Same(item.ParagraphBlocks[0], itemSyntax.Children[1].AssociatedObject);
+        Assert.Same(item.ParagraphBlocks[1], itemSyntax.Children[2].AssociatedObject);
+        Assert.Equal(item.ParagraphBlocks[0].SourceSpan, itemSyntax.Children[1].SourceSpan);
+        Assert.Equal(item.ParagraphBlocks[1].SourceSpan, itemSyntax.Children[2].SourceSpan);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_ListItem_Marker_Token_Syntax() {
+        var markdown = """
+- [X] Done
+
+10) Ordered
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var unorderedItem = Assert.Single(result.SyntaxTree.Children[0].Children);
+        var orderedItem = Assert.Single(result.SyntaxTree.Children[1].Children);
+
+        Assert.Collection(
+            unorderedItem.Children.Take(3),
+            marker => {
+                Assert.Equal(MarkdownSyntaxKind.ListMarker, marker.Kind);
+                Assert.Equal("-", marker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), marker.SourceSpan);
+                Assert.Null(marker.AssociatedObject);
+            },
+            taskMarker => {
+                Assert.Equal(MarkdownSyntaxKind.TaskListMarker, taskMarker.Kind);
+                Assert.Equal("[X]", taskMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), taskMarker.SourceSpan);
+                Assert.Null(taskMarker.AssociatedObject);
+            },
+            paragraph => Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind));
+
+        var orderedMarker = orderedItem.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, orderedMarker.Kind);
+        Assert.Equal("10)", orderedMarker.Literal);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), orderedMarker.SourceSpan);
+
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, result.FindDeepestNodeAtPosition(1, 1)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.TaskListMarker, result.FindDeepestNodeAtPosition(1, 4)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, result.FindDeepestNodeAtPosition(3, 2)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtLine(1)!.Kind);
     }
 
     [Fact]
@@ -1170,13 +1216,14 @@ Lead {{core}} tail
         Assert.Equal(10, ordered.Start);
         Assert.Equal("beta gamma", nestedItem.Content.RenderMarkdown());
         Assert.Equal(new[] {
+            MarkdownSyntaxKind.ListMarker,
             MarkdownSyntaxKind.Paragraph,
             MarkdownSyntaxKind.Quote,
             MarkdownSyntaxKind.OrderedList
         }, itemSyntax.Children.Select(child => child.Kind).ToArray());
-        Assert.Same(item.ParagraphBlocks[0], itemSyntax.Children[0].AssociatedObject);
-        Assert.Same(quote, itemSyntax.Children[1].AssociatedObject);
-        Assert.Same(ordered, itemSyntax.Children[2].AssociatedObject);
+        Assert.Same(item.ParagraphBlocks[0], itemSyntax.Children[1].AssociatedObject);
+        Assert.Same(quote, itemSyntax.Children[2].AssociatedObject);
+        Assert.Same(ordered, itemSyntax.Children[3].AssociatedObject);
     }
 
     [Fact]
@@ -1205,13 +1252,14 @@ Lead {{core}} tail
         Assert.Equal(10, ordered.Start);
         Assert.Equal("beta gamma", nestedItem.Content.RenderMarkdown());
         Assert.Equal(new[] {
+            MarkdownSyntaxKind.ListMarker,
             MarkdownSyntaxKind.Paragraph,
             MarkdownSyntaxKind.Quote,
             MarkdownSyntaxKind.OrderedList
         }, itemSyntax.Children.Select(child => child.Kind).ToArray());
-        Assert.Same(item.ParagraphBlocks[0], itemSyntax.Children[0].AssociatedObject);
-        Assert.Same(quote, itemSyntax.Children[1].AssociatedObject);
-        Assert.Same(ordered, itemSyntax.Children[2].AssociatedObject);
+        Assert.Same(item.ParagraphBlocks[0], itemSyntax.Children[1].AssociatedObject);
+        Assert.Same(quote, itemSyntax.Children[2].AssociatedObject);
+        Assert.Same(ordered, itemSyntax.Children[3].AssociatedObject);
         Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 9), quote.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(3, 3, 4, 11), ordered.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 5), nestedItem.MarkerSourceSpan);
@@ -1370,13 +1418,14 @@ Lead {{core}} tail
         var finalItem = Assert.Single(finalList.Children);
 
         Assert.Equal(new[] {
+            MarkdownSyntaxKind.ListMarker,
             MarkdownSyntaxKind.Paragraph,
             MarkdownSyntaxKind.Paragraph,
             MarkdownSyntaxKind.Quote
         }, finalItem.Children.Select(child => child.Kind).ToArray());
-        Assert.Same(item.ParagraphBlocks[0], finalItem.Children[0].AssociatedObject);
-        Assert.Same(item.ParagraphBlocks[1], finalItem.Children[1].AssociatedObject);
-        Assert.Same(item.Children[0], finalItem.Children[2].AssociatedObject);
+        Assert.Same(item.ParagraphBlocks[0], finalItem.Children[1].AssociatedObject);
+        Assert.Same(item.ParagraphBlocks[1], finalItem.Children[2].AssociatedObject);
+        Assert.Same(item.Children[0], finalItem.Children[3].AssociatedObject);
     }
 
     [Fact]
@@ -1532,14 +1581,17 @@ Lead {{core}} tail
 
         var item = Assert.Single(list.Children);
         Assert.Equal(MarkdownSyntaxKind.ListItem, item.Kind);
-        Assert.Equal(2, item.Children.Count);
+        Assert.Equal(3, item.Children.Count);
 
-        var lead = item.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, item.Children[0].Kind);
+        Assert.Equal("-", item.Children[0].Literal);
+
+        var lead = item.Children[1];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, lead.Kind);
         Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 9), lead.SourceSpan);
         Assert.Equal("one", lead.Literal);
 
-        var trailing = item.Children[1];
+        var trailing = item.Children[2];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, trailing.Kind);
         Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 9), trailing.SourceSpan);
         Assert.Equal("two", trailing.Literal);
@@ -1572,16 +1624,17 @@ Lead {{core}} tail
         var item = Assert.Single(list.Children);
         Assert.Equal(MarkdownSyntaxKind.ListItem, item.Kind);
         Assert.Equal(new[] {
+            MarkdownSyntaxKind.ListMarker,
             MarkdownSyntaxKind.CodeBlock,
             MarkdownSyntaxKind.Paragraph,
             MarkdownSyntaxKind.CodeBlock
         }, item.Children.Select(node => node.Kind).ToArray());
 
-        var firstCode = item.Children[0];
+        var firstCode = item.Children[1];
         Assert.Equal("indented code", firstCode.Literal);
-        var paragraph = item.Children[1];
+        var paragraph = item.Children[2];
         Assert.Equal("paragraph", paragraph.Literal);
-        var secondCode = item.Children[2];
+        var secondCode = item.Children[3];
         Assert.Equal("more code", secondCode.Literal);
 
         var semanticList = Assert.IsType<OrderedListBlock>(Assert.Single(result.Document.Blocks));
@@ -1606,7 +1659,8 @@ Lead {{core}} tail
 
         var middleItem = list.Children[1];
         Assert.Equal(MarkdownSyntaxKind.ListItem, middleItem.Kind);
-        var placeholderParagraph = Assert.Single(middleItem.Children);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, middleItem.Children[0].Kind);
+        var placeholderParagraph = Assert.Single(middleItem.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, placeholderParagraph.Kind);
         Assert.True(string.IsNullOrEmpty(placeholderParagraph.Literal));
 
@@ -1653,12 +1707,14 @@ Lead {{core}} tail
 
         var nestedListItem = outerList.Children[0];
         Assert.Equal(MarkdownSyntaxKind.ListItem, nestedListItem.Kind);
-        var nestedList = Assert.Single(nestedListItem.Children);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, nestedListItem.Children[0].Kind);
+        var nestedList = Assert.Single(nestedListItem.Children, child => child.Kind == MarkdownSyntaxKind.UnorderedList);
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, nestedList.Kind);
 
         var headingItem = outerList.Children[1];
         Assert.Equal(MarkdownSyntaxKind.ListItem, headingItem.Kind);
-        var heading = Assert.Single(headingItem.Children);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, headingItem.Children[0].Kind);
+        var heading = Assert.Single(headingItem.Children, child => child.Kind == MarkdownSyntaxKind.Heading);
         Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
         Assert.Equal("Bar", heading.Literal);
 
@@ -2060,11 +2116,12 @@ See ![Badge][hero]
         Assert.NotNull(parentItem.SourceSpan);
         Assert.Equal(1, parentItem.SourceSpan!.Value.StartLine);
         Assert.Equal(2, parentItem.SourceSpan!.Value.EndLine);
-        Assert.Equal(2, parentItem.Children.Count);
-        Assert.Equal(MarkdownSyntaxKind.Paragraph, parentItem.Children[0].Kind);
-        Assert.Equal("parent", parentItem.Children[0].Literal);
+        Assert.Equal(3, parentItem.Children.Count);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, parentItem.Children[0].Kind);
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, parentItem.Children[1].Kind);
+        Assert.Equal("parent", parentItem.Children[1].Literal);
 
-        var nestedList = parentItem.Children[1];
+        var nestedList = parentItem.Children[2];
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, nestedList.Kind);
         Assert.NotNull(nestedList.SourceSpan);
         Assert.Equal(2, nestedList.SourceSpan!.Value.StartLine);
@@ -2074,7 +2131,8 @@ See ![Badge][hero]
         Assert.NotNull(nestedItem.SourceSpan);
         Assert.Equal(2, nestedItem.SourceSpan!.Value.StartLine);
         Assert.Equal(2, nestedItem.SourceSpan!.Value.EndLine);
-        var nestedParagraph = Assert.Single(nestedItem.Children);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, nestedItem.Children[0].Kind);
+        var nestedParagraph = Assert.Single(nestedItem.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, nestedParagraph.Kind);
         Assert.Equal("child", nestedParagraph.Literal);
     }
@@ -2099,9 +2157,11 @@ See ![Badge][hero]
         Assert.NotNull(item.SourceSpan);
         Assert.Equal(1, item.SourceSpan!.Value.StartLine);
         Assert.Equal(7, item.SourceSpan!.Value.EndLine);
-        Assert.Equal(3, item.Children.Count);
+        Assert.Equal(4, item.Children.Count);
 
-        var leadParagraph = item.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, item.Children[0].Kind);
+
+        var leadParagraph = item.Children[1];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, leadParagraph.Kind);
         Assert.NotNull(leadParagraph.SourceSpan);
         Assert.Equal(1, leadParagraph.SourceSpan!.Value.StartLine);
@@ -2115,7 +2175,7 @@ See ![Badge][hero]
         Assert.Equal(2, leadText.SourceSpan!.Value.EndLine);
         Assert.Equal(11, leadText.SourceSpan!.Value.EndColumn);
 
-        var quote = item.Children[1];
+        var quote = item.Children[2];
         Assert.Equal(MarkdownSyntaxKind.Quote, quote.Kind);
         Assert.NotNull(quote.SourceSpan);
         Assert.Equal(4, quote.SourceSpan!.Value.StartLine);
@@ -2126,7 +2186,7 @@ See ![Badge][hero]
         Assert.Equal(4, quoteParagraph.SourceSpan!.Value.StartLine);
         Assert.Equal(5, quoteParagraph.SourceSpan!.Value.EndLine);
 
-        var trailingParagraph = item.Children[2];
+        var trailingParagraph = item.Children[3];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, trailingParagraph.Kind);
         Assert.NotNull(trailingParagraph.SourceSpan);
         Assert.Equal(7, trailingParagraph.SourceSpan!.Value.StartLine);
@@ -2159,16 +2219,18 @@ See ![Badge][hero]
 
         var list = Assert.Single(result.SyntaxTree.Children);
         var item = Assert.Single(list.Children);
-        Assert.Equal(2, item.Children.Count);
+        Assert.Equal(3, item.Children.Count);
 
-        var lead = item.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, item.Children[0].Kind);
+
+        var lead = item.Children[1];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, lead.Kind);
         Assert.Equal(1, lead.SourceSpan!.Value.StartLine);
         Assert.Equal(3, lead.SourceSpan!.Value.StartColumn);
         Assert.Equal(2, lead.SourceSpan!.Value.EndLine);
         Assert.Equal(11, lead.SourceSpan!.Value.EndColumn);
 
-        var trailing = item.Children[1];
+        var trailing = item.Children[2];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, trailing.Kind);
         Assert.Equal(4, trailing.SourceSpan!.Value.StartLine);
         Assert.Equal(3, trailing.SourceSpan!.Value.StartColumn);
@@ -2194,16 +2256,19 @@ See ![Badge][hero]
 
         var list = Assert.Single(result.SyntaxTree.Children);
         var item = Assert.Single(list.Children);
-        Assert.Equal(2, item.Children.Count);
+        Assert.Equal(3, item.Children.Count);
 
         var heading = item.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, heading.Kind);
+
+        heading = item.Children[1];
         Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
         Assert.NotNull(heading.SourceSpan);
         Assert.Equal(1, heading.SourceSpan!.Value.StartLine);
         Assert.Equal(2, heading.SourceSpan!.Value.EndLine);
         Assert.Equal("Item title", heading.Literal);
 
-        var paragraph = item.Children[1];
+        var paragraph = item.Children[2];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
         Assert.NotNull(paragraph.SourceSpan);
         Assert.Equal(4, paragraph.SourceSpan!.Value.StartLine);
@@ -2223,16 +2288,19 @@ See ![Badge][hero]
 
         var list = Assert.Single(result.SyntaxTree.Children);
         var item = Assert.Single(list.Children);
-        Assert.Equal(2, item.Children.Count);
+        Assert.Equal(3, item.Children.Count);
 
         var heading = item.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, heading.Kind);
+
+        heading = item.Children[1];
         Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
         Assert.NotNull(heading.SourceSpan);
         Assert.Equal(1, heading.SourceSpan!.Value.StartLine);
         Assert.Equal(2, heading.SourceSpan!.Value.EndLine);
         Assert.Equal("Item title", heading.Literal);
 
-        var paragraph = item.Children[1];
+        var paragraph = item.Children[2];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
         Assert.NotNull(paragraph.SourceSpan);
         Assert.Equal(3, paragraph.SourceSpan!.Value.StartLine);
@@ -2254,23 +2322,26 @@ See ![Badge][hero]
 
         var list = Assert.Single(result.SyntaxTree.Children);
         var item = Assert.Single(list.Children);
-        Assert.Equal(3, item.Children.Count);
+        Assert.Equal(4, item.Children.Count);
 
         var firstParagraph = item.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, firstParagraph.Kind);
+
+        firstParagraph = item.Children[1];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, firstParagraph.Kind);
         Assert.NotNull(firstParagraph.SourceSpan);
         Assert.Equal(1, firstParagraph.SourceSpan!.Value.StartLine);
         Assert.Equal(1, firstParagraph.SourceSpan!.Value.EndLine);
         Assert.Equal("Item", firstParagraph.Literal);
 
-        var heading = item.Children[1];
+        var heading = item.Children[2];
         Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
         Assert.NotNull(heading.SourceSpan);
         Assert.Equal(3, heading.SourceSpan!.Value.StartLine);
         Assert.Equal(4, heading.SourceSpan!.Value.EndLine);
         Assert.Equal("Heading", heading.Literal);
 
-        var trailingParagraph = item.Children[2];
+        var trailingParagraph = item.Children[3];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, trailingParagraph.Kind);
         Assert.NotNull(trailingParagraph.SourceSpan);
         Assert.Equal(5, trailingParagraph.SourceSpan!.Value.StartLine);
@@ -2460,7 +2531,9 @@ See ![Badge][hero]
         Assert.Equal(3, item.SourceSpan!.Value.StartLine);
         Assert.Equal(6, item.SourceSpan!.Value.EndLine);
 
-        var lead = item.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, item.Children[0].Kind);
+
+        var lead = item.Children[1];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, lead.Kind);
         Assert.NotNull(lead.SourceSpan);
         Assert.Equal(3, lead.SourceSpan!.Value.StartLine);
@@ -2472,7 +2545,7 @@ See ![Badge][hero]
         Assert.Equal(5, leadText.SourceSpan!.Value.StartColumn);
         Assert.Equal(13, leadText.SourceSpan!.Value.EndColumn);
 
-        var trailing = item.Children[1];
+        var trailing = item.Children[2];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, trailing.Kind);
         Assert.NotNull(trailing.SourceSpan);
         Assert.Equal(6, trailing.SourceSpan!.Value.StartLine);
@@ -2678,7 +2751,8 @@ See ![Badge][hero]
         Assert.NotNull(item.SourceSpan);
         Assert.Equal(2, item.SourceSpan!.Value.StartLine);
         Assert.Equal(3, item.SourceSpan!.Value.EndLine);
-        var lead = Assert.Single(item.Children);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, item.Children[0].Kind);
+        var lead = Assert.Single(item.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, lead.Kind);
         Assert.Equal(5, lead.SourceSpan!.Value.StartColumn);
         Assert.Equal(13, lead.SourceSpan!.Value.EndColumn);
@@ -3491,12 +3565,13 @@ Lead[^1]
         var finalQuote = Assert.Single(result.FinalSyntaxTree.Children);
         var finalList = Assert.Single(finalQuote.Children);
         var finalListItem = Assert.Single(finalList.Children);
-        var finalParagraphs = finalListItem.Children.ToArray();
+        var finalParagraphs = finalListItem.Children.Where(child => child.Kind == MarkdownSyntaxKind.Paragraph).ToArray();
 
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
         Assert.Same(finalQuoteBlock, finalQuote.AssociatedObject);
         Assert.Same(finalListBlock, finalList.AssociatedObject);
         Assert.Same(finalListItemBlock, finalListItem.AssociatedObject);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, finalListItem.Children[0].Kind);
         Assert.Equal(2, finalParagraphBlocks.Length);
         Assert.Equal(2, finalParagraphs.Length);
         Assert.Same(finalParagraphBlocks[0], finalParagraphs[0].AssociatedObject);
@@ -3527,13 +3602,14 @@ Lead[^1]
         var finalTitle = finalCallout.Children[1];
         var finalList = finalCallout.Children[2];
         var finalListItem = Assert.Single(finalList.Children);
-        var finalParagraphs = finalListItem.Children.ToArray();
+        var finalParagraphs = finalListItem.Children.Where(child => child.Kind == MarkdownSyntaxKind.Paragraph).ToArray();
 
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
         Assert.Same(finalCalloutBlock, finalCallout.AssociatedObject);
         Assert.Same(finalCalloutBlock.TitleInlines, finalTitle.AssociatedObject);
         Assert.Same(finalListBlock, finalList.AssociatedObject);
         Assert.Same(finalListItemBlock, finalListItem.AssociatedObject);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, finalListItem.Children[0].Kind);
         Assert.Equal(2, finalParagraphBlocks.Length);
         Assert.Equal(2, finalParagraphs.Length);
         Assert.Same(finalParagraphBlocks[0], finalParagraphs[0].AssociatedObject);
@@ -3566,12 +3642,13 @@ Lead[^1]
         Assert.Equal(2, finalDetails.Children.Count);
         var finalList = finalDetails.Children[1];
         var finalListItem = Assert.Single(finalList.Children);
-        var finalParagraphs = finalListItem.Children.ToArray();
+        var finalParagraphs = finalListItem.Children.Where(child => child.Kind == MarkdownSyntaxKind.Paragraph).ToArray();
 
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
         Assert.Same(finalDetailsBlock, finalDetails.AssociatedObject);
         Assert.Same(finalListBlock, finalList.AssociatedObject);
         Assert.Same(finalListItemBlock, finalListItem.AssociatedObject);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, finalListItem.Children[0].Kind);
         Assert.Equal(2, finalParagraphBlocks.Length);
         Assert.Equal(2, finalParagraphs.Length);
         Assert.Same(finalParagraphBlocks[0], finalParagraphs[0].AssociatedObject);
@@ -3603,12 +3680,13 @@ Lead[^1]
         Assert.Equal(2, finalFootnote.Children.Count);
         var finalList = finalFootnote.Children[1];
         var finalListItem = Assert.Single(finalList.Children);
-        var finalParagraphs = finalListItem.Children.ToArray();
+        var finalParagraphs = finalListItem.Children.Where(child => child.Kind == MarkdownSyntaxKind.Paragraph).ToArray();
 
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
         Assert.Same(finalFootnoteBlock, finalFootnote.AssociatedObject);
         Assert.Same(finalListBlock, finalList.AssociatedObject);
         Assert.Same(finalListItemBlock, finalListItem.AssociatedObject);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, finalListItem.Children[0].Kind);
         Assert.Equal(2, finalParagraphBlocks.Length);
         Assert.Equal(2, finalParagraphs.Length);
         Assert.Same(finalParagraphBlocks[0], finalParagraphs[0].AssociatedObject);
@@ -3746,8 +3824,10 @@ Lead[^1]
 
         var list = valueCell.Children[1];
         Assert.Equal(new MarkdownSourceSpan(3, 22, 3, 40), list.SourceSpan);
-        Assert.Equal(new MarkdownSourceSpan(3, 24, 3, 28), list.Children[0].SourceSpan);
-        Assert.Equal(new MarkdownSourceSpan(3, 35, 3, 40), list.Children[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 22, 3, 28), list.Children[0].SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, list.Children[0].Children[0].Kind);
+        Assert.Equal(new MarkdownSourceSpan(3, 33, 3, 40), list.Children[1].SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.ListMarker, list.Children[1].Children[0].Kind);
 
         Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(3, 3)!.Kind);
         Assert.Equal("One", result.FindDeepestNodeAtPosition(3, 3)!.Literal);

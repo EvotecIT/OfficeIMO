@@ -245,7 +245,8 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     internal bool RequiresLooseListRendering() => ForceLoose || AdditionalParagraphs.Count > 0;
 
     internal MarkdownSyntaxNode BuildSyntaxNode(MarkdownSyntaxNode? nestedList) {
-        var children = MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this).ToList();
+        var children = BuildListMarkerSyntaxNodes();
+        children.AddRange(MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this));
 
         if (nestedList != null) {
             children.Add(nestedList);
@@ -261,6 +262,19 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             literal,
             children,
             this);
+    }
+
+    private List<MarkdownSyntaxNode> BuildListMarkerSyntaxNodes() {
+        var children = new List<MarkdownSyntaxNode>(2);
+        if (MarkerSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ListMarker, MarkerSourceSpan.Value, MarkerText));
+        }
+
+        if (TaskMarkerSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.TaskListMarker, TaskMarkerSourceSpan.Value, TaskMarkerText));
+        }
+
+        return children;
     }
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() => BuildOwnedSyntaxChildren();

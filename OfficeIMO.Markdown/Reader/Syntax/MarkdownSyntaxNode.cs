@@ -302,7 +302,11 @@ public sealed class MarkdownSyntaxNode {
         node.SourceSpan.HasValue && node.SourceSpan.Value.Equals(span);
 
     private static bool IsLowerPriorityBroadLookupChild(MarkdownSyntaxNode parent, MarkdownSyntaxNode child) =>
-        parent.Kind == MarkdownSyntaxKind.Heading && child.Kind == MarkdownSyntaxKind.HeadingLevel;
+        (parent.Kind == MarkdownSyntaxKind.Heading && child.Kind == MarkdownSyntaxKind.HeadingLevel)
+        || (parent.Kind == MarkdownSyntaxKind.ListItem && IsListMarkerTokenKind(child.Kind));
+
+    private static bool IsListMarkerTokenKind(MarkdownSyntaxKind kind) =>
+        kind == MarkdownSyntaxKind.ListMarker || kind == MarkdownSyntaxKind.TaskListMarker;
 
     private static MarkdownSyntaxNode? FindNearestBlock(IReadOnlyList<MarkdownSyntaxNode> path) {
         for (int i = path.Count - 1; i >= 0; i--) {
