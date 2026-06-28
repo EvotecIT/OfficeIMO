@@ -31,6 +31,7 @@ public static partial class MarkdownReader {
                    (!options.Callouts || !IsCalloutHeader(lines[j], out _, out _)) &&
                    !IsQuoteStarter(lines[j]) &&
                    !HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[j], options) &&
+                   !IsParagraphTerminatingReferenceLinkDefinition(lines, i, j, options) &&
                    !IsFootnoteDefinitionStarter(lines[j], options) &&
                    !(options.StandaloneImageBlocks && IsImageLine(lines[j]))) {
                 var raw = lines[j];
@@ -159,6 +160,14 @@ public static partial class MarkdownReader {
             return TryParseReferenceLinkDefinition(lines, index, options, out _, out _, out _, out _);
         }
 
+        private static bool IsParagraphTerminatingReferenceLinkDefinition(string[] lines, int paragraphStartIndex, int index, MarkdownReaderOptions options) {
+            if (!IsReferenceLinkDefinitionStarter(lines, index, options)) {
+                return false;
+            }
+
+            return index == paragraphStartIndex || CanReferenceDefinitionResolveOpenShortcutParagraph(lines, index);
+        }
+
         private static bool EndsWithTwoSpaces(string s) {
             if (string.IsNullOrEmpty(s)) return false;
             int n = s.Length - 1;
@@ -170,6 +179,7 @@ public static partial class MarkdownReader {
 
     private static bool IsQuoteStarter(string line) {
         if (string.IsNullOrEmpty(line)) return false;
+        if (CountLeadingIndentColumns(line) > 3) return false;
         var t = line.TrimStart();
         return t.StartsWith(">");
     }

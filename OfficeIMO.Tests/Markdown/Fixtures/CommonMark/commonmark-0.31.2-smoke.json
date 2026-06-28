@@ -1,5 +1,12 @@
 [
   {
+    "example": 9,
+    "section": "Tabs",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": " - foo\n   - bar\n\t - baz\n",
+    "html": "<ul>\n<li>foo\n<ul>\n<li>bar\n<ul>\n<li>baz</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>\n"
+  },
+  {
     "example": 12,
     "section": "Backslash escapes",
     "topLevelKinds": ["Paragraph"],
@@ -653,6 +660,13 @@
     "topLevelKinds": ["CodeBlock"],
     "markdown": "    a simple\n      indented code block\n",
     "html": "<pre><code>a simple\n  indented code block\n</code></pre>\n"
+  },
+  {
+    "example": 111,
+    "section": "Indented code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    chunk1\n\n    chunk2\n  \n \n \n    chunk3\n",
+    "html": "<pre><code>chunk1\n\nchunk2\n\n\n\nchunk3\n</code></pre>\n"
   },
   {
     "example": 119,
@@ -1648,6 +1662,13 @@
     "html": "<blockquote>\n<h1>Foo</h1>\n<p>bar\nbaz</p>\n</blockquote>\n"
   },
   {
+    "example": 231,
+    "section": "Block quotes",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    > # Foo\n    > bar\n    > baz\n",
+    "html": "<pre><code>&gt; # Foo\n&gt; bar\n&gt; baz\n</code></pre>\n"
+  },
+  {
     "example": 232,
     "section": "Block quotes",
     "topLevelKinds": ["Quote"],
@@ -1697,11 +1718,25 @@
     "html": "<blockquote>\n<blockquote>\n<blockquote>\n<p>foo\nbar</p>\n</blockquote>\n</blockquote>\n</blockquote>\n"
   },
   {
+    "example": 242,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote", "Quote"],
+    "markdown": "> foo\n\n> bar\n",
+    "html": "<blockquote>\n<p>foo</p>\n</blockquote>\n<blockquote>\n<p>bar</p>\n</blockquote>\n"
+  },
+  {
     "example": 251,
     "section": "Block quotes",
     "topLevelKinds": ["Quote"],
     "markdown": ">>> foo\n> bar\n>>baz\n",
     "html": "<blockquote>\n<blockquote>\n<blockquote>\n<p>foo\nbar\nbaz</p>\n</blockquote>\n</blockquote>\n</blockquote>\n"
+  },
+  {
+    "example": 252,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote", "Quote"],
+    "markdown": ">     code\n\n>    not code\n",
+    "html": "<blockquote>\n<pre><code>code\n</code></pre>\n</blockquote>\n<blockquote>\n<p>not code</p>\n</blockquote>\n"
   },
   {
     "example": 253,
@@ -1795,6 +1830,13 @@
     "topLevelKinds": ["Paragraph", "Paragraph"],
     "markdown": "-one\n\n2.two\n",
     "html": "<p>-one</p>\n<p>2.two</p>\n"
+  },
+  {
+    "example": 264,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- Foo\n\n      bar\n\n\n      baz\n",
+    "html": "<ul>\n<li>\n<p>Foo</p>\n<pre><code>bar\n\n\nbaz\n</code></pre>\n</li>\n</ul>\n"
   },
   {
     "example": 265,

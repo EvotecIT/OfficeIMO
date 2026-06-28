@@ -314,10 +314,7 @@ public static partial class MarkdownReader {
         while (j < lines.Length) {
             string cur = lines[j] ?? string.Empty;
             if (string.IsNullOrWhiteSpace(cur)) {
-                int peek = j + 1;
-                if (peek >= lines.Length) break;
-                int nextSpaces = CountLeadingIndentColumns(lines[peek] ?? string.Empty);
-                if (nextSpaces < required) break;
+                if (!HasIndentedCodeContinuationAfterBlankLines(lines, j, required)) break;
                 sb.AppendLine();
                 j++;
                 continue;
@@ -341,6 +338,7 @@ public static partial class MarkdownReader {
         string line = lines[index] ?? string.Empty;
         if (CountLeadingIndentColumns(line) < continuationIndent) return false;
         string slice = StripLeadingIndentColumns(line, continuationIndent);
+        if (CountLeadingIndentColumns(slice) > 3) return false;
         if (!slice.TrimStart().StartsWith(">")) return false;
 
         int j = index;
@@ -351,35 +349,17 @@ public static partial class MarkdownReader {
         while (j < lines.Length) {
             string raw = lines[j] ?? string.Empty;
             if (string.IsNullOrWhiteSpace(raw)) {
-                int peek = j + 1;
-                if (peek >= lines.Length) break;
-                var next = lines[peek] ?? string.Empty;
-                if (CountLeadingIndentColumns(next) < continuationIndent) break;
-                string nextPart = StripLeadingIndentColumns(next, continuationIndent);
-                if (!nextPart.TrimStart().StartsWith(">")) break;
-                collected.Add(string.Empty);
-                collectedSourceLines.Add(new MarkdownSourceLineSlice(string.Empty, state.SourceLineOffset + j + 1, 1));
-                j++;
-                continue;
+                break;
             }
 
             if (CountLeadingIndentColumns(raw) < continuationIndent) break;
             string part = StripLeadingIndentColumns(raw, continuationIndent);
 
             if (string.IsNullOrWhiteSpace(part)) {
-                int peek = j + 1;
-                if (peek >= lines.Length) break;
-                var next = lines[peek] ?? string.Empty;
-                if (CountLeadingIndentColumns(next) < continuationIndent) break;
-                string nextPart = StripLeadingIndentColumns(next, continuationIndent);
-                if (!nextPart.TrimStart().StartsWith(">")) break;
-                collected.Add(string.Empty);
-                collectedSourceLines.Add(new MarkdownSourceLineSlice(string.Empty, state.SourceLineOffset + j + 1, 1));
-                j++;
-                continue;
+                break;
             }
 
-            if (part.TrimStart().StartsWith(">")) {
+            if (CountLeadingIndentColumns(part) <= 3 && part.TrimStart().StartsWith(">")) {
                 int markerStartColumn = continuationIndent + CountLeadingIndentColumns(part) + 1;
                 string quoteContent = StripSingleQuoteMarker(part);
                 if (TryNormalizeQuotedListContinuationLine(lastQuoteContent, quoteContent, options, out var normalizedQuotedLine)) {

@@ -5,6 +5,7 @@ public static partial class MarkdownReader {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             var t = lines[i];
             // Exclude callouts (handled earlier): they start with "> [!"
+            if (CountLeadingIndentColumns(t) > 3) return false;
             var trimmed = t.TrimStart();
             if (!trimmed.StartsWith(">")) return false;
             if (options.Callouts &&
@@ -25,6 +26,8 @@ public static partial class MarkdownReader {
                 var ln = lines[j];
                 var ltrim = ln.TrimStart();
                 if (ltrim.StartsWith(">")) {
+                    if (CountLeadingIndentColumns(ln) > 3) break;
+
                     if (sawQuotedLine
                         && options.Callouts
                         && inner.Count > 0
@@ -34,6 +37,9 @@ public static partial class MarkdownReader {
 
                     // Strip one level
                     var stripped = ltrim.Length >= 2 && ltrim[1] == ' ' ? ltrim.Substring(2) : ltrim.Substring(1);
+                    if (inner.Count == 0) {
+                        stripped = NormalizeContainerContentIndent(stripped);
+                    }
                     if (inner.Count > 0 &&
                         TryNormalizeQuotedNestedQuoteContinuation(inner[inner.Count - 1], stripped, options, out var normalizedNestedQuoteLine)) {
                         stripped = normalizedNestedQuoteLine;
@@ -60,15 +66,7 @@ public static partial class MarkdownReader {
                 // until a blank line followed by a non-quoted line ends the blockquote.
                 if (sawQuotedLine) {
                     if (string.IsNullOrWhiteSpace(ln)) {
-                        int peek = j + 1;
-                        if (peek >= lines.Length) break;
-                        var nextTrim = (lines[peek] ?? string.Empty).TrimStart();
-                        if (!nextTrim.StartsWith(">")) break;
-                        if (options.Callouts && inner.Count > 0 && IsCalloutHeader(nextTrim, out _, out _)) break;
-                        inner.Add(string.Empty);
-                        innerSourceLines.Add(new MarkdownSourceLineSlice(string.Empty, state.SourceLineOffset + j + 1, 1));
-                        j++;
-                        continue;
+                        break;
                     }
 
                     // Only continue lazily when both sides look like paragraph content.

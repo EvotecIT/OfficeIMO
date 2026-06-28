@@ -50,6 +50,9 @@ public static partial class MarkdownReader {
             if (ch == '\t') {
                 columns += 4 - (columns % 4);
                 index++;
+                if (columns > requiredColumns) {
+                    return new string(' ', columns - requiredColumns) + line.Substring(index);
+                }
                 continue;
             }
 
@@ -57,6 +60,30 @@ public static partial class MarkdownReader {
         }
 
         return line.Substring(index);
+    }
+
+    private static bool HasIndentedCodeContinuationAfterBlankLines(string[] lines, int blankLineIndex, int requiredColumns) {
+        if (lines == null || blankLineIndex < 0) return false;
+
+        for (int i = blankLineIndex + 1; i < lines.Length; i++) {
+            string line = lines[i] ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(line)) {
+                continue;
+            }
+
+            return CountLeadingIndentColumns(line) >= requiredColumns;
+        }
+
+        return false;
+    }
+
+    private static string NormalizeContainerContentIndent(string content) {
+        if (string.IsNullOrEmpty(content)) return content ?? string.Empty;
+
+        int indentColumns = CountLeadingIndentColumns(content);
+        return indentColumns > 0 && indentColumns <= 3
+            ? StripLeadingIndentColumns(content, indentColumns)
+            : content;
     }
 
 }

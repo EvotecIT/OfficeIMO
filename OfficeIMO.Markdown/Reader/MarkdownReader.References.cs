@@ -78,7 +78,7 @@ public static partial class MarkdownReader {
                 out var titleSpan,
                 out var openingMarkerSpan,
                 out var separatorMarkerSpan)) {
-                if (openParagraph) {
+                if (openParagraph && !CanReferenceDefinitionResolveOpenShortcutParagraph(lines, idx)) {
                     continue;
                 }
 
@@ -122,6 +122,24 @@ public static partial class MarkdownReader {
 
             openParagraph = IsReferenceDefinitionParagraphContinuationLine(lines, idx, options);
         }
+    }
+
+    private static bool CanReferenceDefinitionResolveOpenShortcutParagraph(string[] lines, int definitionIndex) {
+        if (lines == null || definitionIndex <= 0 || definitionIndex > lines.Length) {
+            return false;
+        }
+
+        string previous = lines[definitionIndex - 1] ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(previous)) {
+            return false;
+        }
+
+        string trimmed = previous.Trim();
+        if (trimmed.Length < 3 || trimmed[0] != '[' || trimmed[trimmed.Length - 1] != ']') {
+            return false;
+        }
+
+        return trimmed.IndexOf(']', 1) == trimmed.Length - 1;
     }
 
     private static void CaptureConsumedSyntaxNodes(

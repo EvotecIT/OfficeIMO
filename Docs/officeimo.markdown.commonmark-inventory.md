@@ -15,31 +15,31 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Official examples | 652 |
-| Pinned smoke fixtures | 310 |
-| Passing pinned fixtures | 310 |
+| Pinned smoke fixtures | 316 |
+| Passing pinned fixtures | 316 |
 | Passing unpinned examples | 336 |
-| Failing examples | 6 |
+| Failing examples | 0 |
 | Intentional deviations | 0 |
 
 ## Section Inventory
 
 | Section | Official | Pinned | Passing pinned | Passing unpinned | Failing | Intentional |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Tabs | 11 | 0 | 0 | 10 | 1 | 0 |
+| Tabs | 11 | 1 | 1 | 10 | 0 | 0 |
 | Backslash escapes | 13 | 8 | 8 | 5 | 0 | 0 |
 | Entity and numeric character references | 17 | 9 | 9 | 8 | 0 | 0 |
 | Precedence | 1 | 0 | 0 | 1 | 0 | 0 |
 | Thematic breaks | 19 | 19 | 19 | 0 | 0 | 0 |
 | ATX headings | 18 | 18 | 18 | 0 | 0 | 0 |
 | Setext headings | 27 | 27 | 27 | 0 | 0 | 0 |
-| Indented code blocks | 12 | 1 | 1 | 10 | 1 | 0 |
+| Indented code blocks | 12 | 2 | 2 | 10 | 0 | 0 |
 | Fenced code blocks | 29 | 29 | 29 | 0 | 0 | 0 |
 | HTML blocks | 44 | 20 | 20 | 24 | 0 | 0 |
 | Link reference definitions | 27 | 10 | 10 | 17 | 0 | 0 |
 | Paragraphs | 8 | 8 | 8 | 0 | 0 | 0 |
 | Blank lines | 1 | 0 | 0 | 1 | 0 | 0 |
-| Block quotes | 25 | 10 | 10 | 12 | 3 | 0 |
-| List items | 48 | 38 | 38 | 9 | 1 | 0 |
+| Block quotes | 25 | 13 | 13 | 12 | 0 | 0 |
+| List items | 48 | 39 | 39 | 9 | 0 | 0 |
 | Lists | 26 | 26 | 26 | 0 | 0 | 0 |
 | Inlines | 1 | 0 | 0 | 1 | 0 | 0 |
 | Code spans | 22 | 8 | 8 | 14 | 0 | 0 |
@@ -56,7 +56,6 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 
 | Cluster | Failing | Sections | First examples |
 | --- | ---: | --- | --- |
-| Container indentation and continuation | 6 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #242, #252, #264 |
 
 ## Next Use
 

@@ -28,10 +28,7 @@ public static partial class MarkdownReader {
 
                 if (string.IsNullOrWhiteSpace(cur)) {
                     // Include blank lines only if there is a following indented line (otherwise end block).
-                    int peek = j + 1;
-                    if (peek >= lines.Length) break;
-                    int nextIndent = CountLeadingIndentColumns(lines[peek] ?? string.Empty);
-                    if (nextIndent < IndentedCodeMinimumSpaces) break;
+                    if (!HasIndentedCodeContinuationAfterBlankLines(lines, j, IndentedCodeMinimumSpaces)) break;
                     sb.AppendLine();
                     j++;
                     continue;
