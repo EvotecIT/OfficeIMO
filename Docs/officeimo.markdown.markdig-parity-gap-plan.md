@@ -55,7 +55,7 @@ Immediate execution queue:
 - [x] **2. Decide the subscript/profile rule.** Markdig-style subscript uses `~sub~`; GFM keeps single-tilde as strikethrough by disabling subscript in that profile.
 - [x] **3. Finish and promote `UseEmphasisExtras`.**
 - [ ] **4. Pick the next partial row from the Markdig inventory, not from nearby tests.** Recommended order: autolinks, raw HTML/tag-filter/security split, definition lists, generic attributes/source-location.
-- [ ] **5. Do one scope pass over the gap rows before large feature work.** The output should be decisions first, implementation second.
+- [x] **5. Do one scope pass over the gap rows before large feature work.** The generated Markdig inventory now records route and promotion-bar decisions for every row; future implementation can refine those decisions with evidence.
 
 ## Missing Work Plan
 
@@ -71,6 +71,7 @@ This is the non-looping backlog. Parity slices are grouped by what they actually
 
 ### B. Markdig Extension Scope Decisions
 
+- [x] **Extension-family route matrix exists.** `Docs/officeimo.markdown.markdig-extension-inventory.md` now gives every reflected Markdig row a `Route` and `Promotion bar`, so future slices start from the owning layer and done criteria instead of re-deciding scope from scratch.
 - [ ] **Markdig extension-family coverage is far from closed.** The current inventory is 7 `Covered`, 11 `Partial`, 4 `Intentional`, and 11 `Gap`. Every non-covered row needs one decision: implement in core, implement as optional extension, route to renderer/host policy, or mark intentional out of scope.
 - [ ] **High-priority partial rows need closure.** Work through `UseAutoLinks`, `UseDefinitionLists`, `UseAlertBlocks`, `UseGenericAttributes`, `UsePreciseSourceLocation`, and parser/render extensions with parser, AST/source, renderer, writer, and fixture evidence.
 - [ ] **High-priority gap rows need scope decisions before implementation.** Decide whether `UseCustomContainers`, `UseGridTables`, `UseSmartyPants`, `UseCitations`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, `UseFigures`, `UseListExtras`, and similar rows belong in core, optional packages, renderer policy, or intentional differences.
@@ -132,7 +133,7 @@ Use this as the non-looping execution board. Each item must either move engine b
 - [x] **Auto identifiers:** moved from missing support to covered support by proving automatic heading ids, disable behavior, Markdig default and GitHub slug styles, duplicate tracking, GFM profile wiring, and existing heading source/native metadata.
 - [x] **YAML front matter:** moved from partial support to covered support by preserving raw YAML as the AST payload, keeping structured helpers for simple entries, exposing body/fence/key/value source spans through syntax/native snapshots, omitting front matter from HTML, and preserving the raw body through Markdown writing.
 - [ ] **Autolinks and tag filter:** separate CommonMark autolinks, GFM extended autolinks, and GFM tag-filter behavior into explicit parser/render/security contracts.
-- [ ] **Extension-family decisions:** for every `Partial` or `Gap` row in `Docs/officeimo.markdown.markdig-extension-inventory.md`, choose one outcome: implement in core, implement as optional extension, route to renderer/host policy, or mark intentional out of scope.
+- [x] **Extension-family decisions:** every row in `Docs/officeimo.markdown.markdig-extension-inventory.md` now has a first-pass `Route` and `Promotion bar`; implementation slices should refine those fields when real parser/renderer evidence changes the decision.
 
 ### Next: Finish AST, Source, And Lossless Claims
 

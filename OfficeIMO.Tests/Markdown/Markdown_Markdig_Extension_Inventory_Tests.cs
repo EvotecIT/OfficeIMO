@@ -13,6 +13,8 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
 
         Assert.Empty(report.MissingTrackedUseMethods);
         Assert.Empty(report.ObsoleteTrackedUseMethods);
+        Assert.All(report.Rows, row => Assert.False(string.IsNullOrWhiteSpace(row.Route), row.MethodName + " route is missing."));
+        Assert.All(report.Rows, row => Assert.False(string.IsNullOrWhiteSpace(row.PromotionBar), row.MethodName + " promotion bar is missing."));
 
         if (string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_MARKDIG_INVENTORY"), "1", StringComparison.Ordinal)) {
             File.WriteAllText(reportPath, markdown);
@@ -34,6 +36,7 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
         string parityGapPlan = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo.markdown.markdig-parity-gap-plan.md"));
         Assert.Contains(rowText, parityGapPlan, StringComparison.Ordinal);
         Assert.Contains("Markdig extension inventory", parityGapPlan, StringComparison.Ordinal);
+        Assert.Contains("Route", parityGapPlan, StringComparison.Ordinal);
     }
 
     private static string GetRepositoryRoot() {
