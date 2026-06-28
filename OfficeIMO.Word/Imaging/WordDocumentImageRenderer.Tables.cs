@@ -107,18 +107,20 @@ namespace OfficeIMO.Word {
             double marginBottom = ToPoints(cell.MarginBottomWidth, DefaultCellMarginPoints);
             double contentWidth = Math.Max(1D, width - marginLeft - marginRight);
             double contentBottom = top + Math.Max(1D, height - marginBottom);
-            AddTableCellImages(cell, drawing, left + marginLeft, top + marginTop, contentWidth, contentBottom, diagnostics);
-            AddNestedTables(cell, drawing, left + marginLeft, top + marginTop, contentWidth, contentBottom, diagnostics, listMarkers);
+            double contentLeft = left + marginLeft;
+            double contentTop = top + marginTop;
+            double textTop = AddTableCellImages(cell, drawing, contentLeft, contentTop, contentWidth, contentBottom, diagnostics);
+            AddNestedTables(cell, drawing, contentLeft, textTop, contentWidth, contentBottom, diagnostics, listMarkers);
 
             List<List<WordParagraph>> paragraphRuns = CreateTableCellParagraphRuns(cell);
             if (paragraphRuns.Count > 1) {
                 AddTableCellParagraphFlow(
                     cell,
                     drawing,
-                    left + marginLeft,
-                    top + marginTop,
+                    contentLeft,
+                    textTop,
                     contentWidth,
-                    Math.Max(1D, height - marginTop - marginBottom),
+                    Math.Max(1D, contentBottom - textTop),
                     contentBottom,
                     paragraphRuns,
                     listMarkers,
@@ -144,12 +146,13 @@ namespace OfficeIMO.Word {
             if (ShouldRenderTableCellAsRichText(richRuns)) {
                 double maxFontSize = richRuns.Max(run => run.FontSize);
                 double lineHeight = Math.Max(maxFontSize * 1.25D, 12D);
+                double textBoxTop = textTop - marginTop;
                 drawing.AddRichText(
                     richRuns,
                     left,
-                    top,
+                    textBoxTop,
                     width,
-                    height,
+                    Math.Max(1D, contentBottom - textBoxTop),
                     MapTextAlignment(firstParagraph?.ParagraphAlignment),
                     lineHeight,
                     verticalAlignment,
@@ -158,12 +161,13 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            double plainTextBoxTop = textTop - marginTop;
             drawing.AddText(
                 text,
                 left,
-                top,
+                plainTextBoxTop,
                 width,
-                height,
+                Math.Max(1D, contentBottom - plainTextBoxTop),
                 font,
                 ResolveParagraphTextColor(firstParagraph, colorScheme),
                 MapTextAlignment(firstParagraph?.ParagraphAlignment),
@@ -232,7 +236,7 @@ namespace OfficeIMO.Word {
             return richRuns;
         }
 
-        private static void AddTableCellImages(
+        private static double AddTableCellImages(
             WordTableCell cell,
             OfficeDrawing drawing,
             double left,
@@ -255,6 +259,8 @@ namespace OfficeIMO.Word {
                     AddImage(image, imageContext, diagnostics);
                 }
             }
+
+            return imageContext.Y;
         }
 
         private static double[] ResolveColumnWidths(WordTable table, int columnCount, double availableWidth) {
@@ -323,7 +329,8 @@ namespace OfficeIMO.Word {
                 double nestedTableHeight = EstimateCellNestedTableHeight(cell, width);
                 List<List<WordParagraph>> paragraphRuns = CreateTableCellParagraphRuns(cell);
                 double textHeight = EstimateTableCellTextHeight(cell, paragraphRuns, font.Size, width, lineHeight, listMarkers);
-                height = Math.Max(height, Math.Max(Math.Max(textHeight, imageHeight), nestedTableHeight) + ToPoints(cell.MarginTopWidth, DefaultCellMarginPoints) + ToPoints(cell.MarginBottomWidth, DefaultCellMarginPoints));
+                double stackedHeight = imageHeight + nestedTableHeight + textHeight;
+                height = Math.Max(height, stackedHeight + ToPoints(cell.MarginTopWidth, DefaultCellMarginPoints) + ToPoints(cell.MarginBottomWidth, DefaultCellMarginPoints));
                 columnIndex += columnSpan;
             }
 

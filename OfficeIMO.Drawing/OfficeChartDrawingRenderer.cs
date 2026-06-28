@@ -15,14 +15,15 @@ public static partial class OfficeChartDrawingRenderer {
     /// Renders a chart snapshot into an <see cref="OfficeDrawing"/> scene.
     /// </summary>
     /// <param name="snapshot">Chart snapshot to render.</param>
+    /// <param name="useMinimumCanvas">Whether to expand small snapshots to the shared default minimum chart canvas.</param>
     /// <returns>Vector drawing containing the chart plot area and series marks.</returns>
-    public static OfficeDrawing Render(OfficeChartSnapshot snapshot) {
+    public static OfficeDrawing Render(OfficeChartSnapshot snapshot, bool useMinimumCanvas = true) {
         if (snapshot == null) {
             throw new ArgumentNullException(nameof(snapshot));
         }
 
-        double width = Math.Max(MinimumChartCanvasWidth, snapshot.WidthPoints);
-        double height = Math.Max(MinimumChartCanvasHeight, snapshot.HeightPoints);
+        double width = useMinimumCanvas ? Math.Max(MinimumChartCanvasWidth, snapshot.WidthPoints) : Math.Max(1D, snapshot.WidthPoints);
+        double height = useMinimumCanvas ? Math.Max(MinimumChartCanvasHeight, snapshot.HeightPoints) : Math.Max(1D, snapshot.HeightPoints);
         OfficeChartStyle style = snapshot.Style;
         OfficeChartLayout layout = snapshot.Layout;
         var drawing = new OfficeDrawing(width, height);

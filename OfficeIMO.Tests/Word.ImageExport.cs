@@ -2742,6 +2742,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_AnchorsMarginRelativeFloatingImagesToPageMargin() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Normal;
+            for (int i = 0; i < 5; i++) {
+                document.AddParagraph("Body before anchor " + i.ToString(CultureInfo.InvariantCulture));
+            }
+
+            byte[] sourcePng = CreateSolidPng(32, 24, OfficeColor.FromRgb(37, 99, 235));
+            using var imageStream = new MemoryStream(sourcePng);
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "margin-relative.png", 32, 24, WrapTextImage.Square, "Margin relative marker");
+            anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Margin;
+            anchored.horizontalPosition.HorizontalAlignment = new DW.HorizontalAlignment { Text = "left" };
+            anchored.verticalPosition.RelativeFrom = DW.VerticalRelativePositionValues.Margin;
+            anchored.verticalPosition.VerticalAlignment = new DW.VerticalAlignment { Text = "top" };
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+
+            OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
+            Assert.Equal("Margin relative marker", drawingImage.AlternativeText);
+            Assert.Equal(72D, drawingImage.Projection.X, 1);
+            Assert.Equal(72D, drawingImage.Projection.Y, 1);
+        }
+
+        [Fact]
         public void WordDocument_ProjectsTableCellImagesThroughSharedDrawing() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
@@ -2769,6 +2794,25 @@ namespace OfficeIMO.Tests {
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("<image", svgText, StringComparison.Ordinal);
             Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsTableCellTextBelowImagesThroughSharedDrawing() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            WordTable table = document.AddTable(1, 1);
+            WordTableCell cell = table.Rows[0].Cells[0];
+            byte[] sourcePng = CreateSolidPng(24, 24, OfficeColor.FromRgb(220, 38, 38));
+            using var imageStream = new MemoryStream(sourcePng);
+            cell.AddParagraph(removeExistingParagraphs: true).AddImage(imageStream, "cell-image.png", 24, 24, description: "Cell stacked image");
+            cell.AddParagraph().AddText("Text below image");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+
+            OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
+            OfficeDrawingText text = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), item => item.Text == "Text below image");
+            Assert.True(text.Y >= drawingImage.Projection.Y + drawingImage.Projection.Height, $"Expected table cell text below image, got text Y {text.Y} and image bottom {drawingImage.Projection.Y + drawingImage.Projection.Height}.");
         }
 
         [Fact]

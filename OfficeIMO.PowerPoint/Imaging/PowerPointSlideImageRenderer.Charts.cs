@@ -14,8 +14,8 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            OfficeChartSnapshot drawingSnapshot = CreateOfficeChartSnapshot(snapshot);
-            OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(drawingSnapshot);
+            OfficeChartSnapshot drawingSnapshot = CreateOfficeChartSnapshot(snapshot, width, height);
+            OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(drawingSnapshot, useMinimumCanvas: false);
             if (chartDrawing.Width > width || chartDrawing.Height > height) {
                 AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because the shared chart renderer requires a larger drawing area than the chart frame.");
                 return;
@@ -41,7 +41,7 @@ namespace OfficeIMO.PowerPoint {
                 chart.HorizontalFlip == true,
                 chart.VerticalFlip == true);
 
-        private static OfficeChartSnapshot CreateOfficeChartSnapshot(PowerPointChartSnapshot snapshot) {
+        private static OfficeChartSnapshot CreateOfficeChartSnapshot(PowerPointChartSnapshot snapshot, double width, double height) {
             var series = new List<OfficeChartSeries>(snapshot.Data.Series.Count);
             for (int i = 0; i < snapshot.Data.Series.Count; i++) {
                 PowerPointChartSeries item = snapshot.Data.Series[i];
@@ -53,8 +53,8 @@ namespace OfficeIMO.PowerPoint {
                 snapshot.Title,
                 MapChartKind(snapshot.ChartKind),
                 new OfficeChartData(snapshot.Data.Categories, series),
-                snapshot.WidthPoints,
-                snapshot.HeightPoints);
+                width,
+                height);
         }
 
         private static OfficeChartKind MapChartKind(PowerPointChartSnapshotKind kind) {

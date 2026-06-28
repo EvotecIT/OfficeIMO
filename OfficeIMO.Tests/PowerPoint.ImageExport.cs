@@ -2508,6 +2508,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_ProjectsGroupedScaledChartsAtMappedFrameSize() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(360, 240);
+            PowerPointSlide slide = presentation.Slides[0];
+            var data = new PowerPointChartData(
+                new[] { "Jan", "Feb", "Mar" },
+                new[] {
+                    new PowerPointChartSeries("Revenue", new[] { 10D, 18D, 24D }),
+                    new PowerPointChartSeries("Forecast", new[] { 12D, 19D, 25D })
+                });
+
+            PowerPointChart chart = slide.AddChartPoints(data, 40, 30, 280, 180);
+            chart.SetTitle("Grouped Revenue");
+            PowerPointAutoShape marker = slide.AddRectanglePoints(325, 210, 8, 8);
+            marker.FillColor = "FFFFFF";
+            marker.OutlineColor = "FFFFFF";
+            slide.GroupShapes(new PowerPointShape[] { chart, marker }, "Scaled chart group");
+            GroupShape group = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+                .Elements<GroupShape>()
+                .Single();
+            A.TransformGroup transform = group.GroupShapeProperties!.TransformGroup!;
+            transform.Extents!.Cx = PowerPointUnits.FromPoints(140);
+            transform.Extents.Cy = PowerPointUnits.FromPoints(90);
+            transform.ChildExtents!.Cx = PowerPointUnits.FromPoints(280);
+            transform.ChildExtents.Cy = PowerPointUnits.FromPoints(180);
+            slide.SlidePart.Slide.Save();
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            OfficeDrawingGroup chartGroup = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingGroup>());
+            Assert.Equal(40D, chartGroup.X, 1);
+            Assert.Equal(30D, chartGroup.Y, 1);
+            Assert.Equal(140D, chartGroup.ClipPath.Width, 1);
+            Assert.Equal(90D, chartGroup.ClipPath.Height, 1);
+            Assert.Contains(chartGroup.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Grouped Revenue");
+        }
+
+        [Fact]
         public void PowerPointSlide_ProjectsSupportedTransformsThroughSharedDrawing() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

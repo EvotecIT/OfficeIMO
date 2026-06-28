@@ -32,6 +32,7 @@ public static class OfficeGifReader {
             int offset = 13;
             OfficeColor[]? globalColorTable = null;
             byte packed = bytes[10];
+            int backgroundColorIndex = bytes[11];
             if ((packed & 0x80) != 0) {
                 int colorCount = 1 << ((packed & 0x07) + 1);
                 if (!TryReadColorTable(bytes, ref offset, colorCount, out globalColorTable)) {
@@ -67,7 +68,7 @@ public static class OfficeGifReader {
                     return false;
                 }
 
-                return TryReadImageFrame(bytes, ref offset, width, height, globalColorTable, transparentIndex, out image);
+                return TryReadImageFrame(bytes, ref offset, width, height, globalColorTable, backgroundColorIndex, transparentIndex, out image);
             }
 
             return false;
@@ -77,7 +78,7 @@ public static class OfficeGifReader {
         }
     }
 
-    private static bool TryReadImageFrame(byte[] bytes, ref int offset, int canvasWidth, int canvasHeight, OfficeColor[]? globalColorTable, int transparentIndex, out OfficeRasterImage? image) {
+    private static bool TryReadImageFrame(byte[] bytes, ref int offset, int canvasWidth, int canvasHeight, OfficeColor[]? globalColorTable, int backgroundColorIndex, int transparentIndex, out OfficeRasterImage? image) {
         image = null;
         if (offset + 9 > bytes.Length) {
             return false;
@@ -117,7 +118,8 @@ public static class OfficeGifReader {
         }
 
         bool interlaced = (packed & 0x40) != 0;
-        var result = new OfficeRasterImage(canvasWidth, canvasHeight, OfficeColor.Transparent);
+        OfficeColor backgroundColor = ResolveCanvasBackground(globalColorTable, backgroundColorIndex, transparentIndex);
+        var result = new OfficeRasterImage(canvasWidth, canvasHeight, backgroundColor);
         int sourceIndex = 0;
         foreach (int row in EnumerateRows(height, interlaced)) {
             for (int x = 0; x < width; x++) {
@@ -141,6 +143,17 @@ public static class OfficeGifReader {
 
         image = result;
         return true;
+    }
+
+    private static OfficeColor ResolveCanvasBackground(OfficeColor[]? globalColorTable, int backgroundColorIndex, int transparentIndex) {
+        if (globalColorTable == null ||
+            backgroundColorIndex < 0 ||
+            backgroundColorIndex >= globalColorTable.Length ||
+            backgroundColorIndex == transparentIndex) {
+            return OfficeColor.Transparent;
+        }
+
+        return globalColorTable[backgroundColorIndex];
     }
 
     private static bool TryDecodeLzw(byte[] data, int minimumCodeSize, int expectedPixelCount, out byte[] indices) {

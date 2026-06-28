@@ -66,6 +66,13 @@ public static class OfficeDrawingRasterRenderer {
     }
 
     private static IDisposable PushGroupClip(OfficeRasterCanvas canvas, OfficeDrawingGroup drawingGroup, double scale) {
+        IReadOnlyList<IReadOnlyList<OfficePoint>> contours = CreateGroupClipContours(drawingGroup, scale);
+        if (contours.Count > 0) {
+            return contours.Count == 1
+                ? canvas.PushClipPolygon(contours[0])
+                : canvas.PushClipPolygonsEvenOdd(contours);
+        }
+
         if (drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform) {
             OfficeTransform transform = drawingGroup.FrameTransform.Value.CreateDestinationTransform();
             return canvas.PushClipPolygon(new[] {
@@ -549,6 +556,19 @@ public static class OfficeDrawingRasterRenderer {
     }
 
     private static IReadOnlyList<IReadOnlyList<OfficePoint>> CreateClipContours(OfficeDrawingShape drawingShape, OfficeClipPath clipPath, double scale) {
+        return CreateClipContours(clipPath, contour => TransformClipContour(drawingShape, contour, scale));
+    }
+
+    private static IReadOnlyList<IReadOnlyList<OfficePoint>> CreateGroupClipContours(OfficeDrawingGroup drawingGroup, double scale) {
+        OfficeTransform? transform = drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform
+            ? drawingGroup.FrameTransform.Value.CreateDestinationTransform()
+            : null;
+        return CreateClipContours(
+            drawingGroup.ClipPath,
+            contour => TransformGroupClipContour(drawingGroup, contour, scale, transform));
+    }
+
+    private static IReadOnlyList<IReadOnlyList<OfficePoint>> CreateClipContours(OfficeClipPath clipPath, Func<IReadOnlyList<OfficePoint>, IReadOnlyList<OfficePoint>> transformContour) {
         IReadOnlyList<OfficePoint> contour;
         switch (clipPath.Kind) {
             case OfficeClipPathKind.Rectangle:
@@ -558,16 +578,16 @@ public static class OfficeDrawingRasterRenderer {
                     new OfficePoint(clipPath.Width, clipPath.Height),
                     new OfficePoint(0D, clipPath.Height)
                 };
-                return new[] { TransformClipContour(drawingShape, contour, scale) };
+                return new[] { transformContour(contour) };
             case OfficeClipPathKind.RoundedRectangle:
                 contour = CreateRoundedRectangleContour(clipPath.Width, clipPath.Height, clipPath.CornerRadius, 8);
-                return new[] { TransformClipContour(drawingShape, contour, scale) };
+                return new[] { transformContour(contour) };
             case OfficeClipPathKind.Path:
                 IReadOnlyList<OfficeFlattenedPathContour> flattened = OfficePathFlattener.Flatten(clipPath.Commands, 0D, 0D, 1D);
                 List<IReadOnlyList<OfficePoint>> contours = new List<IReadOnlyList<OfficePoint>>();
                 for (int i = 0; i < flattened.Count; i++) {
                     if (flattened[i].Closed && flattened[i].Points.Count >= 3) {
-                        contours.Add(TransformClipContour(drawingShape, flattened[i].Points, scale));
+                        contours.Add(transformContour(flattened[i].Points));
                     }
                 }
 
@@ -581,6 +601,20 @@ public static class OfficeDrawingRasterRenderer {
         HasNonIdentityTransform(drawingShape.Shape.Transform)
             ? TransformShapePoints(drawingShape, contour, scale)
             : OffsetPoints(contour, drawingShape.X * scale, drawingShape.Y * scale, scale);
+
+    private static IReadOnlyList<OfficePoint> TransformGroupClipContour(OfficeDrawingGroup drawingGroup, IReadOnlyList<OfficePoint> contour, double scale, OfficeTransform? transform) {
+        List<OfficePoint> points = new List<OfficePoint>(contour.Count);
+        for (int i = 0; i < contour.Count; i++) {
+            OfficePoint point = new OfficePoint(drawingGroup.X + contour[i].X, drawingGroup.Y + contour[i].Y);
+            if (transform.HasValue) {
+                point = transform.Value.TransformPoint(point);
+            }
+
+            points.Add(ScalePoint(point, scale));
+        }
+
+        return points;
+    }
 
     private static List<OfficePoint> OffsetPoints(IReadOnlyList<OfficePoint> source, double x, double y, double scale) {
         List<OfficePoint> points = new List<OfficePoint>(source.Count);

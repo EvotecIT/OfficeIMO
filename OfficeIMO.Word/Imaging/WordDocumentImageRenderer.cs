@@ -463,6 +463,7 @@ namespace OfficeIMO.Word {
                 string overflowDiagnosticMessage = "Stopped rendering Word body content after the first page because dependency-free pagination is not implemented yet.") {
                 Drawing = drawing;
                 Left = left;
+                Top = top;
                 Y = top;
                 ContentWidth = contentWidth;
                 ContentBottom = contentBottom;
@@ -473,6 +474,8 @@ namespace OfficeIMO.Word {
             internal OfficeDrawing Drawing { get; }
 
             internal double Left { get; }
+
+            internal double Top { get; }
 
             internal double Y { get; set; }
 

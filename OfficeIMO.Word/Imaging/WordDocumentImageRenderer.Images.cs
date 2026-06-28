@@ -299,6 +299,11 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrWhiteSpace(alignment)) {
                 double containerLeft = IsPageRelative(position) ? 0D : context.Left;
                 double containerWidth = IsPageRelative(position) ? context.Drawing.Width : context.ContentWidth;
+                if (IsMarginRelative(position)) {
+                    containerLeft = context.Left;
+                    containerWidth = context.ContentWidth;
+                }
+
                 if (string.Equals(alignment, "center", StringComparison.OrdinalIgnoreCase)) {
                     return containerLeft + ((containerWidth - width) / 2D) + offset;
                 }
@@ -321,6 +326,11 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrWhiteSpace(alignment)) {
                 double containerTop = IsPageRelative(position) ? 0D : context.Y;
                 double containerBottom = IsPageRelative(position) ? context.Drawing.Height : context.ContentBottom;
+                if (IsMarginRelative(position)) {
+                    containerTop = context.Top;
+                    containerBottom = context.ContentBottom;
+                }
+
                 double containerHeight = Math.Max(0D, containerBottom - containerTop);
                 if (string.Equals(alignment, "center", StringComparison.OrdinalIgnoreCase)) {
                     return containerTop + ((containerHeight - height) / 2D) + offset;
@@ -343,6 +353,12 @@ namespace OfficeIMO.Word {
 
         private static bool IsPageRelative(VerticalPosition? position) =>
             position?.RelativeFrom?.Value == VerticalRelativePositionValues.Page;
+
+        private static bool IsMarginRelative(HorizontalPosition? position) =>
+            position?.RelativeFrom?.Value == HorizontalRelativePositionValues.Margin;
+
+        private static bool IsMarginRelative(VerticalPosition? position) =>
+            position?.RelativeFrom?.Value == VerticalRelativePositionValues.Margin;
 
         private static double GetPositionOffsetPoints(PositionOffset? positionOffset) {
             if (positionOffset == null || string.IsNullOrWhiteSpace(positionOffset.Text)) {

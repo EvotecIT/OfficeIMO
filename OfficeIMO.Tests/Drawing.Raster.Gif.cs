@@ -39,6 +39,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterImageDecoder_FillsLogicalGifCanvasWithBackgroundColor() {
+            byte[] gif = CreateIndexedGif(
+                4,
+                4,
+                new[] { OfficeColor.Red, OfficeColor.Lime, OfficeColor.Blue, OfficeColor.White },
+                new byte[] { 0 },
+                imageLeft: 1,
+                imageTop: 1,
+                imageWidth: 1,
+                imageHeight: 1,
+                backgroundColorIndex: 1);
+
+            Assert.True(OfficeRasterImageDecoder.TryDecode(gif, out OfficeRasterImage? image));
+            Assert.Equal(OfficeColor.Lime, image!.GetPixel(0, 0));
+            Assert.Equal(OfficeColor.Red, image.GetPixel(1, 1));
+        }
+
+        [Fact]
         public void OfficeDrawingRasterRenderer_PaintsDecodedGifImages() {
             byte[] gif = CreateSinglePixelGif();
             OfficeDrawing drawing = new OfficeDrawing(20, 16);
@@ -56,8 +74,20 @@ namespace OfficeIMO.Tests {
         private static byte[] CreateSinglePixelGif() =>
             Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
 
-        private static byte[] CreateIndexedGif(int width, int height, IReadOnlyList<OfficeColor> palette, IReadOnlyList<byte> pixels, bool interlaced = false) {
-            if (pixels.Count != width * height) {
+        private static byte[] CreateIndexedGif(
+            int width,
+            int height,
+            IReadOnlyList<OfficeColor> palette,
+            IReadOnlyList<byte> pixels,
+            bool interlaced = false,
+            int imageLeft = 0,
+            int imageTop = 0,
+            int? imageWidth = null,
+            int? imageHeight = null,
+            int backgroundColorIndex = 0) {
+            int frameWidth = imageWidth ?? width;
+            int frameHeight = imageHeight ?? height;
+            if (pixels.Count != frameWidth * frameHeight) {
                 throw new ArgumentException("Pixel count must match GIF dimensions.", nameof(pixels));
             }
 
@@ -67,13 +97,13 @@ namespace OfficeIMO.Tests {
             }
 
             int minimumCodeSize = Math.Max(2, GetRequiredBits(colorTableSize - 1));
-            byte[] lzw = EncodeGifLzw(ReorderGifPixels(width, height, pixels, interlaced), minimumCodeSize);
+            byte[] lzw = EncodeGifLzw(ReorderGifPixels(frameWidth, frameHeight, pixels, interlaced), minimumCodeSize);
             var bytes = new List<byte>();
             bytes.AddRange(new byte[] { (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a' });
             WriteUInt16LittleEndian(bytes, width);
             WriteUInt16LittleEndian(bytes, height);
             bytes.Add((byte)(0x80 | ((minimumCodeSize - 1) << 4) | (GetRequiredBits(colorTableSize - 1) - 1)));
-            bytes.Add(0);
+            bytes.Add((byte)backgroundColorIndex);
             bytes.Add(0);
             for (int i = 0; i < colorTableSize; i++) {
                 OfficeColor color = i < palette.Count ? palette[i] : OfficeColor.Black;
@@ -83,10 +113,10 @@ namespace OfficeIMO.Tests {
             }
 
             bytes.Add(0x2C);
-            WriteUInt16LittleEndian(bytes, 0);
-            WriteUInt16LittleEndian(bytes, 0);
-            WriteUInt16LittleEndian(bytes, width);
-            WriteUInt16LittleEndian(bytes, height);
+            WriteUInt16LittleEndian(bytes, imageLeft);
+            WriteUInt16LittleEndian(bytes, imageTop);
+            WriteUInt16LittleEndian(bytes, frameWidth);
+            WriteUInt16LittleEndian(bytes, frameHeight);
             bytes.Add(interlaced ? (byte)0x40 : (byte)0x00);
             bytes.Add((byte)minimumCodeSize);
             bytes.Add((byte)lzw.Length);

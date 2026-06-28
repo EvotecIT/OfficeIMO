@@ -1396,6 +1396,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeDrawingRasterRenderer_HonorsNonRectangularGroupClipPaths() {
+            OfficeDrawing child = new OfficeDrawing(24, 16);
+            OfficeShape fill = OfficeShape.Rectangle(24, 16);
+            fill.FillColor = OfficeColor.Red;
+            child.AddShape(fill, 0, 0);
+            OfficeDrawing drawing = new OfficeDrawing(32, 24);
+            drawing.AddClippedDrawing(child, 4, 4, OfficeClipPath.RoundedRectangle(24, 16, 7));
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+
+            Assert.Equal(0, image.GetPixel(4, 4).A);
+            Assert.True(image.GetPixel(16, 12).A > 200);
+        }
+
+        [Fact]
         public void OfficeDrawingRasterRenderer_HonorsPolygonDashStyleThroughSharedRasterPrimitive() {
             OfficeDrawing solidDrawing = new OfficeDrawing(72, 32);
             OfficeShape solidPolygon = OfficeShape.Polygon(

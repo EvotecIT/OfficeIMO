@@ -657,7 +657,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (string.Equals(value, "0", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(value, "false", StringComparison.OrdinalIgnoreCase)) {
+                string.Equals(value, "false", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)) {
                 return false;
             }
 

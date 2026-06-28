@@ -1115,6 +1115,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportTreatsConditionalDifferentialUnderlineNoneAsDisabled() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("UnderlineNone");
+            sheet.CellValue(1, 1, 20);
+            sheet.AddConditionalRule("A1:A1", ConditionalFormattingOperatorValues.GreaterThan, "10");
+
+            uint differentialFormatId = sheet.AppendConditionalDifferentialFormat(new X.DifferentialFormat(
+                new X.Font(new X.Underline { Val = X.UnderlineValues.None })));
+            sheet.SetLastConditionalFormattingRuleDifferentialFormatId(differentialFormatId);
+
+            ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A1:A1"));
+            ExcelVisualCell cell = Assert.Single(sheet.Range("A1:A1").CreateVisualSnapshot().Cells);
+
+            Assert.False(rule.DifferentialFontUnderline);
+            Assert.False(cell.Style.Underline);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReportsUnsupportedConditionalRuleShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
