@@ -869,7 +869,7 @@ public static partial class MarkdownReader {
                 if (text[pos] == '<' && IsAngleAutolinkStart(text, pos)) break;
                 if (options.AutolinkUrls && (text[pos] == 'h' || text[pos] == 'H') && StartsWithHttp(text, pos, options, out _)) break;
                 if (options.AutolinkWwwUrls && (text[pos] == 'w' || text[pos] == 'W') && StartsWithWww(text, pos, options, out _)) break;
-                if (options.AutolinkBareSchemeUrls && (text[pos] == 'm' || text[pos] == 'M' || text[pos] == 'x' || text[pos] == 'X') && TryConsumeBareSchemeAutolink(text, pos, options, out _, out _, out _)) break;
+                if (options.AutolinkBareSchemeUrls && IsBareSchemeAutolinkStartCandidate(text[pos]) && TryConsumeBareSchemeAutolink(text, pos, options, out _, out _, out _)) break;
                 if (options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, options, out _, out _)) break;
                 if (inlineParserExtensions.Count > 0
                     && TryParseInlineExtension(

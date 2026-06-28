@@ -449,6 +449,37 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Bare_Scheme_Autolinks_Are_Opt_In_For_Ftp_And_Tel() {
+        var doc = MarkdownReader.Parse("Fetch ftp://example.com/file.txt and call tel:+123456789.");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"ftp://example.com/file.txt\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"tel:+123456789\"", html, StringComparison.Ordinal);
+        Assert.Contains("Fetch ftp://example.com/file.txt and call tel:+123456789.", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Gfm_Autolinks_Link_Markdig_Ftp_And_Tel_Bare_Schemes() {
+        const string markdown = "Fetch ftp://example.com/file.txt and call tel:+123-456.";
+
+        var doc = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<a href=\"ftp://example.com/file.txt\">ftp://example.com/file.txt</a>", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"tel:+123-456\">+123-456</a>.", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Gfm_Autolinks_Reject_Ftp_Domain_Without_Period() {
+        var doc = MarkdownReader.Parse("Fetch ftp://localhost/file and ftp://example.com/file", MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"ftp://localhost/file\"", html, StringComparison.Ordinal);
+        Assert.Contains("ftp://localhost/file", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"ftp://example.com/file\">ftp://example.com/file</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_Work_In_Tables_And_Lists() {
         var md = """
 | Link |
@@ -576,7 +607,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_RenderMarkdown_Preserves_Source_Backed_Bare_And_Angle_Spelling() {
-        const string markdown = "See https://example.com and www.example.com and user@example.com and <https://example.com/docs> and mailto:team@example.com.";
+        const string markdown = "See https://example.com and www.example.com and user@example.com and <https://example.com/docs> and mailto:team@example.com and ftp://example.com/file.txt and tel:+123-456.";
 
         var doc = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var written = doc.ToMarkdown().Replace("\r\n", "\n").Trim();
@@ -587,6 +618,8 @@ public class Markdown_Reader_Autolinks_Tests {
         Assert.DoesNotContain("[user@example.com](mailto:user@example.com)", written, StringComparison.Ordinal);
         Assert.Contains("<https://example.com/docs>", written, StringComparison.Ordinal);
         Assert.Contains("mailto:team@example.com", written, StringComparison.Ordinal);
+        Assert.Contains("ftp://example.com/file.txt", written, StringComparison.Ordinal);
+        Assert.Contains("tel:+123-456", written, StringComparison.Ordinal);
     }
 
     [Fact]

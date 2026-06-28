@@ -229,7 +229,8 @@ public sealed class MarkdownReaderOptions {
     public string? AutolinkValidPreviousCharacters { get; set; }
 
     /// <summary>
-    /// When <c>true</c>, auto-detects selected GFM bare URI schemes such as <c>mailto:</c> and <c>xmpp:</c>.
+    /// When <c>true</c>, auto-detects selected bare URI schemes such as <c>mailto:</c>, <c>ftp://</c>,
+    /// <c>tel:</c>, and <c>xmpp:</c>.
     /// Default: <c>false</c>; enabled by <see cref="CreateGitHubFlavoredMarkdownProfile"/>.
     /// </summary>
     public bool AutolinkBareSchemeUrls { get; set; } = false;

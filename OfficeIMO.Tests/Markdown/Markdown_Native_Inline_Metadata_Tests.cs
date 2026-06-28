@@ -463,6 +463,36 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Bare_Ftp_And_Tel_Autolink_Metadata_Preserves_Source_Targets() {
+        const string markdown = "See ftp://example.com/file.txt and tel:+123\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var links = paragraph.InlineRuns.Where(inline => inline.Kind == MarkdownNativeInlineKind.Link).ToArray();
+        Assert.Equal(2, links.Length);
+
+        var ftp = links[0];
+        var tel = links[1];
+        var ftpTarget = Assert.Single(ftp.Metadata, metadata => metadata.Name == "target");
+        var telTarget = Assert.Single(tel.Metadata, metadata => metadata.Name == "target");
+
+        Assert.Equal("ftp://example.com/file.txt", ftp.Text);
+        Assert.Equal("ftp://example.com/file.txt", ftpTarget.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 30), ftpTarget.SourceSpan);
+        Assert.Equal("+123", tel.Text);
+        Assert.Equal("tel:+123", telTarget.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 36, 1, 43), telTarget.SourceSpan);
+        Assert.Equal("See ftp://files.example.org/archive and tel:+123\n", native.CreateReplaceEdit(ftpTarget, "ftp://files.example.org/archive").Apply(native.SourceMarkdown));
+        Assert.Equal("See ftp://example.com/file.txt and tel:+456\n", native.CreateReplaceEdit(telTarget, "tel:+456").Apply(native.SourceMarkdown));
+
+        var snapshotLinks = native.ToSnapshot().Blocks[0].Inlines.Where(inline => inline.Kind == MarkdownNativeInlineKind.Link).ToArray();
+        Assert.Equal("ftp://example.com/file.txt", snapshotLinks[0].Metadata["target"]);
+        Assert.Equal("tel:+123", snapshotLinks[1].Metadata["target"]);
+        Assert.Equal(5, snapshotLinks[0].MetadataSourceSpans["target"]!.StartColumn);
+        Assert.Equal(36, snapshotLinks[1].MetadataSourceSpans["target"]!.StartColumn);
+    }
+
+    [Fact]
     public void Footnote_Reference_Metadata_Preserves_Label_And_Delimiter_Markers_For_Edits_And_Snapshots() {
         const string markdown = "See [^note]\n\n[^note]: Body\n";
 

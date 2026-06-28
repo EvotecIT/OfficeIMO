@@ -185,6 +185,14 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "www-query-ampersand", "Visit www.example.com/path?q=1&next=2 now" };
         yield return new object[] { "http-query-parens", "Visit https://example.com/search?q=(x) now" };
         yield return new object[] { "www-query-parens", "Visit www.example.com/search?q=(x) now" };
+        yield return new object[] { "ftp-url", "Visit ftp://example.com/file.txt now" };
+        yield return new object[] { "ftp-url-query-ampersand", "Visit ftp://example.com/path?q=1&next=2 now" };
+        yield return new object[] { "ftp-url-query-parens", "Visit ftp://example.com/search?q=(x) now" };
+        yield return new object[] { "ftp-url-trailing-dot", "Visit ftp://example.com/file.txt. now" };
+        yield return new object[] { "ftp-localhost-stays-literal", "Visit ftp://localhost/file now" };
+        yield return new object[] { "tel-url", "Call tel:+123456789 now" };
+        yield return new object[] { "tel-url-trailing-dot", "Call tel:+123-456. now" };
+        yield return new object[] { "tel-url-parentheses", "Call tel:(123)456 now" };
     }
 
     public static IEnumerable<object[]> EmphasisExtrasExtensionCases() {

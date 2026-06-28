@@ -191,10 +191,34 @@ public static partial class MarkdownReader {
             return true;
         }
 
+        if (StartsWithOrdinalIgnoreCase(text, start, "ftp://")) {
+            int rawEnd = ConsumeLiteralUrl(text, start);
+            int i = TrimTrailingBareSchemePunctuation(text, start, rawEnd);
+            if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
+            if (!options.AutolinkAllowQueryAndFragmentSpecialCharacters && ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
+            if (ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
+            if (!options.AutolinkAllowDomainWithoutPeriod && !HttpAutolinkHasDomainPeriod(text, start, i)) return false;
+            if (i <= start + "ftp://".Length) return false;
+            end = i;
+            label = text.Substring(start, end - start);
+            href = label;
+            return true;
+        }
+
+        if (StartsWithOrdinalIgnoreCase(text, start, "tel:")) {
+            int valueStart = start + "tel:".Length;
+            int rawEnd = ConsumeLiteralUrl(text, start);
+            int i = TrimTrailingBareSchemePunctuation(text, start, rawEnd);
+            if (i <= valueStart) return false;
+            end = i;
+            label = text.Substring(valueStart, end - valueStart);
+            href = text.Substring(start, end - start);
+            return true;
+        }
+
         if (StartsWithOrdinalIgnoreCase(text, start, "xmpp:")) {
             int rawEnd = ConsumeLiteralUrl(text, start);
-            int i = rawEnd;
-            while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
+            int i = TrimTrailingBareSchemePunctuation(text, start, rawEnd);
             if (i <= start + "xmpp:".Length) return false;
             end = i;
             label = text.Substring(start, end - start);
@@ -238,6 +262,19 @@ public static partial class MarkdownReader {
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(value)) return false;
         if (start < 0 || start + value.Length > text.Length) return false;
         return string.Compare(text, start, value, 0, value.Length, StringComparison.OrdinalIgnoreCase) == 0;
+    }
+
+    private static bool IsBareSchemeAutolinkStartCandidate(char c) {
+        return c == 'f' || c == 'F'
+            || c == 'm' || c == 'M'
+            || c == 't' || c == 'T'
+            || c == 'x' || c == 'X';
+    }
+
+    private static int TrimTrailingBareSchemePunctuation(string text, int start, int rawEnd) {
+        int i = rawEnd;
+        while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
+        return i;
     }
 
     private static bool HasInvalidAutolinkLeftBoundary(string text, int start, MarkdownReaderOptions? options = null) {

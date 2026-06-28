@@ -884,6 +884,28 @@ baz*
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Bare_Ftp_And_Tel_Autolink_Targets() {
+        const string markdown = "See ftp://example.com/file.txt and tel:+123";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var links = paragraph.Children.Where(node => node.Kind == MarkdownSyntaxKind.InlineLink).ToArray();
+
+        Assert.Equal(2, links.Length);
+
+        var ftpTarget = Assert.Single(links[0].Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        var telTarget = Assert.Single(links[1].Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+
+        Assert.Equal("ftp://example.com/file.txt", links[0].Literal);
+        Assert.Equal("ftp://example.com/file.txt", ftpTarget.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 30), ftpTarget.SourceSpan);
+        Assert.Equal("tel:+123", links[1].Literal);
+        Assert.Equal("tel:+123", telTarget.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 36, 1, 43), telTarget.SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, result.FindDeepestNodeAtPosition(1, 38)!.Kind);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Footnote_Reference_Label_Metadata_Node() {
         const string markdown = "A [^note]\n\n[^note]: Body";
 

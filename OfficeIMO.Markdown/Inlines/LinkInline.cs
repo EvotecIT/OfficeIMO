@@ -75,11 +75,13 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
         if (string.Equals(Text, Url, StringComparison.Ordinal) ||
             (Url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) &&
              string.Equals(Text, Url.Substring("mailto:".Length), StringComparison.Ordinal)) ||
+            (Url.StartsWith("tel:", StringComparison.OrdinalIgnoreCase) &&
+             string.Equals(Text, Url.Substring("tel:".Length), StringComparison.Ordinal)) ||
             (Url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
              string.Equals(Text, Url.Substring("http://".Length), StringComparison.Ordinal)) ||
             (Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) &&
              string.Equals(Text, Url.Substring("https://".Length), StringComparison.Ordinal))) {
-            return Text;
+            return Url.StartsWith("tel:", StringComparison.OrdinalIgnoreCase) ? Url : Text;
         }
 
         return null;
