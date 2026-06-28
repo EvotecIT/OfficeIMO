@@ -26,14 +26,20 @@ public static partial class MarkdownReader {
         bool inFence = false;
         char fenceChar = '\0';
         int fenceLen = 0;
+        bool openParagraph = false;
 
         for (int idx = 0; idx < lines.Length; idx++) {
-            var line = lines[idx]; if (string.IsNullOrWhiteSpace(line)) continue;
+            var line = lines[idx];
+            if (string.IsNullOrWhiteSpace(line)) {
+                openParagraph = false;
+                continue;
+            }
 
             // Ignore anything inside fenced code blocks.
             if (!inFence) {
                 if (IsCodeFenceOpen(line, out _, out fenceChar, out fenceLen)) {
                     inFence = true;
+                    openParagraph = false;
                     continue;
                 }
             } else {
@@ -64,6 +70,10 @@ public static partial class MarkdownReader {
                 out var titleSpan,
                 out var openingMarkerSpan,
                 out var separatorMarkerSpan)) {
+                if (openParagraph) {
+                    continue;
+                }
+
                 var resolved = ResolveUrl(url, options);
                 if (resolved != null && !state.LinkRefs.ContainsKey(label)) {
                     var sourceSpan = CreateLineSpan(
@@ -82,7 +92,11 @@ public static partial class MarkdownReader {
                         separatorMarkerSpan);
                 }
                 idx += consumedLines - 1;
+                openParagraph = false;
+                continue;
             }
+
+            openParagraph = IsReferenceDefinitionParagraphContinuationLine(lines, idx, options);
         }
     }
 

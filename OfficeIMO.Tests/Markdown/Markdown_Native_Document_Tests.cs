@@ -903,6 +903,24 @@ bar
     }
 
     [Fact]
+    public void Parse_Keeps_Paragraph_Interrupting_Reference_Definition_Text_Literal() {
+        var native = MarkdownNativeDocument.Parse("""
+Foo
+[bar]: /baz
+
+[bar]
+""", MarkdownReaderOptions.CreateCommonMarkProfile());
+
+        Assert.Empty(native.ReferenceLinkDefinitions);
+        Assert.Equal(
+            new[] { MarkdownNativeBlockKind.Paragraph, MarkdownNativeBlockKind.Paragraph },
+            native.Blocks.Select(block => block.Kind).ToArray());
+        Assert.Null(native.FindReferenceLinkDefinitionAtPosition(2, 1));
+        Assert.Null(native.FindReferenceLinkDefinitionFieldAtPosition(2, 2));
+        Assert.Same(native.Blocks[0], native.FindBlockAtPosition(2, 2));
+    }
+
+    [Fact]
     public void Native_Document_Enumerates_Reference_Definition_SourceFields_And_Position_Lookup() {
         var native = MarkdownNativeDocument.Parse("""
 [hero]: https://example.com/docs "Docs title"

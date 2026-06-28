@@ -1228,6 +1228,13 @@
     ]
   },
   {
+    "example": 213,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "Foo\n[bar]: /baz\n\n[bar]\n",
+    "html": "<p>Foo\n[bar]: /baz</p>\n<p>[bar]</p>\n"
+  },
+  {
     "example": 217,
     "section": "Link reference definitions",
     "topLevelKinds": ["ReferenceLinkDefinition", "ReferenceLinkDefinition", "ReferenceLinkDefinition", "Paragraph"],
@@ -1289,7 +1296,7 @@
     "example": 540,
     "section": "Full reference links",
     "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
-    "markdown": "[ẞ]\n[SS]: /url\n",
+    "markdown": "[ẞ]\n\n[SS]: /url\n",
     "html": "<p><a href=\"/url\">ẞ</a></p>\n",
     "syntaxAssertions": [
       {
@@ -1304,13 +1311,13 @@
       },
       {
         "description": "the original definition label span still points at the unfolded label text",
-        "line": 2,
+        "line": 3,
         "column": 2,
         "expectedPathKinds": ["Document", "ReferenceLinkDefinition", "ReferenceLinkLabel"],
         "expectedDeepestLiteral": "ss",
-        "expectedDeepestSpan": { "startLine": 2, "startColumn": 2, "endLine": 2, "endColumn": 3 },
+        "expectedDeepestSpan": { "startLine": 3, "startColumn": 2, "endLine": 3, "endColumn": 3 },
         "expectedNearestBlockKind": "ReferenceLinkDefinition",
-        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 1, "endLine": 2, "endColumn": 10 }
+        "expectedNearestBlockSpan": { "startLine": 3, "startColumn": 1, "endLine": 3, "endColumn": 10 }
       }
     ]
   },

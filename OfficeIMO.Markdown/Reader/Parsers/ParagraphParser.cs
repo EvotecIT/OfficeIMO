@@ -31,7 +31,6 @@ public static partial class MarkdownReader {
                    (!options.Callouts || !IsCalloutHeader(lines[j], out _, out _)) &&
                    !IsQuoteStarter(lines[j]) &&
                    !HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[j], options) &&
-                   !IsReferenceLinkDefinitionStarter(lines, j, options) &&
                    !IsFootnoteDefinitionStarter(lines[j], options) &&
                    !(options.StandaloneImageBlocks && IsImageLine(lines[j]))) {
                 var raw = lines[j];
