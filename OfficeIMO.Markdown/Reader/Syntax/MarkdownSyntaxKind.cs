@@ -10,6 +10,8 @@ public enum MarkdownSyntaxKind {
     Heading,
     /// <summary>Heading level metadata.</summary>
     HeadingLevel,
+    /// <summary>ATX opening heading marker token.</summary>
+    HeadingOpeningMarker,
     /// <summary>Heading text payload.</summary>
     HeadingText,
     /// <summary>Optional closing ATX heading marker token.</summary>

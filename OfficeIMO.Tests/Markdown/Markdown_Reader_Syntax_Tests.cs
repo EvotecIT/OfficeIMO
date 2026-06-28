@@ -457,6 +457,9 @@ Heading Title
         Assert.Equal(MarkdownSyntaxKind.HeadingText, text.Kind);
         Assert.Equal("Trimmed", text.Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 15), text.SourceSpan);
+        var openingMarker = Assert.Single(heading.Children, child => child.Kind == MarkdownSyntaxKind.HeadingOpeningMarker);
+        Assert.Equal("###", openingMarker.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), openingMarker.SourceSpan);
         Assert.Equal(MarkdownSyntaxKind.HeadingLevel, result.FindDeepestNodeAtPosition(1, 4)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(1, 10)!.Kind);
     }
@@ -483,6 +486,12 @@ Heading Title
                 Assert.Equal("Trimmed", text.Literal);
                 Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 15), text.SourceSpan);
             },
+            openingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.HeadingOpeningMarker, openingMarker.Kind);
+                Assert.Equal("###", openingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), openingMarker.SourceSpan);
+                Assert.Null(openingMarker.AssociatedObject);
+            },
             closingMarker => {
                 Assert.Equal(MarkdownSyntaxKind.HeadingClosingMarker, closingMarker.Kind);
                 Assert.Equal("###", closingMarker.Literal);
@@ -491,7 +500,7 @@ Heading Title
             });
 
         Assert.Equal(MarkdownSyntaxKind.HeadingClosingMarker, result.FindDeepestNodeAtPosition(1, 18)!.Kind);
-        Assert.Equal(MarkdownSyntaxKind.Heading, result.FindNearestBlockContainingSpan(heading.Children[2].SourceSpan!.Value)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.Heading, result.FindNearestBlockContainingSpan(heading.Children[3].SourceSpan!.Value)!.Kind);
     }
 
     [Fact]

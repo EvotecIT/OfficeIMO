@@ -14,6 +14,10 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     internal int LevelSourceLineOffset { get; private set; }
     internal int LevelSourceStartColumn { get; private set; }
     internal int LevelSourceEndColumn { get; private set; }
+    internal bool HasOpeningMarkerSourceInfo { get; private set; }
+    internal int OpeningMarkerSourceLineOffset { get; private set; }
+    internal int OpeningMarkerSourceStartColumn { get; private set; }
+    internal int OpeningMarkerSourceEndColumn { get; private set; }
     internal bool HasTextSourceInfo { get; private set; }
     internal int TextSourceLineOffset { get; private set; }
     internal int TextSourceEndLineOffset { get; private set; }
@@ -23,6 +27,10 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     internal int ClosingMarkerSourceLineOffset { get; private set; }
     internal int ClosingMarkerSourceStartColumn { get; private set; }
     internal int ClosingMarkerSourceEndColumn { get; private set; }
+    /// <summary>Source span for the ATX opening marker token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; private set; }
+    /// <summary>Exact ATX opening marker token when parsed from markdown.</summary>
+    public string? OpeningMarkerText { get; private set; }
     /// <summary>Source span for an optional ATX closing marker token when parsed from markdown.</summary>
     public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; private set; }
     /// <summary>Exact optional ATX closing marker token when parsed from markdown.</summary>
@@ -54,6 +62,15 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         LevelSourceLineOffset = Math.Max(0, lineOffset);
         LevelSourceStartColumn = Math.Max(1, startColumn);
         LevelSourceEndColumn = Math.Max(LevelSourceStartColumn, endColumn);
+    }
+
+    internal void SetOpeningMarkerSourceInfo(int lineOffset, int startColumn, int endColumn, MarkdownSourceSpan? sourceSpan = null) {
+        HasOpeningMarkerSourceInfo = true;
+        OpeningMarkerSourceLineOffset = Math.Max(0, lineOffset);
+        OpeningMarkerSourceStartColumn = Math.Max(1, startColumn);
+        OpeningMarkerSourceEndColumn = Math.Max(OpeningMarkerSourceStartColumn, endColumn);
+        OpeningMarkerSourceSpan = sourceSpan;
+        OpeningMarkerText = new string('#', OpeningMarkerSourceEndColumn - OpeningMarkerSourceStartColumn + 1);
     }
 
     internal void SetTextSourceInfo(int lineOffset, int startColumn, int endColumn) {
@@ -128,6 +145,14 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
             GetTextSourceSpan(span),
             Inlines.RenderMarkdown()));
 
+        var openingMarkerSpan = GetOpeningMarkerSourceSpan(span);
+        if (openingMarkerSpan.HasValue) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.HeadingOpeningMarker,
+                openingMarkerSpan,
+                OpeningMarkerText ?? new string('#', Level)));
+        }
+
         var closingMarkerSpan = GetClosingMarkerSourceSpan(span);
         if (closingMarkerSpan.HasValue) {
             nodes.Add(new MarkdownSyntaxNode(
@@ -184,6 +209,24 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         }
 
         return Inlines.SourceSpan;
+    }
+
+    private MarkdownSourceSpan? GetOpeningMarkerSourceSpan(MarkdownSourceSpan? span) {
+        if (OpeningMarkerSourceSpan.HasValue) {
+            return OpeningMarkerSourceSpan;
+        }
+
+        if (!HasOpeningMarkerSourceInfo || !span.HasValue || !span.Value.StartColumn.HasValue) {
+            return null;
+        }
+
+        var value = span.Value;
+        OpeningMarkerSourceSpan = new MarkdownSourceSpan(
+            value.StartLine + OpeningMarkerSourceLineOffset,
+            OpeningMarkerSourceStartColumn,
+            value.StartLine + OpeningMarkerSourceLineOffset,
+            OpeningMarkerSourceEndColumn);
+        return OpeningMarkerSourceSpan;
     }
 
     private MarkdownSourceSpan? GetClosingMarkerSourceSpan(MarkdownSourceSpan? span) {

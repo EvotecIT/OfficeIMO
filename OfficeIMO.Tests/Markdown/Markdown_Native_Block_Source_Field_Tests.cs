@@ -47,8 +47,15 @@ public class Markdown_Native_Block_Source_Field_Tests {
 
         Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), heading.LevelSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 15), heading.TextSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), heading.OpeningMarkerSourceSpan);
+        Assert.Equal("###", heading.OpeningMarkerText);
         Assert.Equal(new MarkdownSourceSpan(1, 17, 1, 19), heading.ClosingMarkerSourceSpan);
         Assert.Equal("###", heading.ClosingMarkerText);
+
+        var openingMarker = Assert.Single(native.EnumerateBlockSourceFields("openingMarker"));
+        Assert.Same(heading, openingMarker.Block);
+        Assert.Equal("###", openingMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), openingMarker.SourceSpan);
 
         var closingMarker = Assert.Single(native.EnumerateBlockSourceFields("closingMarker"));
         Assert.Same(heading, closingMarker.Block);
@@ -62,10 +69,18 @@ public class Markdown_Native_Block_Source_Field_Tests {
 
         var snapshot = Assert.Single(native.ToSnapshot().Blocks);
         Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "openingMarker"
+            && field.Value == "###"
+            && field.SourceSpan.StartColumn == 3
+            && field.SourceSpan.EndColumn == 5);
+        Assert.Contains(snapshot.SourceFields, field =>
             field.Name == "closingMarker"
             && field.Value == "###"
             && field.SourceSpan.StartColumn == 17
             && field.SourceSpan.EndColumn == 19);
+
+        var openingEdited = native.CreateReplaceEdit(openingMarker, "##").Apply(native.SourceMarkdown);
+        Assert.Equal("  ##   Trimmed ###", openingEdited.TrimEnd('\r', '\n', ' '));
 
         var edited = native.CreateReplaceEdit(closingMarker, "##").Apply(native.SourceMarkdown);
         Assert.Equal("  ###   Trimmed ##", edited.TrimEnd('\r', '\n', ' '));

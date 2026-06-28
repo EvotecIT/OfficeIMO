@@ -13,6 +13,8 @@ public sealed class MarkdownNativeHeadingBlock : MarkdownNativeBlock {
         Text = heading.Text;
         LevelSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingLevel);
         TextSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingText);
+        OpeningMarkerSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingOpeningMarker);
+        OpeningMarkerText = heading.OpeningMarkerText;
         ClosingMarkerSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingClosingMarker);
         ClosingMarkerText = heading.ClosingMarkerText;
     }
@@ -37,6 +39,12 @@ public sealed class MarkdownNativeHeadingBlock : MarkdownNativeBlock {
 
     /// <summary>Source span for the heading text payload.</summary>
     public MarkdownSourceSpan? TextSourceSpan { get; }
+
+    /// <summary>Source span for the ATX opening marker token.</summary>
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; }
+
+    /// <summary>Exact ATX opening marker token when parsed from markdown.</summary>
+    public string? OpeningMarkerText { get; }
 
     /// <summary>Source span for the optional ATX closing marker token.</summary>
     public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; }
