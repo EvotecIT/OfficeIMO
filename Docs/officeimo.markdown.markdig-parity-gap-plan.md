@@ -50,7 +50,7 @@ This is the non-looping checklist. A row is not done because it has tests; a row
 
 - [x] **1. Commit the superscript/subscript/emphasis-extra slice.** This was engine behavior plus proof, and `UseEmphasisExtras` is now `Covered`.
 - [x] **2. Record extension-family routes.** Every reflected Markdig row has a route and promotion bar so future slices start from owner and done criteria instead of nearby tests.
-- [ ] **3. Finish the current autolink slice.** Validate and commit the engine/profile split for Markdig period-before-outside-`)` behavior versus cmark-gfm trimming, plus lowercase-only `www.` prefix matching.
+- [x] **3. Finish the current autolink slice.** The engine/profile split for Markdig period-before-outside-`)` behavior versus cmark-gfm trimming, plus lowercase-only `www.` prefix matching, is validated and committed.
 - [ ] **4. Continue `UseAutoLinks` until it can promote or the remaining deltas are explicit.** The next autolink pass should broaden email, `www`, scheme, Unicode, boundary, and writer/source cases rather than only adding one-off fixtures.
 - [ ] **5. Move to raw HTML/tag-filter/security or definition lists only after the autolink row has a clear promotion decision.**
 
