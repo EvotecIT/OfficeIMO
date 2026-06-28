@@ -294,6 +294,29 @@ Term
     }
 
     [Fact]
+    public void DefinitionList_BlankSeparatedMarkerGroups_Write_BlankSeparator_ForReparse() {
+        const string markdown = """
+Term 1
+:   First
+
+Term 2
+:   Second
+""";
+
+        var document = MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var written = NormalizeMarkdown(document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsedDefinitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(reparsed.Blocks));
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal(markdown, written);
+        Assert.Equal(2, reparsedDefinitionList.Groups.Count);
+        Assert.Equal(new[] { "Term 1", "Term 2" }, reparsedDefinitionList.Groups.Select(group => Assert.Single(group.TermItems).Markdown).ToArray());
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+    }
+
+    [Fact]
     public void DefinitionList_SimpleInlineSyntax_Still_Writes_Simple_Inline_Syntax() {
         const string markdown = "Term: Definition";
 

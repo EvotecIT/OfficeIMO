@@ -115,11 +115,16 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < _groups.Count; i++) {
             var group = _groups[i];
+            var cachedGroup = FindSyntaxGroupForCurrentGroup(group, i);
             if (i > 0) {
-                sb.Append('\n');
+                var previousGroup = _groups[i - 1];
+                var previousCachedGroup = FindSyntaxGroupForCurrentGroup(previousGroup, i - 1);
+                sb.Append(ShouldSeparateGroupsWithBlankLine(previousGroup, previousCachedGroup, group, cachedGroup)
+                    ? "\n\n"
+                    : "\n");
             }
 
-            AppendGroupMarkdown(sb, group, FindSyntaxGroupForCurrentGroup(group, i));
+            AppendGroupMarkdown(sb, group, cachedGroup);
         }
         return sb.ToString().TrimEnd();
     }
@@ -282,6 +287,14 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
                definitionSpan.HasValue &&
                termSpan.Value.EndLine < definitionSpan.Value.StartLine;
     }
+
+    private static bool ShouldSeparateGroupsWithBlankLine(
+        DefinitionListGroup previousGroup,
+        MarkdownSyntaxNode? previousCachedGroup,
+        DefinitionListGroup currentGroup,
+        MarkdownSyntaxNode? currentCachedGroup) =>
+        ShouldRenderGroupAsMarker(previousGroup, previousCachedGroup) ||
+        ShouldRenderGroupAsMarker(currentGroup, currentCachedGroup);
 
     private static void AppendMarkerGroupMarkdown(StringBuilder sb, DefinitionListGroup group) {
         if (group.TermItems.Count == 0) {
