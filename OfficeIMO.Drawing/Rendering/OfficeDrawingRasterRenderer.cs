@@ -408,6 +408,8 @@ public static class OfficeDrawingRasterRenderer {
                     : contours[i].Points;
                 canvas.DrawStyledPolyline(TransformShapePoints(drawingShape, points, scale), stroke.Value, strokeWidth, dashStyle);
             }
+
+            RenderPathMarkers(canvas, shape, contours, stroke.Value, scale, point => TransformShapePoint(drawingShape, point, scale));
         }
     }
 
@@ -477,7 +479,7 @@ public static class OfficeDrawingRasterRenderer {
         }
     }
 
-    private static void RenderPathMarkers(OfficeRasterCanvas canvas, OfficeShape shape, IReadOnlyList<OfficeFlattenedPathContour> contours, OfficeColor color, double scale) {
+    private static void RenderPathMarkers(OfficeRasterCanvas canvas, OfficeShape shape, IReadOnlyList<OfficeFlattenedPathContour> contours, OfficeColor color, double scale, Func<OfficePoint, OfficePoint>? transformPoint = null) {
         if (shape.StrokeStartMarker == null && shape.StrokeEndMarker == null) {
             return;
         }
@@ -492,18 +494,21 @@ public static class OfficeDrawingRasterRenderer {
         }
 
         if (firstOpen != null) {
-            OfficePoint start = firstOpen.Points[0];
-            OfficePoint next = firstOpen.Points[1];
+            OfficePoint start = TransformMarkerPoint(firstOpen.Points[0], transformPoint);
+            OfficePoint next = TransformMarkerPoint(firstOpen.Points[1], transformPoint);
             RenderLineMarker(canvas, shape.StrokeStartMarker, start, new OfficePoint(start.X - next.X, start.Y - next.Y), color, scale);
         }
 
         if (lastOpen != null) {
             IReadOnlyList<OfficePoint> points = lastOpen.Points;
-            OfficePoint end = points[points.Count - 1];
-            OfficePoint previous = points[points.Count - 2];
+            OfficePoint end = TransformMarkerPoint(points[points.Count - 1], transformPoint);
+            OfficePoint previous = TransformMarkerPoint(points[points.Count - 2], transformPoint);
             RenderLineMarker(canvas, shape.StrokeEndMarker, end, new OfficePoint(end.X - previous.X, end.Y - previous.Y), color, scale);
         }
     }
+
+    private static OfficePoint TransformMarkerPoint(OfficePoint point, Func<OfficePoint, OfficePoint>? transformPoint) =>
+        transformPoint == null ? point : transformPoint(point);
 
     private static IReadOnlyList<OfficePoint> CloseContour(IReadOnlyList<OfficePoint> points) {
         if (points.Count < 2) {

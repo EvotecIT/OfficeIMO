@@ -631,17 +631,40 @@ namespace OfficeIMO.Excel {
 
         private static bool? ReadDifferentialFontBold(Stylesheet? stylesheet, uint? differentialFormatId) {
             DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
-            return format?.Font?.Bold == null ? null : true;
+            return ReadDifferentialBoolean(format?.Font?.Bold);
         }
 
         private static bool? ReadDifferentialFontItalic(Stylesheet? stylesheet, uint? differentialFormatId) {
             DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
-            return format?.Font?.Italic == null ? null : true;
+            return ReadDifferentialBoolean(format?.Font?.Italic);
         }
 
         private static bool? ReadDifferentialFontUnderline(Stylesheet? stylesheet, uint? differentialFormatId) {
             DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
-            return format?.Font?.Underline == null ? null : true;
+            return ReadDifferentialBoolean(format?.Font?.Underline);
+        }
+
+        private static bool? ReadDifferentialBoolean(OpenXmlElement? element) {
+            if (element == null) {
+                return null;
+            }
+
+            string? value = element.GetAttribute("val", string.Empty).Value;
+            if (string.IsNullOrWhiteSpace(value)) {
+                return true;
+            }
+
+            if (string.Equals(value, "0", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "false", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            if (string.Equals(value, "1", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            return true;
         }
 
         private static string? ReadDifferentialFontName(Stylesheet? stylesheet, uint? differentialFormatId) {

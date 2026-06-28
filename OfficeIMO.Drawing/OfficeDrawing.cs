@@ -90,6 +90,19 @@ public sealed partial class OfficeDrawing {
         return this;
     }
 
+    /// <summary>Adds an image behind existing foreground content while keeping an initial page background underneath it.</summary>
+    public OfficeDrawing AddImageBehindContent(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText = null) {
+        var item = new OfficeDrawingImage(bytes, contentType, projection, alternativeText);
+        (double left, double top, double right, double bottom) = item.Projection.GetDestinationBounds();
+        if (left < 0D || top < 0D || right > Width || bottom > Height) {
+            throw new ArgumentOutOfRangeException(nameof(projection), "Drawing images must fit inside the drawing bounds.");
+        }
+
+        _images.Insert(0, item);
+        _elements.Insert(GetBehindContentInsertIndex(), item);
+        return this;
+    }
+
     /// <summary>Adds all elements from another drawing at a local destination offset and returns this drawing.</summary>
     public OfficeDrawing AddDrawing(OfficeDrawing drawing, double x, double y) {
         return AddDrawingCore(drawing, x, y, null);
@@ -266,6 +279,15 @@ public sealed partial class OfficeDrawing {
 
     private void AddNestedGroup(OfficeDrawingGroup group, double offsetX, double offsetY, OfficeImageFrameTransform? frameTransform) {
         OfficeImageFrameTransform? groupTransform = group.FrameTransform;
+        if (groupTransform.HasValue && groupTransform.Value.HasTransform && frameTransform.HasValue && frameTransform.Value.HasTransform) {
+            double wrapperWidth = group.X + group.ClipPath.Width;
+            double wrapperHeight = group.Y + group.ClipPath.Height;
+            var wrapper = new OfficeDrawing(wrapperWidth, wrapperHeight);
+            wrapper.AddClippedDrawing(group.InnerDrawing, group.X, group.Y, group.ClipPath, groupTransform.Value);
+            AddClippedDrawing(wrapper, offsetX, offsetY, OfficeClipPath.Rectangle(wrapperWidth, wrapperHeight), frameTransform.Value);
+            return;
+        }
+
         if ((!groupTransform.HasValue || !groupTransform.Value.HasTransform) && frameTransform.HasValue && frameTransform.Value.HasTransform) {
             groupTransform = frameTransform;
         }
@@ -281,6 +303,24 @@ public sealed partial class OfficeDrawing {
         return OfficeTransform.Translate(elementX, elementY)
             .Then(frameTransform.CreateDestinationTransform())
             .Then(OfficeTransform.Translate(-elementX, -elementY));
+    }
+
+    private int GetBehindContentInsertIndex() {
+        if (_elements.Count == 0) {
+            return 0;
+        }
+
+        if (_elements[0] is OfficeDrawingShape shape &&
+            shape.X == 0D &&
+            shape.Y == 0D &&
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.Width == Width &&
+            shape.Shape.Height == Height &&
+            shape.Shape.StrokeWidth <= 0D) {
+            return 1;
+        }
+
+        return 0;
     }
 
     /// <summary>Creates a detached copy of this drawing and all positioned elements.</summary>

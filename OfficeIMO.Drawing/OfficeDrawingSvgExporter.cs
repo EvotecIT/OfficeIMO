@@ -15,15 +15,31 @@ public static class OfficeDrawingSvgExporter {
     /// <param name="drawing">Drawing to export.</param>
     /// <returns>SVG markup representing the drawing.</returns>
     public static string ToSvg(OfficeDrawing drawing) {
+        return ToSvg(drawing, 1D);
+    }
+
+    /// <summary>
+    /// Converts a drawing to an SVG document with a scaled output surface.
+    /// </summary>
+    /// <param name="drawing">Drawing to export.</param>
+    /// <param name="scale">Scale applied to the exported SVG width and height.</param>
+    /// <returns>SVG markup representing the drawing.</returns>
+    public static string ToSvg(OfficeDrawing drawing, double scale) {
         if (drawing == null) {
             throw new ArgumentNullException(nameof(drawing));
         }
 
+        if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0D) {
+            throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be a positive finite value.");
+        }
+
+        double width = drawing.Width * scale;
+        double height = drawing.Height * scale;
         var sb = new StringBuilder();
         sb.Append("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"")
-            .Append(Format(drawing.Width))
+            .Append(Format(width))
             .Append("pt\" height=\"")
-            .Append(Format(drawing.Height))
+            .Append(Format(height))
             .Append("pt\" viewBox=\"0 0 ")
             .Append(Format(drawing.Width))
             .Append(' ')
@@ -44,6 +60,14 @@ public static class OfficeDrawingSvgExporter {
     /// <param name="drawing">Drawing to export.</param>
     /// <returns>UTF-8 encoded SVG bytes.</returns>
     public static byte[] ToSvgBytes(OfficeDrawing drawing) => Encoding.UTF8.GetBytes(ToSvg(drawing));
+
+    /// <summary>
+    /// Converts a drawing to UTF-8 SVG bytes with a scaled output surface.
+    /// </summary>
+    /// <param name="drawing">Drawing to export.</param>
+    /// <param name="scale">Scale applied to the exported SVG width and height.</param>
+    /// <returns>UTF-8 encoded SVG bytes.</returns>
+    public static byte[] ToSvgBytes(OfficeDrawing drawing, double scale) => Encoding.UTF8.GetBytes(ToSvg(drawing, scale));
 
     private static void AppendElements(StringBuilder sb, IReadOnlyList<OfficeDrawingElement> elements, ref int gradientId, ref int clipPathId) {
         for (int i = 0; i < elements.Count; i++) {

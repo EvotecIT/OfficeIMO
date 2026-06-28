@@ -29,8 +29,8 @@ namespace OfficeIMO.Word {
             if (format == OfficeImageExportFormat.Svg) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
                 AddSvgImageDiagnostics(drawing, diagnostics);
-                byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing);
-                return new OfficeImageExportResult(format, UnscaledWidth(drawing), UnscaledHeight(drawing), svg, "Page " + (options.PageIndex + 1), "Word document", diagnostics);
+                byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale);
+                return new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Page " + (options.PageIndex + 1), "Word document", diagnostics);
             }
 
             if (format == OfficeImageExportFormat.Png) {

@@ -1085,6 +1085,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportRespectsFalseConditionalDifferentialFontFlags() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("FalseFontRules");
+            sheet.CellValue(1, 1, 20);
+            sheet.AddConditionalRule("A1:A1", ConditionalFormattingOperatorValues.GreaterThan, "10");
+
+            var bold = new X.Bold();
+            bold.SetAttribute(new OpenXmlAttribute("val", string.Empty, "0"));
+            var italic = new X.Italic();
+            italic.SetAttribute(new OpenXmlAttribute("val", string.Empty, "0"));
+            var underline = new X.Underline();
+            underline.SetAttribute(new OpenXmlAttribute("val", string.Empty, "0"));
+            uint differentialFormatId = sheet.AppendConditionalDifferentialFormat(new X.DifferentialFormat(
+                new X.Font(bold, italic, underline, new X.Color { Rgb = "FFFF0000" })));
+            sheet.SetLastConditionalFormattingRuleDifferentialFormatId(differentialFormatId);
+
+            ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A1:A1"));
+            ExcelVisualCell cell = Assert.Single(sheet.Range("A1:A1").CreateVisualSnapshot().Cells);
+
+            Assert.False(rule.DifferentialFontBold);
+            Assert.False(rule.DifferentialFontItalic);
+            Assert.False(rule.DifferentialFontUnderline);
+            Assert.False(cell.Style.Bold);
+            Assert.False(cell.Style.Italic);
+            Assert.False(cell.Style.Underline);
+            Assert.Equal("FFFF0000", cell.Style.FontColorArgb);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReportsUnsupportedConditionalRuleShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

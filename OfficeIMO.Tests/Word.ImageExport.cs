@@ -35,8 +35,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeImageExportFormat.Png, png.Format);
             Assert.Equal((int)Math.Ceiling(snapshot.Width * 2D), png.Width);
             Assert.Equal((int)Math.Ceiling(snapshot.Height * 2D), png.Height);
-            Assert.Equal((int)Math.Ceiling(snapshot.Width), scaledSvg.Width);
-            Assert.Equal((int)Math.Ceiling(snapshot.Height), scaledSvg.Height);
+            Assert.Equal((int)Math.Ceiling(snapshot.Width * 2D), scaledSvg.Width);
+            Assert.Equal((int)Math.Ceiling(snapshot.Height * 2D), scaledSvg.Height);
             Assert.Empty(png.Diagnostics);
             Assert.Empty(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Shared Word renderer" && drawingText.Alignment == OfficeTextAlignment.Center);
@@ -50,6 +50,8 @@ namespace OfficeIMO.Tests {
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("width=\"595.3pt\"", svgText, StringComparison.Ordinal);
             Assert.Contains("Shared Word renderer", svgText, StringComparison.Ordinal);
+            string scaledSvgText = Encoding.UTF8.GetString(scaledSvg.Bytes);
+            Assert.Contains("width=\"1190.6pt\"", scaledSvgText, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -2374,6 +2376,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_ReservesProjectedInlineImageBoundsForPagination() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.Width = (UInt32Value)4000U;
+            document.PageSettings.Height = (UInt32Value)3600U;
+            document.Margins.Type = WordMargin.Narrow;
+            document.AddParagraph("Line one before rotated image.");
+            document.AddParagraph("Line two before rotated image.");
+            byte[] sourcePng = CreateSolidPng(240, 60, OfficeColor.FromRgb(37, 99, 235));
+            using var imageStream = new MemoryStream(sourcePng);
+            WordImage image = document.AddParagraph().InsertImage(imageStream, "rotated-inline-page.png", 240, 60, WrapTextImage.InLineWithText, "Rotated inline pagination marker");
+            image.Rotation = 45;
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+
+            Assert.Empty(snapshot.Drawing.Images);
+            Assert.Contains(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-image" && diagnostic.Source == "Rotated inline pagination marker");
+        }
+
+        [Fact]
         public void WordDocument_SkipsRotatedInlineImagesThatProjectOutsidePage() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
@@ -2664,6 +2687,11 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText text && text.Text == "Before anchored image");
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText text && text.Text == "After anchored image");
+            int imageIndex = snapshot.Drawing.Elements.ToList().IndexOf(drawingImage);
+            int beforeTextIndex = snapshot.Drawing.Elements.ToList().FindIndex(element => element is OfficeDrawingText text && text.Text == "Before anchored image");
+            int afterTextIndex = snapshot.Drawing.Elements.ToList().FindIndex(element => element is OfficeDrawingText text && text.Text == "After anchored image");
+            Assert.InRange(imageIndex, 1, beforeTextIndex - 1);
+            Assert.True(imageIndex < afterTextIndex);
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-floating-image");
 
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));

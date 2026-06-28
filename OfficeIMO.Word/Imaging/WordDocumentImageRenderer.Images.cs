@@ -39,10 +39,6 @@ namespace OfficeIMO.Word {
             }
 
             FitImageToWidth(context.ContentWidth, ref width, ref height);
-            if (!EnsureVerticalSpace(context, height, diagnostics)) {
-                return false;
-            }
-
             double left = context.Left;
             double top = context.Y;
             OfficeImageProjection projection = CreateImageProjection(image, left, top, width, height);
@@ -53,6 +49,10 @@ namespace OfficeIMO.Word {
                     "unsupported-word-image",
                     "Skipped a Word image because its inline projection extends outside the current page preview.",
                     DescribeImage(image));
+                return false;
+            }
+
+            if (!EnsureVerticalSpace(context, boundsBottom - context.Y, diagnostics)) {
                 return false;
             }
 
@@ -86,7 +86,12 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            context.Drawing.AddImage(bytes, image.ContentType, projection, DescribeImage(image));
+            if (image.WrapText == WrapTextImage.BehindText) {
+                context.Drawing.AddImageBehindContent(bytes, image.ContentType, projection, DescribeImage(image));
+            } else {
+                context.Drawing.AddImage(bytes, image.ContentType, projection, DescribeImage(image));
+            }
+
             return true;
         }
 

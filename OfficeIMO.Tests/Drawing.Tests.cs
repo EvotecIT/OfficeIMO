@@ -319,6 +319,25 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingPreservesNestedGroupTransformsWhenParentTransformIsApplied() {
+        var child = new OfficeDrawing(20D, 20D);
+        child.AddShape(OfficeShape.Rectangle(10D, 10D), 2D, 2D);
+
+        var source = new OfficeDrawing(60D, 60D);
+        var childTransform = new OfficeImageFrameTransform(15D, 20D, 20D);
+        source.AddClippedDrawing(child, 10D, 10D, OfficeClipPath.Rectangle(20D, 20D), childTransform);
+
+        var target = new OfficeDrawing(120D, 120D);
+        var parentTransform = new OfficeImageFrameTransform(30D, 60D, 60D);
+        target.AddDrawing(source, 20D, 20D, parentTransform);
+
+        OfficeDrawingGroup outerGroup = Assert.Single(target.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Equal(parentTransform, outerGroup.FrameTransform);
+        OfficeDrawingGroup innerGroup = Assert.Single(outerGroup.Drawing.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Equal(childTransform, innerGroup.FrameTransform);
+    }
+
+    [Fact]
     public void OfficeImageProjectionCreatesUnitSquareTransformForPlacementRotationAndFlips() {
         OfficeTransform normal = new OfficeImageProjection(
             new OfficeImagePlacement(30D, 90D, 60D, 30D))
@@ -1487,6 +1506,33 @@ public partial class DrawingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
         AssertMarkerPixel(raster.GetPixel(20, 25));
         AssertMarkerPixel(raster.GetPixel(84, 60));
+
+        static void AssertMarkerPixel(OfficeColor pixel) {
+            Assert.Equal(30, pixel.R);
+            Assert.Equal(90, pixel.G);
+            Assert.Equal(150, pixel.B);
+            Assert.True(pixel.A > 0);
+        }
+    }
+
+    [Fact]
+    public void OfficeDrawingTransformedPathMarkersRenderThroughSharedRasterExporter() {
+        var drawing = new OfficeDrawing(150, 110);
+        var shape = OfficeShape.Path(
+            OfficePathCommand.MoveTo(0, 0),
+            OfficePathCommand.LineTo(0, 40),
+            OfficePathCommand.LineTo(70, 40));
+        shape.StrokeColor = OfficeColor.FromRgb(30, 90, 150);
+        shape.StrokeWidth = 2;
+        shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Diamond, 12, 14);
+        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 14, 18);
+        shape.Transform = OfficeTransform.Translate(10, 10);
+        drawing.AddShape(shape, 20, 20);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+
+        AssertMarkerPixel(raster.GetPixel(30, 35));
+        AssertMarkerPixel(raster.GetPixel(94, 70));
 
         static void AssertMarkerPixel(OfficeColor pixel) {
             Assert.Equal(30, pixel.R);

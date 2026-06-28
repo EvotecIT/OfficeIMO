@@ -25,7 +25,13 @@ namespace OfficeIMO.PowerPoint {
                 return ApplyColorTransforms(placeholderResolvedColor, schemeColor);
             }
 
-            return ApplyColorTransforms(ResolveSchemeColor(colorScheme, scheme), schemeColor);
+            string? resolvedSchemeColor = ApplyColorTransforms(ResolveSchemeColor(colorScheme, scheme), schemeColor);
+            if (!string.IsNullOrWhiteSpace(resolvedSchemeColor)) {
+                return resolvedSchemeColor;
+            }
+
+            A.SystemColor? systemColor = solidFill.GetFirstChild<A.SystemColor>();
+            return ApplyColorTransforms(systemColor?.LastColor?.Value, systemColor);
         }
 
         internal static OfficeColor? ResolveSolidFillOfficeColor(A.SolidFill? solidFill, A.ColorScheme? colorScheme, A.SchemeColor? placeholderColor = null) {
@@ -209,6 +215,11 @@ namespace OfficeIMO.PowerPoint {
             string? scheme = GetSchemeColorValue(schemeColor);
             if (IsPlaceholderSchemeColor(scheme)) {
                 alpha = ApplyAlphaTransforms(alpha, placeholderColor);
+            }
+
+            A.SystemColor? systemColor = solidFill.GetFirstChild<A.SystemColor>();
+            if (systemColor != null && schemeColor == null) {
+                return ApplyAlphaTransforms(alpha, systemColor);
             }
 
             return ApplyAlphaTransforms(alpha, schemeColor);

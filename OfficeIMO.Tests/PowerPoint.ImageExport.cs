@@ -25,8 +25,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeImageExportFormat.Png, png.Format);
             Assert.Equal(480, png.Width);
             Assert.Equal(320, png.Height);
-            Assert.Equal(240, svg.Width);
-            Assert.Equal(160, svg.Height);
+            Assert.Equal(480, svg.Width);
+            Assert.Equal(320, svg.Height);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(480, image!.Width);
             Assert.Equal(320, image.Height);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(png.Diagnostics);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
-            Assert.Contains("width=\"240pt\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("width=\"480pt\"", svgText, StringComparison.Ordinal);
             Assert.Contains("#112233", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Empty(svg.Diagnostics);
         }
@@ -301,6 +301,39 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#442211", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(OfficeColor.FromRgb(16, 32, 48), image!.GetPixel(30, 30));
+        }
+
+        [Fact]
+        public void PowerPointSlide_ProjectsSystemColorSolidFillFallbackThroughSharedDrawing() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(160, 100);
+            PowerPointSlide slide = presentation.Slides[0];
+
+            PowerPointAutoShape rectangle = slide.AddRectanglePoints(20, 20, 80, 40);
+            rectangle.FillColor = "FFFFFF";
+            Shape shape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+                .Elements<Shape>()
+                .Last();
+            ShapeProperties properties = shape.ShapeProperties!;
+            properties.RemoveAllChildren<A.SolidFill>();
+            properties.InsertAt(new A.SolidFill(
+                new A.SystemColor(new A.Alpha { Val = 50000 }) {
+                    Val = A.SystemColorValues.WindowText,
+                    LastColor = "336699"
+                }), 0);
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+
+            OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), drawingShape =>
+                Math.Abs(drawingShape.X - 20D) < 0.000001D &&
+                Math.Abs(drawingShape.Y - 20D) < 0.000001D);
+            Assert.Equal(OfficeColor.FromRgba(51, 102, 153, 128), rendered.Shape.FillColor);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("fill=\"#336699\" fill-opacity=\"0.502\"", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
         }
 
         [Fact]
