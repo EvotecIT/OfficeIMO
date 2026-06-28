@@ -56,8 +56,10 @@ namespace OfficeIMO.Excel {
             return document;
         }
 
-        private void EnsureLegacyBinaryExcelSaveTargetSupported(string path, bool allowNativeXls) {
+        private void EnsureLegacyBinaryExcelSaveTargetSupported(string path, bool allowNativeXls, ExcelSaveOptions? options = null) {
             if (ExcelDocumentLoadRouting.HasLegacyXlsExtension(path)) {
+                EnsureNativeLegacyXlsSaveDoesNotDropImportedContent(options);
+
                 if (allowNativeXls) {
                     return;
                 }
@@ -79,6 +81,24 @@ namespace OfficeIMO.Excel {
             throw new NotSupportedException($"Native XLS saving currently supports .xls workbook files only. This workbook was loaded from {source}; legacy .xlt, .xla, .xlm, and .xlw save targets are not supported.");
         }
 
+        private bool HasLossyLegacyXlsImportState() {
+            return _legacyXlsUnsupportedFeatures.Length > 0
+                || _legacyXlsUnsupportedSheets.Length > 0;
+        }
+
+        private void EnsureNativeLegacyXlsSaveDoesNotDropImportedContent(ExcelSaveOptions? options) {
+            if (!WasLoadedFromLegacyXls
+                || !HasLossyLegacyXlsImportState()
+                || options?.AllowLossyLegacyXlsSave == true) {
+                return;
+            }
+
+            string source = string.IsNullOrWhiteSpace(_legacyXlsSourcePath)
+                ? "a legacy binary .xls source"
+                : $"legacy binary .xls source '{_legacyXlsSourcePath}'";
+            throw new NotSupportedException($"Native XLS saving is blocked because this workbook was loaded from {source} with unsupported or preserve-only legacy content. Save to .xlsx, remove the unsupported legacy content, or set ExcelSaveOptions.AllowLossyLegacyXlsSave when that loss is intentional.");
+        }
+
         private bool TrySaveNativeLegacyXlsToFile(string path, bool openExcel, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
             if (!ExcelDocumentLoadRouting.HasLegacyXlsExtension(path)) {
                 return false;
@@ -89,6 +109,10 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
             byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
             cancellationToken.ThrowIfCancellationRequested();
+            if (ShouldCloseOpenPackageForNativeLegacyXlsFileSave(path)) {
+                CloseOpenPackageForNativeLegacyXlsSave();
+            }
+
             CommitPreparedPackageToFile(path, xlsBytes);
             FilePath = path;
             MarkPackageClean(null);
@@ -111,6 +135,10 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
             byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
             cancellationToken.ThrowIfCancellationRequested();
+            if (ShouldCloseOpenPackageForNativeLegacyXlsFileSave(path)) {
+                CloseOpenPackageForNativeLegacyXlsSave();
+            }
+
             await CommitPreparedPackageToFileAsync(path, xlsBytes, cancellationToken).ConfigureAwait(false);
             FilePath = path;
             MarkPackageClean(null);
@@ -128,6 +156,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            EnsureNativeLegacyXlsSaveDoesNotDropImportedContent(options);
             cancellationToken.ThrowIfCancellationRequested();
             PrepareWorkbookForSave(options);
             cancellationToken.ThrowIfCancellationRequested();
@@ -137,6 +166,7 @@ namespace OfficeIMO.Excel {
             destination.Write(xlsBytes, 0, xlsBytes.Length);
             try { destination.Flush(); } catch (NotSupportedException) { }
             MarkPackageClean(null);
+            DisablePackageCopyBackAfterNativeLegacyXlsSave(destination);
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS stream save used the first-party BIFF8 writer.");
             return true;
         }
@@ -146,6 +176,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            EnsureNativeLegacyXlsSaveDoesNotDropImportedContent(options);
             cancellationToken.ThrowIfCancellationRequested();
             PrepareWorkbookForSave(options);
             cancellationToken.ThrowIfCancellationRequested();
@@ -155,8 +186,60 @@ namespace OfficeIMO.Excel {
             await destination.WriteAsync(xlsBytes, 0, xlsBytes.Length, cancellationToken).ConfigureAwait(false);
             try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
             MarkPackageClean(null);
+            DisablePackageCopyBackAfterNativeLegacyXlsSave(destination);
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS stream save used the first-party BIFF8 writer.");
             return true;
+        }
+
+        private bool ShouldCloseOpenPackageForNativeLegacyXlsFileSave(string path) {
+            if (WasLoadedFromLegacyXls || string.IsNullOrWhiteSpace(FilePath)) {
+                return false;
+            }
+
+            try {
+                return string.Equals(Path.GetFullPath(path), Path.GetFullPath(FilePath), StringComparison.OrdinalIgnoreCase);
+            } catch {
+                return string.Equals(path, FilePath, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        private void CloseOpenPackageForNativeLegacyXlsSave() {
+            CloseSpreadsheetDocumentAfterNativeLegacyXlsSave();
+            DisposePackageStreamAfterNativeLegacyXlsSave(disposeSourceStream: false);
+        }
+
+        private void DisablePackageCopyBackAfterNativeLegacyXlsSave(Stream destination) {
+            if (!ReferenceEquals(destination, _sourceStream)) {
+                return;
+            }
+
+            _sourceStream = null;
+            _copyPackageToSourceOnDispose = false;
+            _copyPackageToFilePathOnDispose = false;
+            _leaveSourceStreamOpen = true;
+        }
+
+        private void CloseSpreadsheetDocumentAfterNativeLegacyXlsSave() {
+            if (_spreadSheetDocument != null) {
+                try { _spreadSheetDocument.Dispose(); } catch { }
+                _spreadSheetDocument = null!;
+            }
+        }
+
+        private void DisposePackageStreamAfterNativeLegacyXlsSave(bool disposeSourceStream) {
+            if (_packageStream != null) {
+                DisposeStream(_packageStream);
+                _packageStream = null;
+            }
+
+            if (disposeSourceStream && _sourceStream != null) {
+                try { _sourceStream.Dispose(); } catch { }
+            }
+
+            _sourceStream = null;
+            _copyPackageToSourceOnDispose = false;
+            _copyPackageToFilePathOnDispose = false;
+            _leaveSourceStreamOpen = true;
         }
 
         private static void EnsureLegacyBinaryEncryptedSaveTargetSupported(string path) {

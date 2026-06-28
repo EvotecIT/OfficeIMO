@@ -62,6 +62,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NativeSave_TreatsSingleCellProtectedRangeReferencesAsOneCellRanges() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet sheet = document.AddWorkSheet("SingleProtected");
+                    sheet.CellValue(1, 1, "Editable");
+                    sheet.Protect();
+                    sheet.WorksheetPart.Worksheet.AppendChild(new ProtectedRanges(
+                        new ProtectedRange {
+                            Name = "OneCell",
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+                        }));
+                    sheet.WorksheetPart.Worksheet.Save();
+
+                    document.Save(xlsOutputPath);
+                }
+
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                result.EnsureNoImportErrors();
+                Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
+
+                LegacyXlsWorksheet worksheet = Assert.Single(result.Workbook.Worksheets);
+                LegacyXlsProtectedRange protectedRange = Assert.Single(worksheet.ProtectedRanges);
+                Assert.Equal("A1", Assert.Single(protectedRange.References));
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedProtectedRangePayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("protected range payload lengths outside BIFF8 limits", (document, sheet) => {
                 sheet.CellValue(1, 1, "Protected range");

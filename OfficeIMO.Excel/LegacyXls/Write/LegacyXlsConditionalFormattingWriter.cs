@@ -417,8 +417,13 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             foreach (string part in parts) {
                 string rangeText = part.Replace("$", string.Empty);
                 if (!A1.TryParseRange(rangeText, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
-                    reason = "conditional formatting ranges";
-                    return false;
+                    if (!A1.TryParseCellReferenceFast(rangeText, out firstRow, out firstColumn)) {
+                        reason = "conditional formatting ranges";
+                        return false;
+                    }
+
+                    lastRow = firstRow;
+                    lastColumn = firstColumn;
                 }
 
                 if (firstRow < 1 || firstColumn < 1 || lastRow > 65536 || lastColumn > 256) {

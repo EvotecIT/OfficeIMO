@@ -143,6 +143,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NativeSave_TreatsSingleCellConditionalFormattingReferencesAsOneCellRanges() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet sheet = document.AddWorkSheet("SingleCf");
+                    sheet.CellValue(1, 1, 3d);
+                    sheet.AddConditionalRule("A1", OpenXmlConditionalFormattingOperatorValues.GreaterThan, "1");
+
+                    document.Save(xlsOutputPath);
+                }
+
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                result.EnsureNoImportErrors();
+                Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
+
+                LegacyXlsWorksheet legacySheet = Assert.Single(result.Workbook.Worksheets);
+                LegacyXlsConditionalFormatting rule = Assert.Single(legacySheet.ConditionalFormattings);
+                Assert.Equal("A1", Assert.Single(rule.Ranges));
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_NativeSave_WritesFormulaBackedConditionalFormattingRuleTypes() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");

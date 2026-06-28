@@ -663,7 +663,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static CommentRecordSet BuildCommentRecordSet(CommentInfo comment, ushort objectId) {
-            CommentAnchor anchor = comment.Anchor ?? GetDefaultAnchor(comment.Row, comment.Column);
+            CommentAnchor anchor = ClampAnchor(comment.Anchor ?? GetDefaultAnchor(comment.Row, comment.Column), comment.Row, comment.Column);
             return new CommentRecordSet(
                 BuildDrawingPayload(anchor, objectId),
                 BuildObjectPayload(objectId),
@@ -677,6 +677,45 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             ushort endColumn = checked((ushort)Math.Min(column + 3, 255));
             ushort endRow = checked((ushort)Math.Min(row + 4, 65535));
             return new CommentAnchor(column, 15, row, 2, endColumn, 15, endRow, 16);
+        }
+
+        private static CommentAnchor ClampAnchor(CommentAnchor anchor, ushort row, ushort column) {
+            ushort startColumn = Clamp(anchor.StartColumn, 0, 255);
+            ushort startRow = Clamp(anchor.StartRow, 0, 65535);
+            ushort endColumn = Clamp(anchor.EndColumn, 0, 255);
+            ushort endRow = Clamp(anchor.EndRow, 0, 65535);
+
+            if (startColumn > endColumn || (startColumn == endColumn && anchor.StartDx > anchor.EndDx)) {
+                startColumn = column;
+                endColumn = checked((ushort)Math.Min(column + 3, 255));
+            }
+
+            if (startRow > endRow || (startRow == endRow && anchor.StartDy > anchor.EndDy)) {
+                startRow = row;
+                endRow = checked((ushort)Math.Min(row + 4, 65535));
+            }
+
+            return new CommentAnchor(
+                startColumn,
+                anchor.StartDx,
+                startRow,
+                anchor.StartDy,
+                endColumn,
+                anchor.EndDx,
+                endRow,
+                anchor.EndDy);
+        }
+
+        private static ushort Clamp(ushort value, ushort min, ushort max) {
+            if (value < min) {
+                return min;
+            }
+
+            if (value > max) {
+                return max;
+            }
+
+            return value;
         }
 
         private static byte[] BuildDrawingPayload(CommentAnchor anchor, ushort objectId) {

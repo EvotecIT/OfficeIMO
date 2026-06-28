@@ -63,6 +63,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NativeSave_ClampsCommentAnchorsToBiff8Grid() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet sheet = document.AddWorkSheet("EdgeComment");
+                    sheet.CellValue(65536, 256, "Edge note");
+                    sheet.SetLegacyComment(
+                        65536,
+                        256,
+                        "Comment near the BIFF8 edge",
+                        "Reviewer",
+                        visible: true,
+                        new ExcelCommentAnchor(255, 15, 65535, 2, 260, 15, 65540, 16));
+
+                    document.Save(xlsOutputPath);
+                }
+
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                result.EnsureNoImportErrors();
+                Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
+
+                LegacyXlsWorksheet legacySheet = Assert.Single(result.Workbook.Worksheets);
+                LegacyXlsComment legacyComment = Assert.Single(legacySheet.Comments);
+                LegacyXlsDrawingAnchor anchor = legacyComment.Anchor!;
+                Assert.Equal((ushort)255, anchor.StartColumn);
+                Assert.Equal((ushort)255, anchor.EndColumn);
+                Assert.Equal((ushort)65535, anchor.StartRow);
+                Assert.Equal((ushort)65535, anchor.EndRow);
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_NativeSave_WritesCommentRichTextFontFamilyAndCharset() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");

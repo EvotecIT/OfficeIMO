@@ -72,6 +72,14 @@ namespace OfficeIMO.Excel {
         public ExcelStreamSaveFormat StreamFormat { get; set; }
 
         /// <summary>
+        /// When true, allows native XLS saves for workbooks loaded from legacy XLS files that reported
+        /// unsupported or preserve-only legacy content. The native writer will write only the projected
+        /// workbook model and may drop legacy-only content such as unsupported sheets, charts, VBA,
+        /// OLE objects, or pivot table records.
+        /// </summary>
+        public bool AllowLossyLegacyXlsSave { get; set; }
+
+        /// <summary>
         /// Returns an options instance with all features disabled.
         /// </summary>
         public static ExcelSaveOptions None => new ExcelSaveOptions();

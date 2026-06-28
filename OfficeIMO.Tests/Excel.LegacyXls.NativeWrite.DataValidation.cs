@@ -142,6 +142,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NativeSave_TreatsSingleCellDataValidationReferencesAsOneCellRanges() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet sheet = document.AddWorkSheet("SingleDv");
+                    sheet.CellValue(1, 1, 3d);
+                    sheet.ValidationWholeNumber("A1", OpenXmlDataValidationOperatorValues.Between, 1, 5);
+
+                    document.Save(xlsOutputPath);
+                }
+
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                result.EnsureNoImportErrors();
+                Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
+
+                LegacyXlsWorksheet legacySheet = Assert.Single(result.Workbook.Worksheets);
+                LegacyXlsDataValidation validation = Assert.Single(legacySheet.DataValidations);
+                Assert.Equal("A1", Assert.Single(validation.Ranges));
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_NativeSave_WritesSheetRangeListDataValidations() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");

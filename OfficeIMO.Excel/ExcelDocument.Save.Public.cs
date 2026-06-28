@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel {
 
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
             var originalFilePath = FilePath;
-            EnsureLegacyBinaryExcelSaveTargetSupported(path, allowNativeXls: true);
+            EnsureLegacyBinaryExcelSaveTargetSupported(path, allowNativeXls: true, options);
 
             // Ensure target directory is writable
             if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
@@ -306,7 +306,7 @@ namespace OfficeIMO.Excel {
 
             var target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
             var originalFilePath = FilePath;
-            EnsureLegacyBinaryExcelSaveTargetSupported(target, allowNativeXls: true);
+            EnsureLegacyBinaryExcelSaveTargetSupported(target, allowNativeXls: true, options);
             if (File.Exists(target) && new FileInfo(target).IsReadOnly) {
                 throw new IOException($"Failed to save to '{target}'. The file is read-only.");
             }

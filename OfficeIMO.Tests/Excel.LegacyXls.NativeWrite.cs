@@ -24,6 +24,65 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
+        public void LegacyXls_NativeSave_SavesSamePathCreatedXlsWorkbook() {
+            string xlsPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(xlsPath, autoSave: false)) {
+                    ExcelSheet sheet = document.AddWorkSheet("SamePath");
+                    sheet.CellValue(1, 1, "Native XLS");
+
+                    document.Save();
+                }
+
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsPath);
+                result.EnsureNoImportErrors();
+                Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
+                LegacyXlsCell cell = Assert.Single(Assert.Single(result.Workbook.Worksheets).Cells);
+                Assert.Equal("Native XLS", Assert.IsType<string>(cell.Value));
+            } finally {
+                TryDelete(xlsPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NativeStreamSave_DisablesAutoSaveCopyBackOnDispose() {
+            using var stream = new MemoryStream();
+
+            using (ExcelDocument document = ExcelDocument.Create(stream, autoSave: true)) {
+                ExcelSheet sheet = document.AddWorkSheet("StreamXls");
+                sheet.CellValue(1, 1, "Native stream XLS");
+
+                document.Save(stream, new ExcelSaveOptions { StreamFormat = ExcelStreamSaveFormat.LegacyXls });
+            }
+
+            AssertLegacyXlsStreamCell(stream, 1, 1, "Native stream XLS");
+        }
+
+        [Fact]
+        public void LegacyXls_NativeSave_BlocksLossyImportedXlsWithoutExplicitOptIn() {
+            string sourcePath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "excel-com-generated",
+                "objects.xls");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using ExcelDocument document = ExcelDocument.Load(sourcePath);
+                Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.NotEmpty(document.LegacyXlsUnsupportedFeatures);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(xlsOutputPath));
+                Assert.Contains(nameof(ExcelSaveOptions.AllowLossyLegacyXlsSave), exception.Message);
+                Assert.False(File.Exists(xlsOutputPath));
+            } finally {
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_NativeSave_WritesWorksheetLayoutMetadata() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
