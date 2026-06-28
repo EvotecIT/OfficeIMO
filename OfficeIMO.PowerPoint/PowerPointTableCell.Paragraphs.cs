@@ -16,7 +16,12 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointParagraph AddParagraph(string text = "", Action<PowerPointParagraph>? configure = null, Action<PowerPointTextRun>? run = null) {
             A.TextBody textBody = EnsureTextBody();
-            PowerPointParagraph paragraph = AppendParagraph(textBody, text ?? string.Empty, textBody.Elements<A.Paragraph>().FirstOrDefault());
+            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
+            if (templateParagraph != null && IsEmptyPlaceholderParagraph(templateParagraph) && textBody.Elements<A.Paragraph>().Skip(1).FirstOrDefault() == null) {
+                templateParagraph.Remove();
+            }
+
+            PowerPointParagraph paragraph = AppendParagraph(textBody, text ?? string.Empty, templateParagraph);
             configure?.Invoke(paragraph);
             if (run != null) {
                 PowerPointTextRun runWrapper = paragraph.Runs.FirstOrDefault() ?? paragraph.AddRun(text ?? string.Empty);
@@ -128,6 +133,17 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return paragraph;
+        }
+
+        private static bool IsEmptyPlaceholderParagraph(A.Paragraph paragraph) {
+            foreach (A.Run run in paragraph.Elements<A.Run>()) {
+                if (!string.IsNullOrEmpty(run.Text?.Text)) {
+                    return false;
+                }
+            }
+
+            return paragraph.Elements<A.Break>().FirstOrDefault() == null &&
+                paragraph.Elements<A.Field>().FirstOrDefault() == null;
         }
 
         private static A.RunProperties CleanRunProperties(A.RunProperties properties) {

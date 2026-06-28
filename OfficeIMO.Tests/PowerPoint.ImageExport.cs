@@ -231,6 +231,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_ExportsSystemColorGradientBackgroundThroughSharedDrawingStops() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(120, 80);
+            PowerPointSlide slide = presentation.Slides[0];
+            slide.SetBackgroundGradient("112233", "445566", 45D);
+
+            A.GradientFill gradient = slide.SlidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!
+                .GetFirstChild<A.GradientFill>()!;
+            A.GradientStop[] stops = gradient.GetFirstChild<A.GradientStopList>()!
+                .Elements<A.GradientStop>()
+                .OrderBy(stop => stop.Position?.Value ?? 0)
+                .ToArray();
+            stops[0].RemoveAllChildren<A.RgbColorModelHex>();
+            stops[0].Append(new A.SystemColor(new A.Alpha { Val = 50000 }) { Val = A.SystemColorValues.Window, LastColor = "336699" });
+
+            PowerPointSlideBackground background = slide.GetBackground();
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { IncludeSlideContent = false });
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { IncludeSlideContent = false });
+
+            Assert.Equal("33669980", background.GradientStartColor);
+            Assert.Empty(svg.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("stop-color=\"#336699\"", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("stop-opacity=\"0.502\"", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void PowerPointSlide_RendersRectangleAndTextBoxThroughSharedDrawing() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

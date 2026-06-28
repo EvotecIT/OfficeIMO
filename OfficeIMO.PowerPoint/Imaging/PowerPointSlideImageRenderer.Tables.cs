@@ -45,7 +45,7 @@ namespace OfficeIMO.PowerPoint {
                     }
 
                     AddTableCellShape(drawing, table, cell, row, column, rowSpan, columnSpan, tableStyle, cellLeft, cellTop, cellWidth, cellHeight, left, top, width, height, colorScheme);
-                    AddTableCellText(drawing, table, cell, cellLeft, cellTop, cellWidth, cellHeight, left, top, width, height, diagnostics, colorScheme);
+                    AddTableCellText(drawing, table, cell, cellLeft, cellTop, cellWidth, cellHeight, left, top, width, height, diagnostics, mapping, colorScheme);
                 }
             }
         }
@@ -101,16 +101,17 @@ namespace OfficeIMO.PowerPoint {
             double tableWidth,
             double tableHeight,
             List<OfficeImageExportDiagnostic> diagnostics,
+            PowerPointShapeBoundsMapping mapping,
             A.ColorScheme? colorScheme) {
             string text = cell.Text;
             if (string.IsNullOrEmpty(text)) {
                 return;
             }
 
-            double marginLeft = cell.PaddingLeftPoints ?? 3.6D;
-            double marginTop = cell.PaddingTopPoints ?? 1.8D;
-            double marginRight = cell.PaddingRightPoints ?? 3.6D;
-            double marginBottom = cell.PaddingBottomPoints ?? 1.8D;
+            double marginLeft = mapping.MapHorizontalLength(cell.PaddingLeftPoints ?? 3.6D);
+            double marginTop = mapping.MapVerticalLength(cell.PaddingTopPoints ?? 1.8D);
+            double marginRight = mapping.MapHorizontalLength(cell.PaddingRightPoints ?? 3.6D);
+            double marginBottom = mapping.MapVerticalLength(cell.PaddingBottomPoints ?? 1.8D);
             double textWidth = cellWidth - marginLeft - marginRight;
             double textHeight = cellHeight - marginTop - marginBottom;
             if (textWidth <= 0D || textHeight <= 0D) {
@@ -134,13 +135,14 @@ namespace OfficeIMO.PowerPoint {
                 tableTop,
                 tableWidth,
                 tableHeight,
+                mapping,
                 colorScheme,
                 diagnostics)) {
                 return;
             }
 
             var padding = new OfficeTextPadding(marginLeft, marginTop, marginRight, marginBottom);
-            List<OfficeRichTextRun> richRuns = CreateRichTextRuns(cell, colorScheme);
+            List<OfficeRichTextRun> richRuns = CreateRichTextRuns(cell, colorScheme, mapping);
             if (ShouldRenderRichText(richRuns)) {
                 drawing.AddRichText(
                     richRuns,
@@ -166,7 +168,7 @@ namespace OfficeIMO.PowerPoint {
                 cellTop,
                 cellWidth,
                 cellHeight,
-                CreateFont(cell),
+                CreateFont(cell, mapping),
                 ResolveTableCellTextColor(cell, colorScheme),
                 MapTextAlignment(cell.HorizontalAlignment),
                 verticalAlignment: MapTextVerticalAlignment(cell.VerticalAlignment),
@@ -307,7 +309,7 @@ namespace OfficeIMO.PowerPoint {
         private static OfficeBorderSide? ResolveOptionalTableCellBorderSide(A.LinePropertiesType? line, A.ColorScheme? colorScheme) =>
             line == null ? null : ResolveTableCellBorderSide(line, colorScheme);
 
-        private static OfficeFontInfo CreateFont(PowerPointTableCell cell) {
+        private static OfficeFontInfo CreateFont(PowerPointTableCell cell, PowerPointShapeBoundsMapping mapping) {
             OfficeFontStyle style = OfficeFontStyle.Regular;
             if (cell.Bold) {
                 style |= OfficeFontStyle.Bold;
@@ -317,10 +319,10 @@ namespace OfficeIMO.PowerPoint {
                 style |= OfficeFontStyle.Italic;
             }
 
-            return new OfficeFontInfo(cell.FontName ?? "Calibri", cell.FontSize ?? 10, style);
+            return new OfficeFontInfo(cell.FontName ?? "Calibri", mapping.MapFontSize(cell.FontSize ?? 10), style);
         }
 
-        private static List<OfficeRichTextRun> CreateRichTextRuns(PowerPointTableCell cell, A.ColorScheme? colorScheme) {
+        private static List<OfficeRichTextRun> CreateRichTextRuns(PowerPointTableCell cell, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping) {
             var richRuns = new List<OfficeRichTextRun>();
             A.TextBody? textBody = cell.Cell.TextBody;
             if (textBody == null) {
@@ -335,7 +337,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (richRuns.Count > 0) {
-                    richRuns.Add(CreateRichTextRun(Environment.NewLine, null, cell, colorScheme));
+                    richRuns.Add(CreateRichTextRun(Environment.NewLine, null, cell, colorScheme, mapping));
                 }
 
                 for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
@@ -345,23 +347,23 @@ namespace OfficeIMO.PowerPoint {
                         continue;
                     }
 
-                    richRuns.Add(CreateRichTextRun(runText, new PowerPointTextRun(sourceRun), cell, colorScheme));
+                    richRuns.Add(CreateRichTextRun(runText, new PowerPointTextRun(sourceRun), cell, colorScheme, mapping));
                 }
             }
 
             return richRuns;
         }
 
-        private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTableCell cell, A.ColorScheme? colorScheme) {
-            return CreateRichTextRun(text, run, cell, paragraph: null, colorScheme, markerRun: false);
+        private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTableCell cell, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping) {
+            return CreateRichTextRun(text, run, cell, paragraph: null, colorScheme, mapping, markerRun: false);
         }
 
-        private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTableCell cell, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, bool markerRun = false) {
+        private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTableCell cell, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false) {
             OfficeColor color = ResolveTableCellTextRunColor(run, cell, colorScheme);
             OfficeColor? backgroundColor = ResolveTableCellTextRunBackgroundColor(run, colorScheme);
             return new OfficeRichTextRun(
                 text,
-                markerRun ? paragraph?.BulletSizePoints ?? run?.FontSize ?? cell.FontSize ?? 10 : run?.FontSize ?? cell.FontSize ?? 10,
+                mapping.MapFontSize(markerRun ? paragraph?.BulletSizePoints ?? run?.FontSize ?? cell.FontSize ?? 10 : run?.FontSize ?? cell.FontSize ?? 10),
                 color,
                 run?.Bold == true,
                 run?.Italic == true,

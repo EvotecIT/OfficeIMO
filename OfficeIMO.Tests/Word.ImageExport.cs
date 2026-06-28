@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
@@ -92,6 +93,42 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png.Take(4).ToArray());
             Assert.Contains("<svg", svg, StringComparison.Ordinal);
             Assert.Contains("Friendly Word image export", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsLineSpacingHundredthsWithoutDoubleCountingFontSize() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".docx");
+
+            try {
+                using (WordDocument createdDocument = WordDocument.Create(filePath)) {
+                    createdDocument.PageSettings.PageSize = WordPageSize.A4;
+                    createdDocument.Margins.Type = WordMargin.Narrow;
+                    createdDocument.AddParagraph("Before lines").SetFontSize(12);
+                    createdDocument.AddParagraph("After lines").SetFontSize(12);
+                    createdDocument.Save();
+                }
+
+                using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
+                    Paragraph paragraph = package.MainDocumentPart!.Document.Body!.Elements<Paragraph>().First();
+                    paragraph.ParagraphProperties ??= new ParagraphProperties();
+                    paragraph.ParagraphProperties.SpacingBetweenLines ??= new SpacingBetweenLines();
+                    paragraph.ParagraphProperties.SpacingBetweenLines.AfterLines = 100;
+                    package.MainDocumentPart.Document.Save();
+                }
+
+                using WordDocument loadedDocument = WordDocument.Load(filePath);
+                WordDocumentVisualSnapshot snapshot = loadedDocument.CreateVisualSnapshot();
+
+                OfficeDrawingText before = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Before lines");
+                OfficeDrawingText after = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "After lines");
+                double gap = after.Y - (before.Y + before.Height);
+
+                Assert.InRange(gap, 14.0D, 16.0D);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
         }
 
         [Fact]

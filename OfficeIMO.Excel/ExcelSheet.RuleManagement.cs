@@ -649,7 +649,9 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            string? value = element.GetAttribute("val", string.Empty).Value;
+            string? value = element.GetAttributes()
+                .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "val", StringComparison.OrdinalIgnoreCase))
+                .Value;
             if (string.IsNullOrWhiteSpace(value)) {
                 return true;
             }

@@ -145,16 +145,13 @@ namespace OfficeIMO.Word {
         private static double? ConvertLineHundredthsToPoints(Int32Value? value, double fontSize, double lineHeight) {
             if (value == null ||
                 value.Value < 0 ||
-                fontSize <= 0D ||
                 lineHeight <= 0D ||
-                double.IsNaN(fontSize) ||
-                double.IsInfinity(fontSize) ||
                 double.IsNaN(lineHeight) ||
                 double.IsInfinity(lineHeight)) {
                 return null;
             }
 
-            return (value.Value / 100D) * fontSize * lineHeight;
+            return (value.Value / 100D) * lineHeight;
         }
 
         private static double? ConvertTwipsToPoints(string? value) {

@@ -2,9 +2,11 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
@@ -86,6 +88,82 @@ namespace OfficeIMO.Tests {
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("Cell", svgText, StringComparison.Ordinal);
             Assert.Contains("<text", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PowerPointSlide_ProjectsDefaultMultiParagraphTableCellThroughSharedDrawingFlow() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(220, 140);
+            PowerPointSlide slide = presentation.Slides[0];
+
+            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 160, 90);
+            PowerPointTableCell cell = table.GetCell(0, 0);
+            cell.FontSize = 12;
+            cell.PaddingLeftPoints = 0D;
+            cell.PaddingTopPoints = 0D;
+            cell.PaddingRightPoints = 0D;
+            cell.PaddingBottomPoints = 0D;
+            cell.SetParagraphs(new[] { "Cell first", "Cell second" });
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            Assert.Equal(2, snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Count(text => text.Text.StartsWith("Cell ", StringComparison.Ordinal)));
+            Assert.NotNull(SingleText(snapshot, "Cell first"));
+            Assert.NotNull(SingleText(snapshot, "Cell second"));
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Cell first", svgText, StringComparison.Ordinal);
+            Assert.Contains("Cell second", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Cell firstCell second", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PowerPointSlide_ProjectsScaledGroupedTableCellTextMetricsThroughSharedDrawing() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(240, 140);
+            PowerPointSlide slide = presentation.Slides[0];
+
+            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 80, 30);
+            PowerPointTableCell cell = table.GetCell(0, 0);
+            cell.Text = "Grouped";
+            cell.FontSize = 10;
+            cell.PaddingLeftPoints = 3;
+            cell.PaddingTopPoints = 2;
+            cell.PaddingRightPoints = 4;
+            cell.PaddingBottomPoints = 1;
+
+            PowerPointAutoShape anchor = slide.AddRectanglePoints(110, 20, 10, 10);
+            slide.GroupShapes(new PowerPointShape[] { table, anchor }, "Scaled table group");
+            GroupShape group = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+                .Elements<GroupShape>()
+                .Single();
+            A.TransformGroup transform = group.GroupShapeProperties!.TransformGroup!;
+            transform.Extents!.Cx = PowerPointUnits.FromPoints(200);
+            transform.Extents.Cy = PowerPointUnits.FromPoints(60);
+            transform.ChildExtents!.Cx = PowerPointUnits.FromPoints(100);
+            transform.ChildExtents.Cy = PowerPointUnits.FromPoints(30);
+            slide.SlidePart.Slide.Save();
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingText text = SingleText(snapshot, "Grouped");
+            Assert.Equal(20D, text.Font.Size, 6);
+            Assert.Equal(6D, text.Padding.Left, 6);
+            Assert.Equal(4D, text.Padding.Top, 6);
+            Assert.Equal(8D, text.Padding.Right, 6);
+            Assert.Equal(2D, text.Padding.Bottom, 6);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.Equal(240, image!.Width);
         }
 
         [Fact]
