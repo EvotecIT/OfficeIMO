@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace OfficeIMO.Drawing;
 
@@ -7,6 +8,8 @@ namespace OfficeIMO.Drawing;
 /// Shared dependency-free text layout helpers for OfficeIMO renderers.
 /// </summary>
 public static partial class OfficeTextLayoutEngine {
+    private const int DefaultTabSize = 4;
+
     /// <summary>
     /// Wraps text into measured lines using the supplied measurement delegate.
     /// </summary>
@@ -14,49 +17,72 @@ public static partial class OfficeTextLayoutEngine {
     /// <param name="fontSize">Font size passed to <paramref name="measure"/>.</param>
     /// <param name="maxWidth">Maximum line width before wrapping or breaking long words.</param>
     /// <param name="measure">Measurement delegate matching <see cref="OfficeRasterCanvas.MeasureText(string?, double)"/>.</param>
+    /// <param name="paragraphIndent">Optional first-line and continuation-line offsets applied while wrapping.</param>
     /// <returns>Measured wrapped lines. Empty input returns one empty line.</returns>
-    public static IReadOnlyList<OfficeTextLine> WrapLines(string? text, double fontSize, double maxWidth, Func<string?, double, double> measure) {
+    public static IReadOnlyList<OfficeTextLine> WrapLines(string? text, double fontSize, double maxWidth, Func<string?, double, double> measure, OfficeTextParagraphIndent? paragraphIndent = null) {
         if (measure == null) {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        string value = text ?? string.Empty;
+        string value = ExpandTabs(text ?? string.Empty);
         double width = Math.Max(0D, maxWidth);
+        OfficeTextParagraphIndent indent = paragraphIndent ?? OfficeTextParagraphIndent.Empty;
         string[] sourceLines = value.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         var output = new List<OfficeTextLine>();
         foreach (string sourceLine in sourceLines) {
             string line = sourceLine;
+            bool firstVisualLine = true;
             if (line.Length == 0 || IsWhitespaceRun(line)) {
-                output.Add(new OfficeTextLine(string.Empty, 0D));
+                output.Add(new OfficeTextLine(string.Empty, 0D, ResolveLineOffset(indent, firstVisualLine)));
                 continue;
             }
 
             string current = string.Empty;
-            foreach (string token in TokenizeWhitespaceRuns(line)) {
-                bool whitespace = IsWhitespaceRun(token);
-                if (!whitespace && current.Length == 0 && Measure(token, fontSize, measure) > width) {
-                    foreach (OfficeTextLine part in BreakWord(token, fontSize, width, measure)) {
-                        output.Add(part);
+            foreach (PlainTextToken token in CreatePlainTextTokens(line)) {
+                double currentOffset = ResolveLineOffset(indent, firstVisualLine);
+                double currentWidth = Math.Max(0D, width - currentOffset);
+                if (token.IsWhitespace) {
+                    if (current.Length == 0) {
+                        if (Measure(token.Text, fontSize, measure) <= currentWidth) {
+                            current = token.Text;
+                        }
+
+                        continue;
+                    }
+
+                    string whitespaceCandidate = current + token.Text;
+                    if (Measure(whitespaceCandidate, fontSize, measure) <= currentWidth) {
+                        current = whitespaceCandidate;
                     }
 
                     continue;
                 }
 
-                string candidate = current + token;
-                if (current.Length > 0 && Measure(candidate, fontSize, measure) > width) {
+                if (Measure(token.Text, fontSize, measure) > currentWidth) {
                     string emitted = TrimTrailingSoftWrapWhitespace(current);
                     if (emitted.Length > 0) {
-                        output.Add(new OfficeTextLine(emitted, Measure(emitted, fontSize, measure)));
+                        output.Add(CreateMeasuredLine(emitted, fontSize, measure, currentOffset));
+                        firstVisualLine = false;
                     }
 
-                    current = whitespace ? string.Empty : token;
-                    if (!whitespace && Measure(current, fontSize, measure) > width) {
-                        foreach (OfficeTextLine part in BreakWord(current, fontSize, width, measure)) {
-                            output.Add(part);
-                        }
-
-                        current = string.Empty;
+                    current = string.Empty;
+                    foreach (OfficeTextLine part in BreakWord(token.Text, fontSize, width, measure, indent, firstVisualLine)) {
+                        output.Add(part);
+                        firstVisualLine = false;
                     }
+
+                    continue;
+                }
+
+                string candidate = current + token.Text;
+                if (current.Length > 0 && Measure(candidate, fontSize, measure) > currentWidth) {
+                    string emitted = TrimTrailingSoftWrapWhitespace(current);
+                    if (emitted.Length > 0) {
+                        output.Add(CreateMeasuredLine(emitted, fontSize, measure, currentOffset));
+                        firstVisualLine = false;
+                    }
+
+                    current = token.Text;
                 } else {
                     current = candidate;
                 }
@@ -65,7 +91,7 @@ public static partial class OfficeTextLayoutEngine {
             if (current.Length > 0) {
                 string emitted = TrimTrailingSoftWrapWhitespace(current);
                 if (emitted.Length > 0) {
-                    output.Add(new OfficeTextLine(emitted, Measure(emitted, fontSize, measure)));
+                    output.Add(CreateMeasuredLine(emitted, fontSize, measure, ResolveLineOffset(indent, firstVisualLine)));
                 }
             }
         }
@@ -124,7 +150,7 @@ public static partial class OfficeTextLayoutEngine {
 
         double max = 0D;
         for (int i = 0; i < lines.Count; i++) {
-            max = Math.Max(max, lines[i].Width);
+            max = Math.Max(max, lines[i].OffsetX + lines[i].Width);
         }
 
         return max;
@@ -144,7 +170,7 @@ public static partial class OfficeTextLayoutEngine {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        string value = text ?? string.Empty;
+        string value = ExpandTabs(text ?? string.Empty);
         double width = Math.Max(0D, maxWidth);
         double measured = Measure(value, fontSize, measure);
         if (measured <= width) {
@@ -176,7 +202,7 @@ public static partial class OfficeTextLayoutEngine {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        string value = text ?? string.Empty;
+        string value = ExpandTabs(text ?? string.Empty);
         double width = Math.Max(0D, maxWidth);
         double measured = Measure(value, fontSize, measure);
         if (measured <= width) {
@@ -218,11 +244,12 @@ public static partial class OfficeTextLayoutEngine {
         double resolvedFontSize = NormalizePositive(fontSize, 1D);
         double minFontSize = Math.Min(resolvedFontSize, Math.Max(1D, NormalizePositive(minimumFontSize, 1D)));
         double width = NormalizeNonNegative(maxWidth);
-        if (string.IsNullOrEmpty(text) || Measure(text, resolvedFontSize, measure) <= width) {
+        string value = ExpandTabs(text ?? string.Empty);
+        if (value.Length == 0 || Measure(value, resolvedFontSize, measure) <= width) {
             return resolvedFontSize;
         }
 
-        if (Measure(text, minFontSize, measure) > width) {
+        if (Measure(value, minFontSize, measure) > width) {
             return minFontSize;
         }
 
@@ -231,7 +258,7 @@ public static partial class OfficeTextLayoutEngine {
         int count = Math.Max(1, iterations);
         for (int i = 0; i < count; i++) {
             double candidate = (low + high) / 2D;
-            if (Measure(text, candidate, measure) <= width) {
+            if (Measure(value, candidate, measure) <= width) {
                 low = candidate;
             } else {
                 high = candidate;
@@ -286,6 +313,7 @@ public static partial class OfficeTextLayoutEngine {
     /// <param name="wrap">Whether soft wrapping is enabled.</param>
     /// <param name="forceSingleLine">Whether line breaks should be normalized to spaces and wrapping disabled.</param>
     /// <param name="shrinkToFit">Whether single-line text should reduce font size to fit the requested width.</param>
+    /// <param name="paragraphIndent">Optional first-line and continuation-line offsets applied while laying out wrapped text.</param>
     /// <returns>Measured text block with the resolved font size, line height, width, height, lines, and clipping state.</returns>
     public static OfficeTextBlockLayout LayoutTextBlock(
         string? text,
@@ -297,7 +325,8 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, double> measure,
         bool wrap,
         bool forceSingleLine = false,
-        bool shrinkToFit = false) =>
+        bool shrinkToFit = false,
+        OfficeTextParagraphIndent? paragraphIndent = null) =>
         LayoutTextBlock(
             text,
             fontSize,
@@ -309,7 +338,8 @@ public static partial class OfficeTextLayoutEngine {
             wrap,
             forceSingleLine,
             shrinkToFit,
-            OfficeTextOverflowBehavior.Ellipsis);
+            OfficeTextOverflowBehavior.Ellipsis,
+            paragraphIndent);
 
     /// <summary>
     /// Lays out a bounded text block with optional wrapping, single-line normalization, shrink-to-fit, overflow policy, and height clipping.
@@ -325,6 +355,7 @@ public static partial class OfficeTextLayoutEngine {
     /// <param name="forceSingleLine">Whether line breaks should be normalized to spaces and wrapping disabled.</param>
     /// <param name="shrinkToFit">Whether single-line text should reduce font size to fit the requested width.</param>
     /// <param name="overflowBehavior">How overflowing text should be represented in the returned layout.</param>
+    /// <param name="paragraphIndent">Optional first-line and continuation-line offsets applied while laying out wrapped text.</param>
     /// <returns>Measured text block with the resolved font size, line height, width, height, lines, and clipping state.</returns>
     public static OfficeTextBlockLayout LayoutTextBlock(
         string? text,
@@ -337,12 +368,13 @@ public static partial class OfficeTextLayoutEngine {
         bool wrap,
         bool forceSingleLine,
         bool shrinkToFit,
-        OfficeTextOverflowBehavior overflowBehavior) {
+        OfficeTextOverflowBehavior overflowBehavior,
+        OfficeTextParagraphIndent? paragraphIndent = null) {
         if (measure == null) {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        string layoutText = forceSingleLine ? NormalizeSingleLineText(text ?? string.Empty) : text ?? string.Empty;
+        string layoutText = ExpandTabs(forceSingleLine ? NormalizeSingleLineText(text ?? string.Empty) : text ?? string.Empty);
         bool hasHardBreaks = !forceSingleLine && (layoutText.IndexOf('\n') >= 0 || layoutText.IndexOf('\r') >= 0);
         bool effectiveWrap = !forceSingleLine && (wrap || hasHardBreaks);
         double resolvedFontSize = NormalizePositive(fontSize, 1D);
@@ -357,12 +389,14 @@ public static partial class OfficeTextLayoutEngine {
         IReadOnlyList<OfficeTextLine> lines;
         bool clipped = false;
 
+        OfficeTextParagraphIndent indent = paragraphIndent ?? OfficeTextParagraphIndent.Empty;
         if (effectiveWrap) {
-            lines = WrapLines(layoutText, layoutFontSize, width, measure);
+            lines = WrapLines(layoutText, layoutFontSize, width, measure, indent);
         } else {
             string normalized = layoutText.Replace("\r\n", "\n").Replace('\r', '\n');
             string firstLine = normalized.Split('\n')[0];
-            OfficeTextLine line = ResolveOverflowLine(firstLine, layoutFontSize, width, measure, overflowBehavior, out bool lineClipped);
+            double offset = ResolveLineOffset(indent, firstVisualLine: true);
+            OfficeTextLine line = ResolveOverflowLine(firstLine, layoutFontSize, Math.Max(0D, width - offset), measure, overflowBehavior, out bool lineClipped, offset);
             clipped = lineClipped;
             lines = new[] { line };
         }
@@ -380,6 +414,7 @@ public static partial class OfficeTextLayoutEngine {
     /// <param name="lineHeightFactor">Multiplier used to derive line height from font size.</param>
     /// <param name="minimumFontSize">Minimum font size when scaling down to fit.</param>
     /// <param name="measure">Measurement delegate matching <see cref="OfficeRasterCanvas.MeasureText(string?, double)"/>.</param>
+    /// <param name="paragraphIndent">Optional first-line and continuation-line offsets applied while fitting wrapped text.</param>
     /// <returns>Measured text block with the resolved font size, line height, width, height, and lines.</returns>
     public static OfficeTextBlockLayout FitWrappedText(
         string? text,
@@ -388,7 +423,8 @@ public static partial class OfficeTextLayoutEngine {
         double maxHeight,
         double lineHeightFactor,
         double minimumFontSize,
-        Func<string?, double, double> measure) {
+        Func<string?, double, double> measure,
+        OfficeTextParagraphIndent? paragraphIndent = null) {
         if (measure == null) {
             throw new ArgumentNullException(nameof(measure));
         }
@@ -398,11 +434,12 @@ public static partial class OfficeTextLayoutEngine {
         double lineFactor = NormalizePositive(lineHeightFactor, 1.2D);
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
-        OfficeTextBlockLayout layout = CreateBlockLayout(text, resolvedFontSize, width, lineFactor, measure);
+        OfficeTextParagraphIndent indent = paragraphIndent ?? OfficeTextParagraphIndent.Empty;
+        OfficeTextBlockLayout layout = CreateBlockLayout(text, resolvedFontSize, width, lineFactor, measure, indent);
         double scaleDown = Math.Min(1D, Math.Min(width / Math.Max(layout.Width, 1D), height / Math.Max(layout.Height, 1D)));
         if (scaleDown < 0.98D) {
             resolvedFontSize = Math.Max(minFontSize, resolvedFontSize * Math.Max(0D, scaleDown));
-            layout = CreateBlockLayout(text, resolvedFontSize, width, lineFactor, measure);
+            layout = CreateBlockLayout(text, resolvedFontSize, width, lineFactor, measure, indent);
         }
 
         return layout;
@@ -483,7 +520,7 @@ public static partial class OfficeTextLayoutEngine {
             if (visible.Count > 0) {
                 OfficeTextLine last = visible[visible.Count - 1];
                 if (overflowBehavior == OfficeTextOverflowBehavior.Ellipsis) {
-                    visible[visible.Count - 1] = TrimLineToWidth(last.Text + "...", resolvedFontSize, width, measure, out _);
+                    visible[visible.Count - 1] = ApplyLineOffset(TrimLineToWidth(last.Text + "...", resolvedFontSize, Math.Max(0D, width - last.OffsetX), measure, out _), last.OffsetX);
                 }
             }
         }
@@ -497,20 +534,23 @@ public static partial class OfficeTextLayoutEngine {
         return new OfficeTextBlockLayout(visible, resolvedFontSize, resolvedLineHeight, blockWidth, blockHeight, clipped);
     }
 
-    private static IEnumerable<OfficeTextLine> BreakWord(string word, double fontSize, double maxWidth, Func<string?, double, double> measure) {
+    private static IEnumerable<OfficeTextLine> BreakWord(string word, double fontSize, double maxWidth, Func<string?, double, double> measure, OfficeTextParagraphIndent paragraphIndent, bool firstVisualLine) {
         string part = string.Empty;
         foreach (string textElement in OfficeTextElements.Enumerate(word)) {
             string candidate = part + textElement;
-            if (part.Length > 0 && Measure(candidate, fontSize, measure) > maxWidth) {
-                yield return new OfficeTextLine(part, Measure(part, fontSize, measure));
+            double offset = ResolveLineOffset(paragraphIndent, firstVisualLine);
+            double width = Math.Max(0D, maxWidth - offset);
+            if (part.Length > 0 && Measure(candidate, fontSize, measure) > width) {
+                yield return new OfficeTextLine(part, Measure(part, fontSize, measure), offset);
                 part = string.Empty;
+                firstVisualLine = false;
             }
 
             part += textElement;
         }
 
         if (part.Length > 0) {
-            yield return new OfficeTextLine(part, Measure(part, fontSize, measure));
+            yield return new OfficeTextLine(part, Measure(part, fontSize, measure), ResolveLineOffset(paragraphIndent, firstVisualLine));
         }
     }
 
@@ -520,16 +560,17 @@ public static partial class OfficeTextLayoutEngine {
         double maxWidth,
         Func<string?, double, double> measure,
         OfficeTextOverflowBehavior overflowBehavior,
-        out bool clipped) {
-        string value = text ?? string.Empty;
+        out bool clipped,
+        double offsetX = 0D) {
+        string value = ExpandTabs(text ?? string.Empty);
         double width = Math.Max(0D, maxWidth);
         double measured = Measure(value, fontSize, measure);
         if (measured <= width || overflowBehavior != OfficeTextOverflowBehavior.Clip) {
-            return TrimLineToWidth(value, fontSize, width, measure, out clipped);
+            return ApplyLineOffset(TrimLineToWidth(value, fontSize, width, measure, out clipped), offsetX);
         }
 
         clipped = true;
-        return new OfficeTextLine(value, measured);
+        return new OfficeTextLine(value, measured, offsetX);
     }
 
     private static double Measure(string? text, double fontSize, Func<string?, double, double> measure) =>
@@ -538,8 +579,65 @@ public static partial class OfficeTextLayoutEngine {
     private static string NormalizeSingleLineText(string text) =>
         text.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ');
 
-    private static OfficeTextBlockLayout CreateBlockLayout(string? text, double fontSize, double maxWidth, double lineHeightFactor, Func<string?, double, double> measure) {
-        IReadOnlyList<OfficeTextLine> lines = WrapLines(text, fontSize, maxWidth, measure);
+    private static string ExpandTabs(string text, int tabSize = DefaultTabSize) {
+        if (string.IsNullOrEmpty(text) || text.IndexOf('\t') < 0) {
+            return text;
+        }
+
+        int resolvedTabSize = Math.Max(1, tabSize);
+        var builder = new StringBuilder(text.Length);
+        int column = 0;
+        for (int i = 0; i < text.Length; i++) {
+            char value = text[i];
+            if (value == '\t') {
+                int spaces = resolvedTabSize - (column % resolvedTabSize);
+                builder.Append(' ', spaces);
+                column += spaces;
+                continue;
+            }
+
+            builder.Append(value);
+            if (value == '\r' || value == '\n') {
+                column = 0;
+            } else {
+                column++;
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static IEnumerable<PlainTextToken> CreatePlainTextTokens(string text) {
+        var token = new StringBuilder();
+        bool? tokenWhitespace = null;
+        for (int i = 0; i < text.Length; i++) {
+            char value = text[i];
+            bool isWhitespace = char.IsWhiteSpace(value);
+            if (tokenWhitespace.HasValue && tokenWhitespace.Value != isWhitespace) {
+                yield return new PlainTextToken(token.ToString(), tokenWhitespace.Value);
+                token.Clear();
+            }
+
+            token.Append(value);
+            tokenWhitespace = isWhitespace;
+        }
+
+        if (token.Length > 0) {
+            yield return new PlainTextToken(token.ToString(), tokenWhitespace.GetValueOrDefault());
+        }
+    }
+
+    private static OfficeTextLine CreateMeasuredLine(string text, double fontSize, Func<string?, double, double> measure, double offsetX = 0D) =>
+        new OfficeTextLine(text, Measure(text, fontSize, measure), offsetX);
+
+    private static OfficeTextLine ApplyLineOffset(OfficeTextLine line, double offsetX) =>
+        new OfficeTextLine(line.Text, line.Width, offsetX);
+
+    private static double ResolveLineOffset(OfficeTextParagraphIndent paragraphIndent, bool firstVisualLine) =>
+        firstVisualLine ? paragraphIndent.FirstLineOffset : paragraphIndent.ContinuationLineOffset;
+
+    private static OfficeTextBlockLayout CreateBlockLayout(string? text, double fontSize, double maxWidth, double lineHeightFactor, Func<string?, double, double> measure, OfficeTextParagraphIndent paragraphIndent) {
+        IReadOnlyList<OfficeTextLine> lines = WrapLines(text, fontSize, maxWidth, measure, paragraphIndent);
         double lineHeight = fontSize * lineHeightFactor;
         double width = MeasureMaxLineWidth(lines);
         double height = Math.Max(fontSize, ((lines.Count - 1) * lineHeight) + fontSize);
@@ -551,4 +649,15 @@ public static partial class OfficeTextLayoutEngine {
 
     private static double NormalizeNonNegative(double value) =>
         value >= 0D && !double.IsNaN(value) ? value : 0D;
+
+    private readonly struct PlainTextToken {
+        internal PlainTextToken(string text, bool isWhitespace) {
+            Text = text;
+            IsWhitespace = isWhitespace;
+        }
+
+        internal string Text { get; }
+
+        internal bool IsWhitespace { get; }
+    }
 }

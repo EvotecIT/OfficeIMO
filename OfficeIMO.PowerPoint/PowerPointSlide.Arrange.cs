@@ -235,6 +235,18 @@ namespace OfficeIMO.PowerPoint {
                     drawing.Name = name;
                     break;
                 }
+                case ConnectionShape c: {
+                    NonVisualConnectionShapeProperties nonVisual = c.NonVisualConnectionShapeProperties ??=
+                        new NonVisualConnectionShapeProperties(
+                            new NonVisualDrawingProperties(),
+                            new NonVisualConnectorShapeDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties());
+                    NonVisualDrawingProperties drawing = nonVisual.NonVisualDrawingProperties ??=
+                        new NonVisualDrawingProperties();
+                    drawing.Id = id;
+                    drawing.Name = name;
+                    break;
+                }
                 case Picture p: {
                     NonVisualPictureProperties nonVisual = p.NonVisualPictureProperties ??=
                         new NonVisualPictureProperties(
@@ -277,6 +289,7 @@ namespace OfficeIMO.PowerPoint {
         private static string GetElementBaseName(OpenXmlElement element) {
             return element switch {
                 Shape s => s.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value ?? "Shape",
+                ConnectionShape c => c.NonVisualConnectionShapeProperties?.NonVisualDrawingProperties?.Name?.Value ?? "Connector",
                 Picture p => p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name?.Value ?? "Picture",
                 GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null =>
                     g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value ?? "Table",
@@ -296,6 +309,8 @@ namespace OfficeIMO.PowerPoint {
             switch (element) {
                 case Shape s:
                     return s.TextBody != null ? new PowerPointTextBox(s, ownerPart) : new PowerPointAutoShape(s);
+                case ConnectionShape c:
+                    return new PowerPointConnectionShape(c);
                 case Picture p:
                     return ownerPart is SlidePart slidePart && PowerPointMedia.TryGetMediaKind(p, out PowerPointMediaKind kind)
                         ? new PowerPointMedia(p, slidePart, kind)

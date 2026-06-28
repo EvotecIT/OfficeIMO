@@ -65,6 +65,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the run is strikethrough.
+        /// </summary>
+        public bool Strikethrough {
+            get => Run.RunProperties?.Strike?.Value == A.TextStrikeValues.SingleStrike;
+            set {
+                A.RunProperties props = EnsureRunProperties();
+                props.Strike = value ? A.TextStrikeValues.SingleStrike : null;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the font size in points.
         /// </summary>
         public int? FontSize {

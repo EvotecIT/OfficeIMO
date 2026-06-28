@@ -1216,8 +1216,9 @@ namespace OfficeIMO.Tests {
                 chartDrawing.Shapes.Count(shape =>
                     shape.Shape.Kind == OfficeShapeKind.Line &&
                     Math.Abs(shape.Shape.Width - 4D) < 0.001D &&
-                    Math.Abs(shape.Shape.Height - 1D) < 0.001D &&
+                    Math.Abs(shape.Shape.Height) < 0.001D &&
                     shape.Shape.Points.Count == 2 &&
+                    Math.Abs(Math.Abs(shape.Shape.Points[1].X - shape.Shape.Points[0].X) - 4D) < 0.001D &&
                     Math.Abs(shape.Shape.Points[0].Y - shape.Shape.Points[1].Y) < 0.001D) >= 5,
                 "Expected the shared chart renderer to draw vertical value-axis major tick marks.");
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == "ExcelChartAxisTickMarkUnsupported");
@@ -1266,8 +1267,9 @@ namespace OfficeIMO.Tests {
                 chartDrawing.Shapes.Count(shape =>
                     shape.Shape.Kind == OfficeShapeKind.Line &&
                     Math.Abs(shape.Shape.Width - 4D) < 0.001D &&
-                    Math.Abs(shape.Shape.Height - 1D) < 0.001D &&
+                    Math.Abs(shape.Shape.Height) < 0.001D &&
                     shape.Shape.Points.Count == 2 &&
+                    Math.Abs(Math.Abs(shape.Shape.Points[1].X - shape.Shape.Points[0].X) - 4D) < 0.001D &&
                     Math.Abs(shape.Shape.Points[0].Y - shape.Shape.Points[1].Y) < 0.001D) >= 4,
                 "Expected the shared chart renderer to draw vertical value-axis minor tick marks.");
             OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisMinorTickMarkPlacementApproximation);

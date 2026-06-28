@@ -21,7 +21,7 @@ public static class OfficeDrawingQualityAnalyzer {
 
         options ??= OfficeDrawingQualityOptions.Default;
         var issues = new List<OfficeDrawingQualityIssue>();
-        var textBoxes = new List<(int Index, OfficeDrawingText Text, DrawingBounds Bounds)>();
+        var textBoxes = new List<(int Index, string Text, DrawingBounds Bounds)>();
 
         IReadOnlyList<OfficeDrawingElement> elements = drawing.Elements;
         for (int i = 0; i < elements.Count; i++) {
@@ -35,7 +35,9 @@ public static class OfficeDrawingQualityAnalyzer {
             }
 
             if (element is OfficeDrawingText text) {
-                textBoxes.Add((i, text, bounds));
+                textBoxes.Add((i, text.Text, bounds));
+            } else if (element is OfficeDrawingRichText richText) {
+                textBoxes.Add((i, richText.PlainText, bounds));
             }
         }
 
@@ -46,7 +48,7 @@ public static class OfficeDrawingQualityAnalyzer {
         return new OfficeDrawingQualityReport(issues);
     }
 
-    private static void AddTextOverlapIssues(IReadOnlyList<(int Index, OfficeDrawingText Text, DrawingBounds Bounds)> textBoxes, double tolerance, List<OfficeDrawingQualityIssue> issues) {
+    private static void AddTextOverlapIssues(IReadOnlyList<(int Index, string Text, DrawingBounds Bounds)> textBoxes, double tolerance, List<OfficeDrawingQualityIssue> issues) {
         for (int i = 0; i < textBoxes.Count; i++) {
             for (int j = i + 1; j < textBoxes.Count; j++) {
                 if (!Overlaps(textBoxes[i].Bounds, textBoxes[j].Bounds, tolerance)) {
@@ -55,7 +57,7 @@ public static class OfficeDrawingQualityAnalyzer {
 
                 issues.Add(new OfficeDrawingQualityIssue(
                     OfficeDrawingQualityIssueKind.TextOverlap,
-                    "Text box '" + Shorten(textBoxes[i].Text.Text) + "' overlaps text box '" + Shorten(textBoxes[j].Text.Text) + "'.",
+                    "Text box '" + Shorten(textBoxes[i].Text) + "' overlaps text box '" + Shorten(textBoxes[j].Text) + "'.",
                     textBoxes[i].Index,
                     textBoxes[j].Index));
             }
@@ -74,8 +76,34 @@ public static class OfficeDrawingQualityAnalyzer {
                 text.RotationCenterY);
         }
 
+        if (element is OfficeDrawingRichText richText) {
+            return GetRotatedBounds(
+                richText.X,
+                richText.Y,
+                richText.Width,
+                richText.Height,
+                richText.RotationDegrees,
+                richText.RotationCenterX,
+                richText.RotationCenterY);
+        }
+
         if (element is OfficeDrawingShape shape) {
             return new DrawingBounds(shape.X, shape.Y, shape.X + shape.Shape.Width, shape.Y + shape.Shape.Height);
+        }
+
+        if (element is OfficeDrawingImage image) {
+            (double left, double top, double right, double bottom) = image.Projection.GetDestinationBounds();
+            return new DrawingBounds(left, top, right, bottom);
+        }
+
+        if (element is OfficeDrawingGroup group) {
+            if (group.FrameTransform.HasValue && group.FrameTransform.Value.HasTransform) {
+                OfficeTransform transform = group.FrameTransform.Value.CreateDestinationTransform();
+                (double left, double top, double right, double bottom) = transform.TransformRectangleBounds(group.X, group.Y, group.ClipPath.Width, group.ClipPath.Height);
+                return new DrawingBounds(left, top, right, bottom);
+            }
+
+            return new DrawingBounds(group.X, group.Y, group.X + group.ClipPath.Width, group.Y + group.ClipPath.Height);
         }
 
         return new DrawingBounds(0D, 0D, 0D, 0D);

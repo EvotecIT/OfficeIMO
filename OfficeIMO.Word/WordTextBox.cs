@@ -443,6 +443,26 @@ namespace OfficeIMO.Word {
 
         private Anchor? _anchor => _drawing?.Anchor;
 
+        internal WordDrawing? Drawing => _drawing;
+
+        internal Inline? Inline => _inline;
+
+        internal Anchor? Anchor => _anchor;
+
+        internal V.Shape? VmlShape => _vmlTextBox?.Ancestors<V.Shape>().FirstOrDefault();
+
+        internal V.TextBox? VmlTextBox => _vmlTextBox;
+
+        internal WordDocument Document => _document;
+
+        internal TextBoxContent? Content => GetTextBoxContent();
+
+        internal ShapeProperties? DrawingShapeProperties =>
+            _wordprocessingShape?.GetFirstChild<ShapeProperties>();
+
+        internal TextBodyProperties? DrawingTextBodyProperties =>
+            _wordprocessingShape?.GetFirstChild<TextBodyProperties>();
+
         internal static Anchor ConvertInlineToAnchor(Inline inline, WrapTextImage wrapTextImage) {
             Anchor anchor1 = new Anchor() { DistanceFromTop = (UInt32Value)91440U, DistanceFromBottom = (UInt32Value)91440U, DistanceFromLeft = (UInt32Value)114300U, DistanceFromRight = (UInt32Value)114300U, SimplePos = false, RelativeHeight = (UInt32Value)251659264U, BehindDoc = false, Locked = false, LayoutInCell = true, AllowOverlap = true, EditId = "39C62DE8", AnchorId = "3E379294" };
             anchor1.AddNamespaceDeclaration("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing");
@@ -514,7 +534,8 @@ namespace OfficeIMO.Word {
         }
 
         private DocumentFormat.OpenXml.Drawing.GraphicData? _graphicData =>
-            _anchor?.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Graphic>().FirstOrDefault()?.GraphicData;
+            _anchor?.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Graphic>().FirstOrDefault()?.GraphicData
+            ?? _inline?.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Graphic>().FirstOrDefault()?.GraphicData;
 
         private Extent? _anchorExtent => _anchor?.ChildElements.OfType<Extent>().FirstOrDefault();
 

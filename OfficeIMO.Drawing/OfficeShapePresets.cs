@@ -7,7 +7,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Creates reusable <see cref="OfficeShape"/> descriptors for common DrawingML preset geometries.
 /// </summary>
-public static class OfficeShapePresets {
+public static partial class OfficeShapePresets {
     /// <summary>
     /// Attempts to create a shared OfficeIMO shape for a DrawingML-style preset name.
     /// </summary>
@@ -33,9 +33,34 @@ public static class OfficeShapePresets {
                 return true;
             case "roundrect":
             case "roundrectangle":
+            case "flowchartalternateprocess":
                 if (!HasArea(width, height)) return false;
                 shape = OfficeShape.RoundedRectangle(width, height, Math.Min(width, height) * 0.18D);
                 return true;
+            case "flowchartterminator":
+                if (!HasArea(width, height)) return false;
+                shape = OfficeShape.RoundedRectangle(width, height, Math.Min(width, height) / 2D);
+                return true;
+            case "flowchartpreparation":
+                shape = Polygon(width, height, horizontalFlip, verticalFlip, (0.22D, 0D), (0.78D, 0D), (1D, 0.5D), (0.78D, 1D), (0.22D, 1D), (0D, 0.5D));
+                return shape != null;
+            case "flowchartmanualinput":
+                shape = Polygon(width, height, horizontalFlip, verticalFlip, (0D, 0.22D), (1D, 0D), (1D, 1D), (0D, 1D));
+                return shape != null;
+            case "flowchartmanualoperation":
+                shape = Polygon(width, height, horizontalFlip, verticalFlip, (0D, 0D), (1D, 0D), (0.78D, 1D), (0.22D, 1D));
+                return shape != null;
+            case "flowchartdelay":
+                shape = Path(width, height, horizontalFlip, verticalFlip,
+                    OfficePathCommand.MoveTo(0D, 0D),
+                    OfficePathCommand.LineTo(0.55D, 0D),
+                    OfficePathCommand.CubicBezierTo(1D, 0D, 1D, 1D, 0.55D, 1D),
+                    OfficePathCommand.LineTo(0D, 1D),
+                    OfficePathCommand.Close());
+                return shape != null;
+            case "flowchartoffpageconnector":
+                shape = Polygon(width, height, horizontalFlip, verticalFlip, (0D, 0D), (1D, 0D), (1D, 0.72D), (0.5D, 1D), (0D, 0.72D));
+                return shape != null;
             case "ellipse":
             case "oval":
                 if (!HasArea(width, height)) return false;
@@ -65,11 +90,18 @@ public static class OfficeShapePresets {
                 shape = Polygon(width, height, horizontalFlip, verticalFlip, (0D, 0D), (1D, 1D), (0D, 1D));
                 return shape != null;
             case "diamond":
+            case "flowchartdecision":
                 shape = Polygon(width, height, horizontalFlip, verticalFlip, (0.5D, 0D), (1D, 0.5D), (0.5D, 1D), (0D, 0.5D));
                 return shape != null;
             case "parallelogram":
+            case "flowchartdata":
+            case "flowchartinputoutput":
                 shape = Polygon(width, height, horizontalFlip, verticalFlip, (0.22D, 0D), (1D, 0D), (0.78D, 1D), (0D, 1D));
                 return shape != null;
+            case "flowchartprocess":
+                if (!HasArea(width, height)) return false;
+                shape = OfficeShape.Rectangle(width, height);
+                return true;
             case "trapezoid":
                 shape = Polygon(width, height, horizontalFlip, verticalFlip, (0.22D, 0D), (0.78D, 0D), (1D, 1D), (0D, 1D));
                 return shape != null;
@@ -79,8 +111,17 @@ public static class OfficeShapePresets {
             case "hexagon":
                 shape = RegularPolygon(width, height, horizontalFlip, verticalFlip, 6, 30D);
                 return shape != null;
+            case "heptagon":
+                shape = RegularPolygon(width, height, horizontalFlip, verticalFlip, 7, -90D);
+                return shape != null;
             case "octagon":
                 shape = RegularPolygon(width, height, horizontalFlip, verticalFlip, 8, 22.5D);
+                return shape != null;
+            case "decagon":
+                shape = RegularPolygon(width, height, horizontalFlip, verticalFlip, 10, -90D);
+                return shape != null;
+            case "dodecagon":
+                shape = RegularPolygon(width, height, horizontalFlip, verticalFlip, 12, -90D);
                 return shape != null;
             case "plus":
                 shape = Polygon(width, height, horizontalFlip, verticalFlip,
@@ -106,8 +147,86 @@ public static class OfficeShapePresets {
             case "leftrightarrow":
                 shape = Polygon(width, height, horizontalFlip, verticalFlip, (0D, 0.5D), (0.25D, 0D), (0.25D, 0.25D), (0.75D, 0.25D), (0.75D, 0D), (1D, 0.5D), (0.75D, 1D), (0.75D, 0.75D), (0.25D, 0.75D), (0.25D, 1D));
                 return shape != null;
+            case "updownarrow":
+                shape = Polygon(width, height, horizontalFlip, verticalFlip, (0.5D, 0D), (1D, 0.25D), (0.75D, 0.25D), (0.75D, 0.75D), (1D, 0.75D), (0.5D, 1D), (0D, 0.75D), (0.25D, 0.75D), (0.25D, 0.25D), (0D, 0.25D));
+                return shape != null;
+            case "quadarrow":
+                shape = Polygon(width, height, horizontalFlip, verticalFlip,
+                    (0.5D, 0D), (0.65D, 0.18D), (0.57D, 0.18D), (0.57D, 0.43D),
+                    (0.82D, 0.43D), (0.82D, 0.35D), (1D, 0.5D), (0.82D, 0.65D),
+                    (0.82D, 0.57D), (0.57D, 0.57D), (0.57D, 0.82D), (0.65D, 0.82D),
+                    (0.5D, 1D), (0.35D, 0.82D), (0.43D, 0.82D), (0.43D, 0.57D),
+                    (0.18D, 0.57D), (0.18D, 0.65D), (0D, 0.5D), (0.18D, 0.35D),
+                    (0.18D, 0.43D), (0.43D, 0.43D), (0.43D, 0.18D), (0.35D, 0.18D));
+                return shape != null;
+            case "leftuparrow":
+                shape = LeftUpArrow(width, height, horizontalFlip, verticalFlip);
+                return shape != null;
+            case "leftrightuparrow":
+                shape = LeftRightUpArrow(width, height, horizontalFlip, verticalFlip);
+                return shape != null;
+            case "bentuparrow":
+                shape = BentUpArrow(width, height, horizontalFlip, verticalFlip);
+                return shape != null;
+            case "uturnarrow":
+                shape = UTurnArrow(width, height, horizontalFlip, verticalFlip);
+                return shape != null;
+            case "rightarrowcallout":
+                shape = RightArrowCallout(width, height, horizontalFlip, verticalFlip);
+                return shape != null;
+            case "leftarrowcallout":
+                shape = RightArrowCallout(width, height, !horizontalFlip, verticalFlip);
+                return shape != null;
+            case "uparrowcallout":
+                shape = UpArrowCallout(width, height, horizontalFlip, verticalFlip);
+                return shape != null;
+            case "downarrowcallout":
+                shape = UpArrowCallout(width, height, horizontalFlip, !verticalFlip);
+                return shape != null;
+            case "leftrightarrowcallout":
+                shape = Polygon(width, height, horizontalFlip, verticalFlip, (0D, 0.5D), (0.22D, 0D), (0.22D, 0.18D), (0.78D, 0.18D), (0.78D, 0D), (1D, 0.5D), (0.78D, 1D), (0.78D, 0.82D), (0.22D, 0.82D), (0.22D, 1D));
+                return shape != null;
+            case "updownarrowcallout":
+                shape = Polygon(width, height, horizontalFlip, verticalFlip, (0.5D, 0D), (1D, 0.22D), (0.82D, 0.22D), (0.82D, 0.78D), (1D, 0.78D), (0.5D, 1D), (0D, 0.78D), (0.18D, 0.78D), (0.18D, 0.22D), (0D, 0.22D));
+                return shape != null;
+            case "quadarrowcallout":
+                shape = Polygon(width, height, horizontalFlip, verticalFlip,
+                    (0.5D, 0D), (0.66D, 0.2D), (0.58D, 0.2D), (0.58D, 0.42D),
+                    (0.8D, 0.42D), (0.8D, 0.34D), (1D, 0.5D), (0.8D, 0.66D),
+                    (0.8D, 0.58D), (0.58D, 0.58D), (0.58D, 0.8D), (0.66D, 0.8D),
+                    (0.5D, 1D), (0.34D, 0.8D), (0.42D, 0.8D), (0.42D, 0.58D),
+                    (0.2D, 0.58D), (0.2D, 0.66D), (0D, 0.5D), (0.2D, 0.34D),
+                    (0.2D, 0.42D), (0.42D, 0.42D), (0.42D, 0.2D), (0.34D, 0.2D));
+                return shape != null;
             case "star5":
                 shape = Star(width, height, horizontalFlip, verticalFlip, 5);
+                return shape != null;
+            case "star4":
+                shape = Star(width, height, horizontalFlip, verticalFlip, 4);
+                return shape != null;
+            case "star6":
+                shape = Star(width, height, horizontalFlip, verticalFlip, 6);
+                return shape != null;
+            case "star7":
+                shape = Star(width, height, horizontalFlip, verticalFlip, 7);
+                return shape != null;
+            case "star8":
+                shape = Star(width, height, horizontalFlip, verticalFlip, 8);
+                return shape != null;
+            case "star10":
+                shape = Star(width, height, horizontalFlip, verticalFlip, 10);
+                return shape != null;
+            case "star12":
+                shape = Star(width, height, horizontalFlip, verticalFlip, 12);
+                return shape != null;
+            case "star16":
+                shape = Star(width, height, horizontalFlip, verticalFlip, 16);
+                return shape != null;
+            case "star24":
+                shape = Star(width, height, horizontalFlip, verticalFlip, 24);
+                return shape != null;
+            case "star32":
+                shape = Star(width, height, horizontalFlip, verticalFlip, 32);
                 return shape != null;
             case "heart":
                 shape = Path(width, height, horizontalFlip, verticalFlip,
@@ -131,6 +250,20 @@ public static class OfficeShapePresets {
                     OfficePathCommand.CubicBezierTo(0.46D, 0.82D, 0.25D, 0.82D, 0.18D, 0.7D),
                     OfficePathCommand.Close());
                 return shape != null;
+            case "wedgerectcallout":
+            case "wedgerectanglecallout":
+                shape = Polygon(width, height, horizontalFlip, verticalFlip, (0D, 0D), (1D, 0D), (1D, 0.74D), (0.62D, 0.74D), (0.5D, 1D), (0.42D, 0.74D), (0D, 0.74D));
+                return shape != null;
+            case "wedgeroundrectcallout":
+            case "wedgeroundrectanglecallout":
+                shape = RoundedRectangleCallout(width, height, horizontalFlip, verticalFlip);
+                return shape != null;
+            case "wedgeellipsecallout":
+                shape = EllipseCallout(width, height, horizontalFlip, verticalFlip);
+                return shape != null;
+            case "cloudcallout":
+                shape = CloudCallout(width, height, horizontalFlip, verticalFlip);
+                return shape != null;
             case "donut":
                 shape = Donut(width, height, horizontalFlip, verticalFlip);
                 return shape != null;
@@ -146,6 +279,69 @@ public static class OfficeShapePresets {
                 return shape != null;
             case "cube":
                 shape = Polygon(width, height, horizontalFlip, verticalFlip, (0.32D, 0D), (1D, 0.18D), (1D, 0.72D), (0.62D, 1D), (0D, 0.82D), (0D, 0.28D));
+                return shape != null;
+            case "foldedcorner":
+                shape = Path(width, height, horizontalFlip, verticalFlip,
+                    OfficePathCommand.MoveTo(0D, 0D),
+                    OfficePathCommand.LineTo(0.76D, 0D),
+                    OfficePathCommand.LineTo(1D, 0.24D),
+                    OfficePathCommand.LineTo(1D, 1D),
+                    OfficePathCommand.LineTo(0D, 1D),
+                    OfficePathCommand.Close());
+                return shape != null;
+            case "plaque":
+                shape = Path(width, height, horizontalFlip, verticalFlip,
+                    OfficePathCommand.MoveTo(0.16D, 0D),
+                    OfficePathCommand.CubicBezierTo(0.3D, 0.14D, 0.7D, 0.14D, 0.84D, 0D),
+                    OfficePathCommand.LineTo(1D, 0.16D),
+                    OfficePathCommand.CubicBezierTo(0.86D, 0.3D, 0.86D, 0.7D, 1D, 0.84D),
+                    OfficePathCommand.LineTo(0.84D, 1D),
+                    OfficePathCommand.CubicBezierTo(0.7D, 0.86D, 0.3D, 0.86D, 0.16D, 1D),
+                    OfficePathCommand.LineTo(0D, 0.84D),
+                    OfficePathCommand.CubicBezierTo(0.14D, 0.7D, 0.14D, 0.3D, 0D, 0.16D),
+                    OfficePathCommand.Close());
+                return shape != null;
+            case "lightningbolt":
+                shape = Polygon(width, height, horizontalFlip, verticalFlip, (0.58D, 0D), (0.16D, 0.54D), (0.46D, 0.54D), (0.34D, 1D), (0.86D, 0.38D), (0.56D, 0.38D));
+                return shape != null;
+            case "sun":
+                shape = Star(width, height, horizontalFlip, verticalFlip, 8);
+                return shape != null;
+            case "moon":
+                shape = Path(width, height, horizontalFlip, verticalFlip,
+                    OfficePathCommand.MoveTo(0.78D, 0.08D),
+                    OfficePathCommand.CubicBezierTo(0.48D, 0.14D, 0.28D, 0.39D, 0.28D, 0.64D),
+                    OfficePathCommand.CubicBezierTo(0.28D, 0.88D, 0.52D, 0.98D, 0.86D, 0.82D),
+                    OfficePathCommand.CubicBezierTo(0.62D, 0.84D, 0.43D, 0.69D, 0.39D, 0.49D),
+                    OfficePathCommand.CubicBezierTo(0.35D, 0.29D, 0.5D, 0.12D, 0.78D, 0.08D),
+                    OfficePathCommand.Close());
+                return shape != null;
+            case "leftbracket":
+                shape = Bracket(width, height, horizontalFlip, verticalFlip, left: true);
+                return shape != null;
+            case "rightbracket":
+                shape = Bracket(width, height, !horizontalFlip, verticalFlip, left: true);
+                return shape != null;
+            case "bracketpair":
+                shape = BracketPair(width, height, horizontalFlip, verticalFlip);
+                return shape != null;
+            case "leftbrace":
+                shape = Brace(width, height, horizontalFlip, verticalFlip, left: true);
+                return shape != null;
+            case "rightbrace":
+                shape = Brace(width, height, !horizontalFlip, verticalFlip, left: true);
+                return shape != null;
+            case "bracepair":
+                shape = BracePair(width, height, horizontalFlip, verticalFlip);
+                return shape != null;
+            case "flowchartdocument":
+                shape = Path(width, height, horizontalFlip, verticalFlip,
+                    OfficePathCommand.MoveTo(0D, 0D),
+                    OfficePathCommand.LineTo(1D, 0D),
+                    OfficePathCommand.LineTo(1D, 0.82D),
+                    OfficePathCommand.CubicBezierTo(0.76D, 0.96D, 0.56D, 0.7D, 0.34D, 0.86D),
+                    OfficePathCommand.CubicBezierTo(0.18D, 0.98D, 0.07D, 0.93D, 0D, 0.86D),
+                    OfficePathCommand.Close());
                 return shape != null;
             default:
                 return false;
@@ -205,6 +401,145 @@ public static class OfficeShapePresets {
         commands.AddRange(CreateEllipsePath(0.5D, 0.5D, 0.22D, 0.22D, clockwise: false));
         return Path(width, height, horizontalFlip, verticalFlip, commands);
     }
+
+    private static OfficeShape? RightArrowCallout(double width, double height, bool horizontalFlip, bool verticalFlip) =>
+        Polygon(width, height, horizontalFlip, verticalFlip, (0D, 0D), (0.66D, 0D), (0.66D, 0.22D), (1D, 0.5D), (0.66D, 0.78D), (0.66D, 1D), (0D, 1D));
+
+    private static OfficeShape? UpArrowCallout(double width, double height, bool horizontalFlip, bool verticalFlip) =>
+        Polygon(width, height, horizontalFlip, verticalFlip, (0D, 1D), (0D, 0.34D), (0.22D, 0.34D), (0.5D, 0D), (0.78D, 0.34D), (1D, 0.34D), (1D, 1D));
+
+    private static OfficeShape? RoundedRectangleCallout(double width, double height, bool horizontalFlip, bool verticalFlip) {
+        if (!HasArea(width, height)) {
+            return null;
+        }
+
+        const double radius = 0.14D;
+        const double bottom = 0.74D;
+        const double k = 0.5522847498307936D;
+        return Path(width, height, horizontalFlip, verticalFlip,
+            OfficePathCommand.MoveTo(radius, 0D),
+            OfficePathCommand.LineTo(1D - radius, 0D),
+            OfficePathCommand.CubicBezierTo(1D - radius + radius * k, 0D, 1D, radius - radius * k, 1D, radius),
+            OfficePathCommand.LineTo(1D, bottom - radius),
+            OfficePathCommand.CubicBezierTo(1D, bottom - radius + radius * k, 1D - radius + radius * k, bottom, 1D - radius, bottom),
+            OfficePathCommand.LineTo(0.62D, bottom),
+            OfficePathCommand.LineTo(0.5D, 1D),
+            OfficePathCommand.LineTo(0.42D, bottom),
+            OfficePathCommand.LineTo(radius, bottom),
+            OfficePathCommand.CubicBezierTo(radius - radius * k, bottom, 0D, bottom - radius + radius * k, 0D, bottom - radius),
+            OfficePathCommand.LineTo(0D, radius),
+            OfficePathCommand.CubicBezierTo(0D, radius - radius * k, radius - radius * k, 0D, radius, 0D),
+            OfficePathCommand.Close());
+    }
+
+    private static OfficeShape? EllipseCallout(double width, double height, bool horizontalFlip, bool verticalFlip) {
+        if (!HasArea(width, height)) {
+            return null;
+        }
+
+        List<OfficePathCommand> commands = CreateEllipsePath(0.5D, 0.38D, 0.5D, 0.34D, clockwise: true);
+        commands.Add(OfficePathCommand.MoveTo(0.44D, 0.68D));
+        commands.Add(OfficePathCommand.LineTo(0.5D, 1D));
+        commands.Add(OfficePathCommand.LineTo(0.6D, 0.68D));
+        commands.Add(OfficePathCommand.Close());
+        return Path(width, height, horizontalFlip, verticalFlip, commands);
+    }
+
+    private static OfficeShape? CloudCallout(double width, double height, bool horizontalFlip, bool verticalFlip) {
+        if (!HasArea(width, height)) {
+            return null;
+        }
+
+        return Path(width, height, horizontalFlip, verticalFlip,
+            OfficePathCommand.MoveTo(0.18D, 0.64D),
+            OfficePathCommand.CubicBezierTo(0.05D, 0.64D, 0D, 0.53D, 0.09D, 0.44D),
+            OfficePathCommand.CubicBezierTo(0.03D, 0.28D, 0.19D, 0.16D, 0.34D, 0.23D),
+            OfficePathCommand.CubicBezierTo(0.42D, 0.03D, 0.72D, 0.07D, 0.75D, 0.29D),
+            OfficePathCommand.CubicBezierTo(0.94D, 0.24D, 1D, 0.42D, 0.91D, 0.56D),
+            OfficePathCommand.CubicBezierTo(0.84D, 0.69D, 0.63D, 0.7D, 0.54D, 0.63D),
+            OfficePathCommand.CubicBezierTo(0.46D, 0.76D, 0.25D, 0.76D, 0.18D, 0.64D),
+            OfficePathCommand.Close(),
+            OfficePathCommand.MoveTo(0.45D, 0.68D),
+            OfficePathCommand.LineTo(0.5D, 1D),
+            OfficePathCommand.LineTo(0.6D, 0.67D),
+            OfficePathCommand.Close());
+    }
+
+    private static OfficeShape? Bracket(double width, double height, bool horizontalFlip, bool verticalFlip, bool left) {
+        bool flip = left ? horizontalFlip : !horizontalFlip;
+        return Path(width, height, flip, verticalFlip,
+            OfficePathCommand.MoveTo(1D, 0D),
+            OfficePathCommand.LineTo(0D, 0D),
+            OfficePathCommand.LineTo(0D, 1D),
+            OfficePathCommand.LineTo(1D, 1D),
+            OfficePathCommand.LineTo(1D, 0.82D),
+            OfficePathCommand.LineTo(0.22D, 0.82D),
+            OfficePathCommand.LineTo(0.22D, 0.18D),
+            OfficePathCommand.LineTo(1D, 0.18D),
+            OfficePathCommand.Close());
+    }
+
+    private static OfficeShape? BracketPair(double width, double height, bool horizontalFlip, bool verticalFlip) =>
+        Path(width, height, horizontalFlip, verticalFlip,
+            OfficePathCommand.MoveTo(0.42D, 0D),
+            OfficePathCommand.LineTo(0D, 0D),
+            OfficePathCommand.LineTo(0D, 1D),
+            OfficePathCommand.LineTo(0.42D, 1D),
+            OfficePathCommand.LineTo(0.42D, 0.82D),
+            OfficePathCommand.LineTo(0.13D, 0.82D),
+            OfficePathCommand.LineTo(0.13D, 0.18D),
+            OfficePathCommand.LineTo(0.42D, 0.18D),
+            OfficePathCommand.Close(),
+            OfficePathCommand.MoveTo(0.58D, 0D),
+            OfficePathCommand.LineTo(1D, 0D),
+            OfficePathCommand.LineTo(1D, 1D),
+            OfficePathCommand.LineTo(0.58D, 1D),
+            OfficePathCommand.LineTo(0.58D, 0.82D),
+            OfficePathCommand.LineTo(0.87D, 0.82D),
+            OfficePathCommand.LineTo(0.87D, 0.18D),
+            OfficePathCommand.LineTo(0.58D, 0.18D),
+            OfficePathCommand.Close());
+
+    private static OfficeShape? Brace(double width, double height, bool horizontalFlip, bool verticalFlip, bool left) {
+        bool flip = left ? horizontalFlip : !horizontalFlip;
+        return Path(width, height, flip, verticalFlip,
+            OfficePathCommand.MoveTo(1D, 0D),
+            OfficePathCommand.CubicBezierTo(0.25D, 0D, 0.25D, 0.16D, 0.34D, 0.32D),
+            OfficePathCommand.CubicBezierTo(0.4D, 0.43D, 0.16D, 0.47D, 0D, 0.5D),
+            OfficePathCommand.CubicBezierTo(0.16D, 0.53D, 0.4D, 0.57D, 0.34D, 0.68D),
+            OfficePathCommand.CubicBezierTo(0.25D, 0.84D, 0.25D, 1D, 1D, 1D),
+            OfficePathCommand.LineTo(1D, 0.82D),
+            OfficePathCommand.CubicBezierTo(0.58D, 0.82D, 0.56D, 0.72D, 0.62D, 0.62D),
+            OfficePathCommand.CubicBezierTo(0.68D, 0.53D, 0.48D, 0.5D, 0.28D, 0.5D),
+            OfficePathCommand.CubicBezierTo(0.48D, 0.5D, 0.68D, 0.47D, 0.62D, 0.38D),
+            OfficePathCommand.CubicBezierTo(0.56D, 0.28D, 0.58D, 0.18D, 1D, 0.18D),
+            OfficePathCommand.Close());
+    }
+
+    private static OfficeShape? BracePair(double width, double height, bool horizontalFlip, bool verticalFlip) =>
+        Path(width, height, horizontalFlip, verticalFlip,
+            OfficePathCommand.MoveTo(0.46D, 0D),
+            OfficePathCommand.CubicBezierTo(0.11D, 0D, 0.11D, 0.16D, 0.16D, 0.32D),
+            OfficePathCommand.CubicBezierTo(0.19D, 0.43D, 0.08D, 0.47D, 0D, 0.5D),
+            OfficePathCommand.CubicBezierTo(0.08D, 0.53D, 0.19D, 0.57D, 0.16D, 0.68D),
+            OfficePathCommand.CubicBezierTo(0.11D, 0.84D, 0.11D, 1D, 0.46D, 1D),
+            OfficePathCommand.LineTo(0.46D, 0.82D),
+            OfficePathCommand.CubicBezierTo(0.28D, 0.82D, 0.27D, 0.72D, 0.3D, 0.62D),
+            OfficePathCommand.CubicBezierTo(0.33D, 0.53D, 0.23D, 0.5D, 0.13D, 0.5D),
+            OfficePathCommand.CubicBezierTo(0.23D, 0.5D, 0.33D, 0.47D, 0.3D, 0.38D),
+            OfficePathCommand.CubicBezierTo(0.27D, 0.28D, 0.28D, 0.18D, 0.46D, 0.18D),
+            OfficePathCommand.Close(),
+            OfficePathCommand.MoveTo(0.54D, 0D),
+            OfficePathCommand.CubicBezierTo(0.89D, 0D, 0.89D, 0.16D, 0.84D, 0.32D),
+            OfficePathCommand.CubicBezierTo(0.81D, 0.43D, 0.92D, 0.47D, 1D, 0.5D),
+            OfficePathCommand.CubicBezierTo(0.92D, 0.53D, 0.81D, 0.57D, 0.84D, 0.68D),
+            OfficePathCommand.CubicBezierTo(0.89D, 0.84D, 0.89D, 1D, 0.54D, 1D),
+            OfficePathCommand.LineTo(0.54D, 0.82D),
+            OfficePathCommand.CubicBezierTo(0.72D, 0.82D, 0.73D, 0.72D, 0.7D, 0.62D),
+            OfficePathCommand.CubicBezierTo(0.67D, 0.53D, 0.77D, 0.5D, 0.87D, 0.5D),
+            OfficePathCommand.CubicBezierTo(0.77D, 0.5D, 0.67D, 0.47D, 0.7D, 0.38D),
+            OfficePathCommand.CubicBezierTo(0.73D, 0.28D, 0.72D, 0.18D, 0.54D, 0.18D),
+            OfficePathCommand.Close());
 
     private static OfficeShape? Path(double width, double height, bool horizontalFlip, bool verticalFlip, params OfficePathCommand[] commands) =>
         Path(width, height, horizontalFlip, verticalFlip, (IReadOnlyList<OfficePathCommand>)commands);

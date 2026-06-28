@@ -9,9 +9,11 @@ public readonly struct OfficeTextLine {
     /// </summary>
     /// <param name="text">Line text.</param>
     /// <param name="width">Measured line width in the same coordinate space as the caller's font size.</param>
-    public OfficeTextLine(string text, double width) {
+    /// <param name="offsetX">Additional x offset applied to this line inside the text frame.</param>
+    public OfficeTextLine(string text, double width, double offsetX = 0D) {
         Text = text ?? string.Empty;
         Width = width;
+        OffsetX = offsetX;
     }
 
     /// <summary>Line text.</summary>
@@ -19,4 +21,7 @@ public readonly struct OfficeTextLine {
 
     /// <summary>Measured line width.</summary>
     public double Width { get; }
+
+    /// <summary>Additional x offset applied to this line inside the text frame.</summary>
+    public double OffsetX { get; }
 }

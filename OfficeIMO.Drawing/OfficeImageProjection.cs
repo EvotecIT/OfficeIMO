@@ -124,6 +124,26 @@ public readonly struct OfficeImageProjection {
     }
 
     /// <summary>
+    /// Returns a projection translated by the supplied destination offset.
+    /// </summary>
+    /// <param name="offsetX">Horizontal destination offset.</param>
+    /// <param name="offsetY">Vertical destination offset.</param>
+    /// <returns>A translated projection with source crop and transform flags preserved.</returns>
+    public OfficeImageProjection Translate(double offsetX, double offsetY) {
+        EnsureFinite(offsetX, nameof(offsetX));
+        EnsureFinite(offsetY, nameof(offsetY));
+
+        return new OfficeImageProjection(
+            new OfficeImagePlacement(X + offsetX, Y + offsetY, Width, Height),
+            SourceCrop,
+            RotationDegrees,
+            RotationCenterX + offsetX,
+            RotationCenterY + offsetY,
+            FlipHorizontal,
+            FlipVertical);
+    }
+
+    /// <summary>
     /// Creates an affine transform that maps a unit image rectangle into this projection's destination placement.
     /// </summary>
     /// <remarks>

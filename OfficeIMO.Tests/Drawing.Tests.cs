@@ -7,7 +7,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-public class DrawingTests {
+public partial class DrawingTests {
     private static readonly byte[] OnePixelPng = {
         0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
         0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
@@ -19,6 +19,101 @@ public class DrawingTests {
         0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
         0x42, 0x60, 0x82
     };
+
+    [Fact]
+    public void OfficeImageExportBuilder_AppliesSharedFluentPresets() {
+        var options = new TestImageExportOptions();
+        var builder = new TestImageExportBuilder(options);
+
+        OfficeImageExportResult preview = builder
+            .ForPreview()
+            .Export();
+
+        Assert.Equal(OfficeImageExportFormat.Png, preview.Format);
+        Assert.Equal(1D, options.Scale);
+        Assert.Equal(OfficeColor.White, options.BackgroundColor);
+
+        OfficeImageExportResult customized = builder
+            .ForHighResolution()
+            .AsSvg()
+            .AtScale(1.5D)
+            .OnTransparentBackground()
+            .Export();
+
+        Assert.Equal(OfficeImageExportFormat.Svg, customized.Format);
+        Assert.Equal(150, customized.Width);
+        Assert.Equal(OfficeColor.Transparent, options.BackgroundColor);
+    }
+
+    [Fact]
+    public void OfficeImageExportBuilder_AcceptsNamedAndHexBackgroundAliases() {
+        var options = new TestImageExportOptions();
+        var builder = new TestImageExportBuilder(options);
+
+        OfficeImageExportResult named = builder
+            .OnBackground("RebeccaPurple")
+            .Export();
+
+        Assert.Equal(OfficeColor.RebeccaPurple, options.BackgroundColor);
+        Assert.Equal(OfficeColor.RebeccaPurple.ToString(), named.Source);
+
+        OfficeImageExportResult hex = builder
+            .WithBackground("#336699CC")
+            .Export();
+
+        Assert.Equal(OfficeColor.FromRgba(0x33, 0x66, 0x99, 0xCC), options.BackgroundColor);
+        Assert.Equal("#336699CC", hex.Source);
+
+        builder.WhiteBackground();
+        Assert.Equal(OfficeColor.White, options.BackgroundColor);
+
+        builder.TransparentBackground();
+        Assert.Equal(OfficeColor.Transparent, options.BackgroundColor);
+    }
+
+    [Fact]
+    public void OfficeImageExportBatchBuilder_AppliesSharedFluentPresets() {
+        var options = new TestImageExportOptions();
+        var builder = new TestImageExportBatchBuilder(options);
+
+        IReadOnlyList<OfficeImageExportResult> results = builder
+            .ForHighResolution()
+            .AsSvg()
+            .OnWhiteBackground()
+            .Export();
+
+        OfficeImageExportResult result = Assert.Single(results);
+        Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
+        Assert.Equal(200, result.Width);
+        Assert.Equal(2D, options.Scale);
+        Assert.Equal(OfficeColor.White, options.BackgroundColor);
+    }
+
+    [Fact]
+    public void OfficeImageExportBatchBuilder_AcceptsNamedAndHexBackgroundAliases() {
+        var options = new TestImageExportOptions();
+        var builder = new TestImageExportBatchBuilder(options);
+
+        IReadOnlyList<OfficeImageExportResult> named = builder
+            .OnBackground("SteelBlue")
+            .Export();
+
+        Assert.Equal(OfficeColor.SteelBlue, options.BackgroundColor);
+        Assert.Equal(OfficeColor.SteelBlue.ToString(), Assert.Single(named).Source);
+
+        IReadOnlyList<OfficeImageExportResult> hex = builder
+            .WithBackground("#112233")
+            .Export();
+
+        Assert.Equal(OfficeColor.FromRgb(0x11, 0x22, 0x33), options.BackgroundColor);
+        Assert.Equal("#112233", Assert.Single(hex).Source);
+
+        builder.WhiteBackground();
+        Assert.Equal(OfficeColor.White, options.BackgroundColor);
+
+        builder.TransparentBackground();
+        Assert.Equal(OfficeColor.Transparent, options.BackgroundColor);
+    }
 
     [Fact]
     public void OfficeImagePlacementFitsImagesIntoTargetRectangles() {
@@ -160,6 +255,86 @@ public class DrawingTests {
         Assert.True(scaled.HasCrop);
         Assert.True(scaled.HasTransform);
         Assert.True(scaled.FlipHorizontal);
+    }
+
+    [Fact]
+    public void OfficeImageProjectionTranslatesPlacementAndTransformCenter() {
+        var projection = new OfficeImageProjection(
+            new OfficeImagePlacement(10D, 20D, 80D, 40D),
+            new OfficeImageSourceCrop(0.25D, 0.1D, 0.25D, 0.1D),
+            rotationDegrees: 30D,
+            rotationCenterX: 40D,
+            rotationCenterY: 50D,
+            flipVertical: true);
+
+        OfficeImageProjection translated = projection.Translate(5D, 7D);
+
+        Assert.Equal((15D, 27D, 80D, 40D), translated.Placement.ToTuple());
+        Assert.Equal(0.25D, translated.SourceLeft);
+        Assert.Equal(0.5D, translated.SourceWidth);
+        Assert.Equal(30D, translated.RotationDegrees);
+        Assert.Equal(45D, translated.RotationCenterX);
+        Assert.Equal(57D, translated.RotationCenterY);
+        Assert.True(translated.FlipVertical);
+    }
+
+    [Fact]
+    public void OfficeDrawingComposesNestedDrawingAtOffset() {
+        var child = new OfficeDrawing(40D, 30D);
+        child.AddShape(OfficeShape.Rectangle(10D, 8D), 2D, 3D);
+        child.AddText(
+            "Nested",
+            5D,
+            6D,
+            20D,
+            10D,
+            rotationDegrees: 15D,
+            rotationCenterX: 15D,
+            rotationCenterY: 12D);
+        child.AddImage(
+            OnePixelPng,
+            "image/png",
+            new OfficeImageProjection(
+                new OfficeImagePlacement(8D, 10D, 4D, 4D),
+                rotationDegrees: 20D));
+
+        var target = new OfficeDrawing(100D, 80D);
+        target.AddDrawing(child, 30D, 20D);
+
+        OfficeDrawingShape shape = Assert.Single(target.Elements.OfType<OfficeDrawingShape>());
+        Assert.Equal(32D, shape.X);
+        Assert.Equal(23D, shape.Y);
+
+        OfficeDrawingText text = Assert.Single(target.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal(35D, text.X);
+        Assert.Equal(26D, text.Y);
+        Assert.Equal(45D, text.RotationCenterX);
+        Assert.Equal(32D, text.RotationCenterY);
+
+        OfficeDrawingImage image = Assert.Single(target.Images);
+        Assert.Equal(38D, image.Projection.X);
+        Assert.Equal(30D, image.Projection.Y);
+        Assert.Equal(40D, image.Projection.RotationCenterX);
+        Assert.Equal(32D, image.Projection.RotationCenterY);
+    }
+
+    [Fact]
+    public void OfficeDrawingPreservesNestedGroupTransformsWhenParentTransformIsApplied() {
+        var child = new OfficeDrawing(20D, 20D);
+        child.AddShape(OfficeShape.Rectangle(10D, 10D), 2D, 2D);
+
+        var source = new OfficeDrawing(60D, 60D);
+        var childTransform = new OfficeImageFrameTransform(15D, 20D, 20D);
+        source.AddClippedDrawing(child, 10D, 10D, OfficeClipPath.Rectangle(20D, 20D), childTransform);
+
+        var target = new OfficeDrawing(120D, 120D);
+        var parentTransform = new OfficeImageFrameTransform(30D, 60D, 60D);
+        target.AddDrawing(source, 20D, 20D, parentTransform);
+
+        OfficeDrawingGroup outerGroup = Assert.Single(target.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Equal(parentTransform, outerGroup.FrameTransform);
+        OfficeDrawingGroup innerGroup = Assert.Single(outerGroup.Drawing.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Equal(childTransform, innerGroup.FrameTransform);
     }
 
     [Fact]
@@ -736,6 +911,197 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingTextPreservesReusableFrameFlips() {
+        var drawing = new OfficeDrawing(160, 100);
+        drawing.AddText(
+            "Mirror",
+            40,
+            30,
+            80,
+            24,
+            new OfficeFontInfo("Arial", 14),
+            OfficeColor.Black,
+            rotationDegrees: 10D,
+            rotationCenterX: 80D,
+            rotationCenterY: 42D,
+            wrapText: true,
+            flipHorizontal: true);
+
+        OfficeDrawing clone = drawing.Clone();
+        OfficeDrawingText text = Assert.Single(clone.Elements.OfType<OfficeDrawingText>());
+
+        Assert.True(text.HasFrameTransform);
+        Assert.True(text.FlipHorizontal);
+        Assert.False(text.FlipVertical);
+        Assert.Equal((10D, 80D, 42D, true, false), text.CreateFrameTransform().ToTuple());
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(clone);
+        Assert.Contains("scale(-1 1)", svg, StringComparison.Ordinal);
+        Assert.Contains("Mirror", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingTextPaddingRendersInsideSharedTextFrame() {
+        var drawing = new OfficeDrawing(160, 100);
+        drawing.AddText(
+            "Inset",
+            10,
+            12,
+            100,
+            40,
+            new OfficeFontInfo("Arial", 12),
+            OfficeColor.Black,
+            wrapText: true,
+            padding: new OfficeTextPadding(8, 6, 12, 4));
+        drawing.AddRichText(
+            new[] {
+                new OfficeRichTextRun("Rich ", 12D, OfficeColor.Red),
+                new OfficeRichTextRun("Inset", 12D, OfficeColor.Blue)
+            },
+            10,
+            56,
+            120,
+            34,
+            wrapText: true,
+            padding: new OfficeTextPadding(8, 4, 10, 3));
+
+        OfficeDrawing clone = drawing.Clone();
+        OfficeDrawingText text = Assert.Single(clone.Elements.OfType<OfficeDrawingText>());
+        OfficeDrawingRichText richText = Assert.Single(clone.Elements.OfType<OfficeDrawingRichText>());
+
+        Assert.Equal(10D, text.X);
+        Assert.Equal(8D, text.Padding.Left);
+        Assert.Equal(12D, text.Padding.Right);
+        Assert.True(text.HasPadding);
+        Assert.Equal(8D, richText.Padding.Left);
+        Assert.Equal(10D, richText.Padding.Right);
+        Assert.True(richText.HasPadding);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(clone);
+        Assert.Contains("<text x=\"18\"", svg, StringComparison.Ordinal);
+        Assert.Contains("Inset", svg, StringComparison.Ordinal);
+        Assert.Contains("#FF0000", svg, StringComparison.OrdinalIgnoreCase);
+
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(clone);
+        Assert.Equal(160, image.Width);
+        Assert.Equal(100, image.Height);
+    }
+
+    [Fact]
+    public void OfficeDrawingComposesNestedDrawingWithReusableFrameTransform() {
+        var child = new OfficeDrawing(80, 40);
+        var shape = OfficeShape.Rectangle(40, 20);
+        shape.FillColor = OfficeColor.SteelBlue;
+        child.AddShape(shape, 10, 10);
+        child.AddText("Nested", 20, 12, 48, 16, new OfficeFontInfo("Arial", 10), OfficeColor.Black);
+
+        var drawing = new OfficeDrawing(160, 100);
+        drawing.AddDrawing(
+            child,
+            40,
+            30,
+            new OfficeImageFrameTransform(0D, 80D, 50D, flipHorizontal: true));
+
+        OfficeDrawingShape nestedShape = Assert.Single(drawing.Elements.OfType<OfficeDrawingShape>());
+        Assert.True(nestedShape.Shape.Transform.HasValue);
+
+        OfficeDrawingText nestedText = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.True(nestedText.FlipHorizontal);
+        Assert.Equal((0D, 80D, 50D, true, false), nestedText.CreateFrameTransform().ToTuple());
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("scale(-1 1)", svg, StringComparison.Ordinal);
+        Assert.Contains("Nested", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingComposesClippedNestedDrawingThroughSharedSvgAndRaster() {
+        var child = new OfficeDrawing(100, 40);
+        var shape = OfficeShape.Rectangle(100, 40);
+        shape.FillColor = OfficeColor.Red;
+        child.AddShape(shape, 0, 0);
+
+        var drawing = new OfficeDrawing(120, 70);
+        drawing.AddClippedDrawing(child, 10, 10, OfficeClipPath.Rectangle(40, 40));
+
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Equal(10D, group.X);
+        Assert.Equal(10D, group.Y);
+        Assert.Equal(40D, group.ClipPath.Width);
+        Assert.Equal(40D, group.ClipPath.Height);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("officeimo-group-clip-", svg, StringComparison.Ordinal);
+        Assert.Contains("transform=\"translate(10 10)\"", svg, StringComparison.Ordinal);
+        Assert.Contains("#FF0000", svg, StringComparison.OrdinalIgnoreCase);
+
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.Red, image.GetPixel(12, 12));
+        Assert.Equal(OfficeColor.White, image.GetPixel(55, 12));
+    }
+
+    [Fact]
+    public void OfficeDrawingComposesTransformedClippedNestedDrawingThroughSharedSvgAndRaster() {
+        var child = new OfficeDrawing(100, 40);
+        var shape = OfficeShape.Rectangle(100, 40);
+        shape.FillColor = OfficeColor.Red;
+        child.AddShape(shape, 0, 0);
+
+        var drawing = new OfficeDrawing(120, 70);
+        drawing.AddClippedDrawing(
+            child,
+            10,
+            10,
+            OfficeClipPath.Rectangle(40, 40),
+            new OfficeImageFrameTransform(0D, 30D, 30D, flipHorizontal: true));
+
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        Assert.True(group.FrameTransform.HasValue);
+        Assert.Equal((0D, 30D, 30D, true, false), group.FrameTransform.Value.ToTuple());
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("officeimo-group-clip-", svg, StringComparison.Ordinal);
+        Assert.Contains("matrix(", svg, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#FF0000", svg, StringComparison.OrdinalIgnoreCase);
+
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.Red, image.GetPixel(12, 12));
+        Assert.Equal(OfficeColor.White, image.GetPixel(55, 12));
+    }
+
+    [Fact]
+    public void OfficeDrawingComposesNestedRichTextWithReusableFrameTransform() {
+        var child = new OfficeDrawing(120, 40);
+        child.AddRichText(
+            new[] {
+                new OfficeRichTextRun("Rich ", 10D, OfficeColor.Red, bold: true),
+                new OfficeRichTextRun("Nested", 10D, OfficeColor.Blue, italic: true)
+            },
+            8,
+            10,
+            100,
+            18,
+            lineHeight: 12D,
+            wrapText: true);
+
+        var drawing = new OfficeDrawing(200, 100);
+        drawing.AddDrawing(
+            child,
+            40,
+            30,
+            new OfficeImageFrameTransform(0D, 100D, 50D, flipHorizontal: true));
+
+        OfficeDrawingRichText nestedText = Assert.Single(drawing.Elements.OfType<OfficeDrawingRichText>());
+        Assert.True(nestedText.FlipHorizontal);
+        Assert.Equal((0D, 100D, 50D, true, false), nestedText.CreateFrameTransform().ToTuple());
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("scale(-1 1)", svg, StringComparison.Ordinal);
+        Assert.Contains("Rich", svg, StringComparison.Ordinal);
+        Assert.Contains("Nested", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeShapeStoresReusableRectangleDrawingIntent() {
         var shape = OfficeShape.Rectangle(160, 48);
         shape.FillColor = OfficeColor.WhiteSmoke;
@@ -882,6 +1248,79 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingRichText_RendersThroughSharedSvgAndRasterExporters() {
+        var drawing = new OfficeDrawing(160, 80);
+        drawing.AddRichText(
+            new[] {
+                new OfficeRichTextRun("Red ", 12D, OfficeColor.Red, bold: true, fontFamily: "Aptos"),
+                new OfficeRichTextRun("Blue", 14D, OfficeColor.Blue, italic: true, underline: true, fontFamily: "Aptos")
+            },
+            10,
+            12,
+            120,
+            32,
+            OfficeTextAlignment.Left,
+            16D,
+            wrapText: true);
+
+        OfficeDrawing clone = drawing.Clone();
+        OfficeDrawingRichText richText = Assert.Single(clone.Elements.OfType<OfficeDrawingRichText>());
+        Assert.Equal("Red Blue", richText.PlainText);
+        Assert.Equal(2, richText.Runs.Count);
+        Assert.True(richText.Runs[0].Bold);
+        Assert.True(richText.Runs[1].Italic);
+        Assert.True(richText.Runs[1].Underline);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("Red", svg, StringComparison.Ordinal);
+        Assert.Contains("Blue", svg, StringComparison.Ordinal);
+        Assert.Contains("#FF0000", svg, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#0000FF", svg, StringComparison.OrdinalIgnoreCase);
+
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.Equal(160, image.Width);
+        Assert.Equal(80, image.Height);
+    }
+
+    [Fact]
+    public void OfficeDrawingRichText_PreservesReusableFrameFlips() {
+        var drawing = new OfficeDrawing(160, 80);
+        drawing.AddRichText(
+            new[] {
+                new OfficeRichTextRun("Red ", 12D, OfficeColor.Red, bold: true, fontFamily: "Aptos"),
+                new OfficeRichTextRun("Blue", 12D, OfficeColor.Blue, italic: true, fontFamily: "Aptos")
+            },
+            24,
+            20,
+            112,
+            28,
+            OfficeTextAlignment.Left,
+            16D,
+            rotationDegrees: 8D,
+            rotationCenterX: 80D,
+            rotationCenterY: 34D,
+            wrapText: true,
+            flipHorizontal: true);
+
+        OfficeDrawing clone = drawing.Clone();
+        OfficeDrawingRichText richText = Assert.Single(clone.Elements.OfType<OfficeDrawingRichText>());
+
+        Assert.True(richText.HasFrameTransform);
+        Assert.True(richText.FlipHorizontal);
+        Assert.False(richText.FlipVertical);
+        Assert.Equal((8D, 80D, 34D, true, false), richText.CreateFrameTransform().ToTuple());
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(clone);
+        Assert.Contains("scale(-1 1)", svg, StringComparison.Ordinal);
+        Assert.Contains("Red", svg, StringComparison.Ordinal);
+        Assert.Contains("Blue", svg, StringComparison.Ordinal);
+
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(clone);
+        Assert.Equal(160, image.Width);
+        Assert.Equal(80, image.Height);
+    }
+
+    [Fact]
     public void OfficeDrawingSvgExporter_EmitsRotatedTextThroughSharedRenderer() {
         var drawing = new OfficeDrawing(120, 80);
         drawing.AddText(
@@ -1013,6 +1452,94 @@ public class DrawingTests {
         Assert.Contains("stroke-dasharray=\"8 4\"", svg, StringComparison.Ordinal);
         Assert.Contains("stroke-linecap=\"round\"", svg, StringComparison.Ordinal);
         Assert.Contains("transform=\"matrix(0.707 0.707 -0.707 0.707", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingLineMarkersRenderThroughSharedSvgAndRasterExporters() {
+        var drawing = new OfficeDrawing(120, 80);
+        var shape = OfficeShape.Line(0, 0, 80, 0);
+        shape.StrokeColor = OfficeColor.FromRgb(30, 90, 150);
+        shape.StrokeWidth = 2;
+        shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Diamond, 12, 14);
+        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 14, 18);
+        drawing.AddShape(shape, 20, 20);
+
+        OfficeDrawing clone = drawing.Clone();
+        OfficeDrawingShape clonedLine = Assert.Single(clone.Elements.OfType<OfficeDrawingShape>());
+        Assert.Equal(OfficeLineMarkerKind.Diamond, clonedLine.Shape.StrokeStartMarker?.Kind);
+        Assert.Equal(OfficeLineMarkerKind.Triangle, clonedLine.Shape.StrokeEndMarker?.Kind);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(clone);
+        Assert.Contains("<line x1=\"20\" y1=\"20\" x2=\"100\" y2=\"20\"", svg, StringComparison.Ordinal);
+        Assert.Equal(2, svg.Split(new[] { "<polygon" }, StringSplitOptions.None).Length - 1);
+        Assert.Contains("#1E5A96", svg, StringComparison.OrdinalIgnoreCase);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(clone);
+        AssertMarkerPixel(raster.GetPixel(25, 20));
+        AssertMarkerPixel(raster.GetPixel(94, 22));
+
+        static void AssertMarkerPixel(OfficeColor pixel) {
+            Assert.Equal(30, pixel.R);
+            Assert.Equal(90, pixel.G);
+            Assert.Equal(150, pixel.B);
+            Assert.True(pixel.A > 0);
+        }
+    }
+
+    [Fact]
+    public void OfficeDrawingPathMarkersRenderThroughSharedSvgAndRasterExporters() {
+        var drawing = new OfficeDrawing(130, 90);
+        var shape = OfficeShape.Path(
+            OfficePathCommand.MoveTo(0, 0),
+            OfficePathCommand.LineTo(0, 40),
+            OfficePathCommand.LineTo(70, 40));
+        shape.StrokeColor = OfficeColor.FromRgb(30, 90, 150);
+        shape.StrokeWidth = 2;
+        shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Diamond, 12, 14);
+        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 14, 18);
+        drawing.AddShape(shape, 20, 20);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("<path", svg, StringComparison.Ordinal);
+        Assert.Equal(2, svg.Split(new[] { "<polygon" }, StringSplitOptions.None).Length - 1);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        AssertMarkerPixel(raster.GetPixel(20, 25));
+        AssertMarkerPixel(raster.GetPixel(84, 60));
+
+        static void AssertMarkerPixel(OfficeColor pixel) {
+            Assert.Equal(30, pixel.R);
+            Assert.Equal(90, pixel.G);
+            Assert.Equal(150, pixel.B);
+            Assert.True(pixel.A > 0);
+        }
+    }
+
+    [Fact]
+    public void OfficeDrawingTransformedPathMarkersRenderThroughSharedRasterExporter() {
+        var drawing = new OfficeDrawing(150, 110);
+        var shape = OfficeShape.Path(
+            OfficePathCommand.MoveTo(0, 0),
+            OfficePathCommand.LineTo(0, 40),
+            OfficePathCommand.LineTo(70, 40));
+        shape.StrokeColor = OfficeColor.FromRgb(30, 90, 150);
+        shape.StrokeWidth = 2;
+        shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Diamond, 12, 14);
+        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 14, 18);
+        shape.Transform = OfficeTransform.Translate(10, 10);
+        drawing.AddShape(shape, 20, 20);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+
+        AssertMarkerPixel(raster.GetPixel(30, 35));
+        AssertMarkerPixel(raster.GetPixel(94, 70));
+
+        static void AssertMarkerPixel(OfficeColor pixel) {
+            Assert.Equal(30, pixel.R);
+            Assert.Equal(90, pixel.G);
+            Assert.Equal(150, pixel.B);
+            Assert.True(pixel.A > 0);
+        }
     }
 
     [Fact]
@@ -1835,7 +2362,7 @@ public class DrawingTests {
 
         Assert.Equal(OfficeShapeKind.Line, clone.Kind);
         Assert.Equal(100, clone.Width);
-        Assert.Equal(1, clone.Height);
+        Assert.Equal(0, clone.Height);
         Assert.Equal(new OfficePoint(0, 0), clone.Points[0]);
         Assert.Equal(new OfficePoint(100, 0), clone.Points[1]);
         Assert.Equal(OfficeColor.SteelBlue, clone.StrokeColor);
@@ -1874,11 +2401,48 @@ public class DrawingTests {
         Assert.NotNull(hexagon);
         Assert.Equal(120, hexagon!.Width);
         Assert.Equal(80, hexagon.Height);
+        Assert.Equal(6, hexagon.Points.Count);
+
+        Assert.True(OfficeShapePresets.TryCreate("heptagon", 120, 80, out OfficeShape? heptagon));
+        Assert.NotNull(heptagon);
+        Assert.Equal(OfficeShapeKind.Polygon, heptagon!.Kind);
+        Assert.Equal(7, heptagon.Points.Count);
+
+        Assert.True(OfficeShapePresets.TryCreate("decagon", 120, 80, out OfficeShape? decagon));
+        Assert.NotNull(decagon);
+        Assert.Equal(OfficeShapeKind.Polygon, decagon!.Kind);
+        Assert.Equal(10, decagon.Points.Count);
+
+        Assert.True(OfficeShapePresets.TryCreate("dodecagon", 120, 80, out OfficeShape? dodecagon));
+        Assert.NotNull(dodecagon);
+        Assert.Equal(OfficeShapeKind.Polygon, dodecagon!.Kind);
+        Assert.Equal(12, dodecagon.Points.Count);
 
         Assert.True(OfficeShapePresets.TryCreate("star5", 90, 90, out OfficeShape? star));
         Assert.NotNull(star);
         Assert.Equal(90, star!.Width);
         Assert.Equal(90, star.Height);
+        Assert.Equal(10, star.Points.Count);
+
+        Assert.True(OfficeShapePresets.TryCreate("star4", 90, 90, out OfficeShape? star4));
+        Assert.NotNull(star4);
+        Assert.Equal(OfficeShapeKind.Polygon, star4!.Kind);
+        Assert.Equal(8, star4.Points.Count);
+
+        Assert.True(OfficeShapePresets.TryCreate("star8", 90, 90, out OfficeShape? star8));
+        Assert.NotNull(star8);
+        Assert.Equal(OfficeShapeKind.Polygon, star8!.Kind);
+        Assert.Equal(16, star8.Points.Count);
+
+        Assert.True(OfficeShapePresets.TryCreate("star16", 90, 90, out OfficeShape? star16));
+        Assert.NotNull(star16);
+        Assert.Equal(OfficeShapeKind.Polygon, star16!.Kind);
+        Assert.Equal(32, star16.Points.Count);
+
+        Assert.True(OfficeShapePresets.TryCreate("star32", 90, 90, out OfficeShape? star32));
+        Assert.NotNull(star32);
+        Assert.Equal(OfficeShapeKind.Polygon, star32!.Kind);
+        Assert.Equal(64, star32.Points.Count);
 
         Assert.True(OfficeShapePresets.TryCreate("line", 120, 40, out OfficeShape? presetLine));
         Assert.NotNull(presetLine);
@@ -1930,6 +2494,230 @@ public class DrawingTests {
         Assert.True(OfficeShapePresets.TryCreate("leftRightArrow", 96, 40, out OfficeShape? leftRightArrow));
         Assert.NotNull(leftRightArrow);
         Assert.Equal(OfficeShapeKind.Polygon, leftRightArrow!.Kind);
+
+        Assert.True(OfficeShapePresets.TryCreate("upDownArrow", 60, 100, out OfficeShape? upDownArrow));
+        Assert.NotNull(upDownArrow);
+        Assert.Equal(OfficeShapeKind.Polygon, upDownArrow!.Kind);
+        Assert.Equal(10, upDownArrow.Points.Count);
+        AssertPointNear(upDownArrow.Points[0], 30D, 0D);
+        AssertPointNear(upDownArrow.Points[5], 30D, 100D);
+
+        Assert.True(OfficeShapePresets.TryCreate("quadArrow", 120, 120, out OfficeShape? quadArrow));
+        Assert.NotNull(quadArrow);
+        Assert.Equal(OfficeShapeKind.Polygon, quadArrow!.Kind);
+        Assert.Equal(24, quadArrow.Points.Count);
+        AssertPointNear(quadArrow.Points[0], 60D, 0D);
+        AssertPointNear(quadArrow.Points[6], 120D, 60D);
+        AssertPointNear(quadArrow.Points[18], 0D, 60D);
+
+        Assert.True(OfficeShapePresets.TryCreate("leftUpArrow", 100, 80, out OfficeShape? leftUpArrow));
+        Assert.NotNull(leftUpArrow);
+        Assert.Equal(OfficeShapeKind.Polygon, leftUpArrow!.Kind);
+        Assert.Equal(11, leftUpArrow.Points.Count);
+        AssertPointNear(leftUpArrow.Points[0], 0D, 33.6D);
+
+        Assert.True(OfficeShapePresets.TryCreate("leftRightUpArrow", 120, 90, out OfficeShape? leftRightUpArrow));
+        Assert.NotNull(leftRightUpArrow);
+        Assert.Equal(OfficeShapeKind.Polygon, leftRightUpArrow!.Kind);
+        Assert.Equal(17, leftRightUpArrow.Points.Count);
+        AssertPointNear(leftRightUpArrow.Points[0], 60D, 0D);
+        AssertPointNear(leftRightUpArrow.Points[6], 120D, 45D);
+        AssertPointNear(leftRightUpArrow.Points[11], 0D, 45D);
+
+        Assert.True(OfficeShapePresets.TryCreate("bentUpArrow", 110, 90, out OfficeShape? bentUpArrow));
+        Assert.NotNull(bentUpArrow);
+        Assert.Equal(OfficeShapeKind.Polygon, bentUpArrow!.Kind);
+        Assert.Equal(9, bentUpArrow.Points.Count);
+        AssertPointNear(bentUpArrow.Points[4], 74.8D, 0D);
+
+        Assert.True(OfficeShapePresets.TryCreate("uTurnArrow", 90, 100, out OfficeShape? uTurnArrow));
+        Assert.NotNull(uTurnArrow);
+        Assert.Equal(OfficeShapeKind.Polygon, uTurnArrow!.Kind);
+        Assert.Equal(9, uTurnArrow.Points.Count);
+        AssertPointNear(uTurnArrow.Points[4], 0D, 22D);
+
+        Assert.True(OfficeShapePresets.TryCreate("rightArrowCallout", 100, 50, out OfficeShape? rightArrowCallout));
+        Assert.NotNull(rightArrowCallout);
+        Assert.Equal(OfficeShapeKind.Polygon, rightArrowCallout!.Kind);
+        Assert.Equal(7, rightArrowCallout.Points.Count);
+        Assert.Equal(new OfficePoint(0, 0), rightArrowCallout.Points[0]);
+        Assert.Equal(new OfficePoint(100, 25), rightArrowCallout.Points[3]);
+
+        Assert.True(OfficeShapePresets.TryCreate("leftArrowCallout", 100, 50, out OfficeShape? leftArrowCallout));
+        Assert.NotNull(leftArrowCallout);
+        Assert.Equal(OfficeShapeKind.Polygon, leftArrowCallout!.Kind);
+        Assert.Equal(new OfficePoint(100, 0), leftArrowCallout.Points[0]);
+        Assert.Equal(new OfficePoint(0, 25), leftArrowCallout.Points[3]);
+
+        Assert.True(OfficeShapePresets.TryCreate("upArrowCallout", 80, 90, out OfficeShape? upArrowCallout));
+        Assert.NotNull(upArrowCallout);
+        Assert.Equal(OfficeShapeKind.Polygon, upArrowCallout!.Kind);
+        Assert.Equal(7, upArrowCallout.Points.Count);
+        Assert.Equal(new OfficePoint(40, 0), upArrowCallout.Points[3]);
+
+        Assert.True(OfficeShapePresets.TryCreate("downArrowCallout", 80, 90, out OfficeShape? downArrowCallout));
+        Assert.NotNull(downArrowCallout);
+        Assert.Equal(OfficeShapeKind.Polygon, downArrowCallout!.Kind);
+        Assert.Equal(new OfficePoint(40, 90), downArrowCallout.Points[3]);
+
+        Assert.True(OfficeShapePresets.TryCreate("leftRightArrowCallout", 120, 60, out OfficeShape? leftRightArrowCallout));
+        Assert.NotNull(leftRightArrowCallout);
+        Assert.Equal(OfficeShapeKind.Polygon, leftRightArrowCallout!.Kind);
+        Assert.Equal(10, leftRightArrowCallout.Points.Count);
+        Assert.Equal(new OfficePoint(0, 30), leftRightArrowCallout.Points[0]);
+        Assert.Equal(new OfficePoint(120, 30), leftRightArrowCallout.Points[5]);
+
+        Assert.True(OfficeShapePresets.TryCreate("upDownArrowCallout", 70, 120, out OfficeShape? upDownArrowCallout));
+        Assert.NotNull(upDownArrowCallout);
+        Assert.Equal(OfficeShapeKind.Polygon, upDownArrowCallout!.Kind);
+        Assert.Equal(10, upDownArrowCallout.Points.Count);
+        Assert.Equal(new OfficePoint(35, 0), upDownArrowCallout.Points[0]);
+        Assert.Equal(new OfficePoint(35, 120), upDownArrowCallout.Points[5]);
+
+        Assert.True(OfficeShapePresets.TryCreate("quadArrowCallout", 120, 120, out OfficeShape? quadArrowCallout));
+        Assert.NotNull(quadArrowCallout);
+        Assert.Equal(OfficeShapeKind.Polygon, quadArrowCallout!.Kind);
+        Assert.Equal(24, quadArrowCallout.Points.Count);
+        Assert.Equal(new OfficePoint(60, 0), quadArrowCallout.Points[0]);
+        Assert.Equal(new OfficePoint(120, 60), quadArrowCallout.Points[6]);
+        Assert.Equal(new OfficePoint(0, 60), quadArrowCallout.Points[18]);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartProcess", 90, 50, out OfficeShape? flowProcess));
+        Assert.NotNull(flowProcess);
+        Assert.Equal(OfficeShapeKind.Rectangle, flowProcess!.Kind);
+        Assert.Equal(90, flowProcess.Width);
+        Assert.Equal(50, flowProcess.Height);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartDecision", 80, 60, out OfficeShape? flowDecision));
+        Assert.NotNull(flowDecision);
+        Assert.Equal(OfficeShapeKind.Polygon, flowDecision!.Kind);
+        Assert.Equal(new OfficePoint(40, 0), flowDecision.Points[0]);
+        Assert.Equal(new OfficePoint(80, 30), flowDecision.Points[1]);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartData", 100, 40, out OfficeShape? flowData));
+        Assert.NotNull(flowData);
+        Assert.Equal(OfficeShapeKind.Polygon, flowData!.Kind);
+        Assert.Equal(new OfficePoint(22, 0), flowData.Points[0]);
+        Assert.True(OfficeShapePresets.TryCreate("flowChartInputOutput", 100, 40, out OfficeShape? flowInputOutput));
+        Assert.NotNull(flowInputOutput);
+        Assert.Equal(OfficeShapeKind.Polygon, flowInputOutput!.Kind);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartTerminator", 120, 40, out OfficeShape? flowTerminator));
+        Assert.NotNull(flowTerminator);
+        Assert.Equal(OfficeShapeKind.RoundedRectangle, flowTerminator!.Kind);
+        Assert.Equal(20, flowTerminator.CornerRadius);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartPreparation", 120, 60, out OfficeShape? flowPreparation));
+        Assert.NotNull(flowPreparation);
+        Assert.Equal(OfficeShapeKind.Polygon, flowPreparation!.Kind);
+        Assert.Equal(6, flowPreparation.Points.Count);
+        Assert.Equal(new OfficePoint(120, 30), flowPreparation.Points[2]);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartManualInput", 120, 60, out OfficeShape? flowManualInput));
+        Assert.NotNull(flowManualInput);
+        Assert.Equal(OfficeShapeKind.Polygon, flowManualInput!.Kind);
+        AssertPointNear(flowManualInput.Points[0], 0D, 13.2D);
+        AssertPointNear(flowManualInput.Points[1], 120D, 0D);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartManualOperation", 120, 60, out OfficeShape? flowManualOperation));
+        Assert.NotNull(flowManualOperation);
+        Assert.Equal(OfficeShapeKind.Polygon, flowManualOperation!.Kind);
+        AssertPointNear(flowManualOperation.Points[2], 93.6D, 60D);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartDelay", 100, 60, out OfficeShape? flowDelay));
+        Assert.NotNull(flowDelay);
+        Assert.Equal(OfficeShapeKind.Path, flowDelay!.Kind);
+        Assert.Contains(flowDelay.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartOffpageConnector", 90, 70, out OfficeShape? flowOffpageConnector));
+        Assert.NotNull(flowOffpageConnector);
+        Assert.Equal(OfficeShapeKind.Polygon, flowOffpageConnector!.Kind);
+        Assert.Equal(new OfficePoint(45, 70), flowOffpageConnector.Points[3]);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartDocument", 120, 70, horizontalFlip: true, verticalFlip: false, out OfficeShape? flowDocument));
+        Assert.NotNull(flowDocument);
+        Assert.Equal(OfficeShapeKind.Path, flowDocument!.Kind);
+        Assert.Contains(flowDocument.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+        Assert.Equal(new OfficePoint(120, 0), flowDocument.PathCommands[0].Point);
+
+        Assert.True(OfficeShapePresets.TryCreate("wedgeRectCallout", 120, 80, out OfficeShape? wedgeRectCallout));
+        Assert.NotNull(wedgeRectCallout);
+        Assert.Equal(OfficeShapeKind.Polygon, wedgeRectCallout!.Kind);
+        Assert.Equal(7, wedgeRectCallout.Points.Count);
+        Assert.Equal(new OfficePoint(60, 80), wedgeRectCallout.Points[4]);
+
+        Assert.True(OfficeShapePresets.TryCreate("wedgeRoundRectCallout", 120, 80, out OfficeShape? wedgeRoundCallout));
+        Assert.NotNull(wedgeRoundCallout);
+        Assert.Equal(OfficeShapeKind.Path, wedgeRoundCallout!.Kind);
+        Assert.Contains(wedgeRoundCallout.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("wedgeEllipseCallout", 100, 70, out OfficeShape? wedgeEllipseCallout));
+        Assert.NotNull(wedgeEllipseCallout);
+        Assert.Equal(OfficeShapeKind.Path, wedgeEllipseCallout!.Kind);
+        Assert.True(wedgeEllipseCallout.PathCommands.Count(command => command.Kind == OfficePathCommandKind.Close) >= 2);
+
+        Assert.True(OfficeShapePresets.TryCreate("cloudCallout", 110, 80, out OfficeShape? cloudCallout));
+        Assert.NotNull(cloudCallout);
+        Assert.Equal(OfficeShapeKind.Path, cloudCallout!.Kind);
+        Assert.True(cloudCallout.PathCommands.Count(command => command.Kind == OfficePathCommandKind.MoveTo) >= 2);
+
+        Assert.True(OfficeShapePresets.TryCreate("foldedCorner", 90, 60, horizontalFlip: true, verticalFlip: false, out OfficeShape? foldedCorner));
+        Assert.NotNull(foldedCorner);
+        Assert.Equal(OfficeShapeKind.Path, foldedCorner!.Kind);
+        Assert.Equal(new OfficePoint(90, 0), foldedCorner.PathCommands[0].Point);
+
+        Assert.True(OfficeShapePresets.TryCreate("plaque", 100, 70, out OfficeShape? plaque));
+        Assert.NotNull(plaque);
+        Assert.Equal(OfficeShapeKind.Path, plaque!.Kind);
+        Assert.Contains(plaque.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("lightningBolt", 80, 90, out OfficeShape? lightningBolt));
+        Assert.NotNull(lightningBolt);
+        Assert.Equal(OfficeShapeKind.Polygon, lightningBolt!.Kind);
+        Assert.Equal(6, lightningBolt.Points.Count);
+
+        Assert.True(OfficeShapePresets.TryCreate("sun", 80, 80, out OfficeShape? sun));
+        Assert.NotNull(sun);
+        Assert.Equal(OfficeShapeKind.Polygon, sun!.Kind);
+        Assert.Equal(16, sun.Points.Count);
+
+        Assert.True(OfficeShapePresets.TryCreate("moon", 70, 80, out OfficeShape? moon));
+        Assert.NotNull(moon);
+        Assert.Equal(OfficeShapeKind.Path, moon!.Kind);
+        Assert.Contains(moon.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("leftBracket", 24, 80, out OfficeShape? leftBracket));
+        Assert.NotNull(leftBracket);
+        Assert.Equal(OfficeShapeKind.Path, leftBracket!.Kind);
+        Assert.Equal(new OfficePoint(24, 0), leftBracket.PathCommands[0].Point);
+        Assert.Contains(leftBracket.PathCommands, command => command.Kind == OfficePathCommandKind.Close);
+
+        Assert.True(OfficeShapePresets.TryCreate("rightBracket", 24, 80, out OfficeShape? rightBracket));
+        Assert.NotNull(rightBracket);
+        Assert.Equal(OfficeShapeKind.Path, rightBracket!.Kind);
+        Assert.Equal(new OfficePoint(0, 0), rightBracket.PathCommands[0].Point);
+
+        Assert.True(OfficeShapePresets.TryCreate("bracketPair", 80, 90, out OfficeShape? bracketPair));
+        Assert.NotNull(bracketPair);
+        Assert.Equal(OfficeShapeKind.Path, bracketPair!.Kind);
+        Assert.Equal(2, bracketPair.PathCommands.Count(command => command.Kind == OfficePathCommandKind.MoveTo));
+        Assert.Equal(2, bracketPair.PathCommands.Count(command => command.Kind == OfficePathCommandKind.Close));
+
+        Assert.True(OfficeShapePresets.TryCreate("leftBrace", 34, 90, out OfficeShape? leftBrace));
+        Assert.NotNull(leftBrace);
+        Assert.Equal(OfficeShapeKind.Path, leftBrace!.Kind);
+        Assert.Contains(leftBrace.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("rightBrace", 34, 90, out OfficeShape? rightBrace));
+        Assert.NotNull(rightBrace);
+        Assert.Equal(OfficeShapeKind.Path, rightBrace!.Kind);
+        Assert.Equal(new OfficePoint(0, 0), rightBrace.PathCommands[0].Point);
+
+        Assert.True(OfficeShapePresets.TryCreate("bracePair", 86, 90, out OfficeShape? bracePair));
+        Assert.NotNull(bracePair);
+        Assert.Equal(OfficeShapeKind.Path, bracePair!.Kind);
+        Assert.Equal(2, bracePair.PathCommands.Count(command => command.Kind == OfficePathCommandKind.MoveTo));
+        Assert.True(bracePair.PathCommands.Count(command => command.Kind == OfficePathCommandKind.CubicBezierTo) >= 12);
     }
 
     [Fact]
@@ -2047,6 +2835,22 @@ public class DrawingTests {
         Assert.Equal(2, tuples.Count);
         AssertPointNear(new OfficePoint(tuples[0].X, tuples[0].Y), 0D, 10D);
         AssertPointNear(new OfficePoint(tuples[1].X, tuples[1].Y), -10D, 0D);
+    }
+
+    [Fact]
+    public void OfficeGeometryConvertsEllipticalArcsToSharedCubicPathCommands() {
+        List<OfficePathCommand> commands = OfficeGeometry.CreateEllipticalArcCubicBezierCommands(
+            new OfficePoint(20D, 20D),
+            radiusX: 10D,
+            radiusY: 5D,
+            startRadians: 0D,
+            sweepRadians: Math.PI / 2D);
+
+        OfficePathCommand command = Assert.Single(commands);
+        Assert.Equal(OfficePathCommandKind.CubicBezierTo, command.Kind);
+        AssertPointNear(command.Point, 10D, 25D);
+        AssertPointNear(command.ControlPoint1, 20D, 22.76142375D);
+        AssertPointNear(command.ControlPoint2, 15.522847498307932D, 25D);
     }
 
     [Fact]
@@ -2582,6 +3386,61 @@ public class DrawingTests {
         data[offset + 1] = (byte)((value >> 8) & 0xFF);
         data[offset + 2] = (byte)((value >> 16) & 0xFF);
         data[offset + 3] = (byte)((value >> 24) & 0xFF);
+    }
+
+    private sealed class TestImageExportOptions : OfficeImageExportOptions {
+    }
+
+    private sealed class TestImageExportBuilder : OfficeImageExportBuilder<TestImageExportBuilder, TestImageExportOptions> {
+        internal TestImageExportBuilder(TestImageExportOptions options)
+            : base(options, (format, current) => new OfficeImageExportResult(
+                format,
+                (int)Math.Ceiling(100D * current.Scale),
+                (int)Math.Ceiling(50D * current.Scale),
+                CreateTestImageBytes(format),
+                "test",
+                current.BackgroundColor.ToString())) {
+        }
+    }
+
+    private sealed class TestImageExportBatchBuilder : OfficeImageExportBatchBuilder<TestImageExportBatchBuilder, TestImageExportOptions> {
+        internal TestImageExportBatchBuilder(TestImageExportOptions options)
+            : base(options, (format, current) => new[] {
+                new OfficeImageExportResult(
+                    format,
+                    (int)Math.Ceiling(100D * current.Scale),
+                    (int)Math.Ceiling(50D * current.Scale),
+                    CreateTestImageBytes(format),
+                    "batch",
+                    current.BackgroundColor.ToString())
+            }) {
+        }
+    }
+
+    private static byte[] CreateTestImageBytes(OfficeImageExportFormat format) =>
+        format == OfficeImageExportFormat.Svg
+            ? Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\"></svg>")
+            : OnePixelPng;
+
+    [Fact]
+    public void OfficeDrawingImage_RendersThroughSharedSvgAndRasterExporters() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
+        var drawing = new OfficeDrawing(20, 20);
+        drawing.AddImage(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(4, 5, 8, 6)),
+            "Logo");
+
+        OfficeDrawing clone = drawing.Clone();
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(clone);
+        string svg = OfficeDrawingSvgExporter.ToSvg(clone);
+
+        Assert.Single(clone.Images);
+        Assert.Contains(clone.Elements, element => element is OfficeDrawingImage);
+        Assert.Equal(OfficeColor.CornflowerBlue, raster.GetPixel(6, 7));
+        Assert.Contains("<image", svg, StringComparison.Ordinal);
+        Assert.Contains("data:image/png;base64,", svg, StringComparison.Ordinal);
     }
 
     private static void AssertPointNear(OfficePoint actual, double expectedX, double expectedY) {

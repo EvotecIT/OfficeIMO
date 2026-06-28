@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using OfficeIMO.Drawing;
+using OfficeIMO.Excel;
+using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -24,6 +27,7 @@ public class DrawingArchitectureTests {
         string[] projectFolders = {
             "OfficeIMO.Excel",
             "OfficeIMO.Excel.Pdf",
+            "OfficeIMO.Word",
             "OfficeIMO.Visio",
             "OfficeIMO.Pdf",
             "OfficeIMO.Markdown.Pdf",
@@ -117,6 +121,34 @@ public class DrawingArchitectureTests {
         Assert.Contains("OfficePngWriter.EncodeRgba", renderer, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ExcelImageExportOptionsReuseSharedOfficeImageExportOptions() {
+        Assert.True(typeof(OfficeImageExportOptions).IsAssignableFrom(typeof(ExcelImageExportOptions)));
+
+        var options = new ExcelImageExportOptions {
+            Scale = 2D,
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        Assert.Equal(2D, options.Scale);
+        Assert.Equal(OfficeColor.Transparent, options.BackgroundColor);
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeImageExportOptions.ValidateScale(0D, "options"));
+    }
+
+    [Fact]
+    public void WordImageExportOptionsReuseSharedOfficeImageExportOptions() {
+        Assert.True(typeof(OfficeImageExportOptions).IsAssignableFrom(typeof(WordImageExportOptions)));
+
+        var options = new WordImageExportOptions {
+            Scale = 2D,
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        Assert.Equal(2D, options.Scale);
+        Assert.Equal(OfficeColor.Transparent, options.BackgroundColor);
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeImageExportOptions.ValidateScale(0D, "options"));
+    }
+
     private static XDocument LoadProject(string folder, string fileName) =>
         XDocument.Load(Path.Combine(RepositoryRoot, folder, fileName));
 
@@ -139,6 +171,7 @@ public class DrawingArchitectureTests {
         string[] projectFolders = {
             "OfficeIMO.Drawing",
             "OfficeIMO.Excel",
+            "OfficeIMO.Word",
             "OfficeIMO.Visio",
             "OfficeIMO.Pdf",
             "OfficeIMO.Markdown.Pdf",

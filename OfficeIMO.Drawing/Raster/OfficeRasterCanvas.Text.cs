@@ -124,6 +124,8 @@ public sealed partial class OfficeRasterCanvas {
     /// <param name="underline">Whether to draw an underline using the measured text width.</param>
     /// <param name="strikethrough">Whether to draw a strikethrough using the measured text width.</param>
     /// <param name="fontFamily">Requested font family fallback list.</param>
+    /// <param name="flipHorizontal">Whether to mirror the rendered line horizontally around the rotation center before rotation.</param>
+    /// <param name="flipVertical">Whether to mirror the rendered line vertically around the rotation center before rotation.</param>
     public void DrawTextLine(
         string? text,
         double anchorX,
@@ -138,7 +140,9 @@ public sealed partial class OfficeRasterCanvas {
         double rotationCenterY = 0D,
         bool underline = false,
         bool strikethrough = false,
-        string? fontFamily = null) {
+        string? fontFamily = null,
+        bool flipHorizontal = false,
+        bool flipVertical = false) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || height <= 0D) {
             return;
         }
@@ -157,7 +161,9 @@ public sealed partial class OfficeRasterCanvas {
                 italic,
                 rotationRadians,
                 rotationCenterX,
-                rotationCenterY);
+                rotationCenterY,
+                flipHorizontal,
+                flipVertical);
             FillContours(contours, color);
             if (bold) {
                 contours = TransformTextContours(
@@ -166,16 +172,18 @@ public sealed partial class OfficeRasterCanvas {
                     italic,
                     rotationRadians,
                     rotationCenterX,
-                    rotationCenterY);
+                    rotationCenterY,
+                    flipHorizontal,
+                    flipVertical);
                 FillContours(contours, color);
             }
 
-            DrawTextLineDecorations(x, width, top, fontHeight, color, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough);
+            DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underline, strikethrough, flipHorizontal, flipVertical);
             return;
         }
 
-        DrawStrokeText(value, anchorX, top + (fontHeight / 2D), fontHeight, color, bold, italic, alignment, rotationRadians, rotationCenterX, rotationCenterY);
-        DrawTextLineDecorations(x, width, top, fontHeight, color, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough);
+        DrawStrokeText(value, anchorX, top + (fontHeight / 2D), fontHeight, color, bold, italic, alignment, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
+        DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underline, strikethrough, flipHorizontal, flipVertical);
     }
 
     private void DrawTextLineDecorations(
@@ -184,35 +192,39 @@ public sealed partial class OfficeRasterCanvas {
         double top,
         double fontHeight,
         OfficeColor color,
-        double rotationDegrees,
+        double rotationRadians,
         double rotationCenterX,
         double rotationCenterY,
         bool underline,
-        bool strikethrough) {
+        bool strikethrough,
+        bool flipHorizontal,
+        bool flipVertical) {
         if (width <= 0D || color.A == 0) {
             return;
         }
 
         if (underline) {
-            DrawRotatedTextDecorationLine(x, width, top + (fontHeight * 0.86D), color, fontHeight, rotationDegrees, rotationCenterX, rotationCenterY);
+            DrawTransformedTextDecorationLine(x, width, top + (fontHeight * 0.86D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
         }
 
         if (strikethrough) {
-            DrawRotatedTextDecorationLine(x, width, top + (fontHeight * 0.52D), color, fontHeight, rotationDegrees, rotationCenterX, rotationCenterY);
+            DrawTransformedTextDecorationLine(x, width, top + (fontHeight * 0.52D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
         }
     }
 
-    private void DrawRotatedTextDecorationLine(
+    private void DrawTransformedTextDecorationLine(
         double x,
         double width,
         double y,
         OfficeColor color,
         double fontHeight,
-        double rotationDegrees,
+        double rotationRadians,
         double rotationCenterX,
-        double rotationCenterY) {
-        OfficePoint start = OfficeTextPlacement.RotatePoint(new OfficePoint(x, y), rotationCenterX, rotationCenterY, rotationDegrees);
-        OfficePoint end = OfficeTextPlacement.RotatePoint(new OfficePoint(x + width, y), rotationCenterX, rotationCenterY, rotationDegrees);
+        double rotationCenterY,
+        bool flipHorizontal,
+        bool flipVertical) {
+        OfficePoint start = TransformFramePoint(new OfficePoint(x, y), rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
+        OfficePoint end = TransformFramePoint(new OfficePoint(x + width, y), rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
         DrawLine(start.X, start.Y, end.X, end.Y, color, Math.Max(1D, fontHeight / 16D));
     }
 
@@ -227,7 +239,7 @@ public sealed partial class OfficeRasterCanvas {
             value = OfficeTextElements.RemoveLast(value);
         }
 
-        DrawStrokeText(value, x, y + (fontHeight / 2D), fontHeight, color, false, false, OfficeTextAlignment.Left, 0D, x, y);
+        DrawStrokeText(value, x, y + (fontHeight / 2D), fontHeight, color, false, false, OfficeTextAlignment.Left, 0D, x, y, flipHorizontal: false, flipVertical: false);
     }
 
     private static double ResolveTextX(double left, double width, double measured, OfficeTextAlignment alignment) {
@@ -315,7 +327,9 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextAlignment alignment,
         double rotationRadians,
         double rotationCenterX,
-        double rotationCenterY) {
+        double rotationCenterY,
+        bool flipHorizontal,
+        bool flipVertical) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || height <= 0D) {
             return;
         }
@@ -327,7 +341,7 @@ public sealed partial class OfficeRasterCanvas {
         double top = centerY - (height / 2D);
         double bottom = top + Math.Max(1D, height);
         foreach (char c in text) {
-            DrawStrokeGlyph(c, x, top, cell, color, bold, italic, bottom, rotationRadians, rotationCenterX, rotationCenterY);
+            DrawStrokeGlyph(c, x, top, cell, color, bold, italic, bottom, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
             x += (GlyphWidth(c) * cell) + gap;
         }
     }
@@ -343,7 +357,9 @@ public sealed partial class OfficeRasterCanvas {
         double bottom,
         double rotationRadians,
         double rotationCenterX,
-        double rotationCenterY) {
+        double rotationCenterY,
+        bool flipHorizontal,
+        bool flipVertical) {
         string[] rows = GlyphRows(c);
         double strokeWidth = Math.Max(1D, bold ? cell * 0.38D : cell * 0.26D);
         for (int row = 0; row < rows.Length; row++) {
@@ -353,10 +369,10 @@ public sealed partial class OfficeRasterCanvas {
                     continue;
                 }
 
-                OfficePoint current = TransformTextPoint(GlyphPoint(x, y, cell, col, row), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY);
+                OfficePoint current = TransformTextPoint(GlyphPoint(x, y, cell, col, row), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
                 bool connected = false;
                 if (col + 1 < bits.Length && bits[col + 1] == '1') {
-                    OfficePoint nextPoint = TransformTextPoint(GlyphPoint(x, y, cell, col + 1, row), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY);
+                    OfficePoint nextPoint = TransformTextPoint(GlyphPoint(x, y, cell, col + 1, row), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
                     DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
                     connected = true;
                 }
@@ -364,19 +380,19 @@ public sealed partial class OfficeRasterCanvas {
                 if (row + 1 < rows.Length) {
                     string next = rows[row + 1];
                     if (col < next.Length && next[col] == '1') {
-                        OfficePoint nextPoint = TransformTextPoint(GlyphPoint(x, y, cell, col, row + 1), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY);
+                        OfficePoint nextPoint = TransformTextPoint(GlyphPoint(x, y, cell, col, row + 1), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
                         DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
                         connected = true;
                     }
 
                     if (col > 0 && col - 1 < next.Length && next[col - 1] == '1') {
-                        OfficePoint nextPoint = TransformTextPoint(GlyphPoint(x, y, cell, col - 1, row + 1), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY);
+                        OfficePoint nextPoint = TransformTextPoint(GlyphPoint(x, y, cell, col - 1, row + 1), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
                         DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
                         connected = true;
                     }
 
                     if (col + 1 < next.Length && next[col + 1] == '1') {
-                        OfficePoint nextPoint = TransformTextPoint(GlyphPoint(x, y, cell, col + 1, row + 1), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY);
+                        OfficePoint nextPoint = TransformTextPoint(GlyphPoint(x, y, cell, col + 1, row + 1), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
                         DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
                         connected = true;
                     }
@@ -401,8 +417,8 @@ public sealed partial class OfficeRasterCanvas {
         return anchorX;
     }
 
-    private static IReadOnlyList<List<OfficePoint>> TransformTextContours(IReadOnlyList<List<OfficePoint>> contours, double bottom, bool italic, double rotationRadians, double rotationCenterX, double rotationCenterY) {
-        if ((!italic && Math.Abs(rotationRadians) < TextRotationEpsilon) || contours.Count == 0) {
+    private static IReadOnlyList<List<OfficePoint>> TransformTextContours(IReadOnlyList<List<OfficePoint>> contours, double bottom, bool italic, double rotationRadians, double rotationCenterX, double rotationCenterY, bool flipHorizontal, bool flipVertical) {
+        if ((!italic && Math.Abs(rotationRadians) < TextRotationEpsilon && !flipHorizontal && !flipVertical) || contours.Count == 0) {
             return contours;
         }
 
@@ -410,7 +426,7 @@ public sealed partial class OfficeRasterCanvas {
         foreach (List<OfficePoint> contour in contours) {
             List<OfficePoint> points = new(contour.Count);
             foreach (OfficePoint point in contour) {
-                points.Add(TransformTextPoint(point, bottom, italic, rotationRadians, rotationCenterX, rotationCenterY));
+                points.Add(TransformTextPoint(point, bottom, italic, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical));
             }
 
             transformed.Add(points);
@@ -419,15 +435,28 @@ public sealed partial class OfficeRasterCanvas {
         return transformed;
     }
 
-    private static OfficePoint TransformTextPoint(OfficePoint point, double bottom, bool italic, double rotationRadians, double rotationCenterX, double rotationCenterY) {
-        if (!italic && Math.Abs(rotationRadians) < TextRotationEpsilon) {
+    private static OfficePoint TransformTextPoint(OfficePoint point, double bottom, bool italic, double rotationRadians, double rotationCenterX, double rotationCenterY, bool flipHorizontal, bool flipVertical) {
+        if (!italic && Math.Abs(rotationRadians) < TextRotationEpsilon && !flipHorizontal && !flipVertical) {
             return point;
         }
 
         OfficePoint skewed = italic ? new OfficePoint(point.X + ((bottom - point.Y) * ItalicShear), point.Y) : point;
+        return TransformFramePoint(skewed, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
+    }
+
+    private static OfficePoint TransformFramePoint(OfficePoint point, double rotationRadians, double centerX, double centerY, bool flipHorizontal, bool flipVertical) {
+        OfficePoint transformed = point;
+        if (flipHorizontal) {
+            transformed = new OfficePoint((2D * centerX) - transformed.X, transformed.Y);
+        }
+
+        if (flipVertical) {
+            transformed = new OfficePoint(transformed.X, (2D * centerY) - transformed.Y);
+        }
+
         return Math.Abs(rotationRadians) < TextRotationEpsilon
-            ? skewed
-            : OfficeGeometry.RotatePoint(skewed, rotationCenterX, rotationCenterY, rotationRadians);
+            ? transformed
+            : OfficeGeometry.RotatePoint(transformed, centerX, centerY, rotationRadians);
     }
 
     private static OfficePoint GlyphPoint(double x, double y, double cell, int col, int row) {

@@ -12,7 +12,8 @@ public sealed class OfficeRichTextLine {
     /// </summary>
     /// <param name="segments">Measured segments on the line.</param>
     /// <param name="lineHeight">Optional resolved height for this line. A value of zero lets block renderers fall back to the containing layout line height.</param>
-    public OfficeRichTextLine(IReadOnlyList<OfficeRichTextSegment> segments, double lineHeight = 0D) {
+    /// <param name="offsetX">Additional x offset applied to this line inside the text frame.</param>
+    public OfficeRichTextLine(IReadOnlyList<OfficeRichTextSegment> segments, double lineHeight = 0D, double offsetX = 0D) {
         Segments = segments ?? Array.Empty<OfficeRichTextSegment>();
         double width = 0D;
         double fontSize = 0D;
@@ -24,6 +25,7 @@ public sealed class OfficeRichTextLine {
         Width = width;
         FontSize = fontSize;
         LineHeight = lineHeight > 0D && !double.IsNaN(lineHeight) && !double.IsInfinity(lineHeight) ? lineHeight : 0D;
+        OffsetX = offsetX > 0D && !double.IsNaN(offsetX) && !double.IsInfinity(offsetX) ? offsetX : 0D;
     }
 
     /// <summary>
@@ -45,4 +47,9 @@ public sealed class OfficeRichTextLine {
     /// Gets the resolved line height for this line, or zero when the containing block line height should be used.
     /// </summary>
     public double LineHeight { get; }
+
+    /// <summary>
+    /// Gets the additional x offset applied to this line inside the text frame.
+    /// </summary>
+    public double OffsetX { get; }
 }

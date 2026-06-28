@@ -18,6 +18,17 @@ namespace OfficeIMO.PowerPoint {
 
                     return s.NonVisualShapeProperties?.NonVisualDrawingProperties;
                 }
+                case ConnectionShape c: {
+                    if (create) {
+                        c.NonVisualConnectionShapeProperties ??= new NonVisualConnectionShapeProperties(
+                            new NonVisualDrawingProperties(),
+                            new NonVisualConnectorShapeDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties());
+                        c.NonVisualConnectionShapeProperties.NonVisualDrawingProperties ??= new NonVisualDrawingProperties();
+                    }
+
+                    return c.NonVisualConnectionShapeProperties?.NonVisualDrawingProperties;
+                }
                 case Picture p: {
                     if (create) {
                         p.NonVisualPictureProperties ??= new NonVisualPictureProperties(
@@ -59,6 +70,7 @@ namespace OfficeIMO.PowerPoint {
         private PlaceholderShape? GetPlaceholderShape() {
             return Element switch {
                 Shape s => s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                ConnectionShape c => c.NonVisualConnectionShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
                 Picture p => p.NonVisualPictureProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
                 GraphicFrame g => g.NonVisualGraphicFrameProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
                 _ => null
@@ -79,6 +91,11 @@ namespace OfficeIMO.PowerPoint {
                         s.ShapeProperties ??= new ShapeProperties();
                     }
                     return s.ShapeProperties;
+                case ConnectionShape c:
+                    if (create) {
+                        c.ShapeProperties ??= new ShapeProperties();
+                    }
+                    return c.ShapeProperties;
                 case Picture p:
                     if (create) {
                         p.ShapeProperties ??= new ShapeProperties();

@@ -358,6 +358,33 @@ public static class OfficeSvgImageRenderer {
     }
 
     /// <summary>
+    /// Creates an SVG-safe data URI for image bytes that can either be embedded directly or transcoded through the shared raster decoder.
+    /// </summary>
+    /// <param name="declaredContentType">Optional content type from the source package or caller.</param>
+    /// <param name="bytes">Image bytes.</param>
+    /// <param name="fileName">Optional file name or extension used when metadata is absent or generic.</param>
+    /// <param name="dataUri">SVG data URI when the image can be represented in SVG output.</param>
+    /// <returns><see langword="true" /> when the image can be embedded in SVG output.</returns>
+    public static bool TryCreateDataUri(string? declaredContentType, byte[]? bytes, string? fileName, out string dataUri) {
+        dataUri = string.Empty;
+        if (bytes == null || bytes.Length == 0) {
+            return false;
+        }
+
+        if (TryResolveEmbeddableContentType(declaredContentType, bytes, fileName, out string contentType)) {
+            dataUri = CreateDataUri(contentType, bytes);
+            return true;
+        }
+
+        if (OfficeRasterImageDecoder.TryDecode(bytes, out OfficeRasterImage? raster) && raster != null) {
+            dataUri = CreateDataUri("image/png", OfficePngWriter.Encode(raster));
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Resolves the MIME content type for image formats that can be embedded directly in SVG image elements.
     /// </summary>
     /// <param name="format">Detected image format.</param>

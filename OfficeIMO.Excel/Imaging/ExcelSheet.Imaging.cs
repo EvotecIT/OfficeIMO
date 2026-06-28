@@ -97,9 +97,7 @@ namespace OfficeIMO.Excel {
                 UsePrintArea = source.UsePrintArea,
                 SplitByManualPageBreaks = source.SplitByManualPageBreaks
             };
-            if (resolved.Scale <= 0D || double.IsNaN(resolved.Scale) || double.IsInfinity(resolved.Scale)) {
-                throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
-            }
+            OfficeImageExportOptions.ValidateScale(resolved.Scale, nameof(options));
 
             return resolved;
         }
@@ -413,6 +411,10 @@ namespace OfficeIMO.Excel {
             }
 
             byte[] bytes = image.GetBytes();
+            if (OfficeRasterImageDecoder.TryDecode(bytes, out _)) {
+                return true;
+            }
+
             return OfficeImageReader.TryIdentify(bytes, image.Name, out OfficeImageInfo info)
                 && info.Format == OfficeImageFormat.Png;
         }

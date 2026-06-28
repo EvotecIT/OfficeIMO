@@ -17,12 +17,12 @@ namespace OfficeIMO.Excel {
             ReportUnsupportedConditionalRules(sheet, cells, rules, conditionalFormattingDate, diagnostics);
 
             var stoppedCells = new HashSet<string>(StringComparer.Ordinal);
-            var fills = BuildConditionalFills(sheet, cells, rules, conditionalFormattingDate, stoppedCells);
+            var cellFormats = BuildConditionalCellFormats(sheet, cells, rules, conditionalFormattingDate, stoppedCells);
             var dataBars = BuildConditionalDataBars(sheet, cells, rules, conditionalFormattingDate);
             var icons = BuildConditionalIcons(sheet, cells, rules, conditionalFormattingDate, diagnostics);
-            return fills.Count == 0 && dataBars.Count == 0 && icons.Count == 0
+            return cellFormats.Count == 0 && dataBars.Count == 0 && icons.Count == 0
                 ? ExcelConditionalVisualState.Empty
-                : new ExcelConditionalVisualState(fills, dataBars, icons);
+                : new ExcelConditionalVisualState(cellFormats, dataBars, icons);
         }
 
         private static List<ExcelVisualConditionalDataBar> BuildConditionalDataBars(
@@ -84,7 +84,7 @@ namespace OfficeIMO.Excel {
                 .ToArray();
             var stoppedCells = new HashSet<string>(StringComparer.Ordinal);
             if (higherPriorityStopRules.Length > 0) {
-                _ = BuildConditionalFills(sheet, cells, higherPriorityStopRules, conditionalFormattingDate, stoppedCells);
+                _ = BuildConditionalCellFormats(sheet, cells, higherPriorityStopRules, conditionalFormattingDate, stoppedCells);
             }
 
             return stoppedCells;
@@ -163,7 +163,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
+                    if (HasSupportedDifferentialFormat(rule) &&
                         !CanEvaluateAnyCellIsRule(sheet, cells, rule)) {
                         diagnostics.Add(new OfficeImageExportDiagnostic(
                             OfficeImageExportDiagnosticSeverity.Warning,
@@ -180,7 +180,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
+                    if (HasSupportedDifferentialFormat(rule) &&
                         !CanEvaluateAnyExpressionRule(sheet, cells, rule)) {
                         diagnostics.Add(new OfficeImageExportDiagnostic(
                             OfficeImageExportDiagnosticSeverity.Warning,
@@ -197,7 +197,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
+                    if (HasSupportedDifferentialFormat(rule) &&
                         !CanEvaluateTopBottomRule(sheet, cells, rule)) {
                         diagnostics.Add(new OfficeImageExportDiagnostic(
                             OfficeImageExportDiagnosticSeverity.Warning,
@@ -223,7 +223,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
+                    if (HasSupportedDifferentialFormat(rule) &&
                         !CanEvaluateAboveAverageRule(sheet, cells, rule)) {
                         diagnostics.Add(new OfficeImageExportDiagnostic(
                             OfficeImageExportDiagnosticSeverity.Warning,
@@ -240,7 +240,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
+                    if (HasSupportedDifferentialFormat(rule) &&
                         !CanEvaluateTextRule(rule)) {
                         diagnostics.Add(new OfficeImageExportDiagnostic(
                             OfficeImageExportDiagnosticSeverity.Warning,
@@ -257,7 +257,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
+                    if (HasSupportedDifferentialFormat(rule) &&
                         !CanEvaluateTimePeriodRule(sheet, cells, rule, conditionalFormattingDate)) {
                         diagnostics.Add(new OfficeImageExportDiagnostic(
                             OfficeImageExportDiagnosticSeverity.Warning,
@@ -281,28 +281,28 @@ namespace OfficeIMO.Excel {
             ExcelConditionalFormattingInfo rule,
             List<OfficeImageExportDiagnostic> diagnostics,
             string source) {
-            if (!rule.DifferentialFormatId.HasValue || !string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb)) {
+            if (!rule.DifferentialFormatId.HasValue || HasSupportedDifferentialFormat(rule)) {
                 return false;
             }
 
             diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.ConditionalDifferentialFormatUnsupported,
-                "Conditional formatting differential format does not contain a supported solid fill; font, border, and other differential effects are not rendered yet.",
+                "Conditional formatting differential format does not contain a supported solid fill or font effect; border, number-format, and other differential effects are not rendered yet.",
                 source));
             return true;
         }
 
-        private static Dictionary<string, string> BuildConditionalFills(
+        private static Dictionary<string, ExcelConditionalCellFormat> BuildConditionalCellFormats(
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             IReadOnlyList<ExcelConditionalFormattingInfo> rules,
             DateTime conditionalFormattingDate,
             HashSet<string> stoppedCells) {
-            var fills = new Dictionary<string, string>(StringComparer.Ordinal);
+            var formats = new Dictionary<string, ExcelConditionalCellFormat>(StringComparer.Ordinal);
             foreach (ExcelConditionalFormattingInfo rule in rules.OrderBy(rule => NormalizePriority(rule.Priority))) {
                 if (string.Equals(rule.Type, "ColorScale", StringComparison.OrdinalIgnoreCase)) {
-                    ApplyColorScaleFill(sheet, cells, rule, fills, stoppedCells);
+                    ApplyColorScaleFill(sheet, cells, rule, formats, stoppedCells);
                     continue;
                 }
 
@@ -318,32 +318,32 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (string.Equals(rule.Type, "Top10", StringComparison.OrdinalIgnoreCase)) {
-                    ApplyTopBottomFill(sheet, cells, rule, fills, stoppedCells);
+                    ApplyTopBottomFormat(sheet, cells, rule, formats, stoppedCells);
                     continue;
                 }
 
                 if (string.Equals(rule.Type, "DuplicateValues", StringComparison.OrdinalIgnoreCase)) {
-                    ApplyDistinctValueFill(sheet, cells, rule, fills, stoppedCells, selectDuplicates: true);
+                    ApplyDistinctValueFormat(sheet, cells, rule, formats, stoppedCells, selectDuplicates: true);
                     continue;
                 }
 
                 if (string.Equals(rule.Type, "UniqueValues", StringComparison.OrdinalIgnoreCase)) {
-                    ApplyDistinctValueFill(sheet, cells, rule, fills, stoppedCells, selectDuplicates: false);
+                    ApplyDistinctValueFormat(sheet, cells, rule, formats, stoppedCells, selectDuplicates: false);
                     continue;
                 }
 
                 if (string.Equals(rule.Type, "AboveAverage", StringComparison.OrdinalIgnoreCase)) {
-                    ApplyAboveAverageFill(sheet, cells, rule, fills, stoppedCells);
+                    ApplyAboveAverageFormat(sheet, cells, rule, formats, stoppedCells);
                     continue;
                 }
 
                 if (IsTextRule(rule)) {
-                    ApplyTextRuleFill(cells, rule, fills, stoppedCells);
+                    ApplyTextRuleFormat(cells, rule, formats, stoppedCells);
                     continue;
                 }
 
                 if (IsTimePeriodRule(rule)) {
-                    ApplyTimePeriodFill(sheet, cells, rule, conditionalFormattingDate, fills, stoppedCells);
+                    ApplyTimePeriodFormat(sheet, cells, rule, conditionalFormattingDate, formats, stoppedCells);
                     continue;
                 }
 
@@ -354,9 +354,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (RuleMatchesCell(sheet, cell, rule)) {
-                        if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) && !fills.ContainsKey(key)) {
-                            fills[key] = rule.DifferentialFillColorArgb!;
-                        }
+                        ApplyDifferentialFormat(rule, key, formats);
 
                         if (rule.StopIfTrue) {
                             stoppedCells.Add(key);
@@ -365,14 +363,14 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return fills;
+            return formats;
         }
 
         private static void ApplyColorScaleFill(
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             ExcelConditionalFormattingInfo rule,
-            Dictionary<string, string> fills,
+            Dictionary<string, ExcelConditionalCellFormat> formats,
             HashSet<string> stoppedCells) {
             if (rule.ColorScaleColors.Count < 2 ||
                 !ExcelConditionalFormatThresholds.TryGetRgb(rule.ColorScaleColors[0], out _, out _, out _) ||
@@ -394,12 +392,13 @@ namespace OfficeIMO.Excel {
 
             foreach (ConditionalNumericCell candidate in candidates) {
                 string key = Key(candidate.Cell.Row, candidate.Cell.Column);
-                if (fills.ContainsKey(key)) {
+                if (formats.TryGetValue(key, out ExcelConditionalCellFormat? existing) &&
+                    !string.IsNullOrWhiteSpace(existing.FillColorArgb)) {
                     continue;
                 }
 
                 if (ExcelConditionalFormatThresholds.TryGetColorScaleRgb(values, rule.ColorScaleColors, rule.ColorScaleThresholds, candidate.Value, out string rgbHex)) {
-                    fills[key] = "FF" + rgbHex;
+                    ApplyFillFormat(key, "FF" + rgbHex, formats);
                 }
             }
         }
@@ -428,11 +427,11 @@ namespace OfficeIMO.Excel {
             return CalculateTopBottomSelectionCount(rule, count) > 0;
         }
 
-        private static void ApplyTopBottomFill(
+        private static void ApplyTopBottomFormat(
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             ExcelConditionalFormattingInfo rule,
-            Dictionary<string, string> fills,
+            Dictionary<string, ExcelConditionalCellFormat> formats,
             HashSet<string> stoppedCells) {
             if (!rule.TopBottomRank.HasValue ||
                 rule.TopBottomRank.Value == 0U) {
@@ -469,9 +468,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 string key = Key(candidate.Cell.Row, candidate.Cell.Column);
-                if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) && !fills.ContainsKey(key)) {
-                    fills[key] = rule.DifferentialFillColorArgb!;
-                }
+                ApplyDifferentialFormat(rule, key, formats);
 
                 if (rule.StopIfTrue) {
                     stoppedCells.Add(key);
@@ -506,11 +503,11 @@ namespace OfficeIMO.Excel {
             return count > 0;
         }
 
-        private static void ApplyAboveAverageFill(
+        private static void ApplyAboveAverageFormat(
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             ExcelConditionalFormattingInfo rule,
-            Dictionary<string, string> fills,
+            Dictionary<string, ExcelConditionalCellFormat> formats,
             HashSet<string> stoppedCells) {
             if (rule.AboveAverageStdDev.HasValue) {
                 return;
@@ -540,9 +537,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) && !fills.ContainsKey(key)) {
-                    fills[key] = rule.DifferentialFillColorArgb!;
-                }
+                ApplyDifferentialFormat(rule, key, formats);
 
                 if (rule.StopIfTrue) {
                     stoppedCells.Add(key);
@@ -550,11 +545,11 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyDistinctValueFill(
+        private static void ApplyDistinctValueFormat(
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             ExcelConditionalFormattingInfo rule,
-            Dictionary<string, string> fills,
+            Dictionary<string, ExcelConditionalCellFormat> formats,
             HashSet<string> stoppedCells,
             bool selectDuplicates) {
             var candidates = new List<(ExcelVisualCell Cell, string Value)>();
@@ -595,9 +590,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 string key = Key(cell.Row, cell.Column);
-                if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) && !fills.ContainsKey(key)) {
-                    fills[key] = rule.DifferentialFillColorArgb!;
-                }
+                ApplyDifferentialFormat(rule, key, formats);
 
                 if (rule.StopIfTrue) {
                     stoppedCells.Add(key);
@@ -946,6 +939,55 @@ namespace OfficeIMO.Excel {
         private static bool TryNormalizeArgb(string? value, out string? argb) =>
             ExcelConditionalFormatThresholds.TryNormalizeArgb(value, out argb);
 
+        private static bool HasSupportedDifferentialFormat(ExcelConditionalFormattingInfo rule) =>
+            !string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) ||
+            !string.IsNullOrWhiteSpace(rule.DifferentialFontColorArgb) ||
+            rule.DifferentialFontBold.HasValue ||
+            rule.DifferentialFontItalic.HasValue ||
+            rule.DifferentialFontUnderline.HasValue ||
+            !string.IsNullOrWhiteSpace(rule.DifferentialFontName) ||
+            rule.DifferentialFontSize.HasValue;
+
+        private static void ApplyDifferentialFormat(
+            ExcelConditionalFormattingInfo rule,
+            string key,
+            Dictionary<string, ExcelConditionalCellFormat> formats) {
+            if (!formats.TryGetValue(key, out ExcelConditionalCellFormat? format)) {
+                format = new ExcelConditionalCellFormat();
+                formats[key] = format;
+            }
+
+            if (string.IsNullOrWhiteSpace(format.FillColorArgb) && !string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb)) {
+                format.FillColorArgb = rule.DifferentialFillColorArgb;
+            }
+
+            if (string.IsNullOrWhiteSpace(format.FontColorArgb) && !string.IsNullOrWhiteSpace(rule.DifferentialFontColorArgb)) {
+                format.FontColorArgb = rule.DifferentialFontColorArgb;
+            }
+
+            format.FontBold ??= rule.DifferentialFontBold;
+            format.FontItalic ??= rule.DifferentialFontItalic;
+            format.FontUnderline ??= rule.DifferentialFontUnderline;
+
+            if (string.IsNullOrWhiteSpace(format.FontName) && !string.IsNullOrWhiteSpace(rule.DifferentialFontName)) {
+                format.FontName = rule.DifferentialFontName;
+            }
+
+            format.FontSize ??= rule.DifferentialFontSize;
+        }
+
+        private static void ApplyFillFormat(
+            string key,
+            string fillColorArgb,
+            Dictionary<string, ExcelConditionalCellFormat> formats) {
+            if (!formats.TryGetValue(key, out ExcelConditionalCellFormat? format)) {
+                format = new ExcelConditionalCellFormat();
+                formats[key] = format;
+            }
+
+            format.FillColorArgb ??= fillColorArgb;
+        }
+
         private readonly struct ConditionalNumericCell {
             internal ConditionalNumericCell(ExcelVisualCell cell, double value) {
                 Cell = cell;
@@ -960,23 +1002,39 @@ namespace OfficeIMO.Excel {
 
     internal sealed class ExcelConditionalVisualState {
         internal static readonly ExcelConditionalVisualState Empty = new ExcelConditionalVisualState(
-            new Dictionary<string, string>(StringComparer.Ordinal),
+            new Dictionary<string, ExcelConditionalCellFormat>(StringComparer.Ordinal),
             Array.Empty<ExcelVisualConditionalDataBar>(),
             Array.Empty<ExcelVisualConditionalIcon>());
 
         internal ExcelConditionalVisualState(
-            IReadOnlyDictionary<string, string> fillColors,
+            IReadOnlyDictionary<string, ExcelConditionalCellFormat> cellFormats,
             IReadOnlyList<ExcelVisualConditionalDataBar> dataBars,
             IReadOnlyList<ExcelVisualConditionalIcon> icons) {
-            FillColors = fillColors;
+            CellFormats = cellFormats;
             DataBars = dataBars;
             Icons = icons;
         }
 
-        internal IReadOnlyDictionary<string, string> FillColors { get; }
+        internal IReadOnlyDictionary<string, ExcelConditionalCellFormat> CellFormats { get; }
 
         internal IReadOnlyList<ExcelVisualConditionalDataBar> DataBars { get; }
 
         internal IReadOnlyList<ExcelVisualConditionalIcon> Icons { get; }
+    }
+
+    internal sealed class ExcelConditionalCellFormat {
+        internal string? FillColorArgb { get; set; }
+
+        internal string? FontColorArgb { get; set; }
+
+        internal bool? FontBold { get; set; }
+
+        internal bool? FontItalic { get; set; }
+
+        internal bool? FontUnderline { get; set; }
+
+        internal string? FontName { get; set; }
+
+        internal double? FontSize { get; set; }
     }
 }

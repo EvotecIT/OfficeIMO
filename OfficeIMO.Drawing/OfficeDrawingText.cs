@@ -10,7 +10,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     /// <summary>
     /// Creates a positioned drawing text box.
     /// </summary>
-    public OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool wrapText = false, bool shrinkToFit = false, bool stackedText = false) {
+    public OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool wrapText = false, bool shrinkToFit = false, bool stackedText = false, bool flipHorizontal = false, bool flipVertical = false, OfficeTextPadding? padding = null, OfficeTextParagraphIndent? paragraphIndent = null) {
         if (text == null) {
             throw new ArgumentNullException(nameof(text));
         }
@@ -40,8 +40,15 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         WrapText = wrapText;
         ShrinkToFit = shrinkToFit;
         StackedText = stackedText;
+        FlipHorizontal = flipHorizontal;
+        FlipVertical = flipVertical;
+        Padding = padding ?? OfficeTextPadding.Empty;
+        ParagraphIndent = paragraphIndent ?? OfficeTextParagraphIndent.Empty;
         ValidateFinite(RotationCenterX, nameof(rotationCenterX));
         ValidateFinite(RotationCenterY, nameof(rotationCenterY));
+        if (Padding.Horizontal >= Width || Padding.Vertical >= Height) {
+            throw new ArgumentOutOfRangeException(nameof(padding), "Text padding must leave a positive content rectangle.");
+        }
     }
 
     /// <summary>Text content.</summary>
@@ -92,8 +99,32 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     /// <summary>Whether renderers should lay text out as upright stacked characters.</summary>
     public bool StackedText { get; }
 
+    /// <summary>Whether renderers should mirror the text frame horizontally around the rotation center.</summary>
+    public bool FlipHorizontal { get; }
+
+    /// <summary>Whether renderers should mirror the text frame vertically around the rotation center.</summary>
+    public bool FlipVertical { get; }
+
+    /// <summary>Insets applied inside the text frame before text layout.</summary>
+    public OfficeTextPadding Padding { get; }
+
+    /// <summary>First-line and continuation-line offsets applied inside the text frame.</summary>
+    public OfficeTextParagraphIndent ParagraphIndent { get; }
+
+    /// <summary>Whether the text frame has non-zero padding.</summary>
+    public bool HasPadding => !Padding.IsEmpty;
+
+    /// <summary>Whether the text frame has non-zero paragraph indentation.</summary>
+    public bool HasParagraphIndent => !ParagraphIndent.IsEmpty;
+
+    /// <summary>Whether the text frame applies rotation or mirroring.</summary>
+    public bool HasFrameTransform => Math.Abs(RotationDegrees) > 0.000001D || FlipHorizontal || FlipVertical;
+
+    /// <summary>Creates the reusable destination-space frame transform for this text box.</summary>
+    public OfficeImageFrameTransform CreateFrameTransform() => new OfficeImageFrameTransform(RotationDegrees, RotationCenterX, RotationCenterY, FlipHorizontal, FlipVertical);
+
     /// <summary>Creates a detached copy of this positioned text box.</summary>
-    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, StackedText);
+    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, StackedText, FlipHorizontal, FlipVertical, Padding, ParagraphIndent);
 
     internal override OfficeDrawingElement CloneElement() => Clone();
 

@@ -87,6 +87,7 @@ namespace OfficeIMO.PowerPoint {
             GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null => PowerPointShapeContentType.Table,
             GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null => PowerPointShapeContentType.Chart,
             GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null => PowerPointShapeContentType.SmartArt,
+            ConnectionShape => PowerPointShapeContentType.Connector,
             Shape s when s.TextBody != null => PowerPointShapeContentType.TextBox,
             Shape => PowerPointShapeContentType.AutoShape,
             _ => PowerPointShapeContentType.Unknown

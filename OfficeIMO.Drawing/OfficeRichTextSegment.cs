@@ -7,7 +7,7 @@ public sealed class OfficeRichTextSegment {
     /// <summary>
     /// Creates a measured rich text segment.
     /// </summary>
-    public OfficeRichTextSegment(string text, double width, double fontSize, OfficeColor color, bool bold, bool italic, bool underline, string fontFamily, bool strikethrough = false) {
+    public OfficeRichTextSegment(string text, double width, double fontSize, OfficeColor color, bool bold, bool italic, bool underline, string fontFamily, bool strikethrough = false, OfficeColor? backgroundColor = null) {
         Text = text;
         Width = width;
         FontSize = fontSize;
@@ -17,6 +17,7 @@ public sealed class OfficeRichTextSegment {
         Underline = underline;
         Strikethrough = strikethrough;
         FontFamily = fontFamily;
+        BackgroundColor = backgroundColor;
     }
 
     /// <summary>
@@ -63,4 +64,9 @@ public sealed class OfficeRichTextSegment {
     /// Gets the segment font family.
     /// </summary>
     public string FontFamily { get; }
+
+    /// <summary>
+    /// Gets the optional segment background/highlight color.
+    /// </summary>
+    public OfficeColor? BackgroundColor { get; }
 }
