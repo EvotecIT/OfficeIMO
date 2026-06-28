@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(220, 120);
             PowerPointSlide slide = presentation.Slides[0];
 
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint spaced first", 20, 20, 150, 80);
+            PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint spaced first", 20, 20, 190, 80);
             textBox.FontSize = 12;
             textBox.SetTextMarginsPoints(0, 0, 0, 0);
             textBox.Paragraphs[0].SetSpaceAfterPoints(18);
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(220, 120);
             PowerPointSlide slide = presentation.Slides[0];
 
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint line spacing", 20, 20, 150, 80);
+            PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint line spacing", 20, 20, 190, 80);
             textBox.FontSize = 12;
             textBox.SetTextMarginsPoints(0, 0, 0, 0);
             textBox.Paragraphs[0].SetLineSpacingPoints(24);
