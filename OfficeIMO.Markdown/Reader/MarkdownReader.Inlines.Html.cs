@@ -1,6 +1,8 @@
 namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {
+    private static readonly string[] SupportedInlineHtmlWrapperTags = { "u", "sup", "sub", "ins", "q" };
+
     private static bool TryParseSupportedInlineHtmlTag(
         string text,
         int start,
@@ -18,13 +20,12 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        string[] tags = { "u", "sup", "sub", "ins", "q" };
-        for (int i = 0; i < tags.Length; i++) {
-            if (!TryParseInlineHtmlWrapper(text, start, tags[i], options, state, sourceMap, allowLinks, allowImages, out consumed, out var inlines)) {
+        for (int i = 0; i < SupportedInlineHtmlWrapperTags.Length; i++) {
+            if (!TryParseInlineHtmlWrapper(text, start, SupportedInlineHtmlWrapperTags[i], options, state, sourceMap, allowLinks, allowImages, out consumed, out var inlines)) {
                 continue;
             }
 
-            var htmlTag = new HtmlTagSequenceInline(tags[i], inlines);
+            var htmlTag = new HtmlTagSequenceInline(SupportedInlineHtmlWrapperTags[i], inlines);
             SetInlineHtmlTagMarkerSpans(htmlTag, sourceMap, start, consumed);
             htmlNode = htmlTag;
             return true;
@@ -68,6 +69,55 @@ public static partial class MarkdownReader {
                         allowImages,
                         sourceMap?.Slice(start + openLength, inner.Length));
                     DecodeHtmlEntitiesInTextRuns(inlines);
+                    consumed = (scan - start) + tagName.Length + 3;
+                    return true;
+                }
+
+                scan += tagName.Length + 3;
+                continue;
+            }
+
+            if (StartsWithExactHtmlTag(text, scan, tagName, opening: true)) {
+                depth++;
+                scan += openLength;
+                continue;
+            }
+
+            scan++;
+        }
+
+        return false;
+    }
+
+    private static bool TryConsumeSupportedInlineHtmlWrapperSpan(string text, int start, out int consumed) {
+        consumed = 0;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length || text[start] != '<') {
+            return false;
+        }
+
+        for (int i = 0; i < SupportedInlineHtmlWrapperTags.Length; i++) {
+            if (TryConsumeSupportedInlineHtmlWrapperSpan(text, start, SupportedInlineHtmlWrapperTags[i], out consumed)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryConsumeSupportedInlineHtmlWrapperSpan(string text, int start, string tagName, out int consumed) {
+        consumed = 0;
+        if (!StartsWithExactHtmlTag(text, start, tagName, opening: true)) {
+            return false;
+        }
+
+        int openLength = tagName.Length + 2;
+        int scan = start + openLength;
+        int depth = 1;
+
+        while (scan < text.Length) {
+            if (StartsWithExactHtmlTag(text, scan, tagName, opening: false)) {
+                depth--;
+                if (depth == 0) {
                     consumed = (scan - start) + tagName.Length + 3;
                     return true;
                 }

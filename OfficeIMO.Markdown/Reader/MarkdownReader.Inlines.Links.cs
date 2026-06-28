@@ -46,6 +46,10 @@ public static partial class MarkdownReader {
         }
 
         if (text[start] == '<') {
+            if (TryConsumeSupportedInlineHtmlWrapperSpan(text, start, out consumed)) {
+                return true;
+            }
+
             if (TryParseAngleAutolink(text, start, out consumed, out _, out _)) {
                 return true;
             }
@@ -185,6 +189,11 @@ public static partial class MarkdownReader {
         if (string.IsNullOrEmpty(label)) return false;
 
         for (int i = 0; i < label.Length; i++) {
+            if (TrySkipLinkLabelInlineSpan(label, i, out int spanConsumed)) {
+                i += spanConsumed - 1;
+                continue;
+            }
+
             if (label[i] != '[') {
                 continue;
             }
