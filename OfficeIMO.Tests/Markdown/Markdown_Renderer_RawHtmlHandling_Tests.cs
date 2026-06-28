@@ -95,6 +95,45 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     }
 
     [Fact]
+    public void GitHubFlavoredMarkdown_Html_Profile_Enables_Tag_Filter_Without_Security_Stripping() {
+        const string markdown = """
+- [x] done
+
+Inline <xmp>bad</xmp>.
+
+<script>alert(1)</script>
+""";
+
+        var document = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var options = HtmlOptions.CreateGitHubFlavoredMarkdownProfile();
+
+        var html = document.ToHtmlFragment(options);
+
+        Assert.True(options.GitHubTaskListHtml);
+        Assert.True(options.GitHubFootnoteHtml);
+        Assert.True(options.GitHubHtmlTagFilter);
+        Assert.Equal(RawHtmlHandling.Allow, options.RawHtmlHandling);
+        Assert.Contains("<input type=\"checkbox\" checked=\"\" disabled=\"\" /> done", html, StringComparison.Ordinal);
+        Assert.Contains("&lt;xmp>bad&lt;/xmp>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("&lt;script>alert(1)&lt;/script>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<script>", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void GitHubFlavoredMarkdown_Html_Profile_Does_Not_Change_Strict_Renderer_Security_Defaults() {
+        var strict = MarkdownRendererPresets.CreateStrict(MarkdownReaderOptions.MarkdownDialectProfile.GitHubFlavoredMarkdown);
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(
+            "<script>alert(1)</script>\n\n- [x] done",
+            strict);
+
+        Assert.Equal(RawHtmlHandling.Strip, strict.HtmlOptions.RawHtmlHandling);
+        Assert.False(strict.HtmlOptions.GitHubHtmlTagFilter);
+        Assert.DoesNotContain("script", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("done", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Defaults_To_Stripping_RawHtml() {
         var md = "<div>hi</div>";
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, new MarkdownRendererOptions {

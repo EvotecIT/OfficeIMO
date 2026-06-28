@@ -24,6 +24,24 @@ public delegate string? MarkdownFootnoteSectionHtmlRenderer(IReadOnlyList<Footno
 /// Options controlling HTML rendering style and asset delivery.
 /// </summary>
 public sealed class HtmlOptions {
+    /// <summary>
+    /// Creates a fragment-oriented HTML rendering profile for GitHub Flavored Markdown comparison/output.
+    /// This enables cmark-gfm-style task-list HTML, footnote HTML, and the GFM raw HTML tag filter while
+    /// leaving raw HTML otherwise allowed. Use a stricter <see cref="RawHtmlHandling"/> value for untrusted hosts.
+    /// </summary>
+    public static HtmlOptions CreateGitHubFlavoredMarkdownProfile() {
+        return new HtmlOptions {
+            Kind = HtmlKind.Fragment,
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            GitHubTaskListHtml = true,
+            GitHubFootnoteHtml = true,
+            GitHubHtmlTagFilter = true,
+            RawHtmlHandling = RawHtmlHandling.Allow
+        };
+    }
+
     /// <summary>Fragment vs full document. Default: <see cref="HtmlKind.Document"/> when used with <see cref="MarkdownDoc.ToHtmlDocument"/>.</summary>
     public HtmlKind Kind { get; set; } = HtmlKind.Fragment;
     /// <summary>Built-in style preset. Default: <see cref="HtmlStyle.Clean"/>.</summary>

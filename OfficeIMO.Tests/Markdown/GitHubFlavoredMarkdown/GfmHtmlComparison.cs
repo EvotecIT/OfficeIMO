@@ -5,14 +5,7 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 internal static class GfmHtmlComparison {
     public static HtmlOptions CreatePlainHtmlOptions() {
-        return new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null,
-            GitHubTaskListHtml = true,
-            GitHubFootnoteHtml = true,
-            GitHubHtmlTagFilter = true
-        };
+        return HtmlOptions.CreateGitHubFlavoredMarkdownProfile();
     }
 
     public static string Normalize(string html) {
