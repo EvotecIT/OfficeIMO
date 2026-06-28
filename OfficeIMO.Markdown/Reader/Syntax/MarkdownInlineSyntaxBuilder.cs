@@ -353,12 +353,25 @@ internal static class MarkdownInlineSyntaxBuilder {
             return Array.Empty<MarkdownSyntaxNode>();
         }
 
-        return new[] {
-            new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.InlineFootnoteLabel,
-                GetFootnoteRefLabelSpan(footnote, span),
-                literal: footnote.Label)
-        };
+        var nodes = new List<MarkdownSyntaxNode>(3);
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineOpeningMarker,
+            MarkdownInlineMetadataSourceSpans.GetOpeningMarker(footnote),
+            MarkdownInlineMetadataSourceSpans.GetOpeningMarkerSpan(footnote));
+
+        nodes.Add(new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.InlineFootnoteLabel,
+            GetFootnoteRefLabelSpan(footnote, span),
+            literal: footnote.Label));
+
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineClosingMarker,
+            MarkdownInlineMetadataSourceSpans.GetClosingMarker(footnote),
+            MarkdownInlineMetadataSourceSpans.GetClosingMarkerSpan(footnote));
+
+        return nodes;
     }
 
     private static MarkdownSourceSpan? GetFootnoteRefLabelSpan(FootnoteRefInline footnote, MarkdownSourceSpan? span) {

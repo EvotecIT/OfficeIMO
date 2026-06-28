@@ -326,6 +326,11 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 10), label.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 6), opening.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 11), closing.SourceSpan);
+        Assert.Collection(footnote.SyntaxNode.Children,
+            openingMarker => Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind),
+            labelToken => Assert.Equal(MarkdownSyntaxKind.InlineFootnoteLabel, labelToken.Kind),
+            closingMarker => Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind));
+        Assert.Empty(footnote.Children);
         Assert.Equal("See [^todo]\n\n[^note]: Body\n", native.CreateReplaceEdit(label, "todo").Apply(native.SourceMarkdown));
 
         var edited = native.CreateReplaceEdit(opening, "{^").Apply(native.SourceMarkdown);

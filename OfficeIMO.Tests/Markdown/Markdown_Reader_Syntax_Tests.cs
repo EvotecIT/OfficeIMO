@@ -893,11 +893,31 @@ baz*
 
         Assert.Equal("note", footnoteRef.Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 9), footnoteRef.SourceSpan);
-        var label = Assert.Single(footnoteRef.Children);
+        Assert.Collection(footnoteRef.Children,
+            openingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind);
+                Assert.Equal("[^", openingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 4), openingMarker.SourceSpan);
+                Assert.Null(openingMarker.AssociatedObject);
+            },
+            labelNode => {
+                Assert.Equal(MarkdownSyntaxKind.InlineFootnoteLabel, labelNode.Kind);
+                Assert.Equal("note", labelNode.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), labelNode.SourceSpan);
+            },
+            closingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind);
+                Assert.Equal("]", closingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 9), closingMarker.SourceSpan);
+                Assert.Null(closingMarker.AssociatedObject);
+            });
+        var label = Assert.Single(footnoteRef.Children, node => node.Kind == MarkdownSyntaxKind.InlineFootnoteLabel);
         Assert.Equal(MarkdownSyntaxKind.InlineFootnoteLabel, label.Kind);
         Assert.Equal("note", label.Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), label.SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, result.FindDeepestNodeAtPosition(1, 3)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.InlineFootnoteLabel, result.FindDeepestNodeAtPosition(1, 6)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, result.FindDeepestNodeAtPosition(1, 9)!.Kind);
     }
 
     [Fact]
