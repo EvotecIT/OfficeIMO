@@ -165,30 +165,43 @@ public static partial class MarkdownReader {
         titleStart = null;
         titleLength = null;
         if (inner == null) return false;
-        if (string.IsNullOrWhiteSpace(inner)) return false;
 
         int start = 0;
-        while (start < inner.Length && char.IsWhiteSpace(inner[start])) {
+        while (start < inner.Length && IsLinkWhitespace(inner[start])) {
             start++;
         }
 
         int endExclusive = inner.Length;
-        while (endExclusive > start && char.IsWhiteSpace(inner[endExclusive - 1])) {
+        while (endExclusive > start && IsLinkWhitespace(inner[endExclusive - 1])) {
             endExclusive--;
         }
 
-        if (endExclusive <= start) return false;
+        if (endExclusive <= start) {
+            urlStart = start;
+            urlLength = 0;
+            url = string.Empty;
+            title = null;
+            return true;
+        }
 
         // CommonMark: destination can be wrapped in <...> to allow spaces and parentheses safely.
         if (inner[start] == '<') {
             int gt = inner.IndexOf('>', start + 1);
             if (gt >= start + 1 && gt < endExclusive) {
+                if (!IsValidAngleLinkDestination(inner, start + 1, gt)) {
+                    return false;
+                }
+
                 urlStart = start + 1;
                 urlLength = gt - urlStart;
-                url = DecodeLinkDestinationOrTitle(inner.Substring(urlStart, urlLength).Trim());
+                url = DecodeLinkDestinationOrTitle(inner.Substring(urlStart, urlLength));
 
                 int restStart = gt + 1;
-                while (restStart < endExclusive && char.IsWhiteSpace(inner[restStart])) {
+                if (restStart < endExclusive && !IsLinkWhitespace(inner[restStart])) {
+                    return false;
+                }
+
+                while (restStart < endExclusive && IsLinkWhitespace(inner[restStart])) {
                     restStart++;
                 }
 
@@ -209,7 +222,7 @@ public static partial class MarkdownReader {
 
         int ws = -1;
         for (int i = start; i < endExclusive; i++) {
-            if (char.IsWhiteSpace(inner[i])) {
+            if (IsLinkWhitespace(inner[i])) {
                 ws = i;
                 break;
             }
@@ -225,10 +238,10 @@ public static partial class MarkdownReader {
 
         urlStart = start;
         urlLength = ws - start;
-        url = DecodeLinkDestinationOrTitle(inner.Substring(urlStart, urlLength).Trim());
+        url = DecodeLinkDestinationOrTitle(inner.Substring(urlStart, urlLength));
 
         int remainingStart = ws;
-        while (remainingStart < endExclusive && char.IsWhiteSpace(inner[remainingStart])) {
+        while (remainingStart < endExclusive && IsLinkWhitespace(inner[remainingStart])) {
             remainingStart++;
         }
 
@@ -249,28 +262,48 @@ public static partial class MarkdownReader {
         destinationStart = 0;
         destinationLength = 0;
 
-        string trimmed = inner.Trim();
-        if (IndexOfWhitespace(trimmed) >= 0) return false;
-
         int trimmedStart = 0;
-        while (trimmedStart < inner.Length && char.IsWhiteSpace(inner[trimmedStart])) {
+        while (trimmedStart < inner.Length && IsLinkWhitespace(inner[trimmedStart])) {
             trimmedStart++;
         }
 
         int trimmedEndExclusive = inner.Length;
-        while (trimmedEndExclusive > trimmedStart && char.IsWhiteSpace(inner[trimmedEndExclusive - 1])) {
+        while (trimmedEndExclusive > trimmedStart && IsLinkWhitespace(inner[trimmedEndExclusive - 1])) {
             trimmedEndExclusive--;
         }
 
-        destination = DecodeLinkDestinationOrTitle(trimmed);
+        if (trimmedEndExclusive <= trimmedStart) return false;
+        if (inner[trimmedStart] == '<') return false;
+        if (IndexOfWhitespace(inner, trimmedStart, trimmedEndExclusive) >= 0) return false;
+
+        destination = DecodeLinkDestinationOrTitle(inner.Substring(trimmedStart, trimmedEndExclusive - trimmedStart));
         destinationStart = trimmedStart;
         destinationLength = Math.Max(0, trimmedEndExclusive - trimmedStart);
         return true;
     }
 
     private static int IndexOfWhitespace(string s) {
-        for (int i = 0; i < s.Length; i++) if (char.IsWhiteSpace(s[i])) return i;
+        for (int i = 0; i < s.Length; i++) if (IsLinkWhitespace(s[i])) return i;
         return -1;
+    }
+
+    private static int IndexOfWhitespace(string s, int start, int endExclusive) {
+        for (int i = start; i < endExclusive; i++) if (IsLinkWhitespace(s[i])) return i;
+        return -1;
+    }
+
+    private static bool IsLinkWhitespace(char c) =>
+        c == ' ' || c == '\t' || c == '\n' || c == '\r';
+
+    private static bool IsValidAngleLinkDestination(string value, int start, int endExclusive) {
+        for (int i = start; i < endExclusive; i++) {
+            char c = value[i];
+            if (c == '\n' || c == '\r' || c == '<') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static string? TryParseOptionalTitleToken(string s) {
@@ -309,6 +342,10 @@ public static partial class MarkdownReader {
             (open == '(' && close == ')')) {
             titleStart = start + 1;
             titleLength = endExclusive - start - 2;
+            if (ContainsUnescapedTitleDelimiter(s, titleStart, titleStart + titleLength, close)) {
+                return false;
+            }
+
             title = s.Substring(titleStart, titleLength);
             return true;
         }
@@ -353,5 +390,27 @@ public static partial class MarkdownReader {
             }
         }
         return -1;
+    }
+
+    private static bool ContainsUnescapedTitleDelimiter(string value, int start, int endExclusive, char delimiter) {
+        bool escaped = false;
+        for (int i = start; i < endExclusive; i++) {
+            char c = value[i];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == delimiter) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

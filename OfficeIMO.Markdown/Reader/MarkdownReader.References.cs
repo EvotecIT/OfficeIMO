@@ -619,7 +619,7 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        if (IndexOfWhitespace(rest) >= 0) {
+        if (StartsWithAngleLinkDestination(rest) || IndexOfWhitespace(rest) >= 0) {
             return false;
         }
 
@@ -632,5 +632,18 @@ public static partial class MarkdownReader {
             state?.SourceLineOffset + lineIndex + 1 ?? lineIndex + 1,
             contentStartColumnZeroBased + rest.Length);
         return true;
+    }
+
+    private static bool StartsWithAngleLinkDestination(string value) {
+        if (string.IsNullOrEmpty(value)) {
+            return false;
+        }
+
+        int index = 0;
+        while (index < value.Length && IsLinkWhitespace(value[index])) {
+            index++;
+        }
+
+        return index < value.Length && value[index] == '<';
     }
 }

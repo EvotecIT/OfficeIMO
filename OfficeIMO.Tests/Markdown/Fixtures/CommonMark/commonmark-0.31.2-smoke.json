@@ -1120,6 +1120,13 @@
     ]
   },
   {
+    "example": 201,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "[foo]: <bar>(baz)\n\n[foo]\n",
+    "html": "<p>[foo]: <bar>(baz)</p>\n<p>[foo]</p>\n"
+  },
+  {
     "example": 206,
     "section": "Link reference definitions",
     "topLevelKinds": ["ReferenceLinkDefinition", "Paragraph"],
@@ -2584,6 +2591,13 @@
     ]
   },
   {
+    "example": 494,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[a](<b)c\n[a](<b)c>\n[a](<b>c)\n",
+    "html": "<p>[a](&lt;b)c\n[a](&lt;b)c&gt;\n[a](<b>c)</p>\n"
+  },
+  {
     "example": 503,
     "section": "Links",
     "topLevelKinds": ["Paragraph"],
@@ -2596,6 +2610,20 @@
     "topLevelKinds": ["Paragraph"],
     "markdown": "[link](/url \"title \\\"&quot;\")\n",
     "html": "<p><a href=\"/url\" title=\"title &quot;&quot;\">link</a></p>\n"
+  },
+  {
+    "example": 507,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[link](/url\u00A0\"title\")\n",
+    "html": "<p><a href=\"/url%C2%A0%22title%22\">link</a></p>\n"
+  },
+  {
+    "example": 508,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[link](/url \"title \"and\" title\")\n",
+    "html": "<p>[link](/url &quot;title &quot;and&quot; title&quot;)</p>\n"
   },
   {
     "example": 594,
