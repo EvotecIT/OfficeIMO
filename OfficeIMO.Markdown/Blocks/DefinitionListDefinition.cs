@@ -10,6 +10,7 @@ public sealed class DefinitionListDefinition : MarkdownObject {
 
     /// <summary>Structured markdown blocks that belong to this definition body.</summary>
     public List<IMarkdownBlock> Blocks => _blocks;
+    internal bool ForceParagraphHtml { get; set; }
 
     /// <summary>Creates a definition body.</summary>
     public DefinitionListDefinition(IEnumerable<IMarkdownBlock>? blocks = null) {
@@ -54,7 +55,7 @@ public sealed class DefinitionListDefinition : MarkdownObject {
             return string.Empty;
         }
 
-        if (_blocks.Count == 1 && _blocks[0] is ParagraphBlock paragraph) {
+        if (_blocks.Count == 1 && _blocks[0] is ParagraphBlock paragraph && !ForceParagraphHtml) {
             return paragraph.Inlines.RenderHtml();
         }
 

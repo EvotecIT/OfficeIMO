@@ -9,11 +9,7 @@ public sealed class Markdown_DefinitionList_Ast_Tests {
     [InlineData("Term\n:   Definition\n")]
     [InlineData("Term\n:\tDefinition\n")]
     public void DefinitionList_MarkdigMarkerSyntax_Matches_MarkdigHtml(string markdown) {
-        var office = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
-        });
+        var office = MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions()).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
@@ -33,13 +29,36 @@ lazy continuation
         """
 Term
 :   First paragraph
+Next term
+:   Second paragraph
+""",
+        """
+Term
+:   First paragraph
 
     Second paragraph
 """,
         """
 Term
 :   First paragraph
+
+Second paragraph
+""",
+        """
+Term
+:   First paragraph
+
+:   Second paragraph
+""",
+        """
+Term
+:   First paragraph
     - item
+""",
+        """
+Term
+:   First paragraph
+    1. item
 """,
         """
 Term
@@ -51,17 +70,28 @@ Term
 :   ```
     code
     ```
+""",
+        """
+Term
+:   First paragraph
+# Heading
+""",
+        """
+Term
+:   First paragraph
+- sibling item
+""",
+        """
+Term
+:   First paragraph
+[ref]: https://example.com
 """
     };
 
     [Theory]
     [MemberData(nameof(MarkdigDefinitionListContinuationCases))]
     public void DefinitionList_MarkdigContinuationSyntax_Matches_MarkdigHtml(string markdown) {
-        var office = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
-        });
+        var office = MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions()).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
@@ -128,16 +158,44 @@ lazy continuation
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
+    [Fact]
+    public void DefinitionList_MarkdigBlockContinuation_Stays_In_Definition_Body_Source() {
+        const string markdown = """
+Term
+:   First paragraph
+# Heading
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var heading = Assert.IsType<HeadingBlock>(definition.Blocks[1]);
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 9), definitionValue.SourceSpan);
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.Heading
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 2, 19), definitionValue.Children[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 9), definitionValue.Children[1].SourceSpan);
+        Assert.Same(definition, definitionValue.AssociatedObject);
+        Assert.Same(paragraph, definitionValue.Children[0].AssociatedObject);
+        Assert.Same(heading, definitionValue.Children[1].AssociatedObject);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
     [Theory]
     [InlineData("Term\n: Definition\n")]
     [InlineData("Term\n:  Definition\n")]
     public void DefinitionList_MarkdigMarkerSyntax_Requires_MarkdigMarkerSpacing(string markdown) {
-        var doc = MarkdownReader.Parse(markdown);
-        var html = doc.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
-        });
+        var doc = MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var html = doc.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
@@ -293,6 +351,19 @@ Term 2
         Markdig.MarkdownExtensions.UseDefinitionLists(builder);
         return builder.Build();
     }
+
+    private static MarkdownReaderOptions CreateMarkdigDefinitionListReaderOptions() {
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        options.DefinitionLists = true;
+        return options;
+    }
+
+    private static HtmlOptions CreateMarkdigDefinitionListHtmlOptions() => new() {
+        Style = HtmlStyle.Plain,
+        CssDelivery = CssDelivery.None,
+        BodyClass = null,
+        AutoHeadingIdentifiers = false
+    };
 
     private static string NormalizeHtml(string html) {
         if (string.IsNullOrWhiteSpace(html)) {
