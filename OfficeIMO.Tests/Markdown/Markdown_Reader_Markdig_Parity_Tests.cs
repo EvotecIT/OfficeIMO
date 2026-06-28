@@ -185,6 +185,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "www-query-ampersand", "Visit www.example.com/path?q=1&next=2 now" };
         yield return new object[] { "http-query-parens", "Visit https://example.com/search?q=(x) now" };
         yield return new object[] { "www-query-parens", "Visit www.example.com/search?q=(x) now" };
+        yield return new object[] { "http-balanced-parens-extra-close", "Visit https://example.com/path_(x)). now" };
+        yield return new object[] { "www-balanced-parens-extra-close", "Visit www.example.com/path_(x)). now" };
         yield return new object[] { "ftp-url", "Visit ftp://example.com/file.txt now" };
         yield return new object[] { "ftp-url-query-ampersand", "Visit ftp://example.com/path?q=1&next=2 now" };
         yield return new object[] { "ftp-url-query-parens", "Visit ftp://example.com/search?q=(x) now" };
