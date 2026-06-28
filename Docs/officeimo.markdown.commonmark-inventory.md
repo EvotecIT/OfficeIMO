@@ -15,10 +15,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Official examples | 652 |
-| Pinned smoke fixtures | 278 |
-| Passing pinned fixtures | 278 |
+| Pinned smoke fixtures | 280 |
+| Passing pinned fixtures | 280 |
 | Passing unpinned examples | 323 |
-| Failing examples | 51 |
+| Failing examples | 49 |
 | Intentional deviations | 0 |
 
 ## Section Inventory
@@ -42,13 +42,13 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | List items | 48 | 38 | 38 | 9 | 1 | 0 |
 | Lists | 26 | 26 | 26 | 0 | 0 | 0 |
 | Inlines | 1 | 0 | 0 | 1 | 0 | 0 |
-| Code spans | 22 | 5 | 5 | 13 | 4 | 0 |
+| Code spans | 22 | 6 | 6 | 13 | 3 | 0 |
 | Emphasis and strong emphasis | 132 | 11 | 11 | 112 | 9 | 0 |
 | Links | 90 | 13 | 13 | 62 | 15 | 0 |
 | Images | 22 | 2 | 2 | 20 | 0 | 0 |
 | Autolinks | 19 | 12 | 12 | 7 | 0 | 0 |
 | Raw HTML | 20 | 8 | 8 | 4 | 8 | 0 |
-| Hard line breaks | 15 | 5 | 5 | 6 | 4 | 0 |
+| Hard line breaks | 15 | 6 | 6 | 6 | 3 | 0 |
 | Soft line breaks | 2 | 2 | 2 | 0 | 0 | 0 |
 | Textual content | 3 | 0 | 0 | 3 | 0 | 0 |
 
@@ -60,8 +60,8 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | HTML block/raw HTML grammar | 11 | HTML blocks, Raw HTML | #148, #174, #191, #619, #621, #622, #625, #626, #627, #628, #629 |
 | Emphasis delimiter algorithm | 9 | Emphasis and strong emphasis | #353, #408, #418, #432, #438, #441, #450, #453, #470 |
 | Container indentation and continuation | 6 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #242, #252, #264 |
-| Code span normalization and precedence | 4 | Code spans | #333, #334, #336, #342 |
-| Inline precedence and line-break grammar | 4 | Hard line breaks | #641, #642, #643, #644 |
+| Code span normalization and precedence | 3 | Code spans | #333, #334, #342 |
+| Inline precedence and line-break grammar | 3 | Hard line breaks | #642, #643, #644 |
 | CommonMark entity decoder | 2 | Entity and numeric character references | #25, #26 |
 
 ## Next Use

@@ -736,6 +736,33 @@ Term: Intro
         }
 
         [Fact]
+        public void Multiline_CodeSpan_Preserves_Source_Line_Ending_Content() {
+            string md = string.Join("\n", new[] { "``", "foo ", "``", string.Empty });
+
+            var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var code = Assert.IsType<CodeSpanInline>(Assert.Single(paragraph.Inlines.Nodes));
+
+            Assert.Equal("foo ", code.Text);
+            Assert.Contains("<code>foo </code>", doc.ToHtmlFragment());
+        }
+
+        [Fact]
+        public void CodeSpan_Treats_Source_Backslash_Line_End_As_Literal_Content() {
+            const string md = """
+`code\
+span`
+""";
+
+            var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var code = Assert.IsType<CodeSpanInline>(Assert.Single(paragraph.Inlines.Nodes));
+
+            Assert.Equal("code\\ span", code.Text);
+            Assert.Contains("<code>code\\ span</code>", doc.ToHtmlFragment());
+        }
+
+        [Fact]
         public void Reference_Image_Full_Collapsed_And_Shortcut_Are_Supported() {
             string md = """
 ![logo][id]

@@ -1523,6 +1523,13 @@
     "html": "<p>foo<br />\nbar</p>\n"
   },
   {
+    "example": 641,
+    "section": "Hard line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "`code\\\nspan`\n",
+    "html": "<p><code>code\\ span</code></p>\n"
+  },
+  {
     "example": 648,
     "section": "Soft line breaks",
     "topLevelKinds": ["Paragraph"],
@@ -2551,6 +2558,13 @@
     "topLevelKinds": ["Paragraph"],
     "markdown": "` `` `\n",
     "html": "<p><code>``</code></p>\n"
+  },
+  {
+    "example": 336,
+    "section": "Code spans",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "``\nfoo \n``\n",
+    "html": "<p><code>foo </code></p>\n"
   },
   {
     "example": 339,

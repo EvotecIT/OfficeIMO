@@ -9,8 +9,8 @@ The short version: parity is not "more tests." Parity means the engine, AST, ren
 | Area | Current state |
 | --- | --- |
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
-| CommonMark corpus | 278 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
-| CommonMark full inventory | 601 of 652 official CommonMark `0.31.2` examples currently match; 51 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
+| CommonMark corpus | 280 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| CommonMark full inventory | 603 of 652 official CommonMark `0.31.2` examples currently match; 49 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | Strong areas | ATX headings, Setext headings, thematic breaks, fenced code blocks, paragraphs, lists, autolinks, soft breaks |
 | Biggest remaining parser gaps | Link/reference grammar, HTML/raw HTML grammar, emphasis, container indentation, code spans, hard-break edge cases, entities |
@@ -31,8 +31,8 @@ This is the current `[ ]` work plan. Tests are not the goal; they are the proof 
 - [ ] Fix the 11 remaining HTML/raw HTML failures: table/pre block-boundary edge cases, blockquote HTML continuation, malformed raw HTML, and inline-vs-block raw HTML classification.
 - [ ] Fix the 9 remaining emphasis failures by replacing simplified delimiter handling with the CommonMark delimiter-run algorithm.
 - [ ] Fix the 6 remaining container/indentation failures around tabs, blockquote/list continuation, and indented-code boundaries.
-- [ ] Fix the 4 remaining code-span failures around normalization, Unicode spaces, and precedence.
-- [ ] Fix the 4 remaining hard-line-break failures and keep marker source spans stable.
+- [ ] Fix the 3 remaining code-span failures around non-breaking-space rendering/equivalence and inline precedence.
+- [ ] Fix the 3 remaining hard-line-break failures and keep marker source spans stable.
 - [ ] Fix the 2 remaining entity decoder failures with a CommonMark-complete named/numeric character reference decoder.
 - [ ] Add a cmark-gfm inventory like the CommonMark inventory so GFM work is not limited to curated smoke fixtures.
 - [ ] Add a Markdig comparison inventory that separates true gaps from intentional OfficeIMO profile differences.
@@ -50,14 +50,14 @@ This table is fixture coverage, not a claim that every unpinned example currentl
 | HTML blocks | 19 | 44 | 25 | HTML block tokenizer |
 | Raw HTML | 8 | 20 | 12 | Inline/raw HTML classification |
 | Images | 2 | 22 | 20 | Link/image/reference grammar |
-| Code spans | 5 | 22 | 17 | Code span normalization and precedence |
+| Code spans | 6 | 22 | 16 | Code span normalization and precedence |
 | Link reference definitions | 10 | 27 | 17 | Reference-definition grammar |
 | Block quotes | 10 | 25 | 15 | Container continuation rules |
 | Autolinks | 12 | 19 | 7 | Covered for official CommonMark; keep GFM/profile extensions separate |
 | Indented code blocks | 1 | 12 | 11 | Indent/tab/list interaction |
 | Tabs | 0 | 11 | 11 | Source map and indentation model |
 | Entity and numeric character references | 7 | 17 | 10 | CommonMark entity decoder |
-| Hard line breaks | 5 | 15 | 10 | Inline break parser |
+| Hard line breaks | 6 | 15 | 9 | Inline break parser |
 | List items | 38 | 48 | 10 | Remaining list edge cases |
 | Backslash escapes | 8 | 13 | 5 | Inline escape parser |
 | Textual content | 0 | 3 | 3 | Baseline text handling |
@@ -129,7 +129,7 @@ Done means:
 
 ## Phase 3: Code Spans And Inline Precedence
 
-Current observed failures include non-breaking-space trimming, multiline code-span normalization, code-span precedence inside link-looking text, and inline HTML/code precedence.
+Current observed failures include non-breaking-space HTML rendering/equivalence and code-span precedence inside link-looking text.
 
 - [ ] Implement CommonMark code-span normalization exactly, including leading/trailing space stripping rules and line-ending collapse.
 - [ ] Treat Unicode spaces according to the spec cases rather than ordinary ASCII trim rules.
