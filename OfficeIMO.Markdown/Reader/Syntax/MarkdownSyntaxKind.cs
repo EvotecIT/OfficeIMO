@@ -56,6 +56,8 @@ public enum MarkdownSyntaxKind {
     Paragraph,
     /// <summary>Blockquote block.</summary>
     Quote,
+    /// <summary>Blockquote marker token (<c>&gt;</c>).</summary>
+    QuoteMarker,
     /// <summary>Unordered list block.</summary>
     UnorderedList,
     /// <summary>Ordered list block.</summary>

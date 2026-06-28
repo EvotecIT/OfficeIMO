@@ -1216,6 +1216,38 @@ Lead {{core}} tail
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Quote_Marker_Token_Syntax() {
+        var markdown = """
+> alpha
+> beta
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var quote = Assert.Single(result.SyntaxTree.Children);
+
+        Assert.Equal(MarkdownSyntaxKind.Quote, quote.Kind);
+        Assert.Collection(
+            quote.Children.Take(3),
+            firstMarker => {
+                Assert.Equal(MarkdownSyntaxKind.QuoteMarker, firstMarker.Kind);
+                Assert.Equal(">", firstMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), firstMarker.SourceSpan);
+                Assert.Null(firstMarker.AssociatedObject);
+            },
+            secondMarker => {
+                Assert.Equal(MarkdownSyntaxKind.QuoteMarker, secondMarker.Kind);
+                Assert.Equal(">", secondMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 1), secondMarker.SourceSpan);
+                Assert.Null(secondMarker.AssociatedObject);
+            },
+            paragraph => Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind));
+
+        Assert.Equal(MarkdownSyntaxKind.QuoteMarker, result.FindDeepestNodeAtPosition(1, 1)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtLine(1)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.Quote, result.FindNearestBlockContainingSpan(quote.Children[0].SourceSpan!.Value)!.Kind);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Keeps_BlankLine_Separated_Nested_Quote_And_NonOne_Ordered_List_As_Separate_ListItem_Blocks() {
         const string markdown = """
 - outer
@@ -2206,7 +2238,8 @@ See ![Badge][hero]
         Assert.NotNull(quote.SourceSpan);
         Assert.Equal(4, quote.SourceSpan!.Value.StartLine);
         Assert.Equal(5, quote.SourceSpan!.Value.EndLine);
-        var quoteParagraph = Assert.Single(quote.Children);
+        Assert.Equal(2, quote.Children.Count(child => child.Kind == MarkdownSyntaxKind.QuoteMarker));
+        var quoteParagraph = Assert.Single(quote.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, quoteParagraph.Kind);
         Assert.NotNull(quoteParagraph.SourceSpan);
         Assert.Equal(4, quoteParagraph.SourceSpan!.Value.StartLine);
@@ -2386,7 +2419,8 @@ See ![Badge][hero]
 
         var quote = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Quote, quote.Kind);
-        var paragraph = Assert.Single(quote.Children);
+        Assert.Equal(2, quote.Children.Count(child => child.Kind == MarkdownSyntaxKind.QuoteMarker));
+        var paragraph = Assert.Single(quote.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
         Assert.NotNull(paragraph.SourceSpan);
         Assert.Equal(1, paragraph.SourceSpan!.Value.StartLine);
@@ -2427,7 +2461,8 @@ See ![Badge][hero]
         var quoteSyntax = Assert.Single(result.SyntaxTree.Children);
         var quoteBlock = Assert.IsType<QuoteBlock>(Assert.Single(result.Document.Blocks));
         var paragraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(quoteBlock.ChildBlocks));
-        var paragraphSyntax = Assert.Single(quoteSyntax.Children);
+        Assert.Equal(2, quoteSyntax.Children.Count(child => child.Kind == MarkdownSyntaxKind.QuoteMarker));
+        var paragraphSyntax = Assert.Single(quoteSyntax.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
 
         Assert.Same(paragraphBlock, paragraphSyntax.AssociatedObject);
     }
@@ -2451,7 +2486,8 @@ See ![Badge][hero]
         var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)quoteBlock).BuildOwnedSyntaxChildren();
         var rebuiltSyntaxTree = MarkdownReader.BuildSyntaxTree(result.Document);
         var rebuiltQuote = Assert.Single(rebuiltSyntaxTree.Children);
-        var rebuiltParagraph = Assert.Single(rebuiltQuote.Children);
+        Assert.Equal(2, rebuiltQuote.Children.Count(child => child.Kind == MarkdownSyntaxKind.QuoteMarker));
+        var rebuiltParagraph = Assert.Single(rebuiltQuote.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
 
         Assert.NotSame(oldParagraph, replacement);
         Assert.NotSame(providedChildren![0], ownedChildren[0]);
@@ -2500,7 +2536,8 @@ See ![Badge][hero]
         var finalQuoteBlock = Assert.IsType<QuoteBlock>(Assert.Single(result.Document.Blocks));
         var finalQuoteParagraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(finalQuoteBlock.ChildBlocks));
         var finalQuote = Assert.Single(result.FinalSyntaxTree.Children);
-        var finalParagraph = Assert.Single(finalQuote.Children);
+        Assert.Equal(2, finalQuote.Children.Count(child => child.Kind == MarkdownSyntaxKind.QuoteMarker));
+        var finalParagraph = Assert.Single(finalQuote.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var finalText = Assert.Single(finalParagraph.Children);
 
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -2543,9 +2580,9 @@ See ![Badge][hero]
 
         var quote = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Quote, quote.Kind);
-        Assert.Equal(2, quote.Children.Count);
+        Assert.Equal(6, quote.Children.Count(child => child.Kind == MarkdownSyntaxKind.QuoteMarker));
 
-        var list = Assert.IsType<MarkdownSyntaxNode>(quote.Children[1]);
+        var list = Assert.Single(quote.Children, child => child.Kind == MarkdownSyntaxKind.UnorderedList);
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
         Assert.NotNull(list.SourceSpan);
         Assert.Equal(3, list.SourceSpan!.Value.StartLine);
@@ -3556,7 +3593,8 @@ Lead[^1]
         Assert.Equal(new MarkdownSourceSpan(1, 3, 3, 6), paragraph.SourceSpan);
 
         var finalQuote = Assert.Single(result.FinalSyntaxTree.Children);
-        var finalParagraph = Assert.Single(finalQuote.Children);
+        Assert.Equal(3, finalQuote.Children.Count(child => child.Kind == MarkdownSyntaxKind.QuoteMarker));
+        var finalParagraph = Assert.Single(finalQuote.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var finalText = Assert.Single(finalParagraph.Children);
 
         Assert.Equal(new MarkdownSourceSpan(1, 3, 3, 6), finalParagraph.SourceSpan);
@@ -3589,7 +3627,8 @@ Lead[^1]
         var finalParagraphBlocks = finalListItemBlock.ParagraphBlocks.ToArray();
 
         var finalQuote = Assert.Single(result.FinalSyntaxTree.Children);
-        var finalList = Assert.Single(finalQuote.Children);
+        Assert.Equal(3, finalQuote.Children.Count(child => child.Kind == MarkdownSyntaxKind.QuoteMarker));
+        var finalList = Assert.Single(finalQuote.Children, child => child.Kind == MarkdownSyntaxKind.UnorderedList);
         var finalListItem = Assert.Single(finalList.Children);
         var finalParagraphs = finalListItem.Children.Where(child => child.Kind == MarkdownSyntaxKind.Paragraph).ToArray();
 
@@ -4975,7 +5014,7 @@ Term: Definition
 
         public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
             var quoteSyntax = Assert.Single(context.SyntaxTree!.Children);
-            SyntaxTreeParagraphSpan = Assert.Single(quoteSyntax.Children).SourceSpan;
+            SyntaxTreeParagraphSpan = Assert.Single(quoteSyntax.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph).SourceSpan;
 
             var quoteBlock = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
             BlockParagraphSpan = Assert.IsType<ParagraphBlock>(Assert.Single(quoteBlock.ChildBlocks)).SourceSpan;

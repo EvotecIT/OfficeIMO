@@ -303,7 +303,8 @@ public sealed class MarkdownSyntaxNode {
 
     private static bool IsLowerPriorityBroadLookupChild(MarkdownSyntaxNode parent, MarkdownSyntaxNode child) =>
         (parent.Kind == MarkdownSyntaxKind.Heading && child.Kind == MarkdownSyntaxKind.HeadingLevel)
-        || (parent.Kind == MarkdownSyntaxKind.ListItem && IsListMarkerTokenKind(child.Kind));
+        || (parent.Kind == MarkdownSyntaxKind.ListItem && IsListMarkerTokenKind(child.Kind))
+        || (parent.Kind == MarkdownSyntaxKind.Quote && child.Kind == MarkdownSyntaxKind.QuoteMarker);
 
     private static bool IsListMarkerTokenKind(MarkdownSyntaxKind kind) =>
         kind == MarkdownSyntaxKind.ListMarker || kind == MarkdownSyntaxKind.TaskListMarker;

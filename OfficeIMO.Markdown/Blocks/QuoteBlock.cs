@@ -75,11 +75,24 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
         return MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, ChildBlocks);
     }
 
-    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
+        var children = BuildQuoteMarkerSyntaxNodes();
+        children.AddRange(((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren());
+
+        return new MarkdownSyntaxNode(
             MarkdownSyntaxKind.Quote,
             span,
             Children.Count == 0 ? string.Join("\n", Lines) : null,
-            ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren(),
+            children,
             this);
+    }
+
+    private List<MarkdownSyntaxNode> BuildQuoteMarkerSyntaxNodes() {
+        var children = new List<MarkdownSyntaxNode>(_markerSourceSpans.Count);
+        for (var i = 0; i < _markerSourceSpans.Count; i++) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.QuoteMarker, _markerSourceSpans[i], ">"));
+        }
+
+        return children;
+    }
 }
