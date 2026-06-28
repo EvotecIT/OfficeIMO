@@ -714,6 +714,12 @@ public static partial class MarkdownReader {
                     continue;
                 }
 
+                if (ShouldTreatOppositeMarkerBeforeOuterCloseAsLiteral(text, pos, marker, runLen, stack)) {
+                    AddTextNode(new string(marker, runLen), pos, runLen);
+                    pos += runLen;
+                    continue;
+                }
+
                 int remaining = runLen;
                 if (canClose) {
                     while (remaining > 0) {
@@ -729,6 +735,7 @@ public static partial class MarkdownReader {
 
                 bool preferInnerBold = ShouldPreferInnerBold(stack, marker, remaining, canOpen, canClose);
                 bool splitDoubleUnderscoreOpener = ShouldSplitDoubleUnderscoreToLiteralAndItalic(text, pos, remaining, canOpen, canClose);
+                bool splitDoubleRunIntoRootDualItalic = ShouldSplitDoubleRunIntoRootDualItalic(text, pos, marker, remaining, canOpen, canClose, stack);
                 int literalPrefixForOddCloser = GetLiteralPrefixLengthForOddCloser(text, pos, marker, remaining, canOpen, canClose);
 
                 if (canClose && !preferInnerBold) {
@@ -740,7 +747,7 @@ public static partial class MarkdownReader {
                 }
 
                 if (canOpen) {
-                    if (splitDoubleRunIntoDualItalic) {
+                    if (splitDoubleRunIntoDualItalic || splitDoubleRunIntoRootDualItalic) {
                         stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, pos));
                         stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, pos + 1));
                         remaining -= 2;
@@ -750,12 +757,12 @@ public static partial class MarkdownReader {
                         remaining -= 2;
                     }
 
-                    if (splitDoubleUnderscoreOpener) {
+                    if (splitDoubleUnderscoreOpener && !splitDoubleRunIntoDualItalic && !splitDoubleRunIntoRootDualItalic) {
                         AddTextNode("_", pos, 1);
                         stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, pos + 1));
                         remaining -= 2;
                     }
-                    else if (literalPrefixForOddCloser > 0) {
+                    else if (literalPrefixForOddCloser > 0 && !splitDoubleRunIntoDualItalic && !splitDoubleRunIntoRootDualItalic) {
                         AddTextNode(new string(marker, literalPrefixForOddCloser), pos, literalPrefixForOddCloser);
                         remaining -= literalPrefixForOddCloser;
                     }

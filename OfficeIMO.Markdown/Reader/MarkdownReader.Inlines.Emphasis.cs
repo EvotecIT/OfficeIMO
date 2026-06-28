@@ -228,7 +228,25 @@ public static partial class MarkdownReader {
         if (text[start] != '_') return false;
 
         return !HasFutureClosingDelimiterRun(text, start + 2, '_', minimumRunLength: 2) &&
-               HasFutureClosingDelimiterRun(text, start + 2, '_', minimumRunLength: 1);
+               CountFutureClosingDelimiterRuns(text, start + 2, '_', requiredRunLength: 1, maximumCount: 2) == 1;
+    }
+
+    private static bool ShouldSplitDoubleRunIntoRootDualItalic(
+        string text,
+        int start,
+        char marker,
+        int runLen,
+        bool canOpen,
+        bool canClose,
+        Stack<InlineFrame> stack) {
+        if (!canOpen || canClose) return false;
+        if (runLen != 2) return false;
+        if (marker != '*' && marker != '_') return false;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
+        if (stack == null || stack.Count != 1) return false;
+        if (HasFutureClosingDelimiterRun(text, start + 2, marker, minimumRunLength: 2)) return false;
+
+        return CountFutureClosingDelimiterRuns(text, start + 2, marker, requiredRunLength: 1, maximumCount: 2) >= 2;
     }
 
     private static int GetLiteralPrefixLengthForOddCloser(string text, int start, char marker, int runLen, bool canOpen, bool canClose) {
@@ -275,6 +293,30 @@ public static partial class MarkdownReader {
         return false;
     }
 
+    private static int CountFutureClosingDelimiterRuns(string text, int start, char marker, int requiredRunLength, int maximumCount) {
+        if (string.IsNullOrEmpty(text)) return 0;
+        if (requiredRunLength <= 0) requiredRunLength = 1;
+        if (maximumCount <= 0) maximumCount = int.MaxValue;
+
+        int count = 0;
+        for (int i = Math.Max(0, start); i < text.Length; i++) {
+            if (text[i] != marker) continue;
+
+            int runLen = 1;
+            while (i + runLen < text.Length && text[i + runLen] == marker) runLen++;
+
+            GetDelimiterFlags(text, i, marker, runLen, out _, out bool canClose);
+            if (canClose && runLen == requiredRunLength) {
+                count++;
+                if (count >= maximumCount) return count;
+            }
+
+            i += runLen - 1;
+        }
+
+        return count;
+    }
+
     private static bool ShouldTreatMixedSingleMarkerAsLiteral(string text, int start, char marker, int runLen, bool canOpen, bool canClose, Stack<InlineFrame> stack) {
         if (!canOpen || canClose) return false;
         if (runLen != 1) return false;
@@ -283,14 +325,35 @@ public static partial class MarkdownReader {
         if (stack == null || stack.Count <= 1) return false;
 
         var top = stack.Peek();
-        if (top.Kind != FrameKind.Italic || top.OpenLen != 1) return false;
+        if ((top.Kind != FrameKind.Italic && top.Kind != FrameKind.Bold) || (top.OpenLen != 1 && top.OpenLen != 2)) return false;
         if (top.Marker == marker) return false;
 
-        int outerClose = FindNextClosingDelimiterIndex(text, start + 1, top.Marker, minimumRunLength: 1);
+        int outerClose = FindNextClosingDelimiterRunIndex(text, start + 1, top.Marker, requiredRunLength: top.OpenLen);
         if (outerClose < 0) return false;
 
         int innerClose = FindNextClosingDelimiterIndex(text, start + 1, marker, minimumRunLength: 1);
         return innerClose < 0 || outerClose < innerClose;
+    }
+
+    private static bool ShouldTreatOppositeMarkerBeforeOuterCloseAsLiteral(string text, int start, char marker, int runLen, Stack<InlineFrame> stack) {
+        if (runLen <= 0) return false;
+        if (marker != '*' && marker != '_') return false;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
+        if (stack == null || stack.Count <= 1) return false;
+
+        var top = stack.Peek();
+        if ((top.Kind != FrameKind.Italic && top.Kind != FrameKind.Bold) || top.Marker == marker) return false;
+        if (start + runLen >= text.Length) return false;
+
+        char outerMarker = top.Marker;
+        for (int i = 0; i < top.OpenLen; i++) {
+            if (start + runLen + i >= text.Length || text[start + runLen + i] != outerMarker) {
+                return false;
+            }
+        }
+
+        GetDelimiterFlags(text, start + runLen, outerMarker, top.OpenLen, out _, out bool outerCanClose);
+        return outerCanClose;
     }
 
     private static bool ShouldSplitDoubleRunIntoDualItalic(string text, int start, char marker, int runLen, Stack<InlineFrame> stack) {

@@ -9,8 +9,8 @@ The important distinction: parity is not "more tests." Parity means the parser, 
 | Area | Current state |
 | --- | --- |
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
-| CommonMark corpus | 302 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
-| CommonMark full inventory | 638 of 652 official CommonMark `0.31.2` examples currently match; 14 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
+| CommonMark corpus | 308 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| CommonMark full inventory | 644 of 652 official CommonMark `0.31.2` examples currently match; 8 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | GFM tracked inventory | 36 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 33 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 36 passing, 0 failing |
 | Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 0 covered, 15 partial, 4 intentional, 14 gap |
@@ -26,7 +26,7 @@ Current truth:
 
 - [x] CommonMark, tracked GFM fixtures, and reflected Markdig extension families are measurable from checked-in reports.
 - [x] GFM smoke behavior is green for the fixture corpus we track today.
-- [ ] CommonMark is not closed: 14 official examples still fail.
+- [ ] CommonMark is not closed: 8 official examples still fail.
 - [ ] Markdig extension parity is not closed: 0 extension families meet the full `Covered` bar.
 - [ ] AST/source/lossless parity is not closed: full trivia, source edits, generated-node diagnostics, and source-aware extension paths are still partial.
 - [ ] Performance parity is not known: release-mode Markdig comparisons still need a stable benchmark pass after correctness stops moving.
@@ -40,6 +40,7 @@ Use this as the non-looping execution board. Each item must either move engine b
 - [x] **HTML block/container boundary:** official CommonMark example #174 is pinned and passing after blockquote-contained raw HTML block rendering started preserving the boundary line break before the quote closes.
 - [x] **CommonMark character references:** official CommonMark examples #25 and #26 are pinned and passing after reusable named/numeric decoding started handling the remaining HTML5 named references and invalid numeric replacement behavior.
 - [x] **Hard-line-break grammar:** official CommonMark examples #642, #643, and #644 are pinned and passing after paragraph joining stopped treating markers inside raw inline HTML tags and final-line trailing backslashes as hard breaks.
+- [x] **Emphasis delimiter slice:** official CommonMark examples #408, #438, #441, #450, #453, and #470 are pinned and passing after delimiter-run handling learned root dual italic runs, empty opposite-marker spans, and mixed-marker literal precedence.
 - [ ] **Emphasis delimiter algorithm:** replace the simplified emphasis heuristics with the CommonMark delimiter-stack behavior for left/right flanking, punctuation, intraword `_`, nesting, opener/closer balancing, and precedence.
 - [ ] **Container indentation model:** make tabs, blockquote continuation, list continuation, and indented-code boundaries share a source-map-safe column model.
 - [ ] **CommonMark inventory closure:** refresh the generated full-corpus inventory after each parser slice and promote only newly understood official examples into smoke fixtures.
@@ -93,7 +94,7 @@ References:
 
 - [x] A repo-owned CommonMark inventory that runs all 652 official examples without forcing every known failure to fail CI.
 - [x] A checked-in failure-cluster report so we can pick work by root cause instead of nearby example numbers.
-- [x] A pinned CommonMark smoke lane with 302 official examples.
+- [x] A pinned CommonMark smoke lane with 308 official examples.
 - [x] CommonMark code spans are green in the generated inventory after preserving NBSP as non-collapsible text in the HTML comparison harness and pinning official examples 333 and 334.
 - [x] CommonMark links are green in the generated inventory after fixing link-label inline-span precedence.
 - [x] Strong current coverage for headings, thematic breaks, fenced code, lists, paragraphs, soft breaks, backslash escapes, autolinks, images, and link reference definitions.
@@ -133,8 +134,8 @@ These are the actual parity gaps. The test work is listed only where it creates 
 
 | Cluster | Failing | Sections | First examples | Work type |
 | --- | ---: | --- | --- | --- |
-| Emphasis delimiter algorithm | 8 | Emphasis and strong emphasis | #408, #418, #432, #438, #441, #450, #453, #470 | Inline parser rewrite |
 | Container indentation and continuation | 6 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #242, #252, #264 | Block parser and source-map column model |
+| Emphasis delimiter algorithm | 2 | Emphasis and strong emphasis | #418, #432 | Inline parser rewrite |
 
 ## Pinned CommonMark Coverage By Section
 
@@ -142,7 +143,7 @@ This is fixture coverage, not a claim that unpinned examples fail. The generated
 
 | Section | Pinned | Total | Missing | Primary missing work |
 | --- | ---: | ---: | ---: | --- |
-| Emphasis and strong emphasis | 11 | 132 | 121 | Inline delimiter algorithm |
+| Emphasis and strong emphasis | 17 | 132 | 115 | Inline delimiter algorithm |
 | Links | 27 | 90 | 63 | CommonMark inventory is green; remaining work is breadth and Markdig/GFM comparison |
 | HTML blocks | 20 | 44 | 24 | Current CommonMark inventory is green; keep broader source-span/writer coverage aligned |
 | Raw HTML | 8 | 20 | 12 | Current CommonMark inventory is green; keep broader source-span/writer coverage aligned |

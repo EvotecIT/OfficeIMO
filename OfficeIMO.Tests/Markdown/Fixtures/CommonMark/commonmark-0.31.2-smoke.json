@@ -3116,6 +3116,48 @@
     "html": "<p>©</p>\n"
   },
   {
+    "example": 408,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "__foo_ bar_\n",
+    "html": "<p><em><em>foo</em> bar</em></p>\n"
+  },
+  {
+    "example": 438,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo *_*\n",
+    "html": "<p>foo <em>_</em></p>\n"
+  },
+  {
+    "example": 441,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo **_**\n",
+    "html": "<p>foo <strong>_</strong></p>\n"
+  },
+  {
+    "example": 450,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo _*_\n",
+    "html": "<p>foo <em>*</em></p>\n"
+  },
+  {
+    "example": 453,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo __*__\n",
+    "html": "<p>foo <strong>*</strong></p>\n"
+  },
+  {
+    "example": 470,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "*foo __bar *baz bim__ bam*\n",
+    "html": "<p><em>foo <strong>bar *baz bim</strong> bam</em></p>\n"
+  },
+  {
     "example": 634,
     "section": "Hard line breaks",
     "topLevelKinds": ["Paragraph"],

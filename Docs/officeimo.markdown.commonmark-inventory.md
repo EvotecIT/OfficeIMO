@@ -15,10 +15,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Official examples | 652 |
-| Pinned smoke fixtures | 302 |
-| Passing pinned fixtures | 302 |
+| Pinned smoke fixtures | 308 |
+| Passing pinned fixtures | 308 |
 | Passing unpinned examples | 336 |
-| Failing examples | 14 |
+| Failing examples | 8 |
 | Intentional deviations | 0 |
 
 ## Section Inventory
@@ -43,7 +43,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Lists | 26 | 26 | 26 | 0 | 0 | 0 |
 | Inlines | 1 | 0 | 0 | 1 | 0 | 0 |
 | Code spans | 22 | 8 | 8 | 14 | 0 | 0 |
-| Emphasis and strong emphasis | 132 | 11 | 11 | 113 | 8 | 0 |
+| Emphasis and strong emphasis | 132 | 17 | 17 | 113 | 2 | 0 |
 | Links | 90 | 27 | 27 | 63 | 0 | 0 |
 | Images | 22 | 2 | 2 | 20 | 0 | 0 |
 | Autolinks | 19 | 12 | 12 | 7 | 0 | 0 |
@@ -56,8 +56,8 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 
 | Cluster | Failing | Sections | First examples |
 | --- | ---: | --- | --- |
-| Emphasis delimiter algorithm | 8 | Emphasis and strong emphasis | #408, #418, #432, #438, #441, #450, #453, #470 |
 | Container indentation and continuation | 6 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #242, #252, #264 |
+| Emphasis delimiter algorithm | 2 | Emphasis and strong emphasis | #418, #432 |
 
 ## Next Use
 
