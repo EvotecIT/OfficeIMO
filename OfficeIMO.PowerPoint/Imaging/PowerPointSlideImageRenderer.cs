@@ -1103,7 +1103,7 @@ namespace OfficeIMO.PowerPoint {
             Math.Max(1, (int)Math.Ceiling(drawing.Height));
 
         private static void AddSvgImageDiagnostics(OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics) {
-            foreach (OfficeDrawingImage image in drawing.Images) {
+            foreach (OfficeDrawingImage image in EnumerateDrawingImages(drawing)) {
                 byte[] bytes = image.Bytes;
                 if (!OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, bytes, null, out _)) {
                     AddImageDiagnostic(
@@ -1116,13 +1116,25 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void AddRasterImageDiagnostics(OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics) {
-            foreach (OfficeDrawingImage image in drawing.Images) {
+            foreach (OfficeDrawingImage image in EnumerateDrawingImages(drawing)) {
                 if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, out _)) {
                     AddImageDiagnostic(
                         diagnostics,
                         "unsupported-powerpoint-image-raster",
                         "Skipped a PowerPoint image in PNG output because dependency-free raster export currently decodes PNG and uncompressed BMP image bytes only.",
                         image);
+                }
+            }
+        }
+
+        private static IEnumerable<OfficeDrawingImage> EnumerateDrawingImages(OfficeDrawing drawing) {
+            foreach (OfficeDrawingElement element in drawing.Elements) {
+                if (element is OfficeDrawingImage image) {
+                    yield return image;
+                } else if (element is OfficeDrawingGroup group) {
+                    foreach (OfficeDrawingImage nested in EnumerateDrawingImages(group.Drawing)) {
+                        yield return nested;
+                    }
                 }
             }
         }

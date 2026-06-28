@@ -110,7 +110,7 @@ namespace OfficeIMO.Word {
             double contentLeft = left + marginLeft;
             double contentTop = top + marginTop;
             double textTop = AddTableCellImages(cell, drawing, contentLeft, contentTop, contentWidth, contentBottom, diagnostics);
-            AddNestedTables(cell, drawing, contentLeft, textTop, contentWidth, contentBottom, diagnostics, listMarkers);
+            textTop = Math.Max(textTop, AddNestedTables(cell, drawing, contentLeft, textTop, contentWidth, contentBottom, diagnostics, listMarkers));
 
             List<List<WordParagraph>> paragraphRuns = CreateTableCellParagraphRuns(cell);
             if (paragraphRuns.Count > 1) {
@@ -178,7 +178,7 @@ namespace OfficeIMO.Word {
                 padding: padding);
         }
 
-        private static bool AddNestedTables(
+        private static double AddNestedTables(
             WordTableCell cell,
             OfficeDrawing drawing,
             double left,
@@ -189,7 +189,7 @@ namespace OfficeIMO.Word {
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
             List<WordTable> nestedTables = GetDirectNestedTables(cell);
             if (nestedTables.Count == 0) {
-                return false;
+                return top;
             }
 
             WordImageFlowContext nestedContext = CreateFlowContext(
@@ -201,15 +201,14 @@ namespace OfficeIMO.Word {
                 "unsupported-word-nested-table-overflow",
                 "Skipped a nested Word table inside a rendered table cell because it does not fit within the cell content area.");
 
-            bool rendered = false;
             for (int i = 0; i < nestedTables.Count; i++) {
-                rendered |= AddTable(nestedTables[i], nestedContext, diagnostics, listMarkers, allowNestedTable: true);
+                AddTable(nestedTables[i], nestedContext, diagnostics, listMarkers, allowNestedTable: true);
                 if (nestedContext.StoppedForPagination) {
                     break;
                 }
             }
 
-            return rendered;
+            return nestedContext.Y;
         }
 
         private static bool ShouldRenderTableCellAsRichText(IReadOnlyList<OfficeRichTextRun> richRuns) =>

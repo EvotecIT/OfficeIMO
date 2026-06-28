@@ -1277,6 +1277,7 @@ namespace OfficeIMO.Tests {
             nested.Rows[0].Cells[1].Paragraphs[0].Text = "Inner B";
             nested.Rows[0].Cells[0].ShadingFillColor = OfficeColor.FromRgb(219, 234, 254);
             nested.Rows[0].Cells[1].ShadingFillColor = OfficeColor.FromRgb(220, 252, 231);
+            hostCell.AddParagraph().AddText("After nested");
 
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
@@ -1287,6 +1288,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText text && text.Text == "Inner A");
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText text && text.Text == "Inner B");
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText text && text.Text == "After nested");
             OfficeDrawingText innerAText = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Inner A");
             Assert.True(
                 innerAText.Width > innerAText.Padding.Horizontal && innerAText.Height > innerAText.Padding.Vertical,
@@ -1304,13 +1306,18 @@ namespace OfficeIMO.Tests {
             Assert.True(innerAFrame.X > outerFrame.X);
             Assert.True(innerBFrame.X > innerAFrame.X);
             Assert.True(innerAFrame.Y > outerFrame.Y);
+            OfficeDrawingText afterNested = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "After nested");
+            double nestedBottom = Math.Max(innerAFrame.Y + innerAFrame.Shape.Height, innerBFrame.Y + innerBFrame.Shape.Height);
+            Assert.True(afterNested.Y >= nestedBottom, $"Expected following cell text below nested table, got text Y {afterNested.Y} and nested bottom {nestedBottom}.");
 
             string snapshotSvgText = OfficeDrawingSvgExporter.ToSvg(snapshot.Drawing);
             Assert.Contains("Inner A", snapshotSvgText, StringComparison.Ordinal);
             Assert.Contains("Inner B", snapshotSvgText, StringComparison.Ordinal);
+            Assert.Contains("After nested", snapshotSvgText, StringComparison.Ordinal);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("Inner A", svgText, StringComparison.Ordinal);
             Assert.Contains("Inner B", svgText, StringComparison.Ordinal);
+            Assert.Contains("After nested", svgText, StringComparison.Ordinal);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(png.Width, image!.Width);
         }

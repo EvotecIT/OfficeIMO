@@ -1969,6 +1969,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_ImageExportExpandsPngRangeForRasterDecodableBmpImages() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("WorksheetBitmap");
+            sheet.CellValue(1, 1, "Used cell");
+            OfficeColor color = OfficeColor.FromRgb(18, 52, 86);
+            sheet.AddImage(10, 5, CreateBmp24(2, 2, new[] { color, color, color, color }), "image/bmp", widthPixels: 24, heightPixels: 18, name: "BitmapOutsideUsedCell");
+
+            OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });
+
+            Assert.Equal("WorksheetBitmap!A1:E10", png.Source);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+            Assert.True(ContainsPixelNear(rendered!, 0D, 0D, rendered.Width, rendered.Height, color, tolerance: 8));
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReportsUnknownImageFormatWithStableCodeAndSource() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

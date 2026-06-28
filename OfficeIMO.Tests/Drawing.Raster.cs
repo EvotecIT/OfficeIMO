@@ -97,6 +97,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterImageDecoder_TreatsBmp32ReservedBytesAsOpaqueWhenAlphaIsAbsent() {
+            byte[] bmp = CreateBmp32(
+                2,
+                2,
+                new[] {
+                    OfficeColor.FromRgba(255, 0, 0, 0), OfficeColor.FromRgba(0, 255, 0, 0),
+                    OfficeColor.FromRgba(0, 0, 255, 0), OfficeColor.FromRgba(255, 255, 255, 0)
+                });
+
+            Assert.True(OfficeRasterImageDecoder.TryDecode(bmp, out OfficeRasterImage? image));
+            Assert.Equal(OfficeColor.Red, image!.GetPixel(0, 0));
+            Assert.Equal(OfficeColor.Lime, image.GetPixel(1, 0));
+            Assert.Equal(OfficeColor.Blue, image.GetPixel(0, 1));
+            Assert.Equal(OfficeColor.White, image.GetPixel(1, 1));
+        }
+
+        [Fact]
         public void OfficeDrawingRasterRenderer_PaintsDecodedBmpImages() {
             byte[] bmp = CreateBmp24(1, 1, new[] { OfficeColor.FromRgb(18, 52, 86) });
             OfficeDrawing drawing = new OfficeDrawing(20, 16);

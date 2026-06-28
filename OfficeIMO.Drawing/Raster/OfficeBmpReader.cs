@@ -49,6 +49,7 @@ public static class OfficeBmpReader {
 
             OfficeRasterImage result = new OfficeRasterImage(width, height);
             int bytesPerPixel = bitsPerPixel / 8;
+            bool hasAlphaChannel = bitsPerPixel == 32 && HasNonZeroAlpha(bytes, pixelOffset, width, height, rowStride);
             for (int y = 0; y < height; y++) {
                 int sourceY = topDown ? y : height - 1 - y;
                 int rowOffset = pixelOffset + (sourceY * rowStride);
@@ -57,7 +58,7 @@ public static class OfficeBmpReader {
                     byte blue = bytes[pixel];
                     byte green = bytes[pixel + 1];
                     byte red = bytes[pixel + 2];
-                    byte alpha = bitsPerPixel == 32 ? bytes[pixel + 3] : (byte)255;
+                    byte alpha = hasAlphaChannel ? bytes[pixel + 3] : (byte)255;
                     result.SetPixel(x, y, OfficeColor.FromRgba(red, green, blue, alpha));
                 }
             }
@@ -75,4 +76,17 @@ public static class OfficeBmpReader {
 
     private static int ReadUInt16LittleEndian(byte[] bytes, int offset) =>
         bytes[offset] | (bytes[offset + 1] << 8);
+
+    private static bool HasNonZeroAlpha(byte[] bytes, int pixelOffset, int width, int height, int rowStride) {
+        for (int y = 0; y < height; y++) {
+            int rowOffset = pixelOffset + (y * rowStride);
+            for (int x = 0; x < width; x++) {
+                if (bytes[rowOffset + (x * 4) + 3] != 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }

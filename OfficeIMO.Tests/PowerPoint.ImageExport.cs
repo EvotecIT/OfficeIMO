@@ -1123,6 +1123,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_ReportsUnsupportedGroupedPicturesThroughSharedRasterDiagnostics() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(160, 100);
+            PowerPointSlide slide = presentation.Slides[0];
+
+            PowerPointPicture picture = slide.AddPicture(
+                new MemoryStream(new byte[] { 1, 2, 3, 4, 5, 6 }),
+                ImagePartType.Bmp,
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(24),
+                PowerPointUnits.FromPoints(18));
+            PowerPointAutoShape anchor = slide.AddRectanglePoints(50, 20, 12, 12);
+            slide.GroupShapes(new PowerPointShape[] { picture, anchor }, "Grouped unsupported image");
+
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == "unsupported-powerpoint-image-raster");
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+        }
+
+        [Fact]
         public void PowerPointSlide_ProjectsTransformedGroupedShapesThroughSharedDrawingComposition() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
