@@ -214,9 +214,31 @@ These are the actual parity gaps. The test work is listed only where it creates 
 - [x] Refresh the CommonMark inventory and smoke fixture set once container indentation is green.
 - [x] Promote `UseSoftlineBreakAsHardlineBreak` only after parser option, renderer, writer, nested paragraph, and native metadata evidence landed.
 - [x] Promote `UseAutoIdentifiers` only after explicit renderer options, Markdig/GitHub slug-style evidence, duplicate handling, and GFM profile wiring landed.
-- [ ] Use `Docs/officeimo.markdown.markdig-extension-inventory.md` to pick the next extension-family slices by row; do not promote `Partial` rows to `Covered` without parser, AST/source, renderer, writer, and fixture evidence.
-- [ ] Return to AST/source/lossless completion once the major parser clusters stop moving node boundaries every slice.
+- [ ] Stop broad fixture-chasing and work the remaining rows in this order.
+  - [ ] `UseAutoLinks`: finish the remaining email, `www`, scheme, boundary, table-cell, writer, source/native, and GFM evidence; promote only if the parser/render/write/source contracts are all covered, otherwise leave a named residual gap.
+  - [ ] `UseAbbreviations`: decide whether Markdown writing must preserve abbreviation definition syntax; then finish Markdig edge breadth, source/native metadata, and writer behavior or document the intentional limit.
+  - [ ] `UseDefinitionLists`: finish remaining source-map and writer edge breadth for marker groups, lazy continuation, nested blocks, and reparse stability; promote only after nested source/native and writer evidence is complete.
+  - [ ] `UseAlertBlocks`: decide whether Markdig alert rendering callbacks are an in-scope parser/renderer contract or an intentional OfficeIMO callout difference; implement only the chosen contract.
+  - [ ] `UseCjkFriendlyEmphasis`: either add a real delimiter option with CJK comparison fixtures and source-token proof, or document it as a deferred/intentional difference.
+  - [ ] `UseGenericAttributes`: design attribute storage on semantic and syntax nodes before adding arbitrary block/inline attribute parsing.
+- [ ] Make an explicit scope decision for every remaining `Gap` row before implementing one-off syntax.
+  - [ ] Likely parser-extension candidates: `UseGridTables`, `UseCustomContainers`, `UseListExtras`, `UseMathematics`, `UseEmojiAndSmiley`, `UseSmartyPants`.
+  - [ ] Likely renderer/policy candidates: `UseMediaLinks`, `UseReferralLinks`, `UseDiagrams`.
+  - [ ] Likely deferred unless a consumer asks: `UseCitations`, `UseJiraLinks`, `UsePragmaLines`, `UseFooters`, `UseGlobalization`.
+- [ ] Finish GFM breadth that is not Markdig-specific.
+  - [ ] Expand autolink fixtures against the GFM profile after the `UseAutoLinks` row stabilizes.
+  - [ ] Expand tag-filter fixtures for the GitHub HTML renderer profile.
+  - [ ] Expand strikethrough delimiter-edge fixtures, especially single-tilde GFM behavior around other emphasis.
+- [ ] Return to AST/source/lossless completion once the next parser-extension slice no longer changes node boundaries.
+  - [ ] Canonicalize remaining duplicated node shapes for `ListItem`, `TableBlock`, `CalloutBlock`, and `DefinitionListBlock`.
+  - [ ] Implement parser-owned trivia capture for whitespace, blank lines, tabs, delimiter trivia, and generated-node diagnostics.
+  - [ ] Complete original-to-normalized offset mapping for all parser paths.
+  - [ ] Expand `MarkdownRoundtripWriter` from unchanged documents and explicit native edits toward general lossless edit writing.
+- [ ] Finish renderer/writer extension parity after AST/source contracts settle.
+  - [ ] Make custom parser, transform, renderer, and writer APIs source-slice aware for custom nodes.
+  - [ ] Keep raw HTML, sanitizing, escaping, URL policy, and GFM tag-filter profiles explicit and independently tested.
 - [ ] Run release-mode benchmarks only after correctness stabilizes enough for the numbers to mean something.
+  - [ ] Compare parse, parse-with-syntax, HTML render, Markdown write, source-edit roundtrip, transforms, allocations, and representative README/docs/chat corpora against the pinned Markdig baseline.
 
 ## CommonMark Failure Clusters
 
