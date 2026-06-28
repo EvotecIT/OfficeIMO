@@ -894,6 +894,13 @@
     ]
   },
   {
+    "example": 168,
+    "section": "HTML blocks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<del>*foo*</del>\n",
+    "html": "<p><del><em>foo</em></del></p>\n"
+  },
+  {
     "example": 169,
     "section": "HTML blocks",
     "topLevelKinds": ["HtmlRaw", "Paragraph"],
@@ -2450,6 +2457,13 @@
     "html": "<p><code>foo`bar</code></p>\n"
   },
   {
+    "example": 344,
+    "section": "Code spans",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a href=\"`\">`\n",
+    "html": "<p><a href=\"`\">`</p>\n"
+  },
+  {
     "example": 350,
     "section": "Emphasis and strong emphasis",
     "topLevelKinds": ["Paragraph"],
@@ -2650,6 +2664,48 @@
     "topLevelKinds": ["Paragraph"],
     "markdown": "<https://example.com/\\[\\>\n",
     "html": "<p><a href=\"https://example.com/%5C%5B%5C\">https://example.com/\\[\\</a></p>\n"
+  },
+  {
+    "example": 613,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a><bab><c2c>\n",
+    "html": "<p><a><bab><c2c></p>\n"
+  },
+  {
+    "example": 614,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a/><b2/>\n",
+    "html": "<p><a/><b2/></p>\n"
+  },
+  {
+    "example": 616,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a foo=\"bar\" bam = 'baz <em>\"</em>'\n_boolean zoop:33=zoop:33 />\n",
+    "html": "<p><a foo=\"bar\" bam = 'baz <em>\"</em>'\n_boolean zoop:33=zoop:33 /></p>\n"
+  },
+  {
+    "example": 618,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<33> <__>\n",
+    "html": "<p>&lt;33&gt; &lt;__&gt;</p>\n"
+  },
+  {
+    "example": 620,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a href=\"hi'> <a href=hi'>\n",
+    "html": "<p>&lt;a href=&quot;hi'&gt; &lt;a href=hi'&gt;</p>\n"
+  },
+  {
+    "example": 623,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "</a></foo >\n",
+    "html": "<p></a></foo ></p>\n"
   },
   {
     "example": 14,

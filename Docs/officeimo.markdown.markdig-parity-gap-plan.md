@@ -9,11 +9,11 @@ The short version: parity is not "more tests." Parity means the engine, AST, ren
 | Area | Current state |
 | --- | --- |
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
-| CommonMark corpus | 247 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
-| CommonMark full inventory | 570 of 652 official CommonMark `0.31.2` examples currently match; 82 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
+| CommonMark corpus | 255 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| CommonMark full inventory | 575 of 652 official CommonMark `0.31.2` examples currently match; 77 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | Strong areas | ATX headings, Setext headings, thematic breaks, fenced code blocks, paragraphs, lists, soft breaks |
-| Biggest remaining parser gaps | HTML/raw HTML grammar, link/reference grammar, emphasis, container indentation, code spans, autolinks, hard-break edge cases, entities |
+| Biggest remaining parser gaps | Link/reference grammar, HTML/raw HTML grammar, emphasis, container indentation, autolinks, code spans, hard-break edge cases, entities |
 | Biggest Markdig-class architecture gaps | Full lossless trivia capture, full parser pipeline parity, full renderer/writer plugin parity, broader extension set, release-mode benchmark review |
 
 References:
@@ -23,6 +23,23 @@ References:
 - Markdig roundtrip/trivia target: https://github.com/xoofx/markdig/blob/master/src/Markdig/Roundtrip.md
 - Markdig extension specs index: https://github.com/xoofx/markdig/blob/master/src/Markdig.Tests/Specs/readme.md
 
+## What We Are Missing Right Now
+
+This is the current `[ ]` work plan. Tests are not the goal; they are the proof that each engine slice is actually compatible.
+
+- [ ] Fix the 24 remaining link/reference failures: link reference definitions, nested link precedence, invalid destination/title fallback, NBSP separators, and shared image/link grammar.
+- [ ] Fix the 22 remaining HTML/raw HTML failures: full seven-type HTML block scanning, multiline/malformed opening tags, raw-text containers, and inline-vs-block raw HTML boundaries.
+- [ ] Fix the 9 remaining emphasis failures by replacing simplified delimiter handling with the CommonMark delimiter-run algorithm.
+- [ ] Fix the 8 remaining container/indentation failures around tabs, blockquote/list continuation, and indented-code boundaries.
+- [ ] Fix the 4 remaining CommonMark autolink failures without regressing the GFM and OfficeIMO bare-autolink profiles.
+- [ ] Fix the 4 remaining code-span failures around normalization, Unicode spaces, and precedence.
+- [ ] Fix the 4 remaining hard-line-break failures and keep marker source spans stable.
+- [ ] Fix the 2 remaining entity decoder failures with a CommonMark-complete named/numeric character reference decoder.
+- [ ] Add a cmark-gfm inventory like the CommonMark inventory so GFM work is not limited to curated smoke fixtures.
+- [ ] Add a Markdig comparison inventory that separates true gaps from intentional OfficeIMO profile differences.
+- [ ] Finish AST/source/lossless work: remaining canonical node cleanup, complete trivia capture, complete delimiter-token capture, and byte-preserving source edits beyond the current safe cases.
+- [ ] Review release-mode benchmarks against the Markdig baseline before making any performance or parity claims.
+
 ## Pinned CommonMark Coverage By Section
 
 This table is fixture coverage, not a claim that every unpinned example currently fails. A required early step is to generate the full pass/fail inventory for every unpinned official example.
@@ -31,10 +48,10 @@ This table is fixture coverage, not a claim that every unpinned example currentl
 | --- | ---: | ---: | ---: | --- |
 | Emphasis and strong emphasis | 11 | 132 | 121 | Inline delimiter algorithm |
 | Links | 9 | 90 | 81 | Link/image/reference grammar |
-| HTML blocks | 10 | 44 | 34 | HTML block tokenizer |
-| Raw HTML | 0 | 20 | 20 | Inline/raw HTML classification |
+| HTML blocks | 11 | 44 | 33 | HTML block tokenizer |
+| Raw HTML | 6 | 20 | 14 | Inline/raw HTML classification |
 | Images | 2 | 22 | 20 | Link/image/reference grammar |
-| Code spans | 4 | 22 | 18 | Code span normalization and precedence |
+| Code spans | 5 | 22 | 17 | Code span normalization and precedence |
 | Link reference definitions | 5 | 27 | 22 | Reference-definition grammar |
 | Block quotes | 10 | 25 | 15 | Container continuation rules |
 | Autolinks | 8 | 19 | 11 | Autolink grammar |
@@ -58,12 +75,12 @@ This table is fixture coverage, not a claim that every unpinned example currentl
 
 ## Rules To Stop The Loop
 
-- [ ] Do not add an official fixture just because it currently passes; first classify which engine contract it proves.
-- [ ] Do not add a fixture for a failing example until the engine behavior is fixed or the deviation is documented as intentional.
-- [ ] Every parity slice must say which bucket it reduces: parser grammar, AST/source mapping, renderer/writer behavior, extension seam, lossless roundtrip, GFM extension parity, or benchmark evidence.
-- [ ] Each completed slice must update the compatibility matrix count, the gap plan if it changes priority, and the focused test lane.
-- [ ] If a slice touches parsing, validate at least net8 plus the broad Markdown lane before commit.
-- [ ] If a slice touches public AST/source/native APIs, add source-span/native/syntax invariant proof, not only HTML output.
+- [x] Do not add an official fixture just because it currently passes; first classify which engine contract it proves.
+- [x] Do not add a fixture for a failing example until the engine behavior is fixed or the deviation is documented as intentional.
+- [x] Every parity slice must say which bucket it reduces: parser grammar, AST/source mapping, renderer/writer behavior, extension seam, lossless roundtrip, GFM extension parity, or benchmark evidence.
+- [x] Each completed slice must update the compatibility matrix count, the gap plan if it changes priority, and the focused test lane.
+- [x] If a slice touches parsing, validate at least net8 plus the broad Markdown lane before commit.
+- [x] If a slice touches public AST/source/native APIs, add source-span/native/syntax invariant proof, not only HTML output.
 
 ## Phase 0: Build The Gap Inventory
 
@@ -76,8 +93,8 @@ This table is fixture coverage, not a claim that every unpinned example currentl
 
 Done means:
 
-- [ ] We can answer "what is missing?" with current generated counts instead of memory or manual probes.
-- [ ] The next work item can be picked from the largest failure cluster without re-discovering the same facts.
+- [x] We can answer "what is missing?" with current generated counts instead of memory or manual probes.
+- [x] The next work item can be picked from the largest failure cluster without re-discovering the same facts.
 
 ## Phase 1: CommonMark Entity Decoder
 

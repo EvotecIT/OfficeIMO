@@ -47,7 +47,7 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     [InlineData("type 4 declaration", "<!DOCTYPE html>", "<!DOCTYPE", "&lt;!DOCTYPE")]
     [InlineData("type 5 CDATA", "<![CDATA[<p>literal</p>]]>", "<![CDATA", "&lt;![CDATA")]
     [InlineData("type 6 block tag", "<div onclick=\"alert(1)\">ok</div>", "<div", "&lt;div")]
-    [InlineData("type 7 custom tag", "<custom onclick=\"alert(1)\">ok</custom>", "<custom", "&lt;custom")]
+    [InlineData("type 7 custom tag", "<custom onclick=\"alert(1)\">\nok</custom>", "<custom", "&lt;custom")]
     public void RawHtmlHandling_Security_Profiles_Cover_CommonMark_Html_Block_Shapes(
         string _,
         string rawMarkdown,

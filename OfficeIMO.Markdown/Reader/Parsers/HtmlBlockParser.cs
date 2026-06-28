@@ -331,7 +331,18 @@ public static partial class MarkdownReader {
             if (!isClosing && string.Equals(tagName, "script", StringComparison.OrdinalIgnoreCase)) return false;
             if (!isClosing && string.Equals(tagName, "style", StringComparison.OrdinalIgnoreCase)) return false;
             if (!isClosing && string.Equals(tagName, "pre", StringComparison.OrdinalIgnoreCase)) return false;
+            if (!IsOnlyWhitespaceAfter(trimmedLine, endIndex + 1)) return false;
             allowsBlankLines = AllowsBlankLineContinuation(tagName!);
+            return true;
+        }
+
+        private static bool IsOnlyWhitespaceAfter(string line, int startIndex) {
+            for (int i = startIndex; i < line.Length; i++) {
+                if (!IsHtmlAttributeWhitespace(line[i])) {
+                    return false;
+                }
+            }
+
             return true;
         }
 
