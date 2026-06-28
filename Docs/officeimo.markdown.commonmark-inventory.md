@@ -15,10 +15,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Official examples | 652 |
-| Pinned smoke fixtures | 299 |
-| Passing pinned fixtures | 299 |
+| Pinned smoke fixtures | 302 |
+| Passing pinned fixtures | 302 |
 | Passing unpinned examples | 336 |
-| Failing examples | 17 |
+| Failing examples | 14 |
 | Intentional deviations | 0 |
 
 ## Section Inventory
@@ -48,7 +48,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Images | 22 | 2 | 2 | 20 | 0 | 0 |
 | Autolinks | 19 | 12 | 12 | 7 | 0 | 0 |
 | Raw HTML | 20 | 8 | 8 | 12 | 0 | 0 |
-| Hard line breaks | 15 | 6 | 6 | 6 | 3 | 0 |
+| Hard line breaks | 15 | 9 | 9 | 6 | 0 | 0 |
 | Soft line breaks | 2 | 2 | 2 | 0 | 0 | 0 |
 | Textual content | 3 | 0 | 0 | 3 | 0 | 0 |
 
@@ -58,7 +58,6 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | --- | ---: | --- | --- |
 | Emphasis delimiter algorithm | 8 | Emphasis and strong emphasis | #408, #418, #432, #438, #441, #450, #453, #470 |
 | Container indentation and continuation | 6 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #242, #252, #264 |
-| Inline precedence and line-break grammar | 3 | Hard line breaks | #642, #643, #644 |
 
 ## Next Use
 

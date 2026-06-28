@@ -682,6 +682,27 @@ Term: Intro
             Assert.Contains("First\\<br/>Second", html);
         }
 
+        [Theory]
+        [InlineData("<a href=\"foo  \nbar\">\n", "<p><a href=\"foo  \nbar\"></p>\n")]
+        [InlineData("<a href=\"foo\\\nbar\">\n", "<p><a href=\"foo\\\nbar\"></p>\n")]
+        public void CommonMark_Hard_Break_Markers_Inside_Raw_Inline_Html_Stay_Literal(string markdown, string expectedHtml) {
+            var doc = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var html = doc.ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
+
+            Assert.Equal(CommonMarkHtmlComparison.Normalize(expectedHtml), CommonMarkHtmlComparison.Normalize(html));
+        }
+
+        [Fact]
+        public void CommonMark_Trailing_Backslash_At_End_Of_Block_Stays_Literal() {
+            const string markdown = "foo\\\n";
+            const string expectedHtml = "<p>foo\\</p>\n";
+
+            var doc = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var html = doc.ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
+
+            Assert.Equal(CommonMarkHtmlComparison.Normalize(expectedHtml), CommonMarkHtmlComparison.Normalize(html));
+        }
+
         [Fact]
         public void Backslash_Hard_Breaks_Can_Be_Disabled() {
             string md = "First\\\nSecond";

@@ -690,7 +690,7 @@ public static partial class MarkdownReader {
     }
 
     private static string JoinParagraphLines(List<string> lines, MarkdownReaderOptions options) {
-        var lineBreaksInsideCodeSpans = FindParagraphLineBreaksInsideMatchedCodeSpans(lines);
+        var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(lines);
         var sb = new StringBuilder();
         bool prevHard = false;
         for (int i = 0; i < lines.Count; i++) {
@@ -701,7 +701,8 @@ public static partial class MarkdownReader {
                 startColumn: 1,
                 options,
                 sourceTextMap: null,
-                preserveLineEndingInsideCodeSpan: i < lineBreaksInsideCodeSpans.Length && lineBreaksInsideCodeSpans[i]);
+                hasFollowingLine: i + 1 < lines.Count,
+                preserveLineEndingInsideInlineSpan: i < preservedInlineLineBreaks.Length && preservedInlineLineBreaks[i]);
 
             if (i > 0) sb.Append(prevHard ? "\n" : " ");
             sb.Append(joinInfo.Text);
@@ -723,7 +724,7 @@ public static partial class MarkdownReader {
         var points = new MarkdownSourcePoint?[text.Length];
         var tokenSpans = new MarkdownSourceSpan?[text.Length];
         var tokenLiterals = new string?[text.Length];
-        var lineBreaksInsideCodeSpans = FindParagraphLineBreaksInsideMatchedCodeSpans(lines);
+        var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(lines);
         var cursor = 0;
         var previousLineForJoin = absoluteLineOffset + 1;
         var previousJoinColumn = 1;
@@ -739,7 +740,8 @@ public static partial class MarkdownReader {
                 startColumn: 1,
                 options,
                 state.SourceTextMap,
-                preserveLineEndingInsideCodeSpan: i < lineBreaksInsideCodeSpans.Length && lineBreaksInsideCodeSpans[i]);
+                hasFollowingLine: i + 1 < lines.Count,
+                preserveLineEndingInsideInlineSpan: i < preservedInlineLineBreaks.Length && preservedInlineLineBreaks[i]);
 
             if (i > 0 && cursor < points.Length) {
                 points[cursor] = state.SourceTextMap.CreatePoint(previousLineForJoin, previousJoinColumn);
@@ -788,7 +790,7 @@ public static partial class MarkdownReader {
         var points = new MarkdownSourcePoint?[text.Length];
         var tokenSpans = new MarkdownSourceSpan?[text.Length];
         var tokenLiterals = new string?[text.Length];
-        var lineBreaksInsideCodeSpans = FindParagraphLineBreaksInsideMatchedCodeSpans(plainLines);
+        var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(plainLines);
         var cursor = 0;
         var previousLine = lines[0].AbsoluteLine;
         var previousJoinColumn = lines[0].StartColumn;
@@ -810,7 +812,8 @@ public static partial class MarkdownReader {
                 slice.StartColumn,
                 options,
                 state.SourceTextMap,
-                preserveLineEndingInsideCodeSpan: i < lineBreaksInsideCodeSpans.Length && lineBreaksInsideCodeSpans[i]);
+                hasFollowingLine: i + 1 < lines.Count,
+                preserveLineEndingInsideInlineSpan: i < preservedInlineLineBreaks.Length && preservedInlineLineBreaks[i]);
             for (var charIndex = 0; charIndex < joinInfo.Text.Length && cursor < points.Length; charIndex++) {
                 points[cursor++] = state.SourceTextMap.CreatePoint(slice.AbsoluteLine, slice.StartColumn + charIndex);
             }
@@ -862,15 +865,19 @@ public static partial class MarkdownReader {
         int startColumn,
         MarkdownReaderOptions options,
         MarkdownSourceTextMap? sourceTextMap,
-        bool preserveLineEndingInsideCodeSpan = false) {
+        bool hasFollowingLine,
+        bool preserveLineEndingInsideInlineSpan = false) {
         raw ??= string.Empty;
-        if (preserveLineEndingInsideCodeSpan) {
+        if (preserveLineEndingInsideInlineSpan) {
             return new ParagraphLineJoinInfo(raw, hardBreak: false, hardBreakMarker: null, hardBreakMarkerSpan: null);
         }
 
         bool spaceHardBreak = EndsWithTwoSpacesLine(raw);
         var trimmed = raw.TrimEnd();
-        var text = ConsumeTrailingBackslashHardBreak(trimmed, options, out bool backslashHardBreak);
+        bool backslashHardBreak = false;
+        var text = hasFollowingLine
+            ? ConsumeTrailingBackslashHardBreak(trimmed, options, out backslashHardBreak)
+            : trimmed;
 
         if (backslashHardBreak) {
             var markerColumn = startColumn + Math.Max(0, trimmed.Length - 1);

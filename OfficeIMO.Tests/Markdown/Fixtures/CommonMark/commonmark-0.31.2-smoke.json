@@ -1577,6 +1577,27 @@
     "html": "<p><code>code\\ span</code></p>\n"
   },
   {
+    "example": 642,
+    "section": "Hard line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a href=\"foo  \nbar\">\n",
+    "html": "<p><a href=\"foo  \nbar\"></p>\n"
+  },
+  {
+    "example": 643,
+    "section": "Hard line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a href=\"foo\\\nbar\">\n",
+    "html": "<p><a href=\"foo\\\nbar\"></p>\n"
+  },
+  {
+    "example": 644,
+    "section": "Hard line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo\\\n",
+    "html": "<p>foo\\</p>\n"
+  },
+  {
     "example": 648,
     "section": "Soft line breaks",
     "topLevelKinds": ["Paragraph"],

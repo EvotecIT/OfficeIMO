@@ -1,43 +1,45 @@
 namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {
-    private readonly struct ParagraphCodeSpanRange {
-        public ParagraphCodeSpanRange(int contentStart, int closingStart) {
+    private readonly struct ParagraphInlinePreserveRange {
+        public ParagraphInlinePreserveRange(int contentStart, int contentEnd) {
             ContentStart = contentStart;
-            ClosingStart = closingStart;
+            ContentEnd = contentEnd;
         }
 
         public int ContentStart { get; }
-        public int ClosingStart { get; }
+        public int ContentEnd { get; }
 
         public bool ContainsOffset(int offset) =>
-            offset >= ContentStart && offset < ClosingStart;
+            offset >= ContentStart && offset < ContentEnd;
     }
 
-    private static bool[] FindParagraphLineBreaksInsideMatchedCodeSpans(IReadOnlyList<string> lines) {
+    private static bool[] FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(IReadOnlyList<string> lines) {
         if (lines == null || lines.Count <= 1) {
             return Array.Empty<bool>();
         }
 
         var text = string.Join("\n", lines);
-        if (text.IndexOf('`') < 0) {
+        if (text.IndexOf('`') < 0 && text.IndexOf('<') < 0) {
             return new bool[Math.Max(0, lines.Count - 1)];
         }
 
-        var codeSpans = FindMatchedCodeSpanRanges(text);
+        var ranges = FindMatchedCodeSpanRanges(text);
+        ranges.AddRange(FindMatchedRawInlineHtmlTagRanges(text));
+
         var result = new bool[lines.Count - 1];
         var offset = 0;
         for (var lineIndex = 0; lineIndex < lines.Count - 1; lineIndex++) {
             offset += lines[lineIndex]?.Length ?? 0;
-            result[lineIndex] = codeSpans.Any(range => range.ContainsOffset(offset));
+            result[lineIndex] = ranges.Any(range => range.ContainsOffset(offset));
             offset++;
         }
 
         return result;
     }
 
-    private static List<ParagraphCodeSpanRange> FindMatchedCodeSpanRanges(string text) {
-        var ranges = new List<ParagraphCodeSpanRange>();
+    private static List<ParagraphInlinePreserveRange> FindMatchedCodeSpanRanges(string text) {
+        var ranges = new List<ParagraphInlinePreserveRange>();
         for (var position = 0; position < text.Length;) {
             if (text[position] != '`') {
                 position++;
@@ -68,8 +70,28 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            ranges.Add(new ParagraphCodeSpanRange(openingStart + fenceLength, closingStart));
+            ranges.Add(new ParagraphInlinePreserveRange(openingStart + fenceLength, closingStart));
             position = closingStart + fenceLength;
+        }
+
+        return ranges;
+    }
+
+    private static List<ParagraphInlinePreserveRange> FindMatchedRawInlineHtmlTagRanges(string text) {
+        var ranges = new List<ParagraphInlinePreserveRange>();
+        for (int position = 0; position < text.Length;) {
+            int tagStart = text.IndexOf('<', position);
+            if (tagStart < 0) {
+                break;
+            }
+
+            if (!HtmlBlockParser.TryParseHtmlTag(text.Substring(tagStart), out _, out _, out int endIndex)) {
+                position = tagStart + 1;
+                continue;
+            }
+
+            ranges.Add(new ParagraphInlinePreserveRange(tagStart + 1, tagStart + endIndex));
+            position = tagStart + endIndex + 1;
         }
 
         return ranges;
