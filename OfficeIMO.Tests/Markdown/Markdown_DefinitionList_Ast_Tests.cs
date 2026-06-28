@@ -89,11 +89,69 @@ Term 2
         Assert.Equal("Renamed", group.TermItems[0].Markdown);
         Assert.Same(group.TermItems[0].Inlines, group.Terms[0]);
         Assert.All(definitionList.Entries, entry => Assert.Equal("Renamed", entry.TermMarkdown));
-        Assert.Equal("Renamed: first\nRenamed: second", ((IMarkdownBlock)definitionList).RenderMarkdown());
+        Assert.Equal("Renamed\n:   first\n:   second", ((IMarkdownBlock)definitionList).RenderMarkdown());
 
         var html = ((IMarkdownBlock)definitionList).RenderHtml();
         Assert.Contains("<dt>Renamed</dt>", html);
         Assert.DoesNotContain("Original", html);
+    }
+
+    [Fact]
+    public void DefinitionList_MarkdigMarkerSyntax_Writes_Marker_Syntax_For_Reparse() {
+        const string markdown = """
+Term
+:   Definition
+""";
+
+        var document = MarkdownReader.Parse(markdown);
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
+        var written = NormalizeMarkdown(document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written);
+
+        Assert.Equal(markdown, written);
+        Assert.Equal(markdown, ((IMarkdownBlock)definitionList).RenderMarkdown());
+        var reparsedDefinitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(reparsed.Blocks));
+        var group = Assert.Single(reparsedDefinitionList.Groups);
+        Assert.Equal("Term", Assert.Single(group.TermItems).Markdown);
+        Assert.Equal("Definition", Assert.IsType<ParagraphBlock>(Assert.Single(Assert.Single(group.Definitions).Blocks)).Inlines.RenderMarkdown());
+    }
+
+    [Fact]
+    public void DefinitionList_GroupedTermsAndDefinitions_Write_Without_Flattening() {
+        const string markdown = """
+Term 1
+Term 2
+:   First
+:   Second
+""";
+
+        var document = MarkdownReader.Parse(markdown);
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
+        var written = NormalizeMarkdown(document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written);
+
+        Assert.Equal(markdown, written);
+        Assert.Equal(markdown, ((IMarkdownBlock)definitionList).RenderMarkdown());
+        var reparsedDefinitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(reparsed.Blocks));
+        var group = Assert.Single(reparsedDefinitionList.Groups);
+        Assert.Equal(new[] { "Term 1", "Term 2" }, group.TermItems.Select(term => term.Markdown).ToArray());
+        Assert.Equal(
+            new[] { "First", "Second" },
+            group.Definitions
+                .Select(definition => Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks)).Inlines.RenderMarkdown())
+                .ToArray());
+        Assert.Equal(4, definitionList.Entries.Count);
+    }
+
+    [Fact]
+    public void DefinitionList_SimpleInlineSyntax_Still_Writes_Simple_Inline_Syntax() {
+        const string markdown = "Term: Definition";
+
+        var document = MarkdownReader.Parse(markdown);
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(markdown, ((IMarkdownBlock)definitionList).RenderMarkdown());
+        Assert.Equal(markdown, NormalizeMarkdown(document.ToMarkdown()));
     }
 
     [Fact]
@@ -192,4 +250,10 @@ Term 2
 
         return sb.ToString();
     }
+
+    private static string NormalizeMarkdown(string markdown) =>
+        markdown
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .TrimEnd('\n');
 }

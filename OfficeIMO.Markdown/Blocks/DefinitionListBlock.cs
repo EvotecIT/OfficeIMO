@@ -113,13 +113,13 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < _entries.Count; i++) {
-            var entry = _entries[i];
+        for (int i = 0; i < _groups.Count; i++) {
+            var group = _groups[i];
             if (i > 0) {
                 sb.Append('\n');
             }
 
-            AppendEntryMarkdown(sb, entry);
+            AppendGroupMarkdown(sb, group, FindSyntaxGroupForCurrentGroup(group, i));
         }
         return sb.ToString().TrimEnd();
     }
@@ -239,13 +239,107 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         return (entry.TermMarkdown, entry.DefinitionMarkdown);
     }
 
-    private static void AppendEntryMarkdown(StringBuilder sb, DefinitionListEntry? entry) {
-        var safeEntry = entry ?? new DefinitionListEntry();
-        var blocks = safeEntry.DefinitionBlocks;
-        sb.Append(safeEntry.TermMarkdown).Append(':');
+    private static void AppendGroupMarkdown(
+        StringBuilder sb,
+        DefinitionListGroup? group,
+        MarkdownSyntaxNode? cachedGroup) {
+        var safeGroup = group ?? new DefinitionListGroup();
+        if (ShouldRenderGroupAsMarker(safeGroup, cachedGroup)) {
+            AppendMarkerGroupMarkdown(sb, safeGroup);
+            return;
+        }
+
+        var term = safeGroup.TermItems.Count > 0
+            ? safeGroup.TermItems[0]?.Markdown ?? string.Empty
+            : string.Empty;
+        var definition = safeGroup.Definitions.Count > 0
+            ? safeGroup.Definitions[0]
+            : null;
+        AppendInlineDefinitionMarkdown(sb, term, definition);
+    }
+
+    private static bool ShouldRenderGroupAsMarker(DefinitionListGroup group, MarkdownSyntaxNode? cachedGroup) {
+        if (group == null) {
+            return false;
+        }
+
+        if (group.TermItems.Count != 1 || group.Definitions.Count != 1) {
+            return true;
+        }
+
+        if (cachedGroup == null || cachedGroup.Children.Count < 2) {
+            return false;
+        }
+
+        var termSpan = cachedGroup.Children
+            .FirstOrDefault(static child => child.Kind == MarkdownSyntaxKind.DefinitionTerm)
+            ?.SourceSpan;
+        var definitionSpan = cachedGroup.Children
+            .FirstOrDefault(static child => child.Kind == MarkdownSyntaxKind.DefinitionValue)
+            ?.SourceSpan;
+
+        return termSpan.HasValue &&
+               definitionSpan.HasValue &&
+               termSpan.Value.EndLine < definitionSpan.Value.StartLine;
+    }
+
+    private static void AppendMarkerGroupMarkdown(StringBuilder sb, DefinitionListGroup group) {
+        if (group.TermItems.Count == 0) {
+            sb.Append(":   ");
+        } else {
+            for (int termIndex = 0; termIndex < group.TermItems.Count; termIndex++) {
+                if (termIndex > 0) {
+                    sb.Append('\n');
+                }
+
+                sb.Append(group.TermItems[termIndex]?.Markdown ?? string.Empty);
+            }
+        }
+
+        if (group.Definitions.Count == 0) {
+            sb.Append("\n:   ");
+            return;
+        }
+
+        for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
+            sb.Append('\n');
+            AppendMarkerDefinitionMarkdown(sb, group.Definitions[definitionIndex]);
+        }
+    }
+
+    private static void AppendMarkerDefinitionMarkdown(StringBuilder sb, DefinitionListDefinition? definition) {
+        var blocks = definition?.Blocks;
+        if (blocks == null || blocks.Count == 0) {
+            sb.Append(":   ");
+            return;
+        }
+
+        if (blocks[0] is ParagraphBlock) {
+            sb.Append(":   ");
+            AppendIndentedDefinitionBlockMarkdown(sb, blocks[0], firstBlock: true, continuationIndent: "    ");
+        } else {
+            sb.Append(":   \n");
+            AppendIndentedDefinitionBlockMarkdown(sb, blocks[0], firstBlock: false, continuationIndent: "    ");
+        }
+
+        for (int i = 1; i < blocks.Count; i++) {
+            sb.Append("\n\n");
+            AppendIndentedDefinitionBlockMarkdown(sb, blocks[i], firstBlock: false, continuationIndent: "    ");
+        }
+    }
+
+    private static void AppendInlineDefinitionMarkdown(
+        StringBuilder sb,
+        string termMarkdown,
+        DefinitionListDefinition? definition) {
+        IReadOnlyList<IMarkdownBlock> blocks = definition == null
+            ? Array.Empty<IMarkdownBlock>()
+            : definition.Blocks;
+        sb.Append(termMarkdown ?? string.Empty).Append(':');
         if (blocks.Count == 0) {
-            if (!string.IsNullOrEmpty(safeEntry.DefinitionMarkdown)) {
-                sb.Append(' ').Append(safeEntry.DefinitionMarkdown);
+            var definitionMarkdown = definition?.Markdown;
+            if (!string.IsNullOrEmpty(definitionMarkdown)) {
+                sb.Append(' ').Append(definitionMarkdown);
             }
             return;
         }
@@ -264,7 +358,11 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         }
     }
 
-    private static void AppendIndentedDefinitionBlockMarkdown(StringBuilder sb, IMarkdownBlock block, bool firstBlock) {
+    private static void AppendIndentedDefinitionBlockMarkdown(
+        StringBuilder sb,
+        IMarkdownBlock block,
+        bool firstBlock,
+        string continuationIndent = "  ") {
         var rendered = (block?.RenderMarkdown() ?? string.Empty)
             .Replace("\r\n", "\n")
             .Replace('\r', '\n');
@@ -272,9 +370,9 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         for (int i = 0; i < lines.Length; i++) {
             if (i > 0) {
                 sb.Append('\n');
-                sb.Append("  ");
+                sb.Append(continuationIndent);
             } else if (!firstBlock) {
-                sb.Append("  ");
+                sb.Append(continuationIndent);
             }
 
             sb.Append(lines[i]);
