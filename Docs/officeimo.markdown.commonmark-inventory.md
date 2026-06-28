@@ -15,10 +15,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Official examples | 652 |
-| Pinned smoke fixtures | 270 |
-| Passing pinned fixtures | 270 |
-| Passing unpinned examples | 320 |
-| Failing examples | 62 |
+| Pinned smoke fixtures | 271 |
+| Passing pinned fixtures | 271 |
+| Passing unpinned examples | 322 |
+| Failing examples | 59 |
 | Intentional deviations | 0 |
 
 ## Section Inventory
@@ -35,10 +35,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Indented code blocks | 12 | 1 | 1 | 10 | 1 | 0 |
 | Fenced code blocks | 29 | 29 | 29 | 0 | 0 | 0 |
 | HTML blocks | 44 | 19 | 19 | 22 | 3 | 0 |
-| Link reference definitions | 27 | 9 | 9 | 17 | 1 | 0 |
+| Link reference definitions | 27 | 10 | 10 | 17 | 0 | 0 |
 | Paragraphs | 8 | 8 | 8 | 0 | 0 | 0 |
 | Blank lines | 1 | 0 | 0 | 1 | 0 | 0 |
-| Block quotes | 25 | 10 | 10 | 10 | 5 | 0 |
+| Block quotes | 25 | 10 | 10 | 12 | 3 | 0 |
 | List items | 48 | 38 | 38 | 9 | 1 | 0 |
 | Lists | 26 | 26 | 26 | 0 | 0 | 0 |
 | Inlines | 1 | 0 | 0 | 1 | 0 | 0 |
@@ -56,10 +56,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 
 | Cluster | Failing | Sections | First examples |
 | --- | ---: | --- | --- |
-| Link/image/reference grammar | 17 | Link reference definitions, Links | #218, #491, #518, #519, #520, #523, #524, #525, #526, #531, #532, #533 |
+| Link/image/reference grammar | 16 | Links | #491, #518, #519, #520, #523, #524, #525, #526, #531, #532, #533, #536 |
 | HTML block/raw HTML grammar | 14 | HTML blocks, Raw HTML | #148, #174, #191, #615, #619, #621, #622, #624, #625, #626, #627, #628 |
 | Emphasis delimiter algorithm | 9 | Emphasis and strong emphasis | #353, #408, #418, #432, #438, #441, #450, #453, #470 |
-| Container indentation and continuation | 8 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #239, #240, #242, #252, #264 |
+| Container indentation and continuation | 6 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #242, #252, #264 |
 | Autolink grammar | 4 | Autolinks | #602, #606, #609, #610 |
 | Code span normalization and precedence | 4 | Code spans | #333, #334, #336, #342 |
 | Inline precedence and line-break grammar | 4 | Hard line breaks | #641, #642, #643, #644 |

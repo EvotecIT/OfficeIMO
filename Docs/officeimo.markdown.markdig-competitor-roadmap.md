@@ -21,7 +21,7 @@ Current scoreboard:
 - parity gap plan: `Docs/officeimo.markdown.markdig-parity-gap-plan.md`
 - lossless roundtrip design: `Docs/officeimo.markdown.lossless-roundtrip-design.md`
 - external parity baseline: Markdig `1.3.2`
-- standards smoke baseline: 270 CommonMark `0.31.2` fixtures, 36 cmark-gfm extension fixtures, and a focused upstream ignored-autolink crash regression
+- standards smoke baseline: 271 CommonMark `0.31.2` fixtures, 36 cmark-gfm extension fixtures, and a focused upstream ignored-autolink crash regression
 - package guardrail baseline: tests and benchmarks must keep the same Markdig package version
 
 ## Where We Are Strong
@@ -121,6 +121,7 @@ Recent progress:
 - parsed HTML comment blocks now expose source-backed opening marker, body, and closing marker syntax tokens plus native source fields, caret lookup, source edits, and snapshot projection without claiming broader raw-HTML tag tokenization
 - parsed footnote definitions now expose source-backed opening and separator marker syntax tokens plus native source fields, caret lookup, source edits, and snapshot projection while keeping label/body semantics stable
 - parsed reference link definitions now expose source-backed opening and separator marker syntax tokens plus native metadata, source-field enumeration, caret lookup, source edits, and snapshot fields around single-line and multiline labels
+- blockquote-contained reference definitions now participate in the document-level pre-scan before earlier paragraphs resolve shortcut links, and native reference-definition spans still point at the original quoted columns
 - parsed inline footnote references now expose source-backed opening and closing delimiter syntax tokens while native label/marker metadata, source edits, and semantic traversal stay clean
 - parsed inline/reference links and images now expose source-backed delimiter marker syntax tokens while native metadata/source edits and semantic inline traversal remain stable
 - parsed hard breaks now expose source-backed marker syntax tokens for two-space, backslash, and inline HTML break spellings, while native hard-break metadata/source edits and semantic traversal stay clean

@@ -921,6 +921,34 @@ Foo
     }
 
     [Fact]
+    public void Parse_Resolves_BlockQuote_Reference_Definitions_For_Earlier_Paragraphs() {
+        var native = MarkdownNativeDocument.Parse("""
+[foo]
+
+> [foo]: /url
+""", MarkdownReaderOptions.CreateCommonMarkProfile());
+
+        var definition = Assert.Single(native.ReferenceLinkDefinitions);
+        Assert.Equal("foo", definition.Label);
+        Assert.Equal("/url", definition.Url);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 13), definition.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 3), definition.OpeningMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 4, 3, 6), definition.LabelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 8), definition.SeparatorMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 10, 3, 13), definition.UrlSourceSpan);
+
+        Assert.Equal(
+            new[] { MarkdownNativeBlockKind.Paragraph, MarkdownNativeBlockKind.Quote },
+            native.Blocks.Select(block => block.Kind).ToArray());
+        Assert.Same(native.Blocks[1], native.FindBlockAtPosition(3, 1));
+        Assert.Same(definition, native.FindReferenceLinkDefinitionAtPosition(3, 4));
+        Assert.Equal("url", native.FindReferenceLinkDefinitionFieldAtPosition(3, 10)!.Name);
+        Assert.Equal(
+            CommonMarkHtmlComparison.Normalize("<p><a href=\"/url\">foo</a></p>\n<blockquote>\n</blockquote>"),
+            CommonMarkHtmlComparison.Normalize(native.Document.ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions())));
+    }
+
+    [Fact]
     public void Native_Document_Enumerates_Reference_Definition_SourceFields_And_Position_Lookup() {
         var native = MarkdownNativeDocument.Parse("""
 [hero]: https://example.com/docs "Docs title"

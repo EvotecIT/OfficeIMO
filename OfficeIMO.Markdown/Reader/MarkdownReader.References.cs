@@ -27,10 +27,18 @@ public static partial class MarkdownReader {
         char fenceChar = '\0';
         int fenceLen = 0;
         bool openParagraph = false;
+        bool inQuotedFence = false;
+        char quotedFenceChar = '\0';
+        int quotedFenceLen = 0;
 
         for (int idx = 0; idx < lines.Length; idx++) {
             var line = lines[idx];
             if (string.IsNullOrWhiteSpace(line)) {
+                openParagraph = false;
+                continue;
+            }
+
+            if (TryUpdateQuotedFencePreScanState(line, ref inQuotedFence, ref quotedFenceChar, ref quotedFenceLen)) {
                 openParagraph = false;
                 continue;
             }
@@ -92,6 +100,22 @@ public static partial class MarkdownReader {
                         separatorMarkerSpan);
                 }
                 idx += consumedLines - 1;
+                openParagraph = false;
+                continue;
+            }
+
+            if (!inQuotedFence && TryParseQuotedReferenceLinkDefinition(
+                lines,
+                idx,
+                options,
+                state,
+                out var quotedDefinition,
+                out var quotedConsumedLines)) {
+                if (!state.LinkRefs.ContainsKey(quotedDefinition.Label)) {
+                    state.LinkRefs[quotedDefinition.Label] = quotedDefinition;
+                }
+
+                idx += quotedConsumedLines - 1;
                 openParagraph = false;
                 continue;
             }
