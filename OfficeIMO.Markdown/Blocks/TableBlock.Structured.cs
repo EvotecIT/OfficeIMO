@@ -185,6 +185,8 @@ public sealed partial class TableBlock {
         clone.DefinitionLists = source.DefinitionLists;
         clone.TocPlaceholders = source.TocPlaceholders;
         clone.Footnotes = source.Footnotes;
+        clone.SingleTildeStrikethrough = source.SingleTildeStrikethrough;
+        clone.Subscript = source.Subscript;
         clone.PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions;
         clone.HtmlBlocks = source.HtmlBlocks;
         clone.Paragraphs = source.Paragraphs;

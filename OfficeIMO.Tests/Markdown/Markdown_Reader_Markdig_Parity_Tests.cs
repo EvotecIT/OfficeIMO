@@ -198,6 +198,13 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "superscript-with-nested-emphasis", "^super *em*^" };
         yield return new object[] { "superscript-with-trailing-text", "2^10^tail" };
         yield return new object[] { "superscript-with-whitespace-before-close-stays-literal", "2^10 ^" };
+        yield return new object[] { "subscript", "H~2~O" };
+        yield return new object[] { "subscript-after-space", "x ~sub~" };
+        yield return new object[] { "subscript-at-start", "~alone~" };
+        yield return new object[] { "subscript-and-double-tilde-strike", "H~2~ and ~~del~~" };
+        yield return new object[] { "subscript-with-nested-emphasis", "~sub *em*~" };
+        yield return new object[] { "subscript-with-trailing-text", "H~2~tail" };
+        yield return new object[] { "subscript-with-whitespace-before-close-stays-literal", "H~2 ~" };
     }
 
     [Theory]
@@ -260,8 +267,11 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseEmphasisExtras(builder);
 
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.Subscript = true;
+
         var office = MarkdownReader
-            .Parse(markdown, MarkdownReaderOptions.CreatePortableProfile())
+            .Parse(markdown, officeOptions)
             .ToHtmlFragment(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 

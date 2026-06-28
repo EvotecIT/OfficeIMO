@@ -23,6 +23,8 @@ public static partial class MarkdownReader {
             DefinitionLists = source.DefinitionLists,
             TocPlaceholders = source.TocPlaceholders,
             Footnotes = source.Footnotes,
+            SingleTildeStrikethrough = source.SingleTildeStrikethrough,
+            Subscript = source.Subscript,
             PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions,
             HtmlBlocks = source.HtmlBlocks,
             PreserveHtmlBlockBlankLineContent = source.PreserveHtmlBlockBlankLineContent,

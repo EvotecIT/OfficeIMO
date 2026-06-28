@@ -9,6 +9,7 @@ public static partial class MarkdownReader {
         Highlight,
         Inserted,
         Superscript,
+        Subscript,
     }
 
     private sealed class InlineFrame {
@@ -83,6 +84,14 @@ public static partial class MarkdownReader {
         if (top.Kind == FrameKind.Superscript && remaining >= 1) {
             stack.Pop();
             var node = new SuperscriptSequenceInline(top.Seq);
+            SetFormattingMarkerSpans(node, sourceMap, marker, top.OpenIndex, top.OpenLen, closingIndex, 1);
+            stack.Peek().Seq.AddRaw(node);
+            consumed = 1;
+            return true;
+        }
+        if (top.Kind == FrameKind.Subscript && remaining >= 1) {
+            stack.Pop();
+            var node = new SubscriptSequenceInline(top.Seq);
             SetFormattingMarkerSpans(node, sourceMap, marker, top.OpenIndex, top.OpenLen, closingIndex, 1);
             stack.Peek().Seq.AddRaw(node);
             consumed = 1;
@@ -484,7 +493,7 @@ public static partial class MarkdownReader {
         bool rightFlanking = !prevWs && (!prevPunct || nextWs || nextPunct);
 
         if (marker == '~') {
-            // Pragmatic GFM-like: "~~" opens/closes when not adjacent to whitespace on the relevant side.
+            // Pragmatic GFM-like strike and Markdig emphasis-extra subscript both hug non-whitespace text.
             canOpen = !nextWs;
             canClose = !prevWs;
             return;

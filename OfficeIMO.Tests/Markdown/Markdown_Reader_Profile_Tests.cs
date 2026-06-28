@@ -18,6 +18,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.AutolinkWwwUrls);
         Assert.False(options.AutolinkEmails);
         Assert.False(options.SoftLineBreaksAsHardLineBreaks);
+        Assert.False(options.Subscript);
         Assert.True(options.Tables);
         Assert.True(options.AllowHeaderlessTables);
         Assert.True(options.ParseTableCellBlocks);
@@ -47,6 +48,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.AutolinkWwwUrls);
         Assert.False(options.AutolinkEmails);
         Assert.False(options.SoftLineBreaksAsHardLineBreaks);
+        Assert.False(options.Subscript);
         Assert.True(options.HtmlBlocks);
         Assert.True(options.InlineHtml);
         Assert.Empty(options.BlockParserExtensions);
@@ -69,6 +71,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.True(options.Footnotes);
         Assert.False(options.StandaloneImageBlocks);
         Assert.True(options.SingleTildeStrikethrough);
+        Assert.False(options.Subscript);
         Assert.True(options.AutolinkUrls);
         Assert.False(options.AutolinkAllowDomainWithoutPeriod);
         Assert.True(options.AutolinkAllowQueryAndFragmentSpecialCharacters);
@@ -81,6 +84,19 @@ public class Markdown_Reader_Profile_Tests {
         Assert.Single(options.BlockParserExtensions);
         Assert.Empty(options.InlineParserExtensions);
         Assert.Equal(MarkdownReaderBuiltInExtensions.FootnotesExtensionName, options.BlockParserExtensions[0].Name);
+    }
+
+    [Fact]
+    public void Gfm_Profile_Keeps_Single_Tilde_As_Strikethrough_Instead_Of_Subscript() {
+        var document = MarkdownReader.Parse("Use ~this~", MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+
+        Assert.Equal("<p>Use <del>this</del></p>", html);
+        Assert.DoesNotContain("<sub>", html);
     }
 
     [Fact]

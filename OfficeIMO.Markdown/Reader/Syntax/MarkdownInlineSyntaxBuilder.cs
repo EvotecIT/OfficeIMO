@@ -118,6 +118,10 @@ internal static class MarkdownInlineSyntaxBuilder {
                 return BuildContainerNode(MarkdownSyntaxKind.InlineSuperscript, superscript, superscript.Inlines, span);
             case SuperscriptInline superscript:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineSuperscript, span, literal: superscript.Text, associatedObject: superscript);
+            case SubscriptSequenceInline subscript:
+                return BuildContainerNode(MarkdownSyntaxKind.InlineSubscript, subscript, subscript.Inlines, span);
+            case SubscriptInline subscript:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineSubscript, span, literal: subscript.Text, associatedObject: subscript);
             case UnderlineInline underline:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineUnderline, span, literal: underline.Text, associatedObject: underline);
             case HtmlTagSequenceInline htmlTag:

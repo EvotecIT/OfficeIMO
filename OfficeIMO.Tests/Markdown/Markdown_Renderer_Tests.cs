@@ -755,6 +755,23 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void InlineSequence_Subscript_Writes_Markdig_EmphasisExtra_Syntax_And_Renders_Sub() {
+        var document = new MarkdownDoc()
+            .Add(new ParagraphBlock(new InlineSequence()
+                .Text("Water")
+                .Text("H")
+                .Subscript("2")
+                .Text("O")));
+
+        Assert.Equal("Water H ~2~ O", document.ToMarkdown().Trim());
+        Assert.Equal("<p>Water H <sub>2</sub> O</p>", document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        }).Trim());
+    }
+
+    [Fact]
     public void MarkdownRendererFeaturePack_Can_Compose_Plugins_With_Fence_Option_Schemas() {
         var schema = new MarkdownFenceOptionSchema(
             "vendor.visual-options",

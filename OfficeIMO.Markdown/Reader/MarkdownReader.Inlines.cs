@@ -672,7 +672,7 @@ public static partial class MarkdownReader {
                 }
             }
 
-            // Emphasis / strong / strike / highlight / inserted / superscript using delimiter-run rules + an open-frame stack.
+            // Emphasis / strong / strike / highlight / inserted / superscript / subscript using delimiter-run rules + an open-frame stack.
             if (text[pos] == '*' || text[pos] == '_' || text[pos] == '~' || text[pos] == '=' || text[pos] == '+' || text[pos] == '^') {
                 char marker = text[pos];
                 int runLen = 1;
@@ -692,7 +692,7 @@ public static partial class MarkdownReader {
                     continue;
                 }
 
-                // "==" and "++" always require a double delimiter. "~" can opt into cmark-gfm style single-tilde strike.
+                // "==" and "++" always require a double delimiter. "~" can mean Markdig subscript or cmark-gfm single-tilde strike.
                 if ((marker == '=' || marker == '+') && runLen < 2) {
                     AddTextNode(marker.ToString(), pos, 1);
                     pos++;
@@ -705,7 +705,7 @@ public static partial class MarkdownReader {
                     continue;
                 }
 
-                if (marker == '~' && runLen < (options.SingleTildeStrikethrough ? 1 : 2)) {
+                if (marker == '~' && runLen < (options.SingleTildeStrikethrough || options.Subscript ? 1 : 2)) {
                     AddTextNode(marker.ToString(), pos, 1);
                     pos++;
                     continue;
@@ -782,6 +782,12 @@ public static partial class MarkdownReader {
 
                     while (remaining > 0) {
                         if (marker == '~') {
+                            if (options.Subscript && !options.SingleTildeStrikethrough && remaining == 1) {
+                                stack.Push(new InlineFrame(FrameKind.Subscript, marker, 1, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                                remaining -= 1;
+                                continue;
+                            }
+
                             int strikeDelimiterLength = remaining >= 2 ? 2 : (options.SingleTildeStrikethrough ? 1 : 2);
                             if (remaining >= strikeDelimiterLength) {
                                 stack.Push(new InlineFrame(FrameKind.Strike, marker, strikeDelimiterLength, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));

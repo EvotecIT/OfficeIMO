@@ -22,8 +22,8 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Markdig extension-family rows | 33 |
-| Covered | 6 |
-| Partial | 11 |
+| Covered | 7 |
+| Partial | 10 |
 | Intentional | 4 |
 | Gap | 12 |
 
@@ -43,7 +43,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | `UseDefinitionLists` | Definition lists | `Partial` | OfficeIMO has structured definition-list AST, Markdig-style colon-marker term grouping, multiple-definition parsing, source/native projection, profile-correct HTML comparison coverage, grouped Markdown writer preservation for reparsing, Markdig lazy paragraph, nested block, loose-definition, edge-continuation, and empty-marker first-continuation coverage, loose-definition writer preservation, and blank-separated marker-group writer preservation, but full source-map and writer edge breadth is not closed. | Broaden remaining Markdig definition-list source-map and writer edge cases before promotion. |
 | `UseDiagrams` | Diagrams | `Partial` | OfficeIMO has semantic fenced blocks and visual renderer hooks, but not Markdig diagram extension parity. | Compare Mermaid/Nomnom-style cases and decide renderer-package ownership. |
 | `UseEmojiAndSmiley` | Emoji and smiley | `Gap` | OfficeIMO has emoji word-join normalization only, not shortcode/smiley expansion. | Keep normalization separate from an optional inline replacement extension. |
-| `UseEmphasisExtras` | Emphasis extras | `Partial` | OfficeIMO has strikethrough, inserted-text, superscript, and highlight/mark-style inlines with source-backed delimiter metadata for the parser-owned forms, but not the full Markdig emphasis-extra set. | Decide profile semantics for Markdig single-tilde subscript versus GFM single-tilde strikethrough, then add subscript parser, AST/source, renderer, and writer evidence before promotion. |
+| `UseEmphasisExtras` | Emphasis extras | `Covered` | OfficeIMO has strikethrough, inserted-text, highlight/mark, superscript, and subscript inline nodes with Markdig comparison cases, parser-owned source marker metadata, native projection, HTML rendering, Markdown writing, and explicit GFM single-tilde strikethrough profile coverage. | Keep emphasis-extra delimiter cases aligned as broader GFM and lossless trivia coverage expands. |
 | `UseFigures` | Figures | `Partial` | OfficeIMO has image/figure import and publisher figure rendering paths, but not Markdig figure syntax parity. | Separate HTML-import figure recovery from Markdown parser extension support. |
 | `UseFooters` | Footers | `Gap` | No footer block parser or semantic node exists. | Leave out of scope unless document footer semantics become a Markdown requirement. |
 | `UseFootnotes` | Footnotes | `Covered` | OfficeIMO has GFM footnote parsing and GitHub HTML rendering for first-reference ordering, repeated-reference backrefs, missing/unused definitions, nested block bodies, source/native label and marker spans, and structured Markdown writer roundtrip proof. | Keep the GFM footnote fixture corpus and structured-body writer coverage current. |

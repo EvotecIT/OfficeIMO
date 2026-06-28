@@ -28,6 +28,8 @@ public enum MarkdownNativeInlineKind {
     Inserted,
     /// <summary>Superscript inline content.</summary>
     Superscript,
+    /// <summary>Subscript inline content.</summary>
+    Subscript,
     /// <summary>Underline inline content.</summary>
     Underline,
     /// <summary>Hard line break.</summary>

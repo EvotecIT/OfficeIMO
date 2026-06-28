@@ -62,6 +62,7 @@ public sealed class MarkdownReaderOptions {
             StandaloneImageBlocks = false,
             StrictListIndentation = true,
             PreserveHtmlBlockBlankLineContent = false,
+            Subscript = false,
             AutolinkUrls = false,
             AutolinkWwwUrls = false,
             AutolinkEmails = false
@@ -87,6 +88,7 @@ public sealed class MarkdownReaderOptions {
             StrictListIndentation = true,
             PreserveHtmlBlockBlankLineContent = false,
             SingleTildeStrikethrough = true,
+            Subscript = false,
             AutolinkUrls = true,
             AutolinkAllowDomainWithoutPeriod = false,
             AutolinkAllowQueryAndFragmentSpecialCharacters = true,
@@ -114,6 +116,7 @@ public sealed class MarkdownReaderOptions {
             Footnotes = false,
             StandaloneImageBlocks = false,
             StrictListIndentation = true,
+            Subscript = false,
             AutolinkUrls = false,
             AutolinkWwwUrls = false,
             AutolinkEmails = false
@@ -172,6 +175,12 @@ public sealed class MarkdownReaderOptions {
     /// Default: <c>false</c>.
     /// </summary>
     public bool SingleTildeStrikethrough { get; set; } = false;
+    /// <summary>
+    /// When <c>true</c>, Markdig emphasis-extra subscript (<c>~text~</c>) is enabled.
+    /// This is disabled by strict CommonMark and GFM profiles because GFM can use the same
+    /// delimiter for single-tilde strikethrough.
+    /// </summary>
+    public bool Subscript { get; set; } = true;
     /// <summary>
     /// When <c>true</c>, isolated single-line <c>Term: Definition</c> patterns stay as narrative paragraphs.
     /// Consecutive definition-like lines still parse as a definition list.
