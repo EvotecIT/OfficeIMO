@@ -1157,6 +1157,13 @@
     ]
   },
   {
+    "example": 196,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["ReferenceLinkDefinition", "Paragraph"],
+    "markdown": "[foo]: /url '\ntitle\nline1\nline2\n'\n\n[foo]\n",
+    "html": "<p><a href=\"/url\" title=\"\ntitle\nline1\nline2\n\">foo</a></p>\n"
+  },
+  {
     "example": 205,
     "section": "Link reference definitions",
     "topLevelKinds": ["ReferenceLinkDefinition", "Paragraph"],
