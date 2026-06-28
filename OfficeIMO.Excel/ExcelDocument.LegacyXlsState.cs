@@ -247,11 +247,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            try {
-                return string.Equals(Path.GetFullPath(path), Path.GetFullPath(FilePath), StringComparison.OrdinalIgnoreCase);
-            } catch {
-                return string.Equals(path, FilePath, StringComparison.OrdinalIgnoreCase);
-            }
+            return true;
         }
 
         private void CloseOpenPackageForNativeLegacyXlsSave() {

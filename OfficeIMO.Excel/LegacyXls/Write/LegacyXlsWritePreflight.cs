@@ -476,12 +476,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             IReadOnlyList<int> columnPageBreaks = sheet.GetManualColumnPageBreaks();
-            if (columnPageBreaks.Count > 1026) {
+            if (columnPageBreaks.Count > 255) {
                 reason = "manual column page break counts outside BIFF8 limits";
                 return false;
             }
 
-            if (columnPageBreaks.Any(column => column <= 0 || column > 256)) {
+            if (columnPageBreaks.Any(column => column <= 0 || column >= 256)) {
                 reason = "manual column page breaks outside BIFF8 worksheet limits";
                 return false;
             }

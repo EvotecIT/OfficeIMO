@@ -239,7 +239,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             CellRange range = ranges[0];
-            string rangeReference = FormatRange(range);
+            string rangeReference = FormatRange(range, absolute: true);
             string firstCell = A1.CellReference(range.FirstRow + 1, range.FirstColumn + 1);
             if (type == ConditionalFormatValues.DuplicateValues) {
                 formulas.Add($"COUNTIF({rangeReference},{firstCell})>1");
@@ -295,10 +295,16 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return false;
         }
 
-        private static string FormatRange(CellRange range) {
-            string start = A1.CellReference(range.FirstRow + 1, range.FirstColumn + 1);
-            string end = A1.CellReference(range.LastRow + 1, range.LastColumn + 1);
+        private static string FormatRange(CellRange range, bool absolute = false) {
+            string start = FormatCell(range.FirstRow + 1, range.FirstColumn + 1, absolute);
+            string end = FormatCell(range.LastRow + 1, range.LastColumn + 1, absolute);
             return start == end ? start : start + ":" + end;
+        }
+
+        private static string FormatCell(int row, int column, bool absolute) {
+            return absolute
+                ? A1.AbsoluteCellReference(row, column)
+                : A1.CellReference(row, column);
         }
 
         private static bool TryCreateExtensionPayload(

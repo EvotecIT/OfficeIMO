@@ -1685,15 +1685,15 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static byte[] BuildVerticalPageBreaksPayload(IReadOnlyList<int> columnPageBreaks) {
-            if (columnPageBreaks.Count > 1026) {
-                throw new NotSupportedException("Native XLS saving supports up to 1,026 manual column page breaks per worksheet.");
+            if (columnPageBreaks.Count > 255) {
+                throw new NotSupportedException("Native XLS saving supports up to 255 manual column page breaks per worksheet.");
             }
 
             using var stream = new MemoryStream();
             WriteUInt16(stream, checked((ushort)columnPageBreaks.Count));
             foreach (int column in columnPageBreaks) {
-                if (column <= 0 || column > 256) {
-                    throw new NotSupportedException("Native XLS saving supports column page breaks within the BIFF8 worksheet limit of 256 columns.");
+                if (column <= 0 || column >= 256) {
+                    throw new NotSupportedException("Native XLS saving supports column page breaks before columns 2 through 255 in BIFF8 worksheets.");
                 }
 
                 WriteUInt16(stream, checked((ushort)column));

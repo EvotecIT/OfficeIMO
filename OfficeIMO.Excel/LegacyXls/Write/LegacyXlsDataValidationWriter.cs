@@ -322,7 +322,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             string? formulaReason;
             bool encoded = type == DataValidationValues.List
-                ? LegacyXlsFormulaEncoder.TryEncodeListSource(formula, formulaNameIndex, sheetIndex, out tokens, out formulaReason)
+                ? LegacyXlsFormulaEncoder.TryEncodeListSourceWithRelativeReferenceAnchor(formula, formulaNameIndex, sheetIndex, anchorRow, anchorColumn, out tokens, out formulaReason)
                 : LegacyXlsFormulaEncoder.TryEncodeWithRelativeReferenceAnchor(formula, formulaNameIndex, sheetIndex, anchorRow, anchorColumn, out tokens, out formulaReason);
             if (!encoded) {
                 reason = "data validation formulas outside the native XLS formula subset: " + formulaReason;

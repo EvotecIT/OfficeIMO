@@ -121,6 +121,11 @@ namespace OfficeIMO.Tests {
                 result.EnsureNoImportErrors();
                 LegacyXlsCell cell = Assert.Single(Assert.Single(result.Workbook.Worksheets).Cells, item => item.Row == 1 && item.Column == 1);
                 Assert.Equal("Native XLS target", Assert.IsType<string>(cell.Value));
+
+                using ExcelDocument sourceDocument = ExcelDocument.Load(openXmlPath, readOnly: true);
+                ExcelSheet sourceSheet = Assert.Single(sourceDocument.Sheets);
+                Assert.True(sourceSheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? sourceValue));
+                Assert.Equal("OpenXML source", sourceValue!.Text);
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
@@ -770,6 +775,24 @@ namespace OfficeIMO.Tests {
                 sheet.WorksheetPart.Worksheet.AppendChild(new OpenXmlColumnBreaks(
                     new OpenXmlBreak {
                         Id = 257U,
+                        Min = 0U,
+                        Max = 65535U,
+                        ManualPageBreak = true
+                    }) {
+                    Count = 1U,
+                    ManualBreakCount = 1U
+                });
+                sheet.WorksheetPart.Worksheet.Save();
+            });
+        }
+
+        [Fact]
+        public void LegacyXls_NativeSave_BlocksTerminalManualColumnPageBreakBeforeWriting() {
+            AssertNativeXlsSaveNotSupported("manual column page breaks outside BIFF8 worksheet limits", (document, sheet) => {
+                sheet.CellValue(1, 1, "Terminal column break");
+                sheet.WorksheetPart.Worksheet.AppendChild(new OpenXmlColumnBreaks(
+                    new OpenXmlBreak {
+                        Id = 256U,
                         Min = 0U,
                         Max = 65535U,
                         ManualPageBreak = true

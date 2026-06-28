@@ -142,6 +142,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NativeSave_RebasesListValidationRangeReferencesToSqrefAnchor() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet sheet = document.AddWorkSheet("Validation");
+                    sheet.CellValue(1, 1, "Open");
+                    sheet.CellValue(2, 1, "Closed");
+                    sheet.CellValue(3, 1, "Pending");
+                    sheet.ValidationListRange("B1:B10", "A1:A3");
+
+                    document.Save(xlsOutputPath);
+                }
+
+                byte[] payload = Assert.Single(GetBiffRecordPayloads(xlsOutputPath, 0x01be));
+                byte[] formulaTokens = ReadDataValidationFormulaTokens(payload, formulaIndex: 0);
+                Assert.Contains((byte)0x4d, formulaTokens);
+                Assert.DoesNotContain((byte)0x45, formulaTokens);
+
+                int areaOffset = Array.IndexOf(formulaTokens, (byte)0x4d);
+                Assert.True(areaOffset >= 0);
+                Assert.Equal((ushort)0, ReadUInt16(formulaTokens, areaOffset + 1));
+                Assert.Equal((ushort)2, ReadUInt16(formulaTokens, areaOffset + 3));
+                Assert.Equal((ushort)0xffff, ReadUInt16(formulaTokens, areaOffset + 5));
+                Assert.Equal((ushort)0xffff, ReadUInt16(formulaTokens, areaOffset + 7));
+
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                result.EnsureNoImportErrors();
+                LegacyXlsDataValidation validation = Assert.Single(Assert.Single(result.Workbook.Worksheets).DataValidations);
+                Assert.Equal("A1:A3", validation.ListSourceRange);
+                ExcelDataValidationInfo projectedValidation = Assert.Single(result.Document.Sheets[0].GetDataValidations("B1:B10"));
+                Assert.Equal("=A1:A3", projectedValidation.Formula1);
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_NativeSave_TreatsSingleCellDataValidationReferencesAsOneCellRanges() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");

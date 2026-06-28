@@ -97,6 +97,28 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return TryEncode(normalized, nameIndex, formulaSheetIndex, out tokens, out reason);
         }
 
+        internal static bool TryEncodeListSourceWithRelativeReferenceAnchor(
+            string formulaText,
+            LegacyXlsFormulaNameIndex nameIndex,
+            int formulaSheetIndex,
+            ushort anchorRow,
+            ushort anchorColumn,
+            out byte[] tokens,
+            out string? reason) {
+            if (!TryEncodeListSource(formulaText, nameIndex, formulaSheetIndex, out tokens, out reason)) {
+                return false;
+            }
+
+            if (!TryConvertReferencesToRelative(tokens, anchorRow, anchorColumn, convert3dReferences: false, out byte[] relativeTokens)) {
+                reason = "Formula contains references outside the BIFF8 relative-reference subset.";
+                tokens = Array.Empty<byte>();
+                return false;
+            }
+
+            tokens = relativeTokens;
+            return true;
+        }
+
         internal static bool TryEncodeWithRelativeReferenceAnchor(
             string formulaText,
             LegacyXlsFormulaNameIndex nameIndex,
@@ -120,6 +142,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         internal static bool TryConvertReferencesToRelative(byte[] formulaTokens, ushort anchorRow, ushort anchorColumn, out byte[] relativeTokens) {
+            return TryConvertReferencesToRelative(formulaTokens, anchorRow, anchorColumn, convert3dReferences: true, out relativeTokens);
+        }
+
+        private static bool TryConvertReferencesToRelative(byte[] formulaTokens, ushort anchorRow, ushort anchorColumn, bool convert3dReferences, out byte[] relativeTokens) {
             relativeTokens = (byte[])formulaTokens.Clone();
             int offset = 0;
             while (offset < relativeTokens.Length) {
@@ -197,13 +223,17 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                         break;
                     case 0x5a:
                         if (offset + 6 > relativeTokens.Length) return false;
-                        ConvertRelativeReference(relativeTokens, offset + 2, offset + 4, anchorRow, anchorColumn);
+                        if (convert3dReferences) {
+                            ConvertRelativeReference(relativeTokens, offset + 2, offset + 4, anchorRow, anchorColumn);
+                        }
                         offset += 6;
                         break;
                     case 0x5b:
                         if (offset + 10 > relativeTokens.Length) return false;
-                        ConvertRelativeReference(relativeTokens, offset + 2, offset + 6, anchorRow, anchorColumn);
-                        ConvertRelativeReference(relativeTokens, offset + 4, offset + 8, anchorRow, anchorColumn);
+                        if (convert3dReferences) {
+                            ConvertRelativeReference(relativeTokens, offset + 2, offset + 6, anchorRow, anchorColumn);
+                            ConvertRelativeReference(relativeTokens, offset + 4, offset + 8, anchorRow, anchorColumn);
+                        }
                         offset += 10;
                         break;
                     default:
