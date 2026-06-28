@@ -302,8 +302,8 @@
         "description": "HTML break tags inside GFM table cells remain source-addressable hard breaks",
         "line": 4,
         "column": 6,
-        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineHardBreak"],
-        "expectedDeepestKind": "InlineHardBreak",
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineHardBreak", "InlineHardBreakMarker"],
+        "expectedDeepestKind": "InlineHardBreakMarker",
         "expectedNearestBlockKind": "Paragraph"
       }
     ]

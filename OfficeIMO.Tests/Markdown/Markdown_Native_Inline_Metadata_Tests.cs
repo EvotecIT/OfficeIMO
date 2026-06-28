@@ -229,6 +229,9 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal("  ", spacesMarker.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), spacesBreak.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), spacesMarker.SourceSpan);
+        Assert.Collection(spacesBreak.SyntaxNode.Children,
+            marker => Assert.Equal(MarkdownSyntaxKind.InlineHardBreakMarker, marker.Kind));
+        Assert.Empty(spacesBreak.Children);
         Assert.Equal("Alpha\\\nbravo\n", spaces.CreateReplaceEdit(spacesMarker, "\\").Apply(spaces.SourceMarkdown));
         Assert.Equal("  ", spaces.ToSnapshot().Blocks[0].Inlines.Single(inline => inline.Kind == MarkdownNativeInlineKind.HardBreak).Metadata["marker"]);
         Assert.Equal(7, spaces.ToSnapshot().Blocks[0].Inlines.Single(inline => inline.Kind == MarkdownNativeInlineKind.HardBreak).MetadataSourceSpans["marker"]!.EndColumn);
@@ -241,6 +244,9 @@ public class Markdown_Native_Inline_Metadata_Tests {
 
         Assert.Equal("\\", backslashMarker.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 6), backslashMarker.SourceSpan);
+        Assert.Collection(backslashBreak.SyntaxNode.Children,
+            marker => Assert.Equal(MarkdownSyntaxKind.InlineHardBreakMarker, marker.Kind));
+        Assert.Empty(backslashBreak.Children);
         Assert.Equal("Alpha  \nbravo\n", backslash.CreateReplaceEdit(backslashMarker, "  ").Apply(backslash.SourceMarkdown));
         Assert.Equal("\\", backslash.ToSnapshot().Blocks[0].Inlines.Single(inline => inline.Kind == MarkdownNativeInlineKind.HardBreak).Metadata["marker"]);
 
@@ -253,6 +259,9 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal("<br />", htmlMarker.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 11), htmlBreak.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 11), htmlMarker.SourceSpan);
+        Assert.Collection(htmlBreak.SyntaxNode.Children,
+            marker => Assert.Equal(MarkdownSyntaxKind.InlineHardBreakMarker, marker.Kind));
+        Assert.Empty(htmlBreak.Children);
         Assert.Equal("Alpha<br>bravo\n", html.CreateReplaceEdit(htmlMarker, "<br>").Apply(html.SourceMarkdown));
         Assert.Equal("<br />", html.ToSnapshot().Blocks[0].Inlines.Single(inline => inline.Kind == MarkdownNativeInlineKind.HardBreak).Metadata["marker"]);
     }

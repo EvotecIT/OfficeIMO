@@ -738,6 +738,56 @@ baz*
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Hard_Break_Marker_Tokens() {
+        const string markdown = "two  \nslash\\\nhtml<br />next";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var hardBreaks = result.SyntaxTree.Descendants()
+            .Where(node => node.Kind == MarkdownSyntaxKind.InlineHardBreak)
+            .ToArray();
+
+        Assert.Equal(3, hardBreaks.Length);
+        Assert.Collection(hardBreaks,
+            twoSpaces => {
+                Assert.Equal("\\n", twoSpaces.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 5), twoSpaces.SourceSpan);
+                var marker = Assert.Single(twoSpaces.Children);
+                Assert.Equal(MarkdownSyntaxKind.InlineHardBreakMarker, marker.Kind);
+                Assert.Equal("  ", marker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 5), marker.SourceSpan);
+                Assert.Null(marker.AssociatedObject);
+            },
+            backslash => {
+                Assert.Equal("\\n", backslash.Literal);
+                Assert.Equal(new MarkdownSourceSpan(2, 6, 2, 6), backslash.SourceSpan);
+                var marker = Assert.Single(backslash.Children);
+                Assert.Equal(MarkdownSyntaxKind.InlineHardBreakMarker, marker.Kind);
+                Assert.Equal("\\", marker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(2, 6, 2, 6), marker.SourceSpan);
+                Assert.Null(marker.AssociatedObject);
+            },
+            htmlBreak => {
+                Assert.Equal("\\n", htmlBreak.Literal);
+                Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 10), htmlBreak.SourceSpan);
+                var marker = Assert.Single(htmlBreak.Children);
+                Assert.Equal(MarkdownSyntaxKind.InlineHardBreakMarker, marker.Kind);
+                Assert.Equal("<br />", marker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 10), marker.SourceSpan);
+                Assert.Null(marker.AssociatedObject);
+            });
+
+        Assert.Equal(MarkdownSyntaxKind.InlineHardBreakMarker, result.FindDeepestNodeAtPosition(1, 4)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineHardBreakMarker, result.FindDeepestNodeAtPosition(2, 6)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineHardBreakMarker, result.FindDeepestNodeAtPosition(3, 7)!.Kind);
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.Document,
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.InlineHardBreak,
+            MarkdownSyntaxKind.InlineHardBreakMarker
+        }, result.FindNodePathAtPosition(3, 7).Select(node => node.Kind).ToArray());
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Inline_Link_Metadata_Nodes() {
         const string markdown = "[docs](https://example.com \"Example title\")";
 

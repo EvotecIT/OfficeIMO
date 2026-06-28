@@ -61,8 +61,14 @@ internal static class MarkdownInlineSyntaxBuilder {
                     literal: footnote.Label,
                     children: BuildFootnoteRefChildren(footnote, span),
                     associatedObject: footnote);
-            case HardBreakInline:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineHardBreak, span, literal: "\\n", associatedObject: inline);
+            case HardBreakInline hardBreak:
+                var hardBreakChildren = BuildHardBreakChildren(hardBreak);
+                return new MarkdownSyntaxNode(
+                    MarkdownSyntaxKind.InlineHardBreak,
+                    span ?? MarkdownBlockSyntaxBuilder.GetAggregateSpan(hardBreakChildren),
+                    literal: "\\n",
+                    children: hardBreakChildren,
+                    associatedObject: inline);
             case LinkInline link:
                 return new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.InlineLink,
@@ -243,6 +249,20 @@ internal static class MarkdownInlineSyntaxBuilder {
             closingMarkerSpan);
 
         return nodes;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildHardBreakChildren(HardBreakInline hardBreak) {
+        var markerSpan = MarkdownInlineMetadataSourceSpans.GetHardBreakMarkerSpan(hardBreak);
+        if (!markerSpan.HasValue) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        return new[] {
+            new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.InlineHardBreakMarker,
+                markerSpan,
+                literal: MarkdownInlineMetadataSourceSpans.GetHardBreakMarker(hardBreak) ?? string.Empty)
+        };
     }
 
     private static void AddMarkerNode(List<MarkdownSyntaxNode> nodes, MarkdownSyntaxKind kind, string? marker, MarkdownSourceSpan? span) {
