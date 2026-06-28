@@ -2,18 +2,30 @@
 
 This plan is the working checklist for getting `OfficeIMO.Markdown` to Markdig-class parity without looping through random fixture additions.
 
-The short version: parity is not "more tests." Parity means the engine, AST, renderer, extension seams, lossless behavior, and compatibility corpus all agree on a documented contract. Tests are the proof gate for each engine slice.
+The short version: parity is not "more tests." Parity means the engine, AST, renderer, extension seams, lossless behavior, and compatibility corpus all agree on a documented contract. Tests are the proof gate for each engine slice, not the slice itself.
+
+## Parity Definition
+
+We should not call this Markdig-class until these contracts are true:
+
+- [ ] CommonMark parsing and rendering are either conformant for the official corpus or explicitly documented as intentional OfficeIMO profile differences.
+- [ ] GFM behavior is measured with a generated inventory, not only curated smoke fixtures.
+- [ ] Markdig extension families are inventoried as `Covered`, `Partial`, `Intentional`, or `Gap`.
+- [ ] The AST is stable enough for reader, renderer, native-document, and source-edit callers to rely on the same node boundaries.
+- [ ] Source spans, trivia, and delimiter tokens preserve enough information for editor-grade roundtrip scenarios.
+- [ ] Renderer/security/profile behavior is explicit for raw HTML, escaping, sanitizing, links, tables, and extension output.
+- [ ] Performance is checked in release mode against Markdig after correctness work lands.
 
 ## Current Scoreboard
 
 | Area | Current state |
 | --- | --- |
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
-| CommonMark corpus | 288 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
-| CommonMark full inventory | 612 of 652 official CommonMark `0.31.2` examples currently match; 40 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
+| CommonMark corpus | 294 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| CommonMark full inventory | 619 of 652 official CommonMark `0.31.2` examples currently match; 33 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | Strong areas | ATX headings, Setext headings, thematic breaks, fenced code blocks, paragraphs, lists, autolinks, soft breaks |
-| Biggest remaining parser gaps | HTML/raw HTML grammar, emphasis, container indentation, link/reference inline precedence, code spans, hard-break edge cases, entities |
+| Biggest remaining parser gaps | HTML/raw HTML grammar, emphasis delimiter runs, container indentation, code spans, hard-break edge cases, entities |
 | Biggest Markdig-class architecture gaps | Full lossless trivia capture, full parser pipeline parity, full renderer/writer plugin parity, broader extension set, release-mode benchmark review |
 
 References:
@@ -25,19 +37,29 @@ References:
 
 ## What We Are Missing Right Now
 
-This is the current `[ ]` work plan. Tests are not the goal; they are the proof that each engine slice is actually compatible.
+This is the current `[ ]` work plan. The left side is engine or architecture work. Fixture promotion and inventory updates only happen after the corresponding behavior is fixed.
 
-- [ ] Fix the 6 remaining link/reference failures: inline precedence with HTML/code/autolinks crossing link/reference delimiters and shared image/link grammar around those spans.
+- [x] Clear the remaining CommonMark link/reference failures by making label scanning treat code spans, raw inline HTML, and angle autolinks as inline spans before accepting a closing `]`; official examples 524, 525, 526, 536, 537, and 538 are pinned, and the `Links` inventory now has zero failures.
 - [ ] Fix the 11 remaining HTML/raw HTML failures: table/pre block-boundary edge cases, blockquote HTML continuation, malformed raw HTML, and inline-vs-block raw HTML classification.
 - [ ] Fix the 9 remaining emphasis failures by replacing simplified delimiter handling with the CommonMark delimiter-run algorithm.
 - [ ] Fix the 6 remaining container/indentation failures around tabs, blockquote/list continuation, and indented-code boundaries.
-- [ ] Fix the 3 remaining code-span failures around non-breaking-space rendering/equivalence and inline precedence.
+- [ ] Fix the 2 remaining code-span failures around non-breaking-space rendering/equivalence.
 - [ ] Fix the 3 remaining hard-line-break failures and keep marker source spans stable.
 - [ ] Fix the 2 remaining entity decoder failures with a CommonMark-complete named/numeric character reference decoder.
 - [ ] Add a cmark-gfm inventory like the CommonMark inventory so GFM work is not limited to curated smoke fixtures.
 - [ ] Add a Markdig comparison inventory that separates true gaps from intentional OfficeIMO profile differences.
 - [ ] Finish AST/source/lossless work: remaining canonical node cleanup, complete trivia capture, complete delimiter-token capture, and byte-preserving source edits beyond the current safe cases.
 - [ ] Review release-mode benchmarks against the Markdig baseline before making any performance or parity claims.
+
+## Work Order
+
+- [x] Complete and validate the in-progress link/reference slice; the `Links` CommonMark failure bucket is cleared.
+- [ ] Build the GFM and Markdig comparison inventories before starting broad extension work, so extension parity has a scoreboard like CommonMark.
+- [ ] Tackle HTML/raw HTML next; it is the largest remaining CommonMark failure cluster and also affects renderer/security/profile behavior.
+- [ ] Tackle emphasis after HTML, because it needs a deliberate delimiter-stack rewrite rather than local fixes.
+- [ ] Tackle tabs/container indentation and hard breaks together only where the source-map model overlaps; otherwise keep those slices separate.
+- [ ] Tackle the entity decoder as a reusable parser service, then route every required decode context through it.
+- [ ] Return to AST/source/lossless work after the major parser clusters stop moving node boundaries every slice.
 
 ## Pinned CommonMark Coverage By Section
 
@@ -46,7 +68,7 @@ This table is fixture coverage, not a claim that every unpinned example currentl
 | Section | Pinned | Total | Missing | Primary lane |
 | --- | ---: | ---: | ---: | --- |
 | Emphasis and strong emphasis | 11 | 132 | 121 | Inline delimiter algorithm |
-| Links | 21 | 90 | 69 | Link/image/reference grammar |
+| Links | 27 | 90 | 63 | CommonMark link grammar is green; keep broader image/reference and Markdig/GFM link-extension inventory separate |
 | HTML blocks | 19 | 44 | 25 | HTML block tokenizer |
 | Raw HTML | 8 | 20 | 12 | Inline/raw HTML classification |
 | Images | 2 | 22 | 20 | Link/image/reference grammar |
@@ -143,12 +165,12 @@ Done means:
 
 ## Phase 4: Link, Reference, And Image Grammar
 
-Current observed failures include inline precedence where raw HTML, code spans, and angle autolinks cross link/reference delimiters.
+The CommonMark `Links` section is currently green in the generated inventory. Remaining work in this phase is broader grammar unification, image/reference parity breadth, source metadata preservation, and Markdig/GFM extension inventory rather than a current CommonMark link failure bucket.
 
 - [ ] Rework inline link destination parsing around the CommonMark grammar instead of ad hoc balanced scanning.
 - [ ] Rework optional title parsing so invalid extra tokens fall back to literal text.
 - [x] Rework nested link precedence so links cannot contain links where CommonMark forbids it while images remain valid link-label content.
-- [ ] Rework inline precedence so raw HTML, code spans, and angle autolinks can defeat link/reference parsing when the source requires it.
+- [x] Rework inline precedence so raw HTML, code spans, and angle autolinks can defeat link/reference parsing when the source requires it.
 - [ ] Unify inline links, reference links, shortcut/collapsed references, and images through one label/destination/title grammar.
 - [ ] Preserve current source-backed delimiter, target, title, alt, and reference-definition metadata.
 

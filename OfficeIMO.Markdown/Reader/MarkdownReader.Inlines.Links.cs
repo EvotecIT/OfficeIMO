@@ -18,6 +18,11 @@ public static partial class MarkdownReader {
                 continue;
             }
 
+            if (TrySkipLinkLabelInlineSpan(text, i, out int spanConsumed)) {
+                i += spanConsumed - 1;
+                continue;
+            }
+
             if (c == '[') {
                 depth++;
                 continue;
@@ -30,6 +35,61 @@ public static partial class MarkdownReader {
         }
 
         return -1;
+    }
+
+    private static bool TrySkipLinkLabelInlineSpan(string text, int start, out int consumed) {
+        consumed = 0;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
+
+        if (text[start] == '`' && TryConsumeMatchedBacktickSpan(text, start, out consumed)) {
+            return true;
+        }
+
+        if (text[start] == '<') {
+            if (TryParseAngleAutolink(text, start, out consumed, out _, out _)) {
+                return true;
+            }
+
+            if (TryConsumeRawInlineHtmlTag(text, start, out consumed)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryConsumeMatchedBacktickSpan(string text, int start, out int consumed) {
+        consumed = 0;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length || text[start] != '`') {
+            return false;
+        }
+
+        int fenceLength = 0;
+        while (start + fenceLength < text.Length && text[start + fenceLength] == '`') {
+            fenceLength++;
+        }
+
+        int scan = start + fenceLength;
+        while (scan < text.Length) {
+            if (text[scan] != '`') {
+                scan++;
+                continue;
+            }
+
+            int runLength = 0;
+            while (scan + runLength < text.Length && text[scan + runLength] == '`') {
+                runLength++;
+            }
+
+            if (runLength == fenceLength) {
+                consumed = scan + runLength - start;
+                return true;
+            }
+
+            scan += runLength;
+        }
+
+        return false;
     }
 
     private static int FindReferenceLabelEnd(string text, int openIndex) {

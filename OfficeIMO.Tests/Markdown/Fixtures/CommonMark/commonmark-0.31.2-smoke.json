@@ -2779,6 +2779,27 @@
     "html": "<p><em>foo [bar</em> baz]</p>\n"
   },
   {
+    "example": 524,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[foo <bar attr=\"](baz)\">\n",
+    "html": "<p>[foo <bar attr=\"](baz)\"></p>\n"
+  },
+  {
+    "example": 525,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[foo`](/uri)`\n",
+    "html": "<p>[foo<code>](/uri)</code></p>\n"
+  },
+  {
+    "example": 526,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[foo<https://example.com/?search=](uri)>\n",
+    "html": "<p>[foo<a href=\"https://example.com/?search=%5D(uri)\">https://example.com/?search=](uri)</a></p>\n"
+  },
+  {
     "example": 531,
     "section": "Links",
     "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
@@ -2798,6 +2819,27 @@
     "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
     "markdown": "[foo *bar [baz][ref]*][ref]\n\n[ref]: /uri\n",
     "html": "<p>[foo <em>bar <a href=\"/uri\">baz</a></em>]<a href=\"/uri\">ref</a></p>\n"
+  },
+  {
+    "example": 536,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo <bar attr=\"][ref]\">\n\n[ref]: /uri\n",
+    "html": "<p>[foo <bar attr=\"][ref]\"></p>\n"
+  },
+  {
+    "example": 537,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo`][ref]`\n\n[ref]: /uri\n",
+    "html": "<p>[foo<code>][ref]</code></p>\n"
+  },
+  {
+    "example": 538,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo<https://example.com/?search=][ref]>\n\n[ref]: /uri\n",
+    "html": "<p>[foo<a href=\"https://example.com/?search=%5D%5Bref%5D\">https://example.com/?search=][ref]</a></p>\n"
   },
   {
     "example": 594,

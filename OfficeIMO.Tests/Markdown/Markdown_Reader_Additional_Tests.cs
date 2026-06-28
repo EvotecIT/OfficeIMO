@@ -835,6 +835,36 @@ span`
         }
 
         [Fact]
+        public void Link_Label_Scanner_Ignores_Closing_Brackets_Inside_Code_Spans() {
+            const string md = "[foo`](/uri)`";
+
+            var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var code = Assert.Single(paragraph.Inlines.Nodes.OfType<CodeSpanInline>());
+
+            Assert.DoesNotContain(paragraph.Inlines.Nodes, node => node is LinkInline);
+            Assert.Equal("](/uri)", code.Text);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Equal("<p>[foo<code>](/uri)</code></p>", html);
+        }
+
+        [Fact]
+        public void Link_Label_Scanner_Ignores_Closing_Brackets_Inside_Angle_Autolinks() {
+            const string md = "[foo<https://example.com/?search=](uri)>";
+
+            var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var autolink = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
+
+            Assert.Equal("https://example.com/?search=](uri)", autolink.Text);
+            Assert.Equal("https://example.com/?search=](uri)", autolink.Url);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("[foo<a href=\"https://example.com/?search=%5D(uri)\">", html);
+        }
+
+        [Fact]
         public void Reference_Definitions_Support_Single_Quote_Titles() {
             string md = """
 [x][r]
