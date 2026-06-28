@@ -13,9 +13,10 @@ The important distinction: parity is not "more tests." Parity means the parser, 
 | CommonMark full inventory | 622 of 652 official CommonMark `0.31.2` examples currently match; 30 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | GFM tracked inventory | 36 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 33 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 36 passing, 0 failing |
+| Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 0 covered, 15 partial, 4 intentional, 14 gap |
 | Covered CommonMark sections | ATX headings, Setext headings, thematic breaks, fenced code blocks, lists, paragraphs, soft breaks, links, images, autolinks, backslash escapes, link reference definitions |
 | Remaining CommonMark parser clusters | HTML/raw HTML grammar, emphasis delimiter runs, container indentation/continuation, hard-line-break edge cases, CommonMark entity decoding |
-| Remaining Markdig-class architecture gaps | GFM/Markdig inventories, full lossless trivia capture, full parser pipeline parity, renderer/writer plugin parity, broader extension set, release-mode benchmark review |
+| Remaining Markdig-class architecture gaps | broader GFM corpus coverage, full lossless trivia capture, full parser pipeline parity, renderer/writer plugin parity, extension-family implementation breadth, release-mode benchmark review |
 
 References:
 
@@ -33,6 +34,7 @@ References:
 - [x] CommonMark links are green in the generated inventory after fixing link-label inline-span precedence.
 - [x] Strong current coverage for headings, thematic breaks, fenced code, lists, paragraphs, soft breaks, backslash escapes, autolinks, images, and link reference definitions.
 - [x] A generated GFM inventory tracks the current extension fixture corpus by section and source, separating upstream cmark-gfm fixtures from OfficeIMO supplements.
+- [x] A generated Markdig extension inventory tracks reflected Markdig extension-family entry points and classifies current OfficeIMO support as covered, partial, intentional, or gap.
 - [x] Syntax/source/native tests for many existing nodes, including source slices and source-edit helpers.
 - [x] Markdig package baseline guarded across tests, benchmarks, and docs.
 
@@ -46,7 +48,7 @@ These are the actual parity gaps. The test work is listed only where it creates 
 - [ ] **CommonMark hard-break and inline precedence parity.** Fix the 3 remaining hard-line-break failures while preserving marker source spans for two-space, backslash, and inline HTML break spellings.
 - [ ] **CommonMark entity decoder parity.** Replace narrow runtime HTML decoding with a CommonMark-complete named/numeric character reference decoder, including invalid numeric replacement behavior.
 - [ ] **GFM corpus expansion.** Extend the generated GFM inventory beyond the current tracked fixture corpus so table, task-list, autolink, strikethrough, tag-filter, footnote, and interop behavior are measured against broader upstream-compatible coverage.
-- [ ] **Markdig extension inventory.** Add a comparison inventory for Markdig extension families and classify each as `Covered`, `Partial`, `Intentional`, or `Gap`.
+- [ ] **Markdig extension implementation breadth.** Move selected partial/gap rows from the generated Markdig extension inventory into real parser, AST/source, renderer, writer, fixture, or intentional-deviation work.
 - [ ] **AST/source/lossless completeness.** Finish canonical node cleanup, full trivia capture, delimiter-token capture, original-to-normalized mapping, generated-node diagnostics, and broader byte-preserving source edits.
 - [ ] **Renderer/writer extension parity.** Make parser, transform, renderer, and writer extension APIs source-slice aware where custom nodes need to render or roundtrip without string rescanning.
 - [ ] **Renderer/security profile parity.** Keep CommonMark/GFM HTML output spec-compatible while making OfficeIMO-specific raw HTML, sanitizing, escaping, URL policy, and GFM tag-filter behavior explicit and independently tested.
@@ -54,9 +56,9 @@ These are the actual parity gaps. The test work is listed only where it creates 
 
 ## Immediate Work Order
 
-- [ ] Build the Markdig comparison inventory next, before broad extension work, so Markdig extension parity has the same scoreboard CommonMark and the tracked GFM fixture corpus now have.
 - [ ] Tackle HTML/raw HTML after the inventory work; it is the largest remaining CommonMark failure cluster and affects renderer/security/profile behavior.
 - [ ] Tackle emphasis after HTML because it needs a deliberate delimiter-stack rewrite rather than local patches.
+- [ ] Use `Docs/officeimo.markdown.markdig-extension-inventory.md` to pick extension-family slices by row; do not promote `Partial` rows to `Covered` without parser, AST/source, renderer, writer, and fixture evidence.
 - [ ] Tackle container indentation and hard breaks as separate slices unless the source-map model forces a shared tab/column primitive.
 - [ ] Tackle the entity decoder as a reusable parser service and route every required decode context through it.
 - [ ] Return to AST/source/lossless completion once the major parser clusters stop moving node boundaries every slice.
@@ -112,12 +114,12 @@ This is fixture coverage, not a claim that unpinned examples fail. The generated
 - [x] CommonMark full-corpus inventory exists.
 - [x] CommonMark failures are grouped by root parser cause.
 - [x] Add the same generated inventory style for enabled cmark-gfm extension fixtures.
-- [ ] Add a Markdig comparison inventory that separates OfficeIMO profile differences from portable/CommonMark profile differences.
-- [ ] Add an extension-family table with `Covered`, `Partial`, `Intentional`, or `Gap` for every Markdig extension family we care about.
+- [x] Add a Markdig comparison inventory that separates OfficeIMO profile differences from portable/CommonMark profile differences.
+- [x] Add an extension-family table with `Covered`, `Partial`, `Intentional`, or `Gap` for every reflected Markdig extension family.
 
 Done means:
 
-- [ ] We can answer "what is missing?" for CommonMark, GFM, and Markdig extension parity from checked-in reports. CommonMark and tracked GFM fixtures now have reports; broader GFM corpus coverage and Markdig extension-family inventory remain open.
+- [x] We can answer "what is missing?" for CommonMark, tracked GFM fixtures, and Markdig extension parity from checked-in reports. Broader GFM corpus coverage and implementation work behind partial/gap Markdig rows remain open.
 - [ ] Every future engine slice names which scoreboard row it moves.
 
 ### Phase 1: CommonMark Parser Closure
@@ -147,7 +149,7 @@ Done means:
 Done means:
 
 - [x] Enabled tracked GFM fixture behavior is measured by inventory.
-- [ ] Markdig extension parity is an explicit support matrix, not an implied promise.
+- [x] Markdig extension parity is an explicit support matrix, not an implied promise.
 
 ### Phase 3: AST, Source Mapping, And Lossless Roundtrip
 

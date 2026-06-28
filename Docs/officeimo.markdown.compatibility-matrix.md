@@ -14,11 +14,12 @@ Status values:
 
 | Area | Current baseline |
 | --- | --- |
-| External comparison package | Markdig `1.3.2` in `OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks`; guarded by `PackageDependencyGuardrailTests.MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline` and `MarkdownCompatibilityDocs_TrackCurrentMarkdigBaselineVersion`; verified current against NuGet and `dotnet list ... package --outdated` on 2026-06-27 |
+| External comparison package | Markdig `1.3.2` in `OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks`; guarded by `PackageDependencyGuardrailTests.MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline` and `MarkdownCompatibilityDocs_TrackCurrentMarkdigBaselineVersion`; verified current against NuGet and `dotnet list ... package --outdated` on 2026-06-28 |
 | CommonMark reference | 296 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
 | CommonMark full inventory | 622 of 652 official CommonMark `0.31.2` examples currently match; 30 failures are grouped by root cause in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM reference | 36 cmark-gfm extension smoke fixtures plus a focused upstream ignored-autolink crash regression |
 | GFM inventory | 36 tracked GFM fixtures currently measured in `Docs/officeimo.markdown.gfm-inventory.md`: 33 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 36 passing, 0 failing |
+| Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 0 covered, 15 partial, 4 intentional, 14 gap |
 | OfficeIMO core package | `OfficeIMO.Markdown` owns parsing, semantic AST, syntax tree, writing, and HTML projection |
 | Host renderer package | `OfficeIMO.MarkdownRenderer` owns WebView/browser shell rendering and incremental updates |
 | Benchmark evidence | `OfficeIMO.Markdown.Benchmarks` compares parse/syntax-tree parse/HTML render against the current Markdig baseline and now includes transform/diagnostics cost lanes over stable README, transcript, technical-doc, rich-AST, long-list, large-table, and normalization-heavy corpora |
@@ -44,7 +45,7 @@ Detailed open work is tracked in `Docs/officeimo.markdown.markdig-parity-gap-pla
 
 ## GFM And Extension Coverage
 
-Generated scoreboard: `Docs/officeimo.markdown.gfm-inventory.md` tracks the current GFM fixture corpus by section and source so upstream cmark-gfm fixtures stay separate from OfficeIMO supplement cases.
+Generated scoreboards: `Docs/officeimo.markdown.gfm-inventory.md` tracks the current GFM fixture corpus by section and source so upstream cmark-gfm fixtures stay separate from OfficeIMO supplement cases. `Docs/officeimo.markdown.markdig-extension-inventory.md` tracks reflected Markdig extension-family entry points so extension parity is explicit instead of implied.
 
 | Capability | Current behavior | Evidence | Status | Next action |
 | --- | --- | --- | --- | --- |
