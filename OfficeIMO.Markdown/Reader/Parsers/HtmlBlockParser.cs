@@ -279,7 +279,7 @@ public static partial class MarkdownReader {
         }
 
         private static bool IsType1Start(string trimmedLine, out string? endToken) {
-            if (!TryParseTag(trimmedLine, out var tagName, out var isClosing, out _)) {
+            if (!TryReadHtmlTagNamePrefix(trimmedLine, out var tagName, out var isClosing, out _)) {
                 endToken = null;
                 return false;
             }
@@ -289,7 +289,7 @@ public static partial class MarkdownReader {
                 return false;
             }
 
-            string[] tags = { "script", "pre", "style" };
+            string[] tags = { "script", "pre", "style", "textarea" };
             foreach (var tag in tags) {
                 if (string.Equals(tagName, tag, StringComparison.OrdinalIgnoreCase)) {
                     endToken = $"</{tag}>";
@@ -311,8 +311,7 @@ public static partial class MarkdownReader {
             allowsBlankLines = false;
             tagName = null;
 
-            if (!TryParseTag(trimmedLine, out var parsedName, out var isClosing, out var endIndex)) return false;
-            if (endIndex < 0) return false;
+            if (!TryReadHtmlTagNamePrefix(trimmedLine, out var parsedName, out var isClosing, out _)) return false;
             if (!s_BlockTags.Contains(parsedName!)) return false;
 
             if (!isClosing) {
@@ -432,6 +431,34 @@ public static partial class MarkdownReader {
             if (insideQuotes || endIndex < 0) return false;
 
             return true;
+        }
+
+        private static bool TryReadHtmlTagNamePrefix(string line, out string tagName, out bool isClosing, out int nameEndIndex) {
+            tagName = string.Empty;
+            isClosing = false;
+            nameEndIndex = -1;
+
+            if (line.Length < 2 || line[0] != '<') return false;
+
+            int idx = 1;
+            if (idx < line.Length && line[idx] == '/') {
+                isClosing = true;
+                idx++;
+            }
+
+            if (idx >= line.Length || !char.IsLetter(line[idx])) return false;
+            int nameStart = idx;
+            idx++;
+            while (idx < line.Length && (char.IsLetterOrDigit(line[idx]) || line[idx] == '-' || line[idx] == ':')) idx++;
+            tagName = line.Substring(nameStart, idx - nameStart);
+            nameEndIndex = idx - 1;
+
+            if (idx >= line.Length) return true;
+
+            char next = line[idx];
+            if (next == '>') return true;
+            if (next == '/' && idx + 1 < line.Length && line[idx + 1] == '>') return true;
+            return IsHtmlAttributeWhitespace(next);
         }
 
         private static int UpdateStackDepth(HtmlBlockState state, string line, int currentDepth) {

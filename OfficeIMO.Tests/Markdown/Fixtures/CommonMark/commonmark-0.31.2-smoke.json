@@ -894,6 +894,41 @@
     ]
   },
   {
+    "example": 153,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<div id=\"foo\"\n  class=\"bar\">\n</div>\n",
+    "html": "<div id=\"foo\"\n  class=\"bar\">\n</div>\n"
+  },
+  {
+    "example": 154,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<div id=\"foo\" class=\"bar\n  baz\">\n</div>\n",
+    "html": "<div id=\"foo\" class=\"bar\n  baz\">\n</div>\n"
+  },
+  {
+    "example": 156,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<div id=\"foo\"\n*hi*\n",
+    "html": "<div id=\"foo\"\n*hi*\n"
+  },
+  {
+    "example": 157,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<div class\nfoo\n",
+    "html": "<div class\nfoo\n"
+  },
+  {
+    "example": 158,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<div *???-&&&-<---\n*foo*\n",
+    "html": "<div *???-&&&-<---\n*foo*\n"
+  },
+  {
     "example": 168,
     "section": "HTML blocks",
     "topLevelKinds": ["Paragraph"],
@@ -941,6 +976,27 @@
         "expectedNearestBlockKind": "HtmlRaw"
       }
     ]
+  },
+  {
+    "example": 171,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<textarea>\n\n*foo*\n\n_bar_\n\n</textarea>\n",
+    "html": "<textarea>\n\n*foo*\n\n_bar_\n\n</textarea>\n"
+  },
+  {
+    "example": 172,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw", "Paragraph"],
+    "markdown": "<style\n  type=\"text/css\">\nh1 {color:red;}\n\np {color:blue;}\n</style>\nokay\n",
+    "html": "<style\n  type=\"text/css\">\nh1 {color:red;}\n\np {color:blue;}\n</style>\n<p>okay</p>\n"
+  },
+  {
+    "example": 173,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<style\n  type=\"text/css\">\n\nfoo\n",
+    "html": "<style\n  type=\"text/css\">\n\nfoo\n"
   },
   {
     "example": 179,
