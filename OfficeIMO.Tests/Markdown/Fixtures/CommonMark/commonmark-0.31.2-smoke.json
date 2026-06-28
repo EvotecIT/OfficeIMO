@@ -1209,6 +1209,25 @@
     ]
   },
   {
+    "example": 208,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["ReferenceLinkDefinition", "Paragraph"],
+    "markdown": "[\nfoo\n]: /url\nbar\n",
+    "html": "<p>bar</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "multiline reference labels keep separator markers addressable when the closing bracket starts a line",
+        "line": 3,
+        "column": 1,
+        "expectedPathKinds": ["Document", "ReferenceLinkDefinition", "ReferenceLinkSeparatorMarker"],
+        "expectedDeepestLiteral": "]:",
+        "expectedDeepestSpan": { "startLine": 3, "startColumn": 1, "endLine": 3, "endColumn": 2 },
+        "expectedNearestBlockKind": "ReferenceLinkDefinition",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 3, "endColumn": 7 }
+      }
+    ]
+  },
+  {
     "example": 217,
     "section": "Link reference definitions",
     "topLevelKinds": ["ReferenceLinkDefinition", "ReferenceLinkDefinition", "ReferenceLinkDefinition", "Paragraph"],

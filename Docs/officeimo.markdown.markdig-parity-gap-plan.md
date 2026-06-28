@@ -9,8 +9,8 @@ The short version: parity is not "more tests." Parity means the engine, AST, ren
 | Area | Current state |
 | --- | --- |
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
-| CommonMark corpus | 268 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
-| CommonMark full inventory | 588 of 652 official CommonMark `0.31.2` examples currently match; 64 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
+| CommonMark corpus | 269 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| CommonMark full inventory | 589 of 652 official CommonMark `0.31.2` examples currently match; 63 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | Strong areas | ATX headings, Setext headings, thematic breaks, fenced code blocks, paragraphs, lists, soft breaks |
 | Biggest remaining parser gaps | Link/reference grammar, HTML/raw HTML grammar, emphasis, container indentation, autolinks, code spans, hard-break edge cases, entities |
@@ -27,7 +27,7 @@ References:
 
 This is the current `[ ]` work plan. Tests are not the goal; they are the proof that each engine slice is actually compatible.
 
-- [ ] Fix the 19 remaining link/reference failures: multiline reference labels, paragraph-interrupt rules, blockquote-contained definitions, nested link precedence, inline precedence with HTML/code/autolinks, and shared image/link grammar.
+- [ ] Fix the 18 remaining link/reference failures: paragraph-interrupt rules, blockquote-contained definitions, nested link precedence, inline precedence with HTML/code/autolinks, linked-image reference rendering, and shared image/link grammar.
 - [ ] Fix the 14 remaining HTML/raw HTML failures: table/pre block-boundary edge cases, blockquote HTML continuation, and inline-vs-block raw HTML classification.
 - [ ] Fix the 9 remaining emphasis failures by replacing simplified delimiter handling with the CommonMark delimiter-run algorithm.
 - [ ] Fix the 8 remaining container/indentation failures around tabs, blockquote/list continuation, and indented-code boundaries.
@@ -52,7 +52,7 @@ This table is fixture coverage, not a claim that every unpinned example currentl
 | Raw HTML | 6 | 20 | 14 | Inline/raw HTML classification |
 | Images | 2 | 22 | 20 | Link/image/reference grammar |
 | Code spans | 5 | 22 | 17 | Code span normalization and precedence |
-| Link reference definitions | 7 | 27 | 20 | Reference-definition grammar |
+| Link reference definitions | 8 | 27 | 19 | Reference-definition grammar |
 | Block quotes | 10 | 25 | 15 | Container continuation rules |
 | Autolinks | 8 | 19 | 11 | Autolink grammar |
 | Indented code blocks | 1 | 12 | 11 | Indent/tab/list interaction |

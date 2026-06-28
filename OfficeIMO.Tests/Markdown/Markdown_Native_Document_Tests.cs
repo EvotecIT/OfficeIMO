@@ -876,6 +876,33 @@ After
     }
 
     [Fact]
+    public void Parse_Exposes_Multiline_Reference_Definition_Label_With_Line_Leading_Separator() {
+        var native = MarkdownNativeDocument.Parse("""
+[
+foo
+]: /url
+bar
+""", MarkdownReaderOptions.CreateCommonMarkProfile());
+
+        var definition = Assert.Single(native.ReferenceLinkDefinitions);
+        Assert.Equal("foo", definition.Label);
+        Assert.Equal("/url", definition.Url);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 3), definition.LabelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), definition.OpeningMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 2), definition.SeparatorMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 4, 3, 7), definition.UrlSourceSpan);
+
+        var fields = native.EnumerateReferenceLinkDefinitionFields().ToArray();
+        Assert.Equal(
+            new[] { "openingMarker", "label", "separatorMarker", "url" },
+            fields.Select(field => field.Name).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 3), fields[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 2), fields[2].SourceSpan);
+        Assert.Equal("separatorMarker", native.FindReferenceLinkDefinitionFieldAtPosition(3, 1)!.Name);
+        Assert.Equal("url", native.FindReferenceLinkDefinitionFieldAtPosition(3, 5)!.Name);
+    }
+
+    [Fact]
     public void Native_Document_Enumerates_Reference_Definition_SourceFields_And_Position_Lookup() {
         var native = MarkdownNativeDocument.Parse("""
 [hero]: https://example.com/docs "Docs title"

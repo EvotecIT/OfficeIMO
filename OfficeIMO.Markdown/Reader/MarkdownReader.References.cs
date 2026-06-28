@@ -204,16 +204,12 @@ public static partial class MarkdownReader {
             out var rest,
             out var labelConsumedLines,
             out labelSpan,
+            out openingMarkerSpan,
+            out separatorMarkerSpan,
             out var restLineIndex,
             out var restStartColumnZeroBased)) {
             return false;
         }
-
-        CreateReferenceDefinitionLabelFrameSpans(
-            state,
-            labelSpan,
-            out openingMarkerSpan,
-            out separatorMarkerSpan);
 
         if (string.IsNullOrEmpty(rest)) {
             if (!TryParseReferenceDestinationContinuation(
@@ -300,154 +296,8 @@ public static partial class MarkdownReader {
         return !string.IsNullOrEmpty(label);
     }
 
-    private static bool TryParseReferenceDestinationAndMultilineTitle(
-        string[] lines,
-        int destinationLineIndex,
-        string rest,
-        int contentStartColumnZeroBased,
-        MarkdownReaderState? state,
-        out string url,
-        out string? title,
-        out MarkdownSourceSpan? urlSpan,
-        out MarkdownSourceSpan? titleSpan,
-        out int titleEndLineIndex) {
-        url = string.Empty;
-        title = null;
-        urlSpan = null;
-        titleSpan = null;
-        titleEndLineIndex = destinationLineIndex;
-
-        if (string.IsNullOrEmpty(rest) || lines == null || destinationLineIndex < 0 || destinationLineIndex >= lines.Length) {
-            return false;
-        }
-
-        int start = 0;
-        while (start < rest.Length && IsLinkWhitespace(rest[start])) {
-            start++;
-        }
-
-        if (start >= rest.Length || rest[start] == '<') {
-            return false;
-        }
-
-        int destinationEnd = start;
-        while (destinationEnd < rest.Length && !IsLinkWhitespace(rest[destinationEnd])) {
-            destinationEnd++;
-        }
-
-        if (destinationEnd <= start || destinationEnd >= rest.Length) {
-            return false;
-        }
-
-        int titleStart = destinationEnd;
-        while (titleStart < rest.Length && IsLinkWhitespace(rest[titleStart])) {
-            titleStart++;
-        }
-
-        if (titleStart >= rest.Length) {
-            return false;
-        }
-
-        char opener = rest[titleStart];
-        char closer = opener switch {
-            '"' => '"',
-            '\'' => '\'',
-            '(' => ')',
-            _ => '\0'
-        };
-
-        if (closer == '\0') {
-            return false;
-        }
-
-        var builder = new StringBuilder();
-        string firstTitleContent = rest.Substring(titleStart + 1);
-        if (ContainsUnescapedTitleDelimiter(firstTitleContent, 0, firstTitleContent.Length, closer)) {
-            return false;
-        }
-
-        builder.Append(firstTitleContent);
-
-        for (int lineIndex = destinationLineIndex + 1; lineIndex < lines.Length; lineIndex++) {
-            string line = lines[lineIndex] ?? string.Empty;
-            int trimmedEndExclusive = line.Length;
-            while (trimmedEndExclusive > 0 && IsLinkWhitespace(line[trimmedEndExclusive - 1])) {
-                trimmedEndExclusive--;
-            }
-
-            if (trimmedEndExclusive == 0) {
-                return false;
-            }
-
-            int closerIndex = trimmedEndExclusive - 1;
-            if (line[closerIndex] == closer) {
-                if (ContainsUnescapedTitleDelimiter(line, 0, closerIndex, closer)) {
-                    return false;
-                }
-
-                builder.Append('\n');
-                builder.Append(line.Substring(0, closerIndex));
-                url = DecodeLinkDestinationOrTitle(rest.Substring(start, destinationEnd - start));
-                title = DecodeLinkDestinationOrTitle(builder.ToString());
-                urlSpan = CreateSpan(
-                    state,
-                    state?.SourceLineOffset + destinationLineIndex + 1 ?? destinationLineIndex + 1,
-                    contentStartColumnZeroBased + start + 1,
-                    state?.SourceLineOffset + destinationLineIndex + 1 ?? destinationLineIndex + 1,
-                    contentStartColumnZeroBased + destinationEnd);
-                titleSpan = CreateSpan(
-                    state,
-                    state?.SourceLineOffset + destinationLineIndex + 1 ?? destinationLineIndex + 1,
-                    contentStartColumnZeroBased + titleStart + 2,
-                    state?.SourceLineOffset + lineIndex + 1 ?? lineIndex + 1,
-                    Math.Max(1, closerIndex));
-                titleEndLineIndex = lineIndex;
-                return true;
-            }
-
-            if (ContainsUnescapedTitleDelimiter(line, 0, trimmedEndExclusive, closer)) {
-                return false;
-            }
-
-            builder.Append('\n');
-            builder.Append(line);
-        }
-
-        return false;
-    }
-
     private static bool TryParseReferenceLinkDefinition(string[] lines, int index, MarkdownReaderOptions options, out string label, out string url, out string? title, out int consumedLines) =>
         TryParseReferenceLinkDefinition(lines, index, options, state: null, out label, out url, out title, out consumedLines, out _, out _, out _, out _, out _);
-
-    private static void CreateReferenceDefinitionLabelFrameSpans(
-        MarkdownReaderState? state,
-        MarkdownSourceSpan? labelSpan,
-        out MarkdownSourceSpan? openingMarkerSpan,
-        out MarkdownSourceSpan? separatorMarkerSpan) {
-        openingMarkerSpan = null;
-        separatorMarkerSpan = null;
-        if (!labelSpan.HasValue || !labelSpan.Value.StartColumn.HasValue || !labelSpan.Value.EndColumn.HasValue) {
-            return;
-        }
-
-        var span = labelSpan.Value;
-        if (span.StartColumn.Value <= 1) {
-            return;
-        }
-
-        openingMarkerSpan = CreateSpan(
-            state,
-            span.StartLine,
-            span.StartColumn.Value - 1,
-            span.StartLine,
-            span.StartColumn.Value - 1);
-        separatorMarkerSpan = CreateSpan(
-            state,
-            span.EndLine,
-            span.EndColumn.Value + 1,
-            span.EndLine,
-            span.EndColumn.Value + 2);
-    }
 
     private static bool TryParseReferenceTitleContinuation(string[] lines, int index, out string? title) =>
         TryParseReferenceTitleContinuation(lines, index, state: null, out title, out _);
@@ -543,12 +393,16 @@ public static partial class MarkdownReader {
         out string rest,
         out int consumedLines,
         out MarkdownSourceSpan? labelSpan,
+        out MarkdownSourceSpan? openingMarkerSpan,
+        out MarkdownSourceSpan? separatorMarkerSpan,
         out int restLineIndex,
         out int restStartColumnZeroBased) {
         label = string.Empty;
         rest = string.Empty;
         consumedLines = 0;
         labelSpan = null;
+        openingMarkerSpan = null;
+        separatorMarkerSpan = null;
         restLineIndex = index;
         restStartColumnZeroBased = 0;
 
@@ -575,7 +429,7 @@ public static partial class MarkdownReader {
         }
 
         var trimmed = line.Substring(leading).TrimEnd();
-        if (trimmed.Length < 2 || trimmed[0] != '[') {
+        if (trimmed.Length < 1 || trimmed[0] != '[') {
             return false;
         }
 
@@ -586,12 +440,15 @@ public static partial class MarkdownReader {
         int rb = FindReferenceLabelEnd(trimmed, 0);
         if (rb > 1 && rb + 1 < trimmed.Length && trimmed[rb + 1] == ':') {
             label = NormalizeReferenceLabel(trimmed.Substring(1, rb - 1));
+            int absoluteLine = state?.SourceLineOffset + index + 1 ?? index + 1;
             labelSpan = CreateSpan(
                 state,
-                state?.SourceLineOffset + index + 1 ?? index + 1,
+                absoluteLine,
                 leading + 2,
-                state?.SourceLineOffset + index + 1 ?? index + 1,
+                absoluteLine,
                 leading + rb);
+            openingMarkerSpan = CreateSpan(state, absoluteLine, leading + 1, absoluteLine, leading + 1);
+            separatorMarkerSpan = CreateSpan(state, absoluteLine, leading + rb + 1, absoluteLine, leading + rb + 2);
 
             int restStart = rb + 2;
             while (restStart < trimmed.Length && char.IsWhiteSpace(trimmed[restStart])) {
@@ -630,12 +487,26 @@ public static partial class MarkdownReader {
                 labelBuilder.Append('\n');
                 labelBuilder.Append(trimmedContinuation.Substring(0, closingBracket));
                 label = NormalizeReferenceLabel(labelBuilder.ToString());
+                int absoluteStartLine = state?.SourceLineOffset + index + 1 ?? index + 1;
+                int absoluteClosingLine = state?.SourceLineOffset + index + lineOffset + 1 ?? index + lineOffset + 1;
+                int labelStartLineIndex = index;
+                int labelStartColumn = leading + 2;
+                if (trimmed.Length == 1) {
+                    FindMultilineReferenceLabelContentStart(lines, index, lineOffset, closingBracket, out labelStartLineIndex, out labelStartColumn);
+                }
+
+                int labelEndLineIndex = closingBracket > 0 ? index + lineOffset : index + lineOffset - 1;
+                int labelEndColumn = closingBracket > 0
+                    ? closingBracket
+                    : GetReferenceLabelContinuationEndColumn(lines[labelEndLineIndex]);
                 labelSpan = CreateSpan(
                     state,
-                    state?.SourceLineOffset + index + 1 ?? index + 1,
-                    leading + 2,
-                    state?.SourceLineOffset + index + lineOffset + 1 ?? index + lineOffset + 1,
-                    closingBracket);
+                    state?.SourceLineOffset + labelStartLineIndex + 1 ?? labelStartLineIndex + 1,
+                    labelStartColumn,
+                    state?.SourceLineOffset + labelEndLineIndex + 1 ?? labelEndLineIndex + 1,
+                    labelEndColumn);
+                openingMarkerSpan = CreateSpan(state, absoluteStartLine, leading + 1, absoluteStartLine, leading + 1);
+                separatorMarkerSpan = CreateSpan(state, absoluteClosingLine, closingBracket + 1, absoluteClosingLine, closingBracket + 2);
 
                 int restStart = closingBracket + 2;
                 while (restStart < trimmedContinuation.Length && char.IsWhiteSpace(trimmedContinuation[restStart])) {
@@ -654,6 +525,45 @@ public static partial class MarkdownReader {
         }
 
         return false;
+    }
+
+    private static void FindMultilineReferenceLabelContentStart(
+        string[] lines,
+        int definitionStartIndex,
+        int closingLineOffset,
+        int closingBracket,
+        out int labelStartLineIndex,
+        out int labelStartColumn) {
+        labelStartLineIndex = definitionStartIndex;
+        labelStartColumn = 1;
+
+        for (int lineOffset = 1; lineOffset <= closingLineOffset; lineOffset++) {
+            int lineIndex = definitionStartIndex + lineOffset;
+            string line = lines[lineIndex] ?? string.Empty;
+            int endExclusive = lineOffset == closingLineOffset ? closingBracket : line.Length;
+            while (endExclusive > 0 && char.IsWhiteSpace(line[endExclusive - 1])) {
+                endExclusive--;
+            }
+
+            if (endExclusive > 0) {
+                labelStartLineIndex = lineIndex;
+                labelStartColumn = 1;
+                return;
+            }
+        }
+    }
+
+    private static int GetReferenceLabelContinuationEndColumn(string line) {
+        if (string.IsNullOrEmpty(line)) {
+            return 1;
+        }
+
+        int endExclusive = line.Length;
+        while (endExclusive > 0 && char.IsWhiteSpace(line[endExclusive - 1])) {
+            endExclusive--;
+        }
+
+        return Math.Max(1, endExclusive);
     }
 
     private static int FindReferenceLabelClosureOnContinuation(string text) {
