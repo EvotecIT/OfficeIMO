@@ -302,7 +302,12 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         }
 
         for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
-            sb.Append('\n');
+            if (definitionIndex > 0 && group.Definitions[definitionIndex - 1]?.ForceParagraphHtml == true) {
+                sb.Append("\n\n");
+            } else {
+                sb.Append('\n');
+            }
+
             AppendMarkerDefinitionMarkdown(sb, group.Definitions[definitionIndex]);
         }
     }
