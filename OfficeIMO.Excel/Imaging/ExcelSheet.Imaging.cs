@@ -411,7 +411,12 @@ namespace OfficeIMO.Excel {
             }
 
             byte[] bytes = image.GetBytes();
-            return OfficeRasterImageDecoder.TryDecode(bytes, out _);
+            if (OfficeRasterImageDecoder.TryDecode(bytes, out _)) {
+                return true;
+            }
+
+            return OfficeImageReader.TryIdentify(bytes, image.Name, out OfficeImageInfo info)
+                && info.Format == OfficeImageFormat.Png;
         }
 
         private static bool TryNormalizeWorksheetImageRange(string range, out string? normalizedRange) {

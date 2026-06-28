@@ -10,6 +10,10 @@ namespace OfficeIMO.Excel {
             HashSet<string>? selected = resolved.SheetNames == null
                 ? null
                 : new HashSet<string>(resolved.SheetNames, StringComparer.OrdinalIgnoreCase);
+            if (resolved.SheetNames != null) {
+                ValidateRequestedSheetNames(resolved.SheetNames);
+            }
+
             var results = new List<OfficeImageExportResult>();
             foreach (ExcelSheet sheet in Sheets) {
                 if (selected != null && !selected.Contains(sheet.Name)) {
@@ -91,6 +95,23 @@ namespace OfficeIMO.Excel {
             OfficeImageExportOptions.ValidateScale(resolved.Scale, nameof(options));
 
             return resolved;
+        }
+
+        private void ValidateRequestedSheetNames(IReadOnlyList<string> sheetNames) {
+            if (sheetNames.Count == 0) {
+                return;
+            }
+
+            var available = new HashSet<string>(Sheets.Select(sheet => sheet.Name), StringComparer.OrdinalIgnoreCase);
+            var missing = sheetNames
+                .Where(sheetName => !available.Contains(sheetName))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (missing.Length > 0) {
+                throw new ArgumentException(
+                    "Workbook image export requested worksheet names that do not exist: " + string.Join(", ", missing) + ".",
+                    nameof(sheetNames));
+            }
         }
     }
 }

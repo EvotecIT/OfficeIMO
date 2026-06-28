@@ -1982,6 +1982,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_DoesNotProjectDefaultHeaderFooterWhenFirstPagePartsAreMissing() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            document.HeaderDefaultOrCreate.AddParagraph("Default header");
+            document.FooterDefaultOrCreate.AddParagraph("Default footer");
+            document.DifferentFirstPage = true;
+            document.AddParagraph("First page body");
+
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+
+            Assert.Empty(svg.Diagnostics);
+            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Default header");
+            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Default footer");
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "First page body");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.DoesNotContain("Default header", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Default footer", svgText, StringComparison.Ordinal);
+            Assert.Contains("First page body", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void WordDocument_ProjectsHeaderFooterRichRunsThroughSharedDrawingRichText() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);

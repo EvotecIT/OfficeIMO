@@ -1987,6 +1987,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_ImageExportExpandsPngRangeForIdentifiedUndecodablePngImages() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("WorksheetPng");
+            sheet.CellValue(1, 1, "Used cell");
+            sheet.AddImage(10, 5, CreateTruncatedPngHeader(4, 3), "image/png", widthPixels: 24, heightPixels: 18, name: "TruncatedPngOutsideUsedCell");
+
+            OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });
+
+            Assert.Equal("WorksheetPng!A1:E10", png.Source);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ImagePngDecodeUnavailable);
+            Assert.Equal("WorksheetPng!TruncatedPngOutsideUsedCell", diagnostic.Source);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReportsUnknownImageFormatWithStableCodeAndSource() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -3464,6 +3479,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelDocument_ImageExportRejectsMissingRequestedSheetNames() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-Excel-Missing-Sheet-" + Guid.NewGuid().ToString("N"));
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet first = document.AddWorkSheet("First");
+            first.CellValue(1, 1, "One");
+            ExcelSheet second = document.AddWorkSheet("Second");
+            second.CellValue(1, 1, "Two");
+
+            var options = new ExcelWorkbookImageExportOptions { SheetNames = new[] { "Second", "Missing" } };
+            ArgumentException exportException = Assert.Throws<ArgumentException>(() => document.ExportImages(OfficeImageExportFormat.Png, options));
+            ArgumentException saveException = Assert.Throws<ArgumentException>(() => document.ToImages().ForSheets("Missing").SaveTo(folder));
+
+            Assert.Contains("Missing", exportException.Message, StringComparison.Ordinal);
+            Assert.Contains("Missing", saveException.Message, StringComparison.Ordinal);
+            Assert.Empty(Directory.Exists(folder) ? Directory.GetFiles(folder) : Array.Empty<string>());
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportHonorsCellVerticalTextAlignment() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -3722,6 +3756,29 @@ namespace OfficeIMO.Tests {
         private static byte[] CreateSinglePixelGif() =>
             Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
 
+        private static byte[] CreateTruncatedPngHeader(int width, int height) {
+            byte[] bytes = new byte[24];
+            bytes[0] = 137;
+            bytes[1] = 80;
+            bytes[2] = 78;
+            bytes[3] = 71;
+            bytes[4] = 13;
+            bytes[5] = 10;
+            bytes[6] = 26;
+            bytes[7] = 10;
+            bytes[8] = 0;
+            bytes[9] = 0;
+            bytes[10] = 0;
+            bytes[11] = 13;
+            bytes[12] = (byte)'I';
+            bytes[13] = (byte)'H';
+            bytes[14] = (byte)'D';
+            bytes[15] = (byte)'R';
+            WriteInt32BigEndian(bytes, 16, width);
+            WriteInt32BigEndian(bytes, 20, height);
+            return bytes;
+        }
+
         private static byte[] CreateBmp24(int width, int height, IReadOnlyList<OfficeColor> pixels, bool topDown = false) {
             int rowStride = ((width * 24) + 31) / 32 * 4;
             int pixelOffset = 54;
@@ -3786,6 +3843,13 @@ namespace OfficeIMO.Tests {
             bytes[offset + 1] = (byte)(value >> 8);
             bytes[offset + 2] = (byte)(value >> 16);
             bytes[offset + 3] = (byte)(value >> 24);
+        }
+
+        private static void WriteInt32BigEndian(byte[] bytes, int offset, int value) {
+            bytes[offset] = (byte)(value >> 24);
+            bytes[offset + 1] = (byte)(value >> 16);
+            bytes[offset + 2] = (byte)(value >> 8);
+            bytes[offset + 3] = (byte)value;
         }
 
         private static void WriteUInt16LittleEndian(byte[] bytes, int offset, int value) {

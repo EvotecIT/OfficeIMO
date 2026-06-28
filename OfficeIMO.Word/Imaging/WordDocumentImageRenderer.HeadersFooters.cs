@@ -58,7 +58,7 @@ namespace OfficeIMO.Word {
         }
 
         private static WordHeaderFooter? SelectFirstPageHeader(WordSection section) {
-            if (section.DifferentFirstPage && section.Header.First != null) {
+            if (section.DifferentFirstPage) {
                 return section.Header.First;
             }
 
@@ -66,7 +66,7 @@ namespace OfficeIMO.Word {
         }
 
         private static WordHeaderFooter? SelectFirstPageFooter(WordSection section) {
-            if (section.DifferentFirstPage && section.Footer.First != null) {
+            if (section.DifferentFirstPage) {
                 return section.Footer.First;
             }
 

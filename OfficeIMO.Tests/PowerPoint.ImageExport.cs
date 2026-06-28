@@ -1195,6 +1195,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_RendersRotatedGroupedPicturesThroughSharedDrawingComposition() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(160, 120);
+            PowerPointSlide slide = presentation.Slides[0];
+
+            byte[] pngBytes = OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.FromRgb(37, 99, 235)));
+            PowerPointPicture picture = slide.AddPicture(
+                new MemoryStream(pngBytes),
+                ImagePartType.Png,
+                PowerPointUnits.FromPoints(30),
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(80),
+                PowerPointUnits.FromPoints(80));
+            PowerPointAutoShape anchor = slide.AddRectanglePoints(68, 58, 4, 4);
+            anchor.FillColor = "2563EB";
+            anchor.OutlineColor = "2563EB";
+            slide.GroupShapes(new PowerPointShape[] { picture, anchor }, "Rotated picture group");
+            GroupShape group = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+                .Elements<GroupShape>()
+                .Single();
+            A.TransformGroup transform = group.GroupShapeProperties!.TransformGroup!;
+            transform.Rotation = 45 * 60000;
+            slide.SlidePart.Slide.Save();
+
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(snapshot.Diagnostics);
+            OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingImage>());
+            Assert.True(drawingImage.Projection.HasTransform);
+            Assert.Equal(45D, drawingImage.Projection.RotationDegrees, 6);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.Equal(160, image!.Width);
+            Assert.Equal(120, image.Height);
+        }
+
+        [Fact]
         public void PowerPointSlide_ClipsOverflowingGroupedShapesThroughSharedDrawingComposition() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

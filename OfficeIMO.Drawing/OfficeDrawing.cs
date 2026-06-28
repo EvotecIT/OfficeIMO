@@ -143,35 +143,43 @@ public sealed partial class OfficeDrawing {
     }
 
     private OfficeDrawing AddDrawingCore(OfficeDrawing drawing, double x, double y, OfficeImageFrameTransform? frameTransform) {
+        return AddDrawingCore(drawing, x, y, frameTransform, allowOverflow: false);
+    }
+
+    internal OfficeDrawing AddDrawingForClippedRendering(OfficeDrawing drawing, double x, double y, OfficeImageFrameTransform? frameTransform) {
+        return AddDrawingCore(drawing, x, y, frameTransform, allowOverflow: true);
+    }
+
+    private OfficeDrawing AddDrawingCore(OfficeDrawing drawing, double x, double y, OfficeImageFrameTransform? frameTransform, bool allowOverflow) {
         if (drawing == null) {
             throw new ArgumentNullException(nameof(drawing));
         }
 
         ValidateFiniteNonNegative(x, nameof(x));
         ValidateFiniteNonNegative(y, nameof(y));
-        if (x + drawing.Width > Width || y + drawing.Height > Height) {
+        if (!allowOverflow && (x + drawing.Width > Width || y + drawing.Height > Height)) {
             throw new ArgumentOutOfRangeException(nameof(drawing), "Nested drawing content must fit inside the drawing bounds.");
         }
 
         for (int i = 0; i < drawing.Elements.Count; i++) {
             OfficeDrawingElement element = drawing.Elements[i];
             if (element is OfficeDrawingShape shape) {
-                AddNestedShape(shape, x, y, frameTransform);
+                AddNestedShape(shape, x, y, frameTransform, allowOverflow);
             } else if (element is OfficeDrawingText text) {
-                AddNestedText(text, x, y, frameTransform);
+                AddNestedText(text, x, y, frameTransform, allowOverflow);
             } else if (element is OfficeDrawingRichText richText) {
-                AddNestedRichText(richText, x, y, frameTransform);
+                AddNestedRichText(richText, x, y, frameTransform, allowOverflow);
             } else if (element is OfficeDrawingImage image) {
-                AddNestedImage(image, x, y, frameTransform);
+                AddNestedImage(image, x, y, frameTransform, allowOverflow);
             } else if (element is OfficeDrawingGroup group) {
-                AddNestedGroup(group, x, y, frameTransform);
+                AddNestedGroup(group, x, y, frameTransform, allowOverflow);
             }
         }
 
         return this;
     }
 
-    private void AddNestedShape(OfficeDrawingShape drawingShape, double offsetX, double offsetY, OfficeImageFrameTransform? frameTransform) {
+    private void AddNestedShape(OfficeDrawingShape drawingShape, double offsetX, double offsetY, OfficeImageFrameTransform? frameTransform, bool allowOverflow) {
         double x = offsetX + drawingShape.X;
         double y = offsetY + drawingShape.Y;
         OfficeShape shape = drawingShape.Shape.Clone();
@@ -180,10 +188,16 @@ public sealed partial class OfficeDrawing {
             shape.Transform = shape.Transform.HasValue ? shape.Transform.Value.Then(frame) : frame;
         }
 
-        AddShape(shape, x, y);
+        if (allowOverflow) {
+            var item = new OfficeDrawingShape(shape, x, y);
+            _shapes.Add(item);
+            _elements.Add(item);
+        } else {
+            AddShape(shape, x, y);
+        }
     }
 
-    private void AddNestedText(OfficeDrawingText text, double offsetX, double offsetY, OfficeImageFrameTransform? frameTransform) {
+    private void AddNestedText(OfficeDrawingText text, double offsetX, double offsetY, OfficeImageFrameTransform? frameTransform, bool allowOverflow) {
         double x = offsetX + text.X;
         double y = offsetY + text.Y;
         double rotationDegrees = text.RotationDegrees;
@@ -200,7 +214,7 @@ public sealed partial class OfficeDrawing {
             flipVertical ^= frame.FlipVertical;
         }
 
-        AddText(
+        var item = new OfficeDrawingText(
             text.Text,
             x,
             y,
@@ -221,9 +235,14 @@ public sealed partial class OfficeDrawing {
             flipVertical,
             text.Padding,
             text.ParagraphIndent);
+        if (!allowOverflow && (item.X + item.Width > Width || item.Y + item.Height > Height)) {
+            throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
+        }
+
+        _elements.Add(item);
     }
 
-    private void AddNestedRichText(OfficeDrawingRichText richText, double offsetX, double offsetY, OfficeImageFrameTransform? frameTransform) {
+    private void AddNestedRichText(OfficeDrawingRichText richText, double offsetX, double offsetY, OfficeImageFrameTransform? frameTransform, bool allowOverflow) {
         double x = offsetX + richText.X;
         double y = offsetY + richText.Y;
         double rotationDegrees = richText.RotationDegrees;
@@ -240,7 +259,7 @@ public sealed partial class OfficeDrawing {
             flipVertical ^= frame.FlipVertical;
         }
 
-        AddRichText(
+        var item = new OfficeDrawingRichText(
             richText.Runs,
             x,
             y,
@@ -258,9 +277,14 @@ public sealed partial class OfficeDrawing {
             flipVertical,
             richText.Padding,
             richText.ParagraphIndent);
+        if (!allowOverflow && (item.X + item.Width > Width || item.Y + item.Height > Height)) {
+            throw new ArgumentOutOfRangeException(nameof(richText), "Drawing rich text must fit inside the drawing bounds.");
+        }
+
+        _elements.Add(item);
     }
 
-    private void AddNestedImage(OfficeDrawingImage image, double offsetX, double offsetY, OfficeImageFrameTransform? frameTransform) {
+    private void AddNestedImage(OfficeDrawingImage image, double offsetX, double offsetY, OfficeImageFrameTransform? frameTransform, bool allowOverflow) {
         OfficeImageProjection projection = image.Projection.Translate(offsetX, offsetY);
         if (frameTransform.HasValue && frameTransform.Value.HasTransform) {
             OfficeImageFrameTransform frame = frameTransform.Value;
@@ -274,17 +298,23 @@ public sealed partial class OfficeDrawing {
                 projection.FlipVertical ^ frame.FlipVertical);
         }
 
-        AddImage(image.Bytes, image.ContentType, projection, image.AlternativeText);
+        if (allowOverflow) {
+            var item = new OfficeDrawingImage(image.Bytes, image.ContentType, projection, image.AlternativeText);
+            _images.Add(item);
+            _elements.Add(item);
+        } else {
+            AddImage(image.Bytes, image.ContentType, projection, image.AlternativeText);
+        }
     }
 
-    private void AddNestedGroup(OfficeDrawingGroup group, double offsetX, double offsetY, OfficeImageFrameTransform? frameTransform) {
+    private void AddNestedGroup(OfficeDrawingGroup group, double offsetX, double offsetY, OfficeImageFrameTransform? frameTransform, bool allowOverflow) {
         OfficeImageFrameTransform? groupTransform = group.FrameTransform;
         if (groupTransform.HasValue && groupTransform.Value.HasTransform && frameTransform.HasValue && frameTransform.Value.HasTransform) {
             double wrapperWidth = group.X + group.ClipPath.Width;
             double wrapperHeight = group.Y + group.ClipPath.Height;
             var wrapper = new OfficeDrawing(wrapperWidth, wrapperHeight);
             wrapper.AddClippedDrawing(group.InnerDrawing, group.X, group.Y, group.ClipPath, groupTransform.Value);
-            AddClippedDrawing(wrapper, offsetX, offsetY, OfficeClipPath.Rectangle(wrapperWidth, wrapperHeight), frameTransform.Value);
+            AddNestedGroupElement(wrapper, offsetX, offsetY, OfficeClipPath.Rectangle(wrapperWidth, wrapperHeight), frameTransform.Value, allowOverflow);
             return;
         }
 
@@ -293,9 +323,19 @@ public sealed partial class OfficeDrawing {
         }
 
         if (groupTransform.HasValue) {
-            AddClippedDrawing(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, groupTransform.Value);
+            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, groupTransform.Value, allowOverflow);
         } else {
-            AddClippedDrawing(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath);
+            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, null, allowOverflow);
+        }
+    }
+
+    private void AddNestedGroupElement(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, OfficeImageFrameTransform? frameTransform, bool allowOverflow) {
+        if (allowOverflow) {
+            _elements.Add(new OfficeDrawingGroup(drawing, x, y, clipPath, frameTransform));
+        } else if (frameTransform.HasValue) {
+            AddClippedDrawing(drawing, x, y, clipPath, frameTransform.Value);
+        } else {
+            AddClippedDrawing(drawing, x, y, clipPath);
         }
     }
 

@@ -53,12 +53,12 @@ public static class OfficeDrawingRasterRenderer {
     private static void RenderGroup(OfficeRasterCanvas canvas, OfficeDrawingGroup drawingGroup, double scale) {
         using (PushGroupClip(canvas, drawingGroup, scale)) {
             var translated = new OfficeDrawing(
-                Math.Max(1D, drawingGroup.X + drawingGroup.InnerDrawing.Width),
-                Math.Max(1D, drawingGroup.Y + drawingGroup.InnerDrawing.Height));
+                Math.Max(1D, canvas.Width / scale),
+                Math.Max(1D, canvas.Height / scale));
             if (drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform) {
-                translated.AddDrawing(drawingGroup.InnerDrawing, drawingGroup.X, drawingGroup.Y, drawingGroup.FrameTransform.Value);
+                translated.AddDrawingForClippedRendering(drawingGroup.InnerDrawing, drawingGroup.X, drawingGroup.Y, drawingGroup.FrameTransform.Value);
             } else {
-                translated.AddDrawing(drawingGroup.InnerDrawing, drawingGroup.X, drawingGroup.Y);
+                translated.AddDrawingForClippedRendering(drawingGroup.InnerDrawing, drawingGroup.X, drawingGroup.Y, null);
             }
 
             RenderElements(canvas, translated.Elements, scale);
