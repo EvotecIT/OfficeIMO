@@ -18,6 +18,41 @@ The important distinction: parity is not "more tests." Parity means the parser, 
 | Remaining CommonMark parser clusters | HTML/raw HTML grammar, emphasis delimiter runs, container indentation/continuation, hard-line-break edge cases, CommonMark entity decoding |
 | Remaining Markdig-class architecture gaps | broader GFM corpus coverage, full lossless trivia capture, full parser pipeline parity, renderer/writer plugin parity, extension-family implementation breadth, release-mode benchmark review |
 
+## Current Answer
+
+We are not doing only tests. The inventories are the measuring system. They tell us which engine contract to improve next and stop us from calling isolated fixture additions "parity."
+
+The current state is:
+
+- [x] We can measure CommonMark, tracked GFM fixtures, and reflected Markdig extension families from checked-in reports.
+- [x] GFM smoke behavior is green for the fixture corpus we track today.
+- [ ] CommonMark is not closed: 30 official examples still fail, led by HTML/raw HTML, emphasis, containers, hard breaks, and entities.
+- [ ] Markdig extension parity is not closed: 15 extension families are partial, 14 are gaps, 4 are intentional differences, and 0 meet the full `Covered` bar.
+- [ ] AST/source/lossless parity is not closed: parser nodes, native snapshots, trivia, source edits, renderer contexts, and writer contexts still need to line up everywhere.
+- [ ] Performance parity is not known: release-mode Markdig comparisons still need a stable benchmark pass after correctness stops moving.
+
+So the real work now is engine-first:
+
+1. [ ] Fix a parser/AST/renderer/writer behavior slice.
+2. [ ] Refresh the inventory that proves the moved count.
+3. [ ] Promote only the official examples that now represent understood contracts.
+4. [ ] Update this plan and the relevant compatibility report.
+5. [ ] Validate across the Markdown lanes before committing.
+
+## Execution Checklist
+
+Use this order unless a later discovery proves a dependency should move earlier.
+
+- [ ] **Slice 1: CommonMark HTML/raw HTML.** Close the largest CommonMark failure cluster first: examples #148, #174, #191, #619, #621, #622, #625, #626, #627, #628, and #629. This is engine work in `HtmlBlockParser`, inline raw HTML classification, and renderer/security-profile behavior.
+- [ ] **Slice 2: CommonMark emphasis delimiter algorithm.** Replace local emphasis heuristics with delimiter-stack behavior that handles flanking, punctuation, intraword underscores, nesting, opener/closer balancing, and precedence.
+- [ ] **Slice 3: CommonMark container indentation.** Make tabs, blockquote continuation, list continuation, and indented-code boundaries share a source-map-safe column model.
+- [ ] **Slice 4: CommonMark hard breaks and entities.** Finish hard-line-break marker handling and replace narrow HTML decoding with a CommonMark-complete named/numeric character reference decoder.
+- [ ] **Slice 5: GFM breadth.** Keep the current green GFM smoke corpus, then broaden table/task/autolink/strikethrough/tag-filter/footnote/interoperability fixtures from upstream-compatible sources.
+- [ ] **Slice 6: Markdig extension family decisions.** For each `Partial` or `Gap` row, choose one of: implement in core, implement as an optional extension, route to renderer/host policy, or document as intentional out of scope.
+- [ ] **Slice 7: AST/source/lossless closure.** Finish canonical node cleanup, trivia capture, delimiter-token capture, source edits, generated-node diagnostics, and native snapshot consistency.
+- [ ] **Slice 8: Renderer/writer extension parity.** Make custom parser nodes render and write from typed/source-aware contexts rather than downstream string rescanning.
+- [ ] **Slice 9: Performance parity proof.** Run release-mode Markdig comparisons over parse, parse-with-syntax, HTML render, Markdown write, source-edit roundtrip, transforms, allocations, and representative corpora.
+
 References:
 
 - CommonMark `0.31.2` official JSON: https://spec.commonmark.org/0.31.2/spec.json
