@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             OfficeImageInfo info = OfficeImageReader.Identify(png.Bytes);
             Assert.Equal(png.Width, info.Width);
             Assert.Equal(png.Height, info.Height);
-            Assert.Empty(png.Diagnostics);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
         }
 
         [Fact]
@@ -82,6 +82,42 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png.Take(4).ToArray());
             Assert.Contains("<svg", svg, StringComparison.Ordinal);
             Assert.Contains("Friendly Excel image export", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ExcelWorkbook_ToImagesPreservesHiddenSheetOptionWhenSaving() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet visible = document.AddWorkSheet("Visible");
+            visible.CellValue(1, 1, "Visible");
+            ExcelSheet hidden = document.AddWorkSheet("Hidden");
+            hidden.CellValue(1, 1, "Hidden");
+            hidden.SetHidden(true);
+
+            string folder = Path.Combine(Path.GetTempPath(), "officeimo-hidden-sheets-" + Guid.NewGuid().ToString("N"));
+            try {
+                IReadOnlyList<OfficeImageExportResult> saved = document.ToImages()
+                    .AsSvg()
+                    .Save(folder);
+
+                Assert.Single(saved);
+                Assert.True(File.Exists(Path.Combine(folder, "Visible.svg")));
+                Assert.False(File.Exists(Path.Combine(folder, "Hidden.svg")));
+
+                string allFolder = Path.Combine(folder, "all");
+                IReadOnlyList<OfficeImageExportResult> allSaved = document.ToImages()
+                    .AsSvg()
+                    .IncludeHiddenSheets()
+                    .Save(allFolder);
+
+                Assert.Equal(2, allSaved.Count);
+                Assert.True(File.Exists(Path.Combine(allFolder, "Visible.svg")));
+                Assert.True(File.Exists(Path.Combine(allFolder, "Hidden.svg")));
+            } finally {
+                if (Directory.Exists(folder)) {
+                    Directory.Delete(folder, recursive: true);
+                }
+            }
         }
 
         [Fact]

@@ -133,6 +133,12 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
+        /// <summary>Includes or excludes hidden and very hidden worksheets when exporting all workbook sheets.</summary>
+        public ExcelWorkbookImageExportBuilder IncludeHiddenSheets(bool include = true) {
+            Options.IncludeHiddenSheets = include;
+            return this;
+        }
+
         /// <summary>Splits worksheet exports by manual page breaks.</summary>
         public ExcelWorkbookImageExportBuilder SplitByManualPageBreaks(bool split = true) {
             Options.SplitWorksheetsByManualPageBreaks = split;

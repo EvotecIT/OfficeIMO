@@ -38,7 +38,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            width = Math.Min(width, context.ContentWidth);
+            FitImageToWidth(context.ContentWidth, ref width, ref height);
             if (!EnsureVerticalSpace(context, height, diagnostics)) {
                 return false;
             }
@@ -46,8 +46,18 @@ namespace OfficeIMO.Word {
             double left = context.Left;
             double top = context.Y;
             OfficeImageProjection projection = CreateImageProjection(image, left, top, width, height);
+            (double boundsLeft, double boundsTop, double boundsRight, double boundsBottom) = projection.GetDestinationBounds();
+            if (boundsLeft < 0D || boundsTop < 0D || boundsRight > context.Drawing.Width || boundsBottom > context.Drawing.Height) {
+                AddDiagnostic(
+                    diagnostics,
+                    "unsupported-word-image",
+                    "Skipped a Word image because its inline projection extends outside the current page preview.",
+                    DescribeImage(image));
+                return false;
+            }
+
             context.Drawing.AddImage(bytes, image.ContentType, projection, DescribeImage(image));
-            context.Y += height + ParagraphGapPoints;
+            context.Y += boundsBottom - context.Y + ParagraphGapPoints;
             return true;
         }
 
@@ -85,7 +95,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            width = Math.Min(width, context.ContentWidth);
+            FitImageToWidth(context.ContentWidth, ref width, ref height);
             if (!TryGetNoWrapAnchorPlacement(image, context, width, height, out double left, out double top)) {
                 AddDiagnostic(
                     diagnostics,
@@ -122,7 +132,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            width = Math.Min(width, context.ContentWidth);
+            FitImageToWidth(context.ContentWidth, ref width, ref height);
             if (!TryGetNoWrapAnchorPlacement(image, context, width, height, out double left, out double top)) {
                 AddDiagnostic(
                     diagnostics,
@@ -160,6 +170,16 @@ namespace OfficeIMO.Word {
             }
 
             return true;
+        }
+
+        private static void FitImageToWidth(double maxWidth, ref double width, ref double height) {
+            if (width <= 0D || height <= 0D || width <= maxWidth) {
+                return;
+            }
+
+            double ratio = maxWidth / width;
+            width = maxWidth;
+            height *= ratio;
         }
 
         private static bool TryReadEmbeddedImage(WordImage image, List<OfficeImageExportDiagnostic> diagnostics, out byte[] bytes, out double width, out double height) {

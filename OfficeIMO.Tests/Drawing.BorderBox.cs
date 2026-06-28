@@ -87,6 +87,73 @@ public partial class DrawingTests {
         Assert.True(ContainsColorNear(image, OfficeColor.FromRgb(220, 38, 38), 24, 28, 4));
     }
 
+    [Fact]
+    public void OfficeDrawingBorderBoxKeepsEdgesOnBoxBounds() {
+        var drawing = new OfficeDrawing(40, 30);
+        drawing.AddBorderBox(
+            0D,
+            0D,
+            40D,
+            30D,
+            null,
+            new OfficeBorderBox(
+                right: new OfficeBorderSide(OfficeColor.FromRgb(37, 99, 235), 1D),
+                bottom: new OfficeBorderSide(OfficeColor.FromRgb(22, 163, 74), 1D)));
+
+        List<OfficeDrawingShape> lines = drawing.Elements.OfType<OfficeDrawingShape>().ToList();
+
+        Assert.Contains(lines, line => line.X == 40D && line.Shape.Width == 0D);
+        Assert.Contains(lines, line => line.Y == 30D && line.Shape.Height == 0D);
+    }
+
+    [Fact]
+    public void OfficeDrawingBorderBoxClipsDoubleEdgesAtDrawingBounds() {
+        var drawing = new OfficeDrawing(40, 30);
+
+        drawing.AddBorderBox(
+            0D,
+            0D,
+            40D,
+            30D,
+            null,
+            new OfficeBorderBox(
+                left: new OfficeBorderSide(OfficeColor.FromRgb(220, 38, 38), 1D, lineKind: OfficeBorderLineKind.Double, doubleLineSeparation: 8D),
+                top: new OfficeBorderSide(OfficeColor.FromRgb(37, 99, 235), 1D, lineKind: OfficeBorderLineKind.Double, doubleLineSeparation: 8D)));
+
+        List<OfficeDrawingShape> lines = drawing.Elements.OfType<OfficeDrawingShape>().ToList();
+
+        Assert.Equal(4, lines.Count);
+        Assert.All(lines, line => {
+            Assert.True(line.X >= 0D);
+            Assert.True(line.Y >= 0D);
+        });
+    }
+
+    [Fact]
+    public void OfficeDrawingBorderBoxRebasesTransformsForEachSide() {
+        var drawing = new OfficeDrawing(120, 80);
+        OfficeTransform transform = OfficeTransform.RotateDegrees(15D, 40D, 20D);
+
+        drawing.AddBorderBox(
+            10D,
+            12D,
+            80D,
+            40D,
+            null,
+            new OfficeBorderBox(
+                top: new OfficeBorderSide(OfficeColor.FromRgb(37, 99, 235), 1D),
+                right: new OfficeBorderSide(OfficeColor.FromRgb(22, 163, 74), 1D)),
+            transform);
+
+        List<OfficeDrawingShape> lines = drawing.Elements.OfType<OfficeDrawingShape>().ToList();
+        OfficeDrawingShape top = Assert.Single(lines, line => line.X == 10D && line.Y == 12D);
+        OfficeDrawingShape right = Assert.Single(lines, line => line.X == 90D);
+
+        Assert.Equal(transform, top.Shape.Transform);
+        Assert.NotEqual(transform.OffsetX, right.Shape.Transform!.Value.OffsetX);
+        Assert.NotEqual(transform.OffsetY, right.Shape.Transform!.Value.OffsetY);
+    }
+
     private static bool ContainsColorNear(OfficeRasterImage image, OfficeColor expected, int centerX, int centerY, int tolerance) {
         int left = Math.Max(0, centerX - 6);
         int right = Math.Min(image.Width - 1, centerX + 6);

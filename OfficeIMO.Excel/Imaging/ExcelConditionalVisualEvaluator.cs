@@ -18,8 +18,8 @@ namespace OfficeIMO.Excel {
 
             var stoppedCells = new HashSet<string>(StringComparer.Ordinal);
             var cellFormats = BuildConditionalCellFormats(sheet, cells, rules, conditionalFormattingDate, stoppedCells);
-            var dataBars = BuildConditionalDataBars(sheet, cells, rules, stoppedCells);
-            var icons = BuildConditionalIcons(sheet, cells, rules, stoppedCells, diagnostics);
+            var dataBars = BuildConditionalDataBars(sheet, cells, rules, conditionalFormattingDate);
+            var icons = BuildConditionalIcons(sheet, cells, rules, conditionalFormattingDate, diagnostics);
             return cellFormats.Count == 0 && dataBars.Count == 0 && icons.Count == 0
                 ? ExcelConditionalVisualState.Empty
                 : new ExcelConditionalVisualState(cellFormats, dataBars, icons);
@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             IReadOnlyList<ExcelConditionalFormattingInfo> rules,
-            HashSet<string> stoppedCells) {
+            DateTime conditionalFormattingDate) {
             var dataBars = new List<ExcelVisualConditionalDataBar>();
             foreach (ExcelConditionalFormattingInfo rule in rules
                 .Where(rule => string.Equals(rule.Type, "DataBar", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(rule.DataBarColor))
@@ -38,6 +38,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                HashSet<string> stoppedCells = BuildStoppedCellsBeforePriority(sheet, cells, rules, rule, conditionalFormattingDate);
                 List<ConditionalNumericCell> candidates = GetNumericCandidates(sheet, cells, rule.Range)
                     .Where(candidate => !stoppedCells.Contains(Key(candidate.Cell.Row, candidate.Cell.Column)))
                     .ToList();
@@ -68,6 +69,25 @@ namespace OfficeIMO.Excel {
             }
 
             return dataBars;
+        }
+
+        private static HashSet<string> BuildStoppedCellsBeforePriority(
+            ExcelSheet sheet,
+            IReadOnlyList<ExcelVisualCell> cells,
+            IReadOnlyList<ExcelConditionalFormattingInfo> rules,
+            ExcelConditionalFormattingInfo currentRule,
+            DateTime conditionalFormattingDate) {
+            int currentPriority = NormalizePriority(currentRule.Priority);
+            ExcelConditionalFormattingInfo[] higherPriorityStopRules = rules
+                .Where(rule => rule.StopIfTrue && NormalizePriority(rule.Priority) < currentPriority)
+                .OrderBy(rule => NormalizePriority(rule.Priority))
+                .ToArray();
+            var stoppedCells = new HashSet<string>(StringComparer.Ordinal);
+            if (higherPriorityStopRules.Length > 0) {
+                _ = BuildConditionalCellFormats(sheet, cells, higherPriorityStopRules, conditionalFormattingDate, stoppedCells);
+            }
+
+            return stoppedCells;
         }
 
         private static void ReportUnsupportedConditionalRules(

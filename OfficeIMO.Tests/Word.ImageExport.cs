@@ -29,11 +29,14 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { Scale = 2D, BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult scaledSvg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { Scale = 2D, BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
             Assert.Equal(OfficeImageExportFormat.Png, png.Format);
             Assert.Equal((int)Math.Ceiling(snapshot.Width * 2D), png.Width);
             Assert.Equal((int)Math.Ceiling(snapshot.Height * 2D), png.Height);
+            Assert.Equal((int)Math.Ceiling(snapshot.Width), scaledSvg.Width);
+            Assert.Equal((int)Math.Ceiling(snapshot.Height), scaledSvg.Height);
             Assert.Empty(png.Diagnostics);
             Assert.Empty(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Shared Word renderer" && drawingText.Alignment == OfficeTextAlignment.Center);
@@ -2350,6 +2353,40 @@ namespace OfficeIMO.Tests {
         public void WordDocument_ProjectsTightAndThroughWrappedImagesWithLimitedTextExclusionDiagnostics() {
             AssertLimitedSideWrappedImageProjection(WrapTextImage.Tight, "Tight");
             AssertLimitedSideWrappedImageProjection(WrapTextImage.Through, "Through");
+        }
+
+        [Fact]
+        public void WordDocument_ScalesInlineImagesProportionallyWhenFittingContentWidth() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            byte[] sourcePng = CreateSolidPng(800, 400, OfficeColor.FromRgb(37, 99, 235));
+            using var imageStream = new MemoryStream(sourcePng);
+            document.AddParagraph().AddImage(imageStream, "wide.png", 800, 400, description: "Wide blue marker");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+
+            OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
+            Assert.Equal("Wide blue marker", drawingImage.AlternativeText);
+            Assert.True(drawingImage.Projection.Width < 800D);
+            Assert.True(drawingImage.Projection.X + drawingImage.Projection.Width <= snapshot.Width);
+            Assert.Equal(drawingImage.Projection.Width / 2D, drawingImage.Projection.Height, 1);
+        }
+
+        [Fact]
+        public void WordDocument_SkipsRotatedInlineImagesThatProjectOutsidePage() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            byte[] sourcePng = CreateSolidPng(420, 420, OfficeColor.FromRgb(37, 99, 235));
+            using var imageStream = new MemoryStream(sourcePng);
+            WordImage image = document.AddParagraph().InsertImage(imageStream, "rotated-inline.png", 420, 420, WrapTextImage.InLineWithText, "Rotated inline marker");
+            image.Rotation = 45;
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+
+            Assert.Empty(snapshot.Drawing.Images);
+            Assert.Contains(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-image" && diagnostic.Source == "Rotated inline marker");
         }
 
         private static void AssertLimitedSideWrappedImageProjection(WrapTextImage wrapText, string label) {

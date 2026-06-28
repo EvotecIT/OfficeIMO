@@ -23,7 +23,7 @@ namespace OfficeIMO.PowerPoint {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
                 AddSvgImageDiagnostics(drawing, diagnostics);
                 byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing);
-                return new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Slide", "PowerPoint slide", diagnostics);
+                return new OfficeImageExportResult(format, UnscaledWidth(drawing), UnscaledHeight(drawing), svg, "Slide", "PowerPoint slide", diagnostics);
             }
 
             if (format == OfficeImageExportFormat.Png) {
@@ -1095,6 +1095,12 @@ namespace OfficeIMO.PowerPoint {
 
         private static int ScaledHeight(OfficeDrawing drawing, PowerPointImageExportOptions options) =>
             Math.Max(1, (int)Math.Ceiling(drawing.Height * options.Scale));
+
+        private static int UnscaledWidth(OfficeDrawing drawing) =>
+            Math.Max(1, (int)Math.Ceiling(drawing.Width));
+
+        private static int UnscaledHeight(OfficeDrawing drawing) =>
+            Math.Max(1, (int)Math.Ceiling(drawing.Height));
 
         private static void AddSvgImageDiagnostics(OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics) {
             foreach (OfficeDrawingImage image in drawing.Images) {

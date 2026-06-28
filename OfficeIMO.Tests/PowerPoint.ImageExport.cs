@@ -20,11 +20,13 @@ namespace OfficeIMO.Tests {
             slide.BackgroundColor = "112233";
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 2D, IncludeSlideContent = false });
-            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { IncludeSlideContent = false });
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { IncludeSlideContent = false, Scale = 2D });
 
             Assert.Equal(OfficeImageExportFormat.Png, png.Format);
             Assert.Equal(480, png.Width);
             Assert.Equal(320, png.Height);
+            Assert.Equal(240, svg.Width);
+            Assert.Equal(160, svg.Height);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(480, image!.Width);
             Assert.Equal(320, image.Height);

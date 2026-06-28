@@ -109,8 +109,8 @@ public sealed class OfficeShape {
 
         double minX = Math.Min(start.X, end.X);
         double minY = Math.Min(start.Y, end.Y);
-        double width = Math.Max(1D, Math.Abs(end.X - start.X));
-        double height = Math.Max(1D, Math.Abs(end.Y - start.Y));
+        double width = Math.Abs(end.X - start.X);
+        double height = Math.Abs(end.Y - start.Y);
 
         return new OfficeShape {
             Kind = OfficeShapeKind.Line,

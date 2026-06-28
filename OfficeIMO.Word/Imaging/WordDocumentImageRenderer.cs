@@ -30,7 +30,7 @@ namespace OfficeIMO.Word {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
                 AddSvgImageDiagnostics(drawing, diagnostics);
                 byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing);
-                return new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Page " + (options.PageIndex + 1), "Word document", diagnostics);
+                return new OfficeImageExportResult(format, UnscaledWidth(drawing), UnscaledHeight(drawing), svg, "Page " + (options.PageIndex + 1), "Word document", diagnostics);
             }
 
             if (format == OfficeImageExportFormat.Png) {
@@ -437,6 +437,12 @@ namespace OfficeIMO.Word {
 
         private static int ScaledHeight(OfficeDrawing drawing, WordImageExportOptions options) =>
             Math.Max(1, (int)Math.Ceiling(drawing.Height * options.Scale));
+
+        private static int UnscaledWidth(OfficeDrawing drawing) =>
+            Math.Max(1, (int)Math.Ceiling(drawing.Width));
+
+        private static int UnscaledHeight(OfficeDrawing drawing) =>
+            Math.Max(1, (int)Math.Ceiling(drawing.Height));
 
         private static void AddDiagnostic(List<OfficeImageExportDiagnostic> diagnostics, string code, string message, string? source = null) {
             diagnostics.Add(new OfficeImageExportDiagnostic(

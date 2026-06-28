@@ -24,8 +24,13 @@ public sealed class OfficeDrawingShape : OfficeDrawingElement {
 
         ValidateFiniteNonNegative(x, nameof(x));
         ValidateFiniteNonNegative(y, nameof(y));
-        ValidatePositiveFinite(shape.Width, nameof(shape.Width));
-        ValidatePositiveFinite(shape.Height, nameof(shape.Height));
+        if (shape.Kind == OfficeShapeKind.Line) {
+            ValidateFiniteNonNegative(shape.Width, nameof(shape.Width));
+            ValidateFiniteNonNegative(shape.Height, nameof(shape.Height));
+        } else {
+            ValidatePositiveFinite(shape.Width, nameof(shape.Width));
+            ValidatePositiveFinite(shape.Height, nameof(shape.Height));
+        }
 
         Shape = shape.Clone();
         X = x;

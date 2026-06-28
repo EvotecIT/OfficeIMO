@@ -158,6 +158,7 @@ namespace OfficeIMO.Excel {
             DefaultColumnWidthPixels = DefaultColumnWidthPixels,
             DefaultRowHeightPixels = DefaultRowHeightPixels,
             SheetNames = SheetNames,
+            IncludeHiddenSheets = IncludeHiddenSheets,
             HeaderFooterDateTime = HeaderFooterDateTime,
             UseWorksheetPrintAreas = UseWorksheetPrintAreas,
             SplitWorksheetsByManualPageBreaks = SplitWorksheetsByManualPageBreaks
