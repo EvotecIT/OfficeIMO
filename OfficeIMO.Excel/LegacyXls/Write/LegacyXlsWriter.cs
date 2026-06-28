@@ -7,6 +7,7 @@ using System.Text;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static partial class LegacyXlsWriter {
+        private const int BiffMaxRecordDataLength = 8224;
         private static readonly byte[] WorkbookGlobalsBof = { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 };
         private static readonly byte[] WorksheetBof = { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 };
 
@@ -189,11 +190,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             WritePageSetupRecords(stream, layout.PageSetup);
             WriteWorksheetProtectionRecords(stream, layout.Protection);
-            if (LegacyXlsWorksheetProtectionFeatureWriter.TryCreatePayload(sheet.WorksheetPart.Worksheet?.Elements<SheetProtection>().FirstOrDefault(), out byte[]? protectionFeaturePayload)) {
+            IReadOnlyList<byte[]> protectedRangePayloads = LegacyXlsProtectedRangeWriter.CreateProtectedRangePayloads(sheet);
+            if (LegacyXlsWorksheetProtectionFeatureWriter.TryCreatePayload(sheet.WorksheetPart.Worksheet?.Elements<SheetProtection>().FirstOrDefault(), forceDefault: protectedRangePayloads.Count > 0, out byte[]? protectionFeaturePayload)) {
                 WriteRecord(stream, 0x0867, protectionFeaturePayload!);
             }
 
-            foreach (byte[] protectedRangePayload in LegacyXlsProtectedRangeWriter.CreateProtectedRangePayloads(sheet)) {
+            foreach (byte[] protectedRangePayload in protectedRangePayloads) {
                 WriteRecord(stream, 0x0868, protectedRangePayload);
             }
 
@@ -776,13 +778,13 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static void EnsureSupportedLabelTextLength(string text, string address) {
-            if (text.Length > ushort.MaxValue || 9L + GetEncodedStringByteCount(text) > ushort.MaxValue) {
+            if (text.Length > ushort.MaxValue || 9L + GetEncodedStringByteCount(text) > BiffMaxRecordDataLength) {
                 throw new NotSupportedException($"Native XLS saving does not yet support cell text lengths outside BIFF8 limits at {address}. Save as .xlsx or shorten this cell before saving as .xls.");
             }
         }
 
         private static void EnsureSupportedFormulaTextLength(string text, string address) {
-            if (text.Length > ushort.MaxValue || 3L + GetEncodedStringByteCount(text) > ushort.MaxValue) {
+            if (text.Length > ushort.MaxValue || 3L + GetEncodedStringByteCount(text) > BiffMaxRecordDataLength) {
                 throw new NotSupportedException($"Native XLS saving does not yet support cached formula text lengths outside BIFF8 limits at {address}. Save as .xlsx or shorten this cached result before saving as .xls.");
             }
         }
@@ -800,7 +802,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static void EnsureSupportedFormulaPayloadLength(byte[] formulaTokens, int extraPayloadLength, int fixedPayloadLength, string context, string address) {
-            if (formulaTokens.Length > ushort.MaxValue || fixedPayloadLength + (long)formulaTokens.Length + extraPayloadLength > ushort.MaxValue) {
+            if (formulaTokens.Length > ushort.MaxValue || fixedPayloadLength + (long)formulaTokens.Length + extraPayloadLength > BiffMaxRecordDataLength) {
                 throw new NotSupportedException($"Native XLS saving does not yet support {context} token payload lengths outside BIFF8 limits at {address}. Save as .xlsx or shorten this formula before saving as .xls.");
             }
         }
@@ -1082,15 +1084,22 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static byte[] BuildSharedFormulaPayload(ushort firstRow, ushort firstColumn, ushort lastRow, ushort lastColumn, byte[] formulaTokens) {
+            int cellCount = GetSharedFormulaCellCount(firstRow, firstColumn, lastRow, lastColumn);
             byte[] payload = new byte[checked(10 + formulaTokens.Length)];
             WriteUInt16(payload, 0, firstRow);
             WriteUInt16(payload, 2, lastRow);
             payload[4] = checked((byte)firstColumn);
             payload[5] = checked((byte)lastColumn);
-            payload[7] = checked((byte)(lastRow - firstRow + 1));
+            payload[7] = checked((byte)cellCount);
             WriteUInt16(payload, 8, checked((ushort)formulaTokens.Length));
             Buffer.BlockCopy(formulaTokens, 0, payload, 10, formulaTokens.Length);
             return payload;
+        }
+
+        private static int GetSharedFormulaCellCount(ushort firstRow, ushort firstColumn, ushort lastRow, ushort lastColumn) {
+            int rowCount = checked(lastRow - firstRow + 1);
+            int columnCount = checked(lastColumn - firstColumn + 1);
+            return checked(rowCount * columnCount);
         }
 
         private static bool TryBuildSharedFormulaTokens(byte[] formulaTokens, ushort anchorRow, ushort anchorColumn, out byte[] sharedFormulaTokens) {
@@ -1874,7 +1883,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static void WriteRecord(Stream stream, ushort type, byte[] payload) {
-            if (payload.Length > ushort.MaxValue) {
+            if (payload.Length > BiffMaxRecordDataLength) {
                 throw new NotSupportedException($"Native XLS saving does not yet support BIFF record 0x{type:X4} payload lengths outside BIFF8 limits. Save as .xlsx or remove this feature before saving as .xls.");
             }
 
@@ -2138,6 +2147,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                         }
 
                         EnsureSupportedSharedFormulaPayloadLength(sharedFormulaTokens, ToA1Address(anchorRow, anchorColumn));
+                        EnsureSupportedSharedFormulaCellCount(firstRow, firstColumn, lastRow, lastColumn, ToA1Address(anchorRow, anchorColumn));
                         definitions[sharedIndex] = new LegacyXlsSharedFormulaDefinition(
                             anchorRow,
                             anchorColumn,
@@ -2152,6 +2162,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             internal bool TryGetDefinition(uint? sharedIndex, out LegacyXlsSharedFormulaDefinition definition) {
                 definition = default;
                 return sharedIndex.HasValue && _definitions.TryGetValue(sharedIndex.Value, out definition);
+            }
+
+            private static void EnsureSupportedSharedFormulaCellCount(ushort firstRow, ushort firstColumn, ushort lastRow, ushort lastColumn, string address) {
+                if (GetSharedFormulaCellCount(firstRow, firstColumn, lastRow, lastColumn) > byte.MaxValue) {
+                    throw new NotSupportedException($"Native XLS saving does not yet support shared formula ranges with more than 255 cells at {address}. Save as .xlsx or split this shared formula before saving as .xls.");
+                }
             }
         }
 

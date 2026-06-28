@@ -9,6 +9,23 @@ namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
         [Trait("Category", "ExcelLinks")]
+        public void Excel_SetHyperlink_PreservesPublicAbiOverloads() {
+            Assert.NotNull(typeof(ExcelSheet).GetMethod(
+                nameof(ExcelSheet.SetHyperlink),
+                new[] { typeof(int), typeof(int), typeof(string), typeof(string), typeof(bool) }));
+            Assert.NotNull(typeof(ExcelSheet).GetMethod(
+                nameof(ExcelSheet.SetHyperlink),
+                new[] { typeof(string), typeof(string), typeof(string), typeof(bool) }));
+            Assert.NotNull(typeof(ExcelSheet).GetMethod(
+                nameof(ExcelSheet.SetInternalLink),
+                new[] { typeof(int), typeof(int), typeof(string), typeof(string), typeof(bool) }));
+            Assert.NotNull(typeof(ExcelSheet).GetMethod(
+                nameof(ExcelSheet.SetInternalLink),
+                new[] { typeof(int), typeof(int), typeof(ExcelSheet), typeof(string), typeof(string), typeof(bool) }));
+        }
+
+        [Fact]
+        [Trait("Category", "ExcelLinks")]
         public void Excel_SetHyperlink_ReplacesExistingEntry() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelHyperlinkReplace.xlsx");
             if (File.Exists(filePath)) File.Delete(filePath);

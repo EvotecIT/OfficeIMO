@@ -7,14 +7,16 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private const ushort FeatHdrRecordType = 0x0867;
         private const ushort IsfProtection = 0x0002;
 
-        internal static bool TryCreatePayload(SheetProtection? protection, out byte[]? payload) {
+        internal static bool TryCreatePayload(SheetProtection? protection, bool forceDefault, out byte[]? payload) {
             payload = null;
-            if (protection == null || protection.Sheet?.Value == false) {
+            if ((protection == null || protection.Sheet?.Value == false) && !forceDefault) {
                 return false;
             }
 
-            LegacyXlsWorksheetProtectionPermissions permissions = ExtractPermissions(protection);
-            if (permissions.Equals(LegacyXlsWorksheetProtectionPermissions.Default(protection.Objects?.Value, protection.Scenarios?.Value))) {
+            LegacyXlsWorksheetProtectionPermissions permissions = protection == null
+                ? LegacyXlsWorksheetProtectionPermissions.Default(null, null)
+                : ExtractPermissions(protection);
+            if (!forceDefault && permissions.Equals(LegacyXlsWorksheetProtectionPermissions.Default(protection!.Objects?.Value, protection.Scenarios?.Value))) {
                 return false;
             }
 

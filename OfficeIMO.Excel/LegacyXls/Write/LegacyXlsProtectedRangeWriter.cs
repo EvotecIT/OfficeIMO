@@ -7,6 +7,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static class LegacyXlsProtectedRangeWriter {
         private const ushort FeatRecordType = 0x0868;
         private const ushort IsfProtection = 0x0002;
+        private const int BiffMaxRecordDataLength = 8224;
 
         internal static bool SupportsWorksheetProtectedRanges(ExcelSheet sheet, out string? reason) {
             reason = null;
@@ -107,7 +108,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             long payloadLength = 35L
                 + (8L * rangeCount)
                 + GetUnicodeStringPayloadLength(name);
-            if (payloadLength > ushort.MaxValue) {
+            if (payloadLength > BiffMaxRecordDataLength) {
                 reason = "protected range payload lengths outside BIFF8 limits";
                 return false;
             }

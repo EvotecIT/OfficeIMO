@@ -20,7 +20,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             };
             streams.AddRange(additionalStreams);
 
-            PaddedStream[] paddedStreams = streams.Select(PadStream).ToArray();
+            PaddedStream[] paddedStreams = streams
+                .Select(PadStream)
+                .OrderBy(stream => stream.Name, DirectoryNameComparer.Instance)
+                .ToArray();
             int dataSectorCount = paddedStreams.Sum(stream => stream.PaddedBytes.Length / SectorSize);
             int directorySectorCount = CalculateDirectorySectorCount(paddedStreams.Length + 1);
             int fatSectorCount = CalculateFatSectorCount(dataSectorCount, directorySectorCount);
@@ -86,19 +89,19 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private static byte[] BuildDirectory(IReadOnlyList<PaddedStream> streams, int directorySectorCount) {
             byte[] directory = new byte[checked(directorySectorCount * SectorSize)];
-            WriteDirectoryEntry(directory, 0, "Root Entry", 5, EndOfChain, EndOfChain, streams.Count > 0 ? 1U : EndOfChain, EndOfChain, 0);
+            DirectoryTreeLinks directoryLinks = DirectoryTreeLinks.Create(streams.Count);
+            WriteDirectoryEntry(directory, 0, "Root Entry", 5, EndOfChain, EndOfChain, directoryLinks.RootChild, EndOfChain, 0);
 
             uint startSector = 0;
             for (int i = 0; i < streams.Count; i++) {
                 PaddedStream stream = streams[i];
-                uint rightSibling = i + 1 < streams.Count ? unchecked((uint)(i + 2)) : EndOfChain;
                 WriteDirectoryEntry(
                     directory,
                     checked((i + 1) * 128),
                     stream.Name,
                     2,
-                    EndOfChain,
-                    rightSibling,
+                    directoryLinks.GetLeftSibling(i),
+                    directoryLinks.GetRightSibling(i),
                     EndOfChain,
                     startSector,
                     unchecked((ulong)stream.PaddedBytes.Length));
@@ -212,6 +215,60 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             internal int OriginalLength { get; }
 
             internal byte[] PaddedBytes { get; }
+        }
+
+        private sealed class DirectoryTreeLinks {
+            private readonly int[] _left;
+            private readonly int[] _right;
+
+            private DirectoryTreeLinks(int[] left, int[] right, int root) {
+                _left = left;
+                _right = right;
+                Root = root;
+            }
+
+            internal int Root { get; }
+
+            internal uint RootChild => ToDirectoryEntryId(Root);
+
+            internal static DirectoryTreeLinks Create(int streamCount) {
+                var left = Enumerable.Repeat(-1, streamCount).ToArray();
+                var right = Enumerable.Repeat(-1, streamCount).ToArray();
+                int root = BuildBalancedTree(0, streamCount - 1, left, right);
+                return new DirectoryTreeLinks(left, right, root);
+            }
+
+            internal uint GetLeftSibling(int streamIndex) {
+                return ToDirectoryEntryId(_left[streamIndex]);
+            }
+
+            internal uint GetRightSibling(int streamIndex) {
+                return ToDirectoryEntryId(_right[streamIndex]);
+            }
+
+            private static int BuildBalancedTree(int firstIndex, int lastIndex, int[] left, int[] right) {
+                if (firstIndex > lastIndex) {
+                    return -1;
+                }
+
+                int middleIndex = firstIndex + ((lastIndex - firstIndex) / 2);
+                left[middleIndex] = BuildBalancedTree(firstIndex, middleIndex - 1, left, right);
+                right[middleIndex] = BuildBalancedTree(middleIndex + 1, lastIndex, left, right);
+                return middleIndex;
+            }
+
+            private static uint ToDirectoryEntryId(int streamIndex) {
+                return streamIndex < 0 ? EndOfChain : unchecked((uint)(streamIndex + 1));
+            }
+        }
+
+        private sealed class DirectoryNameComparer : IComparer<string> {
+            internal static DirectoryNameComparer Instance { get; } = new DirectoryNameComparer();
+
+            public int Compare(string? left, string? right) {
+                int ignoreCase = StringComparer.OrdinalIgnoreCase.Compare(left, right);
+                return ignoreCase != 0 ? ignoreCase : StringComparer.Ordinal.Compare(left, right);
+            }
         }
     }
 

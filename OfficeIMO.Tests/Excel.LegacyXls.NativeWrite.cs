@@ -15,6 +15,7 @@ using OpenXmlFilterOperatorValues = DocumentFormat.OpenXml.Spreadsheet.FilterOpe
 using OpenXmlWorksheetPart = DocumentFormat.OpenXml.Packaging.WorksheetPart;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
+using OfficeIMO.Excel.LegacyXls.Compound;
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Globalization;
 using System.Threading.Tasks;
@@ -2467,7 +2468,14 @@ namespace OfficeIMO.Tests {
                 }
 
                 using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                Assert.False(result.HasImportErrors, FormatUnsupportedFeatures(result.UnsupportedFeatures));
+                Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
                 ExcelDocument loaded = result.Document;
+                AssertCompoundRootTreeContains(
+                    xlsOutputPath,
+                    "\u0005SummaryInformation",
+                    "\u0005DocumentSummaryInformation",
+                    "Workbook");
                 Assert.Equal("Native Metadata Workbook", loaded.BuiltinDocumentProperties.Title);
                 Assert.Equal("Native XLS metadata parity", loaded.BuiltinDocumentProperties.Subject);
                 Assert.Equal("OfficeIMO Native Writer", loaded.BuiltinDocumentProperties.Creator);
@@ -3492,6 +3500,75 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NativeSave_WritesSharedFormulaUseCountForWholeRange() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet sheet = document.AddWorkSheet("Shared Formula");
+                    sheet.CellValue(1, 1, 10d);
+                    sheet.CellValue(2, 1, 20d);
+
+                    int[,] sharedCells = { { 1, 2 }, { 1, 3 }, { 2, 2 }, { 2, 3 } };
+                    for (int i = 0; i < sharedCells.GetLength(0); i++) {
+                        sheet.CellValue(sharedCells[i, 0], sharedCells[i, 1], 15d);
+                        sheet.CellFormula(sharedCells[i, 0], sharedCells[i, 1], "A1+5");
+                    }
+
+                    OpenXmlCell sharedRoot = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
+                        .Single(cell => string.Equals(cell.CellReference?.Value, "B1", StringComparison.OrdinalIgnoreCase));
+                    sharedRoot.CellFormula!.FormulaType = DocumentFormat.OpenXml.Spreadsheet.CellFormulaValues.Shared;
+                    sharedRoot.CellFormula.SharedIndex = 0U;
+                    sharedRoot.CellFormula.Reference = "B1:C2";
+
+                    foreach (string reference in new[] { "C1", "B2", "C2" }) {
+                        OpenXmlCell sharedFollower = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
+                            .Single(cell => string.Equals(cell.CellReference?.Value, reference, StringComparison.OrdinalIgnoreCase));
+                        sharedFollower.CellFormula!.FormulaType = DocumentFormat.OpenXml.Spreadsheet.CellFormulaValues.Shared;
+                        sharedFollower.CellFormula.SharedIndex = 0U;
+                        sharedFollower.CellFormula.Text = string.Empty;
+                    }
+
+                    document.Save(xlsOutputPath);
+                }
+
+                byte[] sharedFormulaPayload = Assert.Single(GetBiffRecordPayloads(xlsOutputPath, 0x04bc));
+                Assert.Equal(4, sharedFormulaPayload[7]);
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NativeSave_BlocksSharedFormulaRangesAboveBiffUseLimitBeforeWriting() {
+            AssertNativeXlsSaveNotSupported("shared formula ranges with more than 255 cells", (document, sheet) => {
+                for (int row = 1; row <= 256; row++) {
+                    sheet.CellValue(row, 1, row);
+                    sheet.CellValue(row, 2, row + 5);
+                    sheet.CellFormula(row, 2, $"A{row}+5");
+                }
+
+                OpenXmlCell sharedRoot = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
+                    .Single(cell => string.Equals(cell.CellReference?.Value, "B1", StringComparison.OrdinalIgnoreCase));
+                sharedRoot.CellFormula!.FormulaType = DocumentFormat.OpenXml.Spreadsheet.CellFormulaValues.Shared;
+                sharedRoot.CellFormula.SharedIndex = 0U;
+                sharedRoot.CellFormula.Reference = "B1:B256";
+
+                foreach (OpenXmlCell sharedFollower in sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
+                    .Where(cell => !string.Equals(cell.CellReference?.Value, "B1", StringComparison.OrdinalIgnoreCase)
+                        && cell.CellReference?.Value?.StartsWith("B", StringComparison.OrdinalIgnoreCase) == true)) {
+                    sharedFollower.CellFormula!.FormulaType = DocumentFormat.OpenXml.Spreadsheet.CellFormulaValues.Shared;
+                    sharedFollower.CellFormula.SharedIndex = 0U;
+                    sharedFollower.CellFormula.Text = string.Empty;
+                }
+
+                sheet.WorksheetPart.Worksheet.Save();
+            });
+        }
+
+        [Fact]
         public void LegacyXls_NativeSave_BlocksSharedFormulaWithoutDefinitionBeforeWriting() {
             AssertNativeXlsSaveNotSupported("shared formula definition", (document, sheet) => {
                 sheet.CellValue(1, 1, 10d);
@@ -3600,6 +3677,160 @@ namespace OfficeIMO.Tests {
             Assert.True(cell.IsFormula);
             Assert.Equal(expectedValue, Assert.IsType<double>(cell.Value));
             Assert.Equal(expectedFormulaText, cell.FormulaText);
+        }
+
+        private static IReadOnlyList<byte[]> GetBiffRecordPayloads(string xlsPath, ushort recordType) {
+            byte[] fileBytes = File.ReadAllBytes(xlsPath);
+            Assert.True(
+                LegacyCompoundFileReader.TryRead(fileBytes, out LegacyCompoundFile? compoundFile, out var diagnostics),
+                string.Join(Environment.NewLine, diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
+            Assert.True(compoundFile!.Streams.TryGetValue("Workbook", out byte[]? workbookStream));
+
+            var payloads = new List<byte[]>();
+            int offset = 0;
+            while (offset + 4 <= workbookStream!.Length) {
+                ushort type = ReadUInt16(workbookStream, offset);
+                ushort length = ReadUInt16(workbookStream, offset + 2);
+                int payloadOffset = offset + 4;
+                if (payloadOffset + length > workbookStream.Length) {
+                    break;
+                }
+
+                if (type == recordType) {
+                    byte[] payload = new byte[length];
+                    Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, length);
+                    payloads.Add(payload);
+                }
+
+                offset = payloadOffset + length;
+            }
+
+            return payloads;
+        }
+
+        private static void AssertBiffRecordOccursBefore(string xlsPath, ushort beforeRecordType, ushort afterRecordType) {
+            byte[] fileBytes = File.ReadAllBytes(xlsPath);
+            Assert.True(
+                LegacyCompoundFileReader.TryRead(fileBytes, out LegacyCompoundFile? compoundFile, out var diagnostics),
+                string.Join(Environment.NewLine, diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
+            Assert.True(compoundFile!.Streams.TryGetValue("Workbook", out byte[]? workbookStream));
+
+            int beforeOffset = -1;
+            int afterOffset = -1;
+            int offset = 0;
+            while (offset + 4 <= workbookStream!.Length) {
+                ushort type = ReadUInt16(workbookStream, offset);
+                ushort length = ReadUInt16(workbookStream, offset + 2);
+                int payloadOffset = offset + 4;
+                if (payloadOffset + length > workbookStream.Length) {
+                    break;
+                }
+
+                if (type == beforeRecordType && beforeOffset < 0) {
+                    beforeOffset = offset;
+                }
+
+                if (type == afterRecordType && afterOffset < 0) {
+                    afterOffset = offset;
+                }
+
+                offset = payloadOffset + length;
+            }
+
+            Assert.True(beforeOffset >= 0, $"BIFF record 0x{beforeRecordType:X4} was not found.");
+            Assert.True(afterOffset >= 0, $"BIFF record 0x{afterRecordType:X4} was not found.");
+            Assert.True(beforeOffset < afterOffset, $"BIFF record 0x{beforeRecordType:X4} should appear before 0x{afterRecordType:X4}.");
+        }
+
+        private static void AssertCompoundRootTreeContains(string xlsPath, params string[] expectedNames) {
+            byte[] fileBytes = File.ReadAllBytes(xlsPath);
+            IReadOnlyList<CompoundDirectoryEntry> entries = ReadFirstCompoundDirectorySector(fileBytes);
+            CompoundDirectoryEntry root = Assert.Single(entries, entry => entry.ObjectType == 5);
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            TraverseCompoundDirectoryTree(entries, root.ChildId, names, new HashSet<uint>());
+
+            foreach (string expectedName in expectedNames) {
+                Assert.Contains(expectedName, names);
+            }
+        }
+
+        private static IReadOnlyList<CompoundDirectoryEntry> ReadFirstCompoundDirectorySector(byte[] fileBytes) {
+            int sectorSize = 1 << ReadUInt16(fileBytes, 30);
+            uint directorySector = ReadUInt32(fileBytes, 48);
+            int directoryOffset = checked(512 + ((int)directorySector * sectorSize));
+            Assert.True(directoryOffset >= 512 && directoryOffset + sectorSize <= fileBytes.Length);
+
+            var entries = new List<CompoundDirectoryEntry>();
+            for (int offset = directoryOffset; offset + 128 <= directoryOffset + sectorSize; offset += 128) {
+                ushort nameLength = ReadUInt16(fileBytes, offset + 64);
+                byte objectType = fileBytes[offset + 66];
+                string name = objectType == 0 || nameLength < 2 || nameLength > 64
+                    ? string.Empty
+                    : System.Text.Encoding.Unicode.GetString(fileBytes, offset, nameLength - 2);
+                entries.Add(new CompoundDirectoryEntry(
+                    unchecked((uint)entries.Count),
+                    name,
+                    objectType,
+                    ReadUInt32(fileBytes, offset + 68),
+                    ReadUInt32(fileBytes, offset + 72),
+                    ReadUInt32(fileBytes, offset + 76)));
+            }
+
+            return entries;
+        }
+
+        private static void TraverseCompoundDirectoryTree(
+            IReadOnlyList<CompoundDirectoryEntry> entries,
+            uint entryId,
+            HashSet<string> names,
+            HashSet<uint> visited) {
+            const uint freeSector = 0xffffffff;
+            const uint endOfChain = 0xfffffffe;
+            if (entryId == freeSector || entryId == endOfChain || entryId >= entries.Count || !visited.Add(entryId)) {
+                return;
+            }
+
+            CompoundDirectoryEntry entry = entries[(int)entryId];
+            TraverseCompoundDirectoryTree(entries, entry.LeftSiblingId, names, visited);
+            if (entry.ObjectType != 0 && !string.IsNullOrEmpty(entry.Name)) {
+                names.Add(entry.Name);
+            }
+
+            TraverseCompoundDirectoryTree(entries, entry.RightSiblingId, names, visited);
+        }
+
+        private static ushort ReadUInt16(byte[] bytes, int offset) {
+            return unchecked((ushort)(bytes[offset] | (bytes[offset + 1] << 8)));
+        }
+
+        private static uint ReadUInt32(byte[] bytes, int offset) {
+            return unchecked((uint)(bytes[offset]
+                | (bytes[offset + 1] << 8)
+                | (bytes[offset + 2] << 16)
+                | (bytes[offset + 3] << 24)));
+        }
+
+        private readonly struct CompoundDirectoryEntry {
+            internal CompoundDirectoryEntry(uint index, string name, byte objectType, uint leftSiblingId, uint rightSiblingId, uint childId) {
+                Index = index;
+                Name = name;
+                ObjectType = objectType;
+                LeftSiblingId = leftSiblingId;
+                RightSiblingId = rightSiblingId;
+                ChildId = childId;
+            }
+
+            internal uint Index { get; }
+
+            internal string Name { get; }
+
+            internal byte ObjectType { get; }
+
+            internal uint LeftSiblingId { get; }
+
+            internal uint RightSiblingId { get; }
+
+            internal uint ChildId { get; }
         }
 
         private static void SetOpenXmlErrorCell(ExcelSheet sheet, string reference, string errorText) {

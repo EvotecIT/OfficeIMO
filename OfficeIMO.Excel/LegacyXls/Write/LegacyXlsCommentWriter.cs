@@ -6,6 +6,8 @@ using System.Xml.Linq;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static class LegacyXlsCommentWriter {
+        private const int BiffMaxRecordDataLength = 8224;
+
         internal static bool SupportsWorksheetComments(ExcelSheet sheet, LegacyXlsFontTable fontTable, out string? reason) {
             reason = null;
             if (sheet.WorksheetPart.WorksheetThreadedCommentsParts.Any()) {
@@ -114,18 +116,18 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return false;
             }
 
-            if (GetStringContinuePayloadLength(comment.Text) > ushort.MaxValue) {
+            if (GetStringContinuePayloadLength(comment.Text) > BiffMaxRecordDataLength) {
                 reason = "comment text payload lengths outside BIFF8 limits";
                 return false;
             }
 
-            if (GetNotePayloadLength(comment.Author) > ushort.MaxValue) {
+            if (GetNotePayloadLength(comment.Author) > BiffMaxRecordDataLength) {
                 reason = "comment author payload lengths outside BIFF8 limits";
                 return false;
             }
 
             int formattingByteCount = checked((comment.FormattingRuns.Count + 1) * 8);
-            if (comment.FormattingRuns.Count == 0 || formattingByteCount > ushort.MaxValue) {
+            if (comment.FormattingRuns.Count == 0 || formattingByteCount > BiffMaxRecordDataLength) {
                 reason = "comment rich-text formatting runs outside BIFF8 limits";
                 return false;
             }

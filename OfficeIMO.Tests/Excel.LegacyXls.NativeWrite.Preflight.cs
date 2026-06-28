@@ -36,14 +36,15 @@ namespace OfficeIMO.Tests {
                 }
 
                 using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
-                Assert.False(result.HasImportErrors);
-                Assert.False(result.HasUnsupportedFeatures);
+                Assert.False(result.HasImportErrors, FormatUnsupportedFeatures(result.UnsupportedFeatures));
+                Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
 
                 LegacyXlsWorksheet worksheet = Assert.Single(result.Workbook.Worksheets);
                 LegacyXlsProtectedRange protectedRange = Assert.Single(worksheet.ProtectedRanges);
                 Assert.Equal("UnlockedBlock", protectedRange.Name);
                 Assert.Equal("BEEF", protectedRange.LegacyPasswordHash);
                 Assert.Equal(new[] { "A1", "C2:D2" }, protectedRange.References);
+                AssertBiffRecordOccursBefore(xlsOutputPath, 0x0867, 0x0868);
 
                 ProtectedRange projectedRange = Assert.Single(
                     result.Document.Sheets.Single()
@@ -67,7 +68,7 @@ namespace OfficeIMO.Tests {
                 sheet.Protect();
                 sheet.WorksheetPart.Worksheet.AppendChild(new ProtectedRanges(
                     new ProtectedRange {
-                        Name = new string('\u0100', 33000),
+                        Name = new string('P', 9000),
                         SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1:A1" }
                     }));
                 sheet.WorksheetPart.Worksheet.Save();
@@ -1739,7 +1740,7 @@ namespace OfficeIMO.Tests {
                 cell.DataType = CellValues.InlineString;
                 cell.RemoveAllChildren<CellValue>();
                 cell.RemoveAllChildren<InlineString>();
-                cell.Append(new InlineString(new Text(new string('T', 70000))));
+                cell.Append(new InlineString(new Text(new string('T', 9000))));
                 sheet.WorksheetPart.Worksheet.Save();
             });
         }
@@ -1754,7 +1755,7 @@ namespace OfficeIMO.Tests {
                 cell.CellFormula = new CellFormula("1");
                 cell.RemoveAllChildren<CellValue>();
                 cell.RemoveAllChildren<InlineString>();
-                cell.Append(new CellValue(new string('F', 70000)));
+                cell.Append(new CellValue(new string('F', 9000)));
                 sheet.WorksheetPart.Worksheet.Save();
             });
         }

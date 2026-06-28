@@ -250,7 +250,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksOversizedCommentTextPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("comment text payload lengths outside BIFF8 limits", (document, sheet) => {
                 sheet.CellValue(1, 1, "Comment");
-                sheet.SetLegacyComment(1, 1, new string('\u0100', 33000), "Reviewer", visible: false, anchor: null);
+                sheet.SetLegacyComment(1, 1, new string('C', 9000), "Reviewer", visible: false, anchor: null);
             });
         }
 
@@ -258,7 +258,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksOversizedCommentAuthorPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("comment author payload lengths outside BIFF8 limits", (document, sheet) => {
                 sheet.CellValue(1, 1, "Comment");
-                sheet.SetLegacyComment(1, 1, "Supported text", new string('\u0100', 33000), visible: false, anchor: null);
+                sheet.SetLegacyComment(1, 1, "Supported text", new string('A', 9000), visible: false, anchor: null);
             });
         }
 

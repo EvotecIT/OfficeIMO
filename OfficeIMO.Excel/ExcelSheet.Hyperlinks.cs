@@ -14,8 +14,20 @@ namespace OfficeIMO.Excel {
         /// <param name="url">Target URL.</param>
         /// <param name="display">Optional display text. When null/empty, the URL is displayed.</param>
         /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
+        public void SetHyperlink(int row, int column, string url, string? display = null, bool style = true) {
+            SetHyperlink(row, column, url, display, style, tooltip: null);
+        }
+
+        /// <summary>
+        /// Sets an external hyperlink on a single cell. If <paramref name="display"/> is null or empty, the URL is shown.
+        /// </summary>
+        /// <param name="row">1-based row index.</param>
+        /// <param name="column">1-based column index.</param>
+        /// <param name="url">Target URL.</param>
+        /// <param name="display">Optional display text. When null/empty, the URL is displayed.</param>
+        /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
         /// <param name="tooltip">Optional ScreenTip text shown by spreadsheet applications.</param>
-        public void SetHyperlink(int row, int column, string url, string? display = null, bool style = true, string? tooltip = null) {
+        public void SetHyperlink(int row, int column, string url, string? display, bool style, string? tooltip) {
             if (string.IsNullOrWhiteSpace(url)) throw new ArgumentNullException(nameof(url));
 
             WriteLock(() => {
@@ -173,8 +185,19 @@ namespace OfficeIMO.Excel {
         /// <param name="url">Target URL.</param>
         /// <param name="display">Optional display text. When null/empty, the URL is displayed.</param>
         /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
+        public void SetHyperlink(string a1, string url, string? display = null, bool style = true) {
+            SetHyperlink(a1, url, display, style, tooltip: null);
+        }
+
+        /// <summary>
+        /// Sets an external hyperlink using an A1 reference (e.g., "B5").
+        /// </summary>
+        /// <param name="a1">A1 cell reference without a sheet prefix.</param>
+        /// <param name="url">Target URL.</param>
+        /// <param name="display">Optional display text. When null/empty, the URL is displayed.</param>
+        /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
         /// <param name="tooltip">Optional ScreenTip text shown by spreadsheet applications.</param>
-        public void SetHyperlink(string a1, string url, string? display = null, bool style = true, string? tooltip = null) {
+        public void SetHyperlink(string a1, string url, string? display, bool style, string? tooltip) {
             var col = GetColumnIndex(a1);
             var row = GetRowIndex(a1);
             SetHyperlink(row, col, url, display, style, tooltip);
@@ -191,8 +214,20 @@ namespace OfficeIMO.Excel {
         /// <param name="location">Target location inside the workbook (e.g., "'Summary'!A1").</param>
         /// <param name="display">Optional display text. When null/empty, <paramref name="location"/> is displayed.</param>
         /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
+        public void SetInternalLink(int row, int column, string location, string? display = null, bool style = true) {
+            SetInternalLink(row, column, location, display, style, tooltip: null);
+        }
+
+        /// <summary>
+        /// Sets an internal hyperlink (location in this workbook), e.g., "'Sheet1'!A1".
+        /// </summary>
+        /// <param name="row">1-based row index.</param>
+        /// <param name="column">1-based column index.</param>
+        /// <param name="location">Target location inside the workbook (e.g., "'Summary'!A1").</param>
+        /// <param name="display">Optional display text. When null/empty, <paramref name="location"/> is displayed.</param>
+        /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
         /// <param name="tooltip">Optional ScreenTip text shown by spreadsheet applications.</param>
-        public void SetInternalLink(int row, int column, string location, string? display = null, bool style = true, string? tooltip = null) {
+        public void SetInternalLink(int row, int column, string location, string? display, bool style, string? tooltip) {
             if (string.IsNullOrWhiteSpace(location)) throw new ArgumentNullException(nameof(location));
             string normalizedLocation = SheetNameLookup.NormalizeExistingInternalLocation(_excelDocument.Sheets, location);
             WriteLock(() => {
@@ -233,8 +268,21 @@ namespace OfficeIMO.Excel {
         /// <param name="a1">A1 reference on the target sheet.</param>
         /// <param name="display">Optional display text. When null/empty, the location is displayed.</param>
         /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
+        public void SetInternalLink(int row, int column, ExcelSheet target, string a1, string? display = null, bool style = true) {
+            SetInternalLink(row, column, target, a1, display, style, tooltip: null);
+        }
+
+        /// <summary>
+        /// Sets an internal hyperlink to a target sheet and A1 location using safe quoting rules.
+        /// </summary>
+        /// <param name="row">1-based row index.</param>
+        /// <param name="column">1-based column index.</param>
+        /// <param name="target">Target sheet.</param>
+        /// <param name="a1">A1 reference on the target sheet.</param>
+        /// <param name="display">Optional display text. When null/empty, the location is displayed.</param>
+        /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
         /// <param name="tooltip">Optional ScreenTip text shown by spreadsheet applications.</param>
-        public void SetInternalLink(int row, int column, ExcelSheet target, string a1, string? display = null, bool style = true, string? tooltip = null) {
+        public void SetInternalLink(int row, int column, ExcelSheet target, string a1, string? display, bool style, string? tooltip) {
             if (target == null) throw new ArgumentNullException(nameof(target));
             if (string.IsNullOrWhiteSpace(a1)) throw new ArgumentNullException(nameof(a1));
             string loc = $"'{EscapeSheetNameForLink(target.Name)}'!{a1}";
