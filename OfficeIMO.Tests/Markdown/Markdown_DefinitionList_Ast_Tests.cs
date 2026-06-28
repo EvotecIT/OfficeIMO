@@ -1,9 +1,77 @@
 using OfficeIMO.Markdown;
+using MarkdigMarkdown = Markdig.Markdown;
 using Xunit;
 
 namespace OfficeIMO.Tests.MarkdownSuite;
 
 public sealed class Markdown_DefinitionList_Ast_Tests {
+    [Theory]
+    [InlineData("Term\n:   Definition\n")]
+    [InlineData("Term\n:\tDefinition\n")]
+    public void DefinitionList_MarkdigMarkerSyntax_Matches_MarkdigHtml(string markdown) {
+        var office = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+    }
+
+    [Fact]
+    public void DefinitionList_MarkdigMarkerSyntax_Maps_Multiple_Terms_And_Definitions_To_Grouped_Ast() {
+        const string markdown = """
+Term 1
+Term 2
+:   First
+:   Second
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+
+        Assert.Equal(2, group.TermItems.Count);
+        Assert.Equal(2, group.Definitions.Count);
+        Assert.Equal(4, definitionList.Entries.Count);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 6), group.TermItems[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 6), group.TermItems[1].SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.DefinitionGroup, syntaxGroup.Kind);
+        Assert.Same(group, syntaxGroup.AssociatedObject);
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.DefinitionTerm,
+                MarkdownSyntaxKind.DefinitionTerm,
+                MarkdownSyntaxKind.DefinitionValue,
+                MarkdownSyntaxKind.DefinitionValue
+            },
+            syntaxGroup.Children.Select(child => child.Kind).ToArray());
+        Assert.Same(group.TermItems[0], syntaxGroup.Children[0].AssociatedObject);
+        Assert.Same(group.TermItems[1], syntaxGroup.Children[1].AssociatedObject);
+        Assert.Same(group.Definitions[0], syntaxGroup.Children[2].AssociatedObject);
+        Assert.Same(group.Definitions[1], syntaxGroup.Children[3].AssociatedObject);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Theory]
+    [InlineData("Term\n: Definition\n")]
+    [InlineData("Term\n:  Definition\n")]
+    public void DefinitionList_MarkdigMarkerSyntax_Requires_MarkdigMarkerSpacing(string markdown) {
+        var doc = MarkdownReader.Parse(markdown);
+        var html = doc.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+        Assert.DoesNotContain("<dl>", html, StringComparison.Ordinal);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(html));
+    }
+
     [Fact]
     public void DefinitionList_EntryTermMutation_Updates_Grouped_Ast_And_Renderers() {
         var definitionList = new DefinitionListBlock();
@@ -87,5 +155,41 @@ public sealed class Markdown_DefinitionList_Ast_Tests {
         Assert.Equal("second", definitionValue.Literal);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
         Assert.Same(entry.DefinitionBlocks[0], paragraph.AssociatedObject);
+    }
+
+    private static Markdig.MarkdownPipeline CreateMarkdigDefinitionListPipeline() {
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseDefinitionLists(builder);
+        return builder.Build();
+    }
+
+    private static string NormalizeHtml(string html) {
+        if (string.IsNullOrWhiteSpace(html)) {
+            return string.Empty;
+        }
+
+        var compact = html
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .Replace("> <", "><")
+            .Trim();
+        var sb = new System.Text.StringBuilder(compact.Length);
+        bool lastWasWhitespace = false;
+        for (int i = 0; i < compact.Length; i++) {
+            char ch = compact[i];
+            if (char.IsWhiteSpace(ch)) {
+                lastWasWhitespace = true;
+                continue;
+            }
+
+            if (lastWasWhitespace && sb.Length > 0 && sb[sb.Length - 1] != '>') {
+                sb.Append(' ');
+            }
+
+            lastWasWhitespace = false;
+            sb.Append(ch);
+        }
+
+        return sb.ToString();
     }
 }

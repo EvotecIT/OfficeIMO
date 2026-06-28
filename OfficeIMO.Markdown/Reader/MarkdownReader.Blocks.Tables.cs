@@ -41,6 +41,7 @@ public static partial class MarkdownReader {
         MarkdownReaderOptions? options = null) {
         end = start;
         hasOuterPipes = false;
+        options ??= new MarkdownReaderOptions();
         if (lines is null || start < 0 || start >= lines.Length) return false;
         if (!LooksLikeTableRow(lines[start])) return false;
         if (IsAlignmentRow(lines[start])) return false;
