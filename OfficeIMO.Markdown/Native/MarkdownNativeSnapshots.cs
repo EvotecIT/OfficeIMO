@@ -38,6 +38,8 @@ public sealed class MarkdownNativeReferenceLinkDefinitionSnapshot {
         Title = definition.Title;
         SourceSpan = definition.SourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.SourceSpan.Value) : null;
         LabelSourceSpan = definition.LabelSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.LabelSourceSpan.Value) : null;
+        OpeningMarkerSourceSpan = definition.OpeningMarkerSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.OpeningMarkerSourceSpan.Value) : null;
+        SeparatorMarkerSourceSpan = definition.SeparatorMarkerSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.SeparatorMarkerSourceSpan.Value) : null;
         UrlSourceSpan = definition.UrlSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.UrlSourceSpan.Value) : null;
         TitleSourceSpan = definition.TitleSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.TitleSourceSpan.Value) : null;
     }
@@ -56,6 +58,12 @@ public sealed class MarkdownNativeReferenceLinkDefinitionSnapshot {
 
     /// <summary>Source span for the definition label token, when available.</summary>
     public MarkdownNativeSourceSpanSnapshot? LabelSourceSpan { get; }
+
+    /// <summary>Source span for the opening <c>[</c> marker before the definition label, when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? OpeningMarkerSourceSpan { get; }
+
+    /// <summary>Source span for the <c>]:</c> marker after the definition label, when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? SeparatorMarkerSourceSpan { get; }
 
     /// <summary>Source span for the destination token, when available.</summary>
     public MarkdownNativeSourceSpanSnapshot? UrlSourceSpan { get; }

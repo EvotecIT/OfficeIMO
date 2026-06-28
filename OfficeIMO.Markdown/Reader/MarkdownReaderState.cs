@@ -19,6 +19,12 @@ public sealed class MarkdownReferenceLinkDefinition {
     /// <summary>Source span for the definition label token, when available.</summary>
     public MarkdownSourceSpan? LabelSourceSpan { get; }
 
+    /// <summary>Source span for the opening <c>[</c> marker before the definition label, when available.</summary>
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; }
+
+    /// <summary>Source span for the <c>]:</c> marker after the definition label, when available.</summary>
+    public MarkdownSourceSpan? SeparatorMarkerSourceSpan { get; }
+
     /// <summary>Source span for the destination token, when available.</summary>
     public MarkdownSourceSpan? UrlSourceSpan { get; }
 
@@ -35,12 +41,16 @@ public sealed class MarkdownReferenceLinkDefinition {
         MarkdownSourceSpan? sourceSpan = null,
         MarkdownSourceSpan? labelSourceSpan = null,
         MarkdownSourceSpan? urlSourceSpan = null,
-        MarkdownSourceSpan? titleSourceSpan = null) {
+        MarkdownSourceSpan? titleSourceSpan = null,
+        MarkdownSourceSpan? openingMarkerSourceSpan = null,
+        MarkdownSourceSpan? separatorMarkerSourceSpan = null) {
         Label = label ?? string.Empty;
         Url = url ?? string.Empty;
         Title = title;
         SourceSpan = sourceSpan;
         LabelSourceSpan = labelSourceSpan;
+        OpeningMarkerSourceSpan = openingMarkerSourceSpan;
+        SeparatorMarkerSourceSpan = separatorMarkerSourceSpan;
         UrlSourceSpan = urlSourceSpan;
         TitleSourceSpan = titleSourceSpan;
     }

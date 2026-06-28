@@ -61,14 +61,25 @@ public static partial class MarkdownReader {
                 out var consumedLines,
                 out var labelSpan,
                 out var urlSpan,
-                out var titleSpan)) {
+                out var titleSpan,
+                out var openingMarkerSpan,
+                out var separatorMarkerSpan)) {
                 var resolved = ResolveUrl(url, options);
                 if (resolved != null && !state.LinkRefs.ContainsKey(label)) {
                     var sourceSpan = CreateLineSpan(
                         state,
                         state.SourceLineOffset + idx + 1,
                         state.SourceLineOffset + idx + consumedLines);
-                    state.LinkRefs[label] = new MarkdownReferenceLinkDefinition(label, resolved!, title, sourceSpan, labelSpan, urlSpan, titleSpan);
+                    state.LinkRefs[label] = new MarkdownReferenceLinkDefinition(
+                        label,
+                        resolved!,
+                        title,
+                        sourceSpan,
+                        labelSpan,
+                        urlSpan,
+                        titleSpan,
+                        openingMarkerSpan,
+                        separatorMarkerSpan);
                 }
                 idx += consumedLines - 1;
             }
@@ -112,12 +123,14 @@ public static partial class MarkdownReader {
             out consumedLines,
             out var labelSpan,
             out var urlSpan,
-            out var titleSpan)) {
+            out var titleSpan,
+            out var openingMarkerSpan,
+            out var separatorMarkerSpan)) {
             return false;
         }
 
         var children = new List<MarkdownSyntaxNode>(5);
-        AddReferenceDefinitionLabelFrameChildren(children, state, labelSpan, label);
+        AddReferenceDefinitionLabelFrameChildren(children, labelSpan, label, openingMarkerSpan, separatorMarkerSpan);
 
         if (!string.IsNullOrEmpty(url)) {
             children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ReferenceLinkUrl, urlSpan, url));
@@ -145,20 +158,14 @@ public static partial class MarkdownReader {
 
     private static void AddReferenceDefinitionLabelFrameChildren(
         List<MarkdownSyntaxNode> children,
-        MarkdownReaderState state,
         MarkdownSourceSpan? labelSpan,
-        string label) {
-        if (labelSpan.HasValue && labelSpan.Value.StartColumn.HasValue && labelSpan.Value.EndColumn.HasValue) {
-            var span = labelSpan.Value;
-            children.Add(new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.ReferenceLinkOpeningMarker,
-                CreateSpan(state, span.StartLine, span.StartColumn.Value - 1, span.StartLine, span.StartColumn.Value - 1),
-                "["));
+        string label,
+        MarkdownSourceSpan? openingMarkerSpan,
+        MarkdownSourceSpan? separatorMarkerSpan) {
+        if (openingMarkerSpan.HasValue && separatorMarkerSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ReferenceLinkOpeningMarker, openingMarkerSpan, "["));
             children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ReferenceLinkLabel, labelSpan, label));
-            children.Add(new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.ReferenceLinkSeparatorMarker,
-                CreateSpan(state, span.EndLine, span.EndColumn.Value + 1, span.EndLine, span.EndColumn.Value + 2),
-                "]:"));
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ReferenceLinkSeparatorMarker, separatorMarkerSpan, "]:"));
             return;
         }
 
@@ -176,13 +183,17 @@ public static partial class MarkdownReader {
         out int consumedLines,
         out MarkdownSourceSpan? labelSpan,
         out MarkdownSourceSpan? urlSpan,
-        out MarkdownSourceSpan? titleSpan) {
+        out MarkdownSourceSpan? titleSpan,
+        out MarkdownSourceSpan? openingMarkerSpan,
+        out MarkdownSourceSpan? separatorMarkerSpan) {
         label = url = string.Empty;
         title = null;
         consumedLines = 0;
         labelSpan = null;
         urlSpan = null;
         titleSpan = null;
+        openingMarkerSpan = null;
+        separatorMarkerSpan = null;
 
         if (index < 0 || index >= lines.Length) return false;
         if (!TryParseReferenceDefinitionLabel(
@@ -197,6 +208,12 @@ public static partial class MarkdownReader {
             out var restStartColumnZeroBased)) {
             return false;
         }
+
+        CreateReferenceDefinitionLabelFrameSpans(
+            state,
+            labelSpan,
+            out openingMarkerSpan,
+            out separatorMarkerSpan);
 
         if (string.IsNullOrEmpty(rest)) {
             if (!TryParseReferenceDestinationContinuation(
@@ -254,7 +271,37 @@ public static partial class MarkdownReader {
     }
 
     private static bool TryParseReferenceLinkDefinition(string[] lines, int index, MarkdownReaderOptions options, out string label, out string url, out string? title, out int consumedLines) =>
-        TryParseReferenceLinkDefinition(lines, index, options, state: null, out label, out url, out title, out consumedLines, out _, out _, out _);
+        TryParseReferenceLinkDefinition(lines, index, options, state: null, out label, out url, out title, out consumedLines, out _, out _, out _, out _, out _);
+
+    private static void CreateReferenceDefinitionLabelFrameSpans(
+        MarkdownReaderState? state,
+        MarkdownSourceSpan? labelSpan,
+        out MarkdownSourceSpan? openingMarkerSpan,
+        out MarkdownSourceSpan? separatorMarkerSpan) {
+        openingMarkerSpan = null;
+        separatorMarkerSpan = null;
+        if (!labelSpan.HasValue || !labelSpan.Value.StartColumn.HasValue || !labelSpan.Value.EndColumn.HasValue) {
+            return;
+        }
+
+        var span = labelSpan.Value;
+        if (span.StartColumn.Value <= 1) {
+            return;
+        }
+
+        openingMarkerSpan = CreateSpan(
+            state,
+            span.StartLine,
+            span.StartColumn.Value - 1,
+            span.StartLine,
+            span.StartColumn.Value - 1);
+        separatorMarkerSpan = CreateSpan(
+            state,
+            span.EndLine,
+            span.EndColumn.Value + 1,
+            span.EndLine,
+            span.EndColumn.Value + 2);
+    }
 
     private static bool TryParseReferenceTitleContinuation(string[] lines, int index, out string? title) =>
         TryParseReferenceTitleContinuation(lines, index, state: null, out title, out _);

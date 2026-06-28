@@ -815,6 +815,8 @@ After
         Assert.Equal("Docs title", definition.Title);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 45), definition.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 2, 1, 5), definition.LabelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), definition.OpeningMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), definition.SeparatorMarkerSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 32), definition.UrlSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 35, 1, 44), definition.TitleSourceSpan);
 
@@ -828,10 +830,38 @@ After
         Assert.Equal(1, snapshotDefinition.LabelSourceSpan!.StartLine);
         Assert.Equal(2, snapshotDefinition.LabelSourceSpan.StartColumn);
         Assert.Equal(5, snapshotDefinition.LabelSourceSpan.EndColumn);
+        Assert.Equal(1, snapshotDefinition.OpeningMarkerSourceSpan!.StartLine);
+        Assert.Equal(1, snapshotDefinition.OpeningMarkerSourceSpan.StartColumn);
+        Assert.Equal(1, snapshotDefinition.OpeningMarkerSourceSpan.EndColumn);
+        Assert.Equal(6, snapshotDefinition.SeparatorMarkerSourceSpan!.StartColumn);
+        Assert.Equal(7, snapshotDefinition.SeparatorMarkerSourceSpan.EndColumn);
         Assert.Equal(9, snapshotDefinition.UrlSourceSpan!.StartColumn);
         Assert.Equal(32, snapshotDefinition.UrlSourceSpan.EndColumn);
         Assert.Equal(35, snapshotDefinition.TitleSourceSpan!.StartColumn);
         Assert.Equal(44, snapshotDefinition.TitleSourceSpan.EndColumn);
+    }
+
+    [Fact]
+    public void Parse_Exposes_Multiline_Reference_Definition_Label_Frame_SourceSpans() {
+        var native = MarkdownNativeDocument.Parse("""
+[Foo
+  bar]: https://example.com
+
+[foo bar]
+""");
+
+        var definition = Assert.Single(native.ReferenceLinkDefinitions);
+        Assert.Equal("foo bar", definition.Label);
+        Assert.Equal(new MarkdownSourceSpan(1, 2, 2, 5), definition.LabelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), definition.OpeningMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 6, 2, 7), definition.SeparatorMarkerSourceSpan);
+
+        var snapshotDefinition = Assert.Single(native.ToSnapshot().ReferenceLinkDefinitions);
+        Assert.Equal(1, snapshotDefinition.OpeningMarkerSourceSpan!.StartLine);
+        Assert.Equal(1, snapshotDefinition.OpeningMarkerSourceSpan.StartColumn);
+        Assert.Equal(2, snapshotDefinition.SeparatorMarkerSourceSpan!.StartLine);
+        Assert.Equal(6, snapshotDefinition.SeparatorMarkerSourceSpan.StartColumn);
+        Assert.Equal(7, snapshotDefinition.SeparatorMarkerSourceSpan.EndColumn);
     }
 
     [Fact]
@@ -857,6 +887,12 @@ Before [hero]
 
 After
 """), NormalizeLineEndings(updated));
+
+        var openingMarkerEdit = native.CreateReplaceEdit(definition.OpeningMarkerSourceSpan!.Value, "[ref-");
+        Assert.Contains("[ref-hero]: https://example.com/docs", openingMarkerEdit.Apply(native.SourceMarkdown), StringComparison.Ordinal);
+
+        var separatorMarkerEdit = native.CreateReplaceEdit(definition.SeparatorMarkerSourceSpan!.Value, "]: ");
+        Assert.Contains("[hero]:  https://example.com/docs", separatorMarkerEdit.Apply(native.SourceMarkdown), StringComparison.Ordinal);
     }
 
     [Fact]
