@@ -15,7 +15,7 @@ The important distinction: parity is not "more tests." Parity means the parser, 
 | GFM tracked inventory | 36 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 33 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 36 passing, 0 failing |
 | Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 0 covered, 15 partial, 4 intentional, 14 gap |
 | Covered CommonMark sections | ATX headings, Setext headings, thematic breaks, fenced code blocks, HTML blocks, lists, paragraphs, hard breaks, soft breaks, links, images, autolinks, raw HTML, backslash escapes, entity and numeric character references, link reference definitions |
-| Remaining CommonMark parser clusters | emphasis delimiter runs, container indentation/continuation |
+| Remaining CommonMark parser clusters | container indentation/continuation |
 | Remaining Markdig-class architecture gaps | broader GFM corpus coverage, full lossless trivia capture, full parser pipeline parity, renderer/writer plugin parity, extension-family implementation breadth, release-mode benchmark review |
 
 ## Current Answer
@@ -43,6 +43,13 @@ Use this as the non-looping execution board. Each item must either move engine b
 - [x] **Emphasis delimiter slice:** official CommonMark examples #408, #438, #441, #450, #453, and #470 are pinned and passing after delimiter-run handling learned root dual italic runs, empty opposite-marker spans, and mixed-marker literal precedence.
 - [x] **CommonMark emphasis inventory:** official CommonMark examples #418 and #432 are pinned and passing after same-marker emphasis handling started preferring immediate double closers and nested single-marker spans before splitting double runs into dual italic.
 - [ ] **Container indentation model:** make tabs, blockquote continuation, list continuation, and indented-code boundaries share a source-map-safe column model.
+  - [ ] **#9 tabs and nested list columns:** expand tabs into visual columns when deciding list marker nesting, not raw character positions, so the third item nests under `bar` instead of becoming its sibling.
+  - [ ] **#111 indented-code blank-line preservation:** keep whitespace-only blank lines inside one indented code block when a later indented line continues the block, instead of splitting `chunk3` into a second code block.
+  - [ ] **#231 indented blockquote precedence:** treat four-space-indented `>` lines as indented code, not as block quotes, while keeping source columns accurate.
+  - [ ] **#242 adjacent blockquote separation:** split `> foo`, blank line, `> bar` into two blockquote blocks instead of one blockquote with two paragraphs.
+  - [ ] **#252 blockquote inner indentation threshold:** strip only the CommonMark quote marker and optional following space so `>     code` is code but `>    not code` is paragraph text in a separate quote.
+  - [ ] **#264 list-contained indented-code continuation:** keep blank lines inside a list item's nested indented code block when a later line still meets the continuation indent, instead of creating two code blocks.
+  - [ ] **Source-map guard:** after the behavior fixes, assert source slices/columns for tabs, quote markers, nested list items, and nested code so the parser does not gain HTML parity by losing AST/source parity.
 - [ ] **CommonMark inventory closure:** refresh the generated full-corpus inventory after each parser slice and promote only newly understood official examples into smoke fixtures.
 
 ### Next: Broaden GFM And Markdig Extension Coverage
@@ -112,6 +119,10 @@ These are the actual parity gaps. The test work is listed only where it creates 
 - [x] **CommonMark hard-break and inline precedence parity.** Hard line breaks are green in the full inventory after preserving raw inline HTML line endings and final-line literal backslashes.
 - [x] **CommonMark emphasis inventory parity.** The official CommonMark emphasis section is green in the full inventory; broader Markdig emphasis-extra, source-token, writer, and lossless claims still need their own evidence.
 - [ ] **CommonMark container indentation parity.** Finish the 6 remaining failures around tabs, blockquote/list continuation, indented-code boundaries, and source-map-safe column handling.
+  - [ ] Normalize indentation decisions around visual columns for root blocks, nested blocks, and list marker metadata.
+  - [ ] Make blank-line continuation rules shared between root indented code and nested indented code.
+  - [ ] Make blockquote parsing respect CommonMark precedence: indented code wins at four columns, quote marker stripping removes at most one following space, and a blank line between quoted paragraphs closes the current quote.
+  - [ ] Promote #9, #111, #231, #242, #252, and #264 only after the engine behavior and source mapping are both understood.
 - [ ] **GFM corpus expansion.** Extend the generated GFM inventory beyond the current tracked fixture corpus so table, task-list, autolink, strikethrough, tag-filter, footnote, and interop behavior are measured against broader upstream-compatible coverage.
 - [ ] **Markdig extension implementation breadth.** Move selected partial/gap rows from the generated Markdig extension inventory into real parser, AST/source, renderer, writer, fixture, or intentional-deviation work.
 - [ ] **AST/source/lossless completeness.** Finish canonical node cleanup, full trivia capture, delimiter-token capture, original-to-normalized mapping, generated-node diagnostics, and broader byte-preserving source edits.
@@ -125,8 +136,9 @@ These are the actual parity gaps. The test work is listed only where it creates 
 - [x] Tackle the entity decoder as a reusable parser service and route the required decode contexts through it.
 - [x] Tackle hard breaks as a parser/source-map slice and clear the remaining raw-inline-HTML/final-backslash examples.
 - [x] Close the CommonMark emphasis failure cluster while keeping broader Markdig/source/lossless emphasis work explicit.
-- [ ] Use `Docs/officeimo.markdown.markdig-extension-inventory.md` to pick extension-family slices by row; do not promote `Partial` rows to `Covered` without parser, AST/source, renderer, writer, and fixture evidence.
 - [ ] Tackle container indentation as a separate source-map column-model slice.
+- [ ] Refresh the CommonMark inventory and smoke fixture set once container indentation is green.
+- [ ] Use `Docs/officeimo.markdown.markdig-extension-inventory.md` to pick extension-family slices by row; do not promote `Partial` rows to `Covered` without parser, AST/source, renderer, writer, and fixture evidence.
 - [ ] Return to AST/source/lossless completion once the major parser clusters stop moving node boundaries every slice.
 - [ ] Run release-mode benchmarks only after correctness stabilizes enough for the numbers to mean something.
 
@@ -186,9 +198,13 @@ Done means:
 
 ### Phase 1: CommonMark Parser Closure
 
-- [ ] HTML/raw HTML: implement all seven CommonMark HTML block types and profile-aware raw HTML behavior.
-- [ ] Emphasis: implement the CommonMark delimiter-run algorithm.
+- [x] HTML/raw HTML: implement the remaining CommonMark HTML block/profile behavior covered by the current inventory.
+- [x] Emphasis: close the official CommonMark emphasis inventory; keep Markdig emphasis extras and lossless delimiter-token breadth separate.
 - [ ] Containers: implement tab expansion and continuation indentation as parser/source-map primitives.
+  - [ ] Centralize "visual indentation columns" so root parsers, list parsers, nested block parsers, and source slices agree on spaces versus tabs.
+  - [ ] Centralize "blank line belongs to code block when a later indented line continues it" for root and nested indented code.
+  - [ ] Centralize blockquote marker handling: at most three leading indentation columns, one `>` marker, one optional following space, and explicit block termination across blank lines.
+  - [ ] Re-check list continuation indentation after the quote/code fixes so list items do not absorb sibling containers or split nested code blocks.
 - [x] Hard breaks: clear the raw-inline-HTML and final-backslash exclusions without losing marker source spans.
 - [x] Code spans: clear the NBSP/equivalence bucket and pin the official cases.
 - [x] Entities: clear the remaining official named/numeric character-reference cases with a shared decoder.
