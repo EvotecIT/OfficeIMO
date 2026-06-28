@@ -12,6 +12,7 @@ The important distinction: parity is not "more tests." Parity means the parser, 
 | CommonMark corpus | 296 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
 | CommonMark full inventory | 622 of 652 official CommonMark `0.31.2` examples currently match; 30 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
+| GFM tracked inventory | 36 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 33 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 36 passing, 0 failing |
 | Covered CommonMark sections | ATX headings, Setext headings, thematic breaks, fenced code blocks, lists, paragraphs, soft breaks, links, images, autolinks, backslash escapes, link reference definitions |
 | Remaining CommonMark parser clusters | HTML/raw HTML grammar, emphasis delimiter runs, container indentation/continuation, hard-line-break edge cases, CommonMark entity decoding |
 | Remaining Markdig-class architecture gaps | GFM/Markdig inventories, full lossless trivia capture, full parser pipeline parity, renderer/writer plugin parity, broader extension set, release-mode benchmark review |
@@ -31,6 +32,7 @@ References:
 - [x] CommonMark code spans are green in the generated inventory after preserving NBSP as non-collapsible text in the HTML comparison harness and pinning official examples 333 and 334.
 - [x] CommonMark links are green in the generated inventory after fixing link-label inline-span precedence.
 - [x] Strong current coverage for headings, thematic breaks, fenced code, lists, paragraphs, soft breaks, backslash escapes, autolinks, images, and link reference definitions.
+- [x] A generated GFM inventory tracks the current extension fixture corpus by section and source, separating upstream cmark-gfm fixtures from OfficeIMO supplements.
 - [x] Syntax/source/native tests for many existing nodes, including source slices and source-edit helpers.
 - [x] Markdig package baseline guarded across tests, benchmarks, and docs.
 
@@ -43,7 +45,7 @@ These are the actual parity gaps. The test work is listed only where it creates 
 - [ ] **CommonMark container indentation parity.** Finish the 6 remaining failures around tabs, blockquote/list continuation, indented-code boundaries, and source-map-safe column handling.
 - [ ] **CommonMark hard-break and inline precedence parity.** Fix the 3 remaining hard-line-break failures while preserving marker source spans for two-space, backslash, and inline HTML break spellings.
 - [ ] **CommonMark entity decoder parity.** Replace narrow runtime HTML decoding with a CommonMark-complete named/numeric character reference decoder, including invalid numeric replacement behavior.
-- [ ] **GFM inventory.** Add a generated cmark-gfm inventory so table, task-list, autolink, strikethrough, tag-filter, and footnote behavior is measured instead of represented only by curated smoke fixtures.
+- [ ] **GFM corpus expansion.** Extend the generated GFM inventory beyond the current tracked fixture corpus so table, task-list, autolink, strikethrough, tag-filter, footnote, and interop behavior are measured against broader upstream-compatible coverage.
 - [ ] **Markdig extension inventory.** Add a comparison inventory for Markdig extension families and classify each as `Covered`, `Partial`, `Intentional`, or `Gap`.
 - [ ] **AST/source/lossless completeness.** Finish canonical node cleanup, full trivia capture, delimiter-token capture, original-to-normalized mapping, generated-node diagnostics, and broader byte-preserving source edits.
 - [ ] **Renderer/writer extension parity.** Make parser, transform, renderer, and writer extension APIs source-slice aware where custom nodes need to render or roundtrip without string rescanning.
@@ -52,7 +54,7 @@ These are the actual parity gaps. The test work is listed only where it creates 
 
 ## Immediate Work Order
 
-- [ ] Build the GFM and Markdig inventories next, before broad extension work, so extension parity has the same scoreboard CommonMark now has.
+- [ ] Build the Markdig comparison inventory next, before broad extension work, so Markdig extension parity has the same scoreboard CommonMark and the tracked GFM fixture corpus now have.
 - [ ] Tackle HTML/raw HTML after the inventory work; it is the largest remaining CommonMark failure cluster and affects renderer/security/profile behavior.
 - [ ] Tackle emphasis after HTML because it needs a deliberate delimiter-stack rewrite rather than local patches.
 - [ ] Tackle container indentation and hard breaks as separate slices unless the source-map model forces a shared tab/column primitive.
@@ -109,13 +111,13 @@ This is fixture coverage, not a claim that unpinned examples fail. The generated
 
 - [x] CommonMark full-corpus inventory exists.
 - [x] CommonMark failures are grouped by root parser cause.
-- [ ] Add the same generated inventory style for enabled cmark-gfm extensions.
+- [x] Add the same generated inventory style for enabled cmark-gfm extension fixtures.
 - [ ] Add a Markdig comparison inventory that separates OfficeIMO profile differences from portable/CommonMark profile differences.
 - [ ] Add an extension-family table with `Covered`, `Partial`, `Intentional`, or `Gap` for every Markdig extension family we care about.
 
 Done means:
 
-- [ ] We can answer "what is missing?" for CommonMark, GFM, and Markdig extension parity from checked-in reports.
+- [ ] We can answer "what is missing?" for CommonMark, GFM, and Markdig extension parity from checked-in reports. CommonMark and tracked GFM fixtures now have reports; broader GFM corpus coverage and Markdig extension-family inventory remain open.
 - [ ] Every future engine slice names which scoreboard row it moves.
 
 ### Phase 1: CommonMark Parser Closure
@@ -144,7 +146,7 @@ Done means:
 
 Done means:
 
-- [ ] Enabled GFM behavior is measured by inventory.
+- [x] Enabled tracked GFM fixture behavior is measured by inventory.
 - [ ] Markdig extension parity is an explicit support matrix, not an implied promise.
 
 ### Phase 3: AST, Source Mapping, And Lossless Roundtrip

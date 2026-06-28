@@ -18,6 +18,7 @@ Status values:
 | CommonMark reference | 296 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
 | CommonMark full inventory | 622 of 652 official CommonMark `0.31.2` examples currently match; 30 failures are grouped by root cause in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM reference | 36 cmark-gfm extension smoke fixtures plus a focused upstream ignored-autolink crash regression |
+| GFM inventory | 36 tracked GFM fixtures currently measured in `Docs/officeimo.markdown.gfm-inventory.md`: 33 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 36 passing, 0 failing |
 | OfficeIMO core package | `OfficeIMO.Markdown` owns parsing, semantic AST, syntax tree, writing, and HTML projection |
 | Host renderer package | `OfficeIMO.MarkdownRenderer` owns WebView/browser shell rendering and incremental updates |
 | Benchmark evidence | `OfficeIMO.Markdown.Benchmarks` compares parse/syntax-tree parse/HTML render against the current Markdig baseline and now includes transform/diagnostics cost lanes over stable README, transcript, technical-doc, rich-AST, long-list, large-table, and normalization-heavy corpora |
@@ -42,6 +43,8 @@ Detailed open work is tracked in `Docs/officeimo.markdown.markdig-parity-gap-pla
 | Raw HTML | Optional | Optional with cmark-gfm tag filter render option | Optional | HTML block/inline tests, expanded CommonMark HTML block fixtures for raw tables, type 1 blocks, relaxed multiline type 1/type 6 starts, strict type 7 tag-name/attribute-boundary fallback, `textarea` raw-text containers, comments, processing instructions, CDATA, declarations, and paragraph interruption, native raw/comment HTML projection and source-edit tests, source-backed HTML comment opening/body/closing token fields, source-backed simple raw HTML opening-tag/body/closing-tag fields for matched tag frames, source-backed processing-instruction, CDATA, and declaration opening-marker/body/closing-marker fields, renderer security-profile tests proving `Strip`, `Escape`, and `Sanitize` behavior across CommonMark HTML block types 1-7, and GFM HTML tag filter fixtures/tests for raw blocks and inlines | Partial | Expand from smoke fixtures toward full CommonMark/GFM HTML corpus and classify sanitizer allowlist differences, including broader raw tag and malformed/raw fallback tokenization |
 
 ## GFM And Extension Coverage
+
+Generated scoreboard: `Docs/officeimo.markdown.gfm-inventory.md` tracks the current GFM fixture corpus by section and source so upstream cmark-gfm fixtures stay separate from OfficeIMO supplement cases.
 
 | Capability | Current behavior | Evidence | Status | Next action |
 | --- | --- | --- | --- | --- |
