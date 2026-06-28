@@ -406,6 +406,7 @@ namespace OfficeIMO.Excel {
             _cachedSheets = null;
             _sheetCacheDirty = true;
             _packageStream = keepPackageStream ? mem : null;
+            ReinitializePackageBoundHelpers();
             MarkPackageClean(packageBytes, simplePackageContentKnown);
 
             if (previousPackageStream != null && !ReferenceEquals(previousPackageStream, mem)) {
@@ -415,6 +416,14 @@ namespace OfficeIMO.Excel {
             if (previousDocument != null && !ReferenceEquals(previousDocument, _spreadSheetDocument)) {
                 try { previousDocument.Dispose(); } catch { }
             }
+        }
+
+        private void ReinitializePackageBoundHelpers() {
+            BuiltinDocumentProperties = new BuiltinDocumentProperties(this);
+            ApplicationProperties = new ApplicationProperties(this);
+            CustomDocumentProperties.SetChangeHandler(MarkCustomDocumentPropertiesChanged);
+            LoadCustomDocumentProperties();
+            ExcelChartAxisIdGenerator.Initialize(_spreadSheetDocument);
         }
 
         private static byte[] NormalizePackageBytes(byte[] packageBytes) {

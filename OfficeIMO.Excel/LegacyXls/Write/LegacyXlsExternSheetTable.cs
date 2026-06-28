@@ -46,8 +46,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             string[] sheetNames = sheets.Select(sheet => sheet.Name).ToArray();
             IReadOnlyList<ExternalWorkbookReference> externalReferences = CollectExternalWorkbookReferences(document, sheets);
             var supportingLinkRecords = new List<SupportingLinkRecord>();
-            if (externalReferences.Count > 0) {
+            if (sheets.Count > 0) {
                 supportingLinkRecords.Add(new SupportingLinkRecord(0x01ae, BuildSelfSupBookPayload(checked((ushort)sheets.Count))));
+            }
+
+            if (externalReferences.Count > 0) {
                 for (int i = 0; i < externalReferences.Count; i++) {
                     externalReferences[i].SetSupBookIndex(checked((ushort)(i + 1)));
                     supportingLinkRecords.Add(new SupportingLinkRecord(0x01ae, BuildExternalWorkbookSupBookPayload(externalReferences[i])));

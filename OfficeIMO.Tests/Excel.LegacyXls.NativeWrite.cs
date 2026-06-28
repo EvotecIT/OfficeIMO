@@ -33,15 +33,50 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(1, 1, "Native XLS");
 
                     document.Save();
+
+                    sheet = document.Sheets.Single(candidate => candidate.Name == "SamePath");
+                    sheet.CellValue(1, 2, "After reopen");
+                    document.Save();
                 }
 
                 using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsPath);
                 result.EnsureNoImportErrors();
                 Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
-                LegacyXlsCell cell = Assert.Single(Assert.Single(result.Workbook.Worksheets).Cells);
-                Assert.Equal("Native XLS", Assert.IsType<string>(cell.Value));
+                LegacyXlsWorksheet worksheet = Assert.Single(result.Workbook.Worksheets);
+                LegacyXlsCell firstCell = Assert.Single(worksheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
+                LegacyXlsCell secondCell = Assert.Single(worksheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
+                Assert.Equal("Native XLS", Assert.IsType<string>(firstCell.Value));
+                Assert.Equal("After reopen", Assert.IsType<string>(secondCell.Value));
             } finally {
                 TryDelete(xlsPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NativeSave_LoadedAutoSaveWorkbookDoesNotCopyOpenXmlPackageOverXlsOnDispose() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet sheet = document.AddWorkSheet("CopyBack");
+                    sheet.CellValue(1, 1, "OpenXML source");
+                    document.Save();
+                }
+
+                using (ExcelDocument document = ExcelDocument.Load(openXmlPath, readOnly: false, autoSave: true)) {
+                    ExcelSheet sheet = document.Sheets.Single();
+                    sheet.CellValue(1, 1, "Native XLS target");
+                    document.Save(xlsOutputPath);
+                }
+
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                result.EnsureNoImportErrors();
+                LegacyXlsCell cell = Assert.Single(Assert.Single(result.Workbook.Worksheets).Cells, item => item.Row == 1 && item.Column == 1);
+                Assert.Equal("Native XLS target", Assert.IsType<string>(cell.Value));
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
             }
         }
 
@@ -3407,6 +3442,44 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(result.Workbook.FormulaTokenRecords, token =>
                     token.TokenName == "PtgNameX"
                     && token.OperandKind == "ExternalName");
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NativeSave_WritesSelfSupBookForInternal3DReferencesWithoutExternalLinks() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet first = document.AddWorkSheet("First");
+                    ExcelSheet second = document.AddWorkSheet("Second");
+                    second.CellValue(1, 1, 42d);
+                    first.CellValue(1, 1, 42d);
+                    first.CellFormula(1, 1, "Second!A1");
+
+                    document.Save(xlsOutputPath);
+                }
+
+                byte[] supBookPayload = Assert.Single(GetBiffRecordPayloads(xlsOutputPath, 0x01ae));
+                Assert.Equal(4, supBookPayload.Length);
+                Assert.Equal((ushort)2, ReadUInt16(supBookPayload, 0));
+                Assert.Equal((ushort)0x0401, ReadUInt16(supBookPayload, 2));
+
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                result.EnsureNoImportErrors();
+                LegacyXlsExternalReference selfReference = Assert.Single(
+                    result.Workbook.ExternalReferences,
+                    reference => reference.Kind == LegacyXlsExternalReferenceKind.Self);
+                Assert.Equal(2, selfReference.SheetCount);
+                Assert.DoesNotContain(
+                    result.Workbook.ExternalReferences,
+                    reference => reference.Kind == LegacyXlsExternalReferenceKind.ExternalWorkbook);
+                LegacyXlsWorksheet worksheet = Assert.Single(result.Workbook.Worksheets, sheet => sheet.Name == "First");
+                AssertNumericFormula(worksheet, 1, 42d, "'Second'!A1");
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);

@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Threading;
@@ -109,13 +111,23 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
             byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
             cancellationToken.ThrowIfCancellationRequested();
-            if (ShouldCloseOpenPackageForNativeLegacyXlsFileSave(path)) {
+            bool reopenWorkingPackage = ShouldCloseOpenPackageForNativeLegacyXlsFileSave(path);
+            byte[]? workingPackageBytes = reopenWorkingPackage
+                ? CaptureOpenXmlPackageBytesForNativeLegacyXlsReopen()
+                : null;
+            if (reopenWorkingPackage) {
                 CloseOpenPackageForNativeLegacyXlsSave();
             }
 
             CommitPreparedPackageToFile(path, xlsBytes);
             FilePath = path;
-            MarkPackageClean(null);
+            DisablePackageCopyBackAfterNativeLegacyXlsFileSave();
+            if (workingPackageBytes != null) {
+                ReloadFromBytes(workingPackageBytes);
+            } else {
+                MarkPackageClean(null);
+            }
+
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
 
             if (openExcel) {
@@ -135,13 +147,23 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
             byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
             cancellationToken.ThrowIfCancellationRequested();
-            if (ShouldCloseOpenPackageForNativeLegacyXlsFileSave(path)) {
+            bool reopenWorkingPackage = ShouldCloseOpenPackageForNativeLegacyXlsFileSave(path);
+            byte[]? workingPackageBytes = reopenWorkingPackage
+                ? CaptureOpenXmlPackageBytesForNativeLegacyXlsReopen()
+                : null;
+            if (reopenWorkingPackage) {
                 CloseOpenPackageForNativeLegacyXlsSave();
             }
 
             await CommitPreparedPackageToFileAsync(path, xlsBytes, cancellationToken).ConfigureAwait(false);
             FilePath = path;
-            MarkPackageClean(null);
+            DisablePackageCopyBackAfterNativeLegacyXlsFileSave();
+            if (workingPackageBytes != null) {
+                ReloadFromBytes(workingPackageBytes);
+            } else {
+                MarkPackageClean(null);
+            }
+
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
 
             if (openExcel) {
@@ -191,6 +213,12 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        private byte[] CaptureOpenXmlPackageBytesForNativeLegacyXlsReopen() {
+            using var snapshot = new MemoryStream();
+            using (_spreadSheetDocument.Clone(snapshot)) { }
+            return snapshot.ToArray();
+        }
+
         private bool ShouldCloseOpenPackageForNativeLegacyXlsFileSave(string path) {
             if (WasLoadedFromLegacyXls || string.IsNullOrWhiteSpace(FilePath)) {
                 return false;
@@ -206,6 +234,13 @@ namespace OfficeIMO.Excel {
         private void CloseOpenPackageForNativeLegacyXlsSave() {
             CloseSpreadsheetDocumentAfterNativeLegacyXlsSave();
             DisposePackageStreamAfterNativeLegacyXlsSave(disposeSourceStream: false);
+        }
+
+        private void DisablePackageCopyBackAfterNativeLegacyXlsFileSave() {
+            _sourceStream = null;
+            _copyPackageToSourceOnDispose = false;
+            _copyPackageToFilePathOnDispose = false;
+            _leaveSourceStreamOpen = true;
         }
 
         private void DisablePackageCopyBackAfterNativeLegacyXlsSave(Stream destination) {
