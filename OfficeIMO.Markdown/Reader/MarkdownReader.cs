@@ -45,7 +45,8 @@ public static partial class MarkdownReader {
             sourceMarkdown,
             options.PreserveTrivia ? markdown : null,
             options.PreserveTrivia,
-            referenceLinkDefinitions: SnapshotReferenceLinkDefinitions(state));
+            referenceLinkDefinitions: SnapshotReferenceLinkDefinitions(state),
+            abbreviationDefinitions: SnapshotAbbreviationDefinitions(state));
     }
 
     /// <summary>
@@ -81,7 +82,8 @@ public static partial class MarkdownReader {
             options.PreserveTrivia ? markdown : null,
             options.PreserveTrivia,
             diagnostics,
-            SnapshotReferenceLinkDefinitions(state));
+            SnapshotReferenceLinkDefinitions(state),
+            SnapshotAbbreviationDefinitions(state));
     }
 
     /// <summary>Parses a Markdown file path into a <see cref="MarkdownDoc"/>.</summary>
@@ -181,6 +183,7 @@ public static partial class MarkdownReader {
             var pipeline = MarkdownReaderPipeline.Default(options);
             // Pre-scan for reference-style link definitions so inline refs in earlier paragraphs can resolve
             PreScanReferenceLinkDefinitions(lines, state, options);
+            PreScanAbbreviationDefinitions(lines, state, options);
             while (i < lines.Length) {
                 if (string.IsNullOrWhiteSpace(lines[i])) { i++; continue; }
                 bool matched = false;

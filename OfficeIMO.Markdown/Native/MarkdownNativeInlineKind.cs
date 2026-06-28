@@ -40,6 +40,8 @@ public enum MarkdownNativeInlineKind {
     HtmlRaw,
     /// <summary>Footnote reference.</summary>
     FootnoteRef,
+    /// <summary>Abbreviation inline rendered as <c>&lt;abbr&gt;</c>.</summary>
+    Abbreviation,
     /// <summary>Inline node without a specialized native projection.</summary>
     Other
 }

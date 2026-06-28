@@ -80,6 +80,12 @@ public enum MarkdownSyntaxKind {
     InlineFootnoteRef,
     /// <summary>Footnote reference label metadata.</summary>
     InlineFootnoteLabel,
+    /// <summary>Abbreviation inline node.</summary>
+    InlineAbbreviation,
+    /// <summary>Abbreviation visible text metadata.</summary>
+    InlineAbbreviationText,
+    /// <summary>Abbreviation title metadata.</summary>
+    InlineAbbreviationTitle,
     /// <summary>Paragraph block.</summary>
     Paragraph,
     /// <summary>Blockquote block.</summary>
@@ -176,6 +182,16 @@ public enum MarkdownSyntaxKind {
     ReferenceLinkUrl,
     /// <summary>Reference-style link definition optional title.</summary>
     ReferenceLinkTitle,
+    /// <summary>Abbreviation definition consumed during parsing.</summary>
+    AbbreviationDefinition,
+    /// <summary>Opening <c>*[</c> token for an abbreviation definition label.</summary>
+    AbbreviationOpeningMarker,
+    /// <summary>Abbreviation definition label.</summary>
+    AbbreviationLabel,
+    /// <summary>Closing bracket and colon token for an abbreviation definition label.</summary>
+    AbbreviationSeparatorMarker,
+    /// <summary>Abbreviation definition title.</summary>
+    AbbreviationTitle,
     /// <summary>Details/disclosure block.</summary>
     Details,
     /// <summary>Summary node inside a details block.</summary>

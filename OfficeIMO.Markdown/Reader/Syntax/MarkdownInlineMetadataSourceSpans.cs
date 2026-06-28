@@ -83,6 +83,15 @@ internal static class MarkdownInlineMetadataSourceSpans {
         public HardBreakMarkerState? State;
     }
 
+    private sealed class AbbreviationState {
+        public MarkdownSourceSpan? TextSpan;
+        public MarkdownSourceSpan? TitleSpan;
+    }
+
+    private sealed class AbbreviationHolder {
+        public AbbreviationState? State;
+    }
+
     // These tables hold weak references to markdown inline keys, so entries disappear when the
     // owning inline objects are no longer referenced by the parse result or callers.
     private static readonly ConditionalWeakTable<LinkInline, LinkHolder> _linkSpans = new();
@@ -93,6 +102,7 @@ internal static class MarkdownInlineMetadataSourceSpans {
     private static readonly ConditionalWeakTable<TextRun, EscapedTextHolder> _escapedTextSpans = new();
     private static readonly ConditionalWeakTable<DecodedHtmlEntityTextRun, DecodedEntityHolder> _decodedEntitySpans = new();
     private static readonly ConditionalWeakTable<HardBreakInline, HardBreakMarkerHolder> _hardBreakMarkerSpans = new();
+    private static readonly ConditionalWeakTable<AbbreviationInline, AbbreviationHolder> _abbreviationSpans = new();
 
     internal static void SetLinkParts(
         LinkInline? inline,
@@ -356,4 +366,25 @@ internal static class MarkdownInlineMetadataSourceSpans {
 
     internal static MarkdownSourceSpan? GetHardBreakMarkerSpan(HardBreakInline? inline) =>
         inline != null && _hardBreakMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.MarkerSpan : null;
+
+    internal static void SetAbbreviationParts(
+        AbbreviationInline? inline,
+        MarkdownSourceSpan? textSpan,
+        MarkdownSourceSpan? titleSpan) {
+        if (inline == null || (!textSpan.HasValue && !titleSpan.HasValue)) {
+            return;
+        }
+
+        var holder = _abbreviationSpans.GetValue(inline, static _ => new AbbreviationHolder());
+        holder.State = new AbbreviationState {
+            TextSpan = textSpan,
+            TitleSpan = titleSpan
+        };
+    }
+
+    internal static MarkdownSourceSpan? GetAbbreviationTextSpan(AbbreviationInline? inline) =>
+        inline != null && _abbreviationSpans.TryGetValue(inline, out var holder) ? holder.State?.TextSpan : null;
+
+    internal static MarkdownSourceSpan? GetAbbreviationTitleSpan(AbbreviationInline? inline) =>
+        inline != null && _abbreviationSpans.TryGetValue(inline, out var holder) ? holder.State?.TitleSpan : null;
 }

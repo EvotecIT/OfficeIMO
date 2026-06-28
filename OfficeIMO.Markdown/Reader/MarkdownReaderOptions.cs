@@ -59,6 +59,7 @@ public sealed class MarkdownReaderOptions {
             DefinitionLists = false,
             TocPlaceholders = false,
             Footnotes = false,
+            Abbreviations = false,
             StandaloneImageBlocks = false,
             StrictListIndentation = true,
             PreserveHtmlBlockBlankLineContent = false,
@@ -84,6 +85,7 @@ public sealed class MarkdownReaderOptions {
             DefinitionLists = false,
             TocPlaceholders = false,
             Footnotes = true,
+            Abbreviations = false,
             StandaloneImageBlocks = false,
             StrictListIndentation = true,
             PreserveHtmlBlockBlankLineContent = false,
@@ -114,6 +116,7 @@ public sealed class MarkdownReaderOptions {
             TaskLists = false,
             TocPlaceholders = false,
             Footnotes = false,
+            Abbreviations = false,
             StandaloneImageBlocks = false,
             StrictListIndentation = true,
             Subscript = false,
@@ -170,6 +173,12 @@ public sealed class MarkdownReaderOptions {
     public bool TocPlaceholders { get; set; } = true;
     /// <summary>Enable footnote references and footnote definition blocks.</summary>
     public bool Footnotes { get; set; } = true;
+    /// <summary>
+    /// Enable Markdig-style abbreviation definitions and inline expansion, e.g.
+    /// <c>*[HTML]: Hyper Text Markup Language</c> followed by <c>HTML</c>.
+    /// Default: <c>false</c>; opt in when mirroring Markdig's <c>UseAbbreviations</c> extension.
+    /// </summary>
+    public bool Abbreviations { get; set; } = false;
     /// <summary>
     /// When <c>true</c>, GitHub Flavored Markdown-style single-tilde strikethrough (<c>~text~</c>) is enabled.
     /// Default: <c>false</c>.

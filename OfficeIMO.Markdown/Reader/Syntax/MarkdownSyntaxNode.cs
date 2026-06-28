@@ -340,6 +340,7 @@ public sealed class MarkdownSyntaxNode {
             case MarkdownSyntaxKind.DefinitionItem:
             case MarkdownSyntaxKind.FootnoteDefinition:
             case MarkdownSyntaxKind.ReferenceLinkDefinition:
+            case MarkdownSyntaxKind.AbbreviationDefinition:
             case MarkdownSyntaxKind.Details:
             case MarkdownSyntaxKind.Summary:
             case MarkdownSyntaxKind.FrontMatter:

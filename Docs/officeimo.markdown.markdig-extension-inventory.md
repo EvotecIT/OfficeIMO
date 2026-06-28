@@ -23,15 +23,15 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | --- | ---: |
 | Markdig extension-family rows | 33 |
 | Covered | 7 |
-| Partial | 10 |
+| Partial | 11 |
 | Intentional | 4 |
-| Gap | 12 |
+| Gap | 11 |
 
 ## Extension Families
 
 | Markdig entry point | Family | Status | OfficeIMO state | Next action |
 | --- | --- | --- | --- | --- |
-| `UseAbbreviations` | Abbreviations | `Gap` | No OfficeIMO abbreviation parser or renderer contract exists yet. | Decide whether abbreviation expansion belongs in core or an optional inline extension. |
+| `UseAbbreviations` | Abbreviations | `Partial` | OfficeIMO has opt-in abbreviation definitions through MarkdownReaderOptions.Abbreviations, case-sensitive/later-wins definition collection, consumed definition syntax nodes, AbbreviationInline semantic nodes, HTML <abbr> rendering, Markdig comparison cases, and syntax/native metadata for visible text plus definition title source edits, but broader edge breadth and definition-preserving Markdown writer reconstruction are not complete. | Broaden Markdig abbreviation edge cases and decide whether the Markdown writer should preserve or regenerate abbreviation definitions. |
 | `UseAdvancedExtensions` | Advanced extension bundle | `Intentional` | OfficeIMO should track individual feature families instead of claiming bundle parity. | Keep this row as a roll-up guard; do not implement as a broad on switch. |
 | `UseAlertBlocks` | Alert blocks | `Partial` | OfficeIMO has callout blocks and GitHub-style callout parsing, but not Markdig's alert rendering callback shape. | Align callout/alert syntax, AST fields, source spans, and renderer customization explicitly. |
 | `UseAutoIdentifiers` | Auto identifiers | `Covered` | OfficeIMO has automatic heading ids with duplicate-slug tracking, an opt-out HTML switch, Markdig default and GitHub-compatible slug styles, GFM HTML profile wiring, heading traversal APIs, and source-backed heading syntax/native metadata. | Keep slug-style and heading-source fixtures aligned as broader renderer profiles evolve. |

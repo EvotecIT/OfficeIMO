@@ -15,6 +15,7 @@ public static partial class MarkdownReader {
                 IsQuoteStarter(lines[i]) ||
                 HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[i], options) ||
                 IsReferenceLinkDefinitionStarter(lines, i, options) ||
+                IsAbbreviationDefinitionStarter(lines[i], options) ||
                 IsFootnoteDefinitionStarter(lines[i], options) ||
                 (options.StandaloneImageBlocks && IsImageLine(lines[i]))) return false;
 
@@ -32,6 +33,7 @@ public static partial class MarkdownReader {
                    !IsQuoteStarter(lines[j]) &&
                    !HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[j], options) &&
                    !IsParagraphTerminatingReferenceLinkDefinition(lines, i, j, options) &&
+                   !IsAbbreviationDefinitionStarter(lines[j], options) &&
                    !IsFootnoteDefinitionStarter(lines[j], options) &&
                    !(options.StandaloneImageBlocks && IsImageLine(lines[j]))) {
                 var raw = lines[j];
@@ -159,6 +161,9 @@ public static partial class MarkdownReader {
         private static bool IsReferenceLinkDefinitionStarter(string[] lines, int index, MarkdownReaderOptions options) {
             return TryParseReferenceLinkDefinition(lines, index, options, out _, out _, out _, out _);
         }
+
+        private static bool IsAbbreviationDefinitionStarter(string line, MarkdownReaderOptions options) =>
+            options?.Abbreviations == true && TryParseAbbreviationDefinition(line, 0, null, out _, out _, out _, out _, out _, out _);
 
         private static bool IsParagraphTerminatingReferenceLinkDefinition(string[] lines, int paragraphStartIndex, int index, MarkdownReaderOptions options) {
             if (!IsReferenceLinkDefinitionStarter(lines, index, options)) {

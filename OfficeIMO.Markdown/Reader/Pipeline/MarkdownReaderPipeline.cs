@@ -27,6 +27,7 @@ public sealed class MarkdownReaderPipeline {
         AddExtensions(p, options, MarkdownBlockParserPlacement.AfterHtmlBlocks);
         p.Add(new MarkdownReader.ReferenceLinkDefParser());
         AddExtensions(p, options, MarkdownBlockParserPlacement.AfterReferenceLinkDefinitions);
+        if (options.Abbreviations) p.Add(new MarkdownReader.AbbreviationDefParser());
         if (options.Tables) p.Add(new MarkdownReader.TableParser());
         if (options.DefinitionLists) p.Add(new MarkdownReader.DefinitionListParser());
         if (options.OrderedLists) p.Add(new MarkdownReader.OrderedListParser());

@@ -90,6 +90,14 @@ public static partial class MarkdownReader {
                 sourceMap?.GetSpan(start + length - 1, 1));
             AddRawNode(node, start, length);
         }
+        void AddAbbreviationNode(MarkdownAbbreviationDefinition definition, int start) {
+            var node = new AbbreviationInline(definition.Label, definition.Title);
+            MarkdownInlineMetadataSourceSpans.SetAbbreviationParts(
+                node,
+                sourceMap?.GetSpan(start, definition.Label.Length),
+                definition.TitleSourceSpan);
+            AddRawNode(node, start, definition.Label.Length);
+        }
         void AddAutolinkNode(
             string label,
             string resolvedHref,
@@ -291,6 +299,14 @@ public static partial class MarkdownReader {
                 out var extensionResult)) {
                 AddRawNode(extensionResult.Inline, pos, extensionResult.ConsumedLength);
                 pos += extensionResult.ConsumedLength;
+                continue;
+            }
+
+            if (options.Abbreviations
+                && allowLinks
+                && TryConsumeAbbreviation(text, pos, state, out var abbreviation)) {
+                AddAbbreviationNode(abbreviation, pos);
+                pos += abbreviation.Label.Length;
                 continue;
             }
 
@@ -871,6 +887,7 @@ public static partial class MarkdownReader {
                 if (options.AutolinkWwwUrls && (text[pos] == 'w' || text[pos] == 'W') && StartsWithWww(text, pos, options, out _)) break;
                 if (options.AutolinkBareSchemeUrls && IsBareSchemeAutolinkStartCandidate(text[pos]) && TryConsumeBareSchemeAutolink(text, pos, options, out _, out _, out _)) break;
                 if (options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, options, out _, out _)) break;
+                if (options.Abbreviations && allowLinks && TryConsumeAbbreviation(text, pos, state, out _)) break;
                 if (inlineParserExtensions.Count > 0
                     && TryParseInlineExtension(
                         text,

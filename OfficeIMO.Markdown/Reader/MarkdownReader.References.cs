@@ -149,13 +149,57 @@ public static partial class MarkdownReader {
         MarkdownReaderOptions options,
         List<MarkdownSyntaxNode> syntaxNodes,
         MarkdownReaderState state) {
-        if (parser is not ReferenceLinkDefParser) {
+        if (parser is ReferenceLinkDefParser
+            && TryBuildReferenceDefinitionSyntaxNode(lines, startIndex, options, state, out var node, out var consumedLines)) {
+            syntaxNodes.Add(node);
             return;
         }
 
-        if (TryBuildReferenceDefinitionSyntaxNode(lines, startIndex, options, state, out var node, out var consumedLines)) {
-            syntaxNodes.Add(node);
+        if (parser is AbbreviationDefParser
+            && TryBuildAbbreviationDefinitionSyntaxNode(lines, startIndex, state, out var abbreviationNode)) {
+            syntaxNodes.Add(abbreviationNode);
         }
+    }
+
+    private static bool TryBuildAbbreviationDefinitionSyntaxNode(
+        string[] lines,
+        int index,
+        MarkdownReaderState state,
+        out MarkdownSyntaxNode node) {
+        node = null!;
+        if (index < 0 || index >= lines.Length) {
+            return false;
+        }
+
+        if (!TryParseAbbreviationDefinition(
+            lines[index],
+            index,
+            state,
+            out var label,
+            out var title,
+            out var labelSpan,
+            out var titleSpan,
+            out var openingMarkerSpan,
+            out var separatorMarkerSpan)) {
+            return false;
+        }
+
+        var children = new List<MarkdownSyntaxNode>(4);
+        if (openingMarkerSpan.HasValue && separatorMarkerSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.AbbreviationOpeningMarker, openingMarkerSpan, "*["));
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.AbbreviationLabel, labelSpan, label));
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.AbbreviationSeparatorMarker, separatorMarkerSpan, "]:"));
+        } else {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.AbbreviationLabel, labelSpan, label));
+        }
+
+        children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.AbbreviationTitle, titleSpan, title));
+        node = new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.AbbreviationDefinition,
+            CreateLineSpan(state, state.SourceLineOffset + index + 1, state.SourceLineOffset + index + 1),
+            lines[index],
+            children);
+        return true;
     }
 
     private static bool TryBuildReferenceDefinitionSyntaxNode(

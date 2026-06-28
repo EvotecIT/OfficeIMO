@@ -57,11 +57,58 @@ public sealed class MarkdownReferenceLinkDefinition {
 }
 
 /// <summary>
+/// Markdig-style abbreviation definition collected while parsing, such as
+/// <c>*[HTML]: Hyper Text Markup Language</c>.
+/// </summary>
+public sealed class MarkdownAbbreviationDefinition {
+    /// <summary>Source spelling that should be expanded when it appears as a standalone inline token.</summary>
+    public string Label { get; }
+
+    /// <summary>Title rendered on the resulting <c>&lt;abbr&gt;</c> element.</summary>
+    public string Title { get; }
+
+    /// <summary>Source span for the entire abbreviation definition, when available.</summary>
+    public MarkdownSourceSpan? SourceSpan { get; }
+
+    /// <summary>Source span for the abbreviation label token, when available.</summary>
+    public MarkdownSourceSpan? LabelSourceSpan { get; }
+
+    /// <summary>Source span for the opening <c>*[</c> marker, when available.</summary>
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; }
+
+    /// <summary>Source span for the closing <c>]:</c> marker, when available.</summary>
+    public MarkdownSourceSpan? SeparatorMarkerSourceSpan { get; }
+
+    /// <summary>Source span for the title token, when available.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan { get; }
+
+    /// <summary>Creates an abbreviation definition descriptor.</summary>
+    public MarkdownAbbreviationDefinition(
+        string label,
+        string title,
+        MarkdownSourceSpan? sourceSpan = null,
+        MarkdownSourceSpan? labelSourceSpan = null,
+        MarkdownSourceSpan? titleSourceSpan = null,
+        MarkdownSourceSpan? openingMarkerSourceSpan = null,
+        MarkdownSourceSpan? separatorMarkerSourceSpan = null) {
+        Label = label ?? string.Empty;
+        Title = title ?? string.Empty;
+        SourceSpan = sourceSpan;
+        LabelSourceSpan = labelSourceSpan;
+        OpeningMarkerSourceSpan = openingMarkerSourceSpan;
+        SeparatorMarkerSourceSpan = separatorMarkerSourceSpan;
+        TitleSourceSpan = titleSourceSpan;
+    }
+}
+
+/// <summary>
 /// Mutable per-parse state shared across block and inline parsers.
 /// </summary>
 public sealed class MarkdownReaderState {
     /// <summary>Reference-style link definitions collected while parsing.</summary>
     internal Dictionary<string, MarkdownReferenceLinkDefinition> LinkRefs { get; } = new Dictionary<string, MarkdownReferenceLinkDefinition>(System.StringComparer.OrdinalIgnoreCase);
+    /// <summary>Case-sensitive abbreviation definitions collected while parsing. Later definitions replace earlier ones, matching Markdig.</summary>
+    internal Dictionary<string, MarkdownAbbreviationDefinition> Abbreviations { get; } = new Dictionary<string, MarkdownAbbreviationDefinition>(System.StringComparer.Ordinal);
     internal int SourceLineOffset { get; set; }
     internal MarkdownSourceTextMap? SourceTextMap { get; set; }
     internal int ListMarkerIndentOffset { get; set; }

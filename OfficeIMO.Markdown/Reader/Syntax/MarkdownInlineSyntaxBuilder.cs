@@ -61,6 +61,13 @@ internal static class MarkdownInlineSyntaxBuilder {
                     literal: footnote.Label,
                     children: BuildFootnoteRefChildren(footnote, span),
                     associatedObject: footnote);
+            case AbbreviationInline abbreviation:
+                return new MarkdownSyntaxNode(
+                    MarkdownSyntaxKind.InlineAbbreviation,
+                    span,
+                    literal: abbreviation.Text,
+                    children: BuildAbbreviationChildren(abbreviation, span),
+                    associatedObject: abbreviation);
             case HardBreakInline hardBreak:
                 var hardBreakChildren = BuildHardBreakChildren(hardBreak);
                 return new MarkdownSyntaxNode(
@@ -407,6 +414,25 @@ internal static class MarkdownInlineSyntaxBuilder {
             labelEndColumn,
             labelStartOffset,
             labelEndOffset);
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildAbbreviationChildren(AbbreviationInline abbreviation, MarkdownSourceSpan? span) {
+        if (abbreviation == null) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        var nodes = new List<MarkdownSyntaxNode>(2) {
+            new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.InlineAbbreviationText,
+                MarkdownInlineMetadataSourceSpans.GetAbbreviationTextSpan(abbreviation) ?? span,
+                literal: abbreviation.Text)
+        };
+
+        nodes.Add(new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.InlineAbbreviationTitle,
+            MarkdownInlineMetadataSourceSpans.GetAbbreviationTitleSpan(abbreviation),
+            literal: abbreviation.Title));
+        return nodes;
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildInlineImageChildren(ImageInline image) {

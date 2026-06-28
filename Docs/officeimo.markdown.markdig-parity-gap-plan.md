@@ -13,7 +13,7 @@ The important distinction: parity is not "more tests." Parity means the parser, 
 | CommonMark full inventory | 652 of 652 official CommonMark `0.31.2` examples currently match; 0 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 44 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | GFM tracked inventory | 44 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 40 upstream cmark-gfm fixtures, 4 OfficeIMO supplements, 44 passing, 0 failing |
-| Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 7 covered, 10 partial, 4 intentional, 12 gap |
+| Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 7 covered, 11 partial, 4 intentional, 11 gap |
 | Covered CommonMark sections | ATX headings, Setext headings, thematic breaks, indented code blocks, fenced code blocks, HTML blocks, block quotes, list items, lists, paragraphs, hard breaks, soft breaks, links, images, autolinks, raw HTML, backslash escapes, entity and numeric character references, link reference definitions, tabs |
 | Remaining CommonMark parser clusters | None in the official CommonMark `0.31.2` inventory |
 | Remaining Markdig-class architecture gaps | broader GFM corpus coverage, full lossless trivia capture, full parser pipeline parity, renderer/writer plugin parity, extension-family implementation breadth, release-mode benchmark review |
@@ -43,7 +43,7 @@ This is the short board to keep us out of loops. A row is not done because it ha
 - [ ] **Close raw HTML and GFM tag-filter separation:** keep CommonMark raw HTML parsing, GFM tag filtering, sanitizer/escape/strip/allow behavior, URL policy, source metadata, and writer behavior as separate contracts.
 - [ ] **Close `UseDefinitionLists`:** finish source-map and writer edge breadth for marker groups, lazy continuation, nested blocks, loose definitions, empty markers, and reparsing.
 - [ ] **Close high-value partial Markdig rows:** work through `UseAlertBlocks`, `UseGenericAttributes`, `UsePreciseSourceLocation`, and parser/render extension rows with the same engine-plus-proof bar.
-- [ ] **Make scope decisions for gap rows before coding them:** `UseCustomContainers`, `UseGridTables`, `UseAbbreviations`, `UseSmartyPants`, `UseCitations`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, `UseFigures`, `UseListExtras`, and similar rows must be assigned to core, optional extension, renderer/host policy, or intentional out-of-scope.
+- [ ] **Make scope decisions for gap rows before coding them:** `UseCustomContainers`, `UseGridTables`, `UseSmartyPants`, `UseCitations`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, `UseFigures`, `UseListExtras`, and similar rows must be assigned to core, optional extension, renderer/host policy, or intentional out-of-scope.
 - [ ] **Finish canonical AST cleanup:** remove duplicated/adapted node shapes so semantic blocks, syntax nodes, native snapshots, renderer contexts, writer contexts, and source edits use one ownership model.
 - [ ] **Finish lossless/source architecture:** complete trivia capture, delimiter-token capture, original-to-normalized mapping, generated-node diagnostics, caret/source-edit coverage, and source-preserving roundtrip fallbacks.
 - [ ] **Finish renderer/writer extension parity:** custom nodes must render and write through source-aware extension contracts without downstream string rescanning.
@@ -71,9 +71,10 @@ This is the non-looping backlog. Parity slices are grouped by what they actually
 
 ### B. Markdig Extension Scope Decisions
 
-- [ ] **Markdig extension-family coverage is far from closed.** The current inventory is 7 `Covered`, 10 `Partial`, 4 `Intentional`, and 12 `Gap`. Every non-covered row needs one decision: implement in core, implement as optional extension, route to renderer/host policy, or mark intentional out of scope.
+- [ ] **Markdig extension-family coverage is far from closed.** The current inventory is 7 `Covered`, 11 `Partial`, 4 `Intentional`, and 11 `Gap`. Every non-covered row needs one decision: implement in core, implement as optional extension, route to renderer/host policy, or mark intentional out of scope.
 - [ ] **High-priority partial rows need closure.** Work through `UseAutoLinks`, `UseDefinitionLists`, `UseAlertBlocks`, `UseGenericAttributes`, `UsePreciseSourceLocation`, and parser/render extensions with parser, AST/source, renderer, writer, and fixture evidence.
-- [ ] **High-priority gap rows need scope decisions before implementation.** Decide whether `UseCustomContainers`, `UseGridTables`, `UseAbbreviations`, `UseSmartyPants`, `UseCitations`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, `UseFigures`, `UseListExtras`, and similar rows belong in core, optional packages, renderer policy, or intentional differences.
+- [ ] **High-priority gap rows need scope decisions before implementation.** Decide whether `UseCustomContainers`, `UseGridTables`, `UseSmartyPants`, `UseCitations`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, `UseFigures`, `UseListExtras`, and similar rows belong in core, optional packages, renderer policy, or intentional differences.
+- [ ] **Abbreviation parity is partial, not closed.** `UseAbbreviations` now has opt-in parser, semantic AST, syntax/native metadata, HTML rendering, source-edit, and selected Markdig comparison evidence, but still needs broader edge cases and a decision on definition-preserving Markdown writer reconstruction before promotion.
 
 ### C. AST, Source, And Lossless Architecture
 
@@ -97,7 +98,7 @@ Use this order to avoid looping:
 - [ ] **2. If behavior is missing, improve the engine first.** Parser, AST, source mapping, renderer, writer, or extension APIs move before fixtures are promoted.
 - [ ] **3. If behavior exists but is unproven, add focused proof.** This is the test-only lane: Markdig comparison cases, inventory rows, native snapshots, writer checks, or renderer checks.
 - [ ] **4. Promote only when the whole row is covered.** A row moves to `Covered` only with parser behavior, semantic AST/source/native projection where applicable, HTML rendering, Markdown writing or explicit writer limits, fixture/inventory evidence, and profile documentation.
-- [ ] **5. Make scope decisions before large new features.** Grid tables, custom containers, math, diagrams, attributes, SmartyPants, citations, abbreviations, media links, and similar rows should not be half-added without deciding core versus optional extension versus renderer policy.
+- [ ] **5. Make scope decisions before large new features.** Grid tables, custom containers, math, diagrams, attributes, SmartyPants, citations, media links, and similar rows should not be half-added without deciding core versus optional extension versus renderer policy. Abbreviations already have an in-core partial implementation and should now be completed as a writer/edge-breadth slice.
 - [ ] **6. Benchmark last.** Do not optimize or claim performance parity until correctness, source mapping, and writer behavior are stable enough for the numbers to mean something.
 
 ## Parity Work Board
@@ -297,7 +298,7 @@ Done means:
 - [ ] Expand GFM autolinks and tag-filter coverage.
 - [x] Expand GFM footnote coverage, including source spans, nested block bodies, repeated backrefs, renderer output, and writer behavior.
 - [ ] Expand GFM strikethrough coverage.
-- [ ] Decide which remaining Markdig extensions are in scope: grid tables, emoji, math, diagrams, SmartyPants, abbreviations, citations, custom containers, generic attributes, media links, alerts, advanced links, and list/emphasis extras.
+- [ ] Decide which remaining Markdig extensions are in scope: grid tables, emoji, math, diagrams, SmartyPants, citations, custom containers, generic attributes, media links, alerts, advanced links, and list/emphasis extras. Abbreviations are now an in-core partial row that still needs writer and edge-breadth closure.
 - [ ] Route in-scope extension work to the right owner: core `OfficeIMO.Markdown`, renderer layer, or separate extension package.
 - [ ] Document out-of-scope Markdig extensions as intentional differences.
 

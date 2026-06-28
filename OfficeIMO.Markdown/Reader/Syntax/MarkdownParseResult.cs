@@ -31,6 +31,8 @@ public sealed class MarkdownParseResult {
     public IReadOnlyList<MarkdownDocumentTransformDiagnostic> TransformDiagnostics { get; }
     /// <summary>Effective reference-style link definitions collected during parsing, in source order where spans are available.</summary>
     public IReadOnlyList<MarkdownReferenceLinkDefinition> ReferenceLinkDefinitions { get; }
+    /// <summary>Effective abbreviation definitions collected during parsing, in source order where spans are available.</summary>
+    public IReadOnlyList<MarkdownAbbreviationDefinition> AbbreviationDefinitions { get; }
 
     internal MarkdownParseResult(
         MarkdownDoc document,
@@ -40,7 +42,8 @@ public sealed class MarkdownParseResult {
         string? originalMarkdown = null,
         bool preservesOriginalMarkdown = false,
         IReadOnlyList<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null,
-        IReadOnlyList<MarkdownReferenceLinkDefinition>? referenceLinkDefinitions = null) {
+        IReadOnlyList<MarkdownReferenceLinkDefinition>? referenceLinkDefinitions = null,
+        IReadOnlyList<MarkdownAbbreviationDefinition>? abbreviationDefinitions = null) {
         Document = document;
         SyntaxTree = syntaxTree;
         FinalSyntaxTree = finalSyntaxTree ?? syntaxTree;
@@ -49,6 +52,7 @@ public sealed class MarkdownParseResult {
         PreservesOriginalMarkdown = preservesOriginalMarkdown;
         TransformDiagnostics = transformDiagnostics ?? Array.Empty<MarkdownDocumentTransformDiagnostic>();
         ReferenceLinkDefinitions = referenceLinkDefinitions ?? Array.Empty<MarkdownReferenceLinkDefinition>();
+        AbbreviationDefinitions = abbreviationDefinitions ?? Array.Empty<MarkdownAbbreviationDefinition>();
         document.AttachParseResult(this);
     }
 

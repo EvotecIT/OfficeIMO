@@ -215,6 +215,19 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "subscript-with-whitespace-before-close-stays-literal", "H~2 ~" };
     }
 
+    public static IEnumerable<object[]> AbbreviationExtensionCases() {
+        yield return new object[] { "basic", "*[HTML]: Hyper Text Markup Language\nHTML test" };
+        yield return new object[] { "multiple-occurrences", "*[HTML]: Hyper Text Markup Language\nHTML and HTML." };
+        yield return new object[] { "does-not-match-inside-word", "*[CSS]: Cascading Style Sheets\nCSS3 CSS CSS-like" };
+        yield return new object[] { "multiple-definitions", "*[HTML]: Hyper Text Markup Language\n*[CSS]: Cascading Style Sheets\nHTML CSS" };
+        yield return new object[] { "definition-after-earlier-paragraph", "HTML before\n\n*[HTML]: Hyper Text Markup Language" };
+        yield return new object[] { "heading-inline", "*[HTML]: Hyper Text Markup Language\n\n# HTML heading" };
+        yield return new object[] { "code-span-stays-literal", "*[HTML]: Hyper Text Markup Language\n\n`HTML` HTML" };
+        yield return new object[] { "duplicate-last-definition-wins", "*[HTML]: First\n*[HTML]: Second\nHTML" };
+        yield return new object[] { "case-sensitive", "*[html]: Lower\nHTML html Html" };
+        yield return new object[] { "punctuation-label", "*[C++]: Language\nC++ C+++ C++-like" };
+    }
+
     [Theory]
     [MemberData(nameof(CoreParityCases))]
     public void MarkdownReader_Matches_Markdig_On_Curated_Cases(string _, string markdown) {
@@ -277,6 +290,28 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
         officeOptions.Subscript = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(AbbreviationExtensionCases))]
+    public void MarkdownReader_Abbreviations_Match_Markdig_Abbreviations_Extension(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseAbbreviations(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.Abbreviations = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)

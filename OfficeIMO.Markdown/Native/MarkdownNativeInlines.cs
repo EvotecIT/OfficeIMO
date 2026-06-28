@@ -238,6 +238,7 @@ internal static class MarkdownNativeInlineProjection {
         AddEscapedTextMetadata(node, metadata);
         AddDecodedEntityMetadata(node, metadata);
         AddHardBreakMarkerMetadata(node, metadata);
+        AddAbbreviationMetadata(node, metadata);
 
         if (metadata.Count == 0) {
             return Array.Empty<MarkdownNativeInlineMetadata>();
@@ -348,6 +349,35 @@ internal static class MarkdownNativeInlineProjection {
         }
     }
 
+    private static void AddAbbreviationMetadata(MarkdownSyntaxNode node, List<MarkdownNativeInlineMetadata> metadata) {
+        if (node.AssociatedObject is not AbbreviationInline abbreviation) {
+            return;
+        }
+
+        RemoveMetadata(metadata, "text");
+        RemoveMetadata(metadata, "title");
+
+        metadata.Add(new MarkdownNativeInlineMetadata(
+            "text",
+            abbreviation.Text,
+            node,
+            MarkdownInlineMetadataSourceSpans.GetAbbreviationTextSpan(abbreviation) ?? node.SourceSpan));
+
+        metadata.Add(new MarkdownNativeInlineMetadata(
+            "title",
+            abbreviation.Title,
+            node,
+            MarkdownInlineMetadataSourceSpans.GetAbbreviationTitleSpan(abbreviation)));
+    }
+
+    private static void RemoveMetadata(List<MarkdownNativeInlineMetadata> metadata, string name) {
+        for (var i = metadata.Count - 1; i >= 0; i--) {
+            if (string.Equals(metadata[i].Name, name, StringComparison.OrdinalIgnoreCase)) {
+                metadata.RemoveAt(i);
+            }
+        }
+    }
+
     private static MarkdownSyntaxNode? FindFirstInlineContainer(MarkdownSyntaxNode? node) {
         if (node == null) {
             return null;
@@ -415,6 +445,8 @@ internal static class MarkdownNativeInlineProjection {
                 return MarkdownNativeInlineKind.HtmlRaw;
             case MarkdownSyntaxKind.InlineFootnoteRef:
                 return MarkdownNativeInlineKind.FootnoteRef;
+            case MarkdownSyntaxKind.InlineAbbreviation:
+                return MarkdownNativeInlineKind.Abbreviation;
             default:
                 return MarkdownNativeInlineKind.Other;
         }
@@ -443,6 +475,7 @@ internal static class MarkdownNativeInlineProjection {
             case MarkdownSyntaxKind.InlineHtmlTag:
             case MarkdownSyntaxKind.InlineHtmlRaw:
             case MarkdownSyntaxKind.InlineFootnoteRef:
+            case MarkdownSyntaxKind.InlineAbbreviation:
                 return true;
             default:
                 return false;
@@ -480,6 +513,12 @@ internal static class MarkdownNativeInlineProjection {
                 return true;
             case MarkdownSyntaxKind.InlineFootnoteLabel:
                 name = "label";
+                return true;
+            case MarkdownSyntaxKind.InlineAbbreviationTitle:
+                name = "title";
+                return true;
+            case MarkdownSyntaxKind.InlineAbbreviationText:
+                name = "text";
                 return true;
             default:
                 name = string.Empty;
