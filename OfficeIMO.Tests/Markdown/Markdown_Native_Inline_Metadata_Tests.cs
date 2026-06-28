@@ -442,6 +442,7 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 28), angleTarget.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 4), opening.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 29, 1, 29), closing.SourceSpan);
+        Assert.Equal("mailto:user@example.com", bare.Text);
         Assert.Equal("mailto:user@example.com", bareTarget.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 35, 1, 57), bareTarget.SourceSpan);
 

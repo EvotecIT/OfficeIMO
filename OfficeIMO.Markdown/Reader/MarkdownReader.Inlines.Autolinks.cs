@@ -181,16 +181,18 @@ public static partial class MarkdownReader {
         if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
         if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
 
-        if (StartsWithOrdinalIgnoreCase(text, start, "mailto:")) {
+        if (StartsWithAutolinkScheme(text, start, "mailto:", options)) {
             int emailStart = start + "mailto:".Length;
             if (!TryConsumeBareMailtoAddress(text, emailStart, out int emailEnd, out string email)) return false;
             end = emailEnd;
-            label = text.Substring(start, end - start);
+            label = options.AutolinkBareMailtoDisplayAddressOnly
+                ? email
+                : text.Substring(start, end - start);
             href = "mailto:" + email;
             return true;
         }
 
-        if (StartsWithOrdinalIgnoreCase(text, start, "ftp://")) {
+        if (StartsWithAutolinkScheme(text, start, "ftp://", options)) {
             int rawEnd = ConsumeLiteralUrl(text, start);
             int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
             if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
@@ -204,7 +206,7 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        if (StartsWithOrdinalIgnoreCase(text, start, "tel:")) {
+        if (StartsWithAutolinkScheme(text, start, "tel:", options)) {
             int valueStart = start + "tel:".Length;
             int rawEnd = ConsumeLiteralUrl(text, start);
             int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
@@ -215,7 +217,7 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        if (StartsWithOrdinalIgnoreCase(text, start, "xmpp:")) {
+        if (StartsWithAutolinkScheme(text, start, "xmpp:", options)) {
             int rawEnd = ConsumeLiteralUrl(text, start);
             int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
             if (i <= start + "xmpp:".Length) return false;
@@ -226,6 +228,16 @@ public static partial class MarkdownReader {
         }
 
         return false;
+    }
+
+    private static bool StartsWithAutolinkScheme(string text, int start, string scheme, MarkdownReaderOptions options) {
+        if (options.AutolinkRequireLowercaseBareSchemePrefix) {
+            if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(scheme)) return false;
+            if (start < 0 || start + scheme.Length > text.Length) return false;
+            return string.Compare(text, start, scheme, 0, scheme.Length, StringComparison.Ordinal) == 0;
+        }
+
+        return StartsWithOrdinalIgnoreCase(text, start, scheme);
     }
 
     private static bool TryConsumeBareMailtoAddress(string text, int start, out int end, out string email) {
@@ -273,8 +285,7 @@ public static partial class MarkdownReader {
     private static int TrimTrailingAutolinkPunctuation(string text, int start, int rawEnd, MarkdownReaderOptions options) {
         int i = rawEnd;
         while (i > start && IsTrailingAutolinkPunctuation(text[i - 1])) {
-            if (text[i - 1] == '.'
-                && options.AutolinkAllowTrailingPeriodBeforeClosingParenthesis
+            if (options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis
                 && rawEnd < text.Length
                 && text[rawEnd] == ')') {
                 break;

@@ -72,6 +72,11 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
             return null;
         }
 
+        string? autolinkLiteral = MarkdownInlineMetadataSourceSpans.GetAutolinkLiteral(this);
+        if (!string.IsNullOrEmpty(autolinkLiteral)) {
+            return autolinkLiteral;
+        }
+
         if (string.Equals(Text, Url, StringComparison.Ordinal) ||
             (Url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) &&
              string.Equals(Text, Url.Substring("mailto:".Length), StringComparison.Ordinal)) ||

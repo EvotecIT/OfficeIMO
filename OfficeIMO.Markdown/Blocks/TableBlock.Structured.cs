@@ -193,6 +193,11 @@ public sealed partial class TableBlock {
         clone.AutolinkUrls = source.AutolinkUrls;
         clone.AutolinkAllowDomainWithoutPeriod = source.AutolinkAllowDomainWithoutPeriod;
         clone.AutolinkAllowQueryAndFragmentSpecialCharacters = source.AutolinkAllowQueryAndFragmentSpecialCharacters;
+        clone.AutolinkAllowBalancedParenthesesWithTrailingPunctuation = source.AutolinkAllowBalancedParenthesesWithTrailingPunctuation;
+        clone.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = source.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis;
+        clone.AutolinkRequireLowercaseWwwPrefix = source.AutolinkRequireLowercaseWwwPrefix;
+        clone.AutolinkRequireLowercaseBareSchemePrefix = source.AutolinkRequireLowercaseBareSchemePrefix;
+        clone.AutolinkBareMailtoDisplayAddressOnly = source.AutolinkBareMailtoDisplayAddressOnly;
         clone.AutolinkValidPreviousCharacters = source.AutolinkValidPreviousCharacters;
         clone.AutolinkBareSchemeUrls = source.AutolinkBareSchemeUrls;
         clone.AutolinkWwwUrls = source.AutolinkWwwUrls;

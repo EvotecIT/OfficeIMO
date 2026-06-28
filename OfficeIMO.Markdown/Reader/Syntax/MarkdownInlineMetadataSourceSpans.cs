@@ -8,6 +8,7 @@ internal static class MarkdownInlineMetadataSourceSpans {
         public MarkdownSourceSpan? TitleSpan;
         public MarkdownSourceSpan? HtmlTargetSpan;
         public MarkdownSourceSpan? HtmlRelSpan;
+        public string? AutolinkLiteral;
     }
 
     private sealed class LinkHolder {
@@ -109,12 +110,13 @@ internal static class MarkdownInlineMetadataSourceSpans {
         MarkdownSourceSpan? targetSpan,
         MarkdownSourceSpan? titleSpan,
         MarkdownSourceSpan? htmlTargetSpan = null,
-        MarkdownSourceSpan? htmlRelSpan = null) {
+        MarkdownSourceSpan? htmlRelSpan = null,
+        string? autolinkLiteral = null) {
         if (inline == null) {
             return;
         }
 
-        if (!targetSpan.HasValue && !titleSpan.HasValue && !htmlTargetSpan.HasValue && !htmlRelSpan.HasValue) {
+        if (!targetSpan.HasValue && !titleSpan.HasValue && !htmlTargetSpan.HasValue && !htmlRelSpan.HasValue && string.IsNullOrEmpty(autolinkLiteral)) {
             return;
         }
 
@@ -123,7 +125,8 @@ internal static class MarkdownInlineMetadataSourceSpans {
             TargetSpan = targetSpan,
             TitleSpan = titleSpan,
             HtmlTargetSpan = htmlTargetSpan,
-            HtmlRelSpan = htmlRelSpan
+            HtmlRelSpan = htmlRelSpan,
+            AutolinkLiteral = autolinkLiteral
         };
     }
 
@@ -138,6 +141,9 @@ internal static class MarkdownInlineMetadataSourceSpans {
 
     internal static MarkdownSourceSpan? GetLinkHtmlRelSpan(LinkInline? inline) =>
         inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.State?.HtmlRelSpan : null;
+
+    internal static string? GetAutolinkLiteral(LinkInline? inline) =>
+        inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.State?.AutolinkLiteral : null;
 
     internal static void SetImageParts(
         ImageInline? inline,

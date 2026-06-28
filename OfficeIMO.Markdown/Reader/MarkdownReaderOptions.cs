@@ -96,6 +96,7 @@ public sealed class MarkdownReaderOptions {
             AutolinkAllowQueryAndFragmentSpecialCharacters = true,
             AutolinkAllowBalancedParenthesesWithTrailingPunctuation = true,
             AutolinkRequireLowercaseWwwPrefix = true,
+            AutolinkRequireLowercaseBareSchemePrefix = true,
             AutolinkBareSchemeUrls = true,
             AutolinkWwwUrls = true,
             AutolinkWwwScheme = "http://",
@@ -241,17 +242,32 @@ public sealed class MarkdownReaderOptions {
     public bool AutolinkAllowBalancedParenthesesWithTrailingPunctuation { get; set; } = false;
 
     /// <summary>
-    /// When <c>true</c>, bare URL autolinks may keep a final period inside the link when the
-    /// next source character is a closing parenthesis outside the URL. Markdig <c>UseAutoLinks</c>
-    /// keeps that period; cmark-gfm trims it in the comparable GFM case, so this remains opt-in.
+    /// When <c>true</c>, bare URL autolinks may keep final punctuation such as <c>.</c>, <c>,</c>,
+    /// <c>;</c>, <c>!</c>, or <c>?</c> inside the link when the next source character is a closing
+    /// parenthesis outside the URL. Markdig <c>UseAutoLinks</c> keeps that punctuation; cmark-gfm
+    /// trims at least the period in the comparable GFM case, so this remains opt-in.
     /// </summary>
-    public bool AutolinkAllowTrailingPeriodBeforeClosingParenthesis { get; set; } = false;
+    public bool AutolinkAllowTrailingPunctuationBeforeClosingParenthesis { get; set; } = false;
 
     /// <summary>
     /// When <c>true</c>, bare <c>www.</c> autolinks require the prefix itself to be lowercase.
     /// The host portion after the prefix may still use mixed case.
     /// </summary>
     public bool AutolinkRequireLowercaseWwwPrefix { get; set; } = false;
+
+    /// <summary>
+    /// When <c>true</c>, bare scheme autolinks such as <c>mailto:</c>, <c>ftp://</c>, and
+    /// <c>tel:</c> require the scheme prefix itself to be lowercase.
+    /// </summary>
+    public bool AutolinkRequireLowercaseBareSchemePrefix { get; set; } = false;
+
+    /// <summary>
+    /// When <c>true</c>, a bare <c>mailto:user@example.com</c> autolink displays only
+    /// <c>user@example.com</c> while keeping the link target as <c>mailto:user@example.com</c>.
+    /// Markdig <c>UseAutoLinks</c> uses the address-only display; cmark-gfm keeps the full
+    /// <c>mailto:</c> source text as the display label.
+    /// </summary>
+    public bool AutolinkBareMailtoDisplayAddressOnly { get; set; } = false;
 
     /// <summary>
     /// Optional previous-character allow-list for bare URL/email autolinks. When set, a bare

@@ -188,6 +188,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "http-balanced-parens-extra-close", "Visit https://example.com/path_(x)). now" };
         yield return new object[] { "www-balanced-parens-extra-close", "Visit www.example.com/path_(x)). now" };
         yield return new object[] { "https-trailing-period-before-close-paren", "Visit https://example.com/path.) now" };
+        yield return new object[] { "https-trailing-comma-before-close-paren", "Visit https://example.com/path,) now" };
+        yield return new object[] { "https-trailing-semicolon-before-close-paren", "Visit https://example.com/path;) now" };
+        yield return new object[] { "https-trailing-bang-before-close-paren", "Visit https://example.com/path!) now" };
+        yield return new object[] { "https-trailing-question-before-close-paren", "Visit https://example.com/path?) now" };
         yield return new object[] { "www-trailing-period-before-close-paren", "Visit www.example.com/path.) now" };
         yield return new object[] { "uppercase-www-prefix-stays-literal", "Visit WWW.example.com now" };
         yield return new object[] { "mixed-case-www-host", "Visit www.Example.com now" };
@@ -199,6 +203,11 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "tel-url", "Call tel:+123456789 now" };
         yield return new object[] { "tel-url-trailing-dot", "Call tel:+123-456. now" };
         yield return new object[] { "tel-url-parentheses", "Call tel:(123)456 now" };
+        yield return new object[] { "uppercase-ftp-stays-literal", "Visit FTP://example.com/file now" };
+        yield return new object[] { "uppercase-tel-stays-literal", "Call TEL:+123-456 now" };
+        yield return new object[] { "lowercase-mailto-links", "Contact mailto:user@example.com now" };
+        yield return new object[] { "uppercase-mailto-stays-literal", "Contact MAILTO:user@example.com now" };
+        yield return new object[] { "plain-email-stays-literal", "Contact user@example.com now" };
     }
 
     public static IEnumerable<object[]> EmphasisExtrasExtensionCases() {
@@ -276,7 +285,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UseAutoLinks(builder);
 
         var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
-        officeOptions.AutolinkAllowTrailingPeriodBeforeClosingParenthesis = true;
+        officeOptions.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
+        officeOptions.AutolinkEmails = false;
+        officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)

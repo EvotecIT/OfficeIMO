@@ -76,8 +76,10 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.AutolinkAllowDomainWithoutPeriod);
         Assert.True(options.AutolinkAllowQueryAndFragmentSpecialCharacters);
         Assert.True(options.AutolinkAllowBalancedParenthesesWithTrailingPunctuation);
-        Assert.False(options.AutolinkAllowTrailingPeriodBeforeClosingParenthesis);
+        Assert.False(options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis);
         Assert.True(options.AutolinkRequireLowercaseWwwPrefix);
+        Assert.True(options.AutolinkRequireLowercaseBareSchemePrefix);
+        Assert.False(options.AutolinkBareMailtoDisplayAddressOnly);
         Assert.Null(options.AutolinkValidPreviousCharacters);
         Assert.True(options.AutolinkBareSchemeUrls);
         Assert.True(options.AutolinkWwwUrls);
@@ -112,8 +114,10 @@ public class Markdown_Reader_Profile_Tests {
         Assert.True(office.Callouts);
         Assert.False(office.PreserveTrivia);
         Assert.False(office.AutolinkAllowBalancedParenthesesWithTrailingPunctuation);
-        Assert.False(office.AutolinkAllowTrailingPeriodBeforeClosingParenthesis);
+        Assert.False(office.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis);
         Assert.False(office.AutolinkRequireLowercaseWwwPrefix);
+        Assert.False(office.AutolinkRequireLowercaseBareSchemePrefix);
+        Assert.False(office.AutolinkBareMailtoDisplayAddressOnly);
         Assert.Equal(3, office.BlockParserExtensions.Count);
         Assert.Empty(office.InlineParserExtensions);
         Assert.False(commonMark.Callouts);

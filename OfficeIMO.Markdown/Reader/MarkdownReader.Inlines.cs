@@ -111,7 +111,8 @@ public static partial class MarkdownReader {
             MarkdownInlineMetadataSourceSpans.SetLinkParts(
                 link,
                 sourceMap?.GetSpan(targetStart, targetLength),
-                null);
+                null,
+                autolinkLiteral: angleWrapped ? null : text.Substring(start, length));
 
             if (angleWrapped) {
                 MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(

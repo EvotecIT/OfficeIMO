@@ -188,7 +188,7 @@ public class Markdown_Reader_Autolinks_Tests {
         const string markdown = "Visit https://example.com/path.) now\n";
 
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
-        options.AutolinkAllowTrailingPeriodBeforeClosingParenthesis = true;
+        options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
 
         var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -218,6 +218,54 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Markdig_Autolinks_Keep_Trailing_Comma_Before_Closing_Parenthesis_With_Source_Metadata() {
+        const string markdown = "Visit https://example.com/path,) now\n";
+
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
+        var target = Assert.Single(link.Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
+        var semanticLink = Assert.Single(semanticParagraph.Inlines.Nodes.OfType<LinkInline>());
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeLink = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var nativeTarget = Assert.Single(nativeLink.Metadata, metadata => metadata.Name == "target");
+        var written = result.Document.ToMarkdown().Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<a href=\"https://example.com/path,\">https://example.com/path,</a>) now", html, StringComparison.Ordinal);
+        Assert.Equal("https://example.com/path,", semanticLink.Text);
+        Assert.Equal("https://example.com/path,", semanticLink.Url);
+        Assert.Equal("https://example.com/path,", link.Literal);
+        Assert.Equal("https://example.com/path,", target.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 31), target.SourceSpan);
+        Assert.Equal("https://example.com/path,", nativeTarget.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 31), nativeTarget.SourceSpan);
+        Assert.Equal("Visit https://example.com/path,\\) now", written);
+        Assert.DoesNotContain("[https://example.com/path,](https://example.com/path,)", written, StringComparison.Ordinal);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Theory]
+    [InlineData("Visit https://example.com/path;) now", "<a href=\"https://example.com/path;\">https://example.com/path;</a>) now")]
+    [InlineData("Visit https://example.com/path!) now", "<a href=\"https://example.com/path!\">https://example.com/path!</a>) now")]
+    [InlineData("Visit https://example.com/path?) now", "<a href=\"https://example.com/path?\">https://example.com/path?</a>) now")]
+    public void Markdig_Autolinks_Keep_Trailing_NonPeriod_Punctuation_Before_Closing_Parenthesis(string markdown, string expectedHtml) {
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
+
+        var doc = MarkdownReader.Parse(markdown, options);
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains(expectedHtml, html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Gfm_Autolinks_Require_Lowercase_Www_Prefix_But_Allow_Mixed_Case_Host() {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         var upperPrefix = MarkdownReader.Parse("Visit WWW.example.com now", options)
@@ -228,6 +276,56 @@ public class Markdown_Reader_Autolinks_Tests {
         Assert.DoesNotContain("href=", upperPrefix, StringComparison.Ordinal);
         Assert.Contains("<p>Visit WWW.example.com now</p>", upperPrefix, StringComparison.Ordinal);
         Assert.Contains("<a href=\"http://www.Example.com\">www.Example.com</a>", mixedHost, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Gfm_Autolinks_Require_Lowercase_Bare_Scheme_Prefixes() {
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var html = MarkdownReader
+            .Parse("Fetch FTP://example.com/file and ftp://example.com/file; call TEL:+123 and tel:+123; mail MAILTO:user@example.com and mailto:user@example.com.", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"FTP://example.com/file\"", html, StringComparison.Ordinal);
+        Assert.Contains("FTP://example.com/file", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"ftp://example.com/file\">ftp://example.com/file</a>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"TEL:+123\"", html, StringComparison.Ordinal);
+        Assert.Contains("TEL:+123", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"tel:+123\">+123</a>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"MAILTO:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("MAILTO:user@example.com", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"mailto:user@example.com\">mailto:user@example.com</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Markdig_Autolinks_Can_Display_Bare_Mailto_As_Address_Only_While_Writing_Source_Literal() {
+        const string markdown = "Contact mailto:user@example.com now\n";
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.AutolinkBareMailtoDisplayAddressOnly = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
+        var target = Assert.Single(link.Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
+        var semanticLink = Assert.Single(semanticParagraph.Inlines.Nodes.OfType<LinkInline>());
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeLink = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var nativeTarget = Assert.Single(nativeLink.Metadata, metadata => metadata.Name == "target");
+        var written = result.Document.ToMarkdown().Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<a href=\"mailto:user@example.com\">user@example.com</a>", html, StringComparison.Ordinal);
+        Assert.Equal("user@example.com", semanticLink.Text);
+        Assert.Equal("mailto:user@example.com", semanticLink.Url);
+        Assert.Equal("mailto:user@example.com", link.Literal);
+        Assert.Equal("mailto:user@example.com", target.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 31), target.SourceSpan);
+        Assert.Equal("mailto:user@example.com", nativeTarget.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 31), nativeTarget.SourceSpan);
+        Assert.Equal("Contact mailto:user@example.com now", written);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
     [Fact]
