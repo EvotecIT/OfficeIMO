@@ -21,6 +21,8 @@ Status values:
 | Host renderer package | `OfficeIMO.MarkdownRenderer` owns WebView/browser shell rendering and incremental updates |
 | Benchmark evidence | `OfficeIMO.Markdown.Benchmarks` compares parse/syntax-tree parse/HTML render against the current Markdig baseline and now includes transform/diagnostics cost lanes over stable README, transcript, technical-doc, rich-AST, long-list, large-table, and normalization-heavy corpora |
 
+Detailed open work is tracked in `Docs/officeimo.markdown.markdig-parity-gap-plan.md`.
+
 ## Standards Coverage
 
 | Capability | CommonMark profile | GFM profile | OfficeIMO profile | Evidence | Status | Next action |

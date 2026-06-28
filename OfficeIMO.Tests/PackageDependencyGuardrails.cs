@@ -43,11 +43,15 @@ public sealed class PackageDependencyGuardrailTests {
         int gfmFixtureCount = CountJsonArrayEntries("OfficeIMO.Tests/Markdown/Fixtures/GitHubFlavoredMarkdown/cmark-gfm-extensions-smoke.json");
 
         string compatibilityMatrix = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.compatibility-matrix.md"));
-        Assert.Contains($"| CommonMark reference | {commonMarkFixtureCount} CommonMark `0.31.2` smoke fixtures |", compatibilityMatrix, StringComparison.Ordinal);
+        Assert.Contains($"| CommonMark reference | {commonMarkFixtureCount} of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |", compatibilityMatrix, StringComparison.Ordinal);
         Assert.Contains($"| GFM reference | {gfmFixtureCount} cmark-gfm extension smoke fixtures plus a focused upstream ignored-autolink crash regression |", compatibilityMatrix, StringComparison.Ordinal);
 
         string competitorRoadmap = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.markdig-competitor-roadmap.md"));
         Assert.Contains($"standards smoke baseline: {commonMarkFixtureCount} CommonMark `0.31.2` fixtures, {gfmFixtureCount} cmark-gfm extension fixtures", competitorRoadmap, StringComparison.Ordinal);
+
+        string parityGapPlan = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.markdig-parity-gap-plan.md"));
+        Assert.Contains($"| CommonMark corpus | {commonMarkFixtureCount} of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |", parityGapPlan, StringComparison.Ordinal);
+        Assert.Contains($"| GFM corpus | {gfmFixtureCount} cmark-gfm extension smoke fixtures plus focused crash/regression coverage |", parityGapPlan, StringComparison.Ordinal);
 
         string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown/COMPATIBILITY.md"));
         Assert.Contains($"includes {commonMarkFixtureCount} pinned CommonMark 0.31.2 fixtures, {gfmFixtureCount} cmark-gfm smoke fixtures", packageCompatibility, StringComparison.Ordinal);
