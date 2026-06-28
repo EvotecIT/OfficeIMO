@@ -67,6 +67,7 @@ public static partial class MarkdownReader {
                     lines,
                     ref next,
                     CountLeadingIndentColumns(line) + DefinitionContinuationIndentOffset,
+                    null,
                     state.SourceLineOffset,
                     definitionSourceLines,
                     allowLazyContinuation: false);
@@ -344,6 +345,7 @@ public static partial class MarkdownReader {
             lines,
             ref next,
             markerIndent + DefinitionContinuationIndentOffset,
+            string.IsNullOrEmpty(definitionLiteral) ? markerIndent + 4 : null,
             state.SourceLineOffset,
             definitionSourceLines,
             allowLazyContinuation: true);
@@ -404,6 +406,7 @@ public static partial class MarkdownReader {
         string[] lines,
         ref int index,
         int continuationIndent,
+        int? firstContinuationIndent,
         int absoluteLineOffset,
         List<MarkdownSourceLineSlice> definitionSourceLines,
         bool allowLazyContinuation) {
@@ -411,15 +414,19 @@ public static partial class MarkdownReader {
             return;
         }
 
+        bool useFirstContinuationIndent = firstContinuationIndent.HasValue;
         while (index < lines.Length) {
             var line = lines[index] ?? string.Empty;
+            int effectiveContinuationIndent = useFirstContinuationIndent
+                ? firstContinuationIndent.GetValueOrDefault()
+                : continuationIndent;
             if (string.IsNullOrWhiteSpace(line)) {
                 int peek = index;
                 while (peek < lines.Length && string.IsNullOrWhiteSpace(lines[peek])) {
                     peek++;
                 }
 
-                if (peek >= lines.Length || CountLeadingIndentColumns(lines[peek] ?? string.Empty) < continuationIndent) {
+                if (peek >= lines.Length || CountLeadingIndentColumns(lines[peek] ?? string.Empty) < effectiveContinuationIndent) {
                     return;
                 }
 
@@ -430,7 +437,7 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            if (CountLeadingIndentColumns(line) < continuationIndent) {
+            if (CountLeadingIndentColumns(line) < effectiveContinuationIndent) {
                 if (!allowLazyContinuation ||
                     !ShouldConsumeMarkdigDefinitionLazyContinuation(lines, index)) {
                     return;
@@ -442,15 +449,17 @@ public static partial class MarkdownReader {
                     absoluteLineOffset + index + 1,
                     firstContentIndex + 1));
                 index++;
+                useFirstContinuationIndent = false;
                 continue;
             }
 
-            var stripped = StripLeadingIndentColumns(line, continuationIndent);
+            var stripped = StripLeadingIndentColumns(line, effectiveContinuationIndent);
             definitionSourceLines.Add(new MarkdownSourceLineSlice(
                 stripped,
                 absoluteLineOffset + index + 1,
-                GetStartColumnAfterStrippingIndent(line, continuationIndent)));
+                GetStartColumnAfterStrippingIndent(line, effectiveContinuationIndent)));
             index++;
+            useFirstContinuationIndent = false;
         }
     }
 

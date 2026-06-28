@@ -85,7 +85,8 @@ Term
 Term
 :   First paragraph
 [ref]: https://example.com
-"""
+""",
+        "Term\n:   \n    code\n"
     };
 
     [Theory]
@@ -187,6 +188,28 @@ Term
         Assert.Same(definition, definitionValue.AssociatedObject);
         Assert.Same(paragraph, definitionValue.Children[0].AssociatedObject);
         Assert.Same(heading, definitionValue.Children[1].AssociatedObject);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_EmptyMarkdigMarkerContinuation_Strips_FirstContinuationIndent_Source() {
+        const string markdown = "Term\n:   \n    code\n";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks));
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var paragraphSyntax = Assert.Single(definitionValue.Children);
+
+        Assert.Equal("code", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 8), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 8), paragraphSyntax.SourceSpan);
+        Assert.Equal("code", definitionValue.Literal);
+        Assert.Same(definition, definitionValue.AssociatedObject);
+        Assert.Same(paragraph, paragraphSyntax.AssociatedObject);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
