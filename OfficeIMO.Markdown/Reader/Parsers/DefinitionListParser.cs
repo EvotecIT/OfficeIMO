@@ -73,21 +73,23 @@ public static partial class MarkdownReader {
                     definitionSpan = MarkdownBlockSyntaxBuilder.GetAggregateSpan(definitionSyntaxChildren) ?? definitionSpan;
                 }
 
+                var definitionObject = new DefinitionListDefinition(definitionBlocks);
+                var group = new DefinitionListGroup(
+                    new[] { termInlines },
+                    new[] { definitionObject });
+                var termObject = group.TermItems[0];
                 var termNode = MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
                     MarkdownSyntaxKind.DefinitionTerm,
                     termInlines,
                     termSpan,
-                    term);
-                var definitionObject = new DefinitionListDefinition(definitionBlocks);
+                    term,
+                    associatedObject: termObject);
                 var valueNode = new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.DefinitionValue,
                     definitionSpan,
                     RenderDefinitionLiteral(definitionBlocks, def),
                     definitionSyntaxChildren,
                     associatedObject: definitionObject);
-                var group = new DefinitionListGroup(
-                    new[] { termInlines },
-                    new[] { definitionObject });
                 dl.AddParsedGroup(
                     group,
                     new MarkdownSyntaxNode(

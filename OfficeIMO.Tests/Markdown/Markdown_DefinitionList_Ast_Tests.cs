@@ -18,6 +18,8 @@ public sealed class Markdown_DefinitionList_Ast_Tests {
         definitionList.Entries[0].Term = new InlineSequence().Text("Renamed");
 
         Assert.Equal("Renamed", group.Terms[0].RenderMarkdown());
+        Assert.Equal("Renamed", group.TermItems[0].Markdown);
+        Assert.Same(group.TermItems[0].Inlines, group.Terms[0]);
         Assert.All(definitionList.Entries, entry => Assert.Equal("Renamed", entry.TermMarkdown));
         Assert.Equal("Renamed: first\nRenamed: second", ((IMarkdownBlock)definitionList).RenderMarkdown());
 
@@ -42,6 +44,26 @@ public sealed class Markdown_DefinitionList_Ast_Tests {
 
         Assert.Equal(MarkdownSyntaxKind.DefinitionTerm, definitionTerm.Kind);
         Assert.Equal("Renamed", definitionTerm.Literal);
+    }
+
+    [Fact]
+    public void DefinitionList_Parsed_Term_Syntax_Maps_To_Semantic_Term_Node() {
+        var result = MarkdownReader.ParseWithSyntaxTree("**Term**: first");
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var term = Assert.Single(group.TermItems);
+        var compatibilityTerm = Assert.Single(group.Terms);
+        var syntaxTerm = Assert.Single(result.SyntaxTree.Children).Children[0].Children[0];
+        var finalSyntaxTerm = Assert.Single(result.FinalSyntaxTree.Children).Children[0].Children[0];
+
+        Assert.Same(term.Inlines, compatibilityTerm);
+        Assert.Equal("**Term**", term.Markdown);
+        Assert.Equal("Term", term.Text);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 8), term.SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.DefinitionTerm, syntaxTerm.Kind);
+        Assert.Same(term, syntaxTerm.AssociatedObject);
+        Assert.Same(term, finalSyntaxTerm.AssociatedObject);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
     [Fact]

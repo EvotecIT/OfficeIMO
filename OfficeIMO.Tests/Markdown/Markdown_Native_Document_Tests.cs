@@ -685,7 +685,10 @@ Lead[^note]
         Assert.Equal(MarkdownNativeBlockKind.DefinitionList, definitionList.Kind);
         Assert.Equal("Term", term.Text);
         Assert.Equal("**Term**", term.Markdown);
+        Assert.Equal("**Term**", term.TermObject.Markdown);
+        Assert.Same(term.TermObject.Inlines, term.Term);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 8), term.SourceSpan);
+        Assert.Equal(term.SourceSpan, term.TermObject.SourceSpan);
         Assert.Contains(term.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "Term");
         Assert.Equal("Intro\n\n- first\n- second", definition.Markdown.Replace("\r\n", "\n"));
         Assert.Collection(

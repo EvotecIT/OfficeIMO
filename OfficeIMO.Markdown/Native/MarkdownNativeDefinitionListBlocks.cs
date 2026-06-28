@@ -81,17 +81,17 @@ public sealed class MarkdownNativeDefinitionListGroup {
     private static IReadOnlyList<MarkdownNativeDefinitionListTerm> BuildTerms(
         DefinitionListGroup group,
         MarkdownSyntaxNode? syntaxNode) {
-        if (group.Terms.Count == 0) {
+        if (group.TermItems.Count == 0) {
             return Array.Empty<MarkdownNativeDefinitionListTerm>();
         }
 
         var termNodes = syntaxNode?.Children
             .Where(static child => child.Kind == MarkdownSyntaxKind.DefinitionTerm)
             .ToArray() ?? Array.Empty<MarkdownSyntaxNode>();
-        var terms = new List<MarkdownNativeDefinitionListTerm>(group.Terms.Count);
-        for (int i = 0; i < group.Terms.Count; i++) {
+        var terms = new List<MarkdownNativeDefinitionListTerm>(group.TermItems.Count);
+        for (int i = 0; i < group.TermItems.Count; i++) {
             var termNode = i < termNodes.Length ? termNodes[i] : null;
-            terms.Add(new MarkdownNativeDefinitionListTerm(group.Terms[i], termNode));
+            terms.Add(new MarkdownNativeDefinitionListTerm(group.TermItems[i], termNode));
         }
 
         return terms;
@@ -122,19 +122,25 @@ public sealed class MarkdownNativeDefinitionListGroup {
 /// Native projection for a definition-list term.
 /// </summary>
 public sealed class MarkdownNativeDefinitionListTerm {
-    internal MarkdownNativeDefinitionListTerm(InlineSequence term, MarkdownSyntaxNode? syntaxNode) {
-        Term = term ?? new InlineSequence();
+    internal MarkdownNativeDefinitionListTerm(DefinitionListTerm term, MarkdownSyntaxNode? syntaxNode) {
+        TermObject = term ?? new DefinitionListTerm();
         SyntaxNode = syntaxNode;
-        SourceSpan = syntaxNode?.SourceSpan ?? Term.SourceSpan;
-        Text = InlinePlainText.Extract(Term);
-        Markdown = Term.RenderMarkdown();
+        SourceSpan = syntaxNode?.SourceSpan ?? TermObject.SourceSpan;
+        Text = TermObject.Text;
+        Markdown = TermObject.Markdown;
         InlineRuns = syntaxNode != null
             ? MarkdownNativeInlineProjection.FromInlineContainer(syntaxNode)
             : Array.Empty<MarkdownNativeInline>();
     }
 
+    /// <summary>Source semantic term.</summary>
+    public DefinitionListTerm TermObject { get; }
+
     /// <summary>Source term inline sequence.</summary>
-    public InlineSequence Term { get; }
+    public InlineSequence Term => TermObject.Inlines;
+
+    /// <summary>Source term inline sequence.</summary>
+    public InlineSequence Inlines => TermObject.Inlines;
 
     /// <summary>Syntax node that produced this term when available.</summary>
     public MarkdownSyntaxNode? SyntaxNode { get; }

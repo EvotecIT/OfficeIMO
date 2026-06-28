@@ -149,8 +149,8 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
                 continue;
             }
 
-            for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
-                changed |= MarkdownReader.NormalizeInlineSequenceInPlace(group.Terms[termIndex], Options);
+            for (int termIndex = 0; termIndex < group.TermItems.Count; termIndex++) {
+                changed |= MarkdownReader.NormalizeInlineSequenceInPlace(group.TermItems[termIndex].Inlines, Options);
             }
 
             for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {

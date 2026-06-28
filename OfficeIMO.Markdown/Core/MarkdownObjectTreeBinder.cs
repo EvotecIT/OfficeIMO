@@ -120,13 +120,17 @@ internal static class MarkdownObjectTreeBinder {
                 yield break;
 
             case DefinitionListGroup definitionGroup:
-                for (int i = 0; i < definitionGroup.Terms.Count; i++) {
-                    yield return definitionGroup.Terms[i];
+                for (int i = 0; i < definitionGroup.TermItems.Count; i++) {
+                    yield return definitionGroup.TermItems[i];
                 }
 
                 for (int i = 0; i < definitionGroup.Definitions.Count; i++) {
                     yield return definitionGroup.Definitions[i];
                 }
+                yield break;
+
+            case DefinitionListTerm term:
+                yield return term.Inlines;
                 yield break;
 
             case DefinitionListEntry definitionEntry:

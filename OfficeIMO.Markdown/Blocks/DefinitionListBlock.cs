@@ -292,20 +292,22 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
             var groupChildren = new List<MarkdownSyntaxNode>();
             var cachedGroup = FindSyntaxGroupForCurrentGroup(group, groupIndex);
 
-            for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
-                var term = group.Terms[termIndex] ?? new InlineSequence();
+            for (int termIndex = 0; termIndex < group.TermItems.Count; termIndex++) {
+                var termObject = group.TermItems[termIndex] ?? new DefinitionListTerm();
+                var term = termObject.Inlines ?? new InlineSequence();
                 var cachedTerm = FindCachedDefinitionTerm(cachedGroup, termIndex);
                 groupChildren.Add(MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
                     MarkdownSyntaxKind.DefinitionTerm,
                     term,
                     cachedTerm?.SourceSpan,
-                    literal: term.RenderMarkdown()));
+                    literal: term.RenderMarkdown(),
+                    associatedObject: termObject));
             }
 
             for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
                 var definition = group.Definitions[definitionIndex] ?? new DefinitionListDefinition();
                 var definitionLiteral = definition.RenderMarkdown();
-                var cachedDefinition = FindCachedDefinitionValue(cachedGroup, group.Terms.Count + definitionIndex, definition);
+                var cachedDefinition = FindCachedDefinitionValue(cachedGroup, group.TermItems.Count + definitionIndex, definition);
                 var definitionChildren = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(
                     cachedDefinition?.Children,
                     definition.Blocks);
@@ -415,15 +417,17 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
                 return false;
             }
 
-            var expectedChildCount = group.Terms.Count + group.Definitions.Count;
+            var expectedChildCount = group.TermItems.Count + group.Definitions.Count;
             if (syntaxGroup.Children.Count != expectedChildCount) {
                 return false;
             }
 
-            for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
-                var term = group.Terms[termIndex] ?? new InlineSequence();
+            for (int termIndex = 0; termIndex < group.TermItems.Count; termIndex++) {
+                var termObject = group.TermItems[termIndex] ?? new DefinitionListTerm();
+                var term = termObject.Inlines ?? new InlineSequence();
                 var syntaxTerm = syntaxGroup.Children[termIndex];
                 if (syntaxTerm.Kind != MarkdownSyntaxKind.DefinitionTerm
+                    || !ReferenceEquals(syntaxTerm.AssociatedObject, termObject)
                     || !string.Equals(syntaxTerm.Literal ?? string.Empty, term.RenderMarkdown(), StringComparison.Ordinal)) {
                     return false;
                 }
@@ -431,7 +435,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
 
             for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
                 var definition = group.Definitions[definitionIndex] ?? new DefinitionListDefinition();
-                var syntaxDefinition = syntaxGroup.Children[group.Terms.Count + definitionIndex];
+                var syntaxDefinition = syntaxGroup.Children[group.TermItems.Count + definitionIndex];
                 if (syntaxDefinition.Kind != MarkdownSyntaxKind.DefinitionValue
                     || !ReferenceEquals(syntaxDefinition.AssociatedObject, definition)
                     || !string.Equals(syntaxDefinition.Literal ?? string.Empty, definition.RenderMarkdown(), StringComparison.Ordinal)) {
@@ -528,8 +532,8 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         _groups.Add(group);
 
         for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
-            for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
-                var term = group.Terms[termIndex];
+            for (int termIndex = 0; termIndex < group.TermItems.Count; termIndex++) {
+                var term = group.TermItems[termIndex].Inlines;
                 var entry = new DefinitionListEntry(term, group.Definitions[definitionIndex]);
                 entry.BindToDefinitionList(this, group, termIndex);
                 _entries.Add(entry);

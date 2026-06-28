@@ -3682,6 +3682,7 @@ Lead[^1]
 
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[2]);
         var definitionGroup = Assert.Single(definitionList.Groups);
+        var definitionTerm = Assert.Single(definitionGroup.TermItems);
         var definition = Assert.Single(definitionGroup.Definitions);
         var definitionParagraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
         var definitionListBlock = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
@@ -3714,7 +3715,7 @@ Lead[^1]
             quoteParagraph,
             definitionList,
             definitionGroup,
-            definitionGroup.Terms[0],
+            definitionTerm,
             definition,
             definitionParagraph,
             definitionListBlock,
