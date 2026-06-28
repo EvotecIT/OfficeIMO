@@ -2624,6 +2624,13 @@
     "html": "<p><a href=\"https://../\">https://../</a></p>\n"
   },
   {
+    "example": 603,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<https://example.com/\\[\\>\n",
+    "html": "<p><a href=\"https://example.com/%5C%5B%5C\">https://example.com/\\[\\</a></p>\n"
+  },
+  {
     "example": 14,
     "section": "Backslash escapes",
     "topLevelKinds": ["Paragraph"],

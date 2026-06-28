@@ -46,8 +46,8 @@ internal static class HtmlAttributeUrlEncoder {
             }
 
             if (current <= 0x7F) {
-                if (current == ' ') {
-                    builder.Append("%20");
+                if (ShouldPercentEncodeAsciiUrlCharacter(current)) {
+                    AppendPercentEncodedByte(builder, (byte)current);
                 } else {
                     builder.Append(current);
                 }
@@ -64,12 +64,30 @@ internal static class HtmlAttributeUrlEncoder {
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(scalar);
             for (var b = 0; b < bytes.Length; b++) {
-                builder.Append('%');
-                builder.Append(bytes[b].ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+                AppendPercentEncodedByte(builder, bytes[b]);
             }
         }
 
         return builder.ToString();
+    }
+
+    private static bool ShouldPercentEncodeAsciiUrlCharacter(char value) =>
+        value <= 0x20
+        || value == '"'
+        || value == '<'
+        || value == '>'
+        || value == '\\'
+        || value == '['
+        || value == ']'
+        || value == '^'
+        || value == '`'
+        || value == '{'
+        || value == '|'
+        || value == '}';
+
+    private static void AppendPercentEncodedByte(System.Text.StringBuilder builder, byte value) {
+        builder.Append('%');
+        builder.Append(value.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
     }
 
     private static bool IsHex(char value) =>
