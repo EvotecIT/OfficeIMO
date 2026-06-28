@@ -53,7 +53,7 @@ public sealed class MarkdownBodyRenderContext {
     /// Returns the resolved anchor id for a heading block within the current rendered body.
     /// </summary>
     public string GetHeadingAnchor(IMarkdownBlock heading) =>
-        heading is IHeadingMarkdownBlock headingBlock
+        Options.AutoHeadingIdentifiers && heading is IHeadingMarkdownBlock headingBlock
             ? HeadingCatalog.GetHeadingAnchor(headingBlock)
             : string.Empty;
 

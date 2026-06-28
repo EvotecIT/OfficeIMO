@@ -176,6 +176,67 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void HtmlOptions_Can_Disable_Automatic_Heading_Identifiers() {
+            var doc = MarkdownReader.Parse("# Alpha");
+
+            string html = doc.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                AutoHeadingIdentifiers = false,
+                IncludeAnchorLinks = true
+            });
+
+            Assert.Equal("<h1>Alpha</h1>", html);
+        }
+
+        [Fact]
+        public void HtmlOptions_Supports_Markdig_Default_Heading_Identifier_Style() {
+            const string markdown = """
+# Привет мир
+
+# Привет мир
+
+# a_b c.d
+""";
+
+            string html = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.MarkdigDefault
+            });
+
+            Assert.Contains("<h1 id=\"section\">Привет мир</h1>", html, StringComparison.Ordinal);
+            Assert.Contains("<h1 id=\"section-1\">Привет мир</h1>", html, StringComparison.Ordinal);
+            Assert.Contains("<h1 id=\"a_b-c.d\">a_b c.d</h1>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void GitHubFlavoredMarkdown_Html_Profile_Uses_GitHub_Heading_Identifiers() {
+            const string markdown = """
+# Hello World!
+
+# Hello World!
+
+# Привет мир
+
+# a_b c.d
+""";
+
+            var options = HtmlOptions.CreateGitHubFlavoredMarkdownProfile();
+            string html = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile())
+                .ToHtmlFragment(options);
+
+            Assert.True(options.AutoHeadingIdentifiers);
+            Assert.Equal(MarkdownHeadingIdentifierStyle.GitHub, options.HeadingIdentifierStyle);
+            Assert.Contains("<h1 id=\"hello-world\">Hello World!</h1>", html, StringComparison.Ordinal);
+            Assert.Contains("<h1 id=\"hello-world-1\">Hello World!</h1>", html, StringComparison.Ordinal);
+            Assert.Contains("<h1 id=\"привет-мир\">Привет мир</h1>", html, StringComparison.Ordinal);
+            Assert.Contains("<h1 id=\"a_b-cd\">a_b c.d</h1>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Image_With_Dimensions_Renders_Size_And_Caption() {
             var doc = MarkdownDoc.Create()
                 .Image("images/photo.png", alt: "Alt text", title: "Title text", width: 640, height: 480)

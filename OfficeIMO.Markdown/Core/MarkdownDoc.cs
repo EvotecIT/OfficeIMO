@@ -598,9 +598,10 @@ public class MarkdownDoc : MarkdownObject {
         return HtmlRenderer.RenderParts(this, options);
     }
 
-    internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs() {
+    internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs(
+        MarkdownHeadingIdentifierStyle headingIdentifierStyle = MarkdownHeadingIdentifierStyle.OfficeIMO) {
         var registry = MarkdownSlug.CreateRegistry();
-        var (realized, headingCatalog) = RealizeTocPlaceholders(registry);
+        var (realized, headingCatalog) = RealizeTocPlaceholders(registry, headingIdentifierStyle);
         return (realized, headingCatalog);
     }
 
@@ -716,10 +717,12 @@ public class MarkdownDoc : MarkdownObject {
         return Toc(opts => { opts.Title = title ?? ""; opts.IncludeTitle = !string.IsNullOrEmpty(title); opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; opts.Scope = TocScope.HeadingTitle; opts.ScopeHeadingTitle = headingTitle; }, placeAtTop: false);
     }
 
-    private (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) RealizeTocPlaceholders(System.Collections.Generic.Dictionary<string, int> slugRegistry) {
+    private (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) RealizeTocPlaceholders(
+        System.Collections.Generic.Dictionary<string, int> slugRegistry,
+        MarkdownHeadingIdentifierStyle headingIdentifierStyle) {
         // Create a shallow copy first
         var realized = new System.Collections.Generic.List<IMarkdownBlock>(_blocks);
-        var headingCatalog = MarkdownHeadingCatalog.Create(realized, slugRegistry);
+        var headingCatalog = MarkdownHeadingCatalog.Create(realized, slugRegistry, headingIdentifierStyle);
         // Replace placeholders with generated TOC blocks
         for (int i = 0; i < realized.Count; i++) {
             if (realized[i] is ITocPlaceholderMarkdownBlock tocPlaceholder) {

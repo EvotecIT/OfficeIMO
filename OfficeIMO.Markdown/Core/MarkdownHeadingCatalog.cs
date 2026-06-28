@@ -33,10 +33,13 @@ internal sealed class MarkdownHeadingCatalog {
             return slug;
         }
 
-        return MarkdownSlug.GitHub(heading.Text);
+        return MarkdownSlug.Generate(heading.Text, MarkdownHeadingIdentifierStyle.OfficeIMO);
     }
 
-    internal static MarkdownHeadingCatalog Create(IReadOnlyList<IMarkdownBlock> blocks, Dictionary<string, int>? slugRegistry = null) {
+    internal static MarkdownHeadingCatalog Create(
+        IReadOnlyList<IMarkdownBlock> blocks,
+        Dictionary<string, int>? slugRegistry = null,
+        MarkdownHeadingIdentifierStyle style = MarkdownHeadingIdentifierStyle.OfficeIMO) {
         var headings = new List<HeadingEntry>();
         var slugs = new Dictionary<IHeadingMarkdownBlock, string>();
 
@@ -46,8 +49,8 @@ internal sealed class MarkdownHeadingCatalog {
             }
 
             var slug = slugRegistry == null
-                ? MarkdownSlug.GitHub(heading.Text)
-                : MarkdownSlug.GitHub(heading.Text, slugRegistry);
+                ? MarkdownSlug.Generate(heading.Text, style)
+                : MarkdownSlug.Generate(heading.Text, style, slugRegistry);
 
             slugs[heading] = slug;
             headings.Add(new HeadingEntry(idx, heading, slug));

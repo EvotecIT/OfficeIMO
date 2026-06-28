@@ -26,7 +26,7 @@ internal static class HtmlRenderer {
     }
 
     internal static HtmlRenderParts RenderParts(MarkdownDoc doc, HtmlOptions options) {
-        var (realizedBlocks, headingCatalog) = doc.GetBlocksAndHeadingSlugs();
+        var (realizedBlocks, headingCatalog) = doc.GetBlocksAndHeadingSlugs(options.HeadingIdentifierStyle);
         var footnoteState = options.GitHubFootnoteHtml
             ? HtmlFootnoteRenderState.Create(realizedBlocks)
             : null;

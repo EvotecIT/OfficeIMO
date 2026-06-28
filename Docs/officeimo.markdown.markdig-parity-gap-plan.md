@@ -13,7 +13,7 @@ The important distinction: parity is not "more tests." Parity means the parser, 
 | CommonMark full inventory | 652 of 652 official CommonMark `0.31.2` examples currently match; 0 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 43 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | GFM tracked inventory | 43 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 40 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 43 passing, 0 failing |
-| Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 4 covered, 12 partial, 4 intentional, 13 gap |
+| Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 5 covered, 12 partial, 4 intentional, 12 gap |
 | Covered CommonMark sections | ATX headings, Setext headings, thematic breaks, indented code blocks, fenced code blocks, HTML blocks, block quotes, list items, lists, paragraphs, hard breaks, soft breaks, links, images, autolinks, raw HTML, backslash escapes, entity and numeric character references, link reference definitions, tabs |
 | Remaining CommonMark parser clusters | None in the official CommonMark `0.31.2` inventory |
 | Remaining Markdig-class architecture gaps | broader GFM corpus coverage, full lossless trivia capture, full parser pipeline parity, renderer/writer plugin parity, extension-family implementation breadth, release-mode benchmark review |
@@ -27,7 +27,7 @@ Current truth:
 - [x] CommonMark, tracked GFM fixtures, and reflected Markdig extension families are measurable from checked-in reports.
 - [x] GFM smoke behavior is green for the fixture corpus we track today.
 - [x] CommonMark official inventory is closed: 0 official examples are failing.
-- [ ] Markdig extension parity is not closed: 4 extension families meet the full `Covered` bar; the remaining extension families still need implementation, proof, or intentional-out-of-scope decisions.
+- [ ] Markdig extension parity is not closed: 5 extension families meet the full `Covered` bar; the remaining extension families still need implementation, proof, or intentional-out-of-scope decisions.
 - [ ] AST/source/lossless parity is not closed: full trivia, source edits, generated-node diagnostics, and source-aware extension paths are still partial.
 - [ ] Performance parity is not known: release-mode Markdig comparisons still need a stable benchmark pass after correctness stops moving.
 
@@ -38,9 +38,9 @@ This is the active parity backlog. A slice is not complete just because a fixtur
 - [ ] **GFM breadth is still thin.** The current GFM inventory is green, but only 43 tracked fixtures are imported. Missing work: broaden autolinks, strikethrough delimiter edges, HTML tag filtering, and extension-interaction fixtures against upstream-compatible behavior.
 - [ ] **Autolinks are still partial.** CommonMark angle autolinks are green, and Markdig-style previous-character/domain-without-period options now exist, but `UseAutoLinks` remains partial because extended bare URL, `www`, plain-email, scheme, boundary, punctuation, Unicode, source, and writer behavior still need broader Markdig/GFM evidence before promotion.
 - [ ] **Raw HTML and GFM tag filtering are still partial.** CommonMark raw HTML is green and cmark-gfm HTML output now has a first-class `HtmlOptions` profile, but broader GFM tag-filter corpus coverage, sanitizer/escape/strip/allow mode evidence, source/writer behavior, and URL policy still need to stay separated so parser parity is not confused with security policy.
-- [ ] **Markdig extension-family coverage is far from closed.** The current inventory is 4 `Covered`, 12 `Partial`, 4 `Intentional`, and 13 `Gap`. Every non-covered row needs one decision: implement in core, implement as optional extension, route to renderer/host policy, or mark intentional out of scope.
+- [ ] **Markdig extension-family coverage is far from closed.** The current inventory is 5 `Covered`, 12 `Partial`, 4 `Intentional`, and 12 `Gap`. Every non-covered row needs one decision: implement in core, implement as optional extension, route to renderer/host policy, or mark intentional out of scope.
 - [ ] **High-priority partial extension rows need real closure.** Work through `UseAutoLinks`, `UseDefinitionLists`, `UseYamlFrontMatter`, `UseEmphasisExtras`, `UseAlertBlocks`, `UseGenericAttributes`, `UsePreciseSourceLocation`, and parser/render extensions with parser, AST/source, renderer, writer, and fixture evidence.
-- [ ] **High-priority gap rows need scope decisions before implementation.** Decide whether `UseAutoIdentifiers`, `UseCustomContainers`, `UseGridTables`, `UseAbbreviations`, `UseSmartyPants`, `UseCitations`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, `UseFigures`, `UseListExtras`, and similar rows belong in core, optional packages, renderer policy, or intentional differences.
+- [ ] **High-priority gap rows need scope decisions before implementation.** Decide whether `UseCustomContainers`, `UseGridTables`, `UseAbbreviations`, `UseSmartyPants`, `UseCitations`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, `UseFigures`, `UseListExtras`, and similar rows belong in core, optional packages, renderer policy, or intentional differences.
 - [ ] **Canonical AST cleanup is incomplete.** Continue removing duplicated or adapter-heavy node shapes, especially around `ListItem`, `TableBlock`, `CalloutBlock`, `DefinitionListBlock`, front matter, and extension-owned nodes, so semantic blocks, syntax nodes, native snapshots, renderer contexts, writer contexts, and source edits agree on one boundary model.
 - [ ] **Lossless trivia capture is incomplete.** Parser-owned data still needs full whitespace, blank-line, tab, delimiter, marker, raw slice, normalized text, and generated-node diagnostic coverage before editor-grade roundtrip can be claimed.
 - [ ] **Delimiter-token coverage is incomplete.** Inline and block token spans are much better now, but parity still requires complete source tokens for every editor-addressable spelling: emphasis extras, links/images, escapes/entities, hard/soft breaks, HTML tags, footnotes, front matter, tables, and extension inlines/blocks.
@@ -87,6 +87,7 @@ Use this as the non-looping execution board. Each item must either move engine b
 - [x] **Task lists:** moved from partial support to covered support by proving nested markers, exact marker source spans, native snapshots/source edits, renderer output, and ordered/unordered writer behavior.
 - [x] **Footnotes:** moved from partial support to covered support by proving Markdig/GFM breadth, label/body source mapping, renderer output, backlink behavior, and writer behavior.
 - [x] **Soft line break as hard line break:** moved from missing support to covered support by adding an explicit reader option with HTML output, Markdown writing, nested paragraph propagation, and native metadata proof that synthetic hard breaks do not claim a fake marker.
+- [x] **Auto identifiers:** moved from missing support to covered support by proving automatic heading ids, disable behavior, Markdig default and GitHub slug styles, duplicate tracking, GFM profile wiring, and existing heading source/native metadata.
 - [ ] **Autolinks and tag filter:** separate CommonMark autolinks, GFM extended autolinks, and GFM tag-filter behavior into explicit parser/render/security contracts.
 - [ ] **Extension-family decisions:** for every `Partial` or `Gap` row in `Docs/officeimo.markdown.markdig-extension-inventory.md`, choose one outcome: implement in core, implement as optional extension, route to renderer/host policy, or mark intentional out of scope.
 
@@ -147,6 +148,7 @@ These are the actual parity gaps. The test work is listed only where it creates 
 - [x] **CommonMark entity decoder parity.** Entity and numeric character references are green in the full inventory after shared CommonMark decoding covered the remaining official named/numeric examples.
 - [x] **CommonMark hard-break and inline precedence parity.** Hard line breaks are green in the full inventory after preserving raw inline HTML line endings and final-line literal backslashes.
 - [x] **Markdig soft-line-as-hard-line option parity.** `UseSoftlineBreakAsHardlineBreak` is covered by an explicit reader option, renderer/writer behavior, nested paragraph propagation, and native metadata evidence.
+- [x] **Markdig auto-identifier parity.** `UseAutoIdentifiers` is covered by explicit HTML enablement, Markdig-compatible slug styles, duplicate handling, and GFM profile evidence.
 - [x] **CommonMark emphasis inventory parity.** The official CommonMark emphasis section is green in the full inventory; broader Markdig emphasis-extra, source-token, writer, and lossless claims still need their own evidence.
 - [x] **CommonMark container indentation parity.** The remaining 6 failures around tabs, blockquote/list continuation, indented-code boundaries, and source-map-safe column handling are closed in the official inventory.
   - [x] Normalize indentation decisions around visual columns for root blocks, nested blocks, and list marker metadata.
@@ -169,6 +171,7 @@ These are the actual parity gaps. The test work is listed only where it creates 
 - [x] Tackle container indentation as a separate source-map column-model slice.
 - [x] Refresh the CommonMark inventory and smoke fixture set once container indentation is green.
 - [x] Promote `UseSoftlineBreakAsHardlineBreak` only after parser option, renderer, writer, nested paragraph, and native metadata evidence landed.
+- [x] Promote `UseAutoIdentifiers` only after explicit renderer options, Markdig/GitHub slug-style evidence, duplicate handling, and GFM profile wiring landed.
 - [ ] Use `Docs/officeimo.markdown.markdig-extension-inventory.md` to pick the next extension-family slices by row; do not promote `Partial` rows to `Covered` without parser, AST/source, renderer, writer, and fixture evidence.
 - [ ] Return to AST/source/lossless completion once the major parser clusters stop moving node boundaries every slice.
 - [ ] Run release-mode benchmarks only after correctness stabilizes enough for the numbers to mean something.

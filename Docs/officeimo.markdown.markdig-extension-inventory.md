@@ -22,10 +22,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Markdig extension-family rows | 33 |
-| Covered | 4 |
+| Covered | 5 |
 | Partial | 12 |
 | Intentional | 4 |
-| Gap | 13 |
+| Gap | 12 |
 
 ## Extension Families
 
@@ -34,7 +34,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | `UseAbbreviations` | Abbreviations | `Gap` | No OfficeIMO abbreviation parser or renderer contract exists yet. | Decide whether abbreviation expansion belongs in core or an optional inline extension. |
 | `UseAdvancedExtensions` | Advanced extension bundle | `Intentional` | OfficeIMO should track individual feature families instead of claiming bundle parity. | Keep this row as a roll-up guard; do not implement as a broad on switch. |
 | `UseAlertBlocks` | Alert blocks | `Partial` | OfficeIMO has callout blocks and GitHub-style callout parsing, but not Markdig's alert rendering callback shape. | Align callout/alert syntax, AST fields, source spans, and renderer customization explicitly. |
-| `UseAutoIdentifiers` | Auto identifiers | `Gap` | Heading ids are not tracked as a Markdig-compatible extension family. | Design slug generation, duplicate handling, and source/native metadata before enabling. |
+| `UseAutoIdentifiers` | Auto identifiers | `Covered` | OfficeIMO has automatic heading ids with duplicate-slug tracking, an opt-out HTML switch, Markdig default and GitHub-compatible slug styles, GFM HTML profile wiring, heading traversal APIs, and source-backed heading syntax/native metadata. | Keep slug-style and heading-source fixtures aligned as broader renderer profiles evolve. |
 | `UseAutoLinks` | Extended autolinks | `Partial` | OfficeIMO has profile-sensitive bare URL/email autolinks with Markdig-style previous-character and domain-without-period options plus GFM coverage, but broader Markdig/GFM edge breadth is not complete. | Broaden GFM/Markdig autolink cases and finish source/writer evidence before promotion. |
 | `UseBootstrap` | Bootstrap renderer helpers | `Intentional` | This is renderer-theme behavior rather than a core Markdown syntax family for OfficeIMO. | Keep theme/rendering presets separate from parser parity. |
 | `UseCjkFriendlyEmphasis` | CJK-friendly emphasis | `Partial` | OfficeIMO has selected CJK-adjacent emphasis regression coverage, but not a Markdig-compatible CJK emphasis option. | Fold into the CommonMark emphasis delimiter rewrite and keep CJK-specific fixtures explicit. |

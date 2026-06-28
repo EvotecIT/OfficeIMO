@@ -38,6 +38,7 @@ public sealed class HtmlOptions {
             GitHubTaskListHtml = true,
             GitHubFootnoteHtml = true,
             GitHubHtmlTagFilter = true,
+            HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.GitHub,
             RawHtmlHandling = RawHtmlHandling.Allow
         };
     }
@@ -60,6 +61,15 @@ public sealed class HtmlOptions {
     public string Title { get; set; } = "Document";
     /// <summary>Wrap content in &lt;article&gt; with this CSS class. Set to null to avoid wrapper. Default: "markdown-body".</summary>
     public string? BodyClass { get; set; } = "markdown-body";
+    /// <summary>
+    /// When <c>true</c>, headings render automatic <c>id</c> attributes. Default: <c>true</c> to preserve
+    /// OfficeIMO's existing HTML output behavior.
+    /// </summary>
+    public bool AutoHeadingIdentifiers { get; set; } = true;
+    /// <summary>
+    /// Controls the slug algorithm used for automatic heading identifiers.
+    /// </summary>
+    public MarkdownHeadingIdentifierStyle HeadingIdentifierStyle { get; set; } = MarkdownHeadingIdentifierStyle.OfficeIMO;
     /// <summary>Include per-heading anchor links (e.g. '#') in HTML rendering. Default: false.</summary>
     public bool IncludeAnchorLinks { get; set; } = false;
     /// <summary>When true, show a small anchor icon next to headings (on hover by default).</summary>

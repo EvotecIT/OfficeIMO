@@ -118,22 +118,28 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     string IMarkdownBlock.RenderMarkdown() => new string('#', Level) + " " + Inlines.RenderMarkdown();
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
-        var id = MarkdownSlug.GitHub(Text);
+        var id = MarkdownSlug.Generate(Text, MarkdownHeadingIdentifierStyle.OfficeIMO);
         return $"<h{Level} id=\"{id}\">{Inlines.RenderHtml()}</h{Level}>";
     }
 
     string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
-        var id = context.HeadingCatalog.GetHeadingAnchor(this);
+        var id = context.Options.AutoHeadingIdentifiers
+            ? context.HeadingCatalog.GetHeadingAnchor(this)
+            : string.Empty;
 
         var sb = new System.Text.StringBuilder();
-        sb.Append("<h").Append(Level).Append(" id=\"").Append(id).Append("\">");
+        sb.Append("<h").Append(Level);
+        if (!string.IsNullOrEmpty(id)) {
+            sb.Append(" id=\"").Append(System.Net.WebUtility.HtmlEncode(id)).Append("\"");
+        }
+        sb.Append(">");
         sb.Append(Inlines.RenderHtml());
-        if (context.Options.IncludeAnchorLinks || context.Options.ShowAnchorIcons) {
+        if (!string.IsNullOrEmpty(id) && (context.Options.IncludeAnchorLinks || context.Options.ShowAnchorIcons)) {
             var icon = System.Net.WebUtility.HtmlEncode(context.Options.AnchorIcon ?? "🔗");
             sb.Append("<a class=\"heading-anchor\" href=\"#")
-              .Append(id)
+              .Append(System.Net.WebUtility.HtmlEncode(id))
               .Append("\" data-anchor-id=\"")
-              .Append(id)
+              .Append(System.Net.WebUtility.HtmlEncode(id))
               .Append("\" title=\"Copy link\" aria-label=\"Copy link\">")
               .Append(icon)
               .Append("</a>");
