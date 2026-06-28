@@ -1,7 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
+using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -28,11 +28,11 @@ namespace OfficeIMO.Excel {
             using (var reader = CreateReader(effectiveOptions)) {
                 var workbookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is missing.");
                 var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
+                var styleContext = StyleInspectionContext.Create(workbookPart, workbookPart.WorkbookStylesPart?.Stylesheet);
                 snapshot.SlicerPartCount = CountPackagePartsByContentType(workbookPart, "slicer");
                 snapshot.TimelinePartCount = CountPackagePartsByContentType(workbookPart, "timeline");
                 snapshot.ConnectionPartCount = CountPackagePartsByContentType(workbookPart, "connections");
                 snapshot.QueryTablePartCount = CountPackagePartsByContentType(workbookPart, "queryTable");
-                var styleContext = StyleInspectionContext.Create(workbookPart.WorkbookStylesPart?.Stylesheet);
                 var sheetElements = workbook.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
                 int? activeWorksheetIndex = GetActiveWorksheetIndex(workbook, sheetElements.Count);
                 if (activeWorksheetIndex.HasValue) {
@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
                     snapshot.ActiveWorksheetName = sheetElements[activeWorksheetIndex.Value].Name?.Value;
                 }
 
-                var threadedCommentPeople = BuildThreadedCommentPersonMap(workbookPart);
+                var threadedCommentPeople = ExcelWorksheetCommentResolver.BuildThreadedCommentPersonMap(workbookPart);
 
                 for (int sheetIndex = 0; sheetIndex < sheetElements.Count; sheetIndex++) {
                     var sheet = sheetElements[sheetIndex];
@@ -52,9 +52,10 @@ namespace OfficeIMO.Excel {
                     var sheetName = sheet.Name?.Value ?? $"Sheet{sheetIndex + 1}";
                     var readerSheet = reader.GetSheet(sheetName);
                     var typedValues = BuildTypedCellMap(readerSheet);
-                    var hyperlinkMap = BuildHyperlinkMap(worksheetPart);
-                    var commentMap = BuildCommentMap(worksheetPart);
-                    var threadedCommentMap = BuildThreadedCommentMap(worksheetPart, threadedCommentPeople, sheetName);
+                    string usedRangeA1 = readerSheet.GetUsedRangeA1();
+                    var hyperlinkMap = ExcelWorksheetHyperlinkResolver.BuildMap(worksheetPart, usedRangeA1);
+                    var commentMap = ExcelWorksheetCommentResolver.BuildLegacyCommentMap(worksheetPart);
+                    var threadedCommentMap = ExcelWorksheetCommentResolver.BuildThreadedCommentMap(worksheetPart, threadedCommentPeople, sheetName);
 
                     var outlineProperties = worksheet.GetFirstChild<SheetProperties>()?.GetFirstChild<OutlineProperties>();
                     var sheetView = worksheet
@@ -71,10 +72,10 @@ namespace OfficeIMO.Excel {
                         View = sheetView?.View?.InnerText,
                         ZoomScale = sheetView?.ZoomScale?.Value,
                         ZoomScaleNormal = sheetView?.ZoomScaleNormal?.Value,
-                        TabColorArgb = GetColorArgb(worksheet.GetFirstChild<SheetProperties>()?.TabColor),
+                        TabColorArgb = ExcelThemeColorResolver.Resolve(worksheet.GetFirstChild<SheetProperties>()?.TabColor, workbookPart),
                         OutlineSummaryBelow = outlineProperties?.SummaryBelow?.Value,
                         OutlineSummaryRight = outlineProperties?.SummaryRight?.Value,
-                        UsedRangeA1 = readerSheet.GetUsedRangeA1(),
+                        UsedRangeA1 = usedRangeA1,
                     };
 
                     var pane = sheetView?.GetFirstChild<Pane>();
@@ -269,103 +270,6 @@ namespace OfficeIMO.Excel {
             return !(lockFlag?.Value ?? lockedWhenOmitted);
         }
 
-        private static Dictionary<string, ExcelHyperlinkSnapshot> BuildHyperlinkMap(WorksheetPart worksheetPart) {
-            var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
-            var hyperlinks = worksheet.Elements<Hyperlinks>().FirstOrDefault();
-            if (hyperlinks == null) {
-                return new Dictionary<string, ExcelHyperlinkSnapshot>(StringComparer.OrdinalIgnoreCase);
-            }
-
-            var externalRelationships = worksheetPart.HyperlinkRelationships
-                .Where(relationship => !string.IsNullOrWhiteSpace(relationship.Id))
-                .ToDictionary(relationship => relationship.Id!, relationship => relationship, StringComparer.OrdinalIgnoreCase);
-            var map = new Dictionary<string, ExcelHyperlinkSnapshot>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var hyperlink in hyperlinks.Elements<Hyperlink>()) {
-                var reference = hyperlink.Reference?.Value;
-                if (string.IsNullOrWhiteSpace(reference)) {
-                    continue;
-                }
-
-                string? target = null;
-                bool isExternal = false;
-
-                var relationshipId = hyperlink.Id?.Value;
-                if (!string.IsNullOrWhiteSpace(relationshipId) && externalRelationships.TryGetValue(relationshipId!, out var relationship)) {
-                    target = relationship.Uri?.OriginalString;
-                    isExternal = true;
-                } else if (!string.IsNullOrWhiteSpace(hyperlink.Location?.Value)) {
-                    target = hyperlink.Location!.Value!;
-                }
-
-                if (string.IsNullOrWhiteSpace(target)) {
-                    continue;
-                }
-
-                var snapshot = new ExcelHyperlinkSnapshot {
-                    IsExternal = isExternal,
-                    Target = target!,
-                };
-                AddSnapshotForReference(map, worksheet, reference!, snapshot);
-            }
-
-            return map;
-        }
-
-        private static void AddSnapshotForReference<TSnapshot>(Dictionary<string, TSnapshot> map, Worksheet worksheet, string reference, TSnapshot snapshot) {
-            if (A1.TryParseRange(reference, out int rowStart, out int columnStart, out int rowEnd, out int columnEnd)) {
-                foreach (var cell in worksheet.Descendants<Cell>()) {
-                    string? cellReference = cell.CellReference?.Value;
-                    if (!A1.TryParseCellReferenceFast(cellReference, out int row, out int column)) {
-                        continue;
-                    }
-
-                    if (row >= rowStart && row <= rowEnd && column >= columnStart && column <= columnEnd) {
-                        map[A1.CellReference(row, column)] = snapshot;
-                    }
-                }
-
-                return;
-            }
-
-            map[reference] = snapshot;
-        }
-
-        private static Dictionary<string, ExcelCommentSnapshot> BuildCommentMap(WorksheetPart worksheetPart) {
-            var commentsPart = worksheetPart.WorksheetCommentsPart;
-            var comments = commentsPart?.Comments;
-            if (comments?.CommentList == null) {
-                return new Dictionary<string, ExcelCommentSnapshot>(StringComparer.OrdinalIgnoreCase);
-            }
-
-            var authorNames = comments.Authors?
-                .Elements<Author>()
-                .Select(author => author.Text ?? string.Empty)
-                .ToList()
-                ?? new List<string>();
-
-            var map = new Dictionary<string, ExcelCommentSnapshot>(StringComparer.OrdinalIgnoreCase);
-            foreach (var comment in comments.CommentList.Elements<Comment>()) {
-                var reference = comment.Reference?.Value;
-                if (string.IsNullOrWhiteSpace(reference)) {
-                    continue;
-                }
-
-                string? author = null;
-                var authorId = comment.AuthorId?.Value;
-                if (authorId.HasValue && authorId.Value < authorNames.Count) {
-                    author = authorNames[checked((int)authorId.Value)];
-                }
-
-                map[reference!] = new ExcelCommentSnapshot {
-                    Author = string.IsNullOrWhiteSpace(author) ? null : author,
-                    Text = ExtractCommentText(comment.CommentText),
-                };
-            }
-
-            return map;
-        }
-
         private static void AddCommentOnlyCells(ExcelWorksheetSnapshot worksheetSnapshot, IReadOnlyDictionary<string, ExcelCommentSnapshot> commentMap) {
             if (commentMap.Count == 0) {
                 return;
@@ -392,108 +296,6 @@ namespace OfficeIMO.Excel {
                 });
             }
         }
-
-        private static string ExtractCommentText(CommentText? commentText) {
-            if (commentText == null) {
-                return string.Empty;
-            }
-
-            var builder = new System.Text.StringBuilder();
-            foreach (var element in commentText.Descendants<OpenXmlElement>()) {
-                if (element is Text text) {
-                    builder.Append(text.Text);
-                } else if (element is Break) {
-                    builder.Append('\n');
-                }
-            }
-
-            return builder
-                .ToString()
-                .Replace("\r\n", "\n")
-                .Replace('\r', '\n');
-        }
-
-        private static Dictionary<string, string> BuildThreadedCommentPersonMap(WorkbookPart workbookPart) {
-            var people = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var personPart in workbookPart.WorkbookPersonParts) {
-                var personList = personPart.PersonList;
-                if (personList == null) {
-                    continue;
-                }
-
-                foreach (var person in personList.Elements<Threaded.Person>()) {
-                    var id = person.Id?.Value;
-                    if (string.IsNullOrWhiteSpace(id)) {
-                        continue;
-                    }
-
-                    var displayName = person.DisplayName?.Value;
-                    if (!string.IsNullOrWhiteSpace(displayName)) {
-                        people[id!] = displayName!;
-                    }
-                }
-            }
-
-            return people;
-        }
-
-        private static Dictionary<string, List<ExcelThreadedCommentSnapshot>> BuildThreadedCommentMap(
-            WorksheetPart worksheetPart,
-            IReadOnlyDictionary<string, string> people,
-            string sheetName) {
-            var map = new Dictionary<string, List<ExcelThreadedCommentSnapshot>>(StringComparer.OrdinalIgnoreCase);
-            foreach (var commentsPart in worksheetPart.WorksheetThreadedCommentsParts) {
-                var threadedComments = commentsPart.ThreadedComments;
-                if (threadedComments == null) {
-                    continue;
-                }
-
-                foreach (var comment in threadedComments.Elements<Threaded.ThreadedComment>()) {
-                    var reference = comment.Ref?.Value;
-                    if (string.IsNullOrWhiteSpace(reference)) {
-                        continue;
-                    }
-
-                    var personId = comment.PersonId?.Value;
-                    string? author = null;
-                    if (!string.IsNullOrWhiteSpace(personId) && people.TryGetValue(personId!, out var displayName)) {
-                        author = displayName;
-                    }
-
-                    var snapshot = new ExcelThreadedCommentSnapshot {
-                        SheetName = sheetName,
-                        CellReference = reference!,
-                        Id = NullIfWhiteSpace(comment.Id?.Value),
-                        ParentId = NullIfWhiteSpace(comment.ParentId?.Value),
-                        PersonId = NullIfWhiteSpace(personId),
-                        Author = author,
-                        Text = NormalizeMultilineText(comment.ThreadedCommentText?.InnerText ?? string.Empty),
-                        Date = comment.DT?.Value,
-                        Done = comment.Done?.Value == true,
-                    };
-
-                    if (!map.TryGetValue(reference!, out var comments)) {
-                        comments = new List<ExcelThreadedCommentSnapshot>();
-                        map[reference!] = comments;
-                    }
-
-                    comments.Add(snapshot);
-                }
-            }
-
-            return map;
-        }
-
-        private static string? NullIfWhiteSpace(string? value) {
-            return string.IsNullOrWhiteSpace(value) ? null : value;
-        }
-
-        private static string NormalizeMultilineText(string value) {
-            return value
-                .Replace("\r\n", "\n")
-                .Replace('\r', '\n');
-        }
-
         private static ExcelCellStyleSnapshot? BuildCellStyleSnapshot(StyleInspectionContext context, uint? styleIndex) {
             if (!styleIndex.HasValue) {
                 return null;
@@ -508,6 +310,7 @@ namespace OfficeIMO.Excel {
             var font = context.GetFont(cellFormat.FontId?.Value ?? 0U);
             var fill = context.GetFill(cellFormat.FillId?.Value ?? 0U);
             var border = context.GetBorder(cellFormat.BorderId?.Value ?? 0U);
+            bool hasSimpleGradient = context.TryGetSimpleGradientFill(fill, out ExcelGradientFillInfo gradient);
 
             return new ExcelCellStyleSnapshot {
                 StyleIndex = styleIndex.Value,
@@ -518,13 +321,31 @@ namespace OfficeIMO.Excel {
                 Italic = font?.Italic != null,
                 Underline = font?.Underline != null,
                 FontName = font?.FontName?.Val?.Value,
-                FontColorArgb = GetColorArgb(font?.Color),
-                FillColorArgb = GetFillColorArgb(fill),
-                Border = BuildBorderSnapshot(border),
+                FontSize = font?.FontSize?.Val?.Value,
+                FontColorArgb = context.GetColorArgb(font?.Color),
+                FillColorArgb = context.GetFillColorArgb(fill),
+                FillPatternType = context.GetFillPatternType(fill),
+                FillPatternForegroundColorArgb = context.GetFillPatternForegroundColorArgb(fill),
+                FillPatternBackgroundColorArgb = context.GetFillPatternBackgroundColorArgb(fill),
+                FillGradientUnsupported = fill?.GradientFill != null && !hasSimpleGradient,
+                FillGradientStartColorArgb = hasSimpleGradient ? gradient.StartColorArgb : null,
+                FillGradientEndColorArgb = hasSimpleGradient ? gradient.EndColorArgb : null,
+                FillGradientDegree = hasSimpleGradient ? gradient.Degree : null,
+                Border = BuildBorderSnapshot(context, border),
                 HorizontalAlignment = cellFormat.Alignment?.Horizontal?.InnerText,
                 VerticalAlignment = cellFormat.Alignment?.Vertical?.InnerText,
+                TextRotation = ToTextRotation(cellFormat.Alignment?.TextRotation?.Value),
                 WrapText = cellFormat.Alignment?.WrapText?.Value == true,
+                ShrinkToFit = cellFormat.Alignment?.ShrinkToFit?.Value == true,
             };
+        }
+
+        private static int? ToTextRotation(uint? value) {
+            if (!value.HasValue) {
+                return null;
+            }
+
+            return value.Value <= int.MaxValue ? (int)value.Value : (int?)null;
         }
 
         private static ExcelAutoFilterSnapshot? BuildAutoFilterSnapshot(AutoFilter? autoFilter) {
@@ -677,16 +498,16 @@ namespace OfficeIMO.Excel {
             return string.IsNullOrWhiteSpace(attribute.Value) ? null : attribute.Value;
         }
 
-        private static ExcelCellBorderSnapshot? BuildBorderSnapshot(Border? border) {
+        private static ExcelCellBorderSnapshot? BuildBorderSnapshot(StyleInspectionContext context, Border? border) {
             if (border == null) {
                 return null;
             }
 
-            var left = BuildBorderSideSnapshot(border.LeftBorder);
-            var right = BuildBorderSideSnapshot(border.RightBorder);
-            var top = BuildBorderSideSnapshot(border.TopBorder);
-            var bottom = BuildBorderSideSnapshot(border.BottomBorder);
-            var diagonal = BuildBorderSideSnapshot(border.DiagonalBorder);
+            var left = BuildBorderSideSnapshot(context, border.LeftBorder);
+            var right = BuildBorderSideSnapshot(context, border.RightBorder);
+            var top = BuildBorderSideSnapshot(context, border.TopBorder);
+            var bottom = BuildBorderSideSnapshot(context, border.BottomBorder);
+            var diagonal = BuildBorderSideSnapshot(context, border.DiagonalBorder);
             bool diagonalUp = border.DiagonalUp?.Value == true;
             bool diagonalDown = border.DiagonalDown?.Value == true;
 
@@ -705,14 +526,14 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static ExcelBorderSideSnapshot? BuildBorderSideSnapshot(BorderPropertiesType? borderSide) {
+        private static ExcelBorderSideSnapshot? BuildBorderSideSnapshot(StyleInspectionContext context, BorderPropertiesType? borderSide) {
             if (borderSide == null) {
                 return null;
             }
 
             var style = ExtractBorderStyle(borderSide);
 
-            var colorArgb = GetColorArgb(borderSide.GetFirstChild<Color>());
+            var colorArgb = context.GetColorArgb(borderSide.GetFirstChild<Color>());
 
             if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(colorArgb)) {
                 return null;
@@ -744,36 +565,6 @@ namespace OfficeIMO.Excel {
 
             var value = xml.Substring(index, endIndex - index);
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToLowerInvariant();
-        }
-
-        private static string? GetFillColorArgb(Fill? fill) {
-            var patternFill = fill?.PatternFill;
-            if (patternFill == null) {
-                return null;
-            }
-
-            return GetColorArgb(patternFill.ForegroundColor) ?? GetColorArgb(patternFill.BackgroundColor);
-        }
-
-        private static string? GetColorArgb(OpenXmlElement? colorElement) {
-            string? rgb = colorElement switch {
-                Color color => color.Rgb?.Value,
-                TabColor tabColor => tabColor.Rgb?.Value,
-                ForegroundColor foregroundColor => foregroundColor.Rgb?.Value,
-                BackgroundColor backgroundColor => backgroundColor.Rgb?.Value,
-                _ => null,
-            };
-
-            if (string.IsNullOrWhiteSpace(rgb)) {
-                return null;
-            }
-
-            rgb = rgb!.Trim();
-            if (rgb.Length == 6) {
-                return "FF" + rgb.ToUpperInvariant();
-            }
-
-            return rgb.Length == 8 ? rgb.ToUpperInvariant() : null;
         }
 
         private static int? GetActiveWorksheetIndex(Workbook workbook, int sheetCount) {
@@ -838,13 +629,16 @@ namespace OfficeIMO.Excel {
             private readonly IReadOnlyList<Fill> _fills;
             private readonly IReadOnlyList<Border> _borders;
             private readonly Dictionary<uint, string> _numberFormats;
+            private readonly WorkbookPart? _workbookPart;
 
             private StyleInspectionContext(
+                WorkbookPart? workbookPart,
                 IReadOnlyList<CellFormat> cellFormats,
                 IReadOnlyList<Font> fonts,
                 IReadOnlyList<Fill> fills,
                 IReadOnlyList<Border> borders,
                 Dictionary<uint, string> numberFormats) {
+                _workbookPart = workbookPart;
                 _cellFormats = cellFormats;
                 _fonts = fonts;
                 _fills = fills;
@@ -852,7 +646,7 @@ namespace OfficeIMO.Excel {
                 _numberFormats = numberFormats;
             }
 
-            internal static StyleInspectionContext Create(Stylesheet? stylesheet) {
+            internal static StyleInspectionContext Create(WorkbookPart? workbookPart, Stylesheet? stylesheet) {
                 var numberFormats = new Dictionary<uint, string>();
                 if (stylesheet?.NumberingFormats != null) {
                     foreach (var numberingFormat in stylesheet.NumberingFormats.Elements<NumberingFormat>()) {
@@ -863,6 +657,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 return new StyleInspectionContext(
+                    workbookPart,
                     stylesheet?.CellFormats?.Elements<CellFormat>().ToList() ?? new List<CellFormat>(),
                     stylesheet?.Fonts?.Elements<Font>().ToList() ?? new List<Font>(),
                     stylesheet?.Fills?.Elements<Fill>().ToList() ?? new List<Fill>(),
@@ -895,6 +690,50 @@ namespace OfficeIMO.Excel {
                 return IsBuiltInDate(numberFormatId)
                     || (_numberFormats.TryGetValue(numberFormatId, out var code) && ExcelNumberFormatClassifier.LooksLikeDateFormat(code));
             }
+
+            internal string? GetColorArgb(OpenXmlElement? colorElement) {
+                return ExcelThemeColorResolver.Resolve(colorElement, _workbookPart);
+            }
+
+            internal string? GetFillColorArgb(Fill? fill) {
+                var patternFill = fill?.PatternFill;
+                if (patternFill == null) {
+                    return null;
+                }
+
+                if (patternFill.PatternType?.Value == PatternValues.Solid) {
+                    return GetColorArgb(patternFill.ForegroundColor) ?? GetColorArgb(patternFill.BackgroundColor);
+                }
+
+                return GetColorArgb(patternFill.BackgroundColor);
+            }
+
+            internal string? GetFillPatternType(Fill? fill) {
+                var patternFill = fill?.PatternFill;
+                if (patternFill?.PatternType?.Value == null) {
+                    return fill?.GradientFill != null ? "gradient" : null;
+                }
+
+                if (patternFill.PatternType.Value == PatternValues.None) {
+                    return null;
+                }
+
+                string text = patternFill.PatternType.InnerText ?? string.Empty;
+                return string.IsNullOrEmpty(text) ? string.Empty : char.ToLowerInvariant(text[0]) + text.Substring(1);
+            }
+
+            internal string? GetFillPatternForegroundColorArgb(Fill? fill) {
+                var patternFill = fill?.PatternFill;
+                return patternFill == null ? null : GetColorArgb(patternFill.ForegroundColor);
+            }
+
+            internal string? GetFillPatternBackgroundColorArgb(Fill? fill) {
+                var patternFill = fill?.PatternFill;
+                return patternFill == null ? null : GetColorArgb(patternFill.BackgroundColor);
+            }
+
+            internal bool TryGetSimpleGradientFill(Fill? fill, out ExcelGradientFillInfo gradient) =>
+                ExcelGradientFillResolver.TryResolveSimpleLinearGradient(fill, _workbookPart, out gradient);
 
             private static bool IsBuiltInDate(uint id) {
                 return id is 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22

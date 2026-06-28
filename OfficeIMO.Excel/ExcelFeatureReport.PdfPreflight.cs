@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
+using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -87,51 +88,15 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddUnrenderedDrawingShapes(WorksheetPart worksheetPart, string sheetName, ref int count, List<string> details) {
-            var drawings = worksheetPart.DrawingsPart?.WorksheetDrawing?
-                .Descendants()
-                .Where(IsUnrenderedPdfDrawingElement)
-                .ToList();
-            if (drawings == null || drawings.Count == 0) {
+            IReadOnlyList<ExcelWorksheetDrawingObjectInfo> drawings = ExcelWorksheetDrawingObjectResolver.FindDrawingObjects(worksheetPart);
+            if (drawings.Count == 0) {
                 return;
             }
 
             count += drawings.Count;
-            foreach (OpenXmlElement drawing in drawings) {
-                string name = drawing.Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.NonVisualDrawingProperties>()
-                    .FirstOrDefault()?.Name?.Value ?? $"unnamed {GetDrawingElementDisplayName(drawing)}";
-                details.Add($"{sheetName}: {name} ({GetDrawingElementDisplayName(drawing)})");
-            }
-        }
-
-        private static bool IsUnrenderedPdfDrawingElement(OpenXmlElement element) {
-            if (!string.Equals(element.NamespaceUri, "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing", StringComparison.Ordinal)) {
-                return false;
-            }
-
-            switch (element.LocalName) {
-                case "sp":
-                case "cxnSp":
-                case "grpSp":
-                    return true;
-                case "graphicFrame":
-                    return !element.Descendants<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().Any();
-                default:
-                    return false;
-            }
-        }
-
-        private static string GetDrawingElementDisplayName(OpenXmlElement element) {
-            switch (element.LocalName) {
-                case "sp":
-                    return "shape";
-                case "cxnSp":
-                    return "connector";
-                case "grpSp":
-                    return "group shape";
-                case "graphicFrame":
-                    return "graphic frame";
-                default:
-                    return element.LocalName;
+            foreach (ExcelWorksheetDrawingObjectInfo drawing in drawings) {
+                string source = drawing.CellReference == null ? sheetName : sheetName + "!" + drawing.CellReference;
+                details.Add($"{source}: {drawing.Name} ({drawing.Kind})");
             }
         }
 
@@ -386,13 +351,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (IsPngContentType(image.ContentType) && imageInfo!.Format != OfficeImageFormat.Png) {
-                reason = $"image bytes were declared as PNG but detected as {imageInfo.Format}.";
-                return false;
-            }
-
-            if (IsJpegContentType(image.ContentType) && imageInfo!.Format != OfficeImageFormat.Jpeg) {
-                reason = $"image bytes were declared as JPEG but detected as {imageInfo.Format}.";
+            if (OfficeImagePdfCompatibility.TryGetSupportedContentTypeFormat(image.ContentType, out OfficeImageFormat declaredFormat) &&
+                imageInfo!.Format != declaredFormat) {
+                reason = $"image bytes were declared as {GetPdfImageFormatDisplayName(declaredFormat)} but detected as {imageInfo.Format}.";
                 return false;
             }
 
@@ -421,13 +382,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (IsPngContentType(image.ContentType) && imageInfo!.Format != OfficeImageFormat.Png) {
-                reason = $"image bytes were declared as PNG but detected as {imageInfo.Format}.";
-                return false;
-            }
-
-            if (IsJpegContentType(image.ContentType) && imageInfo!.Format != OfficeImageFormat.Jpeg) {
-                reason = $"image bytes were declared as JPEG but detected as {imageInfo.Format}.";
+            if (OfficeImagePdfCompatibility.TryGetSupportedContentTypeFormat(image.ContentType, out OfficeImageFormat declaredFormat) &&
+                imageInfo!.Format != declaredFormat) {
+                reason = $"image bytes were declared as {GetPdfImageFormatDisplayName(declaredFormat)} but detected as {imageInfo.Format}.";
                 return false;
             }
 
@@ -440,17 +397,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsPdfSupportedImageContentType(string contentType) {
-            return IsPngContentType(contentType) || IsJpegContentType(contentType);
+            return OfficeImagePdfCompatibility.IsSupportedContentType(contentType);
         }
 
-        private static bool IsPngContentType(string contentType) {
-            return string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool IsJpegContentType(string contentType) {
-            return string.Equals(contentType, "image/jpeg", StringComparison.OrdinalIgnoreCase)
-                   || string.Equals(contentType, "image/jpg", StringComparison.OrdinalIgnoreCase);
-        }
+        private static string GetPdfImageFormatDisplayName(OfficeImageFormat format) =>
+            format == OfficeImageFormat.Jpeg ? "JPEG" : format.ToString().ToUpperInvariant();
 
         private static bool IsHyperlinkRelationship(ExternalRelationship relationship) {
             return relationship.RelationshipType.EndsWith("/hyperlink", StringComparison.OrdinalIgnoreCase);

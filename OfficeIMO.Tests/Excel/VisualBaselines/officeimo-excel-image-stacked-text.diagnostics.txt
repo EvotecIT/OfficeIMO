@@ -1,0 +1,3 @@
+Warning|ExcelCellTextRotationApproximation|StackedText!B3|Cell text rotation was rendered using the shared drawing engine, but Excel baseline, anchoring, and stacked text behavior are still approximate.
+Warning|ExcelCellTextRotationApproximation|StackedText!C3|Cell text rotation was rendered using the shared drawing engine, but Excel baseline, anchoring, and stacked text behavior are still approximate.
+Warning|ExcelCellTextRotationApproximation|StackedText!D3|Cell text rotation was rendered using the shared drawing engine, but Excel baseline, anchoring, and stacked text behavior are still approximate.

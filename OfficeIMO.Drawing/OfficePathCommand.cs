@@ -10,10 +10,10 @@ public struct OfficePathCommand : IEquatable<OfficePathCommand> {
     /// <summary>Command type.</summary>
     public OfficePathCommandKind Kind { get; }
 
-    /// <summary>Primary point. For cubic Bezier commands this is the end point.</summary>
+    /// <summary>Primary point. For Bezier commands this is the end point.</summary>
     public OfficePoint Point { get; }
 
-    /// <summary>First cubic Bezier control point.</summary>
+    /// <summary>First Bezier control point.</summary>
     public OfficePoint ControlPoint1 { get; }
 
     /// <summary>Second cubic Bezier control point.</summary>
@@ -38,6 +38,14 @@ public struct OfficePathCommand : IEquatable<OfficePathCommand> {
     /// <summary>Creates a line command.</summary>
     public static OfficePathCommand LineTo(OfficePoint point) => new OfficePathCommand(OfficePathCommandKind.LineTo, point, default(OfficePoint), default(OfficePoint));
 
+    /// <summary>Creates a quadratic Bezier curve command.</summary>
+    public static OfficePathCommand QuadraticBezierTo(double controlX, double controlY, double endX, double endY)
+        => QuadraticBezierTo(new OfficePoint(controlX, controlY), new OfficePoint(endX, endY));
+
+    /// <summary>Creates a quadratic Bezier curve command.</summary>
+    public static OfficePathCommand QuadraticBezierTo(OfficePoint controlPoint, OfficePoint endPoint)
+        => new OfficePathCommand(OfficePathCommandKind.QuadraticBezierTo, endPoint, controlPoint, default(OfficePoint));
+
     /// <summary>Creates a cubic Bezier curve command.</summary>
     public static OfficePathCommand CubicBezierTo(double control1X, double control1Y, double control2X, double control2Y, double endX, double endY)
         => CubicBezierTo(new OfficePoint(control1X, control1Y), new OfficePoint(control2X, control2Y), new OfficePoint(endX, endY));
@@ -54,12 +62,40 @@ public struct OfficePathCommand : IEquatable<OfficePathCommand> {
             case OfficePathCommandKind.MoveTo:
             case OfficePathCommandKind.LineTo:
                 return new OfficePathCommand(Kind, new OfficePoint(Point.X - offsetX, Point.Y - offsetY), default(OfficePoint), default(OfficePoint));
+            case OfficePathCommandKind.QuadraticBezierTo:
+                return new OfficePathCommand(
+                    Kind,
+                    new OfficePoint(Point.X - offsetX, Point.Y - offsetY),
+                    new OfficePoint(ControlPoint1.X - offsetX, ControlPoint1.Y - offsetY),
+                    default(OfficePoint));
             case OfficePathCommandKind.CubicBezierTo:
                 return new OfficePathCommand(
                     Kind,
                     new OfficePoint(Point.X - offsetX, Point.Y - offsetY),
                     new OfficePoint(ControlPoint1.X - offsetX, ControlPoint1.Y - offsetY),
                     new OfficePoint(ControlPoint2.X - offsetX, ControlPoint2.Y - offsetY));
+            default:
+                return this;
+        }
+    }
+
+    internal OfficePathCommand Scale(double scaleX, double scaleY) {
+        switch (Kind) {
+            case OfficePathCommandKind.MoveTo:
+            case OfficePathCommandKind.LineTo:
+                return new OfficePathCommand(Kind, new OfficePoint(Point.X * scaleX, Point.Y * scaleY), default(OfficePoint), default(OfficePoint));
+            case OfficePathCommandKind.QuadraticBezierTo:
+                return new OfficePathCommand(
+                    Kind,
+                    new OfficePoint(Point.X * scaleX, Point.Y * scaleY),
+                    new OfficePoint(ControlPoint1.X * scaleX, ControlPoint1.Y * scaleY),
+                    default(OfficePoint));
+            case OfficePathCommandKind.CubicBezierTo:
+                return new OfficePathCommand(
+                    Kind,
+                    new OfficePoint(Point.X * scaleX, Point.Y * scaleY),
+                    new OfficePoint(ControlPoint1.X * scaleX, ControlPoint1.Y * scaleY),
+                    new OfficePoint(ControlPoint2.X * scaleX, ControlPoint2.Y * scaleY));
             default:
                 return this;
         }

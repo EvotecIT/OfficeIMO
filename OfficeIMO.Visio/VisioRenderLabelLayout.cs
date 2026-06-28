@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using OfficeIMO.Drawing;
 using System.Linq;
 
 namespace OfficeIMO.Visio {
@@ -92,7 +93,7 @@ namespace OfficeIMO.Visio {
             }
 
             double position = VisioConnectorLabelPlacement.ClampPosition(placement?.Position ?? 0.5D);
-            (double x, double y) = InterpolatePath(path, position);
+            (double x, double y) = OfficeGeometry.InterpolatePolyline(path, position);
             double offsetX = placement?.OffsetX ?? 0D;
             double offsetY = placement?.OffsetY ?? 0D;
             return new LabelPlacementSeed(x + offsetX, y + offsetY, position, width, height, locPinX, locPinY, offsetX, offsetY);
@@ -106,13 +107,13 @@ namespace OfficeIMO.Visio {
                 foreach (int direction in new[] { 1, -1 }) {
                     double positionDelta = delta * direction;
                     double position = VisioConnectorLabelPlacement.ClampPosition(seed.Position + positionDelta);
-                    (double x, double y) = InterpolatePath(path, position);
+                    (double x, double y) = OfficeGeometry.InterpolatePolyline(path, position);
                     double candidateX = x + seed.OffsetX;
                     double candidateY = y + seed.OffsetY;
                     yield return new LabelCandidate(
                         candidateX,
                         candidateY,
-                        Distance(candidateX, candidateY, seed.X, seed.Y),
+                        OfficeGeometry.Distance(candidateX, candidateY, seed.X, seed.Y),
                         positionDelta);
                 }
             }
@@ -202,77 +203,32 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            if (Math.Max(first.X, second.X) < bounds.Left ||
-                Math.Min(first.X, second.X) > bounds.Right ||
-                Math.Max(first.Y, second.Y) < bounds.Bottom ||
-                Math.Min(first.Y, second.Y) > bounds.Top) {
-                return false;
-            }
-
-            if (ContainsPoint(bounds, first) || ContainsPoint(bounds, second)) {
-                return true;
-            }
-
-            (double X, double Y) bottomLeft = (bounds.Left, bounds.Bottom);
-            (double X, double Y) bottomRight = (bounds.Right, bounds.Bottom);
-            (double X, double Y) topRight = (bounds.Right, bounds.Top);
-            (double X, double Y) topLeft = (bounds.Left, bounds.Top);
-            return SegmentsIntersect(first, second, bottomLeft, bottomRight) ||
-                   SegmentsIntersect(first, second, bottomRight, topRight) ||
-                   SegmentsIntersect(first, second, topRight, topLeft) ||
-                   SegmentsIntersect(first, second, topLeft, bottomLeft);
+            return OfficeGeometry.SegmentIntersectsRectangle(
+                first,
+                second,
+                bounds.Left,
+                bounds.Bottom,
+                bounds.Right,
+                bounds.Top);
         }
-
-        private static bool ContainsPoint(VisioShapeBounds bounds, (double X, double Y) point) =>
-            point.X >= bounds.Left && point.X <= bounds.Right &&
-            point.Y >= bounds.Bottom && point.Y <= bounds.Top;
-
-        private static bool SegmentsIntersect(
-            (double X, double Y) firstStart,
-            (double X, double Y) firstEnd,
-            (double X, double Y) secondStart,
-            (double X, double Y) secondEnd) {
-            double d1 = Direction(secondStart, secondEnd, firstStart);
-            double d2 = Direction(secondStart, secondEnd, firstEnd);
-            double d3 = Direction(firstStart, firstEnd, secondStart);
-            double d4 = Direction(firstStart, firstEnd, secondEnd);
-
-            if (((d1 > 0D && d2 < 0D) || (d1 < 0D && d2 > 0D)) &&
-                ((d3 > 0D && d4 < 0D) || (d3 < 0D && d4 > 0D))) {
-                return true;
-            }
-
-            return (Math.Abs(d1) <= 1e-9 && OnSegment(secondStart, secondEnd, firstStart)) ||
-                   (Math.Abs(d2) <= 1e-9 && OnSegment(secondStart, secondEnd, firstEnd)) ||
-                   (Math.Abs(d3) <= 1e-9 && OnSegment(firstStart, firstEnd, secondStart)) ||
-                   (Math.Abs(d4) <= 1e-9 && OnSegment(firstStart, firstEnd, secondEnd));
-        }
-
-        private static double Direction((double X, double Y) start, (double X, double Y) end, (double X, double Y) point) =>
-            ((point.X - start.X) * (end.Y - start.Y)) - ((point.Y - start.Y) * (end.X - start.X));
-
-        private static bool OnSegment((double X, double Y) start, (double X, double Y) end, (double X, double Y) point) =>
-            point.X >= Math.Min(start.X, end.X) - 1e-9 &&
-            point.X <= Math.Max(start.X, end.X) + 1e-9 &&
-            point.Y >= Math.Min(start.Y, end.Y) - 1e-9 &&
-            point.Y <= Math.Max(start.Y, end.Y) + 1e-9;
 
         private static bool HasVisibleConnectorLine(VisioConnector connector) =>
             connector.LinePattern != 0 && connector.LineWeight > 0D && connector.LineColor.A > 0;
 
         private static List<(double X, double Y)> GetConnectorPoints(VisioConnector connector) {
             ComputeConnectorEndpoints(connector, out double startX, out double startY, out double endX, out double endY);
-            List<(double X, double Y)> points = new() { (startX, startY) };
+            List<(double X, double Y)> waypoints = new(connector.Waypoints.Count);
             if (connector.Waypoints.Count > 0) {
                 foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                    points.Add((waypoint.X, waypoint.Y));
+                    waypoints.Add((waypoint.X, waypoint.Y));
                 }
-            } else if (connector.Kind == ConnectorKind.RightAngle) {
-                points.Add((startX, endY));
             }
 
-            points.Add((endX, endY));
-            return points;
+            return OfficeGeometry.BuildConnectorPolyline(
+                (startX, startY),
+                (endX, endY),
+                waypoints,
+                connector.Kind == ConnectorKind.RightAngle);
         }
 
         private static void ComputeConnectorEndpoints(VisioConnector connector, out double startX, out double startY, out double endX, out double endY) {
@@ -328,60 +284,17 @@ namespace OfficeIMO.Visio {
             double targetTop,
             out double x,
             out double y) {
-            double sourceCenterX = (sourceLeft + sourceRight) / 2D;
-            double sourceCenterY = (sourceBottom + sourceTop) / 2D;
-            double targetCenterX = (targetLeft + targetRight) / 2D;
-            double targetCenterY = (targetBottom + targetTop) / 2D;
-            double dx = targetCenterX - sourceCenterX;
-            double dy = targetCenterY - sourceCenterY;
-
-            if (Math.Abs(dy) > Math.Abs(dx)) {
-                x = sourceCenterX;
-                y = dy >= 0D ? sourceTop : sourceBottom;
-                return;
-            }
-
-            x = dx >= 0D ? sourceRight : sourceLeft;
-            y = sourceCenterY;
-        }
-
-        private static (double X, double Y) InterpolatePath(IReadOnlyList<(double X, double Y)> points, double position) {
-            if (points.Count == 0) {
-                return (0D, 0D);
-            }
-
-            if (points.Count == 1) {
-                return points[0];
-            }
-
-            double total = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                total += Distance(points[i - 1].X, points[i - 1].Y, points[i].X, points[i].Y);
-            }
-
-            if (total <= 0D) {
-                return points[0];
-            }
-
-            double target = total * VisioConnectorLabelPlacement.ClampPosition(position);
-            double traversed = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                double segment = Distance(points[i - 1].X, points[i - 1].Y, points[i].X, points[i].Y);
-                if (segment <= 0D) {
-                    continue;
-                }
-
-                if (traversed + segment >= target) {
-                    double t = (target - traversed) / segment;
-                    return (
-                        points[i - 1].X + ((points[i].X - points[i - 1].X) * t),
-                        points[i - 1].Y + ((points[i].Y - points[i - 1].Y) * t));
-                }
-
-                traversed += segment;
-            }
-
-            return points[points.Count - 1];
+            OfficeGeometry.ResolveRectangleBoundaryEndpoint(
+                sourceLeft,
+                sourceBottom,
+                sourceRight,
+                sourceTop,
+                targetLeft,
+                targetBottom,
+                targetRight,
+                targetTop,
+                out x,
+                out y);
         }
 
         private static bool Contains(VisioShapeBounds outer, VisioShapeBounds inner) {
@@ -400,12 +313,6 @@ namespace OfficeIMO.Visio {
             double width = Math.Max(0D, Math.Min(first.Right, second.Right) - Math.Max(first.Left, second.Left));
             double height = Math.Max(0D, Math.Min(first.Top, second.Top) - Math.Max(first.Bottom, second.Bottom));
             return width * height;
-        }
-
-        private static double Distance(double x1, double y1, double x2, double y2) {
-            double dx = x2 - x1;
-            double dy = y2 - y1;
-            return Math.Sqrt((dx * dx) + (dy * dy));
         }
 
         private readonly struct LabelPlacementSeed {

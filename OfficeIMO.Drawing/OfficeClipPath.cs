@@ -87,6 +87,11 @@ public sealed class OfficeClipPath {
                     IncludePoint(command.Point, ref minX, ref minY, ref maxX, ref maxY, ref hasPoint, nameof(commands));
                     hasDraw = true;
                     break;
+                case OfficePathCommandKind.QuadraticBezierTo:
+                    IncludePoint(command.ControlPoint1, ref minX, ref minY, ref maxX, ref maxY, ref hasPoint, nameof(commands));
+                    IncludePoint(command.Point, ref minX, ref minY, ref maxX, ref maxY, ref hasPoint, nameof(commands));
+                    hasDraw = true;
+                    break;
                 case OfficePathCommandKind.CubicBezierTo:
                     IncludePoint(command.ControlPoint1, ref minX, ref minY, ref maxX, ref maxY, ref hasPoint, nameof(commands));
                     IncludePoint(command.ControlPoint2, ref minX, ref minY, ref maxX, ref maxY, ref hasPoint, nameof(commands));
@@ -133,6 +138,36 @@ public sealed class OfficeClipPath {
         CornerRadius = CornerRadius,
         Commands = new ReadOnlyCollection<OfficePathCommand>(new List<OfficePathCommand>(Commands))
     };
+
+    /// <summary>
+    /// Creates a scaled detached copy of this clipping path.
+    /// </summary>
+    /// <param name="scaleX">Horizontal scale factor.</param>
+    /// <param name="scaleY">Vertical scale factor.</param>
+    /// <returns>A new clipping path scaled in local coordinates.</returns>
+    public OfficeClipPath Scale(double scaleX, double scaleY) {
+        ValidatePositiveFinite(scaleX, nameof(scaleX));
+        ValidatePositiveFinite(scaleY, nameof(scaleY));
+        if (Math.Abs(scaleX - 1D) <= 0.000001D && Math.Abs(scaleY - 1D) <= 0.000001D) {
+            return Clone();
+        }
+
+        switch (Kind) {
+            case OfficeClipPathKind.Rectangle:
+                return Rectangle(Width * scaleX, Height * scaleY);
+            case OfficeClipPathKind.RoundedRectangle:
+                return RoundedRectangle(Width * scaleX, Height * scaleY, CornerRadius * Math.Min(scaleX, scaleY));
+            case OfficeClipPathKind.Path:
+                var commands = new List<OfficePathCommand>(Commands.Count);
+                for (int i = 0; i < Commands.Count; i++) {
+                    commands.Add(Commands[i].Scale(scaleX, scaleY));
+                }
+
+                return Path(commands);
+            default:
+                return Clone();
+        }
+    }
 
     private static void IncludePoint(OfficePoint point, ref double minX, ref double minY, ref double maxX, ref double maxY, ref bool hasPoint, string paramName) {
         ValidateFinitePoint(point, paramName);

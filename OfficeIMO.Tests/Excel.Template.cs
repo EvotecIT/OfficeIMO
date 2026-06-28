@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using A = DocumentFormat.OpenXml.Drawing;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
@@ -1194,6 +1195,20 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain("{{", wsPart.Worksheet!.OuterXml, StringComparison.Ordinal);
                 Assert.Equal(2, wsPart.DrawingsPart.ImageParts.Count());
             }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_ImageFromUrlDefaultsToSharedPngContentType() {
+            var image = ExcelTemplateImage.FromUrl("https://example.test/logo.png");
+
+            Assert.Equal(OfficeImageInfo.GetMimeType(OfficeImageFormat.Png), image.ContentType);
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_ImageFromBytesNormalizesKnownContentTypeAlias() {
+            var image = ExcelTemplateImage.FromBytes(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, " image/jpg; charset=binary ");
+
+            Assert.Equal(OfficeImageInfo.GetMimeType(OfficeImageFormat.Jpeg), image.ContentType);
         }
 
         [Fact]

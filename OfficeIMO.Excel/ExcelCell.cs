@@ -134,10 +134,34 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Sets the font size in points.
+        /// </summary>
+        public ExcelCell SetFontSize(double fontSize) {
+            Sheet.CellFontSize(Row, Column, fontSize);
+            return this;
+        }
+
+        /// <summary>
         /// Sets the font color using a hex color value.
         /// </summary>
         public ExcelCell SetFontColor(string hexColor) {
             Sheet.CellFontColor(Row, Column, hexColor);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets or clears shrink-to-fit text alignment.
+        /// </summary>
+        public ExcelCell SetShrinkToFit(bool shrinkToFit = true) {
+            Sheet.CellShrinkToFit(Row, Column, shrinkToFit);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets Excel text rotation. Use 0-90 for upward rotation, 91-180 for downward rotation, or 255 for stacked vertical text.
+        /// </summary>
+        public ExcelCell SetTextRotation(int rotation) {
+            Sheet.CellTextRotation(Row, Column, rotation);
             return this;
         }
 
@@ -232,7 +256,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Lightweight object model wrapper for an A1 range.
     /// </summary>
-    public sealed class ExcelRange {
+    public sealed partial class ExcelRange {
         internal ExcelRange(ExcelSheet sheet, string address) {
             Sheet = sheet ?? throw new ArgumentNullException(nameof(sheet));
             if (string.IsNullOrWhiteSpace(address)) throw new ArgumentNullException(nameof(address));
@@ -380,10 +404,34 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Applies a font size in points to every cell in the range.
+        /// </summary>
+        public ExcelRange SetFontSize(double fontSize) {
+            ForEachCell((row, column) => Sheet.CellFontSize(row, column, fontSize));
+            return this;
+        }
+
+        /// <summary>
         /// Sets or clears bold font style for every cell in the range.
         /// </summary>
         public ExcelRange SetBold(bool bold = true) {
             ForEachCell((row, column) => Sheet.CellBold(row, column, bold));
+            return this;
+        }
+
+        /// <summary>
+        /// Sets or clears shrink-to-fit text alignment for every cell in the range.
+        /// </summary>
+        public ExcelRange SetShrinkToFit(bool shrinkToFit = true) {
+            ForEachCell((row, column) => Sheet.CellShrinkToFit(row, column, shrinkToFit));
+            return this;
+        }
+
+        /// <summary>
+        /// Sets Excel text rotation for every cell in the range.
+        /// </summary>
+        public ExcelRange SetTextRotation(int rotation) {
+            ForEachCell((row, column) => Sheet.CellTextRotation(row, column, rotation));
             return this;
         }
 
@@ -554,6 +602,8 @@ namespace OfficeIMO.Excel {
         public bool Italic { get; set; }
         /// <summary>Gets or sets whether the run is underlined.</summary>
         public bool Underline { get; set; }
+        /// <summary>Gets or sets whether the run is struck through.</summary>
+        public bool Strikethrough { get; set; }
         /// <summary>Gets or sets the run font color as a hex value.</summary>
         public string? FontColor { get; set; }
         /// <summary>Gets or sets the run font name.</summary>

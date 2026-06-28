@@ -45,6 +45,29 @@ public sealed class HtmlCapabilityGalleryArtifact {
     }
 
     /// <summary>
+    /// Writes text content to an artifact file and returns its descriptor.
+    /// </summary>
+    /// <param name="id">Stable artifact identifier within the scenario.</param>
+    /// <param name="kind">Artifact kind, such as <c>semantic-html</c> or <c>manifest-json</c>.</param>
+    /// <param name="path">Artifact file path.</param>
+    /// <param name="mediaType">Artifact media type.</param>
+    /// <param name="content">Text content to write.</param>
+    /// <returns>A descriptor containing file length and SHA-256 hash.</returns>
+    public static HtmlCapabilityGalleryArtifact WriteTextFile(string id, string kind, string path, string mediaType, string content) {
+        if (path == null) {
+            throw new ArgumentNullException(nameof(path));
+        }
+
+        string? directory = System.IO.Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(directory)) {
+            Directory.CreateDirectory(directory);
+        }
+
+        File.WriteAllText(path, content ?? string.Empty, Encoding.UTF8);
+        return FromFile(id, kind, path, mediaType);
+    }
+
+    /// <summary>
     /// Stable artifact identifier within the scenario.
     /// </summary>
     public string Id { get; }

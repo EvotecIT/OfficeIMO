@@ -42,6 +42,9 @@ namespace OfficeIMO.Excel {
         /// <summary>Optional page order override.</summary>
         public ExcelPageOrder? PageOrder { get; set; }
 
+        /// <summary>Optional paper size override.</summary>
+        public ExcelPaperSize? PaperSize { get; set; }
+
         /// <summary>Optional first repeated print-title row.</summary>
         public int? RepeatFirstRow { get; set; }
 
@@ -87,6 +90,7 @@ namespace OfficeIMO.Excel {
             var fitToHeight = options.FitToHeight ?? preset.FitToHeight;
             var scale = options.Scale ?? preset.Scale;
             var pageOrder = options.PageOrder ?? preset.PageOrder;
+            var paperSize = options.PaperSize ?? preset.PaperSize;
             var repeatFirstRow = options.RepeatFirstRow ?? (options.SuppressPresetPrintTitles ? null : preset.RepeatFirstRow);
             var repeatLastRow = options.RepeatLastRow ?? (options.SuppressPresetPrintTitles ? null : preset.RepeatLastRow);
             var repeatFirstColumn = options.RepeatFirstColumn ?? preset.RepeatFirstColumn;
@@ -95,7 +99,7 @@ namespace OfficeIMO.Excel {
 
             SetOrientation(orientation);
             SetMarginsPreset(margins);
-            SetPageSetupAndClearStaleFit(fitToWidth, fitToHeight, scale, pageOrder);
+            SetPageSetupAndClearStaleFit(fitToWidth, fitToHeight, scale, pageOrder, paperSize);
 
             if (!string.IsNullOrWhiteSpace(options.PrintArea)) {
                 _excelDocument.SetPrintArea(this, options.PrintArea!, save: false);
@@ -129,6 +133,7 @@ namespace OfficeIMO.Excel {
                         fitToHeight: null,
                         scale: 100,
                         ExcelPageOrder.DownThenOver,
+                        paperSize: null,
                         repeatFirstRow: null,
                         repeatLastRow: null,
                         repeatFirstColumn: null,
@@ -141,6 +146,7 @@ namespace OfficeIMO.Excel {
                         fitToHeight: 1,
                         scale: null,
                         ExcelPageOrder.OverThenDown,
+                        paperSize: null,
                         repeatFirstRow: null,
                         repeatLastRow: null,
                         repeatFirstColumn: null,
@@ -153,6 +159,7 @@ namespace OfficeIMO.Excel {
                         fitToHeight: 0,
                         scale: null,
                         ExcelPageOrder.DownThenOver,
+                        paperSize: null,
                         repeatFirstRow: 1,
                         repeatLastRow: 1,
                         repeatFirstColumn: null,
@@ -165,6 +172,7 @@ namespace OfficeIMO.Excel {
                         fitToHeight: 0,
                         scale: null,
                         ExcelPageOrder.DownThenOver,
+                        paperSize: null,
                         repeatFirstRow: 1,
                         repeatLastRow: 1,
                         repeatFirstColumn: null,
@@ -180,6 +188,7 @@ namespace OfficeIMO.Excel {
                 uint? fitToHeight,
                 uint? scale,
                 ExcelPageOrder pageOrder,
+                ExcelPaperSize? paperSize,
                 int? repeatFirstRow,
                 int? repeatLastRow,
                 int? repeatFirstColumn,
@@ -190,6 +199,7 @@ namespace OfficeIMO.Excel {
                 FitToHeight = fitToHeight;
                 Scale = scale;
                 PageOrder = pageOrder;
+                PaperSize = paperSize;
                 RepeatFirstRow = repeatFirstRow;
                 RepeatLastRow = repeatLastRow;
                 RepeatFirstColumn = repeatFirstColumn;
@@ -202,6 +212,7 @@ namespace OfficeIMO.Excel {
             internal uint? FitToHeight { get; }
             internal uint? Scale { get; }
             internal ExcelPageOrder PageOrder { get; }
+            internal ExcelPaperSize? PaperSize { get; }
             internal int? RepeatFirstRow { get; }
             internal int? RepeatLastRow { get; }
             internal int? RepeatFirstColumn { get; }

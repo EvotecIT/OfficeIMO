@@ -78,6 +78,22 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Sets category axis line visibility and optional styling.
+        /// </summary>
+        public ExcelChart SetCategoryAxisLine(string? lineColor = null, double? lineWidthPoints = null,
+            bool noLine = false, ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            return SetAxisLine(axisGroup, AxisKind.Category, lineColor, lineWidthPoints, noLine);
+        }
+
+        /// <summary>
+        /// Sets value axis line visibility and optional styling.
+        /// </summary>
+        public ExcelChart SetValueAxisLine(string? lineColor = null, double? lineWidthPoints = null,
+            bool noLine = false, ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            return SetAxisLine(axisGroup, AxisKind.Value, lineColor, lineWidthPoints, noLine);
+        }
+
+        /// <summary>
         /// Sets the category axis label text style.
         /// </summary>
         public ExcelChart SetCategoryAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
@@ -625,6 +641,24 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static void InsertAxisShapeProperties(OpenXmlCompositeElement axis, C.ShapeProperties properties) {
+            OpenXmlElement? insertBefore = axis.GetFirstChild<C.TextProperties>();
+            insertBefore ??= axis.GetFirstChild<C.CrossingAxis>();
+            insertBefore ??= axis.GetFirstChild<C.Crosses>();
+            insertBefore ??= axis.GetFirstChild<C.CrossesAt>();
+            insertBefore ??= axis.GetFirstChild<C.CrossBetween>();
+            insertBefore ??= axis.GetFirstChild<C.MajorUnit>();
+            insertBefore ??= axis.GetFirstChild<C.MinorUnit>();
+            insertBefore ??= axis.GetFirstChild<C.DisplayUnits>();
+            insertBefore ??= axis.GetFirstChild<C.ExtensionList>();
+
+            if (insertBefore != null) {
+                axis.InsertBefore(properties, insertBefore);
+            } else {
+                axis.Append(properties);
+            }
+        }
+
         private ExcelChart SetAxisTitleTextStyle(ExcelChartAxisGroup axisGroup, AxisKind axisKind,
             double? fontSizePoints, bool? bold, bool? italic, string? color, string? fontName) {
             ValidateDataLabelTextStyle(fontSizePoints, color, fontName);
@@ -714,6 +748,58 @@ namespace OfficeIMO.Excel {
             ApplyGridlines(axis, showMajor, showMinor, lineColor, lineWidthPoints);
             Save();
             return this;
+        }
+
+        private ExcelChart SetAxisLine(ExcelChartAxisGroup axisGroup, AxisKind axisKind,
+            string? lineColor, double? lineWidthPoints, bool noLine) {
+            ValidateAxisLineStyle(lineColor, lineWidthPoints, noLine);
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            OpenXmlCompositeElement? axis = axisKind == AxisKind.Category
+                ? ResolveCategoryAxis(plotArea, axisGroup)
+                : ResolveValueAxis(plotArea, axisGroup);
+
+            if (axis == null && axisKind == AxisKind.Category && axisGroup == ExcelChartAxisGroup.Primary) {
+                axis = ResolveScatterXAxis(plotArea);
+            }
+
+            if (axis == null) {
+                return this;
+            }
+
+            C.ShapeProperties props = axis.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
+            if (noLine) {
+                ApplyNoLine(props);
+            } else if (lineColor != null || lineWidthPoints != null) {
+                string? normalizedLine = lineColor != null ? NormalizeHexColor(lineColor) : null;
+                ApplyOptionalLine(props, normalizedLine, lineWidthPoints);
+            } else {
+                return this;
+            }
+
+            if (props.Parent == null) {
+                InsertAxisShapeProperties(axis, props);
+            }
+
+            Save();
+            return this;
+        }
+
+        private static void ValidateAxisLineStyle(string? lineColor, double? lineWidthPoints, bool noLine) {
+            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
+                throw new ArgumentException("Axis line color cannot be empty.", nameof(lineColor));
+            }
+            if (lineWidthPoints != null && lineWidthPoints <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
+            }
+            if (noLine && (lineColor != null || lineWidthPoints != null)) {
+                throw new ArgumentException("Cannot set axis line color/width when noLine is true.", nameof(noLine));
+            }
         }
 
         private ExcelChart SetAxisLabelRotation(ExcelChartAxisGroup axisGroup, AxisKind axisKind, double rotationDegrees) {

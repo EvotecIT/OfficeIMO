@@ -438,6 +438,107 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_HonorsAuthoredSeriesStrokeWidth() {
+        OfficeColor seriesColor = OfficeColor.ParseHex("#2563EB");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Line width",
+            "Line Width",
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Jan", "Feb", "Mar" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 14D, 12D }, null, seriesColor, null, showMarkers: false, strokeWidth: 4D)
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == seriesColor &&
+            shape.Shape.StrokeWidth == 4D);
+    }
+
+    [Fact]
+    public void FlowDrawing_HonorsAuthoredSeriesStrokeDashStyle() {
+        OfficeColor seriesColor = OfficeColor.ParseHex("#2563EB");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Line dash",
+            "Line Dash",
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Jan", "Feb", "Mar" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 14D, 12D }, null, seriesColor, null, showMarkers: false, strokeWidth: 4D, strokeDashStyle: OfficeStrokeDashStyle.DashDot)
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == seriesColor &&
+            shape.Shape.StrokeWidth == 4D &&
+            shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.DashDot);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersPlusAndXMarkersAsSharedLineShapes() {
+        OfficeColor plusColor = OfficeColor.ParseHex("#F97316");
+        OfficeColor xColor = OfficeColor.ParseHex("#7C3AED");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Marker symbols",
+            "Marker Symbols",
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Jan", "Feb", "Mar" },
+                new[] {
+                    new OfficeChartSeries("Plus", new[] { 10D, 14D, 12D }, null, OfficeColor.ParseHex("#2563EB"), null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Plus, markerOutlineColor: plusColor, markerOutlineWidth: 2D),
+                    new OfficeChartSeries("X", new[] { 12D, 16D, 13D }, null, OfficeColor.ParseHex("#16A34A"), null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.X, markerOutlineColor: xColor, markerOutlineWidth: 2D)
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D));
+
+        Assert.True(drawing.Shapes.Count(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == plusColor &&
+            shape.Shape.StrokeWidth == 2D) >= 2);
+        Assert.True(drawing.Shapes.Count(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == xColor &&
+            shape.Shape.StrokeWidth == 2D) >= 2);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersDashDotAndStarMarkersAsSharedShapes() {
+        OfficeColor dashColor = OfficeColor.ParseHex("#DC2626");
+        OfficeColor dotColor = OfficeColor.ParseHex("#059669");
+        OfficeColor starColor = OfficeColor.ParseHex("#F59E0B");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "More marker symbols",
+            "More Marker Symbols",
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Jan", "Feb", "Mar" },
+                new[] {
+                    new OfficeChartSeries("Dash", new[] { 10D, 14D, 12D }, null, OfficeColor.ParseHex("#2563EB"), null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Dash, markerOutlineColor: dashColor, markerOutlineWidth: 2D),
+                    new OfficeChartSeries("Dot", new[] { 12D, 16D, 13D }, null, dotColor, null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Dot),
+                    new OfficeChartSeries("Star", new[] { 13D, 15D, 14D }, null, starColor, null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Star)
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D));
+
+        Assert.True(drawing.Shapes.Count(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == dashColor &&
+            shape.Shape.StrokeWidth == 2D) >= 3);
+        Assert.True(drawing.Shapes.Count(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.FillColor == dotColor) >= 3);
+        Assert.True(drawing.Shapes.Count(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Polygon &&
+            shape.Shape.FillColor == starColor) >= 3);
+    }
+
+    [Fact]
     public void FlowDrawing_HonorsLineRadarLayoutWithoutSeriesFill() {
         OfficeColor seriesColor = OfficeColor.ParseHex("#2563EB");
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
@@ -447,7 +548,7 @@ public class PdfDocumentChartDrawingTests {
             new OfficeChartData(
                 new[] { "A", "B", "C" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 12D, 11D }, null, seriesColor)
+                    new OfficeChartSeries("Actual", new[] { 10D, 12D, 11D }, null, seriesColor, null, showMarkers: true, strokeDashStyle: OfficeStrokeDashStyle.DashDot)
                 }),
             widthPoints: 320D,
             heightPoints: 190D,
@@ -459,7 +560,11 @@ public class PdfDocumentChartDrawingTests {
         Assert.Contains(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Polygon &&
             shape.Shape.StrokeColor == seriesColor &&
+            shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.DashDot &&
             !shape.Shape.FillColor.HasValue);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("stroke-dasharray=\"", svg, System.StringComparison.Ordinal);
     }
 
     [Fact]
@@ -529,12 +634,14 @@ public class PdfDocumentChartDrawingTests {
             dataLabelNumberFormat: oversized,
             axisNumberFormat: oversized,
             horizontalAxisNumberFormat: oversized,
-            verticalAxisNumberFormat: oversized);
+            verticalAxisNumberFormat: oversized,
+            categoryAxisNumberFormat: oversized);
 
         Assert.Null(layout.DataLabelNumberFormat);
         Assert.Null(layout.AxisNumberFormat);
         Assert.Null(layout.HorizontalAxisNumberFormat);
         Assert.Null(layout.VerticalAxisNumberFormat);
+        Assert.Null(layout.CategoryAxisNumberFormat);
     }
 
     [Fact]
@@ -668,6 +775,9 @@ public class PdfDocumentChartDrawingTests {
         var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(label => label.Text).ToList();
 
         Assert.Contains("0.0", labels);
+        Assert.Contains("500.0", labels);
+        Assert.Contains("1,000.0", labels);
+        Assert.Contains("1,500.0", labels);
         Assert.Contains("2,000.0", labels);
     }
 
@@ -837,9 +947,47 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_RendersChartAndPlotAreaBorderWidthAndDash() {
+        OfficeColor chartBorder = OfficeColor.ParseHex("#404040");
+        OfficeColor plotBorder = OfficeColor.ParseHex("#00b0f0");
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Area borders",
+            "Area Borders",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            style: new OfficeChartStyle(
+                borderColor: chartBorder,
+                plotAreaBorderColor: plotBorder,
+                chartBorderWidth: 3D,
+                plotAreaBorderWidth: 2D,
+                chartBorderDashStyle: OfficeStrokeDashStyle.DashDot,
+                plotAreaBorderDashStyle: OfficeStrokeDashStyle.Dot)));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.StrokeColor == chartBorder &&
+            shape.Shape.StrokeWidth == 3D &&
+            shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.DashDot);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.StrokeColor == plotBorder &&
+            shape.Shape.StrokeWidth == 2D &&
+            shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.Dot);
+    }
+
+    [Fact]
     public void FlowDrawing_RendersCustomAxisAndGridLineColors() {
-        OfficeColor axisColor = OfficeColor.ParseHex("#ff0000");
-        OfficeColor gridLineColor = OfficeColor.ParseHex("#00ff00");
+        OfficeColor categoryAxisColor = OfficeColor.ParseHex("#ff0000");
+        OfficeColor valueAxisColor = OfficeColor.ParseHex("#0000ff");
+        OfficeColor categoryGridLineColor = OfficeColor.ParseHex("#00b0f0");
+        OfficeColor valueGridLineColor = OfficeColor.ParseHex("#00ff00");
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Axis style",
@@ -853,17 +1001,41 @@ public class PdfDocumentChartDrawingTests {
             widthPoints: 320D,
             heightPoints: 190D,
             style: new OfficeChartStyle(
-                axisColor: axisColor,
-                gridLineColor: gridLineColor)));
+                categoryAxisColor: categoryAxisColor,
+                valueAxisColor: valueAxisColor,
+                categoryAxisLineWidth: 2D,
+                valueAxisLineWidth: 3D,
+                categoryAxisLineDashStyle: OfficeStrokeDashStyle.Dot,
+                valueAxisLineDashStyle: OfficeStrokeDashStyle.DashDot,
+                categoryGridLineColor: categoryGridLineColor,
+                valueGridLineColor: valueGridLineColor,
+                categoryGridLineWidth: 1.5D,
+                valueGridLineWidth: 2.5D,
+                categoryGridLineDashStyle: OfficeStrokeDashStyle.Dash,
+                valueGridLineDashStyle: OfficeStrokeDashStyle.DashDotDot,
+                showCategoryGridLines: true,
+                showValueGridLines: true)));
 
         Assert.Contains(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Line &&
-            shape.Shape.StrokeColor == axisColor &&
-            shape.Shape.StrokeWidth == 0.75D);
+            shape.Shape.StrokeColor == categoryAxisColor &&
+            shape.Shape.StrokeWidth == 2D &&
+            shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.Dot);
         Assert.Contains(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Line &&
-            shape.Shape.StrokeColor == gridLineColor &&
-            shape.Shape.StrokeWidth == 0.5D);
+            shape.Shape.StrokeColor == valueAxisColor &&
+            shape.Shape.StrokeWidth == 3D &&
+            shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.DashDot);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == categoryGridLineColor &&
+            shape.Shape.StrokeWidth == 1.5D &&
+            shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.Dash);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == valueGridLineColor &&
+            shape.Shape.StrokeWidth == 2.5D &&
+            shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.DashDotDot);
     }
 
     [Fact]
@@ -1860,8 +2032,14 @@ public class PdfDocumentChartDrawingTests {
             axisColor: OfficeColor.FromRgb(64, 70, 80),
             gridLineColor: OfficeColor.FromRgb(210, 220, 235),
             textColor: OfficeColor.FromRgb(20, 30, 45),
+            legendTextColor: OfficeColor.FromRgb(15, 118, 110),
+            dataLabelTextColor: OfficeColor.FromRgb(234, 88, 12),
             mutedTextColor: OfficeColor.FromRgb(90, 105, 125),
-            titleColor: OfficeColor.FromRgb(200, 10, 10));
+            axisTitleColor: OfficeColor.FromRgb(220, 38, 38),
+            titleColor: OfficeColor.FromRgb(200, 10, 10),
+            titleFontFamily: "Aptos Display",
+            titleFontSize: 15D,
+            titleFontStyle: OfficeFontStyle.Bold | OfficeFontStyle.Italic);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Styled chart",
             "Styled Revenue",
@@ -1874,7 +2052,44 @@ public class PdfDocumentChartDrawingTests {
                 }),
             widthPoints: 320D,
             heightPoints: 190D,
-            style: style));
+            style: style,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                legendFontFamily: "Aptos Legend",
+                dataLabelFontFamily: "Aptos Data",
+                axisTextFontFamily: "Aptos Axis Label",
+                legendFontStyle: OfficeFontStyle.Bold,
+                dataLabelFontStyle: OfficeFontStyle.Italic,
+                axisTextFontStyle: OfficeFontStyle.Italic,
+                axisTitleFontSize: 10.5D,
+                axisTitleFontFamily: "Aptos Axis Title",
+                axisTitleFontStyle: OfficeFontStyle.Bold,
+                categoryAxisTitle: "Quarter")));
+
+        OfficeDrawingText title = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), item => item.Text == "Styled Revenue");
+        Assert.Equal("Aptos Display", title.Font.FamilyName);
+        Assert.Equal(15D, title.Font.Size, 3);
+        Assert.True(title.Font.IsBold);
+        Assert.True(title.Font.IsItalic);
+        OfficeDrawingText legend = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), item => item.Text == "Actual");
+        OfficeDrawingText dataLabel = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), item => item.Text == "12");
+        OfficeDrawingText axisLabel = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), item => item.Text == "Q1");
+        OfficeDrawingText axisTitle = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), item => item.Text == "Quarter");
+        Assert.Equal("Aptos Legend", legend.Font.FamilyName);
+        Assert.Equal("Aptos Data", dataLabel.Font.FamilyName);
+        Assert.Equal("Aptos Axis Label", axisLabel.Font.FamilyName);
+        Assert.Equal("Aptos Axis Title", axisTitle.Font.FamilyName);
+        Assert.Equal(10.5D, axisTitle.Font.Size, 3);
+        Assert.Equal(OfficeColor.FromRgb(15, 118, 110), legend.Color);
+        Assert.Equal(OfficeColor.FromRgb(234, 88, 12), dataLabel.Color);
+        Assert.Equal(OfficeColor.FromRgb(90, 105, 125), axisLabel.Color);
+        Assert.Equal(OfficeColor.FromRgb(220, 38, 38), axisTitle.Color);
+        Assert.True(legend.Font.IsBold);
+        Assert.True(dataLabel.Font.IsItalic);
+        Assert.True(axisLabel.Font.IsItalic);
+        Assert.True(axisTitle.Font.IsBold);
+        Assert.False(axisTitle.Font.IsItalic);
 
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,

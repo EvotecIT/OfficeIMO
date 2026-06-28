@@ -62,8 +62,45 @@ public sealed class OfficeLinearGradient {
     public static OfficeLinearGradient DiagonalDown(OfficeColor startColor, OfficeColor endColor) =>
         new OfficeLinearGradient(0, 0, 1, 1, new OfficeGradientStop(0, startColor), new OfficeGradientStop(1, endColor));
 
+    /// <summary>
+    /// Creates a two-stop gradient projected through the normalized drawing rectangle at the supplied angle.
+    /// </summary>
+    /// <param name="startColor">Color at offset 0.</param>
+    /// <param name="endColor">Color at offset 1.</param>
+    /// <param name="degrees">Clockwise angle in degrees where 0 is left-to-right in local coordinates.</param>
+    /// <returns>A gradient with endpoints clamped to the normalized drawing rectangle.</returns>
+    public static OfficeLinearGradient FromAngle(OfficeColor startColor, OfficeColor endColor, double degrees) {
+        if (double.IsNaN(degrees) || double.IsInfinity(degrees)) {
+            throw new ArgumentOutOfRangeException(nameof(degrees), "Linear gradient angle must be finite.");
+        }
+
+        double radians = OfficeGeometry.DegreesToRadians(NormalizeDegrees(degrees));
+        double dx = Math.Cos(radians);
+        double dy = Math.Sin(radians);
+        double divisor = Math.Max(Math.Abs(dx), Math.Abs(dy));
+        if (divisor <= double.Epsilon) {
+            return Horizontal(startColor, endColor);
+        }
+
+        double half = 0.5D / divisor;
+        return new OfficeLinearGradient(
+            ClampUnit(0.5D - (dx * half)),
+            ClampUnit(0.5D - (dy * half)),
+            ClampUnit(0.5D + (dx * half)),
+            ClampUnit(0.5D + (dy * half)),
+            new OfficeGradientStop(0D, startColor),
+            new OfficeGradientStop(1D, endColor));
+    }
+
     /// <summary>Creates a detached copy.</summary>
     public OfficeLinearGradient Clone() => new OfficeLinearGradient(StartX, StartY, EndX, EndY, Stops[0], Stops[1]);
+
+    private static double NormalizeDegrees(double degree) {
+        double normalized = degree % 360D;
+        return normalized < 0D ? normalized + 360D : normalized;
+    }
+
+    private static double ClampUnit(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
 
     private static void ValidateNormalized(double value, string paramName) {
         if (double.IsNaN(value) || double.IsInfinity(value) || value < 0D || value > 1D) {

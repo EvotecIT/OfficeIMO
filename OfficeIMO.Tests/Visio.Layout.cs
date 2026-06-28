@@ -288,6 +288,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ConnectorLabelResizeBreaksLongWordsWithinMaximumWidth() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("LongLabel");
+            VisioShape source = page.AddRectangle(1, 4, 1.4, 0.7, "Source");
+            VisioShape target = page.AddRectangle(5, 4, 1.4, 0.7, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
+            connector.Label = "Supercalifragilisticexpialidocious";
+
+            connector
+                .PlaceLabel(0.5, width: 0.2, height: 0.1)
+                .ResizeLabelToText(new OfficeFontInfo("Calibri", 12), maximumWidth: 0.8);
+
+            Assert.NotNull(connector.LabelPlacement);
+            Assert.True(connector.LabelPlacement!.Width <= 0.8);
+            Assert.True(connector.LabelPlacement.Height > 0.7);
+        }
+
+        [Fact]
         public void ConnectorSelectionCanResizeLabelsToTextUsingConnectorTextStyle() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("SelectionLabels");
@@ -853,21 +871,13 @@ namespace OfficeIMO.Tests {
         }
 
         private static bool SegmentIntersectsBounds(double startX, double startY, double endX, double endY, OfficeIMO.Visio.VisioShapeBounds bounds) {
-            if (Math.Abs(startX - endX) < 1e-9) {
-                return startX > bounds.Left &&
-                       startX < bounds.Right &&
-                       Math.Max(startY, endY) > bounds.Bottom &&
-                       Math.Min(startY, endY) < bounds.Top;
-            }
-
-            if (Math.Abs(startY - endY) < 1e-9) {
-                return startY > bounds.Bottom &&
-                       startY < bounds.Top &&
-                       Math.Max(startX, endX) > bounds.Left &&
-                       Math.Min(startX, endX) < bounds.Right;
-            }
-
-            return false;
+            return OfficeGeometry.SegmentIntersectsRectangle(
+                (startX, startY),
+                (endX, endY),
+                bounds.Left,
+                bounds.Bottom,
+                bounds.Right,
+                bounds.Top);
         }
 
         private static bool Contains(OfficeIMO.Visio.VisioShapeBounds outer, OfficeIMO.Visio.VisioShapeBounds inner) {

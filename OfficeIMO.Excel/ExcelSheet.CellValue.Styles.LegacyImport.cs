@@ -42,6 +42,21 @@ namespace OfficeIMO.Excel {
         /// Writes an imported legacy XLS error value as an Open XML error cell.
         /// </summary>
         internal void SetLegacyErrorCellValue(int row, int column, string errorText) {
+            SetErrorCellValue(row, column, errorText);
+        }
+
+        /// <summary>
+        /// Writes a native Excel error value into the specified cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index.</param>
+        /// <param name="column">The 1-based column index.</param>
+        /// <param name="errorText">The Excel error literal, such as <c>#DIV/0!</c> or <c>#N/A</c>.</param>
+        public void CellError(int row, int column, string errorText) {
+            using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
+            SetErrorCellValue(row, column, errorText);
+        }
+
+        private void SetErrorCellValue(int row, int column, string errorText) {
             if (string.IsNullOrWhiteSpace(errorText)) {
                 throw new ArgumentException("Error text must be provided.", nameof(errorText));
             }

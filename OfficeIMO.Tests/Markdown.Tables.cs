@@ -88,7 +88,7 @@ Narrative body text.
         }
 
         [Fact]
-        public void MarkdownToWord_DoesNotApplySharedVisualThemeWhenThemeIsOmitted() {
+        public void MarkdownToWord_AppliesDefaultSharedVisualThemeWhenThemeIsOmitted() {
             string md = """
 # Heading
 
@@ -96,6 +96,22 @@ Narrative body text.
 """;
 
             using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            var heading = doc.Paragraphs.First(p => p.Text == "Heading");
+            Assert.Contains(heading.GetRuns(), run => string.Equals(run.ColorHex, "111827", System.StringComparison.OrdinalIgnoreCase));
+            var body = doc.Paragraphs.First(p => p.Text == "Narrative body text.");
+            Assert.Contains(body.GetRuns(), run => string.Equals(run.ColorHex, "1f2937", System.StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void MarkdownToWord_CanDisableDefaultSharedVisualTheme() {
+            string md = """
+# Heading
+
+Narrative body text.
+""";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { ApplyDefaultTheme = false });
 
             var heading = doc.Paragraphs.First(p => p.Text == "Heading");
             Assert.DoesNotContain(heading.GetRuns(), run => !string.IsNullOrWhiteSpace(run.ColorHex));

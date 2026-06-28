@@ -17,5 +17,10 @@ public enum HtmlConversionProfile {
     /// <summary>
     /// Captures the high-fidelity print/PDF ambition where layout preservation is more important than editability.
     /// </summary>
-    HighFidelityPrint
+    HighFidelityPrint,
+
+    /// <summary>
+    /// Preserves page or source geometry for review HTML where inspection matters more than editable reconstruction.
+    /// </summary>
+    PositionedReview
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -139,6 +140,9 @@ internal sealed class ContentStreamBuilder {
             .Append(F(f)).Append(" cm\n");
         return this;
     }
+
+    public ContentStreamBuilder TransformMatrix(OfficeTransform transform) =>
+        TransformMatrix(transform.M11, transform.M12, transform.M21, transform.M22, transform.OffsetX, transform.OffsetY);
 
     public ContentStreamBuilder XObject(string resourceName) {
         Guard.NotNullOrWhiteSpace(resourceName, nameof(resourceName));

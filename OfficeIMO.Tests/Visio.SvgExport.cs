@@ -145,6 +145,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SvgRendererUsesSharedDashStyleForConnectorLines() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Connector Dash").Size(4, 2);
+            VisioShape source = page.AddRectangle(0.8, 1, 0.4, 0.4, string.Empty);
+            VisioShape target = page.AddRectangle(3.2, 1, 0.4, 0.4, string.Empty);
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+            connector.LineColor = OfficeColor.FromRgb(37, 99, 235);
+            connector.LinePattern = 4;
+            connector.LineWeight = 0.03D;
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions {
+                BackgroundColor = null,
+                PixelsPerInch = 100
+            });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement connectorGroup = parsed.Root!.Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-connector-id") == connector.Id);
+            XElement connectorPath = connectorGroup.Elements(ns + "path")
+                .Single(path => path.Attribute("data-officeimo-connector-arrow") == null);
+            Assert.Equal("12 6 3 6", connectorPath.Attribute("stroke-dasharray")!.Value);
+            Assert.Equal("round", connectorPath.Attribute("stroke-linecap")!.Value);
+        }
+
+        [Fact]
         public void SvgFallbackConnectorsUseVerticalEndpoints() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
@@ -172,6 +199,7 @@ namespace OfficeIMO.Tests {
             shape.FillPattern = 0;
             shape.LineColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LinePattern = 2;
+            shape.LineWeight = 0.04D;
 
             string svg = page.ToSvg(new VisioSvgSaveOptions {
                 BackgroundColor = null,
@@ -183,7 +211,7 @@ namespace OfficeIMO.Tests {
             XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
                 .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
             XElement path = shapeGroup.Elements(ns + "path").Single();
-            Assert.Equal("6 4", path.Attribute("stroke-dasharray")!.Value);
+            Assert.Equal("16 8", path.Attribute("stroke-dasharray")!.Value);
             Assert.NotEqual("none", path.Attribute("stroke")!.Value);
         }
 
@@ -255,8 +283,8 @@ namespace OfficeIMO.Tests {
                 .Single(path => (string?)path.Attribute("data-officeimo-database-geometry") == "true");
             XElement seam = shapeGroup.Elements(ns + "path")
                 .Single(path => (string?)path.Attribute("data-officeimo-database-seam") == "true");
-            Assert.Contains(" C ", body.Attribute("d")!.Value);
-            Assert.Contains(" C ", seam.Attribute("d")!.Value);
+            Assert.Contains('C', body.Attribute("d")!.Value);
+            Assert.Contains('C', seam.Attribute("d")!.Value);
         }
 
         [Fact]
@@ -414,6 +442,91 @@ namespace OfficeIMO.Tests {
 
             XElement labelText = connectorGroup.Elements(ns + "text").Single();
             Assert.True(labelText.Elements(ns + "tspan").Count() > 1);
+        }
+
+        [Fact]
+        public void SvgRendererWrapsTextThroughSharedOfficeTextMeasurer() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Shared Text Measure").Size(4, 3);
+            string text = "WWW approval iii review required";
+            VisioShape shape = page.AddRectangle(2, 1.5, 1.4, 1.1, text);
+            shape.TextStyle = new VisioTextStyle {
+                FontFamily = "Aptos",
+                Size = 12,
+                Bold = true,
+                TextWidth = 0.76,
+                TextHeight = 0.96,
+                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                VerticalAlignment = VisioTextVerticalAlignment.Middle
+            };
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions {
+                BackgroundColor = null,
+                PixelsPerInch = 100
+            });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            string[] actualLines = parsed.Root!
+                .Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id)
+                .Descendants(ns + "text")
+                .Single()
+                .Elements(ns + "tspan")
+                .Select(tspan => tspan.Value)
+                .ToArray();
+
+            double fontSize = 12D * 100D / 72D;
+            double maxWidth = (0.76D - 0.10D) * 100D;
+            double maxHeight = (0.96D - 0.06D) * 100D;
+            OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(new OfficeFontInfo("Aptos", fontSize, OfficeFontStyle.Bold));
+            OfficeTextBlockLayout expectedLayout = OfficeTextLayoutEngine.FitWrappedText(
+                text,
+                fontSize,
+                maxWidth,
+                maxHeight,
+                lineHeightFactor: 1.2D,
+                minimumFontSize: 5D,
+                (candidate, candidateFontSize) => measurer.MeasureWidth(
+                    candidate,
+                    measurer.CreateStyle(new OfficeFontInfo("Aptos", candidateFontSize, OfficeFontStyle.Bold), dpi: 72D)));
+            string[] expectedLines = expectedLayout.Lines.Select(line => line.Text).ToArray();
+
+            Assert.True(expectedLines.Length > 1);
+            Assert.Equal(expectedLines, actualLines);
+        }
+
+        [Fact]
+        public void SvgRendererPreservesHardBreaksThroughSharedTextLayout() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Shared Text Layout").Size(4, 3);
+            VisioShape shape = page.AddRectangle(2, 1.5, 1.8, 1.2, "Alpha\nBeta\nGamma");
+            shape.TextStyle = new VisioTextStyle {
+                Size = 11,
+                TextWidth = 1.4,
+                TextHeight = 0.8,
+                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                VerticalAlignment = VisioTextVerticalAlignment.Middle
+            };
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions {
+                BackgroundColor = null,
+                PixelsPerInch = 100
+            });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
+            string[] lines = shapeGroup.Descendants(ns + "text")
+                .Single()
+                .Elements(ns + "tspan")
+                .Select(tspan => tspan.Value)
+                .ToArray();
+
+            Assert.Equal(new[] { "Alpha", "Beta", "Gamma" }, lines);
         }
 
         [Fact]
@@ -902,7 +1015,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SvgRendererSkipsPackageBackedSvgPreviewArtworkWithXmlPreamble() {
+        public void SvgRendererProjectsPackageBackedSvgPreviewArtworkWithXmlPreamble() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Package SVG Preview").Size(3, 2);
@@ -923,11 +1036,10 @@ namespace OfficeIMO.Tests {
             XNamespace ns = "http://www.w3.org/2000/svg";
             XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
                 .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            Assert.DoesNotContain(
-                shapeGroup.Elements(ns + "image"),
-                element => (string?)element.Attribute("data-officeimo-package-preview-artwork") == "true");
-            Assert.DoesNotContain("data:image/svg+xml;base64,", svg, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("data-officeimo-stencil-artwork=\"true\"", svg, StringComparison.Ordinal);
+            XElement image = shapeGroup.Elements(ns + "image")
+                .Single(element => (string?)element.Attribute("data-officeimo-package-preview-artwork") == "true");
+            Assert.StartsWith("data:image/svg+xml;base64,", image.Attribute("href")!.Value, StringComparison.Ordinal);
+            Assert.DoesNotContain("data-officeimo-stencil-artwork=\"true\"", svg, StringComparison.Ordinal);
         }
 
         [Fact]

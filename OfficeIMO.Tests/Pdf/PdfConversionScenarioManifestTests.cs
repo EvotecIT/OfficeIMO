@@ -932,7 +932,7 @@ public sealed class PdfConversionScenarioManifestTests {
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "16A34A");
         PowerPointSlide slide = presentation.Slides[0];
         slide.SetBackgroundGradient("172554", "38BDF8", 35D);
-        PowerPointTextBox title = slide.AddTextBoxPoints("Layout Theme Group Gate", 18, 10, 190, 24);
+        PowerPointTextBox title = slide.AddTextBoxPoints("Layout Theme Group Gate", 18, 8, 220, 34);
         title.FontSize = 14;
         title.Color = "FFFFFF";
         PowerPointTextBox marker = slide.AddTextBoxPoints("Grouped transform marker", 20, 58, 150, 20);

@@ -18,6 +18,7 @@ namespace OfficeIMO.Tests;
 /// <summary>
 /// Smoke tests for <see cref="DocumentReader"/> across supported formats.
 /// </summary>
+[Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderDocumentReaderTests {
     [Fact]
     public void DocumentReader_CanReadWord() {

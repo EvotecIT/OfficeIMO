@@ -57,9 +57,24 @@ public sealed class OfficeChartSeries {
     /// <param name="showMarkers">Whether this series should render markers when the chart layout enables them.</param>
     /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
     /// <param name="connectLine">Whether this series should render connecting line segments when the chart family supports them.</param>
-    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true) {
+    /// <param name="markerSize">Optional source-defined marker diameter in drawing units.</param>
+    /// <param name="markerShape">Optional source-defined marker shape.</param>
+    /// <param name="markerOutlineColor">Optional source-defined marker outline color.</param>
+    /// <param name="markerOutlineWidth">Optional source-defined marker outline width in drawing units.</param>
+    /// <param name="strokeWidth">Optional source-defined series stroke width in drawing units.</param>
+    /// <param name="strokeDashStyle">Optional source-defined series stroke dash style.</param>
+    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true, int? markerSize = null, OfficeChartMarkerShape? markerShape = null, OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null, double? strokeWidth = null, OfficeStrokeDashStyle? strokeDashStyle = null) {
         if (values == null) {
             throw new ArgumentNullException(nameof(values));
+        }
+        if (markerSize is <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(markerSize), "Marker size must be greater than zero.");
+        }
+        if (markerOutlineWidth is <= 0D) {
+            throw new ArgumentOutOfRangeException(nameof(markerOutlineWidth), "Marker outline width must be greater than zero.");
+        }
+        if (strokeWidth is <= 0D) {
+            throw new ArgumentOutOfRangeException(nameof(strokeWidth), "Series stroke width must be greater than zero.");
         }
 
         Name = name ?? string.Empty;
@@ -75,6 +90,12 @@ public sealed class OfficeChartSeries {
         ShowMarkers = showMarkers;
         ShowInLegend = showInLegend;
         ConnectLine = connectLine;
+        MarkerSize = markerSize;
+        MarkerShape = markerShape;
+        MarkerOutlineColor = markerOutlineColor;
+        MarkerOutlineWidth = markerOutlineWidth;
+        StrokeWidth = strokeWidth;
+        StrokeDashStyle = strokeDashStyle;
         if (pointColors != null) {
             PointColors = new ReadOnlyCollection<OfficeColor?>(new List<OfficeColor?>(pointColors));
             if (PointColors.Count != Values.Count) {
@@ -100,6 +121,24 @@ public sealed class OfficeChartSeries {
 
     /// <summary>Whether this series should render markers when the chart layout enables markers.</summary>
     public bool ShowMarkers { get; }
+
+    /// <summary>Optional source-defined marker diameter in drawing units.</summary>
+    public int? MarkerSize { get; }
+
+    /// <summary>Optional source-defined marker shape.</summary>
+    public OfficeChartMarkerShape? MarkerShape { get; }
+
+    /// <summary>Optional source-defined marker outline color.</summary>
+    public OfficeColor? MarkerOutlineColor { get; }
+
+    /// <summary>Optional source-defined marker outline width in drawing units.</summary>
+    public double? MarkerOutlineWidth { get; }
+
+    /// <summary>Optional source-defined series stroke width in drawing units.</summary>
+    public double? StrokeWidth { get; }
+
+    /// <summary>Optional source-defined series stroke dash style.</summary>
+    public OfficeStrokeDashStyle? StrokeDashStyle { get; }
 
     /// <summary>Whether this series should appear in rendered legends.</summary>
     public bool ShowInLegend { get; }

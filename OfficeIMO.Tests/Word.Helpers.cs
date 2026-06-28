@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
@@ -34,9 +35,24 @@ public partial class Word {
         Assert.Equal(96, imageCharacteristics.Height);
     }
 
+    [Fact]
+    public void Test_GetImageCharacteristics_RejectsUnsupportedWebpWordImagePart() {
+        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => Helpers.GetImageCharacteristics(imageStream, "preview.webp"));
+
+        Assert.Contains("Webp", exception.Message);
+    }
+
     [Theory]
+    [InlineData(CustomImagePartType.Bmp, "image/bmp")]
+    [InlineData(CustomImagePartType.Gif, "image/gif")]
+    [InlineData(CustomImagePartType.Jpeg, "image/jpeg")]
+    [InlineData(CustomImagePartType.Png, "image/png")]
+    [InlineData(CustomImagePartType.Tiff, "image/tiff")]
     [InlineData(CustomImagePartType.Emf, "image/x-emf")]
     [InlineData(CustomImagePartType.Wmf, "image/x-wmf")]
+    [InlineData(CustomImagePartType.Svg, "image/svg+xml")]
     public void Test_CustomImagePartType_ToOpenXmlImagePartType(CustomImagePartType imagePartType, string expectedContentType) {
         Assert.Equal(expectedContentType, imagePartType.ToOpenXmlImagePartType());
     }

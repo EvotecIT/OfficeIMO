@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
     internal sealed class VisioShapeGeometryPath {
@@ -223,11 +224,14 @@ namespace OfficeIMO.Visio {
         }
 
         private static void AppendArcPoints(List<(double X, double Y)> points, double centerX, double centerY, double radius, double startAngle, double endAngle) {
-            for (int i = 1; i <= ArcSegmentCount; i++) {
-                double t = i / (double)ArcSegmentCount;
-                double angle = startAngle + ((endAngle - startAngle) * t);
-                points.Add((centerX + Math.Cos(angle) * radius, centerY + Math.Sin(angle) * radius));
-            }
+            points.AddRange(OfficeGeometry.CreateEllipticalArcPointsAsTuples(
+                centerX,
+                centerY,
+                radius,
+                radius,
+                startAngle,
+                endAngle - startAngle,
+                ArcSegmentCount));
         }
 
         private static bool IsSemanticTerminatorShape(VisioShape shape, string kind) {

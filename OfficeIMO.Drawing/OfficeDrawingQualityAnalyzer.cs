@@ -64,7 +64,14 @@ public static class OfficeDrawingQualityAnalyzer {
 
     private static DrawingBounds GetBounds(OfficeDrawingElement element) {
         if (element is OfficeDrawingText text) {
-            return new DrawingBounds(text.X, text.Y, text.X + text.Width, text.Y + text.Height);
+            return GetRotatedBounds(
+                text.X,
+                text.Y,
+                text.Width,
+                text.Height,
+                text.RotationDegrees,
+                text.RotationCenterX,
+                text.RotationCenterY);
         }
 
         if (element is OfficeDrawingShape shape) {
@@ -72,6 +79,18 @@ public static class OfficeDrawingQualityAnalyzer {
         }
 
         return new DrawingBounds(0D, 0D, 0D, 0D);
+    }
+
+    private static DrawingBounds GetRotatedBounds(double x, double y, double width, double height, double rotationDegrees, double centerX, double centerY) {
+        (double left, double top, double right, double bottom) = OfficeGeometry.GetRotatedRectangleBounds(
+            x,
+            y,
+            width,
+            height,
+            rotationDegrees,
+            centerX,
+            centerY);
+        return new DrawingBounds(left, top, right, bottom);
     }
 
     private static bool IsOutsideCanvas(DrawingBounds bounds, double width, double height, double tolerance) {

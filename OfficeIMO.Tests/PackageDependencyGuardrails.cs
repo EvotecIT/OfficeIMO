@@ -1,10 +1,19 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed class PackageDependencyGuardrailTests {
+    private static readonly string[] ForbiddenRenderingPackageIds = [
+        "SixLabors.ImageSharp",
+        "SixLabors.Fonts",
+        "SkiaSharp",
+        "SkiaSharp.Views",
+        "System.Drawing.Common"
+    ];
+
     [Fact]
     public void Projects_DoNotReferenceImageSharpPackage() {
         var projectFiles = Directory.EnumerateFiles(GetRepositoryRoot(), "*.csproj", SearchOption.AllDirectories)
@@ -16,6 +25,17 @@ public sealed class PackageDependencyGuardrailTests {
 
         var offenders = projectFiles
             .Where(ProjectReferencesImageSharp)
+            .ToArray();
+
+        Assert.Empty(offenders);
+    }
+
+    [Fact]
+    public void Projects_DoNotReferenceExternalGraphicsPackages() {
+        var offenders = EnumerateProjectFiles()
+            .Where(static projectPath => !IsNonProductionProject(projectPath))
+            .SelectMany(projectPath => ProjectReferencesPackages(projectPath, ForbiddenRenderingPackageIds)
+                .Select(packageId => GetRepositoryRelativePath(projectPath) + " -> " + packageId))
             .ToArray();
 
         Assert.Empty(offenders);
@@ -187,6 +207,8 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.Word/OfficeIMO.Word.csproj")]
     [InlineData("OfficeIMO.Excel/OfficeIMO.Excel.csproj")]
     [InlineData("OfficeIMO.Visio/OfficeIMO.Visio.csproj")]
+    [InlineData("OfficeIMO.Pdf/OfficeIMO.Pdf.csproj")]
+    [InlineData("OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj")]
     [InlineData("OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj")]
     [InlineData("OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj")]
     public void ImageAndColorConsumers_ReferenceOfficeImoDrawing(string relativeProjectPath) {
@@ -203,6 +225,103 @@ public sealed class PackageDependencyGuardrailTests {
             .ToArray();
 
         Assert.Single(references);
+    }
+
+    public static IEnumerable<object[]> PdfConversionAdapters() {
+        yield return new object[] {
+            "OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj",
+            new[] {
+                "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+                "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj"
+            }
+        };
+        yield return new object[] {
+            "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
+            new[] {
+                "OfficeIMO.Word/OfficeIMO.Word.csproj",
+                "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj"
+            }
+        };
+        yield return new object[] {
+            "OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj",
+            new[] {
+                "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
+                "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+                "OfficeIMO.Drawing/OfficeIMO.Drawing.csproj"
+            }
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(PdfConversionAdapters))]
+    public void PdfConversionAdapters_StayThinOverDocumentAndPdfEngines(string relativeProjectPath, string[] expectedProjectReferences) {
+        var projectPath = GetRepositoryPath(relativeProjectPath);
+        Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+
+        string[] projectReferences = GetProjectReferences(projectPath);
+        foreach (var expectedReference in expectedProjectReferences) {
+            Assert.Contains(
+                projectReferences,
+                reference => reference.EndsWith(NormalizeProjectPath(expectedReference), StringComparison.OrdinalIgnoreCase));
+        }
+
+        Assert.DoesNotContain(projectReferences, reference => reference.Contains("iText", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(projectReferences, reference => reference.Contains("PdfSharp", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Theory]
+    [InlineData("OfficeIMO.Visio/VisioPngRenderer.PngRaster.cs")]
+    [InlineData("OfficeIMO.Visio/VisioPngRenderer.Encoding.cs")]
+    public void RetiredPrivateRenderingBrains_AreNotRestored(string relativePath) {
+        Assert.False(File.Exists(GetRepositoryPath(relativePath)), "Retired private renderer file should stay in OfficeIMO.Drawing instead: " + relativePath);
+    }
+
+    [Fact]
+    public void RenderingAdapters_DoNotDeclarePrivateRasterInfrastructure() {
+        string[] renderingAdapterRoots = [
+            "OfficeIMO.Excel",
+            "OfficeIMO.Visio",
+            "OfficeIMO.PowerPoint",
+            "OfficeIMO.Excel.Pdf",
+            "OfficeIMO.Word.Pdf",
+            "OfficeIMO.PowerPoint.Pdf"
+        ];
+        string[] forbiddenTypeNames = [
+            "PngRaster",
+            "PngEncoder",
+            "PngWriter",
+            "PngDecoder",
+            "RgbaImage",
+            "RgbaCanvas",
+            "RasterImage",
+            "RasterRenderTarget"
+        ];
+        Regex forbiddenDeclaration = new(
+            @"\b(class|struct)\s+(" + string.Join("|", forbiddenTypeNames.Select(Regex.Escape)) + @")\b",
+            RegexOptions.CultureInvariant);
+
+        var offenders = new List<string>();
+        foreach (string root in renderingAdapterRoots) {
+            string rootPath = GetRepositoryPath(root);
+            if (!Directory.Exists(rootPath)) {
+                continue;
+            }
+
+            foreach (string sourceFile in Directory.EnumerateFiles(rootPath, "*.cs", SearchOption.AllDirectories)) {
+                if (sourceFile.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
+                    sourceFile.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                string source = File.ReadAllText(sourceFile);
+                Match match = forbiddenDeclaration.Match(source);
+                if (match.Success) {
+                    offenders.Add(GetRepositoryRelativePath(sourceFile) + " declares " + match.Groups[2].Value);
+                }
+            }
+        }
+
+        Assert.Empty(offenders);
     }
 
     [Theory]
@@ -314,6 +433,15 @@ public sealed class PackageDependencyGuardrailTests {
             .Where(static path => new FileInfo(path).Length > 0)
             .ToArray();
 
+    private static bool IsNonProductionProject(string projectPath) {
+        string normalized = projectPath.Replace('\\', '/');
+        return normalized.Contains("/OfficeIMO.Tests/", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Contains("/OfficeIMO.VerifyTests/", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Contains(".Tests/", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Contains(".Benchmarks", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Contains("/OfficeIMO.Examples/", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static string AppendRepositoryPathSegment(string basePath, string segment) =>
         basePath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
             ? basePath + segment
@@ -322,21 +450,47 @@ public sealed class PackageDependencyGuardrailTests {
     private static string NormalizeProjectPath(string? path) =>
         (path ?? string.Empty).Replace('\\', '/');
 
-    private static bool ProjectReferencesImageSharp(string projectPath) {
+    private static string GetRepositoryRelativePath(string path) {
+        var repositoryRoot = Path.GetFullPath(GetRepositoryRoot());
+        if (!repositoryRoot.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)) {
+            repositoryRoot += Path.DirectorySeparatorChar;
+        }
+
+        var rootUri = new Uri(repositoryRoot, UriKind.Absolute);
+        var pathUri = new Uri(Path.GetFullPath(path), UriKind.Absolute);
+        var relativePath = Uri.UnescapeDataString(rootUri.MakeRelativeUri(pathUri).ToString());
+        Assert.False(
+            relativePath == ".." || relativePath.StartsWith("../", StringComparison.Ordinal),
+            "Path must stay under repository root: " + path);
+        return NormalizeProjectPath(relativePath);
+    }
+
+    private static string[] GetProjectReferences(string projectPath) {
         var document = XDocument.Load(projectPath);
         var ns = document.Root?.Name.Namespace ?? XNamespace.None;
 
         return document
-            .Descendants(ns + "PackageReference")
-            .Any(static e => string.Equals((string?)e.Attribute("Include"), "SixLabors.ImageSharp", StringComparison.Ordinal));
+            .Descendants(ns + "ProjectReference")
+            .Select(static e => NormalizeProjectPath((string?)e.Attribute("Include")))
+            .Where(static include => !string.IsNullOrWhiteSpace(include))
+            .ToArray();
+    }
+
+    private static bool ProjectReferencesImageSharp(string projectPath) {
+        return ProjectReferencesPackages(projectPath, ["SixLabors.ImageSharp"]).Any();
     }
 
     private static bool ProjectReferencesSixLaborsFonts(string projectPath) {
+        return ProjectReferencesPackages(projectPath, ["SixLabors.Fonts"]).Any();
+    }
+
+    private static IEnumerable<string> ProjectReferencesPackages(string projectPath, IReadOnlyCollection<string> packageIds) {
         var document = XDocument.Load(projectPath);
         var ns = document.Root?.Name.Namespace ?? XNamespace.None;
 
         return document
             .Descendants(ns + "PackageReference")
-            .Any(static e => string.Equals((string?)e.Attribute("Include"), "SixLabors.Fonts", StringComparison.Ordinal));
+            .Select(static e => (string?)e.Attribute("Include") ?? string.Empty)
+            .Where(include => packageIds.Contains(include, StringComparer.Ordinal));
     }
 }

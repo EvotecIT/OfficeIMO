@@ -179,6 +179,8 @@ public partial class Excel {
             data,
             rowIndex: 1,
             columnIndex: 1,
+            offsetXPixels: 0,
+            offsetYPixels: 0,
             widthPixels: 320,
             heightPixels: 180);
 

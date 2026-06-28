@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Word;
 
 /// <summary>
@@ -54,16 +56,19 @@ public static class CustomImagePartTypeExtensions {
     /// </summary>
     /// <param name="customType">The custom image part type.</param>
     /// <returns>The corresponding content type value.</returns>
-    public static string ToOpenXmlImagePartType(this CustomImagePartType customType) {
+    public static string ToOpenXmlImagePartType(this CustomImagePartType customType) =>
+        OfficeImageInfo.GetMimeType(customType.ToOfficeImageFormat());
+
+    private static OfficeImageFormat ToOfficeImageFormat(this CustomImagePartType customType) {
         return customType switch {
-            CustomImagePartType.Bmp => "image/bmp",
-            CustomImagePartType.Gif => "image/gif",
-            CustomImagePartType.Jpeg => "image/jpeg",
-            CustomImagePartType.Png => "image/png",
-            CustomImagePartType.Tiff => "image/tiff",
-            CustomImagePartType.Emf => "image/x-emf",
-            CustomImagePartType.Wmf => "image/x-wmf",
-            CustomImagePartType.Svg => "image/svg+xml",
+            CustomImagePartType.Bmp => OfficeImageFormat.Bmp,
+            CustomImagePartType.Gif => OfficeImageFormat.Gif,
+            CustomImagePartType.Jpeg => OfficeImageFormat.Jpeg,
+            CustomImagePartType.Png => OfficeImageFormat.Png,
+            CustomImagePartType.Tiff => OfficeImageFormat.Tiff,
+            CustomImagePartType.Emf => OfficeImageFormat.Emf,
+            CustomImagePartType.Wmf => OfficeImageFormat.Wmf,
+            CustomImagePartType.Svg => OfficeImageFormat.Svg,
             _ => throw new ArgumentOutOfRangeException(nameof(customType), customType, null)
         };
     }

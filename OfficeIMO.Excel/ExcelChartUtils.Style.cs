@@ -76,6 +76,20 @@ namespace OfficeIMO.Excel {
             return reference;
         }
 
+        private static NumberLiteral CreateNumberLiteral(IReadOnlyList<double> values) {
+            NumberLiteral literal = new();
+            literal.Append(new FormatCode { Text = "General" });
+            literal.Append(new PointCount { Val = (uint)values.Count });
+            for (int i = 0; i < values.Count; i++) {
+                literal.Append(new NumericPoint {
+                    Index = (uint)i,
+                    NumericValue = new NumericValue { Text = values[i].ToString(CultureInfo.InvariantCulture) }
+                });
+            }
+
+            return literal;
+        }
+
         private static Title CreateChartTitle(string text) {
             return new Title(
                 new ChartText(CreateChartText(text)),

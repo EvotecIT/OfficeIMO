@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net;
+using OfficeIMO.Drawing;
 #if !NETFRAMEWORK
 using System.Net.Http;
 #endif
@@ -37,13 +38,9 @@ namespace OfficeIMO.Excel {
         }
 
         private static string? NormalizeContentType(string? raw) {
-            if (string.IsNullOrWhiteSpace(raw)) return null;
-
-            var trimmed = raw!.Trim();
-            var separatorIndex = trimmed.IndexOf(';');
-            if (separatorIndex >= 0) trimmed = trimmed.Substring(0, separatorIndex);
-
-            return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+            return OfficeImageInfo.TryNormalizeImageContentType(raw, out string normalizedContentType)
+                ? normalizedContentType
+                : null;
         }
 
         public static bool TryFetch(string url, int timeoutSeconds, long maxBytes, out byte[]? bytes, out string? contentType) {
@@ -79,7 +76,7 @@ namespace OfficeIMO.Excel {
                     var ct = NormalizeContentType(response.Content.Headers.ContentType?.MediaType);
                     var len = response.Content.Headers.ContentLength;
 #endif
-                    if (ct == null || !ct.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (ct == null) return false;
 #if NETFRAMEWORK
                     if (len > 0 && len > maxBytes) return false;
                     using var s = response.GetResponseStream();

@@ -93,6 +93,33 @@ namespace OfficeIMO.PowerPoint {
         };
 
         /// <summary>
+        ///     Zero-based drawing order within the parent shape tree, where larger values render above earlier shapes.
+        /// </summary>
+        public int DrawingOrder {
+            get {
+                OpenXmlElement? parent = Element.Parent;
+                if (parent == null) {
+                    return -1;
+                }
+
+                int order = 0;
+                foreach (OpenXmlElement child in parent.ChildElements) {
+                    if (!IsDrawingElement(child)) {
+                        continue;
+                    }
+
+                    if (ReferenceEquals(child, Element)) {
+                        return order;
+                    }
+
+                    order++;
+                }
+
+                return -1;
+            }
+        }
+
+        /// <summary>
         ///     Removes this shape from its owning slide or parent shape tree.
         /// </summary>
         public void Remove() {
@@ -135,5 +162,8 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointShape DuplicatePoints(double offsetXPoints, double offsetYPoints) {
             return Duplicate(PowerPointUnits.FromPoints(offsetXPoints), PowerPointUnits.FromPoints(offsetYPoints));
         }
+
+        private static bool IsDrawingElement(OpenXmlElement element) =>
+            element is Shape or Picture or GraphicFrame or GroupShape;
     }
 }

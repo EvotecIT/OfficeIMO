@@ -25,6 +25,32 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Default_VisualTheme_Emits_WordLike_Html_Css() {
+            string html = MarkdownDoc.Create()
+                .H1("Title")
+                .P("Hello")
+                .ToHtmlDocument();
+
+            Assert.Contains("article.markdown-body { color: #1f2937; background: #ffffff; }", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("article.markdown-body h1", html, StringComparison.Ordinal);
+            Assert.Contains("--md-heading: #111827", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("--md-accent: #2563eb", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Default_VisualTheme_Can_Be_Disabled_For_Plain_Html_Css() {
+            string html = MarkdownDoc.Create()
+                .H1("Title")
+                .P("Hello")
+                .ToHtmlDocument(new HtmlOptions {
+                    ApplyDefaultVisualTheme = false
+                });
+
+            Assert.DoesNotContain("article.markdown-body { color: #1f2937; background: #ffffff; }", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("--md-heading: #111827", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void External_Css_Writes_Sidecar() {
             var temp = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(temp);

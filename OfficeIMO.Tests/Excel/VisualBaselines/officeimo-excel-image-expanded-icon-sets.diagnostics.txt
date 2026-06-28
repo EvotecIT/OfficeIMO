@@ -1,0 +1,4 @@
+Info|ExcelConditionalIconSetApproximation|IconSets!B3:B7|Conditional formatting icon set is rendered as a deterministic dependency-free approximation; Excel-specific icon artwork and threshold semantics may differ.
+Info|ExcelConditionalIconSetApproximation|IconSets!D3:D7|Conditional formatting icon set is rendered as a deterministic dependency-free approximation; Excel-specific icon artwork and threshold semantics may differ.
+Info|ExcelConditionalIconSetApproximation|IconSets!F3:F7|Conditional formatting icon set is rendered as a deterministic dependency-free approximation; Excel-specific icon artwork and threshold semantics may differ.
+Info|ExcelConditionalIconSetApproximation|IconSets!G3:G7|Conditional formatting icon set is rendered as a deterministic dependency-free approximation; Excel-specific icon artwork and threshold semantics may differ.

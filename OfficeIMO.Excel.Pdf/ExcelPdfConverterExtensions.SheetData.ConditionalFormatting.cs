@@ -19,8 +19,8 @@ namespace OfficeIMO.Excel.Pdf {
             foreach (ExcelConditionalFormattingInfo rule in rules
                 .Where(rule => string.Equals(rule.Type, "ColorScale", StringComparison.OrdinalIgnoreCase) && rule.ColorScaleColors.Count >= 2)
                 .OrderByDescending(rule => rule.Priority)) {
-                if (!TryGetRgb(rule.ColorScaleColors[0], out byte startR, out byte startG, out byte startB) ||
-                    !TryGetRgb(rule.ColorScaleColors[rule.ColorScaleColors.Count - 1], out byte endR, out byte endG, out byte endB)) {
+                if (!TryGetRgb(rule.ColorScaleColors[0], out _, out _, out _) ||
+                    !TryGetRgb(rule.ColorScaleColors[rule.ColorScaleColors.Count - 1], out _, out _, out _)) {
                     continue;
                 }
 
@@ -40,11 +40,11 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                double min = candidates.Min(candidate => candidate.Value);
-                double max = candidates.Max(candidate => candidate.Value);
+                IReadOnlyList<double> candidateValues = candidates.Select(candidate => candidate.Value).ToArray();
                 foreach (var candidate in candidates) {
-                    double ratio = max <= min ? 0.5D : Math.Max(0D, Math.Min(1D, (candidate.Value - min) / (max - min)));
-                    fills[(candidate.Row, candidate.Column)] = InterpolateRgbHex(startR, startG, startB, endR, endG, endB, ratio);
+                    if (ExcelConditionalFormatThresholds.TryGetColorScaleRgb(candidateValues, rule.ColorScaleColors, rule.ColorScaleThresholds, candidate.Value, out string rgbHex)) {
+                        fills[(candidate.Row, candidate.Column)] = rgbHex;
+                    }
                 }
             }
 
@@ -67,10 +67,10 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                double min = candidates.Min(candidate => candidate.Value);
-                double max = candidates.Max(candidate => candidate.Value);
+                IReadOnlyList<double> candidateValues = candidates.Select(candidate => candidate.Value).ToArray();
+                (double min, double max) = ExcelConditionalFormatThresholds.ResolveDataBarRange(candidateValues, rule.DataBarThresholds);
                 foreach (var candidate in candidates) {
-                    (double startRatio, double ratio) = GetDataBarGeometry(candidate.Value, min, max);
+                    (double startRatio, double ratio) = ExcelConditionalFormatThresholds.GetDataBarGeometry(candidate.Value, min, max);
                     dataBars[(candidate.Row, candidate.Column)] = new ConditionalDataBarCell(rule.DataBarColor!, startRatio, ratio);
                 }
             }
@@ -229,64 +229,8 @@ namespace OfficeIMO.Excel.Pdf {
             return false;
         }
 
-        private static bool TryGetRgb(string value, out byte r, out byte g, out byte b) {
-            string normalized = value.Trim().TrimStart('#');
-            if (normalized.Length == 8) {
-                normalized = normalized.Substring(2);
-            }
-
-            if (normalized.Length != 6 ||
-                !byte.TryParse(normalized.Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out r) ||
-                !byte.TryParse(normalized.Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out g) ||
-                !byte.TryParse(normalized.Substring(4, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out b)) {
-                r = 0;
-                g = 0;
-                b = 0;
-                return false;
-            }
-
-            return true;
-        }
-
-        private static string InterpolateRgbHex(byte startR, byte startG, byte startB, byte endR, byte endG, byte endB, double ratio) {
-            byte r = InterpolateByte(startR, endR, ratio);
-            byte g = InterpolateByte(startG, endG, ratio);
-            byte b = InterpolateByte(startB, endB, ratio);
-            return r.ToString("X2", CultureInfo.InvariantCulture) +
-                g.ToString("X2", CultureInfo.InvariantCulture) +
-                b.ToString("X2", CultureInfo.InvariantCulture);
-        }
-
-        private static byte InterpolateByte(byte start, byte end, double ratio) {
-            return (byte)Math.Max(0, Math.Min(255, (int)Math.Round(start + ((end - start) * ratio), MidpointRounding.AwayFromZero)));
-        }
-
-
-        private static (double StartRatio, double Ratio) GetDataBarGeometry(double value, double min, double max) {
-            if (max <= min) {
-                return value < 0D ? (0D, 1D) : (0D, 1D);
-            }
-
-            if (min < 0D && max > 0D) {
-                double range = max - min;
-                double zeroRatio = Math.Max(0D, Math.Min(1D, -min / range));
-                if (value >= 0D) {
-                    return (zeroRatio, Math.Max(0D, Math.Min(1D - zeroRatio, value / range)));
-                }
-
-                double ratio = Math.Max(0D, Math.Min(zeroRatio, -value / range));
-                return (zeroRatio - ratio, ratio);
-            }
-
-            if (max <= 0D) {
-                double maxMagnitude = Math.Max(Math.Abs(min), Math.Abs(max));
-                double ratio = maxMagnitude <= 0D ? 0D : Math.Max(0D, Math.Min(1D, Math.Abs(value) / maxMagnitude));
-                return (1D - ratio, ratio);
-            }
-
-            double positiveRatio = Math.Max(0D, Math.Min(1D, (value - min) / (max - min)));
-            return (0D, positiveRatio);
-        }
+        private static bool TryGetRgb(string value, out byte r, out byte g, out byte b) =>
+            ExcelConditionalFormatThresholds.TryGetRgb(value, out r, out g, out b);
 
     }
 }

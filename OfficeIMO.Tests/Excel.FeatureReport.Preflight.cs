@@ -799,6 +799,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FeatureReport_Preflight_BlocksPdfExportForRenderableDrawingShapes() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.RenderableDrawingShape.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Shapes");
+                sheet.CellValue(1, 1, "Box");
+                document.Save(false);
+            }
+
+            AddRenderableDrawingShape(filePath);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+
+                string diagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains("PDF-unrendered drawing shapes", diagnostics);
+                Assert.Contains("Renderable rectangle", diagnostics);
+                Assert.Contains("shape", diagnostics);
+            }
+        }
+
+        [Fact]
         public void FeatureReport_Preflight_BlocksPdfExportForNonWorksheetSheets() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.ChartSheet.xlsx");
 
@@ -882,6 +907,41 @@ namespace OfficeIMO.Tests {
             properties.ForceFullCalculation = false;
             properties.FullCalculationOnLoad = false;
             spreadsheet.WorkbookPart.Workbook.Save();
+        }
+
+        private static void AddRenderableDrawingShape(string filePath) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
+            if (worksheetPart.Worksheet!.Elements<X.Drawing>().FirstOrDefault() == null) {
+                worksheetPart.Worksheet.Append(new X.Drawing { Id = worksheetPart.GetIdOfPart(drawingsPart) });
+            }
+
+            drawingsPart.WorksheetDrawing = new Xdr.WorksheetDrawing(
+                new Xdr.TwoCellAnchor(
+                    new Xdr.FromMarker(
+                        new Xdr.ColumnId("1"),
+                        new Xdr.ColumnOffset("0"),
+                        new Xdr.RowId("1"),
+                        new Xdr.RowOffset("0")),
+                    new Xdr.ToMarker(
+                        new Xdr.ColumnId("3"),
+                        new Xdr.ColumnOffset("0"),
+                        new Xdr.RowId("4"),
+                        new Xdr.RowOffset("0")),
+                    new Xdr.Shape(
+                        new Xdr.NonVisualShapeProperties(
+                            new Xdr.NonVisualDrawingProperties { Id = 2U, Name = "Renderable rectangle" },
+                            new Xdr.NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true })),
+                        new Xdr.ShapeProperties(
+                            new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }),
+                        new Xdr.TextBody(
+                            new A.BodyProperties(),
+                            new A.ListStyle(),
+                            new A.Paragraph(new A.Run(new A.Text("Visible"))))),
+                    new Xdr.ClientData()));
+            drawingsPart.WorksheetDrawing.Save();
+            worksheetPart.Worksheet.Save();
         }
 
         private static void AddDrawingShapeAndHyperlink(string filePath) {

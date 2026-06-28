@@ -92,20 +92,140 @@ namespace OfficeIMO.Excel {
         public int HeightPixels => EmuToPx(GetExtentCy());
 
         /// <summary>
-        /// Gets the image content type, such as image/png or image/jpeg.
+        /// Gets the image horizontal offset from the anchor cell origin in pixels.
         /// </summary>
-        public string ContentType => ImagePart?.ContentType ?? string.Empty;
+        public int OffsetXPixels => EmuOffsetToPx(GetMarkerColumnOffset());
+
+        /// <summary>
+        /// Gets the image vertical offset from the anchor cell origin in pixels.
+        /// </summary>
+        public int OffsetYPixels => EmuOffsetToPx(GetMarkerRowOffset());
+
+        /// <summary>
+        /// Gets whether the image is positioned with a two-cell drawing anchor.
+        /// </summary>
+        public bool HasTwoCellAnchor => _anchor is Xdr.TwoCellAnchor;
+
+        /// <summary>
+        /// Gets whether the image is positioned with an absolute drawing anchor.
+        /// </summary>
+        public bool HasAbsoluteAnchor => _anchor is Xdr.AbsoluteAnchor;
+
+        /// <summary>
+        /// Gets the 1-based ending row index for two-cell anchored images, when available.
+        /// </summary>
+        public int? ToRowIndex => TryGetToMarkerRow(out int row) ? row + 1 : null;
+
+        /// <summary>
+        /// Gets the 1-based ending column index for two-cell anchored images, when available.
+        /// </summary>
+        public int? ToColumnIndex => TryGetToMarkerColumn(out int column) ? column + 1 : null;
+
+        /// <summary>
+        /// Gets the horizontal offset from the two-cell ending marker column in pixels.
+        /// </summary>
+        public int ToOffsetXPixels => EmuOffsetToPx(GetToMarkerColumnOffset());
+
+        /// <summary>
+        /// Gets the vertical offset from the two-cell ending marker row in pixels.
+        /// </summary>
+        public int ToOffsetYPixels => EmuOffsetToPx(GetToMarkerRowOffset());
+
+        /// <summary>
+        /// Tries to read the image bounds when it is positioned by an absolute worksheet drawing anchor.
+        /// </summary>
+        public bool TryGetAbsoluteAnchorBounds(out int xPixels, out int yPixels, out int widthPixels, out int heightPixels) {
+            xPixels = 0;
+            yPixels = 0;
+            widthPixels = 0;
+            heightPixels = 0;
+            if (_anchor is not Xdr.AbsoluteAnchor absoluteAnchor) {
+                return false;
+            }
+
+            xPixels = EmuOffsetToPx(absoluteAnchor.Position?.X?.Value ?? 0L);
+            yPixels = EmuOffsetToPx(absoluteAnchor.Position?.Y?.Value ?? 0L);
+            widthPixels = EmuToPx(absoluteAnchor.Extent?.Cx?.Value ?? 0L);
+            heightPixels = EmuToPx(absoluteAnchor.Extent?.Cy?.Value ?? 0L);
+            if (widthPixels <= 0 || heightPixels <= 0) {
+                widthPixels = WidthPixels;
+                heightPixels = HeightPixels;
+            }
+
+            return widthPixels > 0 && heightPixels > 0;
+        }
+
+        /// <summary>
+        /// Sets the ending marker for a two-cell anchored image using 1-based worksheet marker coordinates.
+        /// </summary>
+        /// <param name="toRow">1-based ending row marker.</param>
+        /// <param name="toColumn">1-based ending column marker.</param>
+        /// <param name="toOffsetXPixels">Horizontal offset from the ending marker column.</param>
+        /// <param name="toOffsetYPixels">Vertical offset from the ending marker row.</param>
+        public ExcelImage SetTwoCellEndingMarker(int toRow, int toColumn, int toOffsetXPixels = 0, int toOffsetYPixels = 0) {
+            if (toRow < 1) throw new ArgumentOutOfRangeException(nameof(toRow));
+            if (toColumn < 1) throw new ArgumentOutOfRangeException(nameof(toColumn));
+            if (toOffsetXPixels < 0) throw new ArgumentOutOfRangeException(nameof(toOffsetXPixels));
+            if (toOffsetYPixels < 0) throw new ArgumentOutOfRangeException(nameof(toOffsetYPixels));
+            if (_anchor is not Xdr.TwoCellAnchor anchor || anchor.ToMarker == null) {
+                throw new InvalidOperationException("Only two-cell anchored images expose an ending marker.");
+            }
+
+            anchor.ToMarker.RowId = new Xdr.RowId((toRow - 1).ToString(CultureInfo.InvariantCulture));
+            anchor.ToMarker.ColumnId = new Xdr.ColumnId((toColumn - 1).ToString(CultureInfo.InvariantCulture));
+            anchor.ToMarker.RowOffset = new Xdr.RowOffset(PxToEmu(toOffsetYPixels).ToString(CultureInfo.InvariantCulture));
+            anchor.ToMarker.ColumnOffset = new Xdr.ColumnOffset(PxToEmu(toOffsetXPixels).ToString(CultureInfo.InvariantCulture));
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Gets the left crop ratio authored on the image, where 0 means no crop and 1 means the full width.
+        /// </summary>
+        public double CropLeftRatio => GetCropRatio(CropRectangle?.Left?.Value);
+
+        /// <summary>
+        /// Gets the top crop ratio authored on the image, where 0 means no crop and 1 means the full height.
+        /// </summary>
+        public double CropTopRatio => GetCropRatio(CropRectangle?.Top?.Value);
+
+        /// <summary>
+        /// Gets the right crop ratio authored on the image, where 0 means no crop and 1 means the full width.
+        /// </summary>
+        public double CropRightRatio => GetCropRatio(CropRectangle?.Right?.Value);
+
+        /// <summary>
+        /// Gets the bottom crop ratio authored on the image, where 0 means no crop and 1 means the full height.
+        /// </summary>
+        public double CropBottomRatio => GetCropRatio(CropRectangle?.Bottom?.Value);
 
         /// <summary>
         /// Gets or sets clockwise image rotation in degrees.
         /// </summary>
         public double RotationDegrees {
-            get {
-                var transform = _picture.ShapeProperties?.GetFirstChild<A.Transform2D>();
-                return (transform?.Rotation?.Value ?? 0) / 60000.0;
-            }
+            get => GetRotationDegrees(Transform?.Rotation?.Value);
             set => SetRotation(value);
         }
+
+        /// <summary>
+        /// Gets whether the image has an authored horizontal flip transform.
+        /// </summary>
+        public bool FlipHorizontal => Transform?.HorizontalFlip?.Value ?? false;
+
+        /// <summary>
+        /// Gets whether the image has an authored vertical flip transform.
+        /// </summary>
+        public bool FlipVertical => Transform?.VerticalFlip?.Value ?? false;
+
+        /// <summary>
+        /// Gets this image anchor's zero-based order in the worksheet drawing layer.
+        /// </summary>
+        public int DrawingOrder => GetDrawingOrder(_anchor, _drawingsPart);
+
+        /// <summary>
+        /// Gets the image content type, such as image/png or image/jpeg.
+        /// </summary>
+        public string ContentType => ImagePart?.ContentType ?? string.Empty;
 
         /// <summary>
         /// Returns a copy of the image bytes from the worksheet drawing relationship.
@@ -179,20 +299,60 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(degrees), "Rotation must be a finite number of degrees.");
             }
 
-            var shapeProperties = _picture.ShapeProperties;
-            if (shapeProperties == null) {
+            A.Transform2D? transform = EnsureTransform();
+            if (transform == null) return this;
+            transform.Rotation = (int)Math.Round(degrees * 60000.0);
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets image crop ratios, where 0 means no crop and 1 means the full source dimension.
+        /// </summary>
+        public ExcelImage SetCropRatio(double left, double top, double right, double bottom) {
+            ValidateCropRatio(left, nameof(left));
+            ValidateCropRatio(top, nameof(top));
+            ValidateCropRatio(right, nameof(right));
+            ValidateCropRatio(bottom, nameof(bottom));
+
+            Xdr.BlipFill? blipFill = _picture.BlipFill;
+            if (blipFill == null) {
                 return this;
             }
 
-            var transform = shapeProperties.GetFirstChild<A.Transform2D>();
-            if (transform == null) {
-                transform = new A.Transform2D(
-                    new A.Offset { X = 0, Y = 0 },
-                    new A.Extents { Cx = GetExtentCx(), Cy = GetExtentCy() });
-                shapeProperties.PrependChild(transform);
+            if (left == 0D && top == 0D && right == 0D && bottom == 0D) {
+                blipFill.SourceRectangle?.Remove();
+                Save();
+                return this;
             }
 
-            transform.Rotation = (int)Math.Round(degrees * 60000.0);
+            A.SourceRectangle? rectangle = blipFill.SourceRectangle;
+            if (rectangle == null) {
+                rectangle = new A.SourceRectangle();
+                A.Blip? blip = blipFill.GetFirstChild<A.Blip>();
+                if (blip != null) {
+                    blipFill.InsertAfter(rectangle, blip);
+                } else {
+                    blipFill.PrependChild(rectangle);
+                }
+            }
+
+            rectangle.Left = ToCropPercentage(left);
+            rectangle.Top = ToCropPercentage(top);
+            rectangle.Right = ToCropPercentage(right);
+            rectangle.Bottom = ToCropPercentage(bottom);
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets image flip transforms.
+        /// </summary>
+        public ExcelImage SetFlip(bool horizontal, bool vertical) {
+            A.Transform2D? transform = EnsureTransform();
+            if (transform == null) return this;
+            transform.HorizontalFlip = horizontal;
+            transform.VerticalFlip = vertical;
             Save();
             return this;
         }
@@ -334,6 +494,29 @@ namespace OfficeIMO.Excel {
         private Xdr.NonVisualDrawingProperties? DrawingProperties
             => _picture.NonVisualPictureProperties?.NonVisualDrawingProperties;
 
+        private A.SourceRectangle? CropRectangle
+            => _picture.BlipFill?.SourceRectangle;
+
+        private A.Transform2D? Transform
+            => _picture.ShapeProperties?.GetFirstChild<A.Transform2D>();
+
+        private A.Transform2D? EnsureTransform() {
+            var shapeProperties = _picture.ShapeProperties;
+            if (shapeProperties == null) {
+                return null;
+            }
+
+            var transform = shapeProperties.GetFirstChild<A.Transform2D>();
+            if (transform == null) {
+                transform = new A.Transform2D(
+                    new A.Offset { X = 0, Y = 0 },
+                    new A.Extents { Cx = GetExtentCx(), Cy = GetExtentCy() });
+                shapeProperties.PrependChild(transform);
+            }
+
+            return transform;
+        }
+
         private ImagePart? ImagePart {
             get {
                 string? relationshipId = _picture.BlipFill?.Blip?.Embed?.Value;
@@ -354,6 +537,22 @@ namespace OfficeIMO.Excel {
             _document.MarkPackageDirty();
         }
 
+        private static int GetDrawingOrder(OpenXmlElement anchor, DrawingsPart drawingsPart) {
+            Xdr.WorksheetDrawing? worksheetDrawing = drawingsPart.WorksheetDrawing;
+            if (worksheetDrawing == null) {
+                return 0;
+            }
+
+            OpenXmlElementList children = worksheetDrawing.ChildElements;
+            for (int i = 0; i < children.Count; i++) {
+                if (ReferenceEquals(children[i], anchor)) {
+                    return i;
+                }
+            }
+
+            return 0;
+        }
+
         private static long PxToEmu(int px) => (long)Math.Round(px * 9525.0);
 
         private static int ParseMarkerIndex(string? text) {
@@ -370,6 +569,38 @@ namespace OfficeIMO.Excel {
             }
 
             return (int)Math.Max(1, Math.Round(emu / 9525.0));
+        }
+
+        private static int EmuOffsetToPx(long emu) => (int)Math.Round(emu / 9525.0);
+
+        private static double GetCropRatio(int? percentage) {
+            if (!percentage.HasValue || percentage.Value <= 0) {
+                return 0D;
+            }
+
+            return Math.Min(0.999D, percentage.Value / 100000D);
+        }
+
+        private static void ValidateCropRatio(double ratio, string parameterName) {
+            if (double.IsNaN(ratio) || double.IsInfinity(ratio) || ratio < 0D || ratio >= 1D) {
+                throw new ArgumentOutOfRangeException(parameterName, "Crop ratios must be finite values greater than or equal to 0 and less than 1.");
+            }
+        }
+
+        private static int ToCropPercentage(double ratio) => (int)Math.Round(ratio * 100000D);
+
+        private static double GetRotationDegrees(int? angle) {
+            if (!angle.HasValue || angle.Value == 0) {
+                return 0D;
+            }
+
+            double degrees = angle.Value / 60000D;
+            degrees %= 360D;
+            if (degrees < 0D) {
+                degrees += 360D;
+            }
+
+            return degrees;
         }
 
         private static (int Index, long OffsetEmu) ResolveEndMarker(
@@ -471,6 +702,36 @@ namespace OfficeIMO.Excel {
         private int GetMarkerColumn() {
             string? column = _anchor.GetFirstChild<Xdr.FromMarker>()?.ColumnId?.Text;
             return int.TryParse(column, out int value) && value >= 0 ? value : 0;
+        }
+
+        private long GetMarkerColumnOffset() {
+            string? offset = _anchor.GetFirstChild<Xdr.FromMarker>()?.ColumnOffset?.Text;
+            return long.TryParse(offset, out long value) ? value : 0L;
+        }
+
+        private long GetMarkerRowOffset() {
+            string? offset = _anchor.GetFirstChild<Xdr.FromMarker>()?.RowOffset?.Text;
+            return long.TryParse(offset, out long value) ? value : 0L;
+        }
+
+        private bool TryGetToMarkerRow(out int row) {
+            string? value = _anchor.GetFirstChild<Xdr.ToMarker>()?.RowId?.Text;
+            return int.TryParse(value, out row) && row >= 0;
+        }
+
+        private bool TryGetToMarkerColumn(out int column) {
+            string? value = _anchor.GetFirstChild<Xdr.ToMarker>()?.ColumnId?.Text;
+            return int.TryParse(value, out column) && column >= 0;
+        }
+
+        private long GetToMarkerColumnOffset() {
+            string? offset = _anchor.GetFirstChild<Xdr.ToMarker>()?.ColumnOffset?.Text;
+            return long.TryParse(offset, out long value) ? value : 0L;
+        }
+
+        private long GetToMarkerRowOffset() {
+            string? offset = _anchor.GetFirstChild<Xdr.ToMarker>()?.RowOffset?.Text;
+            return long.TryParse(offset, out long value) ? value : 0L;
         }
 
         private long GetExtentCx() {

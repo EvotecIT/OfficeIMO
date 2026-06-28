@@ -33,6 +33,68 @@ namespace OfficeIMO.Drawing {
             }
         }
 
+        /// <summary>
+        /// Returns true when the MIME content type is accepted by first-party PDF image export.
+        /// </summary>
+        public static bool IsSupportedContentType(string? contentType) =>
+            TryGetSupportedContentTypeFormat(contentType, out _);
+
+        /// <summary>
+        /// Resolves a MIME content type accepted by first-party PDF image export to its shared image format.
+        /// </summary>
+        public static bool TryGetSupportedContentTypeFormat(string? contentType, out OfficeImageFormat format) {
+            format = OfficeImageInfo.FromMimeType(contentType);
+            return IsSupportedFormat(format);
+        }
+
+        /// <summary>
+        /// Validates that image bytes can be identified and match the declared PDF-supported MIME content type.
+        /// </summary>
+        /// <remarks>
+        /// This checks shared image identity and declared MIME parity only. Format-specific PDF writer validation
+        /// remains owned by the PDF writer because it depends on PDF stream encoding constraints.
+        /// </remarks>
+        /// <param name="bytes">Source image bytes.</param>
+        /// <param name="contentType">Declared MIME content type.</param>
+        /// <param name="imageInfo">Detected image metadata when the bytes can be identified.</param>
+        /// <param name="unsupportedReason">Reason the declared content type and detected bytes are not compatible.</param>
+        /// <returns><c>true</c> when the declared PDF image format matches the detected image bytes.</returns>
+        public static bool TryValidateDeclaredContentType(byte[] bytes, string? contentType, out OfficeImageInfo? imageInfo, out string? unsupportedReason) {
+            imageInfo = null;
+            unsupportedReason = null;
+            if (bytes == null || bytes.Length == 0) {
+                unsupportedReason = "Image bytes are empty.";
+                return false;
+            }
+
+            if (!TryGetSupportedContentTypeFormat(contentType, out OfficeImageFormat declaredFormat)) {
+                unsupportedReason = $"Image content type '{contentType}' is not supported by first-party PDF export.";
+                return false;
+            }
+
+            if (!OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo detected)) {
+                unsupportedReason = "Image bytes do not contain a supported image header.";
+                return false;
+            }
+
+            imageInfo = detected;
+            if (detected.Format != declaredFormat) {
+                unsupportedReason = $"Image bytes were declared as {GetPdfImageFormatDisplayName(declaredFormat)} but were detected as {detected.Format}.";
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Returns true when the shared image format is accepted by first-party PDF image export.
+        /// </summary>
+        public static bool IsSupportedFormat(OfficeImageFormat format) =>
+            format == OfficeImageFormat.Png || format == OfficeImageFormat.Jpeg;
+
+        private static string GetPdfImageFormatDisplayName(OfficeImageFormat format) =>
+            format == OfficeImageFormat.Jpeg ? "JPEG" : format.ToString().ToUpperInvariant();
+
         private static bool TryValidatePngContainer(byte[] bytes, out string? unsupportedReason) {
             unsupportedReason = null;
             if (bytes.Length < 33 || !StartsWith(bytes, PngSignature)) {

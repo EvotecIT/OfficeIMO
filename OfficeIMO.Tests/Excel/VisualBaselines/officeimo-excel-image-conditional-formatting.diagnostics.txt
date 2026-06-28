@@ -1,0 +1,1 @@
+Info|ExcelConditionalIconSetApproximation|Signals!F3:F7|Conditional formatting icon set is rendered as a deterministic dependency-free approximation; Excel-specific icon artwork and threshold semantics may differ.

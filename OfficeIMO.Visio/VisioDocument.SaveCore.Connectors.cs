@@ -398,57 +398,19 @@ namespace OfficeIMO.Visio {
         }
 
         private static (double X, double Y) ResolveConnectorPathPoint(VisioConnector connector, double startX, double startY, double endX, double endY, double position) {
-            double clampedPosition = VisioConnectorLabelPlacement.ClampPosition(position);
-            List<(double X, double Y)> points = new() {
-                (startX, startY)
-            };
-
+            List<(double X, double Y)> waypoints = new(connector.Waypoints.Count);
             if (connector.Waypoints.Count > 0) {
                 foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                    points.Add((waypoint.X, waypoint.Y));
+                    waypoints.Add((waypoint.X, waypoint.Y));
                 }
-            } else if (connector.Kind == ConnectorKind.RightAngle) {
-                points.Add((startX, endY));
             }
 
-            points.Add((endX, endY));
-
-            double totalLength = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                totalLength += Distance(points[i - 1], points[i]);
-            }
-
-            if (totalLength <= 0D) {
-                return (startX, startY);
-            }
-
-            double targetLength = totalLength * clampedPosition;
-            double traversed = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                (double X, double Y) from = points[i - 1];
-                (double X, double Y) to = points[i];
-                double segmentLength = Distance(from, to);
-                if (segmentLength <= 0D) {
-                    continue;
-                }
-
-                if (traversed + segmentLength >= targetLength) {
-                    double segmentPosition = (targetLength - traversed) / segmentLength;
-                    return (
-                        from.X + ((to.X - from.X) * segmentPosition),
-                        from.Y + ((to.Y - from.Y) * segmentPosition));
-                }
-
-                traversed += segmentLength;
-            }
-
-            return (endX, endY);
-        }
-
-        private static double Distance((double X, double Y) from, (double X, double Y) to) {
-            double dx = to.X - from.X;
-            double dy = to.Y - from.Y;
-            return Math.Sqrt((dx * dx) + (dy * dy));
+            List<(double X, double Y)> points = OfficeIMO.Drawing.OfficeGeometry.BuildConnectorPolyline(
+                (startX, startY),
+                (endX, endY),
+                waypoints,
+                connector.Kind == ConnectorKind.RightAngle);
+            return OfficeIMO.Drawing.OfficeGeometry.InterpolatePolyline(points, position);
         }
     }
 }

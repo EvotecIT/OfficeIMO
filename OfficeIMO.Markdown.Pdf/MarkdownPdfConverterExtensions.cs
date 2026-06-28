@@ -254,8 +254,9 @@ public static partial class MarkdownPdfConverterExtensions {
             }
         }
 
-        return options.ApplyWordLikeTheme
-            ? MarkdownPdfVisualTheme.WordLike()
+        MarkdownVisualTheme? defaultTheme = MarkdownVisualTheme.ResolveOrDefault(null, options.ApplyWordLikeTheme);
+        return defaultTheme != null
+            ? MarkdownPdfVisualTheme.FromMarkdownTheme(defaultTheme)
             : MarkdownPdfVisualTheme.Plain();
     }
 

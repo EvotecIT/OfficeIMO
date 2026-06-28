@@ -872,6 +872,17 @@ namespace OfficeIMO.Excel {
         public string? FontName { get; internal set; }
 
         /// <summary>
+        /// Font size in points, when specified by the resolved style.
+        /// </summary>
+        public double? FontSize { get; internal set; }
+
+        /// <summary>
+        /// Excel text rotation value from the resolved cell alignment, when specified.
+        /// Values 0-90 rotate text upward, 91-180 rotate text downward, and 255 represents stacked vertical text.
+        /// </summary>
+        public int? TextRotation { get; internal set; }
+
+        /// <summary>
         /// Font color in ARGB hexadecimal form, when directly resolvable.
         /// </summary>
         public string? FontColorArgb { get; internal set; }
@@ -880,6 +891,41 @@ namespace OfficeIMO.Excel {
         /// Fill color in ARGB hexadecimal form, when directly resolvable.
         /// </summary>
         public string? FillColorArgb { get; internal set; }
+
+        /// <summary>
+        /// Excel pattern fill type, when the resolved style uses a pattern fill.
+        /// </summary>
+        public string? FillPatternType { get; internal set; }
+
+        /// <summary>
+        /// Pattern foreground color in ARGB hexadecimal form, when directly resolvable.
+        /// </summary>
+        public string? FillPatternForegroundColorArgb { get; internal set; }
+
+        /// <summary>
+        /// Pattern background color in ARGB hexadecimal form, when directly resolvable.
+        /// </summary>
+        public string? FillPatternBackgroundColorArgb { get; internal set; }
+
+        /// <summary>
+        /// Whether the resolved style uses a gradient fill that image export cannot render exactly yet.
+        /// </summary>
+        public bool FillGradientUnsupported { get; internal set; }
+
+        /// <summary>
+        /// First simple gradient fill stop color in ARGB hexadecimal form, when directly resolvable.
+        /// </summary>
+        public string? FillGradientStartColorArgb { get; internal set; }
+
+        /// <summary>
+        /// Last simple gradient fill stop color in ARGB hexadecimal form, when directly resolvable.
+        /// </summary>
+        public string? FillGradientEndColorArgb { get; internal set; }
+
+        /// <summary>
+        /// Simple linear gradient angle in degrees, when directly resolvable.
+        /// </summary>
+        public double? FillGradientDegree { get; internal set; }
 
         /// <summary>
         /// Font color in RRGGBB hexadecimal form, when directly resolvable.
@@ -900,11 +946,21 @@ namespace OfficeIMO.Excel {
             Underline ||
             FontColorArgb != null ||
             FillColorArgb != null ||
+            FillPatternType != null ||
+            FillPatternForegroundColorArgb != null ||
+            FillPatternBackgroundColorArgb != null ||
+            FillGradientUnsupported ||
+            FillGradientStartColorArgb != null ||
+            FillGradientEndColorArgb != null ||
+            FillGradientDegree.HasValue ||
+            FontSize.HasValue ||
             NumberFormatId != 0U ||
             NumberFormatCode != null ||
             Border != null ||
             HorizontalAlignment != null ||
-            VerticalAlignment != null;
+            VerticalAlignment != null ||
+            TextRotation.HasValue ||
+            ShrinkToFit;
 
         /// <summary>
         /// Border metadata resolved for the cell style, when available.
@@ -925,6 +981,11 @@ namespace OfficeIMO.Excel {
         /// Whether wrap text is enabled.
         /// </summary>
         public bool WrapText { get; internal set; }
+
+        /// <summary>
+        /// Whether text should shrink horizontally to fit the rendered cell.
+        /// </summary>
+        public bool ShrinkToFit { get; internal set; }
 
         private static string? ToRgbHex(string? argb) {
             if (string.IsNullOrWhiteSpace(argb)) {

@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -245,7 +246,7 @@ namespace OfficeIMO.Visio {
 
                     relationship.Data = ReadMasterRelationshipBytes(targetEntry, ref totalRelationshipBytes);
                     relationship.Extension = Path.GetExtension(targetPath);
-                    relationship.ContentType = GuessContentType(relationship.Extension);
+                    relationship.ContentType = ResolveImageContentTypeFromExtension(relationship.Extension);
                 }
 
                 relationships.Add(relationship);
@@ -324,16 +325,8 @@ namespace OfficeIMO.Visio {
             return string.Join("/", parts.Reverse());
         }
 
-        private static string GuessContentType(string extension) {
-            return extension.TrimStart('.').ToLowerInvariant() switch {
-                "emf" => "image/x-emf",
-                "png" => "image/png",
-                "jpg" or "jpeg" => "image/jpeg",
-                "gif" => "image/gif",
-                "svg" => "image/svg+xml",
-                "tif" or "tiff" => "image/tiff",
-                _ => "application/octet-stream"
-            };
+        private static string ResolveImageContentTypeFromExtension(string extension) {
+            return OfficeImageInfo.GetMimeTypeFromExtension(extension);
         }
     }
 }

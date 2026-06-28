@@ -23,6 +23,10 @@ public static class HtmlCapabilityGalleryManifestWriter {
         builder.AppendLine("Description: " + manifest.Result.Scenario.Description);
         builder.AppendLine("Fidelity: " + contract.FidelityGoal);
         builder.AppendLine();
+        AppendProfileContract(builder, contract);
+        AppendOfficeProfileContracts(builder, manifest.OfficeProfiles);
+        AppendExpectations(builder, manifest.Expectations);
+        builder.AppendLine();
         builder.AppendLine("## Artifacts");
         foreach (HtmlCapabilityGalleryArtifact artifact in manifest.Result.Artifacts) {
             builder.AppendLine("- " + artifact.Kind + ": " + Path.GetFileName(artifact.Path) + " (" + artifact.MediaType + ", " + artifact.Length + " bytes, sha256=" + artifact.Sha256 + ")");
@@ -62,5 +66,46 @@ public static class HtmlCapabilityGalleryManifestWriter {
         }
 
         return builder.ToString();
+    }
+
+    private static void AppendProfileContract(StringBuilder builder, HtmlConversionProfileContract contract) {
+        builder.AppendLine("## Profile Contract");
+        builder.AppendLine("- Intended use: " + contract.IntendedUse);
+        builder.AppendLine("- Supported HTML: " + string.Join(", ", contract.SupportedHtml));
+        builder.AppendLine("- Supported CSS: " + string.Join(", ", contract.SupportedCss));
+        builder.AppendLine("- Resource guarantees: " + string.Join(", ", contract.ResourceGuarantees));
+        builder.AppendLine("- Diagnostic guarantees: " + string.Join(", ", contract.DiagnosticGuarantees));
+        builder.AppendLine();
+    }
+
+    private static void AppendOfficeProfileContracts(StringBuilder builder, IReadOnlyList<OfficeHtmlConversionProfile> officeProfiles) {
+        if (officeProfiles == null || officeProfiles.Count == 0) {
+            return;
+        }
+
+        builder.AppendLine("## Office Profile Contracts");
+        foreach (OfficeHtmlConversionProfile officeProfile in officeProfiles) {
+            OfficeHtmlConversionProfileContract contract = OfficeHtmlConversionProfileContracts.Get(officeProfile);
+            builder.AppendLine("- " + contract.Name + " (" + contract.SourceFormat + " -> " + contract.SharedProfile + ")");
+            builder.AppendLine("  - Intended use: " + contract.IntendedUse);
+            builder.AppendLine("  - Fidelity: " + contract.FidelityGoal);
+            builder.AppendLine("  - Visual owner: " + contract.VisualPrimitiveOwner);
+            builder.AppendLine("  - Supported HTML: " + string.Join(", ", contract.SupportedHtml));
+            builder.AppendLine("  - Resource guarantees: " + string.Join(", ", contract.ResourceGuarantees));
+            builder.AppendLine("  - Diagnostic guarantees: " + string.Join(", ", contract.DiagnosticGuarantees));
+        }
+
+        builder.AppendLine();
+    }
+
+    private static void AppendExpectations(StringBuilder builder, IReadOnlyList<HtmlCapabilityGalleryExpectation> expectations) {
+        if (expectations == null || expectations.Count == 0) {
+            return;
+        }
+
+        builder.AppendLine("## Roundtrip Expectations");
+        foreach (HtmlCapabilityGalleryExpectation expectation in expectations) {
+            builder.AppendLine("- " + expectation.Outcome + ": " + expectation.Feature + " => " + expectation.Evidence);
+        }
     }
 }

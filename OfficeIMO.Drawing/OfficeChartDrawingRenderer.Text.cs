@@ -84,6 +84,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
+        OfficeColor legendTextColor = GetLegendTextColor(style);
         double rowHeight = layout.LegendRowHeight;
         double visibleRows = Math.Min(legendIndexes.Count, Math.Max(1D, Math.Floor(plotHeight / rowHeight)));
         double startY = y + Math.Max(0D, (plotHeight - visibleRows * rowHeight) / 2D);
@@ -94,7 +95,7 @@ public static partial class OfficeChartDrawingRenderer {
             AddShape(drawing, OfficeShape.Rectangle(layout.LegendSwatchSize, layout.LegendSwatchSize), x, rowY + swatchOffset, GetSeriesColor(style, series, seriesIndex), null, 0D);
             string name = string.IsNullOrWhiteSpace(series[seriesIndex].Name) ? "Series " + (seriesIndex + 1).ToString(CultureInfo.InvariantCulture) : series[seriesIndex].Name;
             double textOffset = layout.LegendSwatchSize + layout.LegendTextGap;
-            AddChartText(drawing, name, x + textOffset, rowY, width - textOffset, rowHeight, layout.LegendFontSize, style.TextColor, OfficeTextAlignment.Left, style);
+            AddChartText(drawing, name, x + textOffset, rowY, width - textOffset, rowHeight, layout.LegendFontSize, legendTextColor, OfficeTextAlignment.Left, style, layout.LegendFontFamily, layout.LegendFontStyle);
         }
     }
 
@@ -108,6 +109,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
+        OfficeColor legendTextColor = GetLegendTextColor(style);
         double rowHeight = layout.LegendRowHeight;
         double visibleRows = Math.Min(legendIndexes.Count, Math.Max(1D, Math.Floor(plotHeight / rowHeight)));
         double startY = y + Math.Max(0D, (plotHeight - visibleRows * rowHeight) / 2D);
@@ -118,7 +120,7 @@ public static partial class OfficeChartDrawingRenderer {
             AddShape(drawing, OfficeShape.Rectangle(layout.LegendSwatchSize, layout.LegendSwatchSize), x, rowY + swatchOffset, GetPointColor(style, pointColors, categoryIndex), null, 0D);
             string name = string.IsNullOrWhiteSpace(categories[categoryIndex]) ? "Category " + (categoryIndex + 1).ToString(CultureInfo.InvariantCulture) : categories[categoryIndex];
             double textOffset = layout.LegendSwatchSize + layout.LegendTextGap;
-            AddChartText(drawing, name, x + textOffset, rowY, width - textOffset, rowHeight, layout.LegendFontSize, style.TextColor, OfficeTextAlignment.Left, style);
+            AddChartText(drawing, name, x + textOffset, rowY, width - textOffset, rowHeight, layout.LegendFontSize, legendTextColor, OfficeTextAlignment.Left, style, layout.LegendFontFamily, layout.LegendFontStyle);
         }
     }
 
@@ -292,7 +294,7 @@ public static partial class OfficeChartDrawingRenderer {
             double rowY = y + row * rowHeight;
             AddShape(drawing, OfficeShape.Rectangle(layout.LegendSwatchSize, layout.LegendSwatchSize), itemX, rowY + swatchOffset, GetPointColor(style, pointColors, i), null, 0D);
             double textOffset = layout.LegendSwatchSize + layout.LegendTextGap;
-            AddChartText(drawing, name, itemX + textOffset, rowY, Math.Max(1D, itemWidth - textOffset - 2D), rowHeight, layout.LegendFontSize, style.TextColor, OfficeTextAlignment.Left, style);
+            AddChartText(drawing, name, itemX + textOffset, rowY, Math.Max(1D, itemWidth - textOffset - 2D), rowHeight, layout.LegendFontSize, GetLegendTextColor(style), OfficeTextAlignment.Left, style, layout.LegendFontFamily, layout.LegendFontStyle);
         }
     }
 
@@ -309,7 +311,7 @@ public static partial class OfficeChartDrawingRenderer {
         return Math.Max(1, Math.Min(count, (int)Math.Floor(width / itemWidth)));
     }
 
-    private static void AddCategoryAxisLabels(OfficeDrawing drawing, IReadOnlyList<string> categories, double plotLeft, double plotBottomY, double plotWidth, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddCategoryAxisLabels(OfficeDrawing drawing, IReadOnlyList<string> categories, double plotLeft, double labelY, double plotWidth, OfficeChartStyle style, OfficeChartLayout layout) {
         if (categories.Count == 0) {
             return;
         }
@@ -322,18 +324,18 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         for (int i = 0; i < categories.Count; i += stride) {
-            string label = categories[i];
+            string label = FormatCategoryAxisLabel(categories[i], layout);
             if (string.IsNullOrWhiteSpace(label)) {
                 continue;
             }
 
             double labelWidth = Math.Min(layout.CategoryAxisLabelWidth, Math.Max(18D, slot * stride));
-            double centerX = plotLeft + slot * i + slot / 2D;
-            AddChartText(drawing, label, centerX - labelWidth / 2D, plotBottomY + 7D, labelWidth, 11D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Center, style);
+            double centerX = GetCategorySlotCenterX(plotLeft, slot, i, categories.Count, layout);
+            AddChartText(drawing, label, centerX - labelWidth / 2D, labelY, labelWidth, GetAxisLabelBoxHeight(layout), layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Center, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
     }
 
-    private static void AddHorizontalCategoryAxisLabels(OfficeDrawing drawing, IReadOnlyList<string> categories, double plotTop, double plotHeight, double labelLeft, double labelWidth, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddHorizontalCategoryAxisLabels(OfficeDrawing drawing, IReadOnlyList<string> categories, double plotTop, double plotHeight, double labelLeft, double labelWidth, OfficeTextAlignment alignment, OfficeChartStyle style, OfficeChartLayout layout) {
         if (categories.Count == 0) {
             return;
         }
@@ -345,25 +347,56 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         for (int i = 0; i < categories.Count; i += stride) {
-            string label = categories[i];
+            string label = FormatCategoryAxisLabel(categories[i], layout);
             if (string.IsNullOrWhiteSpace(label)) {
                 continue;
             }
 
-            int categorySlot = categories.Count - 1 - i;
+            int categorySlot = GetHorizontalBarCategorySlotIndex(i, categories.Count, layout);
             double centerY = plotTop + slot * categorySlot + slot / 2D;
-            AddChartText(drawing, label, labelLeft, centerY - 5D, labelWidth, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
+            double labelHeight = GetAxisLabelBoxHeight(layout);
+            AddChartText(drawing, label, labelLeft, centerY - labelHeight / 2D, labelWidth, labelHeight, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
     }
 
-    private static void AddValueAxisLabels(OfficeDrawing drawing, ValueRange range, double plotTop, double plotHeight, double labelLeft, double labelWidth, OfficeChartStyle style, OfficeChartLayout layout, bool percentDefault) {
-        AddChartText(drawing, FormatAxisValue(range.Max, layout, percentDefault, layout.VerticalAxisNumberFormat), labelLeft, plotTop - 5D, labelWidth, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
-        AddChartText(drawing, FormatAxisValue(range.Min, layout, percentDefault, layout.VerticalAxisNumberFormat), labelLeft, plotTop + plotHeight - 5D, labelWidth, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
+    private static void AddValueAxisLabels(OfficeDrawing drawing, ValueRange range, double plotTop, double plotHeight, double labelLeft, double labelWidth, OfficeTextAlignment alignment, OfficeChartStyle style, OfficeChartLayout layout, bool percentDefault) {
+        IReadOnlyList<double> ticks = GetValueAxisLabelTicks(range, layout.VerticalAxisMajorUnit);
+        for (int i = ticks.Count - 1; i >= 0; i--) {
+            double tick = ticks[i];
+            double labelHeight = GetAxisLabelBoxHeight(layout);
+            double y = ToPlotY(tick, range.Min, range.Max, plotTop, plotHeight) - labelHeight / 2D;
+            AddChartText(drawing, FormatAxisValue(tick, layout, percentDefault, layout.VerticalAxisNumberFormat, layout.VerticalAxisDisplayUnitDivisor), labelLeft, y, labelWidth, labelHeight, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+        }
+
+        AddAxisDisplayUnitLabel(drawing, layout.VerticalAxisDisplayUnitLabel, labelLeft, Math.Max(0D, plotTop - 17D), labelWidth + 34D, style, layout, alignment);
     }
 
-    private static void AddHorizontalValueAxisLabels(OfficeDrawing drawing, ValueRange range, double plotLeft, double plotBottomY, double plotWidth, OfficeChartStyle style, OfficeChartLayout layout, bool percentDefault) {
-        AddChartText(drawing, FormatAxisValue(range.Min, layout, percentDefault, layout.HorizontalAxisNumberFormat), plotLeft - 12D, plotBottomY + 4D, 28D, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Left, style);
-        AddChartText(drawing, FormatAxisValue(range.Max, layout, percentDefault, layout.HorizontalAxisNumberFormat), plotLeft + plotWidth - 28D, plotBottomY + 4D, 34D, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
+    private static void AddHorizontalValueAxisLabels(OfficeDrawing drawing, ValueRange range, double plotLeft, double labelY, double plotWidth, double labelWidth, bool labelsAbovePlot, OfficeChartStyle style, OfficeChartLayout layout, bool percentDefault) {
+        foreach (double tick in GetValueAxisLabelTicks(range, layout.HorizontalAxisMajorUnit)) {
+            double x = ToPlotX(tick, range.Min, range.Max, plotLeft, plotWidth);
+            OfficeTextAlignment alignment = tick <= range.Min
+                ? OfficeTextAlignment.Left
+                : tick >= range.Max
+                    ? OfficeTextAlignment.Right
+                    : OfficeTextAlignment.Center;
+            double textLeft = tick <= range.Min
+                ? Math.Max(0D, x - 2D)
+                : tick >= range.Max
+                    ? Math.Max(0D, x - labelWidth + 2D)
+                    : Math.Max(0D, x - labelWidth / 2D);
+            AddChartText(drawing, FormatAxisValue(tick, layout, percentDefault, layout.HorizontalAxisNumberFormat, layout.HorizontalAxisDisplayUnitDivisor), textLeft, labelY, labelWidth, GetAxisLabelBoxHeight(layout), layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+        }
+
+        AddAxisDisplayUnitLabel(drawing, layout.HorizontalAxisDisplayUnitLabel, plotLeft + plotWidth - 58D, labelsAbovePlot ? labelY - 11D : labelY + 11D, 58D, style, layout, OfficeTextAlignment.Right);
+    }
+
+    private static void AddAxisDisplayUnitLabel(OfficeDrawing drawing, string? label, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, OfficeTextAlignment alignment) {
+        if (string.IsNullOrWhiteSpace(label)) {
+            return;
+        }
+
+        double fontSize = Math.Max(5D, layout.AxisLabelFontSize - 0.2D);
+        AddChartText(drawing, label!, x, y, Math.Max(1D, width), Math.Max(9D, fontSize + 3D), fontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
     }
 
     private static bool HasHorizontalAxisTitle(OfficeChartKind chartKind, OfficeChartLayout layout) =>
@@ -376,6 +409,15 @@ public static partial class OfficeChartDrawingRenderer {
             ? layout.ShowCategoryAxis && !string.IsNullOrWhiteSpace(layout.CategoryAxisTitle)
             : layout.ShowValueAxis && !string.IsNullOrWhiteSpace(layout.ValueAxisTitle);
 
+    private static double GetAxisTitleFontSize(OfficeChartLayout layout) =>
+        layout.AxisTitleFontSize ?? Math.Min(8.5D, Math.Max(layout.AxisLabelFontSize + 0.7D, layout.AxisLabelFontSize));
+
+    private static double GetAxisTitleBandHeight(OfficeChartLayout layout) =>
+        Math.Max(12D, GetAxisTitleFontSize(layout) + 4D);
+
+    private static double GetAxisLabelBoxHeight(OfficeChartLayout layout) =>
+        Math.Max(10D, layout.AxisLabelFontSize + 3D);
+
     private static void AddAxisTitles(
         OfficeDrawing drawing,
         string? verticalTitle,
@@ -387,19 +429,23 @@ public static partial class OfficeChartDrawingRenderer {
         double plotHeight,
         OfficeChartStyle style,
         OfficeChartLayout layout) {
-        double titleFontSize = Math.Min(8.5D, Math.Max(layout.AxisLabelFontSize + 0.7D, layout.AxisLabelFontSize));
+        double titleFontSize = GetAxisTitleFontSize(layout);
+        double titleHeight = Math.Max(10D, titleFontSize + 2D);
+        string? axisTitleFontFamily = layout.AxisTitleFontFamily ?? layout.AxisTextFontFamily;
+        OfficeFontStyle? axisTitleFontStyle = layout.AxisTitleFontStyle ?? layout.AxisTextFontStyle;
+        OfficeColor axisTitleColor = style.AxisTitleColor ?? style.MutedTextColor;
         if (!string.IsNullOrWhiteSpace(verticalTitle)) {
-            double titleY = Math.Max(0D, plotTop - 14D);
-            AddChartText(drawing, verticalTitle!, plotLeft, titleY, plotWidth, 10D, titleFontSize, style.MutedTextColor, OfficeTextAlignment.Left, style);
+            double titleY = Math.Max(0D, plotTop - titleHeight - 4D);
+            AddChartText(drawing, verticalTitle!, plotLeft, titleY, plotWidth, titleHeight, titleFontSize, axisTitleColor, OfficeTextAlignment.Left, style, axisTitleFontFamily, axisTitleFontStyle);
         }
 
         if (!string.IsNullOrWhiteSpace(horizontalTitle)) {
             double titleY = plotBottomY + 20D;
-            if (titleY + 10D > drawing.Height) {
-                titleY = Math.Max(0D, drawing.Height - 10D);
+            if (titleY + titleHeight > drawing.Height) {
+                titleY = Math.Max(0D, drawing.Height - titleHeight);
             }
 
-            AddChartText(drawing, horizontalTitle!, 8D, titleY, Math.Max(1D, drawing.Width - 16D), 10D, titleFontSize, style.MutedTextColor, OfficeTextAlignment.Center, style);
+            AddChartText(drawing, horizontalTitle!, 8D, titleY, Math.Max(1D, drawing.Width - 16D), titleHeight, titleFontSize, axisTitleColor, OfficeTextAlignment.Center, style, axisTitleFontFamily, axisTitleFontStyle);
         }
     }
 
@@ -422,7 +468,7 @@ public static partial class OfficeChartDrawingRenderer {
 
             double angle = -Math.PI / 2D + Math.PI * 2D * i / categories.Count;
             double labelWidth = layout.RadarCategoryLabelWidth;
-            double labelHeight = 10D;
+            double labelHeight = GetAxisLabelBoxHeight(layout);
             double x = centerX + Math.Cos(angle) * (radius + 13D) - labelWidth / 2D;
             double y = centerY + Math.Sin(angle) * (radius + 13D) - labelHeight / 2D;
             OfficeTextAlignment alignment = Math.Cos(angle) < -0.25D
@@ -430,7 +476,7 @@ public static partial class OfficeChartDrawingRenderer {
                 : Math.Cos(angle) > 0.25D
                     ? OfficeTextAlignment.Left
                     : OfficeTextAlignment.Center;
-            AddChartText(drawing, label, x, y, labelWidth, labelHeight, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style);
+            AddChartText(drawing, label, x, y, labelWidth, labelHeight, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
     }
 
@@ -451,25 +497,40 @@ public static partial class OfficeChartDrawingRenderer {
         return ExpandFlatRange(Math.Min(0D, range.Min), Math.Max(0D, range.Max));
     }
 
-    private static string FormatAxisValue(double value, OfficeChartLayout layout, bool percentDefault, string? numberFormat = null) {
-        if (TryFormatDataLabelValue(value, numberFormat ?? layout.AxisNumberFormat, out string? formatted)) {
+    private static ValueRange GetCartesianValueRange(OfficeChartSnapshot snapshot, OfficeChartLayout layout, bool horizontalValueAxis) =>
+        ApplyValueAxisScale(GetCartesianValueRange(snapshot), layout, horizontalValueAxis);
+
+    private static string FormatAxisValue(double value, OfficeChartLayout layout, bool percentDefault, string? numberFormat = null, double? displayUnitDivisor = null) {
+        double displayValue = displayUnitDivisor.HasValue ? value / displayUnitDivisor.Value : value;
+        if (TryFormatDataLabelValue(displayValue, numberFormat ?? layout.AxisNumberFormat, out string? formatted)) {
             return formatted!;
         }
 
         if (percentDefault) {
-            return value.ToString("0.#%", CultureInfo.InvariantCulture);
+            return displayValue.ToString("0.#%", CultureInfo.InvariantCulture);
         }
 
-        double abs = Math.Abs(value);
+        double abs = Math.Abs(displayValue);
         if (abs >= 1000D) {
-            return (value / 1000D).ToString("0.#", CultureInfo.InvariantCulture) + "k";
+            return (displayValue / 1000D).ToString("0.#", CultureInfo.InvariantCulture) + "k";
         }
 
         if (abs > 0D && abs < 1D) {
-            return value.ToString("0.#%", CultureInfo.InvariantCulture);
+            return displayValue.ToString("0.#%", CultureInfo.InvariantCulture);
         }
 
-        return value.ToString("0.##", CultureInfo.InvariantCulture);
+        return displayValue.ToString("0.##", CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatCategoryAxisLabel(string label, OfficeChartLayout layout) {
+        if (string.IsNullOrWhiteSpace(layout.CategoryAxisNumberFormat)) {
+            return label;
+        }
+
+        return double.TryParse(label, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double value) &&
+            TryFormatDataLabelValue(value, layout.CategoryAxisNumberFormat, out string? formatted)
+            ? formatted!
+            : label;
     }
 
     private static string FormatDataLabel(OfficeChartLayout layout, string category, OfficeChartSeries series, double value, double total) {
@@ -939,7 +1000,7 @@ public static partial class OfficeChartDrawingRenderer {
             x = centerX + 4D;
         }
 
-        AddChartText(drawing, label, FitDataLabelX(drawing, x, labelWidth), FitDataLabelY(drawing, y, labelHeight), labelWidth, labelHeight, layout.DataLabelFontSize, style.TextColor, OfficeTextAlignment.Center, style);
+        AddDataLabel(drawing, layout, style, label, x, y, labelWidth, labelHeight, OfficeTextAlignment.Center);
     }
 
     private static void AddHorizontalDataLabel(
@@ -983,7 +1044,7 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeTextAlignment alignment = layout.DataLabelPosition == OfficeChartDataLabelPosition.Center
             ? OfficeTextAlignment.Center
             : value >= 0D ? OfficeTextAlignment.Left : OfficeTextAlignment.Right;
-        AddChartText(drawing, label, FitDataLabelX(drawing, x, labelWidth), FitDataLabelY(drawing, y, labelHeight), labelWidth, labelHeight, layout.DataLabelFontSize, style.TextColor, alignment, style);
+        AddDataLabel(drawing, layout, style, label, x, y, labelWidth, labelHeight, alignment);
     }
 
     private static void AddPointDataLabel(
@@ -1019,13 +1080,47 @@ public static partial class OfficeChartDrawingRenderer {
             OfficeChartDataLabelPosition.Left or OfficeChartDataLabelPosition.Right => y - labelHeight / 2D,
             _ => value >= 0D ? y - labelHeight - 4D : y + 4D
         };
-        AddChartText(drawing, label, FitDataLabelX(drawing, labelX, labelWidth), FitDataLabelY(drawing, labelY, labelHeight), labelWidth, labelHeight, layout.DataLabelFontSize, style.TextColor, OfficeTextAlignment.Center, style);
+        AddDataLabel(drawing, layout, style, label, labelX, labelY, labelWidth, labelHeight, OfficeTextAlignment.Center);
     }
 
     private static (double Width, double Height) GetDataLabelSize(string label, OfficeChartLayout layout) {
-        double labelWidth = Math.Min(78D, Math.Max(18D, label.Length * layout.DataLabelFontSize * 0.52D + 6D));
-        double labelHeight = Math.Max(9D, layout.DataLabelFontSize + 3D);
+        double labelWidth = Math.Min(84D, Math.Max(22D, label.Length * layout.DataLabelFontSize * 0.52D + 12D));
+        double labelHeight = Math.Max(12D, layout.DataLabelFontSize + 6D);
         return (labelWidth, labelHeight);
+    }
+
+    private static void AddDataLabel(
+        OfficeDrawing drawing,
+        OfficeChartLayout layout,
+        OfficeChartStyle style,
+        string label,
+        double x,
+        double y,
+        double width,
+        double height,
+        OfficeTextAlignment alignment,
+        OfficeColor? fallbackTextColor = null) {
+        double fittedX = FitDataLabelX(drawing, x, width);
+        double fittedY = FitDataLabelY(drawing, y, height);
+        AddDataLabelBox(drawing, style, fittedX, fittedY, width, height);
+        AddChartText(drawing, label, fittedX, fittedY, width, height, layout.DataLabelFontSize, GetDataLabelTextColor(style, fallbackTextColor ?? style.TextColor), alignment, style, layout.DataLabelFontFamily, layout.DataLabelFontStyle);
+    }
+
+    private static void AddDataLabelBox(OfficeDrawing drawing, OfficeChartStyle style, double x, double y, double width, double height) {
+        if (style.DataLabelFillColor == null && style.DataLabelBorderColor == null) {
+            return;
+        }
+
+        double strokeWidth = style.DataLabelBorderColor.HasValue ? style.DataLabelBorderWidth ?? 0.75D : 0D;
+        AddShape(
+            drawing,
+            OfficeShape.Rectangle(width, height),
+            x,
+            y,
+            style.DataLabelFillColor,
+            style.DataLabelBorderColor,
+            strokeWidth,
+            style.DataLabelBorderDashStyle ?? OfficeStrokeDashStyle.Solid);
     }
 
     private static double FitDataLabelX(OfficeDrawing drawing, double x, double width) {
@@ -1063,7 +1158,13 @@ public static partial class OfficeChartDrawingRenderer {
         return safeStride;
     }
 
-    private static void AddChartText(OfficeDrawing drawing, string text, double x, double y, double width, double height, double fontSize, OfficeColor color, OfficeTextAlignment alignment, OfficeChartStyle style) {
+    private static OfficeColor GetLegendTextColor(OfficeChartStyle style) =>
+        style.LegendTextColor ?? style.TextColor;
+
+    private static OfficeColor GetDataLabelTextColor(OfficeChartStyle style, OfficeColor fallback) =>
+        style.DataLabelTextColor ?? fallback;
+
+    private static void AddChartText(OfficeDrawing drawing, string text, double x, double y, double width, double height, double fontSize, OfficeColor color, OfficeTextAlignment alignment, OfficeChartStyle style, string? fontFamily = null, OfficeFontStyle? fontStyle = null) {
         if (string.IsNullOrWhiteSpace(text)) {
             return;
         }
@@ -1082,7 +1183,7 @@ public static partial class OfficeChartDrawingRenderer {
             safeY,
             safeWidth,
             safeHeight,
-            new OfficeFontInfo(style.FontFamily, fontSize),
+            new OfficeFontInfo(string.IsNullOrWhiteSpace(fontFamily) ? style.FontFamily : fontFamily!, fontSize, fontStyle ?? OfficeFontStyle.Regular),
             color,
             alignment,
             Math.Max(fontSize + 1D, safeHeight));

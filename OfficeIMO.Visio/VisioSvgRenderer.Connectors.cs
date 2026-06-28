@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Xml;
+using OfficeIMO.Drawing;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 
@@ -22,23 +23,21 @@ namespace OfficeIMO.Visio {
             if (!visibleLine) {
                 writer.WriteAttributeString("stroke", "none");
             } else {
-                WriteColor(writer, "stroke", connector.LineColor);
-                writer.WriteAttributeString("stroke-width", Format(strokeWidth));
-                writer.WriteAttributeString("stroke-linecap", "round");
-                writer.WriteAttributeString("stroke-linejoin", "round");
-                if (connector.LinePattern != 1) {
-                    writer.WriteAttributeString("stroke-dasharray", Format(6D) + " " + Format(4D));
-                }
+                OfficeSvgFormatting.WriteColorAttribute(writer, "stroke", connector.LineColor);
+                writer.WriteNumberAttribute("stroke-width", strokeWidth);
+                writer.WriteStrokeLineCapAttribute(OfficeStrokeLineCap.Round);
+                writer.WriteStrokeLineJoinAttribute(OfficeStrokeLineJoin.Round);
+                writer.WriteStrokeDashStyleAttribute(OfficeStrokeDashStyleMapper.FromVisioLinePattern(connector.LinePattern), strokeWidth);
             }
 
             writer.WriteEndElement();
 
             if (visibleLine) {
-                if (connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None && TryGetArrowSegment(points, fromStart: true, out (double X, double Y) beginTip, out (double X, double Y) beginFrom)) {
+                if (connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None && OfficeGeometry.TryGetArrowheadSegment(points, fromStart: true, out (double X, double Y) beginTip, out (double X, double Y) beginFrom)) {
                     WriteArrow(writer, page, beginTip, beginFrom, scale, connector.LineColor, strokeWidth, "start");
                 }
 
-                if (connector.EndArrow.HasValue && connector.EndArrow.Value != EndArrow.None && TryGetArrowSegment(points, fromStart: false, out (double X, double Y) endTip, out (double X, double Y) endFrom)) {
+                if (connector.EndArrow.HasValue && connector.EndArrow.Value != EndArrow.None && OfficeGeometry.TryGetArrowheadSegment(points, fromStart: false, out (double X, double Y) endTip, out (double X, double Y) endFrom)) {
                     WriteArrow(writer, page, endTip, endFrom, scale, connector.LineColor, strokeWidth, "end");
                 }
             }
@@ -69,17 +68,18 @@ namespace OfficeIMO.Visio {
 
         private static List<(double X, double Y)> GetConnectorPoints(VisioConnector connector) {
             ComputeConnectorEndpoints(connector, out double startX, out double startY, out double endX, out double endY);
-            List<(double X, double Y)> points = new() { (startX, startY) };
+            List<(double X, double Y)> waypoints = new(connector.Waypoints.Count);
             if (connector.Waypoints.Count > 0) {
                 foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                    points.Add((waypoint.X, waypoint.Y));
+                    waypoints.Add((waypoint.X, waypoint.Y));
                 }
-            } else if (connector.Kind == ConnectorKind.RightAngle) {
-                points.Add((startX, endY));
             }
 
-            points.Add((endX, endY));
-            return points;
+            return OfficeGeometry.BuildConnectorPolyline(
+                (startX, startY),
+                (endX, endY),
+                waypoints,
+                connector.Kind == ConnectorKind.RightAngle);
         }
 
         private static void ComputeConnectorEndpoints(VisioConnector connector, out double startX, out double startY, out double endX, out double endY) {
@@ -107,7 +107,7 @@ namespace OfficeIMO.Visio {
             }
 
             double position = VisioConnectorLabelPlacement.ClampPosition(placement?.Position ?? 0.5D);
-            (double x, double y) = InterpolatePath(points, position);
+            (double x, double y) = OfficeGeometry.InterpolatePolyline(points, position);
             return (x + (placement?.OffsetX ?? 0D), y + (placement?.OffsetY ?? 0D));
         }
 
@@ -119,31 +119,5 @@ namespace OfficeIMO.Visio {
             return new VisioRenderConnectorLabelPlacement(x, y, width, height, adjusted: false);
         }
 
-        private static (double X, double Y) InterpolatePath(IReadOnlyList<(double X, double Y)> points, double position) {
-            if (points.Count == 0) return (0D, 0D);
-            if (points.Count == 1) return points[0];
-
-            double total = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                total += Distance(points[i - 1], points[i]);
-            }
-
-            if (total <= 0D) return points[0];
-            double target = total * position;
-            double traversed = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                double segment = Distance(points[i - 1], points[i]);
-                if (traversed + segment >= target) {
-                    double t = segment <= 0D ? 0D : (target - traversed) / segment;
-                    return (
-                        points[i - 1].X + ((points[i].X - points[i - 1].X) * t),
-                        points[i - 1].Y + ((points[i].Y - points[i - 1].Y) * t));
-                }
-
-                traversed += segment;
-            }
-
-            return points[points.Count - 1];
-        }
     }
 }

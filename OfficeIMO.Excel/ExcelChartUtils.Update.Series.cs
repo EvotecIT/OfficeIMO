@@ -384,7 +384,7 @@ namespace OfficeIMO.Excel {
             ScatterChartSeries? template = existingSeries.LastOrDefault();
             var indexSet = CreateDescriptorIndexSet(descriptors);
             var existingByIndex = CreateSeriesIndexMap(existingSeries);
-            IReadOnlyList<double> xValues = ParseNumericCategories(data.Categories);
+            IReadOnlyList<double> categoryXValues = ParseNumericCategories(data.Categories);
 
             foreach (var descriptor in descriptors) {
                 ScatterChartSeries seriesElement;
@@ -394,10 +394,12 @@ namespace OfficeIMO.Excel {
                 }
 
                 UpdateSeriesIndexOrder(seriesElement, descriptor.Index);
+                ExcelChartSeries seriesData = data.Series[descriptor.Index];
                 string name = descriptor.Series?.Name ?? $"Series {descriptor.Index + 1}";
+                IReadOnlyList<double>? seriesXValues = seriesData.XValues;
                 UpdateSeriesText(seriesElement, range, descriptor.Index, name);
-                UpdateXValues(seriesElement, range, xValues);
-                UpdateYValues(seriesElement, range, descriptor.Index, data.Series[descriptor.Index].Values);
+                UpdateXValues(seriesElement, range, seriesXValues ?? categoryXValues, ShouldUseLiteralXValues(seriesXValues, categoryXValues));
+                UpdateYValues(seriesElement, range, descriptor.Index, seriesData.Values);
             }
 
             foreach (var seriesElement in existingSeries) {

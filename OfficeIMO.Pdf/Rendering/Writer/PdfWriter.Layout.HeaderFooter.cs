@@ -8,91 +8,29 @@ internal static partial class PdfWriter {
         CreatePageImage(block, style, targetX, targetBottomY, block.Width, block.Height);
 
     private static PageImage CreatePageImage(ImageBlock block, PdfImageStyle style, double targetX, double targetBottomY, double targetWidth, double targetHeight) {
-        double drawX = targetX;
-        double drawY = targetBottomY;
-        double drawWidth = targetWidth;
-        double drawHeight = targetHeight;
-        OfficeClipPath? clipPath = ScaleClipPath(style.ClipPath, targetWidth / block.Width, targetHeight / block.Height);
+        OfficeClipPath? clipPath = style.ClipPath?.Scale(targetWidth / block.Width, targetHeight / block.Height);
         PdfImageSourceCrop? sourceCrop = style.SourceCrop;
-
-        if (sourceCrop?.HasCrop == true) {
-            double visibleWidth = 1D - sourceCrop.Left - sourceCrop.Right;
-            double visibleHeight = 1D - sourceCrop.Top - sourceCrop.Bottom;
-            double croppedAspect = (block.Info.Width * visibleWidth) / (double)(block.Info.Height * visibleHeight);
-            double fittedX = targetX;
-            double fittedY = targetBottomY;
-            double fittedWidth = targetWidth;
-            double fittedHeight = targetHeight;
-
-            if (style.Fit != OfficeImageFit.Stretch) {
-                double targetAspect = targetWidth / targetHeight;
-                if (style.Fit == OfficeImageFit.Contain) {
-                    if (targetAspect > croppedAspect) {
-                        fittedHeight = targetHeight;
-                        fittedWidth = fittedHeight * croppedAspect;
-                        fittedX = targetX + (targetWidth - fittedWidth) / 2D;
-                    } else {
-                        fittedWidth = targetWidth;
-                        fittedHeight = fittedWidth / croppedAspect;
-                        fittedY = targetBottomY + (targetHeight - fittedHeight) / 2D;
-                    }
-                } else {
-                    if (targetAspect > croppedAspect) {
-                        fittedWidth = targetWidth;
-                        fittedHeight = fittedWidth / croppedAspect;
-                        fittedY = targetBottomY + (targetHeight - fittedHeight) / 2D;
-                    } else {
-                        fittedHeight = targetHeight;
-                        fittedWidth = fittedHeight * croppedAspect;
-                        fittedX = targetX + (targetWidth - fittedWidth) / 2D;
-                    }
-
-                    clipPath ??= OfficeClipPath.Rectangle(targetWidth, targetHeight);
-                }
-            }
-
-            drawWidth = fittedWidth / visibleWidth;
-            drawHeight = fittedHeight / visibleHeight;
-            drawX = fittedX - sourceCrop.Left * drawWidth;
-            drawY = fittedY - sourceCrop.Bottom * drawHeight;
-        } else if (style.Fit != OfficeImageFit.Stretch) {
-            double imageAspect = block.Info.Width / (double)block.Info.Height;
-            double targetAspect = targetWidth / targetHeight;
-
-            if (style.Fit == OfficeImageFit.Contain) {
-                if (targetAspect > imageAspect) {
-                    drawHeight = targetHeight;
-                    drawWidth = drawHeight * imageAspect;
-                    drawX = targetX + (targetWidth - drawWidth) / 2D;
-                } else {
-                    drawWidth = targetWidth;
-                    drawHeight = drawWidth / imageAspect;
-                    drawY = targetBottomY + (targetHeight - drawHeight) / 2D;
-                }
-            } else {
-                if (targetAspect > imageAspect) {
-                    drawWidth = targetWidth;
-                    drawHeight = drawWidth / imageAspect;
-                    drawY = targetBottomY + (targetHeight - drawHeight) / 2D;
-                } else {
-                    drawHeight = targetHeight;
-                    drawWidth = drawHeight * imageAspect;
-                    drawX = targetX + (targetWidth - drawWidth) / 2D;
-                }
-
-                if (clipPath == null) {
-                    clipPath = OfficeClipPath.Rectangle(targetWidth, targetHeight);
-                }
-            }
+        OfficeImageSourceCrop crop = sourceCrop?.ToOfficeImageSourceCrop() ?? default;
+        OfficeImageRenderPlan renderPlan = OfficeImageRenderPlan.CreateBottomLeft(
+            block.Info.Width,
+            block.Info.Height,
+            targetX,
+            targetBottomY,
+            targetWidth,
+            targetHeight,
+            style.Fit,
+            crop);
+        if (renderPlan.RequiresTargetClip && clipPath == null) {
+            clipPath = OfficeClipPath.Rectangle(targetWidth, targetHeight);
         }
 
         return new PageImage {
             Data = block.Data,
             Info = block.Info,
-            X = drawX,
-            Y = drawY,
-            W = drawWidth,
-            H = drawHeight,
+            X = renderPlan.ImagePlacement.X,
+            Y = renderPlan.ImagePlacement.Y,
+            W = renderPlan.ImagePlacement.Width,
+            H = renderPlan.ImagePlacement.Height,
             ClipPath = clipPath,
             ClipX = targetX,
             ClipY = targetBottomY,
@@ -103,46 +41,20 @@ internal static partial class PdfWriter {
         };
     }
 
-    private static OfficeClipPath? ScaleClipPath(OfficeClipPath? clipPath, double scaleX, double scaleY) {
-        if (clipPath == null || (Math.Abs(scaleX - 1D) <= 0.0001D && Math.Abs(scaleY - 1D) <= 0.0001D)) {
-            return clipPath?.Clone();
+    private static void GetImageAnnotationBounds(PdfImageStyle style, PageImage pageImage, double targetX, double targetBottomY, double targetWidth, double targetHeight, out double x1, out double y1, out double x2, out double y2) {
+        x1 = pageImage.X;
+        y1 = pageImage.Y;
+        x2 = pageImage.X + pageImage.W;
+        y2 = pageImage.Y + pageImage.H;
+
+        if (style.Fit != OfficeImageFit.Cover && style.ClipPath == null && style.SourceCrop?.HasCrop != true) {
+            return;
         }
 
-        switch (clipPath.Kind) {
-            case OfficeClipPathKind.Rectangle:
-                return OfficeClipPath.Rectangle(clipPath.Width * scaleX, clipPath.Height * scaleY);
-            case OfficeClipPathKind.RoundedRectangle:
-                return OfficeClipPath.RoundedRectangle(clipPath.Width * scaleX, clipPath.Height * scaleY, clipPath.CornerRadius * Math.Min(scaleX, scaleY));
-            case OfficeClipPathKind.Path:
-                var commands = new List<OfficePathCommand>(clipPath.Commands.Count);
-                for (int i = 0; i < clipPath.Commands.Count; i++) {
-                    OfficePathCommand command = clipPath.Commands[i];
-                    switch (command.Kind) {
-                        case OfficePathCommandKind.MoveTo:
-                            commands.Add(OfficePathCommand.MoveTo(command.Point.X * scaleX, command.Point.Y * scaleY));
-                            break;
-                        case OfficePathCommandKind.LineTo:
-                            commands.Add(OfficePathCommand.LineTo(command.Point.X * scaleX, command.Point.Y * scaleY));
-                            break;
-                        case OfficePathCommandKind.CubicBezierTo:
-                            commands.Add(OfficePathCommand.CubicBezierTo(
-                                command.ControlPoint1.X * scaleX,
-                                command.ControlPoint1.Y * scaleY,
-                                command.ControlPoint2.X * scaleX,
-                                command.ControlPoint2.Y * scaleY,
-                                command.Point.X * scaleX,
-                                command.Point.Y * scaleY));
-                            break;
-                        case OfficePathCommandKind.Close:
-                            commands.Add(OfficePathCommand.Close());
-                            break;
-                    }
-                }
-
-                return OfficeClipPath.Path(commands);
-            default:
-                return clipPath.Clone();
-        }
+        x1 = targetX;
+        y1 = targetBottomY;
+        x2 = targetX + targetWidth;
+        y2 = targetBottomY + targetHeight;
     }
 
     private static void AddHeaderFooterImages(LayoutResult.Page page, PdfOptions options, int variantPageNumber) {

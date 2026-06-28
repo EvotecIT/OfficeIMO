@@ -184,6 +184,11 @@ public sealed partial class PdfDocument {
                         ValidatePointInsideShape(command.Point, shape);
                         hasDraw = true;
                         break;
+                    case OfficePathCommandKind.QuadraticBezierTo:
+                        ValidatePointInsideShape(command.ControlPoint1, shape);
+                        ValidatePointInsideShape(command.Point, shape);
+                        hasDraw = true;
+                        break;
                     case OfficePathCommandKind.CubicBezierTo:
                         ValidatePointInsideShape(command.ControlPoint1, shape);
                         ValidatePointInsideShape(command.ControlPoint2, shape);

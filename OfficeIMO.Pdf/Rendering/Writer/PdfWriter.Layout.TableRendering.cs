@@ -134,16 +134,7 @@ internal static partial class PdfWriter {
             return;
         }
 
-        double x1 = pageImage.X;
-        double y1 = pageImage.Y;
-        double x2 = pageImage.X + pageImage.W;
-        double y2 = pageImage.Y + pageImage.H;
-        if (style.Fit == OfficeImageFit.Cover || style.ClipPath != null || style.SourceCrop?.HasCrop == true) {
-            x1 = targetX;
-            y1 = targetBottomY;
-            x2 = targetX + targetWidth;
-            y2 = targetBottomY + targetHeight;
-        }
+        GetImageAnnotationBounds(style, pageImage, targetX, targetBottomY, targetWidth, targetHeight, out double x1, out double y1, out double x2, out double y2);
 
         page.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = image.LinkUri!, Contents = image.LinkContents, LinkedImage = pageImage });
     }
@@ -438,12 +429,17 @@ internal static partial class PdfWriter {
                 double padRight = GetTableCellPaddingRight(style, rowIndex, column);
                 double padTop = GetTableCellPaddingTop(style, rowIndex, column);
                 double padBottom = GetTableCellPaddingBottom(style, rowIndex, column);
-                double contentWidth = System.Math.Max(0D, cellWidth - padLeft - padRight);
-                double barX = cellX + padLeft + contentWidth * dataBar.StartRatio;
-                double barWidth = contentWidth * dataBar.Ratio;
-                double barHeight = System.Math.Max(0D, cellHeight - padTop - padBottom);
-                if (barWidth > 0.001D && barHeight > 0.001D) {
-                    DrawRowFill(sb, dataBar.Color, barX, cellBottom + padBottom, barWidth, barHeight, artifact);
+                OfficeDataBarGeometry bar = OfficeDataBarRenderer.Resolve(
+                    cellX + padLeft,
+                    cellBottom + padBottom,
+                    System.Math.Max(0D, cellWidth - padLeft - padRight),
+                    System.Math.Max(0D, cellHeight - padTop - padBottom),
+                    dataBar.StartRatio,
+                    dataBar.Ratio,
+                    verticalInset: 0D,
+                    minimumHeight: 0D);
+                if (bar.Width > 0.001D && bar.Height > 0.001D) {
+                    DrawRowFill(sb, dataBar.Color, bar.X, bar.Y, bar.Width, bar.Height, artifact);
                     drawn = true;
                 }
             }

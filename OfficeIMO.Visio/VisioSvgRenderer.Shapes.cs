@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Xml;
+using OfficeIMO.Drawing;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 
@@ -56,12 +57,12 @@ namespace OfficeIMO.Visio {
                 (double centerX, double centerY) = GetPagePoint(shape, shape.Width / 2D, shape.Height / 2D);
                 (double cx, double cy) = ToSvg(page, centerX, centerY, scale);
                 writer.WriteStartElement("ellipse", SvgNamespace);
-                writer.WriteAttributeString("cx", Format(cx));
-                writer.WriteAttributeString("cy", Format(cy));
-                writer.WriteAttributeString("rx", Format(Math.Abs(shape.Width * scale / 2D)));
-                writer.WriteAttributeString("ry", Format(Math.Abs(shape.Height * scale / 2D)));
+                writer.WriteNumberAttribute("cx", cx);
+                writer.WriteNumberAttribute("cy", cy);
+                writer.WriteNumberAttribute("rx", Math.Abs(shape.Width * scale / 2D));
+                writer.WriteNumberAttribute("ry", Math.Abs(shape.Height * scale / 2D));
                 if (Math.Abs(shape.Angle) > 1e-9) {
-                    writer.WriteAttributeString("transform", "rotate(" + Format(RadiansToDegrees(-shape.Angle)) + " " + Format(cx) + " " + Format(cy) + ")");
+                    writer.WriteRotateTransformAttribute(RadiansToDegrees(-shape.Angle), cx, cy);
                 }
 
                 WriteShapeStyle(writer, shape, scale);
@@ -100,15 +101,13 @@ namespace OfficeIMO.Visio {
             writer.WriteAttributeString("data-officeimo-database-geometry", "true");
             writer.WriteAttributeString(
                 "d",
-                "M " + Format(left) + " " + Format(top + capHeight) +
-                " C " + Format(left) + " " + Format(top - (capHeight * 0.35D)) +
-                " " + Format(right) + " " + Format(top - (capHeight * 0.35D)) +
-                " " + Format(right) + " " + Format(top + capHeight) +
-                " L " + Format(right) + " " + Format(bottom - capHeight) +
-                " C " + Format(right) + " " + Format(bottom + (capHeight * 0.35D)) +
-                " " + Format(left) + " " + Format(bottom + (capHeight * 0.35D)) +
-                " " + Format(left) + " " + Format(bottom - capHeight) +
-                " Z");
+                OfficeSvgFormatting.FormatPathData(new[] {
+                    OfficePathCommand.MoveTo(left, top + capHeight),
+                    OfficePathCommand.CubicBezierTo(left, top - (capHeight * 0.35D), right, top - (capHeight * 0.35D), right, top + capHeight),
+                    OfficePathCommand.LineTo(right, bottom - capHeight),
+                    OfficePathCommand.CubicBezierTo(right, bottom + (capHeight * 0.35D), left, bottom + (capHeight * 0.35D), left, bottom - capHeight),
+                    OfficePathCommand.Close()
+                }));
             if (!string.IsNullOrEmpty(transform)) {
                 writer.WriteAttributeString("transform", transform);
             }
@@ -120,10 +119,10 @@ namespace OfficeIMO.Visio {
             writer.WriteAttributeString("data-officeimo-database-seam", "true");
             writer.WriteAttributeString(
                 "d",
-                "M " + Format(left) + " " + Format(top + capHeight) +
-                " C " + Format(left) + " " + Format(top + (capHeight * 2.35D)) +
-                " " + Format(right) + " " + Format(top + (capHeight * 2.35D)) +
-                " " + Format(right) + " " + Format(top + capHeight));
+                OfficeSvgFormatting.FormatPathData(new[] {
+                    OfficePathCommand.MoveTo(left, top + capHeight),
+                    OfficePathCommand.CubicBezierTo(left, top + (capHeight * 2.35D), right, top + (capHeight * 2.35D), right, top + capHeight)
+                }));
             if (!string.IsNullOrEmpty(transform)) {
                 writer.WriteAttributeString("transform", transform);
             }
@@ -159,10 +158,11 @@ namespace OfficeIMO.Visio {
 
             switch (stencilKey) {
                 case "person":
-                    WriteSvgCircle(writer, x, y - size * 0.18D, size * 0.16D, color, fill: false, strokeWidth: Math.Max(1D, size * 0.05D));
-                    WriteSvgPath(writer, "M " + Format(x - size * 0.27D) + " " + Format(y + size * 0.29D) +
-                                         " Q " + Format(x) + " " + Format(y + size * 0.02D) +
-                                         " " + Format(x + size * 0.27D) + " " + Format(y + size * 0.29D), color, fill: false, strokeWidth: Math.Max(1D, size * 0.055D));
+                    OfficeSvgPrimitiveWriter.WriteCircle(writer, SvgNamespace, x, y - size * 0.18D, size * 0.16D, color, fill: false, strokeWidth: Math.Max(1D, size * 0.05D));
+                    OfficeSvgPrimitiveWriter.WritePath(writer, SvgNamespace, OfficeSvgFormatting.FormatPathData(new[] {
+                        OfficePathCommand.MoveTo(x - size * 0.27D, y + size * 0.29D),
+                        OfficePathCommand.QuadraticBezierTo(x, y + size * 0.02D, x + size * 0.27D, y + size * 0.29D)
+                    }), color, fill: false, strokeWidth: Math.Max(1D, size * 0.055D));
                     break;
                 case "data":
                     WriteSvgCylinder(writer, x, y, size, color);
@@ -171,28 +171,30 @@ namespace OfficeIMO.Visio {
                     WriteSvgShield(writer, x, y, size, color);
                     break;
                 case "compute":
-                    WriteSvgRect(writer, x - size * 0.34D, y - size * 0.24D, size * 0.68D, size * 0.48D, color, fill: false, strokeWidth: Math.Max(1D, size * 0.045D));
-                    WriteSvgLine(writer, x - size * 0.22D, y - size * 0.06D, x + size * 0.22D, y - size * 0.06D, color, Math.Max(1D, size * 0.04D));
-                    WriteSvgLine(writer, x - size * 0.22D, y + size * 0.08D, x + size * 0.22D, y + size * 0.08D, color, Math.Max(1D, size * 0.04D));
+                    OfficeSvgPrimitiveWriter.WriteRectangle(writer, SvgNamespace, x - size * 0.34D, y - size * 0.24D, size * 0.68D, size * 0.48D, color, fill: false, strokeWidth: Math.Max(1D, size * 0.045D), cornerRadius: Math.Min(size * 0.68D, size * 0.48D) * 0.08D);
+                    OfficeSvgPrimitiveWriter.WriteLine(writer, SvgNamespace, x - size * 0.22D, y - size * 0.06D, x + size * 0.22D, y - size * 0.06D, color, Math.Max(1D, size * 0.04D));
+                    OfficeSvgPrimitiveWriter.WriteLine(writer, SvgNamespace, x - size * 0.22D, y + size * 0.08D, x + size * 0.22D, y + size * 0.08D, color, Math.Max(1D, size * 0.04D));
                     break;
                 case "cloud":
-                    WriteSvgPath(writer, BuildCloudPath(x, y, size), color, fill: false, strokeWidth: Math.Max(1D, size * 0.05D));
+                    OfficeSvgPrimitiveWriter.WritePath(writer, SvgNamespace, BuildCloudPath(x, y, size), color, fill: false, strokeWidth: Math.Max(1D, size * 0.05D));
                     break;
                 case "container":
                     WriteSvgHex(writer, x, y, size, color);
                     break;
                 case "event":
-                    WriteSvgLine(writer, x - size * 0.32D, y - size * 0.16D, x + size * 0.28D, y - size * 0.16D, color, Math.Max(1D, size * 0.045D));
-                    WriteSvgLine(writer, x - size * 0.32D, y, x + size * 0.18D, y, color, Math.Max(1D, size * 0.045D));
-                    WriteSvgLine(writer, x - size * 0.32D, y + size * 0.16D, x + size * 0.28D, y + size * 0.16D, color, Math.Max(1D, size * 0.045D));
+                    OfficeSvgPrimitiveWriter.WriteLine(writer, SvgNamespace, x - size * 0.32D, y - size * 0.16D, x + size * 0.28D, y - size * 0.16D, color, Math.Max(1D, size * 0.045D));
+                    OfficeSvgPrimitiveWriter.WriteLine(writer, SvgNamespace, x - size * 0.32D, y, x + size * 0.18D, y, color, Math.Max(1D, size * 0.045D));
+                    OfficeSvgPrimitiveWriter.WriteLine(writer, SvgNamespace, x - size * 0.32D, y + size * 0.16D, x + size * 0.28D, y + size * 0.16D, color, Math.Max(1D, size * 0.045D));
                     break;
                 case "monitoring":
-                    WriteSvgPath(writer, "M " + Format(x - size * 0.36D) + " " + Format(y) +
-                                         " L " + Format(x - size * 0.14D) + " " + Format(y) +
-                                         " L " + Format(x - size * 0.04D) + " " + Format(y - size * 0.22D) +
-                                         " L " + Format(x + size * 0.09D) + " " + Format(y + size * 0.2D) +
-                                         " L " + Format(x + size * 0.19D) + " " + Format(y) +
-                                         " L " + Format(x + size * 0.36D) + " " + Format(y), color, fill: false, strokeWidth: Math.Max(1D, size * 0.05D));
+                    OfficeSvgPrimitiveWriter.WritePath(writer, SvgNamespace, OfficeSvgFormatting.FormatMoveLinePathData(new[] {
+                        new OfficePoint(x - size * 0.36D, y),
+                        new OfficePoint(x - size * 0.14D, y),
+                        new OfficePoint(x - size * 0.04D, y - size * 0.22D),
+                        new OfficePoint(x + size * 0.09D, y + size * 0.2D),
+                        new OfficePoint(x + size * 0.19D, y),
+                        new OfficePoint(x + size * 0.36D, y)
+                    }), color, fill: false, strokeWidth: Math.Max(1D, size * 0.05D));
                     break;
             }
 
@@ -218,19 +220,17 @@ namespace OfficeIMO.Visio {
             double x = centerX - (width / 2D);
             double y = centerY - (height / 2D);
 
-            writer.WriteStartElement("image", SvgNamespace);
-            writer.WriteAttributeString("data-officeimo-package-preview-artwork", "true");
-            writer.WriteAttributeString("x", Format(x));
-            writer.WriteAttributeString("y", Format(y));
-            writer.WriteAttributeString("width", Format(width));
-            writer.WriteAttributeString("height", Format(height));
-            writer.WriteAttributeString("preserveAspectRatio", "xMidYMid meet");
-            if (Math.Abs(shape.Angle) > 1e-9) {
-                writer.WriteAttributeString("transform", FormatTextRotation(shape.Angle, centerX, centerY));
-            }
-
-            writer.WriteAttributeString("href", "data:" + image.ContentType + ";base64," + Convert.ToBase64String(image.Data));
-            writer.WriteEndElement();
+            OfficeSvgImageRenderer.WriteImage(
+                writer,
+                SvgNamespace,
+                OfficeSvgImageRenderer.CreateDataUri(image.ContentType, image.Data),
+                new OfficeImageProjection(
+                    new OfficeImagePlacement(x, y, width, height),
+                    rotationDegrees: RadiansToDegrees(-shape.Angle),
+                    rotationCenterX: centerX,
+                    rotationCenterY: centerY),
+                preserveAspectRatio: "xMidYMid meet",
+                writeAdditionalAttributes: static imageWriter => imageWriter.WriteAttributeString("data-officeimo-package-preview-artwork", "true"));
             return true;
         }
 
@@ -238,17 +238,16 @@ namespace OfficeIMO.Visio {
             if (noFill || shape.FillPattern == 0 || shape.FillColor.A == 0) {
                 writer.WriteAttributeString("fill", "none");
             } else {
-                WriteColor(writer, "fill", shape.FillColor);
+                OfficeSvgFormatting.WriteColorAttribute(writer, "fill", shape.FillColor);
             }
 
             if (noLine || shape.LinePattern == 0 || shape.LineWeight <= 0D || shape.LineColor.A == 0) {
                 writer.WriteAttributeString("stroke", "none");
             } else {
-                WriteColor(writer, "stroke", shape.LineColor);
-                writer.WriteAttributeString("stroke-width", Format(Math.Max(shape.LineWeight * scale, 0.75D)));
-                if (shape.LinePattern != 1) {
-                    writer.WriteAttributeString("stroke-dasharray", Format(6D) + " " + Format(4D));
-                }
+                OfficeSvgFormatting.WriteColorAttribute(writer, "stroke", shape.LineColor);
+                double strokeWidth = Math.Max(shape.LineWeight * scale, 0.75D);
+                writer.WriteNumberAttribute("stroke-width", strokeWidth);
+                writer.WriteStrokeDashStyleAttribute(OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern), strokeWidth);
             }
         }
 

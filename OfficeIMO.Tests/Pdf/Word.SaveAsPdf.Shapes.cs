@@ -1,7 +1,9 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -42,6 +44,22 @@ namespace OfficeIMO.Tests {
             Assert.Contains(" re B", content);
             Assert.Contains("0 0.502 0 RG", content);
             Assert.Contains("2 w", content);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Preserves_DrawingML_Line_Preset_As_Horizontal() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingLinePresetGeometry.docx");
+            using WordDocument document = WordDocument.Create(docPath);
+            WordShape line = document.AddParagraph().AddShapeDrawing(ShapeType.Line, 80, 24);
+
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeShape", BindingFlags.NonPublic | BindingFlags.Static)!;
+            OfficeShape shape = Assert.IsType<OfficeShape>(method.Invoke(null, new object[] { line }));
+
+            Assert.Equal(OfficeShapeKind.Line, shape.Kind);
+            Assert.Equal(2, shape.Points.Count);
+            Assert.Equal(shape.Points[0].Y, shape.Points[1].Y);
+            Assert.Equal(0D, shape.Points[0].Y, precision: 3);
+            Assert.True(shape.Points[1].X > shape.Points[0].X);
         }
 
         [Fact]

@@ -219,19 +219,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static ImagePartType GetImagePartType(string imagePath) {
-            string extension = Path.GetExtension(imagePath).ToLowerInvariant();
-            return extension switch {
-                ".jpg" or ".jpeg" => ImagePartType.Jpeg,
-                ".gif" => ImagePartType.Gif,
-                ".bmp" => ImagePartType.Bmp,
-                ".tif" or ".tiff" => ImagePartType.Tiff,
-                ".svg" => ImagePartType.Svg,
-                ".emf" => ImagePartType.Emf,
-                ".wmf" => ImagePartType.Wmf,
-                ".ico" => ImagePartType.Icon,
-                ".pcx" => ImagePartType.Pcx,
-                _ => ImagePartType.Png
-            };
+            return ImagePartTypeExtensions.FromImagePath(imagePath);
         }
 
     }

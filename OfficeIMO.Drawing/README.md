@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Drawing)](https://www.nuget.org/packages/OfficeIMO.Drawing)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Drawing?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Drawing)
 
-`OfficeIMO.Drawing` is the shared first-party drawing layer for OfficeIMO packages. It provides color, image metadata, font, text measurement, vector shape, chart snapshot, and drawing-quality primitives without taking a dependency on a raster imaging library.
+`OfficeIMO.Drawing` is the shared first-party drawing and imaging layer for OfficeIMO packages. It provides color, image metadata, font, text measurement, vector shape, chart snapshot, SVG, raster canvas, PNG read/write, and drawing-quality primitives without taking a dependency on a raster imaging library.
 
 ## Install
 
@@ -125,19 +125,24 @@ if (font != null) {
 ## What it provides
 
 - `OfficeColor` immutable RGBA values with named colors and hex parsing.
-- `OfficeImageReader` and `OfficeImageInfo` for metadata-only image inspection.
+- `OfficeImageReader` and `OfficeImageInfo` for dependency-free image inspection where supported.
 - `OfficeImageFit` for shared stretch, contain, and cover intent.
 - `OfficeFontInfo`, `OfficeFontStyle`, `OfficeTextMeasurer`, and `OfficeTextMetrics` for deterministic layout estimates.
 - `OfficeTrueTypeFont` for dependency-free font-outline reading when renderers need glyph contours.
 - `OfficeShape`, `OfficeDrawing`, gradients, shadows, transforms, clipping, and vector descriptors that format-specific packages can map into their own coordinate systems.
 - `OfficeChartSnapshot` and chart rendering primitives shared by PDF and Office exporters.
+- `OfficeRasterImage`, `OfficeRasterCanvas`, `OfficeRasterRenderTarget`, and `OfficeDrawingRasterRenderer` for shared dependency-free raster rendering.
+- `OfficePngReader` and `OfficePngWriter` for PNG paths that should not be reimplemented by document packages.
+- Shared SVG formatting, primitive writing, image projection, text-block rendering, hatch-pattern, data-bar, and sparkline helpers.
 - Drawing quality diagnostics for canvas bounds and text overlap checks.
 
 ## Boundaries
 
-- This package describes reusable drawing intent.
-- Word, Excel, PowerPoint, Visio, and PDF packages map that intent into their own file formats.
-- Pixel decoding, resizing, transcoding, and full image validation are not part of this runtime package.
+- This package owns reusable drawing intent, raster buffers, SVG/PNG primitives, image projection, text layout helpers, chart drawing, and document-agnostic visual diagnostics.
+- Word, Excel, PowerPoint, Visio, and PDF packages own source-document semantics: package parsing, layout policy, coordinate systems, style/theme resolution, and user-facing export APIs.
+- Document packages should not add private pixel engines, PNG encoders/decoders, SVG primitive writers, text wrapping engines, or duplicate image-transform loops when the behavior can reasonably live here.
+- PDF keeps PDF-stream and page-writer behavior in `OfficeIMO.Pdf`; when it needs generic image-like drawing, vector descriptors, colors, chart snapshots, PNG helpers, or raster visual QA, it should use `OfficeIMO.Drawing`.
+- Unsupported or approximate source features belong in stable diagnostics from the adapter, not as silent omissions in a renderer.
 
 ## Targets and license
 

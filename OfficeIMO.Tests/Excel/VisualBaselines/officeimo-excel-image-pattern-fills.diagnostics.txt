@@ -1,0 +1,7 @@
+Info|ExcelFillPatternApproximation|Patterns!B3|Excel pattern cell fill 'lighthorizontal' is rendered as a deterministic hatch approximation.
+Info|ExcelFillPatternApproximation|Patterns!B4|Excel pattern cell fill 'darkdown' is rendered as a deterministic hatch approximation.
+Info|ExcelFillPatternApproximation|Patterns!B5|Excel pattern cell fill 'gray125' is rendered as a deterministic hatch approximation.
+Info|ExcelFillPatternApproximation|Patterns!C3|Excel pattern cell fill 'lightvertical' is rendered as a deterministic hatch approximation.
+Info|ExcelFillPatternApproximation|Patterns!C4|Excel pattern cell fill 'darkup' is rendered as a deterministic hatch approximation.
+Info|ExcelFillPatternApproximation|Patterns!D3|Excel pattern cell fill 'lightgrid' is rendered as a deterministic hatch approximation.
+Info|ExcelFillPatternApproximation|Patterns!D4|Excel pattern cell fill 'darktrellis' is rendered as a deterministic hatch approximation.

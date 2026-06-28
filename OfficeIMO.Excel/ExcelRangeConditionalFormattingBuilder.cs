@@ -15,8 +15,22 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a cell-value comparison rule.
         /// </summary>
-        public ExcelRange CellIs(ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null) {
-            _range.Sheet.AddConditionalRule(_range.Address, @operator, formula1, formula2);
+        public ExcelRange CellIs(ConditionalFormattingOperatorValues @operator, string formula1) {
+            return CellIs(@operator, formula1, null, null);
+        }
+
+        /// <summary>
+        /// Applies a cell-value comparison rule.
+        /// </summary>
+        public ExcelRange CellIs(ConditionalFormattingOperatorValues @operator, string formula1, string? formula2) {
+            return CellIs(@operator, formula1, formula2, null);
+        }
+
+        /// <summary>
+        /// Applies a cell-value comparison rule.
+        /// </summary>
+        public ExcelRange CellIs(ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null, string? fillColor = null) {
+            _range.Sheet.AddConditionalRule(_range.Address, @operator, formula1, formula2, fillColor);
             return _range;
         }
 
@@ -24,28 +38,123 @@ namespace OfficeIMO.Excel {
         /// Applies a greater-than cell-value rule.
         /// </summary>
         public ExcelRange GreaterThan(string formula) {
-            return CellIs(ConditionalFormattingOperatorValues.GreaterThan, formula);
+            return GreaterThan(formula, null);
+        }
+
+        /// <summary>
+        /// Applies a greater-than cell-value rule.
+        /// </summary>
+        public ExcelRange GreaterThan(string formula, string? fillColor) {
+            return CellIs(ConditionalFormattingOperatorValues.GreaterThan, formula, null, fillColor);
         }
 
         /// <summary>
         /// Applies a less-than cell-value rule.
         /// </summary>
         public ExcelRange LessThan(string formula) {
-            return CellIs(ConditionalFormattingOperatorValues.LessThan, formula);
+            return LessThan(formula, null);
+        }
+
+        /// <summary>
+        /// Applies a less-than cell-value rule.
+        /// </summary>
+        public ExcelRange LessThan(string formula, string? fillColor) {
+            return CellIs(ConditionalFormattingOperatorValues.LessThan, formula, null, fillColor);
         }
 
         /// <summary>
         /// Applies a between cell-value rule.
         /// </summary>
         public ExcelRange Between(string formula1, string formula2) {
-            return CellIs(ConditionalFormattingOperatorValues.Between, formula1, formula2);
+            return Between(formula1, formula2, null);
+        }
+
+        /// <summary>
+        /// Applies a between cell-value rule.
+        /// </summary>
+        public ExcelRange Between(string formula1, string formula2, string? fillColor) {
+            return CellIs(ConditionalFormattingOperatorValues.Between, formula1, formula2, fillColor);
         }
 
         /// <summary>
         /// Applies a formula-based rule.
         /// </summary>
-        public ExcelRange Formula(string formula, bool stopIfTrue = false) {
-            _range.Sheet.AddConditionalFormulaRule(_range.Address, formula, stopIfTrue);
+        public ExcelRange Formula(string formula) {
+            return Formula(formula, stopIfTrue: false, fillColor: null);
+        }
+
+        /// <summary>
+        /// Applies a formula-based rule.
+        /// </summary>
+        public ExcelRange Formula(string formula, bool stopIfTrue) {
+            return Formula(formula, stopIfTrue, fillColor: null);
+        }
+
+        /// <summary>
+        /// Applies a formula-based rule.
+        /// </summary>
+        public ExcelRange Formula(string formula, bool stopIfTrue = false, string? fillColor = null) {
+            _range.Sheet.AddConditionalFormulaRule(_range.Address, formula, stopIfTrue, fillColor);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies a contains-text rule.
+        /// </summary>
+        public ExcelRange ContainsText(string text) {
+            return ContainsText(text, fillColor: null);
+        }
+
+        /// <summary>
+        /// Applies a contains-text rule with an optional solid fill.
+        /// </summary>
+        public ExcelRange ContainsText(string text, string? fillColor) {
+            _range.Sheet.AddConditionalContainsTextRule(_range.Address, text, fillColor);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies a not-contains-text rule.
+        /// </summary>
+        public ExcelRange NotContainsText(string text) {
+            return NotContainsText(text, fillColor: null);
+        }
+
+        /// <summary>
+        /// Applies a not-contains-text rule with an optional solid fill.
+        /// </summary>
+        public ExcelRange NotContainsText(string text, string? fillColor) {
+            _range.Sheet.AddConditionalNotContainsTextRule(_range.Address, text, fillColor);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies a begins-with-text rule.
+        /// </summary>
+        public ExcelRange BeginsWithText(string text) {
+            return BeginsWithText(text, fillColor: null);
+        }
+
+        /// <summary>
+        /// Applies a begins-with-text rule with an optional solid fill.
+        /// </summary>
+        public ExcelRange BeginsWithText(string text, string? fillColor) {
+            _range.Sheet.AddConditionalBeginsWithTextRule(_range.Address, text, fillColor);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies an ends-with-text rule.
+        /// </summary>
+        public ExcelRange EndsWithText(string text) {
+            return EndsWithText(text, fillColor: null);
+        }
+
+        /// <summary>
+        /// Applies an ends-with-text rule with an optional solid fill.
+        /// </summary>
+        public ExcelRange EndsWithText(string text, string? fillColor) {
+            _range.Sheet.AddConditionalEndsWithTextRule(_range.Address, text, fillColor);
             return _range;
         }
 
@@ -53,7 +162,14 @@ namespace OfficeIMO.Excel {
         /// Applies a duplicate-values rule.
         /// </summary>
         public ExcelRange DuplicateValues() {
-            _range.Sheet.AddConditionalDuplicateValuesRule(_range.Address);
+            return DuplicateValues(fillColor: null);
+        }
+
+        /// <summary>
+        /// Applies a duplicate-values rule with an optional solid fill.
+        /// </summary>
+        public ExcelRange DuplicateValues(string? fillColor) {
+            _range.Sheet.AddConditionalDuplicateValuesRule(_range.Address, fillColor);
             return _range;
         }
 
@@ -61,7 +177,44 @@ namespace OfficeIMO.Excel {
         /// Applies a unique-values rule.
         /// </summary>
         public ExcelRange UniqueValues() {
-            _range.Sheet.AddConditionalUniqueValuesRule(_range.Address);
+            return UniqueValues(fillColor: null);
+        }
+
+        /// <summary>
+        /// Applies a unique-values rule with an optional solid fill.
+        /// </summary>
+        public ExcelRange UniqueValues(string? fillColor) {
+            _range.Sheet.AddConditionalUniqueValuesRule(_range.Address, fillColor);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies an above-average rule.
+        /// </summary>
+        public ExcelRange AboveAverage() {
+            return AboveAverage(fillColor: null);
+        }
+
+        /// <summary>
+        /// Applies an above-average rule with an optional solid fill.
+        /// </summary>
+        public ExcelRange AboveAverage(string? fillColor, bool equalAverage = false) {
+            _range.Sheet.AddConditionalAboveAverageRule(_range.Address, aboveAverage: true, equalAverage: equalAverage, fillColor: fillColor);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies a below-average rule.
+        /// </summary>
+        public ExcelRange BelowAverage() {
+            return BelowAverage(fillColor: null);
+        }
+
+        /// <summary>
+        /// Applies a below-average rule with an optional solid fill.
+        /// </summary>
+        public ExcelRange BelowAverage(string? fillColor, bool equalAverage = false) {
+            _range.Sheet.AddConditionalAboveAverageRule(_range.Address, aboveAverage: false, equalAverage: equalAverage, fillColor: fillColor);
             return _range;
         }
 
@@ -69,7 +222,14 @@ namespace OfficeIMO.Excel {
         /// Applies a top-values rule.
         /// </summary>
         public ExcelRange Top(uint rank, bool percent = false) {
-            _range.Sheet.AddConditionalTopBottomRule(_range.Address, rank, bottom: false, percent: percent);
+            return Top(rank, fillColor: null, percent: percent);
+        }
+
+        /// <summary>
+        /// Applies a top-values rule with an optional solid fill.
+        /// </summary>
+        public ExcelRange Top(uint rank, string? fillColor, bool percent = false) {
+            _range.Sheet.AddConditionalTopBottomRule(_range.Address, rank, bottom: false, percent: percent, fillColor: fillColor);
             return _range;
         }
 
@@ -77,7 +237,14 @@ namespace OfficeIMO.Excel {
         /// Applies a bottom-values rule.
         /// </summary>
         public ExcelRange Bottom(uint rank, bool percent = false) {
-            _range.Sheet.AddConditionalTopBottomRule(_range.Address, rank, bottom: true, percent: percent);
+            return Bottom(rank, fillColor: null, percent: percent);
+        }
+
+        /// <summary>
+        /// Applies a bottom-values rule with an optional solid fill.
+        /// </summary>
+        public ExcelRange Bottom(uint rank, string? fillColor, bool percent = false) {
+            _range.Sheet.AddConditionalTopBottomRule(_range.Address, rank, bottom: true, percent: percent, fillColor: fillColor);
             return _range;
         }
 
@@ -94,22 +261,6 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelRange BelowAverage(bool equalAverage = false, uint? standardDeviation = null) {
             _range.Sheet.AddConditionalAboveAverageRule(_range.Address, aboveAverage: false, equalAverage: equalAverage, standardDeviation: standardDeviation);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a contains-text rule.
-        /// </summary>
-        public ExcelRange ContainsText(string text) {
-            _range.Sheet.AddConditionalTextRule(_range.Address, ConditionalFormatValues.ContainsText, text);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a not-contains-text rule.
-        /// </summary>
-        public ExcelRange NotContainsText(string text) {
-            _range.Sheet.AddConditionalTextRule(_range.Address, ConditionalFormatValues.NotContainsText, text);
             return _range;
         }
 
@@ -166,6 +317,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelRange TimePeriod(TimePeriodValues timePeriod) {
             _range.Sheet.AddConditionalTimePeriodRule(_range.Address, timePeriod);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies a time-period rule with a differential fill color.
+        /// </summary>
+        public ExcelRange TimePeriod(TimePeriodValues timePeriod, string fillColor) {
+            _range.Sheet.AddConditionalTimePeriodRule(_range.Address, timePeriod, fillColor: fillColor);
             return _range;
         }
 

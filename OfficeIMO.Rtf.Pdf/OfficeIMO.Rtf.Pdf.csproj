@@ -40,6 +40,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Rtf\OfficeIMO.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

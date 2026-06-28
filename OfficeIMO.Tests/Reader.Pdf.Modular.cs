@@ -8,6 +8,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
+[Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderPdfModularTests {
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_EmitsPageAwareChunks() {

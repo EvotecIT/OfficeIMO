@@ -183,6 +183,60 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Adds an image positioned with an absolute worksheet drawing anchor.
+        /// </summary>
+        /// <param name="xPixels">Horizontal offset from the worksheet drawing origin, in pixels.</param>
+        /// <param name="yPixels">Vertical offset from the worksheet drawing origin, in pixels.</param>
+        /// <param name="imageBytes">Image bytes.</param>
+        /// <param name="contentType">Content type, for example image/png or image/jpeg.</param>
+        /// <param name="widthPixels">Image width in pixels.</param>
+        /// <param name="heightPixels">Image height in pixels.</param>
+        /// <param name="name">Optional drawing name used by Excel's selection pane.</param>
+        /// <param name="altText">Optional alternative text description for accessibility.</param>
+        /// <param name="title">Optional alternative text title.</param>
+        /// <param name="lockAspectRatio">Whether Excel should keep the picture aspect ratio locked.</param>
+        /// <param name="rotationDegrees">Clockwise image rotation in degrees.</param>
+        public ExcelImage AddImageAbsolute(int xPixels, int yPixels, byte[] imageBytes, string contentType = "image/png",
+            int widthPixels = 96, int heightPixels = 32, string? name = null, string? altText = null, string? title = null,
+            bool lockAspectRatio = true, double rotationDegrees = 0) {
+            if (imageBytes == null || imageBytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(imageBytes));
+            if (xPixels < 0) throw new ArgumentOutOfRangeException(nameof(xPixels));
+            if (yPixels < 0) throw new ArgumentOutOfRangeException(nameof(yPixels));
+            if (widthPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
+            if (heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(heightPixels));
+
+            ExcelImage? image = null;
+            WriteLock(() => {
+                DrawingsPart drawingPart = GetOrCreateDrawingsPart();
+                ImagePart imagePart = drawingPart.AddImagePart(ToImagePartType(contentType));
+                using (var stream = new MemoryStream(imageBytes)) imagePart.FeedData(stream);
+                string imageRelationshipId = drawingPart.GetIdOfPart(imagePart);
+
+                UInt32Value drawingId = NextDrawingId(drawingPart);
+                string resolvedName = string.IsNullOrWhiteSpace(name) ? $"Picture {drawingId}" : name!.Trim();
+                long widthEmu = PxToEmu(widthPixels);
+                long heightEmu = PxToEmu(heightPixels);
+                var anchor = new Xdr.AbsoluteAnchor(
+                    new Xdr.Position {
+                        X = PxToEmu(xPixels),
+                        Y = PxToEmu(yPixels)
+                    },
+                    new Xdr.Extent { Cx = widthEmu, Cy = heightEmu },
+                    CreatePicture(drawingId, resolvedName, imageRelationshipId, altText, title, lockAspectRatio, widthEmu, heightEmu, rotationDegrees),
+                    new Xdr.ClientData());
+
+                Xdr.WorksheetDrawing worksheetDrawing = drawingPart.WorksheetDrawing!;
+                worksheetDrawing.Append(anchor);
+                worksheetDrawing.Save();
+                WorksheetRoot.Save();
+                _excelDocument.MarkPackageDirty();
+                image = new ExcelImage(anchor.GetFirstChild<Xdr.Picture>()!, anchor, drawingPart, _excelDocument);
+            });
+
+            return image!;
+        }
+
+        /// <summary>
         /// Adds an image from disk anchored to an A1 range using a two-cell anchor.
         /// </summary>
         /// <param name="range">A1 range such as A1:C15. The image is anchored from the top-left of the first cell to the bottom-right boundary of the last cell.</param>

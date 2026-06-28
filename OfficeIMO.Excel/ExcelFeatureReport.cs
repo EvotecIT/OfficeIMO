@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Excel.Utilities;
 using System.Text;
 
 namespace OfficeIMO.Excel {
@@ -382,7 +383,7 @@ namespace OfficeIMO.Excel {
             var sparklineDetails = new List<string>();
             var pdfUnrenderedSparklineDetails = new List<string>();
             var pdfUnrenderedDrawingShapeDetails = new List<string>();
-            var threadedCommentPeople = BuildThreadedCommentPersonMap(workbookPart);
+            var threadedCommentPeople = ExcelWorksheetCommentResolver.BuildThreadedCommentPersonMap(workbookPart);
             var defaultPdfExportSheetsByName = new Dictionary<string, ExcelSheet>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var sheet in sheetElements) {
@@ -409,18 +410,23 @@ namespace OfficeIMO.Excel {
                 pivotCount += sheetPivotCount;
                 dataValidationCount += worksheet?.Descendants<DocumentFormat.OpenXml.Spreadsheet.DataValidation>().Count() ?? 0;
                 conditionalFormattingCount += worksheet?.Elements<DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting>().Count() ?? 0;
-                int sheetSparklineCount = CountDescendantsByLocalName(worksheet, "sparkline");
+                IReadOnlyList<ExcelWorksheetSparklineInfo> sheetSparklines = ExcelWorksheetSparklineResolver.FindSparklines(worksheetPart);
+                int sheetSparklineCount = sheetSparklines.Count;
                 sparklineCount += sheetSparklineCount;
                 if (sheetPivotCount > 0) pivotDetails.Add($"{sheet.Name}: {sheetPivotCount} pivot table(s)");
-                if (sheetSparklineCount > 0) sparklineDetails.Add($"{sheet.Name}: {sheetSparklineCount} sparkline(s)");
+                if (sheetSparklineCount > 0) {
+                    sparklineDetails.AddRange(sheetSparklines.Select(sparkline => $"{sheet.Name}!{sparkline.CellReference}: sparkline"));
+                }
                 if (isVisibleForDefaultPdfExport) {
                     pdfUnrenderedPivotCount += sheetPivotCount;
                     pdfUnrenderedSparklineCount += sheetSparklineCount;
                     if (sheetPivotCount > 0) pdfUnrenderedPivotDetails.Add($"{sheet.Name}: {sheetPivotCount} pivot table(s)");
-                    if (sheetSparklineCount > 0) pdfUnrenderedSparklineDetails.Add($"{sheet.Name}: {sheetSparklineCount} sparkline(s)");
+                    if (sheetSparklineCount > 0) {
+                        pdfUnrenderedSparklineDetails.AddRange(sheetSparklines.Select(sparkline => $"{sheet.Name}!{sparkline.CellReference}: sparkline"));
+                    }
                 }
                 legacyCommentCount += worksheetPart.WorksheetCommentsPart?.Comments?.CommentList?.Elements<DocumentFormat.OpenXml.Spreadsheet.Comment>().Count() ?? 0;
-                var threadedComments = BuildThreadedCommentMap(worksheetPart, threadedCommentPeople, sheetName)
+                var threadedComments = ExcelWorksheetCommentResolver.BuildThreadedCommentMap(worksheetPart, threadedCommentPeople, sheetName)
                     .Values
                     .SelectMany(comments => comments)
                     .ToList();

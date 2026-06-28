@@ -1,0 +1,2 @@
+Warning|ExcelCellTextClipped|RichText!B6|Cell rich text was clipped or ellipsized during image export because it does not fit the rendered cell bounds.
+Warning|ExcelCellTextRotationApproximation|RichText!B7|Cell text rotation was rendered using the shared drawing engine, but Excel baseline, anchoring, and stacked text behavior are still approximate.

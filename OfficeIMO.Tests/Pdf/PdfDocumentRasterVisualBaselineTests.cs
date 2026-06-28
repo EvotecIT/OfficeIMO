@@ -316,23 +316,23 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
     [Fact]
     public void RasterComparison_ReportsPixelDiffAndProducesDiffPng() {
-        byte[] expected = PngRaster.EncodeRgb(2, 1, new byte[] {
+        byte[] expected = VisualBaselineTestSupport.CreateRgbPng(2, 1, new byte[] {
             255, 255, 255,
             0, 0, 0
         });
-        byte[] actual = PngRaster.EncodeRgb(2, 1, new byte[] {
+        byte[] actual = VisualBaselineTestSupport.CreateRgbPng(2, 1, new byte[] {
             255, 255, 255,
             255, 0, 0
         });
 
-        RasterComparison comparison = CompareRasterImages(expected, actual, channelTolerance: 0, allowedDifferentPixels: 0);
+        VisualRasterComparison comparison = CompareRasterImages(expected, actual, channelTolerance: 0, allowedDifferentPixels: 0);
 
         Assert.False(comparison.Passed);
         Assert.Equal(1, comparison.DifferentPixels);
         Assert.Equal(2, comparison.TotalPixels);
         Assert.Equal(255, comparison.MaxChannelDelta);
         Assert.True(comparison.DiffPng.Length > 0);
-        Assert.Equal(2, PngRaster.Decode(comparison.DiffPng).Width);
+        Assert.Equal(2, VisualBaselineTestSupport.DecodePng(comparison.DiffPng, "PDF diff PNG is not a supported PNG file.").Width);
     }
 
 
