@@ -11,8 +11,8 @@ The important distinction: parity is not "more tests." Parity means the parser, 
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
 | CommonMark corpus | 316 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
 | CommonMark full inventory | 652 of 652 official CommonMark `0.31.2` examples currently match; 0 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
-| GFM corpus | 43 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
-| GFM tracked inventory | 43 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 40 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 43 passing, 0 failing |
+| GFM corpus | 44 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
+| GFM tracked inventory | 44 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 40 upstream cmark-gfm fixtures, 4 OfficeIMO supplements, 44 passing, 0 failing |
 | Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 6 covered, 11 partial, 4 intentional, 12 gap |
 | Covered CommonMark sections | ATX headings, Setext headings, thematic breaks, indented code blocks, fenced code blocks, HTML blocks, block quotes, list items, lists, paragraphs, hard breaks, soft breaks, links, images, autolinks, raw HTML, backslash escapes, entity and numeric character references, link reference definitions, tabs |
 | Remaining CommonMark parser clusters | None in the official CommonMark `0.31.2` inventory |
@@ -37,8 +37,8 @@ This is the non-looping backlog. Parity slices are grouped by what they actually
 
 ### A. Engine And Parser Behavior
 
-- [ ] **GFM breadth is still thin.** The current GFM inventory is green, but only 43 tracked fixtures are imported. Missing work: broaden autolinks, strikethrough delimiter edges, HTML tag filtering, and extension-interaction fixtures against upstream-compatible behavior.
-- [ ] **Autolinks are still partial.** CommonMark angle autolinks are green, Markdig-style previous-character/domain-without-period options exist, and source-backed Markdown writing preserves parsed bare and angle autolink spelling, but `UseAutoLinks` remains partial because extended bare URL, `www`, plain-email, scheme, boundary, punctuation, and Unicode edge breadth still need broader Markdig/GFM evidence before promotion.
+- [ ] **GFM breadth is still thin.** The current GFM inventory is green, but only 44 tracked fixtures are imported. Missing work: broaden autolinks, strikethrough delimiter edges, HTML tag filtering, and extension-interaction fixtures against upstream-compatible behavior.
+- [ ] **Autolinks are still partial.** CommonMark angle autolinks are green, Markdig-style previous-character/domain-without-period/query-fragment options exist, and source-backed Markdown writing preserves parsed bare and angle autolink spelling, but `UseAutoLinks` remains partial because extended bare URL, `www`, plain-email, scheme, boundary, punctuation, and Unicode edge breadth still need broader Markdig/GFM evidence before promotion.
 - [ ] **Raw HTML and GFM tag filtering are still partial.** CommonMark raw HTML is green and cmark-gfm HTML output now has a first-class `HtmlOptions` profile, but broader GFM tag-filter corpus coverage, sanitizer/escape/strip/allow mode evidence, source/writer behavior, and URL policy still need to stay separated so parser parity is not confused with security policy.
 - [ ] **Definition-list syntax breadth is partial.** OfficeIMO now parses the pinned Markdig colon-marker form, including multiple terms, multiple definitions, grouped AST/source/native/html proof, Markdig lazy paragraph and nested block continuation, loose-definition HTML, edge-continuation comparison, empty-marker first-continuation source mapping, grouped Markdown writing that preserves the marker form for reparsing, loose-definition writer preservation, and blank-separated marker-group writer preservation. Remaining source-map and writer edge breadth still need focused comparison before `UseDefinitionLists` can move to `Covered`.
 - [ ] **Emphasis extras are partial.** Strikethrough and mark/highlight-style inlines exist, but Markdig delimiter options and source-token behavior need inventory before more inline parsing is changed.
@@ -97,7 +97,7 @@ Use this as the non-looping execution board. Each item must either move engine b
 
 ### Next: Broaden GFM And Markdig Extension Coverage
 
-- [ ] **GFM fixture breadth:** expand beyond the current 43 tracked fixtures for autolinks, strikethrough, tag filtering, and extension interactions.
+- [ ] **GFM fixture breadth:** expand beyond the current 44 tracked fixtures for autolinks, strikethrough, tag filtering, and extension interactions.
 - [x] **Pipe tables:** moved from partial support to covered support by proving malformed delimiters, alignment, containers, source spans, renderer output, and writer behavior.
 - [x] **Task lists:** moved from partial support to covered support by proving nested markers, exact marker source spans, native snapshots/source edits, renderer output, and ordered/unordered writer behavior.
 - [x] **Footnotes:** moved from partial support to covered support by proving Markdig/GFM breadth, label/body source mapping, renderer output, backlink behavior, and writer behavior.

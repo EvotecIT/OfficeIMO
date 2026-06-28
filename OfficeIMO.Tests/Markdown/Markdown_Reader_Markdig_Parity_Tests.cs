@@ -179,6 +179,14 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "ordered-task-stays-plain-list-text", "1. [x] task\ncontinuation" };
     }
 
+    public static IEnumerable<object[]> AutoLinksExtensionCases() {
+        yield return new object[] { "http-query-ampersand", "Visit https://example.com/path?q=1&next=2 now" };
+        yield return new object[] { "http-fragment-ampersand", "Visit https://example.com/path#frag&next now" };
+        yield return new object[] { "www-query-ampersand", "Visit www.example.com/path?q=1&next=2 now" };
+        yield return new object[] { "http-query-parens", "Visit https://example.com/search?q=(x) now" };
+        yield return new object[] { "www-query-parens", "Visit www.example.com/search?q=(x) now" };
+    }
+
     [Theory]
     [MemberData(nameof(CoreParityCases))]
     public void MarkdownReader_Matches_Markdig_On_Curated_Cases(string _, string markdown) {
@@ -205,6 +213,25 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var office = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown);
+
+        Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(AutoLinksExtensionCases))]
+    public void MarkdownReader_GfmAutolinks_Match_Markdig_AutoLinks_Extension(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseAutoLinks(builder);
+
+        var office = MarkdownReader
+            .Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile())
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
     }

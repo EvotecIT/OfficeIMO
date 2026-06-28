@@ -89,6 +89,7 @@ public sealed class MarkdownReaderOptions {
             SingleTildeStrikethrough = true,
             AutolinkUrls = true,
             AutolinkAllowDomainWithoutPeriod = false,
+            AutolinkAllowQueryAndFragmentSpecialCharacters = true,
             AutolinkBareSchemeUrls = true,
             AutolinkWwwUrls = true,
             AutolinkWwwScheme = "http://",
@@ -203,6 +204,13 @@ public sealed class MarkdownReaderOptions {
     /// this to <c>false</c>.
     /// </summary>
     public bool AutolinkAllowDomainWithoutPeriod { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, bare URL autolinks may keep balanced parentheses and ampersands inside query
+    /// strings or fragments. OfficeIMO defaults to <c>false</c> for compatibility with existing conservative
+    /// parsing; the GitHub Flavored Markdown profile enables this to match Markdig/GFM autolink behavior.
+    /// </summary>
+    public bool AutolinkAllowQueryAndFragmentSpecialCharacters { get; set; } = false;
 
     /// <summary>
     /// Optional previous-character allow-list for bare URL/email autolinks. When set, a bare

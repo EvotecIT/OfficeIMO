@@ -71,6 +71,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.True(options.SingleTildeStrikethrough);
         Assert.True(options.AutolinkUrls);
         Assert.False(options.AutolinkAllowDomainWithoutPeriod);
+        Assert.True(options.AutolinkAllowQueryAndFragmentSpecialCharacters);
         Assert.Null(options.AutolinkValidPreviousCharacters);
         Assert.True(options.AutolinkBareSchemeUrls);
         Assert.True(options.AutolinkWwwUrls);

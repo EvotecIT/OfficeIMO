@@ -129,6 +129,30 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Gfm_Autolinks_Link_Query_And_Fragment_Special_Characters_With_Source_Metadata() {
+        const string markdown = "Visit https://example.com/path?q=1&next=2 now\n";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
+        var target = Assert.Single(link.Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var nativeLink = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var nativeTarget = Assert.Single(nativeLink.Metadata, metadata => metadata.Name == "target");
+
+        Assert.Contains("<a href=\"https://example.com/path?q=1&amp;next=2\">https://example.com/path?q=1&amp;next=2</a>", html, StringComparison.Ordinal);
+        Assert.Equal("https://example.com/path?q=1&next=2", link.Literal);
+        Assert.Equal("https://example.com/path?q=1&next=2", target.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 41), target.SourceSpan);
+        Assert.Equal("https://example.com/path?q=1&next=2", nativeTarget.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 41), nativeTarget.SourceSpan);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void Autolinks_DoNot_Link_Http_Urls_With_Fragment_Ampersands() {
         var doc = MarkdownReader.Parse("Visit https://example.com/path#frag&next now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });

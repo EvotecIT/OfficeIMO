@@ -109,7 +109,7 @@ public static partial class MarkdownReader {
         // Trim trailing punctuation commonly outside URLs
         while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
         if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
-        if (ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
+        if (!options.AutolinkAllowQueryAndFragmentSpecialCharacters && ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
         if (ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
         if (!options.AutolinkAllowDomainWithoutPeriod && !HttpAutolinkHasDomainPeriod(text, start, i)) return false;
         end = i; return end > start + 7;
@@ -127,7 +127,7 @@ public static partial class MarkdownReader {
         int scanEnd = rawEnd;
         while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
         if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
-        if (ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
+        if (!options.AutolinkAllowQueryAndFragmentSpecialCharacters && ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
         if (ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
 
         // Must include at least one dot after the www.

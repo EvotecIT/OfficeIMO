@@ -604,6 +604,33 @@
     ]
   },
   {
+    "source": "officeimo/gfm-autolink-smoke",
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "Query https://example.com/path?q=1&next=2 and www.example.com/search?q=(x)\n",
+    "html": "<p>Query <a href=\"https://example.com/path?q=1&amp;next=2\">https://example.com/path?q=1&amp;next=2</a> and <a href=\"http://www.example.com/search?q=(x)\">www.example.com/search?q=(x)</a></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "GFM bare URL autolinks keep ampersands inside query strings",
+        "line": 1,
+        "column": 32,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink", "InlineLinkTarget"],
+        "expectedDeepestLiteral": "https://example.com/path?q=1&next=2",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 7, "endLine": 1, "endColumn": 41 },
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "GFM www autolinks keep balanced parentheses inside query strings",
+        "line": 1,
+        "column": 70,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink", "InlineLinkTarget"],
+        "expectedDeepestLiteral": "http://www.example.com/search?q=(x)",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 47, "endLine": 1, "endColumn": 74 },
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
     "source": "github/cmark-gfm test/extensions.txt",
     "section": "HTML tag filter",
     "topLevelKinds": ["Paragraph", "HtmlRaw", "Paragraph", "HtmlRaw", "HtmlRaw", "Paragraph", "HtmlComment", "Paragraph", "HtmlComment", "HtmlComment", "HtmlComment", "HtmlComment"],
