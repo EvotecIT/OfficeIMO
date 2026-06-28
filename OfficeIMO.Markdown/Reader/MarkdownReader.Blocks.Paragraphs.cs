@@ -900,6 +900,10 @@ public static partial class MarkdownReader {
                 hardBreakMarkerSpan: sourceTextMap?.CreateSpan(absoluteLine, markerStartColumn, absoluteLine, markerEndColumn));
         }
 
+        if (hasFollowingLine && options?.SoftLineBreaksAsHardLineBreaks == true) {
+            return new ParagraphLineJoinInfo(text, hardBreak: true, hardBreakMarker: null, hardBreakMarkerSpan: null);
+        }
+
         return new ParagraphLineJoinInfo(text, hardBreak: false, hardBreakMarker: null, hardBreakMarkerSpan: null);
     }
 

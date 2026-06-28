@@ -17,6 +17,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.AutolinkBareSchemeUrls);
         Assert.False(options.AutolinkWwwUrls);
         Assert.False(options.AutolinkEmails);
+        Assert.False(options.SoftLineBreaksAsHardLineBreaks);
         Assert.True(options.Tables);
         Assert.True(options.AllowHeaderlessTables);
         Assert.True(options.ParseTableCellBlocks);
@@ -45,6 +46,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.AutolinkBareSchemeUrls);
         Assert.False(options.AutolinkWwwUrls);
         Assert.False(options.AutolinkEmails);
+        Assert.False(options.SoftLineBreaksAsHardLineBreaks);
         Assert.True(options.HtmlBlocks);
         Assert.True(options.InlineHtml);
         Assert.Empty(options.BlockParserExtensions);
@@ -74,6 +76,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.True(options.AutolinkWwwUrls);
         Assert.Equal("http://", options.AutolinkWwwScheme);
         Assert.True(options.AutolinkEmails);
+        Assert.False(options.SoftLineBreaksAsHardLineBreaks);
         Assert.Single(options.BlockParserExtensions);
         Assert.Empty(options.InlineParserExtensions);
         Assert.Equal(MarkdownReaderBuiltInExtensions.FootnotesExtensionName, options.BlockParserExtensions[0].Name);
@@ -103,6 +106,59 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(portable.StandaloneImageBlocks);
         Assert.Empty(portable.BlockParserExtensions);
         Assert.Empty(portable.InlineParserExtensions);
+    }
+
+    [Fact]
+    public void SoftLineBreaksAsHardLineBreaks_Renders_Ordinary_Paragraph_Line_Breaks_As_Hard_Breaks() {
+        const string markdown = """
+alpha
+beta
+""";
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        options.SoftLineBreaksAsHardLineBreaks = true;
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+
+        Assert.Equal("<p>alpha<br/>beta</p>", html);
+        Assert.Equal("alpha  \nbeta", document.ToMarkdown().Replace("\r\n", "\n").TrimEnd());
+    }
+
+    [Fact]
+    public void SoftLineBreaksAsHardLineBreaks_Does_Not_Change_Default_Profile_Behavior() {
+        const string markdown = """
+alpha
+beta
+""";
+
+        var document = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+        Assert.DoesNotContain(paragraph.Inlines.Items, inline => inline is HardBreakInline);
+        Assert.Equal("alpha beta", document.ToMarkdown().TrimEnd());
+    }
+
+    [Fact]
+    public void SoftLineBreaksAsHardLineBreaks_Applies_To_Nested_List_Paragraphs() {
+        const string markdown = """
+- alpha
+  beta
+""";
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        options.SoftLineBreaksAsHardLineBreaks = true;
+
+        var html = MarkdownReader.Parse(markdown, options)
+            .ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            });
+
+        Assert.Contains("alpha<br/>beta", html);
     }
 
     [Fact]

@@ -42,6 +42,7 @@ namespace OfficeIMO.Word.Markdown {
                 AutolinkWwwScheme = source.AutolinkWwwScheme,
                 AutolinkEmails = source.AutolinkEmails,
                 BackslashHardBreaks = source.BackslashHardBreaks,
+                SoftLineBreaksAsHardLineBreaks = source.SoftLineBreaksAsHardLineBreaks,
                 InlineHtml = source.InlineHtml,
                 BaseUri = source.BaseUri,
                 DisallowScriptUrls = source.DisallowScriptUrls,

@@ -19,7 +19,7 @@ Status values:
 | CommonMark full inventory | 652 of 652 official CommonMark `0.31.2` examples currently match; 0 failures are reported in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM reference | 43 cmark-gfm extension smoke fixtures plus a focused upstream ignored-autolink crash regression |
 | GFM inventory | 43 tracked GFM fixtures currently measured in `Docs/officeimo.markdown.gfm-inventory.md`: 40 upstream cmark-gfm fixtures, 3 OfficeIMO supplements, 43 passing, 0 failing |
-| Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 3 covered, 12 partial, 4 intentional, 14 gap |
+| Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 4 covered, 12 partial, 4 intentional, 13 gap |
 | OfficeIMO core package | `OfficeIMO.Markdown` owns parsing, semantic AST, syntax tree, writing, and HTML projection |
 | Host renderer package | `OfficeIMO.MarkdownRenderer` owns WebView/browser shell rendering and incremental updates |
 | Benchmark evidence | `OfficeIMO.Markdown.Benchmarks` compares parse/syntax-tree parse/HTML render against the current Markdig baseline and now includes transform/diagnostics cost lanes over stable README, transcript, technical-doc, rich-AST, long-list, large-table, and normalization-heavy corpora |
@@ -83,6 +83,7 @@ Generated scoreboards: `Docs/officeimo.markdown.gfm-inventory.md` tracks the cur
 
 ## Recent Parity Slices
 
+- 2026-06-28: `UseSoftlineBreakAsHardlineBreak` is now promoted to `Covered`: `MarkdownReaderOptions.SoftLineBreaksAsHardLineBreaks` parses ordinary paragraph soft breaks as hard breaks while CommonMark/GFM defaults remain soft; focused tests cover HTML output, normalized Markdown writing, nested list paragraph propagation, and native metadata that avoids inventing a fake two-space/backslash marker.
 - 2026-06-28: GFM HTML output now has a first-class `HtmlOptions.CreateGitHubFlavoredMarkdownProfile()` that enables cmark-gfm task-list HTML, footnote HTML, raw HTML allow mode, and the GitHub tag filter together. Focused tests keep that spec-output profile separate from strict renderer presets, which continue stripping raw HTML for untrusted hosts.
 - 2026-06-28: Extended autolink parsing now exposes Markdig-style previous-character and domain-without-period options. The GFM profile disables domain-without-period bare links while OfficeIMO defaults preserve existing `localhost`/`www.local` behavior, and table-cell inline parsing now carries the same autolink option contract as top-level paragraphs.
 - 2026-06-28: Link-label scanning now skips whole supported inline HTML wrapper spans before matching closing brackets or rejecting nested links, so `[outer <u>[inner](https://inner.example)</u>](https://outer.example)` parses as one outer link while the inner link syntax remains literal inside the wrapper.

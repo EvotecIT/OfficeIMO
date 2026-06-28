@@ -196,6 +196,7 @@ public sealed partial class TableBlock {
         clone.AutolinkWwwScheme = source.AutolinkWwwScheme;
         clone.AutolinkEmails = source.AutolinkEmails;
         clone.BackslashHardBreaks = source.BackslashHardBreaks;
+        clone.SoftLineBreaksAsHardLineBreaks = source.SoftLineBreaksAsHardLineBreaks;
         clone.InlineHtml = source.InlineHtml;
         clone.BaseUri = source.BaseUri;
         clone.DisallowScriptUrls = source.DisallowScriptUrls;

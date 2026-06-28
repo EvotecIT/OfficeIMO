@@ -67,11 +67,18 @@ public static partial class MarkdownReader {
         }
         void AddHardBreakNode(int start, int length) {
             var node = new HardBreakInline();
-            MarkdownInlineMetadataSourceSpans.SetHardBreakMarker(
-                node,
-                sourceMap?.GetTokenLiteral(start, length) ?? text.Substring(start, length),
-                sourceMap?.GetSpan(start, length));
-            AddRawNode(node, start, length);
+            var tokenLiteral = sourceMap?.GetTokenLiteral(start, length);
+            var isSyntheticSoftBreak = length == 1 && start >= 0 && start < text.Length && text[start] == '\n' && tokenLiteral == null;
+            if (!isSyntheticSoftBreak) {
+                MarkdownInlineMetadataSourceSpans.SetHardBreakMarker(
+                    node,
+                    tokenLiteral ?? text.Substring(start, length),
+                    sourceMap?.GetSpan(start, length));
+                AddRawNode(node, start, length);
+                return;
+            }
+
+            Current().AddRaw(node);
         }
         void AddFootnoteRefNode(string label, int start, int length) {
             var node = new FootnoteRefInline(label);

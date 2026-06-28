@@ -469,11 +469,13 @@ public static partial class MarkdownReader {
 
         var builder = new StringBuilder(cell.Markdown.Length + 8);
         List<MarkdownSourcePoint?>? points = state?.SourceTextMap == null ? null : new List<MarkdownSourcePoint?>(cell.Markdown.Length + 8);
+        List<MarkdownSourceSpan?>? tokenSpans = points == null ? null : new List<MarkdownSourceSpan?>(cell.Markdown.Length + 8);
+        List<string?>? tokenLiterals = points == null ? null : new List<string?>(cell.Markdown.Length + 8);
         int absoluteLine = cell.SourceSpan.StartLine;
         int column = cell.SourceSpan.StartColumn ?? 1;
         int codeFenceLen = 0;
 
-        void AppendMapped(string value, int sourceColumn) {
+        void AppendMapped(string value, int sourceColumn, MarkdownSourceSpan? tokenSpan = null, string? tokenLiteral = null) {
             builder.Append(value);
             if (points == null) {
                 return;
@@ -482,6 +484,8 @@ public static partial class MarkdownReader {
             var point = state!.SourceTextMap!.CreatePoint(absoluteLine, sourceColumn);
             for (int i = 0; i < value.Length; i++) {
                 points.Add(point);
+                tokenSpans!.Add(i == 0 ? tokenSpan : null);
+                tokenLiterals!.Add(i == 0 ? tokenLiteral : null);
             }
         }
 
@@ -532,7 +536,11 @@ public static partial class MarkdownReader {
             }
 
             if (ch == '<' && TableBlock.TryConsumeBreakTag(cell.Markdown, i, out int consumed)) {
-                AppendMapped("\n", column);
+                AppendMapped(
+                    "\n",
+                    column,
+                    CreateSpan(state, absoluteLine, column, absoluteLine, column + consumed - 1),
+                    cell.Markdown.Substring(i, consumed));
                 column += consumed;
                 i += consumed - 1;
                 continue;
@@ -570,7 +578,7 @@ public static partial class MarkdownReader {
             column++;
         }
 
-        return (builder.ToString(), points == null ? null : new MarkdownInlineSourceMap(points.ToArray()));
+        return (builder.ToString(), points == null ? null : new MarkdownInlineSourceMap(points.ToArray(), tokenSpans!.ToArray(), tokenLiterals!.ToArray()));
     }
 
     private static bool TryConsumeInlineRawHtmlTableCellTag(string markdown, int index, out int consumed) {

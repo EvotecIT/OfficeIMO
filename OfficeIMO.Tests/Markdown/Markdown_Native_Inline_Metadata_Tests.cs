@@ -267,6 +267,21 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Soft_Line_As_Hard_Line_Break_Does_Not_Create_Fake_Marker_Metadata() {
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        options.SoftLineBreaksAsHardLineBreaks = true;
+
+        var native = MarkdownNativeDocument.Parse("Alpha\nbravo\n", options);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var hardBreak = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.HardBreak);
+
+        Assert.Empty(hardBreak.Metadata.Where(metadata => metadata.Name == "marker"));
+        Assert.Empty(hardBreak.SyntaxNode.Children);
+        var snapshotBreak = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.HardBreak);
+        Assert.False(snapshotBreak.Metadata.ContainsKey("marker"));
+    }
+
+    [Fact]
     public void Autolink_Metadata_Preserves_Target_And_Angle_Markers_For_Edits_And_Snapshots() {
         const string markdown = "Go <https://example.com/docs> and mailto:user@example.com\n";
 

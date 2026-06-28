@@ -241,6 +241,14 @@ public sealed class MarkdownReaderOptions {
     /// Default: <c>true</c>.
     /// </summary>
     public bool BackslashHardBreaks { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, ordinary soft line breaks inside paragraphs are parsed as hard line breaks.
+    /// This mirrors Markdig's <c>UseSoftlineBreakAsHardlineBreak</c> pipeline option without changing
+    /// the default CommonMark/GFM soft-break behavior.
+    /// </summary>
+    public bool SoftLineBreaksAsHardLineBreaks { get; set; } = false;
+
     /// <summary>
     /// Enable inline HTML interpretations (e.g. &lt;br&gt;, &lt;u&gt;...&lt;/u&gt;). When disabled, HTML tags remain literal text and no HTML
     /// decoding is performed.

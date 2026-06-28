@@ -22,10 +22,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Markdig extension-family rows | 33 |
-| Covered | 3 |
+| Covered | 4 |
 | Partial | 12 |
 | Intentional | 4 |
-| Gap | 14 |
+| Gap | 13 |
 
 ## Extension Families
 
@@ -61,7 +61,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | `UseReferralLinks` | Referral links | `Gap` | No Markdig-compatible referral-link renderer policy exists. | Treat as renderer policy work if requested. |
 | `UseSelfPipeline` | Self pipeline | `Intentional` | This is a Markdig pipeline composition helper, not a Markdown feature OfficeIMO should mirror directly. | Keep extension composition in OfficeIMO reader/render/write options. |
 | `UseSmartyPants` | SmartyPants | `Gap` | No SmartyPants inline transform exists. | Consider as an optional inline transform after delimiter parsing stabilizes. |
-| `UseSoftlineBreakAsHardlineBreak` | Soft line break as hard line break | `Gap` | OfficeIMO has hard/soft break nodes, but no Markdig-compatible softbreak-as-hardbreak switch. | Add only as an explicit profile/render option with tests. |
+| `UseSoftlineBreakAsHardlineBreak` | Soft line break as hard line break | `Covered` | OfficeIMO exposes an explicit reader option that parses ordinary paragraph soft breaks as hard breaks while keeping CommonMark/GFM defaults unchanged, rendering HTML breaks, writing normalized hard-break markdown, and avoiding fake source marker metadata. | Keep the option covered alongside paragraph/list source-map and writer fixtures. |
 | `UseTaskLists` | Task lists | `Covered` | OfficeIMO has GFM task-list parsing for checked, unchecked, uppercase, nested, and invalid tight-marker cases; semantic AST flags; exact marker source spans; native snapshots/source edits; GitHub HTML rendering; and Markdown writer roundtrip proof. | Keep the GFM fixture corpus and marker source-edit coverage current. |
 | `UseYamlFrontMatter` | YAML front matter | `Partial` | OfficeIMO has front matter blocks with key/value and fence source spans, but not a Markdig YAML object-model parity claim. | Separate raw YAML preservation from parsed metadata helpers. |
 
