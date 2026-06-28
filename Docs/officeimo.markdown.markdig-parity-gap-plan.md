@@ -31,6 +31,28 @@ Current truth:
 - [ ] AST/source/lossless parity is not closed: full trivia, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, source edits, and source-aware extension paths are still partial.
 - [ ] Performance parity is not known: release-mode Markdig comparisons still need a stable pass after correctness and source behavior stop moving.
 
+## What Is Missing From Parity
+
+This is the loop-breaker board. Work one row at a time. A row is finished only when the reusable engine behavior, public contract, docs, and proof are all present. Adding tests alone is not parity unless the behavior already exists and the missing thing is measurement.
+
+- [ ] **Measurement gate: broaden GFM inventory.** Current GFM inventory is green but small: 44 fixtures total, with only 5 autolink, 3 strikethrough, 1 HTML tag-filter, 5 task-list, and 3 footnote fixtures. Add more upstream-compatible cmark-gfm coverage for enabled behavior before claiming GFM breadth.
+- [ ] **Parser gate: close `UseAutoLinks`.** This is the current active engine row. Remaining work is extended `www`, email, scheme, punctuation/boundary, source/native, writer, table-cell, and GFM breadth. Promote only when Markdig-compatible and GFM-compatible profiles are both explicit; otherwise leave a named intentional delta.
+- [ ] **Parser gate: close `UseDefinitionLists`.** Existing behavior is real but still `Partial`. Finish marker-group, lazy-continuation, nested-block, loose-definition, source-map, writer, and reparse-stability edges before promotion.
+- [ ] **Parser gate: decide/close `UseAbbreviations`.** Existing behavior is real but still `Partial`. Decide whether Markdown writing should preserve abbreviation definitions, then finish Markdig edge breadth, source/native metadata, and writer behavior or document the writer limit.
+- [ ] **AST gate: finish canonical node ownership.** Clean up duplicated or adapter-heavy ownership around list items, tables, callouts, definition lists, front matter, and extension nodes so semantic AST, syntax tree, native snapshots, renderer contexts, writer contexts, and source edits share one model.
+- [ ] **Source/lossless gate: finish trivia and source mapping.** Complete whitespace, blank-line, tab, delimiter-token, raw-slice, original-to-normalized mapping, generated-node diagnostic, and fallback-diagnostic behavior before claiming editor-grade roundtrip.
+- [ ] **Extension-scope gate: classify the remaining Markdig gaps.** There are still 11 `Gap` rows. Decide core parser, optional extension, renderer/host policy, deferred, or intentional out-of-scope for custom containers, grid tables, SmartyPants, citations, emoji/smiley, footers, globalization, Jira links, list extras, pragma lines, and referral links before implementing one-off syntax.
+- [ ] **Partial-extension gate: finish or intentionally limit high-value partials.** Work through alerts/callouts, generic attributes, precise source location, CJK-friendly emphasis, diagrams, figures, mathematics, and media links with an explicit owner and promotion bar.
+- [ ] **Renderer/writer gate: make extension output source-aware.** Custom parser, transform, renderer, and writer APIs must carry source slices and token metadata so extension nodes render and write without downstream string rescanning.
+- [ ] **Security gate: separate parser parity from HTML policy.** Raw HTML, GFM tag filtering, sanitizer/escape/strip/allow modes, and URL policy need independent contracts so security choices are not counted as grammar compatibility.
+- [ ] **Performance gate: benchmark last.** Only after parser, AST/source, renderer/writer, and security contracts stabilize, capture release-mode Markdig comparisons for parse, parse-with-syntax, HTML render, Markdown write, transforms, source edits, and allocations.
+
+### Do Next
+
+- [ ] Finish `UseAutoLinks` to a promotion decision, not just another fixture.
+- [ ] While doing that, expand the GFM autolink inventory because the current GFM autolink scoreboard has only 5 cases.
+- [ ] After `UseAutoLinks`, choose exactly one next row: `UseDefinitionLists`, `UseAbbreviations`, or raw HTML/tag-filter/security. Do not start a new extension family until that choice is explicit.
+
 ## Missing Parity Plan
 
 This is the non-looping checklist. A row is not done because it has tests; a row is done when the reusable engine behavior, public contract, and proof all exist.
