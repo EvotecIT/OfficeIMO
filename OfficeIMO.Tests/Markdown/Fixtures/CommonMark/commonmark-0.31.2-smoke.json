@@ -410,7 +410,7 @@
         "description": "escaped closing ATX marker characters stay in heading text",
         "line": 1,
         "column": 10,
-        "expectedPathKinds": ["Document", "Heading", "HeadingText", "InlineText"],
+        "expectedPathKinds": ["Document", "Heading", "HeadingText", "InlineText", "InlineEscapedCharacter"],
         "expectedDeepestLiteral": "#",
         "expectedNearestBlockKind": "Heading"
       }
@@ -2617,7 +2617,7 @@
         "description": "escaped reference-looking syntax remains paragraph text instead of becoming a definition",
         "line": 8,
         "column": 2,
-        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText", "InlineEscapedCharacter"],
         "expectedDeepestLiteral": "[",
         "expectedNearestBlockKind": "Paragraph"
       }
@@ -2641,7 +2641,7 @@
         "description": "escaped opening emphasis delimiter remains literal text",
         "line": 1,
         "column": 2,
-        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText", "InlineEscapedCharacter"],
         "expectedDeepestLiteral": "*",
         "expectedNearestBlockKind": "Paragraph"
       }

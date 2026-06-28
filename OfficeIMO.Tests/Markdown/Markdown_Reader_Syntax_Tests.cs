@@ -686,6 +686,58 @@ baz*
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Escape_And_Decoded_Entity_Tokens() {
+        const string markdown = "Use \\*literal\\* and &amp; now";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var escaped = paragraph.Children
+            .Where(node => node.Kind == MarkdownSyntaxKind.InlineText && node.Children.Any(child => child.Kind == MarkdownSyntaxKind.InlineEscapeMarker))
+            .ToArray();
+        var entity = Assert.Single(
+            paragraph.Children,
+            node => node.Kind == MarkdownSyntaxKind.InlineText && node.Children.Any(child => child.Kind == MarkdownSyntaxKind.InlineEntitySourceText));
+
+        Assert.Equal(2, escaped.Length);
+        Assert.Equal("*", escaped[0].Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 6), escaped[0].SourceSpan);
+        Assert.Collection(escaped[0].Children,
+            escapeMarker => {
+                Assert.Equal(MarkdownSyntaxKind.InlineEscapeMarker, escapeMarker.Kind);
+                Assert.Equal("\\", escapeMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 5), escapeMarker.SourceSpan);
+                Assert.Null(escapeMarker.AssociatedObject);
+            },
+            escapedCharacter => {
+                Assert.Equal(MarkdownSyntaxKind.InlineEscapedCharacter, escapedCharacter.Kind);
+                Assert.Equal("*", escapedCharacter.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 6), escapedCharacter.SourceSpan);
+                Assert.Null(escapedCharacter.AssociatedObject);
+            });
+        Assert.Collection(escaped[1].Children,
+            escapeMarker => Assert.Equal(new MarkdownSourceSpan(1, 14, 1, 14), escapeMarker.SourceSpan),
+            escapedCharacter => Assert.Equal(new MarkdownSourceSpan(1, 15, 1, 15), escapedCharacter.SourceSpan));
+
+        Assert.Equal("&", entity.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 21, 1, 25), entity.SourceSpan);
+        var sourceText = Assert.Single(entity.Children);
+        Assert.Equal(MarkdownSyntaxKind.InlineEntitySourceText, sourceText.Kind);
+        Assert.Equal("&amp;", sourceText.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 21, 1, 25), sourceText.SourceSpan);
+        Assert.Null(sourceText.AssociatedObject);
+
+        Assert.Equal(MarkdownSyntaxKind.InlineEscapeMarker, result.FindDeepestNodeAtPosition(1, 5)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineEscapedCharacter, result.FindDeepestNodeAtPosition(1, 6)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineEntitySourceText, result.FindDeepestNodeAtPosition(1, 21)!.Kind);
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.Document,
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.InlineText,
+            MarkdownSyntaxKind.InlineEscapedCharacter
+        }, result.FindNodePathAtPosition(1, 6).Select(node => node.Kind).ToArray());
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Inline_Link_Metadata_Nodes() {
         const string markdown = "[docs](https://example.com \"Example title\")";
 

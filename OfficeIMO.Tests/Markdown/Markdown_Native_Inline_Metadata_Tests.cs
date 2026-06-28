@@ -112,6 +112,10 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 6), firstCharacter.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 14, 1, 14), secondMarker.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 15, 1, 15), secondCharacter.SourceSpan);
+        Assert.Collection(escaped[0].SyntaxNode.Children,
+            escapeMarker => Assert.Equal(MarkdownSyntaxKind.InlineEscapeMarker, escapeMarker.Kind),
+            escapedCharacter => Assert.Equal(MarkdownSyntaxKind.InlineEscapedCharacter, escapedCharacter.Kind));
+        Assert.Empty(escaped[0].Children);
 
         Assert.Equal("Use *literal\\* and C:\\Temp\n", native.CreateReplaceEdit(firstMarker, string.Empty).Apply(native.SourceMarkdown));
         Assert.Equal("Use \\_literal\\* and C:\\Temp\n", native.CreateReplaceEdit(firstCharacter, "_").Apply(native.SourceMarkdown));
@@ -152,6 +156,9 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal("&#35;", hashSource.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 9), ampSource.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 15, 1, 19), hashSource.SourceSpan);
+        Assert.Collection(entities[0].SyntaxNode.Children,
+            sourceText => Assert.Equal(MarkdownSyntaxKind.InlineEntitySourceText, sourceText.Kind));
+        Assert.Empty(entities[0].Children);
         Assert.Equal("Use &lt; and &#35; symbols\n", native.CreateReplaceEdit(ampSource, "&lt;").Apply(native.SourceMarkdown));
         Assert.Equal("Use &amp; and &#x23; symbols\n", native.CreateReplaceEdit(hashSource, "&#x23;").Apply(native.SourceMarkdown));
 

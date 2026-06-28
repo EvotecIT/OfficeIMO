@@ -20,6 +20,12 @@ public enum MarkdownSyntaxKind {
     HeadingClosingMarker,
     /// <summary>Plain text inline node.</summary>
     InlineText,
+    /// <summary>Backslash escape marker token inside a text inline.</summary>
+    InlineEscapeMarker,
+    /// <summary>Escaped character token inside a text inline.</summary>
+    InlineEscapedCharacter,
+    /// <summary>Original entity source text token inside a decoded text inline.</summary>
+    InlineEntitySourceText,
     /// <summary>Inline code span node.</summary>
     InlineCodeSpan,
     /// <summary>Code span content token.</summary>

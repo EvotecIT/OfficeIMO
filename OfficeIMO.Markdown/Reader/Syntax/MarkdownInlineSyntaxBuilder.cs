@@ -31,9 +31,21 @@ internal static class MarkdownInlineSyntaxBuilder {
 
         switch (inline) {
             case TextRun text:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineText, span, literal: text.Text, associatedObject: text);
+                var escapedTextChildren = BuildEscapedTextChildren(text);
+                return new MarkdownSyntaxNode(
+                    MarkdownSyntaxKind.InlineText,
+                    span ?? MarkdownBlockSyntaxBuilder.GetAggregateSpan(escapedTextChildren),
+                    literal: text.Text,
+                    children: escapedTextChildren,
+                    associatedObject: text);
             case DecodedHtmlEntityTextRun text:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineText, span, literal: text.Text, associatedObject: text);
+                var decodedEntityChildren = BuildDecodedEntityChildren(text);
+                return new MarkdownSyntaxNode(
+                    MarkdownSyntaxKind.InlineText,
+                    span ?? MarkdownBlockSyntaxBuilder.GetAggregateSpan(decodedEntityChildren),
+                    literal: text.Text,
+                    children: decodedEntityChildren,
+                    associatedObject: text);
             case CodeSpanInline code:
                 var codeSpanChildren = BuildCodeSpanChildren(code);
                 return new MarkdownSyntaxNode(
@@ -162,6 +174,43 @@ internal static class MarkdownInlineSyntaxBuilder {
             closingMarkerSpan);
 
         return nodes;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildEscapedTextChildren(TextRun text) {
+        var markerSpan = MarkdownInlineMetadataSourceSpans.GetEscapeMarkerSpan(text);
+        var characterSpan = MarkdownInlineMetadataSourceSpans.GetEscapedCharacterSpan(text);
+
+        if (!markerSpan.HasValue && !characterSpan.HasValue) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        var nodes = new List<MarkdownSyntaxNode>(2);
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineEscapeMarker,
+            MarkdownInlineMetadataSourceSpans.GetEscapeMarker(text),
+            markerSpan);
+        AddMarkerNode(
+            nodes,
+            MarkdownSyntaxKind.InlineEscapedCharacter,
+            MarkdownInlineMetadataSourceSpans.GetEscapedCharacter(text),
+            characterSpan);
+
+        return nodes;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildDecodedEntityChildren(DecodedHtmlEntityTextRun text) {
+        var sourceTextSpan = MarkdownInlineMetadataSourceSpans.GetDecodedEntitySourceTextSpan(text);
+        if (!sourceTextSpan.HasValue) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        return new[] {
+            new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.InlineEntitySourceText,
+                sourceTextSpan,
+                literal: MarkdownInlineMetadataSourceSpans.GetDecodedEntitySourceText(text) ?? string.Empty)
+        };
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildCodeSpanChildren(CodeSpanInline code) {

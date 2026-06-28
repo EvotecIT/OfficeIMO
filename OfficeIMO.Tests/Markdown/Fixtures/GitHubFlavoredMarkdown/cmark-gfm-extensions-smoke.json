@@ -101,7 +101,7 @@
         "description": "escaped pipes stay inside a table cell instead of splitting the row",
         "line": 3,
         "column": 6,
-        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineText"],
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineText", "InlineEscapedCharacter"],
         "expectedDeepestLiteral": "|",
         "expectedNearestBlockKind": "Paragraph"
       },
@@ -149,7 +149,7 @@
         "description": "backslash-escaped underscores inside table-cell strong text stay literal text tokens",
         "line": 6,
         "column": 12,
-        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineStrong", "InlineText"],
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineStrong", "InlineText", "InlineEscapedCharacter"],
         "expectedDeepestLiteral": "_",
         "expectedNearestBlockKind": "Paragraph"
       }
