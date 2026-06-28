@@ -1,20 +1,8 @@
 # OfficeIMO.Markdown Markdig Parity Gap Plan
 
-This plan is the working checklist for getting `OfficeIMO.Markdown` to Markdig-class parity without looping through random fixture additions.
+This is the working plan for getting `OfficeIMO.Markdown` to Markdig-class parity without looping through disconnected fixture additions.
 
-The short version: parity is not "more tests." Parity means the engine, AST, renderer, extension seams, lossless behavior, and compatibility corpus all agree on a documented contract. Tests are the proof gate for each engine slice, not the slice itself.
-
-## Parity Definition
-
-We should not call this Markdig-class until these contracts are true:
-
-- [ ] CommonMark parsing and rendering are either conformant for the official corpus or explicitly documented as intentional OfficeIMO profile differences.
-- [ ] GFM behavior is measured with a generated inventory, not only curated smoke fixtures.
-- [ ] Markdig extension families are inventoried as `Covered`, `Partial`, `Intentional`, or `Gap`.
-- [ ] The AST is stable enough for reader, renderer, native-document, and source-edit callers to rely on the same node boundaries.
-- [ ] Source spans, trivia, and delimiter tokens preserve enough information for editor-grade roundtrip scenarios.
-- [ ] Renderer/security/profile behavior is explicit for raw HTML, escaping, sanitizing, links, tables, and extension output.
-- [ ] Performance is checked in release mode against Markdig after correctness work lands.
+The important distinction: parity is not "more tests." Parity means the parser, AST, renderer, writer, extension model, source mapping, lossless behavior, and performance story all line up behind a documented contract. Tests and inventories are the proof gates for those contracts.
 
 ## Current Scoreboard
 
@@ -24,9 +12,9 @@ We should not call this Markdig-class until these contracts are true:
 | CommonMark corpus | 294 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
 | CommonMark full inventory | 619 of 652 official CommonMark `0.31.2` examples currently match; 33 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
-| Strong areas | ATX headings, Setext headings, thematic breaks, fenced code blocks, paragraphs, lists, autolinks, soft breaks |
-| Biggest remaining parser gaps | HTML/raw HTML grammar, emphasis delimiter runs, container indentation, code spans, hard-break edge cases, entities |
-| Biggest Markdig-class architecture gaps | Full lossless trivia capture, full parser pipeline parity, full renderer/writer plugin parity, broader extension set, release-mode benchmark review |
+| Covered CommonMark sections | ATX headings, Setext headings, thematic breaks, fenced code blocks, lists, paragraphs, soft breaks, links, images, autolinks, backslash escapes, link reference definitions |
+| Remaining CommonMark parser clusters | HTML/raw HTML grammar, emphasis delimiter runs, container indentation/continuation, hard-line-break edge cases, code-span NBSP/equivalence, CommonMark entity decoding |
+| Remaining Markdig-class architecture gaps | GFM/Markdig inventories, full lossless trivia capture, full parser pipeline parity, renderer/writer plugin parity, broader extension set, release-mode benchmark review |
 
 References:
 
@@ -35,64 +23,157 @@ References:
 - Markdig roundtrip/trivia target: https://github.com/xoofx/markdig/blob/master/src/Markdig/Roundtrip.md
 - Markdig extension specs index: https://github.com/xoofx/markdig/blob/master/src/Markdig.Tests/Specs/readme.md
 
-## What We Are Missing Right Now
+## What We Already Have
 
-This is the current `[ ]` work plan. The left side is engine or architecture work. Fixture promotion and inventory updates only happen after the corresponding behavior is fixed.
+- [x] A repo-owned CommonMark inventory that runs all 652 official examples without forcing every known failure to fail CI.
+- [x] A checked-in failure-cluster report so we can pick work by root cause instead of nearby example numbers.
+- [x] A pinned CommonMark smoke lane with 294 official examples.
+- [x] CommonMark links are green in the generated inventory after fixing link-label inline-span precedence.
+- [x] Strong current coverage for headings, thematic breaks, fenced code, lists, paragraphs, soft breaks, backslash escapes, autolinks, images, and link reference definitions.
+- [x] Syntax/source/native tests for many existing nodes, including source slices and source-edit helpers.
+- [x] Markdig package baseline guarded across tests, benchmarks, and docs.
 
-- [x] Clear the remaining CommonMark link/reference failures by making label scanning treat code spans, raw inline HTML, and angle autolinks as inline spans before accepting a closing `]`; official examples 524, 525, 526, 536, 537, and 538 are pinned, and the `Links` inventory now has zero failures.
-- [ ] Fix the 11 remaining HTML/raw HTML failures: table/pre block-boundary edge cases, blockquote HTML continuation, malformed raw HTML, and inline-vs-block raw HTML classification.
-- [ ] Fix the 9 remaining emphasis failures by replacing simplified delimiter handling with the CommonMark delimiter-run algorithm.
-- [ ] Fix the 6 remaining container/indentation failures around tabs, blockquote/list continuation, and indented-code boundaries.
-- [ ] Fix the 2 remaining code-span failures around non-breaking-space rendering/equivalence.
-- [ ] Fix the 3 remaining hard-line-break failures and keep marker source spans stable.
-- [ ] Fix the 2 remaining entity decoder failures with a CommonMark-complete named/numeric character reference decoder.
-- [ ] Add a cmark-gfm inventory like the CommonMark inventory so GFM work is not limited to curated smoke fixtures.
-- [ ] Add a Markdig comparison inventory that separates true gaps from intentional OfficeIMO profile differences.
-- [ ] Finish AST/source/lossless work: remaining canonical node cleanup, complete trivia capture, complete delimiter-token capture, and byte-preserving source edits beyond the current safe cases.
-- [ ] Review release-mode benchmarks against the Markdig baseline before making any performance or parity claims.
+## What We Are Missing
 
-## Work Order
+These are the actual parity gaps. The test work is listed only where it creates a missing scoreboard.
 
-- [x] Complete and validate the in-progress link/reference slice; the `Links` CommonMark failure bucket is cleared.
-- [ ] Build the GFM and Markdig comparison inventories before starting broad extension work, so extension parity has a scoreboard like CommonMark.
-- [ ] Tackle HTML/raw HTML next; it is the largest remaining CommonMark failure cluster and also affects renderer/security/profile behavior.
-- [ ] Tackle emphasis after HTML, because it needs a deliberate delimiter-stack rewrite rather than local fixes.
-- [ ] Tackle tabs/container indentation and hard breaks together only where the source-map model overlaps; otherwise keep those slices separate.
-- [ ] Tackle the entity decoder as a reusable parser service, then route every required decode context through it.
-- [ ] Return to AST/source/lossless work after the major parser clusters stop moving node boundaries every slice.
+- [ ] **CommonMark HTML/raw HTML engine parity.** Fix the 11 remaining failures around HTML block types, raw-text containers, multiline tags, block boundaries, and inline-vs-block raw HTML classification.
+- [ ] **CommonMark emphasis engine parity.** Replace the simplified emphasis parser with the CommonMark delimiter-run algorithm covering left/right flanking, punctuation, intraword `_`, nesting, opener/closer balancing, and precedence.
+- [ ] **CommonMark container indentation parity.** Finish the 6 remaining failures around tabs, blockquote/list continuation, indented-code boundaries, and source-map-safe column handling.
+- [ ] **CommonMark hard-break and inline precedence parity.** Fix the 3 remaining hard-line-break failures while preserving marker source spans for two-space, backslash, and inline HTML break spellings.
+- [ ] **CommonMark entity decoder parity.** Replace narrow runtime HTML decoding with a CommonMark-complete named/numeric character reference decoder, including invalid numeric replacement behavior.
+- [ ] **CommonMark code-span parity.** Resolve the 2 remaining NBSP/equivalence failures and keep code-span delimiter/content source tokens stable. If the engine is already correct, fix the comparison harness and pin the official cases as validation proof.
+- [ ] **GFM inventory.** Add a generated cmark-gfm inventory so table, task-list, autolink, strikethrough, tag-filter, and footnote behavior is measured instead of represented only by curated smoke fixtures.
+- [ ] **Markdig extension inventory.** Add a comparison inventory for Markdig extension families and classify each as `Covered`, `Partial`, `Intentional`, or `Gap`.
+- [ ] **AST/source/lossless completeness.** Finish canonical node cleanup, full trivia capture, delimiter-token capture, original-to-normalized mapping, generated-node diagnostics, and broader byte-preserving source edits.
+- [ ] **Renderer/writer extension parity.** Make parser, transform, renderer, and writer extension APIs source-slice aware where custom nodes need to render or roundtrip without string rescanning.
+- [ ] **Renderer/security profile parity.** Keep CommonMark/GFM HTML output spec-compatible while making OfficeIMO-specific raw HTML, sanitizing, escaping, URL policy, and GFM tag-filter behavior explicit and independently tested.
+- [ ] **Performance proof.** Capture release-mode benchmarks against Markdig for parse, parse-with-syntax, HTML render, Markdown write, source-edit roundtrip, transforms, allocations, and representative README/docs/chat corpora.
+
+## Immediate Work Order
+
+- [ ] Finish the current small code-span/NBSP slice if it is only a comparison-harness bug, because it clears a whole CommonMark failure bucket with low engine risk.
+- [ ] Build the GFM and Markdig inventories next, before broad extension work, so extension parity has the same scoreboard CommonMark now has.
+- [ ] Tackle HTML/raw HTML after the inventory work; it is the largest remaining CommonMark failure cluster and affects renderer/security/profile behavior.
+- [ ] Tackle emphasis after HTML because it needs a deliberate delimiter-stack rewrite rather than local patches.
+- [ ] Tackle container indentation and hard breaks as separate slices unless the source-map model forces a shared tab/column primitive.
+- [ ] Tackle the entity decoder as a reusable parser service and route every required decode context through it.
+- [ ] Return to AST/source/lossless completion once the major parser clusters stop moving node boundaries every slice.
+- [ ] Run release-mode benchmarks only after correctness stabilizes enough for the numbers to mean something.
+
+## CommonMark Failure Clusters
+
+| Cluster | Failing | Sections | First examples | Work type |
+| --- | ---: | --- | --- | --- |
+| HTML block/raw HTML grammar | 11 | HTML blocks, Raw HTML | #148, #174, #191, #619, #621, #622, #625, #626, #627, #628, #629 | Parser and renderer/security profile |
+| Emphasis delimiter algorithm | 9 | Emphasis and strong emphasis | #353, #408, #418, #432, #438, #441, #450, #453, #470 | Inline parser rewrite |
+| Container indentation and continuation | 6 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #242, #252, #264 | Block parser and source-map column model |
+| Inline precedence and line-break grammar | 3 | Hard line breaks | #642, #643, #644 | Inline parser and marker source spans |
+| Code span normalization and precedence | 2 | Code spans | #333, #334 | Parser or comparison harness, depending on NBSP proof |
+| CommonMark entity decoder | 2 | Entity and numeric character references | #25, #26 | Shared character-reference decoder |
 
 ## Pinned CommonMark Coverage By Section
 
-This table is fixture coverage, not a claim that every unpinned example currently fails. A required early step is to generate the full pass/fail inventory for every unpinned official example.
+This is fixture coverage, not a claim that unpinned examples fail. The generated inventory is the pass/fail source of truth.
 
-| Section | Pinned | Total | Missing | Primary lane |
+| Section | Pinned | Total | Missing | Primary missing work |
 | --- | ---: | ---: | ---: | --- |
 | Emphasis and strong emphasis | 11 | 132 | 121 | Inline delimiter algorithm |
-| Links | 27 | 90 | 63 | CommonMark link grammar is green; keep broader image/reference and Markdig/GFM link-extension inventory separate |
+| Links | 27 | 90 | 63 | CommonMark inventory is green; remaining work is breadth and Markdig/GFM comparison |
 | HTML blocks | 19 | 44 | 25 | HTML block tokenizer |
 | Raw HTML | 8 | 20 | 12 | Inline/raw HTML classification |
-| Images | 2 | 22 | 20 | Link/image/reference grammar |
-| Code spans | 6 | 22 | 16 | Code span normalization and precedence |
-| Link reference definitions | 10 | 27 | 17 | Reference-definition grammar |
+| Images | 2 | 22 | 20 | Breadth and source metadata, not current CommonMark failures |
+| Code spans | 6 | 22 | 16 | NBSP/equivalence bucket plus broader fixture promotion |
+| Link reference definitions | 10 | 27 | 17 | Breadth and source metadata, not current CommonMark failures |
 | Block quotes | 10 | 25 | 15 | Container continuation rules |
-| Autolinks | 12 | 19 | 7 | Covered for official CommonMark; keep GFM/profile extensions separate |
+| Autolinks | 12 | 19 | 7 | Official CommonMark is green; keep GFM/profile extensions separate |
 | Indented code blocks | 1 | 12 | 11 | Indent/tab/list interaction |
 | Tabs | 0 | 11 | 11 | Source map and indentation model |
 | Entity and numeric character references | 7 | 17 | 10 | CommonMark entity decoder |
 | Hard line breaks | 6 | 15 | 9 | Inline break parser |
-| List items | 38 | 48 | 10 | Remaining list edge cases |
-| Backslash escapes | 8 | 13 | 5 | Inline escape parser |
-| Textual content | 0 | 3 | 3 | Baseline text handling |
-| Blank lines | 0 | 1 | 1 | Baseline block handling |
-| Inlines | 0 | 1 | 1 | Inline precedence |
-| Precedence | 0 | 1 | 1 | Parser precedence |
-| ATX headings | 18 | 18 | 0 | Covered, keep invariant coverage |
-| Fenced code blocks | 29 | 29 | 0 | Covered, keep invariant coverage |
-| Lists | 26 | 26 | 0 | Covered, keep invariant coverage |
-| Paragraphs | 8 | 8 | 0 | Covered, keep invariant coverage |
-| Setext headings | 27 | 27 | 0 | Covered, keep invariant coverage |
-| Soft line breaks | 2 | 2 | 0 | Covered, keep invariant coverage |
-| Thematic breaks | 19 | 19 | 0 | Covered, keep invariant coverage |
+| List items | 38 | 48 | 10 | Remaining edge cases only |
+| Backslash escapes | 8 | 13 | 5 | Breadth, not current CommonMark failures |
+| Textual content | 0 | 3 | 3 | Baseline text breadth |
+| Blank lines | 0 | 1 | 1 | Baseline block breadth |
+| Inlines | 0 | 1 | 1 | Inline precedence breadth |
+| Precedence | 0 | 1 | 1 | Parser precedence breadth |
+| ATX headings | 18 | 18 | 0 | Covered; keep invariant coverage |
+| Fenced code blocks | 29 | 29 | 0 | Covered; keep invariant coverage |
+| Lists | 26 | 26 | 0 | Covered; keep invariant coverage |
+| Paragraphs | 8 | 8 | 0 | Covered; keep invariant coverage |
+| Setext headings | 27 | 27 | 0 | Covered; keep invariant coverage |
+| Soft line breaks | 2 | 2 | 0 | Covered; keep invariant coverage |
+| Thematic breaks | 19 | 19 | 0 | Covered; keep invariant coverage |
+
+## Detailed Phase Plan
+
+### Phase 0: Inventories And Scoreboards
+
+- [x] CommonMark full-corpus inventory exists.
+- [x] CommonMark failures are grouped by root parser cause.
+- [ ] Add the same generated inventory style for enabled cmark-gfm extensions.
+- [ ] Add a Markdig comparison inventory that separates OfficeIMO profile differences from portable/CommonMark profile differences.
+- [ ] Add an extension-family table with `Covered`, `Partial`, `Intentional`, or `Gap` for every Markdig extension family we care about.
+
+Done means:
+
+- [ ] We can answer "what is missing?" for CommonMark, GFM, and Markdig extension parity from checked-in reports.
+- [ ] Every future engine slice names which scoreboard row it moves.
+
+### Phase 1: CommonMark Parser Closure
+
+- [ ] HTML/raw HTML: implement all seven CommonMark HTML block types and profile-aware raw HTML behavior.
+- [ ] Emphasis: implement the CommonMark delimiter-run algorithm.
+- [ ] Containers: implement tab expansion and continuation indentation as parser/source-map primitives.
+- [ ] Hard breaks: finish CommonMark line-break grammar without losing marker source spans.
+- [ ] Code spans: clear the NBSP/equivalence bucket and pin the official cases.
+- [ ] Entities: implement a CommonMark-complete character reference decoder.
+
+Done means:
+
+- [ ] The official CommonMark `0.31.2` inventory has no unexplained failures.
+- [ ] Any intentional OfficeIMO profile differences are documented in the compatibility matrix instead of hidden as failing examples.
+
+### Phase 2: GFM And Markdig Extension Breadth
+
+- [ ] Expand GFM tables beyond smoke fixtures, including malformed delimiters and container interactions.
+- [ ] Expand GFM task-list coverage, including marker source spans and nested list behavior.
+- [ ] Expand GFM autolinks and tag-filter coverage.
+- [ ] Expand GFM footnotes and strikethrough coverage.
+- [ ] Decide which Markdig extensions are in scope: grid tables, pipe tables, auto identifiers, YAML front matter, emoji, math, diagrams, SmartyPants, abbreviations, citations, custom containers, generic attributes, media links, task lists, alerts, and advanced links.
+- [ ] Route in-scope extension work to the right owner: core `OfficeIMO.Markdown`, renderer layer, or separate extension package.
+- [ ] Document out-of-scope Markdig extensions as intentional differences.
+
+Done means:
+
+- [ ] Enabled GFM behavior is measured by inventory.
+- [ ] Markdig extension parity is an explicit support matrix, not an implied promise.
+
+### Phase 3: AST, Source Mapping, And Lossless Roundtrip
+
+- [ ] Finish canonical AST cleanup for `ListItem`, `TableBlock`, `CalloutBlock`, `DefinitionListBlock`, and any remaining duplicated mutable node shapes.
+- [ ] Complete parser-owned trivia capture for whitespace, blank lines, tabs, delimiter trivia, and generated-node diagnostics.
+- [ ] Complete original-to-normalized offset mapping for all parser paths.
+- [ ] Expand `MarkdownRoundtripWriter` from unchanged documents and explicit native source edits toward general lossless edits.
+- [ ] Keep semantic nodes, syntax nodes, native snapshots, renderer contexts, writer contexts, and source-edit helpers aligned on the same boundaries.
+- [ ] Keep public semantic APIs stable or document intentional breaking cleanup before merge.
+
+Done means:
+
+- [ ] Editor-grade claims are backed by native snapshots, source edits, syntax invariants, and roundtrip diagnostics across real mixed documents.
+
+### Phase 4: Renderer, Security, And Performance
+
+- [ ] Keep HTML rendering spec-compatible for CommonMark/GFM profiles.
+- [ ] Keep OfficeIMO profile differences explicit for raw HTML, images, tables, and document-specific behavior.
+- [ ] Independently test raw HTML allow/strip/escape/sanitize/GFM-tag-filter behavior.
+- [ ] Ensure renderer and writer extensions can handle custom nodes without string rescanning.
+- [ ] Capture release-mode benchmarks against Markdig for parse, syntax-tree parse, HTML render, Markdown write, source edits, transforms, and allocations.
+- [ ] Compare stable README/docs/chat/transcript corpora against the Markdig baseline.
+
+Done means:
+
+- [ ] Compatibility, security, extension, and performance claims can be repeated from documented commands.
 
 ## Rules To Stop The Loop
 
@@ -102,151 +183,8 @@ This table is fixture coverage, not a claim that every unpinned example currentl
 - [x] Each completed slice must update the compatibility matrix count, the gap plan if it changes priority, and the focused test lane.
 - [x] If a slice touches parsing, validate at least net8 plus the broad Markdown lane before commit.
 - [x] If a slice touches public AST/source/native APIs, add source-span/native/syntax invariant proof, not only HTML output.
-
-## Phase 0: Build The Gap Inventory
-
-- [x] Add a repo-owned CommonMark inventory tool or test mode that runs all 652 official examples and writes a categorized report without making every failure fail CI at once.
-- [x] Split the report into `passing-unpinned`, `failing`, and `intentional-deviation` groups.
-- [x] Group failures by root parser cause, not by example number.
-- [x] Add a small checked-in summary artifact with counts per section and top failure clusters.
-- [ ] Add the same inventory style for enabled cmark-gfm extensions.
-- [ ] Add a Markdig comparison inventory that separates OfficeIMO profile differences from portable/CommonMark profile differences.
-
-Done means:
-
-- [x] We can answer "what is missing?" with current generated counts instead of memory or manual probes.
-- [x] The next work item can be picked from the largest failure cluster without re-discovering the same facts.
-
-## Phase 1: CommonMark Entity Decoder
-
-Current observed failures include broad named entities such as `&Dcaron;`, `&HilbertSpace;`, `&DifferentialD;`, `&ClockwiseContourIntegral;`, `&ngE;`, and numeric replacement handling such as `&#0;`.
-
-- [ ] Replace the narrow runtime HTML decoder dependency with a CommonMark-complete character reference decoder.
-- [ ] Decode named and numeric character references consistently in text, attribute-producing inline metadata, fenced-code info strings, and every CommonMark-required non-code context.
-- [ ] Preserve source text metadata for decoded entity runs.
-- [ ] Replace invalid numeric references with U+FFFD where the spec requires it.
-- [ ] Keep code spans and indented code blocks literal where entity decoding must not happen.
-
-Done means:
-
-- [ ] Official entity examples 25-33 are either passing and pinned or intentionally documented.
-- [ ] Entity source-span and native metadata tests still prove the original spelling is addressable.
-
-## Phase 2: HTML Block And Raw HTML Grammar
-
-Current observed failures include multiline opening tags, raw table/pre/style/textarea behavior, type 6/7 block boundaries, Markdown-vs-raw handling inside block HTML, and inline raw HTML classification.
-
-- [ ] Implement a CommonMark-oriented HTML block scanner for all seven HTML block types.
-- [ ] Preserve multiline opening tags and attributes without paragraph-wrapping them incorrectly.
-- [ ] Respect raw-text containers such as `pre`, `script`, `style`, and `textarea`.
-- [ ] Keep inline HTML inline when CommonMark expects paragraph parsing around it.
-- [ ] Align raw HTML escaping, sanitizing, and GFM tag filtering with the profile options.
-- [ ] Add syntax/native source fields for any new token boundaries introduced by the scanner.
-
-Done means:
-
-- [ ] The HTML block section has a passing/pinned or skipped-case inventory.
-- [ ] Raw HTML has a passing/pinned or skipped-case inventory.
-- [ ] Security profiles still prove strip/escape/sanitize behavior.
-
-## Phase 3: Code Spans And Inline Precedence
-
-Current observed failures include non-breaking-space HTML rendering/equivalence and code-span precedence inside link-looking text.
-
-- [ ] Implement CommonMark code-span normalization exactly, including leading/trailing space stripping rules and line-ending collapse.
-- [ ] Treat Unicode spaces according to the spec cases rather than ordinary ASCII trim rules.
-- [ ] Fix precedence so code spans can defeat link parsing when the source requires it.
-- [ ] Keep code-span delimiter/content source tokens stable for native editing.
-
-Done means:
-
-- [ ] All official code-span examples are passing and pinned or intentionally documented.
-- [ ] Existing code-span source-edit and syntax-token tests still pass.
-
-## Phase 4: Link, Reference, And Image Grammar
-
-The CommonMark `Links` section is currently green in the generated inventory. Remaining work in this phase is broader grammar unification, image/reference parity breadth, source metadata preservation, and Markdig/GFM extension inventory rather than a current CommonMark link failure bucket.
-
-- [ ] Rework inline link destination parsing around the CommonMark grammar instead of ad hoc balanced scanning.
-- [ ] Rework optional title parsing so invalid extra tokens fall back to literal text.
-- [x] Rework nested link precedence so links cannot contain links where CommonMark forbids it while images remain valid link-label content.
-- [x] Rework inline precedence so raw HTML, code spans, and angle autolinks can defeat link/reference parsing when the source requires it.
-- [ ] Unify inline links, reference links, shortcut/collapsed references, and images through one label/destination/title grammar.
-- [ ] Preserve current source-backed delimiter, target, title, alt, and reference-definition metadata.
-
-Done means:
-
-- [ ] Links, link reference definitions, and images have passing/pinned or skipped-case inventories.
-- [ ] Existing native source-edit coverage for links/images/reference definitions stays green.
-
-## Phase 5: Emphasis And Strong Emphasis Algorithm
-
-The largest remaining CommonMark section is emphasis: 121 unpinned examples.
-
-- [ ] Replace simplified delimiter handling with a CommonMark delimiter-run algorithm.
-- [ ] Support proper left/right flanking, punctuation, intraword underscore, nested delimiters, opener/closer balancing, and precedence with links/code.
-- [ ] Reconcile GFM single-tilde strikethrough and OfficeIMO extensions with the CommonMark delimiter stack.
-- [ ] Keep wrapper syntax nodes and native opening/closing marker metadata for editor hosts.
-
-Done means:
-
-- [ ] Emphasis and strong-emphasis official examples are passing and pinned or intentionally documented.
-- [ ] GFM strikethrough cases still pass under the GFM profile.
-
-## Phase 6: Tabs, Indentation, Blocks, And Breaks
-
-- [ ] Implement tab expansion as a parser/source-map primitive, not a local string replacement.
-- [ ] Finish indented-code, list-item, blockquote continuation, and hard-break edge cases against official examples.
-- [ ] Keep original line/column/offset mapping stable for CRLF, CR, LF, tabs, and mixed indentation.
-- [ ] Ensure list and blockquote source-edit tests still address original markers and content columns.
-
-Done means:
-
-- [ ] Tabs, indented code blocks, block quotes, list items, hard line breaks, blank lines, textual content, inlines, and precedence have passing/pinned or skipped-case inventories.
-
-## Phase 7: GFM And Markdig Extension Breadth
-
-Markdig parity is broader than CommonMark. The public Markdig target includes an extensible pipeline and many built-in extensions.
-
-- [ ] Inventory enabled OfficeIMO/GFM extensions against cmark-gfm and Markdig specs.
-- [ ] Expand pipe-table coverage beyond the current smoke set, including malformed delimiter and container interactions.
-- [ ] Expand footnote rendering and source-span coverage against cmark-gfm.
-- [ ] Expand autolink coverage for GFM and Markdig-style advanced autolinks.
-- [ ] Decide which Markdig extensions are in-scope for OfficeIMO parity: grid tables, auto identifiers, YAML front matter, emoji, math, diagrams, SmartyPants, abbreviations, citations, custom containers, generic attributes, media links, task lists, and alerts.
-- [ ] For each in-scope extension, decide whether it belongs in `OfficeIMO.Markdown`, `OfficeIMO.MarkdownRenderer`, or a separate extension package.
-- [ ] Document every out-of-scope extension as intentional, not missing by accident.
-
-Done means:
-
-- [ ] There is an extension inventory table with `Covered`, `Partial`, `Intentional`, or `Gap` status for every Markdig extension family we care about.
-- [ ] The GFM smoke lane is no longer only a curated sample.
-
-## Phase 8: AST, Source Mapping, And Lossless Roundtrip
-
-Markdig-class parity includes precise source locations and trivia-backed roundtrip behavior.
-
-- [ ] Finish canonical AST cleanup for `ListItem`, `TableBlock`, `CalloutBlock`, `DefinitionListBlock`, and any remaining duplicated mutable node shape.
-- [ ] Complete parser-owned trivia capture for whitespace, blank lines, tabs, delimiter trivia, and generated-node diagnostics.
-- [ ] Complete original-to-normalized offset mapping for all parser paths.
-- [ ] Expand `MarkdownRoundtripWriter` from unchanged documents and explicit native source edits toward general lossless edits.
-- [ ] Make parser, transform, renderer, and writer extension APIs all source-slice aware where it matters.
-- [ ] Keep public semantic APIs stable or document intentional breaking cleanup before merging.
-
-Done means:
-
-- [ ] Editor-grade claims are backed by native snapshots, source edits, syntax invariants, and roundtrip diagnostics across real mixed documents.
-
-## Phase 9: Renderer, Security, And Performance
-
-- [ ] Keep HTML rendering spec-compatible for CommonMark/GFM profiles and OfficeIMO-specific for OfficeIMO profile only where intentional.
-- [ ] Keep raw HTML policy explicit: allow, strip, escape, sanitize, and GFM tag-filter behavior must be independently tested.
-- [ ] Add release-mode benchmark snapshots for parse, parse-with-syntax, HTML render, Markdown write, source-edit roundtrip, and transforms.
-- [ ] Compare representative README/docs/chat/transcript corpora against the local Markdig baseline.
-- [ ] Track allocation and throughput regressions for large tables, long lists, nested inline-heavy documents, and raw HTML-heavy documents.
-
-Done means:
-
-- [ ] Compatibility and performance claims can be repeated from documented commands.
+- [ ] If a slice only changes tests or comparison tooling, state that plainly and do not call it an engine fix.
+- [ ] If a slice changes engine behavior, promote fixtures only after proving the changed behavior against official examples and focused regression tests.
 
 ## Final Parity Gates
 
