@@ -6,7 +6,9 @@ public static partial class MarkdownReader {
             // HR is independent of options; it's safe and tiny, but follow Paragraphs toggle for symmetry
             if (!options.Paragraphs) return false;
             if (!LooksLikeHr(lines[i])) return false;
-            doc.Add(new HorizontalRuleBlock());
+            var horizontalRule = new HorizontalRuleBlock();
+            SetThematicBreakMarkerSource(horizontalRule, lines[i], state.SourceLineOffset + i + 1, state);
+            doc.Add(horizontalRule);
             i++; return true;
         }
     }
@@ -30,6 +32,55 @@ public static partial class MarkdownReader {
 
     private static bool IsParagraphInterruptingThematicBreakLine(string line) =>
         LooksLikeHr(line) && !LooksLikeSetextHeadingUnderline(line);
+
+    private static void SetThematicBreakMarkerSource(
+        HorizontalRuleBlock horizontalRule,
+        string line,
+        int absoluteLineNumber,
+        MarkdownReaderState state) {
+        if (horizontalRule == null || !TryGetTrimmedMarkerBounds(line, out var startIndex, out var endIndex, out var startColumn, out var endColumn)) {
+            return;
+        }
+
+        horizontalRule.MarkerText = line.Substring(startIndex, endIndex - startIndex + 1);
+        horizontalRule.MarkerSourceSpan = CreateSpan(state, absoluteLineNumber, startColumn, absoluteLineNumber, endColumn);
+    }
+
+    private static bool TryGetTrimmedMarkerBounds(
+        string line,
+        out int startIndex,
+        out int endIndex,
+        out int startColumn,
+        out int endColumn) {
+        startIndex = -1;
+        endIndex = -1;
+        startColumn = 1;
+        endColumn = 1;
+        if (string.IsNullOrEmpty(line)) {
+            return false;
+        }
+
+        var column = 1;
+        for (var i = 0; i < line.Length; i++) {
+            var ch = line[i];
+            var currentColumn = column;
+            if (ch != ' ' && ch != '\t') {
+                if (startIndex < 0) {
+                    startIndex = i;
+                    startColumn = currentColumn;
+                }
+
+                endIndex = i;
+                endColumn = currentColumn;
+            }
+
+            column = ch == '\t'
+                ? column + 4 - ((column - 1) % 4)
+                : column + 1;
+        }
+
+        return startIndex >= 0 && endIndex >= startIndex;
+    }
 
     private static bool LooksLikeSetextHeadingUnderline(string line) {
         if (string.IsNullOrWhiteSpace(line)) return false;

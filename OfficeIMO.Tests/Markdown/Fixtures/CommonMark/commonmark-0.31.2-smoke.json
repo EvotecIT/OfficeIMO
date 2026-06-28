@@ -80,9 +80,10 @@
         "description": "asterisk thematic break resolves as a horizontal rule",
         "line": 1,
         "column": 2,
-        "expectedPathKinds": ["Document", "HorizontalRule"],
-        "expectedDeepestLiteral": "---",
-        "expectedNearestBlockKind": "HorizontalRule"
+        "expectedPathKinds": ["Document", "HorizontalRule", "ThematicBreakMarker"],
+        "expectedDeepestLiteral": "***",
+        "expectedNearestBlockKind": "HorizontalRule",
+        "expectedNearestBlockLiteral": "---"
       }
     ]
   },
@@ -178,9 +179,10 @@
         "description": "spaced dash markers form a thematic break",
         "line": 1,
         "column": 3,
-        "expectedPathKinds": ["Document", "HorizontalRule"],
-        "expectedDeepestLiteral": "---",
-        "expectedNearestBlockKind": "HorizontalRule"
+        "expectedPathKinds": ["Document", "HorizontalRule", "ThematicBreakMarker"],
+        "expectedDeepestLiteral": "- - -",
+        "expectedNearestBlockKind": "HorizontalRule",
+        "expectedNearestBlockLiteral": "---"
       }
     ]
   },
@@ -258,9 +260,10 @@
         "description": "thematic break can appear as the block content of a list item",
         "line": 2,
         "column": 4,
-        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "HorizontalRule"],
-        "expectedDeepestLiteral": "---",
-        "expectedNearestBlockKind": "HorizontalRule"
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "HorizontalRule", "ThematicBreakMarker"],
+        "expectedDeepestLiteral": "* * *",
+        "expectedNearestBlockKind": "HorizontalRule",
+        "expectedNearestBlockLiteral": "---"
       }
     ]
   },

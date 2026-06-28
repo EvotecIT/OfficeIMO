@@ -92,6 +92,8 @@ public enum MarkdownSyntaxKind {
     TableCell,
     /// <summary>Horizontal rule block.</summary>
     HorizontalRule,
+    /// <summary>Thematic-break marker token such as <c>---</c>, <c>* * *</c>, or <c>___</c>.</summary>
+    ThematicBreakMarker,
     /// <summary>Image block.</summary>
     Image,
     /// <summary>Image alternative text.</summary>

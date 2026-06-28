@@ -142,6 +142,8 @@ public sealed class MarkdownNativeThematicBreakBlock : MarkdownNativeBlock {
         : base(MarkdownNativeBlockKind.ThematicBreak, horizontalRule, syntaxNode) {
         HorizontalRule = horizontalRule;
         Marker = syntaxNode.Literal ?? ((IMarkdownBlock)horizontalRule).RenderMarkdown();
+        MarkerText = horizontalRule.MarkerText ?? Marker;
+        MarkerSourceSpan = horizontalRule.MarkerSourceSpan ?? syntaxNode.SourceSpan;
     }
 
     /// <summary>Source horizontal rule block.</summary>
@@ -149,6 +151,12 @@ public sealed class MarkdownNativeThematicBreakBlock : MarkdownNativeBlock {
 
     /// <summary>Normalized markdown marker used for semantic rendering.</summary>
     public string Marker { get; }
+
+    /// <summary>Exact thematic-break marker text when parsed from markdown.</summary>
+    public string MarkerText { get; }
+
+    /// <summary>Source span for the thematic-break marker token when available.</summary>
+    public MarkdownSourceSpan? MarkerSourceSpan { get; }
 }
 
 /// <summary>

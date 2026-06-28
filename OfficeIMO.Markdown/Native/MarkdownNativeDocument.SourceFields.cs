@@ -70,8 +70,8 @@ public sealed partial class MarkdownNativeDocument {
 
                 break;
             case MarkdownNativeThematicBreakBlock thematicBreak:
-                if (thematicBreak.SourceSpan.HasValue) {
-                    yield return new MarkdownNativeBlockSourceField("marker", thematicBreak.Marker, thematicBreak.SourceSpan.Value, thematicBreak);
+                if (thematicBreak.MarkerSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("marker", thematicBreak.MarkerText, thematicBreak.MarkerSourceSpan.Value, thematicBreak);
                 }
 
                 break;

@@ -272,6 +272,37 @@ Inside
     }
 
     [Fact]
+    public void ThematicBreak_SourceFields_Use_Exact_Marker_Token_Spans() {
+        const string markdown = "  * * *  \n\nAfter";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var thematicBreak = Assert.IsType<MarkdownNativeThematicBreakBlock>(native.Blocks[0]);
+
+        Assert.Equal("---", thematicBreak.Marker);
+        Assert.Equal("* * *", thematicBreak.MarkerText);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 7), thematicBreak.MarkerSourceSpan);
+
+        var marker = Assert.Single(native.EnumerateBlockSourceFields("marker"));
+        Assert.Same(thematicBreak, marker.Block);
+        Assert.Equal("* * *", marker.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 7), marker.SourceSpan);
+        var foundMarker = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 5));
+        Assert.Equal(marker.Name, foundMarker.Name);
+        Assert.Equal(marker.Value, foundMarker.Value);
+        Assert.Equal(marker.SourceSpan, foundMarker.SourceSpan);
+
+        var snapshot = native.ToSnapshot();
+        var snapshotField = Assert.Single(snapshot.Blocks[0].SourceFields);
+        Assert.Equal("marker", snapshotField.Name);
+        Assert.Equal("* * *", snapshotField.Value);
+        Assert.Equal(3, snapshotField.SourceSpan.StartColumn);
+        Assert.Equal(7, snapshotField.SourceSpan.EndColumn);
+
+        var edited = native.CreateReplaceEdit(marker, "___").Apply(native.SourceMarkdown);
+        Assert.StartsWith("  ___  ", edited, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Image_SourceFields_Use_Image_Token_Spans() {
         const string markdown = "![Alt text](https://example.com/image.png \"Image title\")\n";
 

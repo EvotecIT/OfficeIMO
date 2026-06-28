@@ -1190,6 +1190,32 @@ Lead {{core}} tail
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_ThematicBreak_Marker_Token_Syntax() {
+        const string markdown = "  * * *  \n\n---";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        Assert.Equal(2, result.SyntaxTree.Children.Count);
+
+        var spacedRule = result.SyntaxTree.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.HorizontalRule, spacedRule.Kind);
+        Assert.Equal("---", spacedRule.Literal);
+        var spacedMarker = Assert.Single(spacedRule.Children);
+        Assert.Equal(MarkdownSyntaxKind.ThematicBreakMarker, spacedMarker.Kind);
+        Assert.Equal("* * *", spacedMarker.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 7), spacedMarker.SourceSpan);
+        Assert.Null(spacedMarker.AssociatedObject);
+
+        var dashRule = result.SyntaxTree.Children[1];
+        var dashMarker = Assert.Single(dashRule.Children);
+        Assert.Equal(MarkdownSyntaxKind.ThematicBreakMarker, dashMarker.Kind);
+        Assert.Equal("---", dashMarker.Literal);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), dashMarker.SourceSpan);
+
+        Assert.Equal(MarkdownSyntaxKind.ThematicBreakMarker, result.FindDeepestNodeAtPosition(1, 5)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.HorizontalRule, result.FindNearestBlockContainingSpan(spacedMarker.SourceSpan!.Value)!.Kind);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Keeps_BlankLine_Separated_Nested_Quote_And_NonOne_Ordered_List_As_Separate_ListItem_Blocks() {
         const string markdown = """
 - outer
