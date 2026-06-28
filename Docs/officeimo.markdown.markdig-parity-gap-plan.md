@@ -31,6 +31,34 @@ Current truth:
 - [ ] AST/source/lossless parity is not closed: full trivia, source edits, generated-node diagnostics, and source-aware extension paths are still partial.
 - [ ] Performance parity is not known: release-mode Markdig comparisons still need a stable benchmark pass after correctness stops moving.
 
+## What Is Still Missing
+
+This is the active parity backlog. A slice is not complete just because a fixture was added; it must either change engine behavior, close an explicit option/profile decision, or prove a contract that was previously unmeasured.
+
+- [ ] **GFM breadth is still thin.** The current GFM inventory is green, but only 43 tracked fixtures are imported. Missing work: broaden autolinks, strikethrough delimiter edges, HTML tag filtering, and extension-interaction fixtures against upstream-compatible behavior.
+- [ ] **Autolinks are still partial.** CommonMark angle autolinks are green, but `UseAutoLinks` remains partial because extended bare URL, `www`, plain-email, scheme, boundary, punctuation, Unicode, and profile-option behavior still needs a Markdig/GFM-compatible contract. This is engine/options work first, then focused proof.
+- [ ] **Raw HTML and GFM tag filtering are still partial.** CommonMark raw HTML is green, but GFM tag filtering, sanitizer/escape/strip/allow modes, and URL policy need to be separated into renderer/security profile contracts so parser parity is not confused with security policy.
+- [ ] **Markdig extension-family coverage is far from closed.** The current inventory is 3 `Covered`, 12 `Partial`, 4 `Intentional`, and 14 `Gap`. Every non-covered row needs one decision: implement in core, implement as optional extension, route to renderer/host policy, or mark intentional out of scope.
+- [ ] **High-priority partial extension rows need real closure.** Work through `UseAutoLinks`, `UseDefinitionLists`, `UseYamlFrontMatter`, `UseEmphasisExtras`, `UseAlertBlocks`, `UseGenericAttributes`, `UsePreciseSourceLocation`, and parser/render extensions with parser, AST/source, renderer, writer, and fixture evidence.
+- [ ] **High-priority gap rows need scope decisions before implementation.** Decide whether `UseAutoIdentifiers`, `UseCustomContainers`, `UseGridTables`, `UseSoftlineBreakAsHardlineBreak`, `UseAbbreviations`, `UseSmartyPants`, `UseCitations`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, `UseFigures`, `UseListExtras`, and similar rows belong in core, optional packages, renderer policy, or intentional differences.
+- [ ] **Canonical AST cleanup is incomplete.** Continue removing duplicated or adapter-heavy node shapes, especially around `ListItem`, `TableBlock`, `CalloutBlock`, `DefinitionListBlock`, front matter, and extension-owned nodes, so semantic blocks, syntax nodes, native snapshots, renderer contexts, writer contexts, and source edits agree on one boundary model.
+- [ ] **Lossless trivia capture is incomplete.** Parser-owned data still needs full whitespace, blank-line, tab, delimiter, marker, raw slice, normalized text, and generated-node diagnostic coverage before editor-grade roundtrip can be claimed.
+- [ ] **Delimiter-token coverage is incomplete.** Inline and block token spans are much better now, but parity still requires complete source tokens for every editor-addressable spelling: emphasis extras, links/images, escapes/entities, hard/soft breaks, HTML tags, footnotes, front matter, tables, and extension inlines/blocks.
+- [ ] **Original-to-normalized source mapping is incomplete.** CRLF/LF/CR inputs, tab expansion, nested containers, transformed/generated nodes, and normalized paragraph text need one reliable mapping story with diagnostics when exact mapping is impossible.
+- [ ] **Roundtrip editing is not yet Markdig-class lossless mode.** `MarkdownRoundtripWriter` handles unchanged documents and explicit native source edits, but broader source-preserving edits, writer fallback diagnostics, and extension-node roundtrip need to be finished.
+- [ ] **Renderer/writer extension APIs are still partial.** Custom containers, alerts, diagrams, math, attributes, media links, and other in-scope extension nodes must render and write from source-aware contracts without downstream string rescanning.
+- [ ] **Performance parity is unproven.** Run release-mode benchmarks only after correctness stabilizes enough to compare parse, parse-with-syntax, HTML render, Markdown write, transforms, source edits, allocations, and representative README/docs/chat corpora against Markdig.
+
+## Execution Order
+
+Use this order to avoid looping:
+
+- [ ] **1. Finish one concrete partial row at a time.** Start with `UseAutoLinks` plus the GFM tag-filter/security split because they are already partly implemented and currently block honest GFM extension claims.
+- [ ] **2. Promote only when the whole row is covered.** A row moves to `Covered` only with parser behavior, semantic AST/source/native projection where applicable, HTML rendering, Markdown writing or explicit writer limits, fixture/inventory evidence, and profile documentation.
+- [ ] **3. Make scope decisions for the largest gaps before coding them.** Auto identifiers, grid tables, custom containers, math, diagrams, attributes, SmartyPants, citations, abbreviations, and media links should not be half-added without deciding core versus optional extension versus renderer policy.
+- [ ] **4. Return to AST/source/lossless as a dedicated phase.** Once the immediate GFM/extension rows stop shifting parse boundaries, complete trivia/source mapping/roundtrip as engine architecture work, not scattered per-fixture patches.
+- [ ] **5. Benchmark last.** Do not optimize or claim performance parity until correctness, source mapping, and writer behavior are stable enough for the numbers to mean something.
+
 ## Parity Work Board
 
 Use this as the non-looping execution board. Each item must either move engine behavior, mark a deliberate out-of-scope choice, or improve a scoreboard that is missing.
