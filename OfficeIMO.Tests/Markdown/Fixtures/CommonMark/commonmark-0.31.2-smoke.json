@@ -1329,6 +1329,14 @@
     ]
   },
   {
+    "example": 545,
+    "section": "Full reference links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "description": "unresolved reference labels reprocess backslash escapes as literal inline text",
+    "markdown": "[bar][foo\\!]\n\n[foo!]: /url\n",
+    "html": "<p>[bar][foo!]</p>\n"
+  },
+  {
     "example": 553,
     "section": "Collapsed reference links",
     "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],

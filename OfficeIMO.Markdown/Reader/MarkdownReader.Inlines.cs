@@ -652,7 +652,7 @@ public static partial class MarkdownReader {
                             pos += consumedS; continue;
                         }
 
-                        if (stack.Count > 1) {
+                        if (stack.Count > 1 || ContainsBackslashEscapableCharacter(lbl3)) {
                             AddTextNode("[", pos, 1);
                             pos++;
                             continue;

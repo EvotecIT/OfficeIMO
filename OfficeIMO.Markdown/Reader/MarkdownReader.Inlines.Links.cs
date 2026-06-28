@@ -73,6 +73,18 @@ public static partial class MarkdownReader {
         return sb.ToString();
     }
 
+    private static bool ContainsBackslashEscapableCharacter(string value) {
+        if (string.IsNullOrEmpty(value)) return false;
+
+        for (int i = 0; i + 1 < value.Length; i++) {
+            if (value[i] == '\\' && IsBackslashEscapable(value[i + 1])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static string DecodeLinkDestinationOrTitle(string value) {
         var unescaped = UnescapeMarkdownBackslashEscapes(value);
         var decoded = System.Net.WebUtility.HtmlDecode(unescaped);

@@ -9,8 +9,8 @@ The short version: parity is not "more tests." Parity means the engine, AST, ren
 | Area | Current state |
 | --- | --- |
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
-| CommonMark corpus | 287 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
-| CommonMark full inventory | 611 of 652 official CommonMark `0.31.2` examples currently match; 41 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
+| CommonMark corpus | 288 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| CommonMark full inventory | 612 of 652 official CommonMark `0.31.2` examples currently match; 40 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | Strong areas | ATX headings, Setext headings, thematic breaks, fenced code blocks, paragraphs, lists, autolinks, soft breaks |
 | Biggest remaining parser gaps | HTML/raw HTML grammar, emphasis, container indentation, link/reference inline precedence, code spans, hard-break edge cases, entities |
@@ -27,7 +27,7 @@ References:
 
 This is the current `[ ]` work plan. Tests are not the goal; they are the proof that each engine slice is actually compatible.
 
-- [ ] Fix the 7 remaining link/reference failures: inline precedence with HTML/code/autolinks crossing link/reference delimiters and shared image/link grammar around those spans.
+- [ ] Fix the 6 remaining link/reference failures: inline precedence with HTML/code/autolinks crossing link/reference delimiters and shared image/link grammar around those spans.
 - [ ] Fix the 11 remaining HTML/raw HTML failures: table/pre block-boundary edge cases, blockquote HTML continuation, malformed raw HTML, and inline-vs-block raw HTML classification.
 - [ ] Fix the 9 remaining emphasis failures by replacing simplified delimiter handling with the CommonMark delimiter-run algorithm.
 - [ ] Fix the 6 remaining container/indentation failures around tabs, blockquote/list continuation, and indented-code boundaries.
@@ -46,7 +46,7 @@ This table is fixture coverage, not a claim that every unpinned example currentl
 | Section | Pinned | Total | Missing | Primary lane |
 | --- | ---: | ---: | ---: | --- |
 | Emphasis and strong emphasis | 11 | 132 | 121 | Inline delimiter algorithm |
-| Links | 20 | 90 | 70 | Link/image/reference grammar |
+| Links | 21 | 90 | 69 | Link/image/reference grammar |
 | HTML blocks | 19 | 44 | 25 | HTML block tokenizer |
 | Raw HTML | 8 | 20 | 12 | Inline/raw HTML classification |
 | Images | 2 | 22 | 20 | Link/image/reference grammar |

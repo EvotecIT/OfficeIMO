@@ -819,6 +819,22 @@ span`
         }
 
         [Fact]
+        public void Unresolved_Shortcut_Reference_Label_Reprocesses_Backslash_Escapes_As_Text() {
+            const string md = """
+            [bar][foo\!]
+
+            [foo!]: /url
+            """;
+
+            var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var paragraph = Assert.Single(doc.Blocks.OfType<ParagraphBlock>());
+
+            Assert.DoesNotContain(paragraph.Inlines.Nodes, node => node is LinkInline);
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Equal("<p>[bar][foo!]</p>", html);
+        }
+
+        [Fact]
         public void Reference_Definitions_Support_Single_Quote_Titles() {
             string md = """
 [x][r]

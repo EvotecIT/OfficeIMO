@@ -15,10 +15,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Official examples | 652 |
-| Pinned smoke fixtures | 287 |
-| Passing pinned fixtures | 287 |
+| Pinned smoke fixtures | 288 |
+| Passing pinned fixtures | 288 |
 | Passing unpinned examples | 324 |
-| Failing examples | 41 |
+| Failing examples | 40 |
 | Intentional deviations | 0 |
 
 ## Section Inventory
@@ -44,7 +44,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Inlines | 1 | 0 | 0 | 1 | 0 | 0 |
 | Code spans | 22 | 6 | 6 | 13 | 3 | 0 |
 | Emphasis and strong emphasis | 132 | 11 | 11 | 112 | 9 | 0 |
-| Links | 90 | 20 | 20 | 63 | 7 | 0 |
+| Links | 90 | 21 | 21 | 63 | 6 | 0 |
 | Images | 22 | 2 | 2 | 20 | 0 | 0 |
 | Autolinks | 19 | 12 | 12 | 7 | 0 | 0 |
 | Raw HTML | 20 | 8 | 8 | 4 | 8 | 0 |
@@ -58,8 +58,8 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | --- | ---: | --- | --- |
 | HTML block/raw HTML grammar | 11 | HTML blocks, Raw HTML | #148, #174, #191, #619, #621, #622, #625, #626, #627, #628, #629 |
 | Emphasis delimiter algorithm | 9 | Emphasis and strong emphasis | #353, #408, #418, #432, #438, #441, #450, #453, #470 |
-| Link/image/reference grammar | 7 | Links | #524, #525, #526, #536, #537, #538, #545 |
 | Container indentation and continuation | 6 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #242, #252, #264 |
+| Link/image/reference grammar | 6 | Links | #524, #525, #526, #536, #537, #538 |
 | Code span normalization and precedence | 3 | Code spans | #333, #334, #342 |
 | Inline precedence and line-break grammar | 3 | Hard line breaks | #642, #643, #644 |
 | CommonMark entity decoder | 2 | Entity and numeric character references | #25, #26 |
