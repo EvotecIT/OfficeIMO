@@ -35,6 +35,13 @@
     "html": "<pre><code class=\"language-foo+bar\">foo\n</code></pre>\n"
   },
   {
+    "example": 32,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[foo](/f&ouml;&ouml; \"f&ouml;&ouml;\")\n",
+    "html": "<p><a href=\"/f%C3%B6%C3%B6\" title=\"föö\">foo</a></p>\n"
+  },
+  {
     "example": 34,
     "section": "Entity and numeric character references",
     "topLevelKinds": ["CodeBlock"],
@@ -2561,6 +2568,20 @@
         "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 20 }
       }
     ]
+  },
+  {
+    "example": 503,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[link](foo%20b&auml;)\n",
+    "html": "<p><a href=\"foo%20b%C3%A4\">link</a></p>\n"
+  },
+  {
+    "example": 506,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[link](/url \"title \\\"&quot;\")\n",
+    "html": "<p><a href=\"/url\" title=\"title &quot;&quot;\">link</a></p>\n"
   },
   {
     "example": 594,

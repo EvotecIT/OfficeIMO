@@ -73,6 +73,12 @@ public static partial class MarkdownReader {
         return sb.ToString();
     }
 
+    private static string DecodeLinkDestinationOrTitle(string value) {
+        var unescaped = UnescapeMarkdownBackslashEscapes(value);
+        var decoded = System.Net.WebUtility.HtmlDecode(unescaped);
+        return decoded ?? unescaped;
+    }
+
     private static bool TryParseRefLink(string text, int start, out int consumed, out string label, out string refLabel) {
         consumed = 0; label = refLabel = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
@@ -179,7 +185,7 @@ public static partial class MarkdownReader {
             if (gt >= start + 1 && gt < endExclusive) {
                 urlStart = start + 1;
                 urlLength = gt - urlStart;
-                url = UnescapeMarkdownBackslashEscapes(inner.Substring(urlStart, urlLength).Trim());
+                url = DecodeLinkDestinationOrTitle(inner.Substring(urlStart, urlLength).Trim());
 
                 int restStart = gt + 1;
                 while (restStart < endExclusive && char.IsWhiteSpace(inner[restStart])) {
@@ -194,7 +200,7 @@ public static partial class MarkdownReader {
                     return false;
                 }
 
-                title = UnescapeMarkdownBackslashEscapes(title!);
+                title = DecodeLinkDestinationOrTitle(title!);
                 titleStart = parsedTitleStart;
                 titleLength = parsedTitleLength;
                 return true;
@@ -212,14 +218,14 @@ public static partial class MarkdownReader {
         if (ws < 0) {
             urlStart = start;
             urlLength = endExclusive - start;
-            url = UnescapeMarkdownBackslashEscapes(inner.Substring(urlStart, urlLength));
+            url = DecodeLinkDestinationOrTitle(inner.Substring(urlStart, urlLength));
             title = null;
             return true;
         }
 
         urlStart = start;
         urlLength = ws - start;
-        url = UnescapeMarkdownBackslashEscapes(inner.Substring(urlStart, urlLength).Trim());
+        url = DecodeLinkDestinationOrTitle(inner.Substring(urlStart, urlLength).Trim());
 
         int remainingStart = ws;
         while (remainingStart < endExclusive && char.IsWhiteSpace(inner[remainingStart])) {
@@ -229,7 +235,7 @@ public static partial class MarkdownReader {
         if (remainingStart >= endExclusive) { title = null; return true; }
 
         if (!TryParseOptionalTitleToken(inner, remainingStart, endExclusive, out title, out int parsedStart, out int parsedLength)) return false;
-        title = UnescapeMarkdownBackslashEscapes(title!);
+        title = DecodeLinkDestinationOrTitle(title!);
         titleStart = parsedStart;
         titleLength = parsedLength;
         return true;
@@ -256,7 +262,7 @@ public static partial class MarkdownReader {
             trimmedEndExclusive--;
         }
 
-        destination = UnescapeMarkdownBackslashEscapes(trimmed);
+        destination = DecodeLinkDestinationOrTitle(trimmed);
         destinationStart = trimmedStart;
         destinationLength = Math.Max(0, trimmedEndExclusive - trimmedStart);
         return true;

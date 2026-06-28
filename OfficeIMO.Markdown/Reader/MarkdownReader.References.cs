@@ -328,7 +328,7 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        title = UnescapeMarkdownBackslashEscapes(title);
+        title = DecodeLinkDestinationOrTitle(title);
         titleSpan = CreateSpan(
             state,
             state?.SourceLineOffset + index + 1 ?? index + 1,
@@ -623,7 +623,7 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        url = UnescapeMarkdownBackslashEscapes(rest);
+        url = DecodeLinkDestinationOrTitle(rest);
         title = null;
         urlSpan = CreateSpan(
             state,
