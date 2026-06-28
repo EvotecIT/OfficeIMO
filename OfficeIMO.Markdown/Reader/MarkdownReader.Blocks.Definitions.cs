@@ -87,6 +87,7 @@ public static partial class MarkdownReader {
     }
 
     private static bool ContainsLiteralAutolinkLikeToken(string text) {
+        var autolinkOptions = new MarkdownReaderOptions();
         foreach (var rawToken in text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries)) {
             if (LooksLikeMarkdownLinkToken(rawToken)) continue;
 
@@ -102,19 +103,19 @@ public static partial class MarkdownReader {
             }
 
             if ((token[0] == 'h' || token[0] == 'H') &&
-                StartsWithHttp(token, 0, out int httpEnd) &&
+                StartsWithHttp(token, 0, autolinkOptions, out int httpEnd) &&
                 httpEnd == token.Length) {
                 return true;
             }
 
             if ((token[0] == 'w' || token[0] == 'W') &&
-                StartsWithWww(token, 0, out int wwwEnd) &&
+                StartsWithWww(token, 0, autolinkOptions, out int wwwEnd) &&
                 wwwEnd == token.Length) {
                 return true;
             }
 
             if (IsEmailStartChar(token[0]) &&
-                TryConsumePlainEmail(token, 0, out int emailEnd, out _) &&
+                TryConsumePlainEmail(token, 0, autolinkOptions, out int emailEnd, out _) &&
                 emailEnd == token.Length) {
                 return true;
             }

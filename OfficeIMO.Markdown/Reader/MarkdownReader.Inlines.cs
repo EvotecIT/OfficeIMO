@@ -310,7 +310,7 @@ public static partial class MarkdownReader {
             }
 
             // Autolink: http(s)://... until whitespace or closing punct
-            if (options.AutolinkUrls && StartsWithHttp(text, pos, out int urlEnd)) {
+            if (options.AutolinkUrls && StartsWithHttp(text, pos, options, out int urlEnd)) {
                 var url = text.Substring(pos, urlEnd - pos);
                 var resolved = ResolveUrl(url, options);
                 if (resolved is null) {
@@ -322,7 +322,7 @@ public static partial class MarkdownReader {
             }
 
             // Autolink: www.example.com
-            if (options.AutolinkWwwUrls && StartsWithWww(text, pos, out int wwwEnd)) {
+            if (options.AutolinkWwwUrls && StartsWithWww(text, pos, options, out int wwwEnd)) {
                 var label = text.Substring(pos, wwwEnd - pos);
                 var scheme = string.IsNullOrWhiteSpace(options.AutolinkWwwScheme) ? "https://" : options.AutolinkWwwScheme.Trim();
                 if (!scheme.EndsWith("://", StringComparison.Ordinal)) scheme = scheme.TrimEnd('/') + "://";
@@ -337,7 +337,7 @@ public static partial class MarkdownReader {
             }
 
             // Autolink: GFM URI-like bare schemes such as mailto: and xmpp:
-            if (options.AutolinkBareSchemeUrls && TryConsumeBareSchemeAutolink(text, pos, out int schemeEnd, out string schemeLabel, out string schemeHref)) {
+            if (options.AutolinkBareSchemeUrls && TryConsumeBareSchemeAutolink(text, pos, options, out int schemeEnd, out string schemeLabel, out string schemeHref)) {
                 var resolved = ResolveUrl(schemeHref, options);
                 if (resolved is null) {
                     AddTextNode(schemeLabel, pos, schemeEnd - pos);
@@ -348,7 +348,7 @@ public static partial class MarkdownReader {
             }
 
             // Autolink: plain email
-            if (options.AutolinkEmails && TryConsumePlainEmail(text, pos, out int emailEnd, out string email)) {
+            if (options.AutolinkEmails && TryConsumePlainEmail(text, pos, options, out int emailEnd, out string email)) {
                 var href = "mailto:" + email;
                 var resolved = ResolveUrl(href, options);
                 if (resolved is null) {
@@ -833,10 +833,10 @@ public static partial class MarkdownReader {
                 if (text[pos] == '\\' && pos + 1 < text.Length && IsBackslashEscapable(text[pos + 1])) break;
                 if (text[pos] == '&' && TryConsumeHtmlEntityText(text, pos, out _, out _)) break;
                 if (text[pos] == '<' && IsAngleAutolinkStart(text, pos)) break;
-                if (options.AutolinkUrls && (text[pos] == 'h' || text[pos] == 'H') && StartsWithHttp(text, pos, out _)) break;
-                if (options.AutolinkWwwUrls && (text[pos] == 'w' || text[pos] == 'W') && StartsWithWww(text, pos, out _)) break;
-                if (options.AutolinkBareSchemeUrls && (text[pos] == 'm' || text[pos] == 'M' || text[pos] == 'x' || text[pos] == 'X') && TryConsumeBareSchemeAutolink(text, pos, out _, out _, out _)) break;
-                if (options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, out _, out _)) break;
+                if (options.AutolinkUrls && (text[pos] == 'h' || text[pos] == 'H') && StartsWithHttp(text, pos, options, out _)) break;
+                if (options.AutolinkWwwUrls && (text[pos] == 'w' || text[pos] == 'W') && StartsWithWww(text, pos, options, out _)) break;
+                if (options.AutolinkBareSchemeUrls && (text[pos] == 'm' || text[pos] == 'M' || text[pos] == 'x' || text[pos] == 'X') && TryConsumeBareSchemeAutolink(text, pos, options, out _, out _, out _)) break;
+                if (options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, options, out _, out _)) break;
                 if (inlineParserExtensions.Count > 0
                     && TryParseInlineExtension(
                         text,

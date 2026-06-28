@@ -96,11 +96,11 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool StartsWithHttp(string text, int start, out int end) {
+    private static bool StartsWithHttp(string text, int start, MarkdownReaderOptions options, out int end) {
         end = start;
         if (start + 7 > text.Length) return false;
         // Require a boundary on the left so we don't linkify inside longer words.
-        if (HasInvalidAutolinkLeftBoundary(text, start)) return false;
+        if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
         if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
         var rem = text.Substring(start);
         if (!(rem.StartsWith("http://") || rem.StartsWith("https://"))) return false;
@@ -111,13 +111,14 @@ public static partial class MarkdownReader {
         if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
         if (ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
         if (ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
+        if (!options.AutolinkAllowDomainWithoutPeriod && !HttpAutolinkHasDomainPeriod(text, start, i)) return false;
         end = i; return end > start + 7;
     }
 
-    private static bool StartsWithWww(string text, int start, out int end) {
+    private static bool StartsWithWww(string text, int start, MarkdownReaderOptions options, out int end) {
         end = start;
         if (start + 4 > text.Length) return false;
-        if (HasInvalidAutolinkLeftBoundary(text, start)) return false;
+        if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
         if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
         if (!(text.Substring(start).StartsWith("www.", StringComparison.OrdinalIgnoreCase))) return false;
 
@@ -132,8 +133,8 @@ public static partial class MarkdownReader {
         // Must include at least one dot after the www.
         var token = text.Substring(start, i - start);
         if (token.Length <= 4) return false;
-        if (token.IndexOf('.', 4) < 0) return false;
-        if (!IsGfmWwwHostAllowed(token)) return false;
+        if (!options.AutolinkAllowDomainWithoutPeriod && token.IndexOf('.', 4) < 0) return false;
+        if (!IsGfmWwwHostAllowed(token, options.AutolinkAllowDomainWithoutPeriod)) return false;
 
         // Right boundary: avoid linking as part of an identifier-like token.
         if (scanEnd < text.Length && IsEmailChar(text[scanEnd])) return false;
@@ -142,7 +143,7 @@ public static partial class MarkdownReader {
         return end > start + 4;
     }
 
-    private static bool IsGfmWwwHostAllowed(string token) {
+    private static bool IsGfmWwwHostAllowed(string token, bool allowDomainWithoutPeriod) {
         if (string.IsNullOrEmpty(token) || !token.StartsWith("www.", StringComparison.OrdinalIgnoreCase)) return false;
 
         int hostEnd = token.Length;
@@ -158,11 +159,15 @@ public static partial class MarkdownReader {
 
         string host = token.Substring(0, hostEnd);
         string[] labels = host.Split('.');
-        if (labels.Length < 3) return false;
+        if (labels.Length < (allowDomainWithoutPeriod ? 2 : 3)) return false;
 
-        for (int i = 2; i < labels.Length; i++) {
+        for (int i = 1; i < labels.Length; i++) {
             string label = labels[i];
-            if (label.Length == 0 || label[0] == '_' || label.IndexOf('_') >= 0) {
+            if (label.Length == 0) {
+                return false;
+            }
+
+            if (i >= 2 && (label[0] == '_' || label.IndexOf('_') >= 0)) {
                 return false;
             }
         }
@@ -170,11 +175,11 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryConsumeBareSchemeAutolink(string text, int start, out int end, out string label, out string href) {
+    private static bool TryConsumeBareSchemeAutolink(string text, int start, MarkdownReaderOptions options, out int end, out string label, out string href) {
         end = start;
         label = href = string.Empty;
         if (start < 0 || start >= text.Length) return false;
-        if (HasInvalidAutolinkLeftBoundary(text, start)) return false;
+        if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
         if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
 
         if (StartsWithOrdinalIgnoreCase(text, start, "mailto:")) {
@@ -235,10 +240,15 @@ public static partial class MarkdownReader {
         return string.Compare(text, start, value, 0, value.Length, StringComparison.OrdinalIgnoreCase) == 0;
     }
 
-    private static bool HasInvalidAutolinkLeftBoundary(string text, int start) {
+    private static bool HasInvalidAutolinkLeftBoundary(string text, int start, MarkdownReaderOptions? options = null) {
         if (string.IsNullOrEmpty(text) || start <= 0 || start > text.Length) return false;
 
         char previous = text[start - 1];
+        if (options?.AutolinkValidPreviousCharacters != null) {
+            return !char.IsWhiteSpace(previous)
+                && options.AutolinkValidPreviousCharacters.IndexOf(previous) < 0;
+        }
+
         return char.IsLetterOrDigit(previous)
             || previous == '_'
             || previous == '/'
@@ -344,13 +354,37 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool TryConsumePlainEmail(string text, int start, out int end, out string email) {
+    private static bool HttpAutolinkHasDomainPeriod(string text, int start, int end) {
+        int schemeEnd = text.IndexOf("://", start, StringComparison.Ordinal);
+        if (schemeEnd < 0 || schemeEnd + 3 >= end) return false;
+
+        int hostStart = schemeEnd + 3;
+        int hostEnd = end;
+        for (int i = hostStart; i < end; i++) {
+            char c = text[i];
+            if (c == '/' || c == '?' || c == '#' || c == ':') {
+                hostEnd = i;
+                break;
+            }
+        }
+
+        if (hostEnd <= hostStart) return false;
+        if (text[hostStart] == '[') {
+            return text.IndexOf(']', hostStart, hostEnd - hostStart) >= 0;
+        }
+
+        return text.IndexOf('.', hostStart, hostEnd - hostStart) >= 0;
+    }
+
+    private static bool TryConsumePlainEmail(string text, int start, MarkdownReaderOptions options, out int end, out string email) {
         end = start;
         email = string.Empty;
         if (start < 0 || start >= text.Length) return false;
         if (!IsEmailStartChar(text[start])) return false;
-        if (start > 0 && (IsEmailChar(text[start - 1]) || text[start - 1] == '+' || text[start - 1] == '/' || text[start - 1] == ':' || text[start - 1] == '=' || text[start - 1] == '&' || text[start - 1] == '(' || text[start - 1] == '\'' || text[start - 1] == '[')) return false;
-        if (IsImmediatelyAfterStandaloneMailtoScheme(text, start)) return false;
+        if (options.AutolinkValidPreviousCharacters != null) {
+            if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
+        } else if (start > 0 && (IsEmailChar(text[start - 1]) || text[start - 1] == '+' || text[start - 1] == '/' || text[start - 1] == ':' || text[start - 1] == '=' || text[start - 1] == '&' || text[start - 1] == '(' || text[start - 1] == '\'' || text[start - 1] == '[')) return false;
+        if (IsImmediatelyAfterStandaloneMailtoScheme(text, start, options)) return false;
 
         int i = start;
         bool sawAt = false;
@@ -389,12 +423,12 @@ public static partial class MarkdownReader {
         return c == '@' || c == '.' || c == '-' || c == '_' || c == '+';
     }
 
-    private static bool IsImmediatelyAfterStandaloneMailtoScheme(string text, int start) {
+    private static bool IsImmediatelyAfterStandaloneMailtoScheme(string text, int start, MarkdownReaderOptions options) {
         if (string.IsNullOrEmpty(text) || start < 7) return false;
         if (text[start - 1] != ':') return false;
 
         int schemeStart = start - 7;
         return string.Compare(text, schemeStart, "mailto:", 0, 7, StringComparison.OrdinalIgnoreCase) == 0
-            && !HasInvalidAutolinkLeftBoundary(text, schemeStart);
+            && !HasInvalidAutolinkLeftBoundary(text, schemeStart, options);
     }
 }

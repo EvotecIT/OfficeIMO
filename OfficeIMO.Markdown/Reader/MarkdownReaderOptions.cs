@@ -88,6 +88,7 @@ public sealed class MarkdownReaderOptions {
             PreserveHtmlBlockBlankLineContent = false,
             SingleTildeStrikethrough = true,
             AutolinkUrls = true,
+            AutolinkAllowDomainWithoutPeriod = false,
             AutolinkBareSchemeUrls = true,
             AutolinkWwwUrls = true,
             AutolinkWwwScheme = "http://",
@@ -194,6 +195,21 @@ public sealed class MarkdownReaderOptions {
     /// Default: <c>true</c>.
     /// </summary>
     public bool AutolinkUrls { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, bare URL autolinks may target hosts without a period, such as
+    /// <c>https://localhost</c> or <c>www.local</c>. OfficeIMO defaults to <c>true</c> for
+    /// compatibility with existing documents; stricter Markdig/GFM-style profiles can set
+    /// this to <c>false</c>.
+    /// </summary>
+    public bool AutolinkAllowDomainWithoutPeriod { get; set; } = true;
+
+    /// <summary>
+    /// Optional previous-character allow-list for bare URL/email autolinks. When set, a bare
+    /// autolink may start at the beginning of text, after whitespace, or after one of these
+    /// characters. When <c>null</c>, OfficeIMO's legacy boundary heuristic is used.
+    /// </summary>
+    public string? AutolinkValidPreviousCharacters { get; set; }
 
     /// <summary>
     /// When <c>true</c>, auto-detects selected GFM bare URI schemes such as <c>mailto:</c> and <c>xmpp:</c>.

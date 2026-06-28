@@ -68,6 +68,8 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.StandaloneImageBlocks);
         Assert.True(options.SingleTildeStrikethrough);
         Assert.True(options.AutolinkUrls);
+        Assert.False(options.AutolinkAllowDomainWithoutPeriod);
+        Assert.Null(options.AutolinkValidPreviousCharacters);
         Assert.True(options.AutolinkBareSchemeUrls);
         Assert.True(options.AutolinkWwwUrls);
         Assert.Equal("http://", options.AutolinkWwwScheme);

@@ -28,6 +28,8 @@ public static partial class MarkdownReader {
             PreserveHtmlBlockBlankLineContent = source.PreserveHtmlBlockBlankLineContent,
             Paragraphs = source.Paragraphs,
             AutolinkUrls = source.AutolinkUrls,
+            AutolinkAllowDomainWithoutPeriod = source.AutolinkAllowDomainWithoutPeriod,
+            AutolinkValidPreviousCharacters = source.AutolinkValidPreviousCharacters,
             AutolinkBareSchemeUrls = source.AutolinkBareSchemeUrls,
             AutolinkWwwUrls = source.AutolinkWwwUrls,
             AutolinkWwwScheme = source.AutolinkWwwScheme,

@@ -189,6 +189,9 @@ public sealed partial class TableBlock {
         clone.HtmlBlocks = source.HtmlBlocks;
         clone.Paragraphs = source.Paragraphs;
         clone.AutolinkUrls = source.AutolinkUrls;
+        clone.AutolinkAllowDomainWithoutPeriod = source.AutolinkAllowDomainWithoutPeriod;
+        clone.AutolinkValidPreviousCharacters = source.AutolinkValidPreviousCharacters;
+        clone.AutolinkBareSchemeUrls = source.AutolinkBareSchemeUrls;
         clone.AutolinkWwwUrls = source.AutolinkWwwUrls;
         clone.AutolinkWwwScheme = source.AutolinkWwwScheme;
         clone.AutolinkEmails = source.AutolinkEmails;

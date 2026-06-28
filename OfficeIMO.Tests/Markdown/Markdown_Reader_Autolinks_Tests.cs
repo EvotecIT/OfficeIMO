@@ -441,6 +441,66 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Autolinks_Can_Require_Domain_Period_For_Markdig_Style_Compatibility() {
+        var options = new MarkdownReaderOptions {
+            AutolinkAllowDomainWithoutPeriod = false
+        };
+
+        var doc = MarkdownReader.Parse(
+            "See https://localhost and www.local and https://example.com and www.example.com",
+            options);
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://localhost\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"https://www.local\"", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"https://example.com\">https://example.com</a>", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"https://www.example.com\">www.example.com</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_Default_Profile_Preserves_Domain_Without_Period_Legacy_Behavior() {
+        var doc = MarkdownReader.Parse("See https://localhost and www.local");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<a href=\"https://localhost\">https://localhost</a>", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"https://www.local\">www.local</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_ValidPreviousCharacters_Can_Use_Markdig_Style_Boundaries() {
+        var options = new MarkdownReaderOptions {
+            AutolinkValidPreviousCharacters = "_('"
+        };
+
+        var doc = MarkdownReader.Parse("See _https://example.com and (www.example.com) and 'user@example.com", options);
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("_<a href=\"https://example.com\">https://example.com</a>", html, StringComparison.Ordinal);
+        Assert.Contains("(<a href=\"https://www.example.com\">www.example.com</a>)", html, StringComparison.Ordinal);
+        Assert.Contains("&#39;<a href=\"mailto:user@example.com\">user@example.com</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_Table_Cells_Respect_Domain_Period_Option() {
+        const string markdown = """
+| Link |
+| --- |
+| https://localhost |
+| https://example.com |
+""";
+        var options = new MarkdownReaderOptions {
+            AutolinkAllowDomainWithoutPeriod = false
+        };
+
+        var doc = MarkdownReader.Parse(markdown, options);
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://localhost\"", html, StringComparison.Ordinal);
+        Assert.Contains("<td>https://localhost</td>", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"https://example.com\">https://example.com</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_Can_Be_Disabled() {
         var options = new MarkdownReaderOptions {
             AutolinkUrls = false,
