@@ -105,12 +105,13 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void Script_Start_Requires_Terminating_Angle_Bracket() {
+        public void Type1_RawText_Tag_Can_Start_At_Line_End() {
             string md = "<script\nalert(1);";
 
             var doc = MarkdownReader.Parse(md);
 
-            Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("<script\nalert(1);", html.Html);
         }
 
         [Fact]

@@ -9,11 +9,11 @@ The short version: parity is not "more tests." Parity means the engine, AST, ren
 | Area | Current state |
 | --- | --- |
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
-| CommonMark corpus | 271 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
-| CommonMark full inventory | 593 of 652 official CommonMark `0.31.2` examples currently match; 59 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
+| CommonMark corpus | 277 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| CommonMark full inventory | 599 of 652 official CommonMark `0.31.2` examples currently match; 53 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
 | GFM corpus | 36 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
-| Strong areas | ATX headings, Setext headings, thematic breaks, fenced code blocks, paragraphs, lists, soft breaks |
-| Biggest remaining parser gaps | Link/reference grammar, HTML/raw HTML grammar, emphasis, container indentation, autolinks, code spans, hard-break edge cases, entities |
+| Strong areas | ATX headings, Setext headings, thematic breaks, fenced code blocks, paragraphs, lists, autolinks, soft breaks |
+| Biggest remaining parser gaps | Link/reference grammar, HTML/raw HTML grammar, emphasis, container indentation, code spans, hard-break edge cases, entities |
 | Biggest Markdig-class architecture gaps | Full lossless trivia capture, full parser pipeline parity, full renderer/writer plugin parity, broader extension set, release-mode benchmark review |
 
 References:
@@ -28,10 +28,9 @@ References:
 This is the current `[ ]` work plan. Tests are not the goal; they are the proof that each engine slice is actually compatible.
 
 - [ ] Fix the 16 remaining link/reference failures: nested link precedence, inline precedence with HTML/code/autolinks, linked-image reference rendering, and shared image/link grammar.
-- [ ] Fix the 14 remaining HTML/raw HTML failures: table/pre block-boundary edge cases, blockquote HTML continuation, and inline-vs-block raw HTML classification.
+- [ ] Fix the 12 remaining HTML/raw HTML failures: table/pre block-boundary edge cases, blockquote HTML continuation, malformed raw HTML, and inline-vs-block raw HTML classification.
 - [ ] Fix the 9 remaining emphasis failures by replacing simplified delimiter handling with the CommonMark delimiter-run algorithm.
-- [ ] Fix the 8 remaining container/indentation failures around tabs, blockquote/list continuation, and indented-code boundaries.
-- [ ] Fix the 4 remaining CommonMark autolink failures without regressing the GFM and OfficeIMO bare-autolink profiles.
+- [ ] Fix the 6 remaining container/indentation failures around tabs, blockquote/list continuation, and indented-code boundaries.
 - [ ] Fix the 4 remaining code-span failures around normalization, Unicode spaces, and precedence.
 - [ ] Fix the 4 remaining hard-line-break failures and keep marker source spans stable.
 - [ ] Fix the 2 remaining entity decoder failures with a CommonMark-complete named/numeric character reference decoder.
@@ -49,12 +48,12 @@ This table is fixture coverage, not a claim that every unpinned example currentl
 | Emphasis and strong emphasis | 11 | 132 | 121 | Inline delimiter algorithm |
 | Links | 12 | 90 | 78 | Link/image/reference grammar |
 | HTML blocks | 19 | 44 | 25 | HTML block tokenizer |
-| Raw HTML | 6 | 20 | 14 | Inline/raw HTML classification |
+| Raw HTML | 8 | 20 | 12 | Inline/raw HTML classification |
 | Images | 2 | 22 | 20 | Link/image/reference grammar |
 | Code spans | 5 | 22 | 17 | Code span normalization and precedence |
 | Link reference definitions | 10 | 27 | 17 | Reference-definition grammar |
 | Block quotes | 10 | 25 | 15 | Container continuation rules |
-| Autolinks | 8 | 19 | 11 | Autolink grammar |
+| Autolinks | 12 | 19 | 7 | Covered for official CommonMark; keep GFM/profile extensions separate |
 | Indented code blocks | 1 | 12 | 11 | Indent/tab/list interaction |
 | Tabs | 0 | 11 | 11 | Source map and indentation model |
 | Entity and numeric character references | 7 | 17 | 10 | CommonMark entity decoder |

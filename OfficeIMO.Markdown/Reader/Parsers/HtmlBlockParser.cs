@@ -279,7 +279,7 @@ public static partial class MarkdownReader {
         }
 
         private static bool IsType1Start(string trimmedLine, out string? endToken) {
-            if (!TryReadHtmlTagNamePrefix(trimmedLine, out var tagName, out var isClosing, out _)) {
+            if (!TryReadHtmlTagNamePrefix(trimmedLine, out var tagName, out var isClosing, out _, allowLineEnd: true)) {
                 endToken = null;
                 return false;
             }
@@ -390,50 +390,17 @@ public static partial class MarkdownReader {
                 idx++;
             }
 
-            if (idx >= line.Length || !char.IsLetter(line[idx])) return false;
+            if (idx >= line.Length || !IsAsciiLetter(line[idx])) return false;
             int nameStart = idx;
             idx++;
-            while (idx < line.Length && (char.IsLetterOrDigit(line[idx]) || line[idx] == '-' || line[idx] == ':')) idx++;
+            while (idx < line.Length && IsHtmlTagNameContinuation(line[idx])) idx++;
             tagName = line.Substring(nameStart, idx - nameStart);
             if (tagName.Length == 0) return false;
 
-            bool insideQuotes = false;
-            char quoteChar = '\0';
-            bool escaped = false;
-
-            while (idx < line.Length) {
-                char current = line[idx];
-
-                if (insideQuotes) {
-                    if (escaped) {
-                        escaped = false;
-                    } else if (current == '\\') {
-                        escaped = true;
-                    } else if (current == quoteChar) {
-                        insideQuotes = false;
-                        quoteChar = '\0';
-                    }
-                } else {
-                    if (current == '\'' || current == '"') {
-                        insideQuotes = true;
-                        quoteChar = current;
-                    } else if (current == '>') {
-                        endIndex = idx;
-                        break;
-                    } else if (current == '<') {
-                        return false;
-                    }
-                }
-
-                idx++;
-            }
-
-            if (insideQuotes || endIndex < 0) return false;
-
-            return true;
+            return TryConsumeHtmlTagRemainder(line, idx, isClosing, out endIndex);
         }
 
-        private static bool TryReadHtmlTagNamePrefix(string line, out string tagName, out bool isClosing, out int nameEndIndex) {
+        private static bool TryReadHtmlTagNamePrefix(string line, out string tagName, out bool isClosing, out int nameEndIndex, bool allowLineEnd = false) {
             tagName = string.Empty;
             isClosing = false;
             nameEndIndex = -1;
@@ -446,20 +413,103 @@ public static partial class MarkdownReader {
                 idx++;
             }
 
-            if (idx >= line.Length || !char.IsLetter(line[idx])) return false;
+            if (idx >= line.Length || !IsAsciiLetter(line[idx])) return false;
             int nameStart = idx;
             idx++;
-            while (idx < line.Length && (char.IsLetterOrDigit(line[idx]) || line[idx] == '-' || line[idx] == ':')) idx++;
+            while (idx < line.Length && IsHtmlTagNameContinuation(line[idx])) idx++;
             tagName = line.Substring(nameStart, idx - nameStart);
             nameEndIndex = idx - 1;
 
-            if (idx >= line.Length) return true;
+            if (idx >= line.Length) return allowLineEnd;
 
             char next = line[idx];
             if (next == '>') return true;
             if (next == '/' && idx + 1 < line.Length && line[idx + 1] == '>') return true;
             return IsHtmlAttributeWhitespace(next);
         }
+
+        private static bool TryConsumeHtmlTagRemainder(string line, int index, bool isClosing, out int endIndex) {
+            endIndex = -1;
+            if (index < 0 || index >= line.Length) return false;
+
+            int idx = index;
+            if (isClosing) {
+                while (idx < line.Length && IsHtmlAttributeWhitespace(line[idx])) idx++;
+                if (idx < line.Length && line[idx] == '>') {
+                    endIndex = idx;
+                    return true;
+                }
+
+                return false;
+            }
+
+            while (idx < line.Length) {
+                bool sawAttributeWhitespace = false;
+                while (idx < line.Length && IsHtmlAttributeWhitespace(line[idx])) idx++;
+                sawAttributeWhitespace = idx > index;
+                if (idx >= line.Length) return false;
+
+                if (line[idx] == '>') {
+                    endIndex = idx;
+                    return true;
+                }
+
+                if (line[idx] == '/' && idx + 1 < line.Length && line[idx + 1] == '>') {
+                    endIndex = idx + 1;
+                    return true;
+                }
+
+                if (!sawAttributeWhitespace) return false;
+                if (!TryConsumeHtmlAttribute(line, ref idx)) return false;
+                index = idx;
+            }
+
+            return false;
+        }
+
+        private static bool TryConsumeHtmlAttribute(string line, ref int index) {
+            if (index < 0 || index >= line.Length || !IsHtmlAttributeNameStart(line[index])) return false;
+
+            index++;
+            while (index < line.Length && IsHtmlAttributeNameContinuation(line[index])) index++;
+
+            while (index < line.Length && IsHtmlAttributeWhitespace(line[index])) index++;
+            if (index >= line.Length || line[index] != '=') return true;
+
+            index++;
+            while (index < line.Length && IsHtmlAttributeWhitespace(line[index])) index++;
+            if (index >= line.Length) return false;
+
+            char quote = line[index];
+            if (quote == '"' || quote == '\'') {
+                index++;
+                while (index < line.Length && line[index] != quote) {
+                    index++;
+                }
+
+                if (index >= line.Length) return false;
+                index++;
+                return true;
+            }
+
+            int valueStart = index;
+            while (index < line.Length && !IsHtmlAttributeWhitespace(line[index]) && line[index] != '>') {
+                char ch = line[index];
+                if (ch == '"' || ch == '\'' || ch == '=' || ch == '<' || ch == '`') return false;
+                index++;
+            }
+
+            return index > valueStart;
+        }
+
+        private static bool IsHtmlTagNameContinuation(char value) =>
+            IsAsciiLetter(value) || char.IsDigit(value) || value == '-';
+
+        private static bool IsHtmlAttributeNameStart(char value) =>
+            IsAsciiLetter(value) || value == '_' || value == ':';
+
+        private static bool IsHtmlAttributeNameContinuation(char value) =>
+            IsHtmlAttributeNameStart(value) || char.IsDigit(value) || value == '.' || value == '-';
 
         private static int UpdateStackDepth(HtmlBlockState state, string line, int currentDepth) {
             if (string.IsNullOrEmpty(state.PrimaryTagName)) return currentDepth;

@@ -2783,11 +2783,39 @@
     "html": "<p><a href=\"https://../\">https://../</a></p>\n"
   },
   {
+    "example": 602,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<https://foo.bar/baz bim>\n",
+    "html": "<p>&lt;https://foo.bar/baz bim&gt;</p>\n"
+  },
+  {
     "example": 603,
     "section": "Autolinks",
     "topLevelKinds": ["Paragraph"],
     "markdown": "<https://example.com/\\[\\>\n",
     "html": "<p><a href=\"https://example.com/%5C%5B%5C\">https://example.com/\\[\\</a></p>\n"
+  },
+  {
+    "example": 606,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<foo\\+@bar.example.com>\n",
+    "html": "<p>&lt;foo+@bar.example.com&gt;</p>\n"
+  },
+  {
+    "example": 609,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<m:abc>\n",
+    "html": "<p>&lt;m:abc&gt;</p>\n"
+  },
+  {
+    "example": 610,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<foo.bar.baz>\n",
+    "html": "<p>&lt;foo.bar.baz&gt;</p>\n"
   },
   {
     "example": 613,
@@ -2811,6 +2839,13 @@
     "html": "<p><a foo=\"bar\" bam = 'baz <em>\"</em>'\n_boolean zoop:33=zoop:33 /></p>\n"
   },
   {
+    "example": 617,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "Foo <responsive-image src=\"foo.jpg\" />\n",
+    "html": "<p>Foo <responsive-image src=\"foo.jpg\" /></p>\n"
+  },
+  {
     "example": 618,
     "section": "Raw HTML",
     "topLevelKinds": ["Paragraph"],
@@ -2830,6 +2865,13 @@
     "topLevelKinds": ["Paragraph"],
     "markdown": "</a></foo >\n",
     "html": "<p></a></foo ></p>\n"
+  },
+  {
+    "example": 624,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "</a href=\"foo\">\n",
+    "html": "<p>&lt;/a href=&quot;foo&quot;&gt;</p>\n"
   },
   {
     "example": 14,

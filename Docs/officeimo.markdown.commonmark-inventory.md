@@ -15,10 +15,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Official examples | 652 |
-| Pinned smoke fixtures | 271 |
-| Passing pinned fixtures | 271 |
+| Pinned smoke fixtures | 277 |
+| Passing pinned fixtures | 277 |
 | Passing unpinned examples | 322 |
-| Failing examples | 59 |
+| Failing examples | 53 |
 | Intentional deviations | 0 |
 
 ## Section Inventory
@@ -46,8 +46,8 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Emphasis and strong emphasis | 132 | 11 | 11 | 112 | 9 | 0 |
 | Links | 90 | 12 | 12 | 62 | 16 | 0 |
 | Images | 22 | 2 | 2 | 20 | 0 | 0 |
-| Autolinks | 19 | 8 | 8 | 7 | 4 | 0 |
-| Raw HTML | 20 | 6 | 6 | 3 | 11 | 0 |
+| Autolinks | 19 | 12 | 12 | 7 | 0 | 0 |
+| Raw HTML | 20 | 8 | 8 | 3 | 9 | 0 |
 | Hard line breaks | 15 | 5 | 5 | 6 | 4 | 0 |
 | Soft line breaks | 2 | 2 | 2 | 0 | 0 | 0 |
 | Textual content | 3 | 0 | 0 | 3 | 0 | 0 |
@@ -57,10 +57,9 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Cluster | Failing | Sections | First examples |
 | --- | ---: | --- | --- |
 | Link/image/reference grammar | 16 | Links | #491, #518, #519, #520, #523, #524, #525, #526, #531, #532, #533, #536 |
-| HTML block/raw HTML grammar | 14 | HTML blocks, Raw HTML | #148, #174, #191, #615, #619, #621, #622, #624, #625, #626, #627, #628 |
+| HTML block/raw HTML grammar | 12 | HTML blocks, Raw HTML | #148, #174, #191, #615, #619, #621, #622, #625, #626, #627, #628, #629 |
 | Emphasis delimiter algorithm | 9 | Emphasis and strong emphasis | #353, #408, #418, #432, #438, #441, #450, #453, #470 |
 | Container indentation and continuation | 6 | Block quotes, Indented code blocks, List items, Tabs | #9, #111, #231, #242, #252, #264 |
-| Autolink grammar | 4 | Autolinks | #602, #606, #609, #610 |
 | Code span normalization and precedence | 4 | Code spans | #333, #334, #336, #342 |
 | Inline precedence and line-break grammar | 4 | Hard line breaks | #641, #642, #643, #644 |
 | CommonMark entity decoder | 2 | Entity and numeric character references | #25, #26 |
