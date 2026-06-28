@@ -43,8 +43,8 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     public InlineSequence Superscript(string text) { _inlines.Add(new HtmlTagSequenceInline("sup", new InlineSequence().Text(text))); return this; }
     /// <summary>Adds subscript text rendered via inline HTML.</summary>
     public InlineSequence Subscript(string text) { _inlines.Add(new HtmlTagSequenceInline("sub", new InlineSequence().Text(text))); return this; }
-    /// <summary>Adds inserted text rendered via inline HTML.</summary>
-    public InlineSequence Inserted(string text) { _inlines.Add(new HtmlTagSequenceInline("ins", new InlineSequence().Text(text))); return this; }
+    /// <summary>Adds inserted text rendered as <c>++text++</c> in Markdown and <c>&lt;ins&gt;</c> in HTML.</summary>
+    public InlineSequence Inserted(string text) { _inlines.Add(new InsertedInline(text)); return this; }
     /// <summary>Adds quoted text rendered via inline HTML.</summary>
     public InlineSequence Quote(string text) { _inlines.Add(new HtmlTagSequenceInline("q", new InlineSequence().Text(text))); return this; }
     /// <summary>Adds a linked image (useful for badges).</summary>

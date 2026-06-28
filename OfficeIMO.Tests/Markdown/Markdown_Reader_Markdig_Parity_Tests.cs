@@ -187,6 +187,12 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "www-query-parens", "Visit www.example.com/search?q=(x) now" };
     }
 
+    public static IEnumerable<object[]> EmphasisExtrasExtensionCases() {
+        yield return new object[] { "inserted", "++inserted++" };
+        yield return new object[] { "inserted-with-nested-emphasis", "++inserted *and emphasized*++" };
+        yield return new object[] { "single-plus-stays-literal", "+inserted+" };
+    }
+
     [Theory]
     [MemberData(nameof(CoreParityCases))]
     public void MarkdownReader_Matches_Markdig_On_Curated_Cases(string _, string markdown) {
@@ -230,6 +236,25 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var office = MarkdownReader
             .Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile())
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(EmphasisExtrasExtensionCases))]
+    public void MarkdownReader_Insertions_Match_Markdig_EmphasisExtras_Extension(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseEmphasisExtras(builder);
+
+        var office = MarkdownReader
+            .Parse(markdown, MarkdownReaderOptions.CreatePortableProfile())
             .ToHtmlFragment(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 

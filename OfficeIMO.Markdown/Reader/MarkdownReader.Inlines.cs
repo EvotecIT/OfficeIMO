@@ -672,8 +672,8 @@ public static partial class MarkdownReader {
                 }
             }
 
-            // Emphasis / strong / strike / highlight using delimiter-run rules + an open-frame stack.
-            if (text[pos] == '*' || text[pos] == '_' || text[pos] == '~' || text[pos] == '=') {
+            // Emphasis / strong / strike / highlight / inserted using delimiter-run rules + an open-frame stack.
+            if (text[pos] == '*' || text[pos] == '_' || text[pos] == '~' || text[pos] == '=' || text[pos] == '+') {
                 char marker = text[pos];
                 int runLen = 1;
                 while (pos + runLen < text.Length && text[pos + runLen] == marker) runLen++;
@@ -692,10 +692,16 @@ public static partial class MarkdownReader {
                     continue;
                 }
 
-                // "==" always requires a double delimiter. "~" can opt into cmark-gfm style single-tilde strike.
-                if (marker == '=' && runLen < 2) {
+                // "==" and "++" always require a double delimiter. "~" can opt into cmark-gfm style single-tilde strike.
+                if ((marker == '=' || marker == '+') && runLen < 2) {
                     AddTextNode(marker.ToString(), pos, 1);
                     pos++;
+                    continue;
+                }
+
+                if (marker == '+' && runLen > 2) {
+                    AddTextNode(new string(marker, runLen), pos, runLen);
+                    pos += runLen;
                     continue;
                 }
 
@@ -788,6 +794,15 @@ public static partial class MarkdownReader {
                         if (marker == '=') {
                             if (remaining >= 2) {
                                 stack.Push(new InlineFrame(FrameKind.Highlight, marker, 2, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                                remaining -= 2;
+                                continue;
+                            }
+                            break;
+                        }
+
+                        if (marker == '+') {
+                            if (remaining >= 2) {
+                                stack.Push(new InlineFrame(FrameKind.Inserted, marker, 2, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
                                 remaining -= 2;
                                 continue;
                             }

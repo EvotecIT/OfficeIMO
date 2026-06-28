@@ -7,6 +7,7 @@ public static partial class MarkdownReader {
         Bold,
         Strike,
         Highlight,
+        Inserted,
     }
 
     private sealed class InlineFrame {
@@ -65,6 +66,14 @@ public static partial class MarkdownReader {
         if (top.Kind == FrameKind.Highlight && remaining >= 2) {
             stack.Pop();
             var node = new HighlightSequenceInline(top.Seq);
+            SetFormattingMarkerSpans(node, sourceMap, marker, top.OpenIndex, top.OpenLen, closingIndex, 2);
+            stack.Peek().Seq.AddRaw(node);
+            consumed = 2;
+            return true;
+        }
+        if (top.Kind == FrameKind.Inserted && remaining >= 2) {
+            stack.Pop();
+            var node = new InsertedSequenceInline(top.Seq);
             SetFormattingMarkerSpans(node, sourceMap, marker, top.OpenIndex, top.OpenLen, closingIndex, 2);
             stack.Peek().Seq.AddRaw(node);
             consumed = 2;
@@ -474,6 +483,13 @@ public static partial class MarkdownReader {
 
         if (marker == '=') {
             // Pragmatic mark/highlight handling: "==" opens/closes when it hugs non-whitespace text.
+            canOpen = runLen >= 2 && !nextWs;
+            canClose = runLen >= 2 && !prevWs;
+            return;
+        }
+
+        if (marker == '+') {
+            // Markdig emphasis extras: "++" opens/closes inserted text when it hugs non-whitespace text.
             canOpen = runLen >= 2 && !nextWs;
             canClose = runLen >= 2 && !prevWs;
             return;

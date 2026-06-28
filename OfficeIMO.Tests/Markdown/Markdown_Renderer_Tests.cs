@@ -723,6 +723,22 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void InlineSequence_Inserted_Writes_Markdig_EmphasisExtra_Syntax_And_Renders_Ins() {
+        var document = new MarkdownDoc()
+            .Add(new ParagraphBlock(new InlineSequence()
+                .Text("Add")
+                .Inserted("inserted")
+                .Text("text")));
+
+        Assert.Equal("Add ++inserted++ text", document.ToMarkdown().Trim());
+        Assert.Equal("<p>Add <ins>inserted</ins> text</p>", document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        }).Trim());
+    }
+
+    [Fact]
     public void MarkdownRendererFeaturePack_Can_Compose_Plugins_With_Fence_Option_Schemas() {
         var schema = new MarkdownFenceOptionSchema(
             "vendor.visual-options",

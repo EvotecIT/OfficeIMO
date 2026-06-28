@@ -5,6 +5,42 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class Markdown_Native_Inline_Metadata_Tests {
     [Fact]
+    public void Inserted_Marker_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
+        const string markdown = "Add ++inserted *em*++ text\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var inserted = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Inserted);
+        var emphasis = Assert.Single(inserted.Children, inline => inline.Kind == MarkdownNativeInlineKind.Emphasis);
+
+        var opening = Assert.Single(inserted.Metadata, metadata => metadata.Name == "openingMarker");
+        var closing = Assert.Single(inserted.Metadata, metadata => metadata.Name == "closingMarker");
+
+        Assert.Equal("++", opening.Value);
+        Assert.Equal("++", closing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 6), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 20, 1, 21), closing.SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.InlineInserted, inserted.SyntaxNode.Kind);
+        Assert.Collection(inserted.SyntaxNode.Children,
+            openingMarker => Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind),
+            text => Assert.Equal(MarkdownSyntaxKind.InlineText, text.Kind),
+            nestedEmphasis => Assert.Equal(MarkdownSyntaxKind.InlineEmphasis, nestedEmphasis.Kind),
+            closingMarker => Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind));
+
+        Assert.Equal("em", emphasis.Text);
+
+        var edited = native.CreateReplaceEdit(closing, "</ins>").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(opening, "<ins>").Apply(edited);
+        Assert.Equal("Add <ins>inserted *em*</ins> text\n", edited);
+
+        var snapshotInserted = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Inserted);
+        Assert.Equal("++", snapshotInserted.Metadata["openingMarker"]);
+        Assert.Equal("++", snapshotInserted.Metadata["closingMarker"]);
+        Assert.Equal(5, snapshotInserted.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(21, snapshotInserted.MetadataSourceSpans["closingMarker"]!.EndColumn);
+    }
+
+    [Fact]
     public void Formatting_Marker_Metadata_Is_Source_Addressable_In_Nested_Native_Inlines_And_Snapshots() {
         const string markdown = "Start **bold and _em_** end\n";
 

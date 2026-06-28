@@ -54,6 +54,8 @@ public enum MarkdownSyntaxKind {
     InlineStrikethrough,
     /// <summary>Highlight/mark inline node.</summary>
     InlineHighlight,
+    /// <summary>Inserted inline node.</summary>
+    InlineInserted,
     /// <summary>Underline inline node.</summary>
     InlineUnderline,
     /// <summary>Hard line break inline node.</summary>

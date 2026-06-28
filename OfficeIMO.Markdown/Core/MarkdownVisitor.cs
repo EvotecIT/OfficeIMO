@@ -127,6 +127,9 @@ public abstract class MarkdownVisitor {
             case HighlightSequenceInline highlightSequence:
                 VisitHighlightSequenceInline(highlightSequence);
                 break;
+            case InsertedSequenceInline insertedSequence:
+                VisitInsertedSequenceInline(insertedSequence);
+                break;
             case TextRun textRun:
                 VisitTextRun(textRun);
                 break;
@@ -153,6 +156,9 @@ public abstract class MarkdownVisitor {
                 break;
             case HighlightInline highlight:
                 VisitHighlightInline(highlight);
+                break;
+            case InsertedInline inserted:
+                VisitInsertedInline(inserted);
                 break;
             case UnderlineInline underline:
                 VisitUnderlineInline(underline);
@@ -233,6 +239,7 @@ public abstract class MarkdownVisitor {
     protected virtual void VisitBoldItalicSequenceInline(BoldItalicSequenceInline inline) => VisitInline(inline);
     protected virtual void VisitStrikethroughSequenceInline(StrikethroughSequenceInline inline) => VisitInline(inline);
     protected virtual void VisitHighlightSequenceInline(HighlightSequenceInline inline) => VisitInline(inline);
+    protected virtual void VisitInsertedSequenceInline(InsertedSequenceInline inline) => VisitInline(inline);
     protected virtual void VisitTextRun(TextRun inline) => VisitInline(inline);
     protected virtual void VisitCodeSpanInline(CodeSpanInline inline) => VisitInline(inline);
     protected virtual void VisitFootnoteRefInline(FootnoteRefInline inline) => VisitInline(inline);
@@ -242,6 +249,7 @@ public abstract class MarkdownVisitor {
     protected virtual void VisitBoldItalicInline(BoldItalicInline inline) => VisitInline(inline);
     protected virtual void VisitStrikethroughInline(StrikethroughInline inline) => VisitInline(inline);
     protected virtual void VisitHighlightInline(HighlightInline inline) => VisitInline(inline);
+    protected virtual void VisitInsertedInline(InsertedInline inline) => VisitInline(inline);
     protected virtual void VisitUnderlineInline(UnderlineInline inline) => VisitInline(inline);
     protected virtual void VisitHtmlRawInline(HtmlRawInline inline) => VisitInline(inline);
 }

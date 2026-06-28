@@ -110,6 +110,10 @@ internal static class MarkdownInlineSyntaxBuilder {
                 return BuildContainerNode(MarkdownSyntaxKind.InlineHighlight, highlight, highlight.Inlines, span);
             case HighlightInline highlight:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineHighlight, span, literal: highlight.Text, associatedObject: highlight);
+            case InsertedSequenceInline inserted:
+                return BuildContainerNode(MarkdownSyntaxKind.InlineInserted, inserted, inserted.Inlines, span);
+            case InsertedInline inserted:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineInserted, span, literal: inserted.Text, associatedObject: inserted);
             case UnderlineInline underline:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineUnderline, span, literal: underline.Text, associatedObject: underline);
             case HtmlTagSequenceInline htmlTag:

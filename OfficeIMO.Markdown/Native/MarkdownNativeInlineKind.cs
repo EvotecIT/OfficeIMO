@@ -24,6 +24,8 @@ public enum MarkdownNativeInlineKind {
     Strikethrough,
     /// <summary>Highlighted inline content.</summary>
     Highlight,
+    /// <summary>Inserted inline content.</summary>
+    Inserted,
     /// <summary>Underline inline content.</summary>
     Underline,
     /// <summary>Hard line break.</summary>
