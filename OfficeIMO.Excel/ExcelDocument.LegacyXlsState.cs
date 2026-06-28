@@ -119,7 +119,13 @@ namespace OfficeIMO.Excel {
                 CloseOpenPackageForNativeLegacyXlsSave();
             }
 
-            CommitPreparedPackageToFile(path, xlsBytes);
+            try {
+                CommitPreparedPackageToFile(path, xlsBytes);
+            } catch {
+                RestorePackageAfterFailedNativeLegacyXlsFileCommit(workingPackageBytes);
+                throw;
+            }
+
             FilePath = path;
             DisablePackageCopyBackAfterNativeLegacyXlsFileSave();
             if (workingPackageBytes != null) {
@@ -155,7 +161,13 @@ namespace OfficeIMO.Excel {
                 CloseOpenPackageForNativeLegacyXlsSave();
             }
 
-            await CommitPreparedPackageToFileAsync(path, xlsBytes, cancellationToken).ConfigureAwait(false);
+            try {
+                await CommitPreparedPackageToFileAsync(path, xlsBytes, cancellationToken).ConfigureAwait(false);
+            } catch {
+                RestorePackageAfterFailedNativeLegacyXlsFileCommit(workingPackageBytes);
+                throw;
+            }
+
             FilePath = path;
             DisablePackageCopyBackAfterNativeLegacyXlsFileSave();
             if (workingPackageBytes != null) {
@@ -217,6 +229,17 @@ namespace OfficeIMO.Excel {
             using var snapshot = new MemoryStream();
             using (_spreadSheetDocument.Clone(snapshot)) { }
             return snapshot.ToArray();
+        }
+
+        private void RestorePackageAfterFailedNativeLegacyXlsFileCommit(byte[]? workingPackageBytes) {
+            if (workingPackageBytes == null) {
+                return;
+            }
+
+            try {
+                ReloadFromBytes(workingPackageBytes);
+            } catch {
+            }
         }
 
         private bool ShouldCloseOpenPackageForNativeLegacyXlsFileSave(string path) {

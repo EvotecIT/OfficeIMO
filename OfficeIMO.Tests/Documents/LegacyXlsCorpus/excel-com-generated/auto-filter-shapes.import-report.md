@@ -50,9 +50,9 @@ Worksheet metadata records: 7
 Worksheet future metadata records: 1
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 124
+Unsupported features: 123
 Unsupported projection gaps: 0
-Preserved feature records: 124
+Preserved feature records: 123
 Errors: 0
 Warnings: 0
 
@@ -60,7 +60,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 10 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 9 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 110 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
@@ -303,7 +303,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 10 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 9 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 110 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
@@ -312,7 +312,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| DrawingObject | 10 |
+| DrawingObject | 9 |
 | PivotTable | 3 |
 | StyleExtension | 110 |
 | Theme | 1 |
@@ -322,7 +322,6 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x005D | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EB | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 4 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x08A3 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
@@ -338,7 +337,6 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 4 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
@@ -353,7 +351,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 2 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Filters | 8 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Filters | 1 |
@@ -1335,7 +1333,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| DrawingObject | 10 |
+| DrawingObject | 9 |
 | PivotTable | 3 |
 | StyleExtension | 110 |
 | Theme | 1 |
@@ -1345,7 +1343,6 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 4 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |

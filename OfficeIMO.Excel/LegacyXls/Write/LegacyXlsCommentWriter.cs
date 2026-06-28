@@ -40,6 +40,37 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return records;
         }
 
+        internal static int CountCommentRecordSets(IEnumerable<ExcelSheet> sheets, LegacyXlsFontTable fontTable) {
+            int count = 0;
+            foreach (ExcelSheet sheet in sheets) {
+                string? reason;
+                foreach (CommentInfo comment in GetWorksheetComments(sheet, fontTable, out reason)) {
+                    if (SupportsComment(comment, out _)) {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        internal static byte[] BuildWorkbookDrawingGroupPayload(int shapeCount) {
+            if (shapeCount <= 0) {
+                return Array.Empty<byte>();
+            }
+
+            using var drawingGroup = new MemoryStream();
+            WriteUInt32(drawingGroup, checked((uint)(0x00000400 + shapeCount + 1)));
+            WriteUInt32(drawingGroup, 1);
+            WriteUInt32(drawingGroup, checked((uint)shapeCount));
+            WriteUInt32(drawingGroup, 1);
+            WriteUInt32(drawingGroup, 1);
+            WriteUInt32(drawingGroup, checked((uint)(shapeCount + 1)));
+
+            byte[] drawingGroupBlock = BuildOfficeArtRecord(0xf006, instance: 0, version: 0x00, drawingGroup.ToArray());
+            return BuildOfficeArtRecord(0xf000, instance: 0, version: 0x0f, drawingGroupBlock);
+        }
+
         private static IReadOnlyList<CommentInfo> GetWorksheetComments(ExcelSheet sheet, LegacyXlsFontTable fontTable, out string? reason) {
             reason = null;
             WorksheetCommentsPart? commentsPart = sheet.WorksheetPart.WorksheetCommentsPart;

@@ -50,9 +50,9 @@ Worksheet metadata records: 41
 Worksheet future metadata records: 0
 Unsupported sheet metadata records: 8
 Unsupported sheet future metadata records: 0
-Unsupported features: 1210
+Unsupported features: 1209
 Unsupported projection gaps: 0
-Preserved feature records: 1210
+Preserved feature records: 1209
 Errors: 0
 Warnings: 0
 
@@ -62,7 +62,7 @@ Warnings: 0
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 4 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 1134 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 42 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 41 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
@@ -439,7 +439,7 @@ Warnings: 0
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 4 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 1134 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 42 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 41 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
@@ -450,7 +450,7 @@ Warnings: 0
 | --- | --- |
 | Chart | 1134 |
 | ChartSheet | 4 |
-| DrawingObject | 42 |
+| DrawingObject | 41 |
 | ExternalReference | 1 |
 | PhoneticGuide | 2 |
 | PivotTable | 27 |
@@ -496,7 +496,6 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1064 | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1065 | 24 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x005D | 14 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EB | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 23 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x01B6 | 4 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|0x01AE | 1 |
@@ -546,7 +545,6 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ValueRange | 16 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 23 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 14 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 4 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 1 |
@@ -569,7 +567,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|LBMAQ_RAIN_CHART | 177 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|ZPFCUM_CHART | 115 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|ZRAINCUM_CHART | 97 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs1 | 14 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs2 | 14 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|LBMAQ_PF_CHART | 3 |
@@ -2470,7 +2467,7 @@ Warnings: 0
 | --- | --- |
 | Chart | 1134 |
 | ChartSheet | 4 |
-| DrawingObject | 42 |
+| DrawingObject | 41 |
 | ExternalReference | 1 |
 | PhoneticGuide | 2 |
 | PivotTable | 27 |
@@ -2516,7 +2513,6 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ValueRange | 16 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 23 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 14 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 4 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 1 |

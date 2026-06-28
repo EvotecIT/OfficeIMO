@@ -50,9 +50,9 @@ Worksheet metadata records: 15
 Worksheet future metadata records: 0
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 13
+Unsupported features: 12
 Unsupported projection gaps: 0
-Preserved feature records: 13
+Preserved feature records: 12
 Errors: 0
 Warnings: 0
 
@@ -60,7 +60,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 7 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 6 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 6 |
 
 ## Comments By Object Type
@@ -128,21 +128,20 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 7 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 6 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 6 |
 
 ## Unsupported Features By Kind
 
 | Key | Count |
 | --- | --- |
-| DrawingObject | 7 |
+| DrawingObject | 6 |
 | PivotTable | 6 |
 
 ## Unsupported Feature Record Types
 
 | Key | Count |
 | --- | --- |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EB | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 6 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 1 |
@@ -154,7 +153,6 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 6 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRule | 3 |
@@ -164,7 +162,6 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Sheet1 | 6 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Sheet1 | 2 |
@@ -552,7 +549,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| DrawingObject | 7 |
+| DrawingObject | 6 |
 | PivotTable | 6 |
 
 ## Preserved Feature Record Details
@@ -560,7 +557,6 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 6 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRule | 3 |

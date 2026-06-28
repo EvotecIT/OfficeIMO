@@ -8,8 +8,8 @@ using System.Text;
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static partial class LegacyXlsWriter {
         private const int BiffMaxRecordDataLength = 8224;
-        private static readonly byte[] WorkbookGlobalsBof = { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 };
-        private static readonly byte[] WorksheetBof = { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 };
+        private static readonly byte[] WorkbookGlobalsBof = { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07, 0x41, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00 };
+        private static readonly byte[] WorksheetBof = { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07, 0x41, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00 };
 
         internal static byte[] WriteWorkbook(ExcelDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
@@ -72,6 +72,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             foreach (TableStyleRecord tableStyleRecord in CreateTableStyleRecords(document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet)) {
                 WriteRecord(stream, tableStyleRecord.RecordType, tableStyleRecord.Payload);
+            }
+
+            int commentShapeCount = LegacyXlsCommentWriter.CountCommentRecordSets(sheets, fontTable);
+            if (commentShapeCount > 0) {
+                WriteRecord(stream, 0x00eb, LegacyXlsCommentWriter.BuildWorkbookDrawingGroupPayload(commentShapeCount));
             }
 
             var boundSheetPositions = new List<long>(sheets.Length);

@@ -14,6 +14,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private const uint HasLocation = 0x00000008;
         private const uint HasDisplayName = 0x00000010;
 
+        private static readonly byte[] HLinkClsid = {
+            0xd0, 0xc9, 0xea, 0x79, 0xf9, 0xba, 0xce, 0x11,
+            0x8c, 0x82, 0x00, 0xaa, 0x00, 0x4b, 0xa9, 0x0b
+        };
+
         private static readonly byte[] UrlMonikerClsid = {
             0xe0, 0xc9, 0xea, 0x79, 0xf9, 0xba, 0xce, 0x11,
             0x8c, 0x82, 0x00, 0xaa, 0x00, 0x4b, 0xa9, 0x0b
@@ -348,7 +353,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteUInt16(stream, checked((ushort)(lastRow - 1)));
             WriteUInt16(stream, checked((ushort)(firstColumn - 1)));
             WriteUInt16(stream, checked((ushort)(lastColumn - 1)));
-            stream.Write(new byte[16], 0, 16);
+            stream.Write(HLinkClsid, 0, HLinkClsid.Length);
         }
 
         private static bool TryParseBiff8Reference(string? reference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {

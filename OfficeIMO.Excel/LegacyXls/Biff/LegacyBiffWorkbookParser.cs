@@ -113,6 +113,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                     continue;
                 } else if (BiffDrawingMetadataReader.TryRead(record, sheetName: null, workbook.MutableDrawingRecords)) {
+                    if (record.Type == (ushort)BiffRecordType.DrawingGroup) {
+                        continue;
+                    }
+
                     AddUnsupportedRecordFeature(workbook, record, sheetName: null);
                     if (options.ReportUnsupportedRecords) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);

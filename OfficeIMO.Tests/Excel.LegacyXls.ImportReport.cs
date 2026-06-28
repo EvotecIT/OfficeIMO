@@ -83,12 +83,12 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(workbook.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.Equal(1, report.WorksheetCount);
-            Assert.Equal(8, report.UnsupportedFeatureCount);
-            Assert.Equal(8, report.PreservedFeatureRecordCount);
-            Assert.Equal(6, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
+            Assert.Equal(7, report.UnsupportedFeatureCount);
+            Assert.Equal(7, report.PreservedFeatureRecordCount);
+            Assert.Equal(5, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
-            Assert.Equal(6, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
+            Assert.Equal(5, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
             Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
             Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
             Assert.Equal(1, report.PivotTableRecordCount);
@@ -209,7 +209,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingChildAnchorEntriesBySize["Width:600;Height:700"]);
             Assert.Equal(1, report.DrawingRecordsByLocation["(workbook)"]);
             Assert.Equal(5, report.DrawingRecordsByLocation["FeatureMap"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup"]);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup", report.UnsupportedFeaturesByDetail.Keys);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:Obj"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawing"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:ShapePropsStream"]);
@@ -217,7 +217,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:RichTextStream"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:SxView"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup"]);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup", report.PreservedFeatureRecordsByDetail.Keys);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:Obj"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawing"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:ShapePropsStream"]);
@@ -225,7 +225,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:RichTextStream"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:SxView"]);
-            Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:MsoDrawingGroup" && record.SheetName == null);
+            Assert.DoesNotContain(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:MsoDrawingGroup" && record.SheetName == null);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:Obj" && record.SheetName == "FeatureMap");
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:ShapePropsStream" && record.SheetName == "FeatureMap");
             Assert.Contains(workbook.DrawingRecords, record => record.SheetName == "FeatureMap" && record.ObjectType == 0x0008 && record.ObjectTypeKind == LegacyXlsDrawingObjectType.Picture && record.ObjectTypeName == "Picture" && record.ObjectId == 1 && record.ObjectFlags == 0x4011 && record.IsObjectLocked && record.IsObjectPrintable);
@@ -375,8 +375,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.Diagnostics, d => d.DetailCode == "Chart:Chart");
             Assert.Contains(workbook.Diagnostics, d => d.DetailCode == "PivotTable:SxView");
             string markdown = report.ToMarkdown();
-            Assert.Contains("Preserved feature records: 8", markdown);
-            Assert.Contains("Drawing:MsoDrawingGroup", markdown);
+            Assert.Contains("Preserved feature records: 7", markdown);
             Assert.Contains("Pivot Table Records By Name", markdown);
             Assert.Contains("Chart Records By Name", markdown);
             Assert.Contains("Drawing Records By Name", markdown);

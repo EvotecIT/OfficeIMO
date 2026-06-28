@@ -50,9 +50,9 @@ Worksheet metadata records: 15
 Worksheet future metadata records: 3
 Unsupported sheet metadata records: 2
 Unsupported sheet future metadata records: 1
-Unsupported features: 395
+Unsupported features: 394
 Unsupported projection gaps: 0
-Preserved feature records: 395
+Preserved feature records: 394
 Errors: 0
 Warnings: 0
 
@@ -63,7 +63,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 149 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 3 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 32 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 31 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 95 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 114 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
@@ -501,7 +501,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 149 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 3 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 32 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 31 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 95 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 114 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
@@ -513,7 +513,7 @@ Warnings: 0
 | Chart | 149 |
 | ChartSheet | 1 |
 | ConditionalFormatting | 3 |
-| DrawingObject | 32 |
+| DrawingObject | 31 |
 | PivotTable | 95 |
 | StyleExtension | 114 |
 | Theme | 1 |
@@ -571,7 +571,6 @@ Warnings: 0
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|0x087B | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|0x088D | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x005D | 8 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EB | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 9 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x08A3 | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x08A4 | 8 |
@@ -650,7 +649,6 @@ Warnings: 0
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:CfEx | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 9 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 8 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:RichTextStream | 5 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |
@@ -684,7 +682,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|RevenueChart | 149 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|SalesData | 2 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 2 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|PivotSummary | 2 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|RevenueChart | 14 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|SalesData | 14 |
@@ -3596,7 +3594,7 @@ Warnings: 0
 | Chart | 149 |
 | ChartSheet | 1 |
 | ConditionalFormatting | 3 |
-| DrawingObject | 32 |
+| DrawingObject | 31 |
 | PivotTable | 95 |
 | StyleExtension | 114 |
 | Theme | 1 |
@@ -3654,7 +3652,6 @@ Warnings: 0
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:CfEx | 1 |
 | ConditionalFormatting\|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|ConditionalFormatting:Dxf | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 9 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 8 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:RichTextStream | 5 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |

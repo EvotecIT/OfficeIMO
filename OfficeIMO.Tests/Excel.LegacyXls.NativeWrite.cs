@@ -53,6 +53,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NativeSave_WritesCompleteBofRecordsAndActualWorkbookStreamSize() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet sheet = document.AddWorkSheet("Biff");
+                    sheet.CellValue(1, 1, "BIFF8 BOF");
+
+                    document.Save(xlsOutputPath);
+                }
+
+                IReadOnlyList<byte[]> bofPayloads = GetBiffRecordPayloads(xlsOutputPath, 0x0809);
+                Assert.Equal(2, bofPayloads.Count);
+                Assert.All(bofPayloads, payload => {
+                    Assert.Equal(16, payload.Length);
+                    Assert.Equal((ushort)0x0600, ReadUInt16(payload, 0));
+                    Assert.Equal(0x00000041U, ReadUInt32(payload, 8));
+                    Assert.Equal(0x00000006U, ReadUInt32(payload, 12));
+                });
+                Assert.Equal((ushort)0x0005, ReadUInt16(bofPayloads[0], 2));
+                Assert.Equal((ushort)0x0010, ReadUInt16(bofPayloads[1], 2));
+
+                byte[] fileBytes = File.ReadAllBytes(xlsOutputPath);
+                CompoundDirectoryEntry workbookEntry = Assert.Single(
+                    ReadFirstCompoundDirectorySector(fileBytes),
+                    entry => string.Equals(entry.Name, "Workbook", StringComparison.OrdinalIgnoreCase));
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                result.EnsureNoImportErrors();
+                Assert.True(result.Workbook.Worksheets.Count > 0);
+
+                Assert.True(
+                    LegacyCompoundFileReader.TryRead(fileBytes, out LegacyCompoundFile? compoundFile, out var diagnostics),
+                    string.Join(Environment.NewLine, diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
+                Assert.True(compoundFile!.Streams.TryGetValue("Workbook", out byte[]? workbookStream));
+                Assert.Equal(
+                    checked((ulong)GetBiffContentLength(workbookStream!, expectedEndOfFileRecords: result.Workbook.Worksheets.Count + 1)),
+                    workbookEntry.StreamSize);
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_NativeSave_LoadedAutoSaveWorkbookDoesNotCopyOpenXmlPackageOverXlsOnDispose() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
@@ -2919,6 +2964,15 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("../docs/zażółć.xlsx", projectedLinks["A4"].Target);
                 Assert.True(projectedLinks["A5"].IsExternal);
                 Assert.Equal("mailto:support@officeimo.net", projectedLinks["A5"].Target);
+
+                byte[] expectedHLinkClsid = {
+                    0xd0, 0xc9, 0xea, 0x79, 0xf9, 0xba, 0xce, 0x11,
+                    0x8c, 0x82, 0x00, 0xaa, 0x00, 0x4b, 0xa9, 0x0b
+                };
+                Assert.All(GetBiffRecordPayloads(xlsOutputPath, 0x01b8), payload => {
+                    Assert.True(payload.Length >= 24);
+                    Assert.Equal(expectedHLinkClsid, payload.Skip(8).Take(16).ToArray());
+                });
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
@@ -3220,6 +3274,9 @@ namespace OfficeIMO.Tests {
 
                 LegacyXlsWorksheet legacySheet = Assert.Single(result.Workbook.Worksheets);
                 Assert.Equal(2, legacySheet.Comments.Count);
+                byte[] drawingGroupPayload = Assert.Single(GetBiffRecordPayloads(xlsOutputPath, 0x00eb));
+                Assert.True(drawingGroupPayload.Length > 8);
+                AssertBiffRecordOccursBefore(xlsOutputPath, 0x00eb, 0x0085);
 
                 LegacyXlsComment firstLegacyComment = Assert.Single(legacySheet.Comments, comment => comment.Row == 1 && comment.Column == 1);
                 Assert.Equal("Review this cell", firstLegacyComment.Text);
@@ -3874,6 +3931,27 @@ namespace OfficeIMO.Tests {
             Assert.True(beforeOffset < afterOffset, $"BIFF record 0x{beforeRecordType:X4} should appear before 0x{afterRecordType:X4}.");
         }
 
+        private static int GetBiffContentLength(byte[] workbookStream, int expectedEndOfFileRecords) {
+            int endOfFileRecords = 0;
+            int offset = 0;
+            while (offset + 4 <= workbookStream.Length) {
+                ushort type = ReadUInt16(workbookStream, offset);
+                ushort length = ReadUInt16(workbookStream, offset + 2);
+                int payloadOffset = offset + 4;
+                Assert.True(payloadOffset + length <= workbookStream.Length);
+
+                offset = payloadOffset + length;
+                if (type == 0x000a) {
+                    endOfFileRecords++;
+                    if (endOfFileRecords == expectedEndOfFileRecords) {
+                        return offset;
+                    }
+                }
+            }
+
+            throw new InvalidOperationException("The expected BIFF EOF records were not found.");
+        }
+
         private static void AssertCompoundRootTreeContains(string xlsPath, params string[] expectedNames) {
             byte[] fileBytes = File.ReadAllBytes(xlsPath);
             IReadOnlyList<CompoundDirectoryEntry> entries = ReadFirstCompoundDirectorySector(fileBytes);
@@ -3905,7 +3983,8 @@ namespace OfficeIMO.Tests {
                     objectType,
                     ReadUInt32(fileBytes, offset + 68),
                     ReadUInt32(fileBytes, offset + 72),
-                    ReadUInt32(fileBytes, offset + 76)));
+                    ReadUInt32(fileBytes, offset + 76),
+                    ReadUInt64(fileBytes, offset + 120)));
             }
 
             return entries;
@@ -3942,14 +4021,19 @@ namespace OfficeIMO.Tests {
                 | (bytes[offset + 3] << 24)));
         }
 
+        private static ulong ReadUInt64(byte[] bytes, int offset) {
+            return ReadUInt32(bytes, offset) | ((ulong)ReadUInt32(bytes, offset + 4) << 32);
+        }
+
         private readonly struct CompoundDirectoryEntry {
-            internal CompoundDirectoryEntry(uint index, string name, byte objectType, uint leftSiblingId, uint rightSiblingId, uint childId) {
+            internal CompoundDirectoryEntry(uint index, string name, byte objectType, uint leftSiblingId, uint rightSiblingId, uint childId, ulong streamSize) {
                 Index = index;
                 Name = name;
                 ObjectType = objectType;
                 LeftSiblingId = leftSiblingId;
                 RightSiblingId = rightSiblingId;
                 ChildId = childId;
+                StreamSize = streamSize;
             }
 
             internal uint Index { get; }
@@ -3963,6 +4047,8 @@ namespace OfficeIMO.Tests {
             internal uint RightSiblingId { get; }
 
             internal uint ChildId { get; }
+
+            internal ulong StreamSize { get; }
         }
 
         private static void SetOpenXmlErrorCell(ExcelSheet sheet, string reference, string errorText) {

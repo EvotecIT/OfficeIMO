@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteUInt16(header, 32, 0x0006);
             WriteUInt32(header, 44, unchecked((uint)fatSectorCount));
             WriteUInt32(header, 48, unchecked((uint)directorySector));
-            WriteUInt32(header, 56, 4096);
+            WriteUInt32(header, 56, 0);
             WriteUInt32(header, 60, EndOfChain);
             WriteUInt32(header, 68, EndOfChain);
 
@@ -104,7 +104,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     directoryLinks.GetRightSibling(i),
                     EndOfChain,
                     startSector,
-                    unchecked((ulong)stream.PaddedBytes.Length));
+                    unchecked((ulong)stream.OriginalLength));
                 startSector += unchecked((uint)(stream.PaddedBytes.Length / SectorSize));
             }
 
