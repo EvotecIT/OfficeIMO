@@ -98,6 +98,10 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
             return true;
         }
 
+        if (TryGetDeclarationFrame(out frame)) {
+            return true;
+        }
+
         return TryGetDelimitedFrame("<?", "?>", RawHtmlFrameKind.ProcessingInstruction, out frame);
     }
 
@@ -156,6 +160,39 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         }
 
         frame = new RawHtmlFrame(kind, openingStart, openingEnd, bodyStart, bodyEnd, closingStart, closingEnd);
+        return true;
+    }
+
+    private bool TryGetDeclarationFrame(out RawHtmlFrame frame) {
+        frame = default;
+
+        var openingStart = Html.IndexOf("<!", StringComparison.Ordinal);
+        if (openingStart < 0) {
+            return false;
+        }
+
+        var bodyStart = openingStart + 2;
+        if (bodyStart >= Html.Length || !IsAsciiUppercaseLetter(Html[bodyStart])) {
+            return false;
+        }
+
+        var closingEnd = FindTagEnd(openingStart);
+        if (closingEnd < 0 || closingEnd <= bodyStart) {
+            return false;
+        }
+
+        var openingEnd = openingStart + 1;
+        var bodyEnd = closingEnd - 1;
+
+        while (bodyStart <= bodyEnd && Html[bodyStart] == '\n') {
+            bodyStart++;
+        }
+
+        while (bodyEnd >= bodyStart && Html[bodyEnd] == '\n') {
+            bodyEnd--;
+        }
+
+        frame = new RawHtmlFrame(RawHtmlFrameKind.Declaration, openingStart, openingEnd, bodyStart, bodyEnd, closingEnd, closingEnd);
         return true;
     }
 
@@ -253,8 +290,12 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     private static bool IsAsciiLetter(char ch) =>
         ch is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
 
+    private static bool IsAsciiUppercaseLetter(char ch) =>
+        ch is >= 'A' and <= 'Z';
+
     private enum RawHtmlFrameKind {
         Tag,
+        Declaration,
         CData,
         ProcessingInstruction
     }

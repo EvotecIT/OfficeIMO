@@ -963,6 +963,23 @@
     ]
   },
   {
+    "example": 181,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw", "Paragraph"],
+    "markdown": "<!DOCTYPE html>\nokay\n",
+    "html": "<!DOCTYPE html>\n<p>okay</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "CommonMark declaration HTML blocks expose declaration marker and body tokens",
+        "line": 1,
+        "column": 6,
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawBody"],
+        "expectedDeepestKind": "HtmlRawBody",
+        "expectedNearestBlockKind": "HtmlRaw"
+      }
+    ]
+  },
+  {
     "example": 182,
     "section": "HTML blocks",
     "topLevelKinds": ["HtmlRaw", "Paragraph"],

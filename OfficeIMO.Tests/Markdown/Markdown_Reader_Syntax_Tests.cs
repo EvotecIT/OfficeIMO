@@ -5299,6 +5299,37 @@ x < y
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Html_Raw_Declaration_Frame() {
+        const string markdown = "<!DOCTYPE html>";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var rawHtml = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.HtmlRaw, rawHtml.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 15), rawHtml.SourceSpan);
+        Assert.Collection(
+            rawHtml.Children,
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawOpeningMarker, node.Kind);
+                Assert.Equal("<!", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 2), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawBody, node.Kind);
+                Assert.Equal("DOCTYPE html", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 14), node.SourceSpan);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.HtmlRawClosingMarker, node.Kind);
+                Assert.Equal(">", node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 15, 1, 15), node.SourceSpan);
+            });
+        Assert.Equal(MarkdownSyntaxKind.HtmlRawOpeningMarker, result.FindDeepestNodeAtPosition(1, 2)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.HtmlRawBody, result.FindDeepestNodeAtPosition(1, 6)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.HtmlRawClosingMarker, result.FindDeepestNodeAtPosition(1, 15)!.Kind);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Toc_Placeholder_Block() {
         const string markdown = "[TOC]";
 
