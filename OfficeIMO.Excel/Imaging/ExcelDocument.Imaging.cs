@@ -17,6 +17,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                if (selected == null && sheet.Hidden && !resolved.IncludeHiddenSheets) {
+                    continue;
+                }
+
                 var sheetOptions = new ExcelWorksheetImageExportOptions {
                     Scale = resolved.Scale,
                     BackgroundColor = resolved.BackgroundColor,
@@ -89,6 +93,7 @@ namespace OfficeIMO.Excel {
                 DefaultColumnWidthPixels = source.DefaultColumnWidthPixels,
                 DefaultRowHeightPixels = source.DefaultRowHeightPixels,
                 SheetNames = source.SheetNames,
+                IncludeHiddenSheets = source.IncludeHiddenSheets,
                 HeaderFooterDateTime = source.HeaderFooterDateTime ?? DateTime.Now,
                 UseWorksheetPrintAreas = source.UseWorksheetPrintAreas,
                 SplitWorksheetsByManualPageBreaks = source.SplitWorksheetsByManualPageBreaks

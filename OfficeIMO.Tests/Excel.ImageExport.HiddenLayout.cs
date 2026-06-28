@@ -123,6 +123,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorkbook_DefaultImageExportSkipsHiddenSheetsUnlessRequested() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet visible = document.AddWorkSheet("Visible");
+            ExcelSheet hidden = document.AddWorkSheet("Hidden");
+            ExcelSheet veryHidden = document.AddWorkSheet("VeryHidden");
+            visible.CellValue(1, 1, "Visible");
+            hidden.CellValue(1, 1, "Hidden");
+            veryHidden.CellValue(1, 1, "Very hidden");
+            hidden.SetHidden(true);
+            veryHidden.SetVeryHidden(true);
+
+            IReadOnlyList<OfficeImageExportResult> defaultResults = document.ExportImages(OfficeImageExportFormat.Svg);
+            IReadOnlyList<OfficeImageExportResult> explicitResults = document.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorkbookImageExportOptions {
+                SheetNames = new[] { "Hidden" }
+            });
+            IReadOnlyList<OfficeImageExportResult> includeHiddenResults = document.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorkbookImageExportOptions {
+                IncludeHiddenSheets = true
+            });
+
+            Assert.Equal(new[] { "Visible" }, defaultResults.Select(result => result.Name).ToArray());
+            OfficeImageExportResult explicitResult = Assert.Single(explicitResults);
+            Assert.Equal("Hidden", explicitResult.Name);
+            Assert.Equal(new[] { "Visible", "Hidden", "VeryHidden" }, includeHiddenResults.Select(result => result.Name).ToArray());
+        }
+
+        [Fact]
         public void ExcelWorksheet_DefaultImageExportUsesVisibleExtentsAcrossHiddenColumns() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

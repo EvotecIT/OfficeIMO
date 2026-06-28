@@ -119,7 +119,7 @@ public static class ExcelHtmlConverterExtensions {
             : rowCount;
         if (rowCount == 0 || columnCount == 0 || maxRows == 0 || !SheetHasUsedCells(sheet, firstRow, firstColumn, rowCount, columnCount)) {
             body.Append("<p class=\"officeimo-muted\">No used cells.</p>");
-            AppendSheetFeatureInventory(body, sheet);
+            AppendSheetFeatureInventory(body, sheet, GetFeatureInventoryWindow(firstRow, maxRows, rowCount));
             body.Append("</section>");
             return;
         }
@@ -162,7 +162,7 @@ public static class ExcelHtmlConverterExtensions {
                 .Append(" exported.</p>");
         }
 
-        AppendSheetFeatureInventory(body, sheet);
+        AppendSheetFeatureInventory(body, sheet, GetFeatureInventoryWindow(firstRow, maxRows, rowCount));
         body.Append("</section>");
     }
 
@@ -178,11 +178,46 @@ public static class ExcelHtmlConverterExtensions {
         return false;
     }
 
-    private static void AppendSheetFeatureInventory(StringBuilder body, ExcelSheet sheet) {
-        AppendFormulaInventory(body, sheet.GetFormulaCells());
-        AppendCommentInventory(body, sheet.GetComments());
-        AppendChartInventory(body, sheet.Charts);
-        AppendImageInventory(body, sheet.Images);
+    private static void AppendSheetFeatureInventory(StringBuilder body, ExcelSheet sheet, ExportedRowWindow? rowWindow) {
+        AppendFormulaInventory(body, FilterFormulas(sheet.GetFormulaCells(), rowWindow));
+        AppendCommentInventory(body, FilterComments(sheet.GetComments(), rowWindow));
+        AppendChartInventory(body, FilterCharts(sheet.Charts, rowWindow));
+        AppendImageInventory(body, FilterImages(sheet.Images, rowWindow));
+    }
+
+    private static ExportedRowWindow? GetFeatureInventoryWindow(int firstRow, int exportedRows, int totalRows) =>
+        exportedRows < totalRows ? new ExportedRowWindow(firstRow, exportedRows) : null;
+
+    private static IReadOnlyList<ExcelFormulaCellInfo> FilterFormulas(IReadOnlyList<ExcelFormulaCellInfo> formulas, ExportedRowWindow? rowWindow) {
+        if (rowWindow == null || formulas.Count == 0) {
+            return formulas;
+        }
+
+        return formulas.Where(formula => rowWindow.Value.ContainsCellReference(formula.CellReference)).ToList();
+    }
+
+    private static IReadOnlyList<ExcelCommentInfo> FilterComments(IReadOnlyList<ExcelCommentInfo> comments, ExportedRowWindow? rowWindow) {
+        if (rowWindow == null || comments.Count == 0) {
+            return comments;
+        }
+
+        return comments.Where(comment => rowWindow.Value.ContainsRow(comment.Row)).ToList();
+    }
+
+    private static IEnumerable<ExcelChart> FilterCharts(IEnumerable<ExcelChart> charts, ExportedRowWindow? rowWindow) {
+        if (rowWindow == null) {
+            return charts;
+        }
+
+        return charts.Where(chart => !chart.TryGetSnapshot(out ExcelChartSnapshot snapshot) || rowWindow.Value.ContainsRow(snapshot.RowIndex));
+    }
+
+    private static IEnumerable<ExcelImage> FilterImages(IEnumerable<ExcelImage> images, ExportedRowWindow? rowWindow) {
+        if (rowWindow == null) {
+            return images;
+        }
+
+        return images.Where(image => image.HasAbsoluteAnchor || rowWindow.Value.ContainsRow(image.RowIndex));
     }
 
     private static void AppendFormulaInventory(StringBuilder body, IReadOnlyList<ExcelFormulaCellInfo> formulas) {
@@ -686,5 +721,22 @@ public static class ExcelHtmlConverterExtensions {
         if (column <= 0) {
             column = 1;
         }
+    }
+
+    private readonly struct ExportedRowWindow {
+        private readonly int _firstRow;
+        private readonly int _lastRow;
+
+        public ExportedRowWindow(int firstRow, int exportedRows) {
+            _firstRow = firstRow;
+            _lastRow = exportedRows <= 0 ? firstRow - 1 : firstRow + exportedRows - 1;
+        }
+
+        public bool ContainsCellReference(string cellReference) {
+            ParseCellReference(cellReference, out int row, out _);
+            return ContainsRow(row);
+        }
+
+        public bool ContainsRow(int row) => row >= _firstRow && row <= _lastRow;
     }
 }

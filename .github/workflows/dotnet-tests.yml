@@ -200,6 +200,131 @@ jobs:
             dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx "${coverage_args[@]}"
           }
 
+          audit_officeimo_test_partitions() {
+            local list_file
+            list_file="$(mktemp)"
+            echo ""
+            echo "== OfficeIMO.Tests: partition coverage audit =="
+            dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity quiet --framework ${{ matrix.framework }} --list-tests --filter "${test_filter}" > "${list_file}"
+            python3 - "${list_file}" <<'PY'
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8", errors="replace") as handle:
+              discovered = [line.strip() for line in handle if line.startswith("    ") and line.strip()]
+
+          def has(name, text):
+              return text in name
+
+          pdf_visual = (
+              "OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests",
+              "OfficeIMO.Tests.Pdf.PdfInspectorTests",
+              "OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests",
+              "OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests",
+              "OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests",
+          )
+          excel_core_exclusions = (
+              "OfficeIMO.Tests.Excel.Test_ExcelChart",
+              "OfficeIMO.Tests.Excel.SharedChartRenderer",
+              "OfficeIMO.Tests.Excel.Test_ClosedXmlGap",
+              "OfficeIMO.Tests.Excel.LegacyXls",
+              "OfficeIMO.Tests.Excel.PerformanceReview",
+              "OfficeIMO.Tests.Excel.SaveAsPdf",
+              "OfficeIMO.Tests.Excel.ToPdfDocument",
+              "OfficeIMO.Tests.Excel.PdfTables",
+              "OfficeIMO.Tests.Excel.ReportWorkflow",
+              "OfficeIMO.Tests.Excel.Reader",
+              "OfficeIMO.Tests.Excel.ReadRows",
+              "OfficeIMO.Tests.Excel.ExcelHttp",
+          )
+          simple_partitions = (
+              "OfficeIMO.Tests.MarkdownMoreCasesTests",
+              "OfficeIMO.Tests.MarkdownRoundTripTests",
+              "OfficeIMO.Tests.MarkdownSuite",
+              "OfficeIMO.Tests.ExcelImageExport",
+              "OfficeIMO.Tests.Excel.Test_ExcelChart",
+              "OfficeIMO.Tests.Excel.SharedChartRenderer",
+              "OfficeIMO.Tests.Excel.Test_ClosedXmlGap",
+              "OfficeIMO.Tests.Excel.LegacyXls",
+              "OfficeIMO.Tests.Excel.PerformanceReview",
+              "OfficeIMO.Tests.Excel.Reader",
+              "OfficeIMO.Tests.Excel.ReadRows",
+              "OfficeIMO.Tests.Excel.ExcelHttp",
+              "OfficeIMO.Tests.Excel.SaveAsPdf",
+              "OfficeIMO.Tests.Excel.ToPdfDocument",
+              "OfficeIMO.Tests.Excel.PdfTables",
+              "OfficeIMO.Tests.Excel.ReportWorkflow",
+              "OfficeIMO.Tests.ExcelCellAndRangeTests",
+              "OfficeIMO.Tests.ExcelDelimitedImportTests",
+              "OfficeIMO.Tests.ExcelFluent",
+              "OfficeIMO.Tests.ExcelInfoBuilderTests",
+              "OfficeIMO.Tests.ExcelNamed",
+              "OfficeIMO.Tests.ExcelPowerShell",
+              "OfficeIMO.Tests.ExcelRange",
+              "OfficeIMO.Tests.ExcelRows",
+              "OfficeIMO.Tests.ExcelSheet",
+              "OfficeIMO.Tests.ExcelCoerce",
+              "OfficeIMO.Tests.Word",
+              "OfficeIMO.Tests.ImageEmbedderTests",
+              "OfficeIMO.Tests.ParagraphParent",
+              "OfficeIMO.Tests.WordParagraph",
+              "OfficeIMO.Tests.WordTable",
+              "OfficeIMO.Tests.Ordering.WordOrderPreservationTests",
+              "OfficeIMO.Tests.Rtf",
+              "OfficeIMO.Tests.Html",
+              "OfficeIMO.Tests.HtmlDomTraversalTests",
+              "OfficeIMO.Tests.HtmlTableMergeTests",
+              "OfficeIMO.Tests.MarkdownHtmlToMarkdownTests",
+              "OfficeIMO.Tests.Drawing",
+              "OfficeIMO.Tests.Visio",
+              "OfficeIMO.Tests.PowerPoint",
+              "OfficeIMO.Tests.Reader",
+              "OfficeIMO.Tests.Markup",
+              "OfficeIMO.Tests.Google",
+              "OfficeIMO.Tests.PackageDependency",
+              "OfficeIMO.Tests.Workflow",
+              "OfficeIMO.Tests.OfficeEncryption",
+              "OfficeIMO.Tests.ConversionOptionsTests",
+              "OfficeIMO.Tests.ConverterExceptions",
+              "OfficeIMO.Tests.FontResolverTests",
+              "OfficeIMO.Tests.Markdown.",
+              "OfficeIMO.Tests.Markdown_",
+              "OfficeIMO.Tests.MarkdownTranscript",
+              "OfficeIMO.Tests.MarkdownReaderBomTests",
+              "OfficeIMO.Tests.MarkdownBlankLinesTests",
+              "OfficeIMO.Tests.MarkdownDefinitionLinesTests",
+              "OfficeIMO.Tests.MarkdownOrderedListsTests",
+              "OfficeIMO.Tests.MarkdownStreamingPreviewTests",
+              "OfficeIMO.Tests.Markdown_Renderer",
+              "OfficeIMO.Tests.Markdown_IntelligenceX",
+              "OfficeIMO.Tests.PathCrossPlatform",
+          )
+
+          def assigned(name):
+              if any(has(name, item) for item in simple_partitions):
+                  return True
+              if any(has(name, item) for item in pdf_visual):
+                  return True
+              if has(name, "OfficeIMO.Tests.Pdf.") and not any(has(name, item) for item in pdf_visual):
+                  return True
+              if has(name, "OfficeIMO.Tests.MarkdownPdfTests") or has(name, "OfficeIMO.Tests.PdfReadLayoutSmokeTests"):
+                  return True
+              if has(name, "OfficeIMO.Tests.Excel.") and not any(has(name, item) for item in excel_core_exclusions):
+                  return True
+              return False
+
+          unassigned = [name for name in discovered if not assigned(name)]
+          if unassigned:
+              print("OfficeIMO.Tests partition audit found tests that are not assigned to a named CI slice:")
+              for name in unassigned:
+                  print(f"  {name}")
+              sys.exit(1)
+
+          print(f"OfficeIMO.Tests partition audit covered {len(discovered)} discovered tests.")
+          PY
+            rm -f "${list_file}"
+          }
+
+          audit_officeimo_test_partitions
           run_officeimo_tests "markdown-large" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownMoreCasesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownRoundTripTests' true
           run_officeimo_tests "markdown-suite" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownSuite'
           run_officeimo_tests "pdf-visual-inspector" 'FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfInspectorTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests'
@@ -211,7 +336,7 @@ jobs:
           run_officeimo_tests "excel-performance" 'FullyQualifiedName~OfficeIMO.Tests.Excel.PerformanceReview'
           run_officeimo_tests "excel-reader" 'FullyQualifiedName~OfficeIMO.Tests.Excel.Reader|FullyQualifiedName~OfficeIMO.Tests.Excel.ReadRows|FullyQualifiedName~OfficeIMO.Tests.Excel.ExcelHttp'
           run_officeimo_tests "excel-save-pdf" 'FullyQualifiedName~OfficeIMO.Tests.Excel.SaveAsPdf|FullyQualifiedName~OfficeIMO.Tests.Excel.ToPdfDocument|FullyQualifiedName~OfficeIMO.Tests.Excel.PdfTables|FullyQualifiedName~OfficeIMO.Tests.Excel.ReportWorkflow'
-          run_officeimo_tests "excel-named-typed" 'FullyQualifiedName~OfficeIMO.Tests.ExcelCellAndRangeTests|FullyQualifiedName~OfficeIMO.Tests.ExcelDelimitedImportTests|FullyQualifiedName~OfficeIMO.Tests.ExcelFluent|FullyQualifiedName~OfficeIMO.Tests.ExcelNamed|FullyQualifiedName~OfficeIMO.Tests.ExcelPowerShell|FullyQualifiedName~OfficeIMO.Tests.ExcelRange|FullyQualifiedName~OfficeIMO.Tests.ExcelRows|FullyQualifiedName~OfficeIMO.Tests.ExcelSheet|FullyQualifiedName~OfficeIMO.Tests.ExcelCoerce'
+          run_officeimo_tests "excel-named-typed" 'FullyQualifiedName~OfficeIMO.Tests.ExcelCellAndRangeTests|FullyQualifiedName~OfficeIMO.Tests.ExcelDelimitedImportTests|FullyQualifiedName~OfficeIMO.Tests.ExcelFluent|FullyQualifiedName~OfficeIMO.Tests.ExcelInfoBuilderTests|FullyQualifiedName~OfficeIMO.Tests.ExcelNamed|FullyQualifiedName~OfficeIMO.Tests.ExcelPowerShell|FullyQualifiedName~OfficeIMO.Tests.ExcelRange|FullyQualifiedName~OfficeIMO.Tests.ExcelRows|FullyQualifiedName~OfficeIMO.Tests.ExcelSheet|FullyQualifiedName~OfficeIMO.Tests.ExcelCoerce'
           run_officeimo_tests "excel-core" '(FullyQualifiedName~OfficeIMO.Tests.Excel.&FullyQualifiedName!~OfficeIMO.Tests.Excel.Test_ExcelChart&FullyQualifiedName!~OfficeIMO.Tests.Excel.SharedChartRenderer&FullyQualifiedName!~OfficeIMO.Tests.Excel.Test_ClosedXmlGap&FullyQualifiedName!~OfficeIMO.Tests.Excel.LegacyXls&FullyQualifiedName!~OfficeIMO.Tests.Excel.PerformanceReview&FullyQualifiedName!~OfficeIMO.Tests.Excel.SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Excel.ToPdfDocument&FullyQualifiedName!~OfficeIMO.Tests.Excel.PdfTables&FullyQualifiedName!~OfficeIMO.Tests.Excel.ReportWorkflow&FullyQualifiedName!~OfficeIMO.Tests.Excel.Reader&FullyQualifiedName!~OfficeIMO.Tests.Excel.ReadRows&FullyQualifiedName!~OfficeIMO.Tests.Excel.ExcelHttp)'
           run_officeimo_tests "word" 'FullyQualifiedName~OfficeIMO.Tests.Word|FullyQualifiedName~OfficeIMO.Tests.ImageEmbedderTests|FullyQualifiedName~OfficeIMO.Tests.ParagraphParent|FullyQualifiedName~OfficeIMO.Tests.WordParagraph|FullyQualifiedName~OfficeIMO.Tests.WordTable|FullyQualifiedName~OfficeIMO.Tests.Ordering.WordOrderPreservationTests'
           run_officeimo_tests "rtf" 'FullyQualifiedName~OfficeIMO.Tests.Rtf'

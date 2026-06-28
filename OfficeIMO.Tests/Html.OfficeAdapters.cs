@@ -553,6 +553,41 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_MaxRowsPerSheetFiltersFeatureInventoryToExportedRows() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorkSheet("Limited");
+        sheet.CellValue(1, 1, "Name");
+        sheet.CellValue(1, 2, "Amount");
+        sheet.CellValue(2, 1, "Visible");
+        sheet.CellFormula(2, 2, "1+1");
+        sheet.SetComment(2, 1, "Visible comment", "OfficeIMO");
+        sheet.AddChartFromRange("A1:B2", row: 2, column: 4, widthPixels: 160, heightPixels: 90, type: ExcelChartType.ColumnClustered, title: "Visible Chart");
+        sheet.AddImage(2, 3, OnePixelPng, widthPixels: 24, heightPixels: 24, name: "Visible Image", altText: "Visible image");
+        sheet.CellValue(4, 1, "Truncated");
+        sheet.CellFormula(4, 2, "99+1");
+        sheet.CellValue(5, 1, "Also truncated");
+        sheet.CellValue(5, 2, 25);
+        sheet.SetComment(4, 1, "Truncated comment", "OfficeIMO");
+        sheet.AddChartFromRange("A4:B5", row: 4, column: 4, widthPixels: 160, heightPixels: 90, type: ExcelChartType.ColumnClustered, title: "Truncated Chart");
+        sheet.AddImage(4, 3, OnePixelPng, widthPixels: 24, heightPixels: 24, name: "Truncated Image", altText: "Truncated image");
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
+            MaxRowsPerSheet = 2
+        });
+
+        Assert.Contains("Rows truncated: 2 of 5 exported.", html, StringComparison.Ordinal);
+        Assert.Contains("1+1", html, StringComparison.Ordinal);
+        Assert.Contains("Visible comment", html, StringComparison.Ordinal);
+        Assert.Contains("Visible Chart", html, StringComparison.Ordinal);
+        Assert.Contains("Visible image", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("99+1", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Truncated comment", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Truncated Chart", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Truncated image", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExcelHtml_LoadPreservesRawTextCellWhitespace() {
         string value = "A  B\n C";
         string html = """

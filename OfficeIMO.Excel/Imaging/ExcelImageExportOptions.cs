@@ -126,9 +126,15 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed class ExcelWorkbookImageExportOptions : ExcelImageExportOptions {
         /// <summary>
-        /// Optional list of worksheet names to export. When omitted, all worksheets are exported.
+        /// Optional list of worksheet names to export. When omitted, visible worksheets are exported.
         /// </summary>
         public IReadOnlyList<string>? SheetNames { get; set; }
+
+        /// <summary>
+        /// When true and <see cref="SheetNames"/> is omitted, workbook image export includes hidden and very hidden worksheets.
+        /// Explicitly named worksheets are exported regardless of visibility.
+        /// </summary>
+        public bool IncludeHiddenSheets { get; set; }
 
         /// <summary>
         /// Timestamp used for dynamic Excel header/footer date and time fields in worksheet image exports.
