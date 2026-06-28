@@ -39,6 +39,39 @@ public class Markdown_Native_Block_Source_Field_Tests {
     }
 
     [Fact]
+    public void Heading_SourceFields_Use_Atx_Closing_Marker_Token_Span() {
+        const string markdown = "  ###   Trimmed ###   \n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var heading = Assert.IsType<MarkdownNativeHeadingBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), heading.LevelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 15), heading.TextSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 17, 1, 19), heading.ClosingMarkerSourceSpan);
+        Assert.Equal("###", heading.ClosingMarkerText);
+
+        var closingMarker = Assert.Single(native.EnumerateBlockSourceFields("closingMarker"));
+        Assert.Same(heading, closingMarker.Block);
+        Assert.Equal("###", closingMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 17, 1, 19), closingMarker.SourceSpan);
+
+        var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 18));
+        Assert.Equal("closingMarker", found.Name);
+        Assert.Equal(closingMarker.Value, found.Value);
+        Assert.Equal(closingMarker.SourceSpan, found.SourceSpan);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "closingMarker"
+            && field.Value == "###"
+            && field.SourceSpan.StartColumn == 17
+            && field.SourceSpan.EndColumn == 19);
+
+        var edited = native.CreateReplaceEdit(closingMarker, "##").Apply(native.SourceMarkdown);
+        Assert.Equal("  ###   Trimmed ##", edited.TrimEnd('\r', '\n', ' '));
+    }
+
+    [Fact]
     public void Footnote_Label_SourceField_Uses_Indented_Label_Token_Span() {
         const string markdown = """
   [^note]: Footnote body

@@ -12,6 +12,8 @@ public enum MarkdownSyntaxKind {
     HeadingLevel,
     /// <summary>Heading text payload.</summary>
     HeadingText,
+    /// <summary>Optional closing ATX heading marker token.</summary>
+    HeadingClosingMarker,
     /// <summary>Plain text inline node.</summary>
     InlineText,
     /// <summary>Inline code span node.</summary>

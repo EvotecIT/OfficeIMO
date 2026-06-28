@@ -19,6 +19,14 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     internal int TextSourceEndLineOffset { get; private set; }
     internal int TextSourceStartColumn { get; private set; }
     internal int TextSourceEndColumn { get; private set; }
+    internal bool HasClosingMarkerSourceInfo { get; private set; }
+    internal int ClosingMarkerSourceLineOffset { get; private set; }
+    internal int ClosingMarkerSourceStartColumn { get; private set; }
+    internal int ClosingMarkerSourceEndColumn { get; private set; }
+    /// <summary>Source span for an optional ATX closing marker token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; private set; }
+    /// <summary>Exact optional ATX closing marker token when parsed from markdown.</summary>
+    public string? ClosingMarkerText { get; private set; }
     /// <summary>
     /// Creates a new heading block.
     /// </summary>
@@ -61,6 +69,15 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         if (TextSourceEndLineOffset == TextSourceLineOffset) {
             TextSourceEndColumn = Math.Max(TextSourceStartColumn, TextSourceEndColumn);
         }
+    }
+
+    internal void SetClosingMarkerSourceInfo(int lineOffset, int startColumn, int endColumn, MarkdownSourceSpan? sourceSpan = null) {
+        HasClosingMarkerSourceInfo = true;
+        ClosingMarkerSourceLineOffset = Math.Max(0, lineOffset);
+        ClosingMarkerSourceStartColumn = Math.Max(1, startColumn);
+        ClosingMarkerSourceEndColumn = Math.Max(ClosingMarkerSourceStartColumn, endColumn);
+        ClosingMarkerSourceSpan = sourceSpan;
+        ClosingMarkerText = new string('#', ClosingMarkerSourceEndColumn - ClosingMarkerSourceStartColumn + 1);
     }
 
     /// <inheritdoc />
@@ -111,6 +128,14 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
             GetTextSourceSpan(span),
             Inlines.RenderMarkdown()));
 
+        var closingMarkerSpan = GetClosingMarkerSourceSpan(span);
+        if (closingMarkerSpan.HasValue) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.HeadingClosingMarker,
+                closingMarkerSpan,
+                ClosingMarkerText ?? "#"));
+        }
+
         return new MarkdownSyntaxNode(MarkdownSyntaxKind.Heading, span, Inlines.RenderMarkdown(), nodes, this);
     }
 
@@ -159,5 +184,23 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         }
 
         return Inlines.SourceSpan;
+    }
+
+    private MarkdownSourceSpan? GetClosingMarkerSourceSpan(MarkdownSourceSpan? span) {
+        if (ClosingMarkerSourceSpan.HasValue) {
+            return ClosingMarkerSourceSpan;
+        }
+
+        if (!HasClosingMarkerSourceInfo || !span.HasValue || !span.Value.StartColumn.HasValue) {
+            return null;
+        }
+
+        var value = span.Value;
+        ClosingMarkerSourceSpan = new MarkdownSourceSpan(
+            value.StartLine + ClosingMarkerSourceLineOffset,
+            ClosingMarkerSourceStartColumn,
+            value.StartLine + ClosingMarkerSourceLineOffset,
+            ClosingMarkerSourceEndColumn);
+        return ClosingMarkerSourceSpan;
     }
 }

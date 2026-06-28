@@ -8,7 +8,7 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public static partial class MarkdownReader {
     private static bool IsAtxHeading(string line, out int level, out string text) {
-        return TryGetAtxHeadingContentRange(line, out level, out _, out _, out text);
+        return TryGetAtxHeadingContentRange(line, out level, out _, out _, out text, out _, out _);
     }
 
     private static bool TryGetSetextHeadingUnderlineLevel(string line, out int level) {
@@ -29,10 +29,19 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryGetAtxHeadingContentRange(string line, out int level, out int contentStart, out int contentEnd, out string text) {
+    private static bool TryGetAtxHeadingContentRange(
+        string line,
+        out int level,
+        out int contentStart,
+        out int contentEnd,
+        out string text,
+        out int closingMarkerStart,
+        out int closingMarkerEnd) {
         level = 0;
         contentStart = 0;
         contentEnd = 0;
+        closingMarkerStart = -1;
+        closingMarkerEnd = -1;
         text = string.Empty;
         if (string.IsNullOrEmpty(line)) return false;
 
@@ -60,10 +69,13 @@ public static partial class MarkdownReader {
         while (contentEnd > contentStart && char.IsWhiteSpace(line[contentEnd - 1])) contentEnd--;
 
         int closingStart = contentEnd;
+        int closingEnd = contentEnd;
         while (closingStart > contentStart && line[closingStart - 1] == '#') closingStart--;
         if (closingStart < contentEnd) {
             int beforeClosing = closingStart - 1;
             if (beforeClosing < contentStart || char.IsWhiteSpace(line[beforeClosing])) {
+                closingMarkerStart = closingStart;
+                closingMarkerEnd = closingEnd;
                 contentEnd = beforeClosing < contentStart ? contentStart : beforeClosing;
                 while (contentEnd > contentStart && char.IsWhiteSpace(line[contentEnd - 1])) contentEnd--;
             }

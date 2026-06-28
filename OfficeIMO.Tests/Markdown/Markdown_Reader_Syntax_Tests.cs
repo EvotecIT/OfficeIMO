@@ -462,6 +462,39 @@ Heading Title
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Atx_Heading_Closing_Marker_Token_Syntax() {
+        const string markdown = "  ###   Trimmed ###   ";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var heading = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
+        Assert.Equal("Trimmed", heading.Literal);
+
+        Assert.Collection(
+            heading.Children,
+            level => {
+                Assert.Equal(MarkdownSyntaxKind.HeadingLevel, level.Kind);
+                Assert.Equal("3", level.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), level.SourceSpan);
+            },
+            text => {
+                Assert.Equal(MarkdownSyntaxKind.HeadingText, text.Kind);
+                Assert.Equal("Trimmed", text.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 15), text.SourceSpan);
+            },
+            closingMarker => {
+                Assert.Equal(MarkdownSyntaxKind.HeadingClosingMarker, closingMarker.Kind);
+                Assert.Equal("###", closingMarker.Literal);
+                Assert.Equal(new MarkdownSourceSpan(1, 17, 1, 19), closingMarker.SourceSpan);
+                Assert.Null(closingMarker.AssociatedObject);
+            });
+
+        Assert.Equal(MarkdownSyntaxKind.HeadingClosingMarker, result.FindDeepestNodeAtPosition(1, 18)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.Heading, result.FindNearestBlockContainingSpan(heading.Children[2].SourceSpan!.Value)!.Kind);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Preserves_Heading_Inline_Markup_In_Literals() {
         const string markdown = "# **Heading** `Text`";
 

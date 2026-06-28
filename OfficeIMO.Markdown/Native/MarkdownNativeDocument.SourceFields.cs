@@ -177,6 +177,10 @@ public sealed partial class MarkdownNativeDocument {
         if (heading.TextSourceSpan.HasValue) {
             yield return new MarkdownNativeBlockSourceField("text", heading.Text, heading.TextSourceSpan.Value, heading);
         }
+
+        if (heading.ClosingMarkerSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField("closingMarker", heading.ClosingMarkerText, heading.ClosingMarkerSourceSpan.Value, heading);
+        }
     }
 
     private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateCodeFields(MarkdownNativeCodeBlock code) {
