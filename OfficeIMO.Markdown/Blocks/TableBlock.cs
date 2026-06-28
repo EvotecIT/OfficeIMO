@@ -149,7 +149,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
 
         int columnCount = GetEffectiveColumnCount();
         bool useStructuredCells = StructuredContentSignature.HasValue && StructuredContentSignature.Value == ComputeContentSignature();
-        Func<string?, string> escapeCell = CellsContainRenderedMarkdown ? EscapeRenderedMarkdownCell : EscapeMarkdownCell;
+        Func<string?, string> escapeCell = (useStructuredCells || CellsContainRenderedMarkdown) ? EscapeRenderedMarkdownCell : EscapeMarkdownCell;
 
         if (Headers.Count > 0) {
             var sb = new StringBuilder();

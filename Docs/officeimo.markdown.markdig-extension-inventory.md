@@ -22,8 +22,8 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | Metric | Count |
 | --- | ---: |
 | Markdig extension-family rows | 33 |
-| Covered | 1 |
-| Partial | 14 |
+| Covered | 2 |
+| Partial | 13 |
 | Intentional | 4 |
 | Gap | 14 |
 
@@ -55,7 +55,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 | `UseMathematics` | Mathematics | `Partial` | OfficeIMO has math-oriented semantic/rendering paths through host options, but not Markdig math delimiter parity. | Define math parser ownership and compare inline/block math fixtures. |
 | `UseMediaLinks` | Media links | `Partial` | OfficeIMO has image/media document semantics, but not Markdig media-link provider parity. | Route shortcut media providers through renderer/host extension seams if in scope. |
 | `UseNonAsciiNoEscape` | Non-ASCII no-escape rendering | `Intentional` | OfficeIMO keeps escaping behavior profile/renderer-owned instead of mirroring this Markdig switch. | Document any renderer escaping profile differences when output claims broaden. |
-| `UsePipeTables` | Pipe tables | `Partial` | OfficeIMO has GFM pipe-table parsing, AST/source mapping, and tracked GFM fixtures, but broader table corpus coverage is still open. | Expand GFM/Markdig table fixtures for malformed delimiters and containers. |
+| `UsePipeTables` | Pipe tables | `Covered` | OfficeIMO has GFM pipe-table parsing with delimiter-row validation, escaped/code-span pipe handling, body-row padding/truncation, container ownership, semantic table/cell AST, syntax/native source spans, GitHub HTML rendering, and aligned Markdown writer roundtrip proof. | Keep the GFM table fixture corpus and table-cell source-edit coverage current. |
 | `UsePragmaLines` | Pragma lines | `Gap` | No pragma-line parser or semantic contract exists. | Leave out of core unless a concrete document workflow needs it. |
 | `UsePreciseSourceLocation` | Precise source location | `Partial` | OfficeIMO has syntax/source/native spans and source slices, but full lossless trivia/original mapping is still partial. | Continue Phase 3 source-map and trivia work before claiming parity. |
 | `UseReferralLinks` | Referral links | `Gap` | No Markdig-compatible referral-link renderer policy exists. | Treat as renderer policy work if requested. |

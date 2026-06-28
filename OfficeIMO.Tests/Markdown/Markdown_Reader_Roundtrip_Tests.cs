@@ -97,6 +97,38 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void MarkdownWriter_Renders_Aligned_Pipe_Table_And_Roundtrips_With_Gfm_Profile() {
+            var table = new TableBlock();
+            table.Headers.Add("Name|Title");
+            table.Headers.Add("Path \\ Server");
+            table.Alignments.Add(ColumnAlignment.Left);
+            table.Alignments.Add(ColumnAlignment.Right);
+            table.Rows.Add(new[] { "Cell | one", "C: \\ Share" });
+            table.Rows.Add(new[] { "Only first cell" });
+
+            var doc = MarkdownDoc.Create().Add(table);
+
+            string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
+
+            const string expected = "| Name\\|Title | Path \\\\ Server |\n" +
+                                    "| :--- | ---: |\n" +
+                                    "| Cell \\| one | C: \\\\ Share |\n" +
+                                    "| Only first cell |  |";
+            Assert.Equal(expected, markdown.TrimEnd());
+
+            var parsed = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+            var parsedTable = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
+
+            Assert.Equal(new[] { "Name|Title", "Path \\ Server" }, parsedTable.Headers);
+            Assert.Equal(new[] { ColumnAlignment.Left, ColumnAlignment.Right }, parsedTable.Alignments);
+            Assert.Equal("Cell | one", InlinePlainText.Extract(parsedTable.RowInlines[0][0]));
+            Assert.Equal("C: \\ Share", InlinePlainText.Extract(parsedTable.RowInlines[0][1]));
+            Assert.Equal("Only first cell", InlinePlainText.Extract(parsedTable.RowInlines[1][0]));
+            Assert.Equal(string.Empty, InlinePlainText.Extract(parsedTable.RowInlines[1][1]));
+            Assert.Equal(markdown.TrimEnd(), parsed.ToMarkdown().Replace("\r\n", "\n").TrimEnd());
+        }
+
+        [Fact]
         public void Reader_Roundtrips_Linked_Image_Block() {
             var md = MarkdownDoc.Create()
                 .Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", linkUrl: "https://example.com/docs", linkTitle: "Documentation"))
