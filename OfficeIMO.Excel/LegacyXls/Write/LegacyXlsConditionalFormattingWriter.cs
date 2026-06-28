@@ -179,13 +179,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return false;
             }
 
-            if (!TryEncodeFormula(formulas[0], sheetIndex, formulaNameIndex, out byte[] formula1Tokens, out reason)) {
+            CellRange anchorRange = ranges[0];
+            if (!TryEncodeFormula(formulas[0], sheetIndex, formulaNameIndex, anchorRange, out byte[] formula1Tokens, out reason)) {
                 return false;
             }
 
             byte[] formula2Tokens = Array.Empty<byte>();
             if (formulas.Count > 1) {
-                if (!TryEncodeFormula(formulas[1], sheetIndex, formulaNameIndex, out formula2Tokens, out reason)) {
+                if (!TryEncodeFormula(formulas[1], sheetIndex, formulaNameIndex, anchorRange, out formula2Tokens, out reason)) {
                     return false;
                 }
             }
@@ -349,6 +350,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             string formula,
             int sheetIndex,
             LegacyXlsFormulaNameIndex formulaNameIndex,
+            CellRange anchorRange,
             out byte[] tokens,
             out string? reason) {
             tokens = Array.Empty<byte>();
@@ -358,7 +360,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return false;
             }
 
-            if (!LegacyXlsFormulaEncoder.TryEncode(formula, formulaNameIndex, sheetIndex, out tokens, out string? formulaReason)) {
+            if (!LegacyXlsFormulaEncoder.TryEncodeWithRelativeReferenceAnchor(
+                formula,
+                formulaNameIndex,
+                sheetIndex,
+                anchorRange.FirstRow,
+                anchorRange.FirstColumn,
+                out tokens,
+                out string? formulaReason)) {
                 reason = "conditional formatting formulas outside the native XLS formula subset: " + formulaReason;
                 return false;
             }

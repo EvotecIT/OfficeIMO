@@ -48,6 +48,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return true;
             }
 
+            if (TryEncodeReferenceOperator(text, nameIndex, formulaSheetIndex, out tokens)) {
+                return true;
+            }
+
             return TryEncodeReferenceOperand(text, nameIndex, formulaSheetIndex, out tokens);
         }
 
@@ -90,6 +94,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             int parenthesisDepth = 0;
             int arrayDepth = 0;
             int rangeOperatorIndex = -1;
+            int intersectionOperatorIndex = -1;
+            int intersectionOperatorLength = 0;
 
             for (int i = formulaText.Length - 1; i >= 0; i--) {
                 char ch = formulaText[i];
@@ -164,14 +170,21 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     int previous = PreviousNonWhiteSpaceIndex(formulaText, start);
                     int next = NextNonWhiteSpaceIndex(formulaText, i);
                     if (previous >= 0 && next >= 0 && !IsReferenceOperatorBoundary(formulaText[previous]) && !IsReferenceOperatorBoundary(formulaText[next])) {
-                        operatorIndex = start;
-                        operatorLength = i - start + 1;
-                        operatorToken = 0x0f;
-                        return true;
+                        if (intersectionOperatorIndex < 0) {
+                            intersectionOperatorIndex = start;
+                            intersectionOperatorLength = i - start + 1;
+                        }
                     }
 
                     i = start;
                 }
+            }
+
+            if (intersectionOperatorIndex >= 0) {
+                operatorIndex = intersectionOperatorIndex;
+                operatorLength = intersectionOperatorLength;
+                operatorToken = 0x0f;
+                return true;
             }
 
             if (rangeOperatorIndex >= 0) {

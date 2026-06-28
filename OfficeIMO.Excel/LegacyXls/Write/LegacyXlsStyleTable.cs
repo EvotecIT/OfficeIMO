@@ -465,6 +465,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 throw new NotSupportedException($"Native XLS saving does not yet support {reason ?? "cell border colors"} for Open XML style index {openXmlStyleIndex}.");
             }
 
+            if (colorIndex == 0x7fff) {
+                colorIndex = 0x0040;
+            }
+
             if (colorIndex > 0x007f) {
                 throw new NotSupportedException($"Native XLS saving does not yet support cell border {role} color indexes above 0x007F for Open XML style index {openXmlStyleIndex}.");
             }

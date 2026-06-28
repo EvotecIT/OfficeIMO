@@ -17,6 +17,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Compound;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Excel.LegacyXls.Write;
 using System.Globalization;
 using System.Threading.Tasks;
 using Xunit;
@@ -1621,6 +1622,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NativeSave_WritesAutomaticBorderColorWhenOpenXmlBorderOmitsColor() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet sheet = document.AddWorkSheet("AutoBorder");
+                    sheet.CellValue(1, 1, "Automatic border");
+                    sheet.CellAt(1, 1).SetBorder(DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Thin);
+
+                    document.Save(xlsOutputPath);
+                }
+
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                result.EnsureNoImportErrors();
+                Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
+
+                LegacyXlsWorkbook workbook = result.Workbook;
+                LegacyXlsWorksheet worksheet = Assert.Single(workbook.Worksheets);
+                LegacyXlsCell borderedCell = Assert.Single(worksheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
+                LegacyXlsBorder? border = workbook.CellFormats[borderedCell.StyleIndex].Border;
+                Assert.NotNull(border);
+                Assert.Equal((byte)1, border.LeftStyle);
+                Assert.Equal((byte)1, border.RightStyle);
+                Assert.Equal((byte)1, border.TopStyle);
+                Assert.Equal((byte)1, border.BottomStyle);
+                Assert.Equal((ushort)0x0040, border.LeftColorIndex);
+                Assert.Equal((ushort)0x0040, border.RightColorIndex);
+                Assert.Equal((ushort)0x0040, border.TopColorIndex);
+                Assert.Equal((ushort)0x0040, border.BottomColorIndex);
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_NativeSave_WritesCellProtectionStyles() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
@@ -3183,6 +3221,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NativeSave_RebasesDataValidationFormulaReferencesToSqrefAnchor() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet sheet = document.AddWorkSheet("Validation");
+                    sheet.CellValue(1, 1, "Header");
+                    sheet.CellValue(2, 1, 1d);
+                    sheet.ValidationCustomFormula("A2:A5", "A2>0");
+
+                    document.Save(xlsOutputPath);
+                }
+
+                byte[] payload = Assert.Single(GetBiffRecordPayloads(xlsOutputPath, 0x01be));
+                byte[] formulaTokens = ReadDataValidationFormulaTokens(payload, formulaIndex: 0);
+                Assert.Contains((byte)0x4c, formulaTokens);
+                Assert.DoesNotContain((byte)0x44, formulaTokens);
+
+                int refOffset = Array.IndexOf(formulaTokens, (byte)0x4c);
+                Assert.True(refOffset >= 0);
+                Assert.Equal((ushort)0, ReadUInt16(formulaTokens, refOffset + 1));
+                Assert.Equal((ushort)0xc000, ReadUInt16(formulaTokens, refOffset + 3));
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_NativeSave_WritesWorksheetConditionalFormatting() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
@@ -3247,6 +3315,35 @@ namespace OfficeIMO.Tests {
                 ExcelConditionalFormattingInfo projectedExpression = Assert.Single(projectedSheet.GetConditionalFormattingRules("D2:D5"));
                 Assert.Equal("Expression", projectedExpression.Type);
                 Assert.Equal(new[] { "D2>0" }, projectedExpression.Formulas);
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NativeSave_RebasesConditionalFormattingFormulaReferencesToSqrefAnchor() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet sheet = document.AddWorkSheet("Conditions");
+                    sheet.CellValue(2, 1, 1d);
+                    sheet.AddConditionalFormulaRule("A2:A5", "A2>0");
+
+                    document.Save(xlsOutputPath);
+                }
+
+                byte[] payload = Assert.Single(GetBiffRecordPayloads(xlsOutputPath, 0x01b1));
+                byte[] formulaTokens = ReadConditionalFormattingFormulaTokens(payload, formulaIndex: 0);
+                Assert.Contains((byte)0x4c, formulaTokens);
+                Assert.DoesNotContain((byte)0x44, formulaTokens);
+
+                int refOffset = Array.IndexOf(formulaTokens, (byte)0x4c);
+                Assert.True(refOffset >= 0);
+                Assert.Equal((ushort)0, ReadUInt16(formulaTokens, refOffset + 1));
+                Assert.Equal((ushort)0xc000, ReadUInt16(formulaTokens, refOffset + 3));
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
@@ -3548,6 +3645,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_FormulaEncoder_UsesUnionBeforeIntersectionForReferenceOperators() {
+            Assert.True(
+                LegacyXlsFormulaEncoder.TryEncode("A1,B1 C1", LegacyXlsFormulaNameIndex.Empty, formulaSheetIndex: -1, out byte[] tokens, out string? reason),
+                reason);
+
+            Assert.Equal((byte)0x10, tokens[tokens.Length - 1]);
+            Assert.Contains((byte)0x0f, tokens);
+        }
+
+        [Fact]
         public void LegacyXls_NativeSave_BlocksFutureFunctionAliasesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("future-function aliases", (document, sheet) => {
                 sheet.CellValue(1, 1, "North");
@@ -3686,6 +3793,52 @@ namespace OfficeIMO.Tests {
                 AssertSharedFormulaCell(worksheet, 2, 25d, "A2+5");
                 AssertSharedFormulaCell(worksheet, 3, 35d, "A3+5");
                 Assert.Equal(3, result.ImportReport.FormulaTokensByContext["SharedFormula"]);
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NativeSave_RebasesSharedFormula3DReferences() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                    ExcelSheet data = document.AddWorkSheet("Data");
+                    data.CellValue(1, 1, 10d);
+                    data.CellValue(2, 1, 20d);
+
+                    ExcelSheet sheet = document.AddWorkSheet("Shared Formula");
+                    sheet.CellValue(1, 2, 15d);
+                    sheet.CellValue(2, 2, 25d);
+                    sheet.CellFormula(1, 2, "Data!A1+5");
+                    sheet.CellFormula(2, 2, "Data!A2+5");
+
+                    OpenXmlCell sharedRoot = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
+                        .Single(cell => string.Equals(cell.CellReference?.Value, "B1", StringComparison.OrdinalIgnoreCase));
+                    sharedRoot.CellFormula!.FormulaType = DocumentFormat.OpenXml.Spreadsheet.CellFormulaValues.Shared;
+                    sharedRoot.CellFormula.SharedIndex = 0U;
+                    sharedRoot.CellFormula.Reference = "B1:B2";
+
+                    OpenXmlCell sharedFollower = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
+                        .Single(cell => string.Equals(cell.CellReference?.Value, "B2", StringComparison.OrdinalIgnoreCase));
+                    sharedFollower.CellFormula!.FormulaType = DocumentFormat.OpenXml.Spreadsheet.CellFormulaValues.Shared;
+                    sharedFollower.CellFormula.SharedIndex = 0U;
+                    sharedFollower.CellFormula.Text = string.Empty;
+
+                    document.Save(xlsOutputPath);
+                }
+
+                byte[] sharedFormulaPayload = Assert.Single(GetBiffRecordPayloads(xlsOutputPath, 0x04bc));
+                byte[] formulaTokens = new byte[ReadUInt16(sharedFormulaPayload, 8)];
+                Buffer.BlockCopy(sharedFormulaPayload, 10, formulaTokens, 0, formulaTokens.Length);
+
+                int ref3dOffset = Array.IndexOf(formulaTokens, (byte)0x5a);
+                Assert.True(ref3dOffset >= 0);
+                Assert.Equal((ushort)0, ReadUInt16(formulaTokens, ref3dOffset + 3));
+                Assert.Equal((ushort)0xffff, ReadUInt16(formulaTokens, ref3dOffset + 5));
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
@@ -3870,6 +4023,47 @@ namespace OfficeIMO.Tests {
             Assert.True(cell.IsFormula);
             Assert.Equal(expectedValue, Assert.IsType<double>(cell.Value));
             Assert.Equal(expectedFormulaText, cell.FormulaText);
+        }
+
+        private static byte[] ReadDataValidationFormulaTokens(byte[] payload, int formulaIndex) {
+            Assert.True(formulaIndex == 0 || formulaIndex == 1);
+            int offset = 4;
+            for (int i = 0; i < 4; i++) {
+                ushort characterCount = ReadUInt16(payload, offset);
+                byte flags = payload[offset + 2];
+                offset += 3 + (((flags & 0x01) != 0) ? characterCount * 2 : characterCount);
+            }
+
+            byte[] firstFormula = ReadDataValidationFormulaTokens(payload, ref offset);
+            if (formulaIndex == 0) {
+                return firstFormula;
+            }
+
+            return ReadDataValidationFormulaTokens(payload, ref offset);
+        }
+
+        private static byte[] ReadDataValidationFormulaTokens(byte[] payload, ref int offset) {
+            ushort tokenLength = ReadUInt16(payload, offset);
+            offset += 4;
+            byte[] tokens = new byte[tokenLength];
+            Buffer.BlockCopy(payload, offset, tokens, 0, tokens.Length);
+            offset += tokenLength;
+            return tokens;
+        }
+
+        private static byte[] ReadConditionalFormattingFormulaTokens(byte[] payload, int formulaIndex) {
+            Assert.True(formulaIndex == 0 || formulaIndex == 1);
+            ushort firstFormulaLength = ReadUInt16(payload, 2);
+            ushort secondFormulaLength = ReadUInt16(payload, 4);
+            int offset = 6;
+            if (formulaIndex == 1) {
+                offset += firstFormulaLength;
+            }
+
+            ushort tokenLength = formulaIndex == 0 ? firstFormulaLength : secondFormulaLength;
+            byte[] tokens = new byte[tokenLength];
+            Buffer.BlockCopy(payload, offset, tokens, 0, tokens.Length);
+            return tokens;
         }
 
         private static IReadOnlyList<byte[]> GetBiffRecordPayloads(string xlsPath, ushort recordType) {

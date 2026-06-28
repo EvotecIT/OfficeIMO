@@ -138,7 +138,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             string formula1 = validation.GetFirstChild<Formula1>()?.Text ?? string.Empty;
             string formula2 = validation.GetFirstChild<Formula2>()?.Text ?? string.Empty;
-            if (!TryEncodeFormula(type, formula1, required: type != DataValidationValues.None, sheetIndex, formulaNameIndex, out byte[] formula1Tokens, out reason)) {
+
+            if (!TryParseRanges(validation.SequenceOfReferences?.InnerText, out IReadOnlyList<CellRange> ranges, out reason)) {
+                return false;
+            }
+
+            ushort anchorRow = ranges[0].FirstRow;
+            ushort anchorColumn = ranges[0].FirstColumn;
+            if (!TryEncodeFormula(type, formula1, required: type != DataValidationValues.None, sheetIndex, formulaNameIndex, anchorRow, anchorColumn, out byte[] formula1Tokens, out reason)) {
                 return false;
             }
 
@@ -147,11 +154,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 && type != DataValidationValues.Custom
                 && (validation.Operator?.Value == DataValidationOperatorValues.Between
                     || validation.Operator?.Value == DataValidationOperatorValues.NotBetween);
-            if (!TryEncodeFormula(type, formula2, required: requiresSecondFormula, sheetIndex, formulaNameIndex, out byte[] formula2Tokens, out reason)) {
-                return false;
-            }
-
-            if (!TryParseRanges(validation.SequenceOfReferences?.InnerText, out IReadOnlyList<CellRange> ranges, out reason)) {
+            if (!TryEncodeFormula(type, formula2, required: requiresSecondFormula, sheetIndex, formulaNameIndex, anchorRow, anchorColumn, out byte[] formula2Tokens, out reason)) {
                 return false;
             }
 
@@ -302,6 +305,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             bool required,
             int sheetIndex,
             LegacyXlsFormulaNameIndex formulaNameIndex,
+            ushort anchorRow,
+            ushort anchorColumn,
             out byte[] tokens,
             out string? reason) {
             tokens = Array.Empty<byte>();
@@ -318,7 +323,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             string? formulaReason;
             bool encoded = type == DataValidationValues.List
                 ? LegacyXlsFormulaEncoder.TryEncodeListSource(formula, formulaNameIndex, sheetIndex, out tokens, out formulaReason)
-                : LegacyXlsFormulaEncoder.TryEncode(formula, formulaNameIndex, sheetIndex, out tokens, out formulaReason);
+                : LegacyXlsFormulaEncoder.TryEncodeWithRelativeReferenceAnchor(formula, formulaNameIndex, sheetIndex, anchorRow, anchorColumn, out tokens, out formulaReason);
             if (!encoded) {
                 reason = "data validation formulas outside the native XLS formula subset: " + formulaReason;
                 return false;

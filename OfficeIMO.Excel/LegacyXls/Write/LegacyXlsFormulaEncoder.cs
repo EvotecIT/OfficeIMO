@@ -97,6 +97,141 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return TryEncode(normalized, nameIndex, formulaSheetIndex, out tokens, out reason);
         }
 
+        internal static bool TryEncodeWithRelativeReferenceAnchor(
+            string formulaText,
+            LegacyXlsFormulaNameIndex nameIndex,
+            int formulaSheetIndex,
+            ushort anchorRow,
+            ushort anchorColumn,
+            out byte[] tokens,
+            out string? reason) {
+            if (!TryEncode(formulaText, nameIndex, formulaSheetIndex, out tokens, out reason)) {
+                return false;
+            }
+
+            if (!TryConvertReferencesToRelative(tokens, anchorRow, anchorColumn, out byte[] relativeTokens)) {
+                reason = "Formula contains references outside the BIFF8 relative-reference subset.";
+                tokens = Array.Empty<byte>();
+                return false;
+            }
+
+            tokens = relativeTokens;
+            return true;
+        }
+
+        internal static bool TryConvertReferencesToRelative(byte[] formulaTokens, ushort anchorRow, ushort anchorColumn, out byte[] relativeTokens) {
+            relativeTokens = (byte[])formulaTokens.Clone();
+            int offset = 0;
+            while (offset < relativeTokens.Length) {
+                int tokenStart = offset;
+                byte token = relativeTokens[offset++];
+                switch (token) {
+                    case 0x03:
+                    case 0x04:
+                    case 0x05:
+                    case 0x06:
+                    case 0x07:
+                    case 0x08:
+                    case 0x09:
+                    case 0x0a:
+                    case 0x0b:
+                    case 0x0c:
+                    case 0x0d:
+                    case 0x0e:
+                    case 0x0f:
+                    case 0x10:
+                    case 0x11:
+                    case 0x12:
+                    case 0x13:
+                    case 0x14:
+                    case 0x15:
+                    case 0x16:
+                        break;
+                    case 0x17:
+                        if (offset + 2 > relativeTokens.Length) return false;
+                        int characterCount = relativeTokens[offset];
+                        byte flags = relativeTokens[offset + 1];
+                        offset += checked(2 + (((flags & 0x01) != 0) ? characterCount * 2 : characterCount));
+                        break;
+                    case 0x19:
+                        offset += 3;
+                        break;
+                    case 0x1c:
+                        offset += 1;
+                        break;
+                    case 0x1d:
+                        offset += 1;
+                        break;
+                    case 0x1e:
+                        offset += 2;
+                        break;
+                    case 0x1f:
+                        offset += 8;
+                        break;
+                    case 0x39:
+                        offset += 6;
+                        break;
+                    case 0x41:
+                        offset += 2;
+                        break;
+                    case 0x42:
+                        offset += 3;
+                        break;
+                    case 0x43:
+                        offset += 4;
+                        break;
+                    case 0x44:
+                    case 0x4c:
+                        if (offset + 4 > relativeTokens.Length) return false;
+                        relativeTokens[tokenStart] = 0x4c;
+                        ConvertRelativeReference(relativeTokens, offset, offset + 2, anchorRow, anchorColumn);
+                        offset += 4;
+                        break;
+                    case 0x45:
+                    case 0x4d:
+                        if (offset + 8 > relativeTokens.Length) return false;
+                        relativeTokens[tokenStart] = 0x4d;
+                        ConvertRelativeReference(relativeTokens, offset, offset + 4, anchorRow, anchorColumn);
+                        ConvertRelativeReference(relativeTokens, offset + 2, offset + 6, anchorRow, anchorColumn);
+                        offset += 8;
+                        break;
+                    case 0x5a:
+                        if (offset + 6 > relativeTokens.Length) return false;
+                        ConvertRelativeReference(relativeTokens, offset + 2, offset + 4, anchorRow, anchorColumn);
+                        offset += 6;
+                        break;
+                    case 0x5b:
+                        if (offset + 10 > relativeTokens.Length) return false;
+                        ConvertRelativeReference(relativeTokens, offset + 2, offset + 6, anchorRow, anchorColumn);
+                        ConvertRelativeReference(relativeTokens, offset + 4, offset + 8, anchorRow, anchorColumn);
+                        offset += 10;
+                        break;
+                    default:
+                        return false;
+                }
+
+                if (offset > relativeTokens.Length) {
+                    return false;
+                }
+            }
+
+            return offset == relativeTokens.Length;
+        }
+
+        private static void ConvertRelativeReference(byte[] tokens, int rowOffset, int columnOffset, ushort anchorRow, ushort anchorColumn) {
+            ushort row = ReadUInt16(tokens, rowOffset);
+            ushort columnBits = ReadUInt16(tokens, columnOffset);
+            if ((columnBits & 0x8000) != 0) {
+                WriteUInt16(tokens, rowOffset, unchecked((ushort)(short)(row - anchorRow)));
+            }
+
+            if ((columnBits & 0x4000) != 0) {
+                short relativeColumnOffset = unchecked((short)((columnBits & 0x3fff) - anchorColumn));
+                ushort updatedColumnBits = (ushort)((columnBits & 0xc000) | (((ushort)relativeColumnOffset) & 0x3fff));
+                WriteUInt16(tokens, columnOffset, updatedColumnBits);
+            }
+        }
+
         private static string NormalizeFormula(string formulaText) {
             string normalized = formulaText.Trim();
             return normalized.StartsWith("=", StringComparison.Ordinal)
@@ -1194,6 +1329,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private static void WriteUInt16(byte[] buffer, int offset, ushort value) {
             buffer[offset] = (byte)(value & 0xff);
             buffer[offset + 1] = (byte)((value >> 8) & 0xff);
+        }
+
+        private static ushort ReadUInt16(byte[] buffer, int offset) {
+            return unchecked((ushort)(buffer[offset] | (buffer[offset + 1] << 8)));
         }
 
         private static void WriteUInt32(byte[] buffer, int offset, uint value) {
