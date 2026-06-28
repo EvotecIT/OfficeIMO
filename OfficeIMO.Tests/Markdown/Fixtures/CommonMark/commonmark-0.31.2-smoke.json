@@ -1094,12 +1094,12 @@
   {
     "example": 190,
     "section": "HTML blocks",
-    "topLevelKinds": ["HtmlRaw"],
+    "topLevelKinds": ["HtmlRaw", "HtmlRaw", "HtmlRaw", "HtmlRaw", "HtmlRaw"],
     "markdown": "<table>\n\n<tr>\n\n<td>\nHi\n</td>\n\n</tr>\n\n</table>\n",
     "html": "<table>\n<tr>\n<td>\nHi\n</td>\n</tr>\n</table>\n",
     "syntaxAssertions": [
       {
-        "description": "CommonMark table HTML blocks may preserve blank-line separated sections as one raw block",
+        "description": "CommonMark table HTML blocks split at blank lines while preserving raw body source mapping",
         "line": 6,
         "column": 1,
         "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawBody"],

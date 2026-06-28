@@ -61,6 +61,7 @@ public sealed class MarkdownReaderOptions {
             Footnotes = false,
             StandaloneImageBlocks = false,
             StrictListIndentation = true,
+            PreserveHtmlBlockBlankLineContent = false,
             AutolinkUrls = false,
             AutolinkWwwUrls = false,
             AutolinkEmails = false
@@ -84,6 +85,7 @@ public sealed class MarkdownReaderOptions {
             Footnotes = true,
             StandaloneImageBlocks = false,
             StrictListIndentation = true,
+            PreserveHtmlBlockBlankLineContent = false,
             SingleTildeStrikethrough = true,
             AutolinkUrls = true,
             AutolinkBareSchemeUrls = true,
@@ -178,6 +180,12 @@ public sealed class MarkdownReaderOptions {
     /// or render it verbatim.
     /// </summary>
     public bool HtmlBlocks { get; set; } = true;
+    /// <summary>
+    /// When <c>true</c>, selected OfficeIMO-friendly raw HTML containers such as <c>table</c> and <c>details</c>
+    /// can continue across blank lines until their matching closing tag. Strict CommonMark/GFM profiles disable
+    /// this because CommonMark HTML block types 6 and 7 end at the next blank line.
+    /// </summary>
+    public bool PreserveHtmlBlockBlankLineContent { get; set; } = true;
     /// <summary>Enable paragraph parsing and basic inlines.</summary>
     public bool Paragraphs { get; set; } = true;
 

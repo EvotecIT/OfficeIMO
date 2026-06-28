@@ -25,6 +25,7 @@ public static partial class MarkdownReader {
             Footnotes = source.Footnotes,
             PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions,
             HtmlBlocks = source.HtmlBlocks,
+            PreserveHtmlBlockBlankLineContent = source.PreserveHtmlBlockBlankLineContent,
             Paragraphs = source.Paragraphs,
             AutolinkUrls = source.AutolinkUrls,
             AutolinkBareSchemeUrls = source.AutolinkBareSchemeUrls,

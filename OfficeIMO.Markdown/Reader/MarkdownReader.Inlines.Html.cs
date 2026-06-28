@@ -196,101 +196,154 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        int position = start + 1;
-        if (position >= text.Length) {
+        if (TryConsumeRawInlineHtmlComment(text, start, sourceMap, out consumed, out html)) {
+            return true;
+        }
+
+        if (TryConsumeRawInlineHtmlProcessingInstruction(text, start, sourceMap, out consumed, out html)) {
+            return true;
+        }
+
+        if (TryConsumeRawInlineHtmlDeclaration(text, start, sourceMap, out consumed, out html)) {
+            return true;
+        }
+
+        if (TryConsumeRawInlineHtmlCData(text, start, sourceMap, out consumed, out html)) {
+            return true;
+        }
+
+        string candidate = text.Substring(start);
+        if (!HtmlBlockParser.TryParseHtmlTag(candidate, out _, out _, out int endIndex)) {
             return false;
         }
 
-        if (text[position] == '/') {
-            position++;
-            if (position >= text.Length || !IsAsciiLetter(text[position])) {
-                return false;
-            }
-
-            position = ConsumeHtmlTagName(text, position);
-            while (position < text.Length && IsHtmlAttributeWhitespace(text[position])) {
-                position++;
-            }
-
-            if (position < text.Length && text[position] == '>') {
-                consumed = position - start + 1;
-                html = RestoreRawInlineHtmlLiteral(text, start, consumed, sourceMap);
-                return true;
-            }
-
-            return false;
-        }
-
-        if (!IsAsciiLetter(text[position])) {
-            return false;
-        }
-
-        position = ConsumeHtmlTagName(text, position);
-        if (position >= text.Length) {
-            return false;
-        }
-
-        char next = text[position];
-        if (next != '>' && next != '/' && !IsHtmlAttributeWhitespace(next)) {
-            return false;
-        }
-
-        char quote = '\0';
-        while (position < text.Length) {
-            char ch = text[position];
-
-            if (quote != '\0') {
-                if (ch == quote) {
-                    quote = '\0';
-                }
-
-                position++;
-                continue;
-            }
-
-            if (ch == '"' || ch == '\'') {
-                quote = ch;
-                position++;
-                continue;
-            }
-
-            if (ch == '\r' || ch == '\n' || ch == '<') {
-                return false;
-            }
-
-            if (ch == '>') {
-                consumed = position - start + 1;
-                html = RestoreRawInlineHtmlLiteral(text, start, consumed, sourceMap);
-                return true;
-            }
-
-            position++;
-        }
-
-        return false;
+        consumed = endIndex + 1;
+        html = RestoreRawInlineHtmlLiteral(text, start, consumed, sourceMap);
+        return true;
     }
+
+    private static bool TryConsumeRawInlineHtmlComment(
+        string text,
+        int start,
+        MarkdownInlineSourceMap? sourceMap,
+        out int consumed,
+        out string html) {
+        consumed = 0;
+        html = string.Empty;
+
+        if (!StartsWithOrdinal(text, start, "<!--")) {
+            return false;
+        }
+
+        if (StartsWithOrdinal(text, start, "<!-->")) {
+            consumed = 5;
+            html = RestoreRawInlineHtmlLiteral(text, start, consumed, sourceMap);
+            return true;
+        }
+
+        if (StartsWithOrdinal(text, start, "<!--->")) {
+            consumed = 6;
+            html = RestoreRawInlineHtmlLiteral(text, start, consumed, sourceMap);
+            return true;
+        }
+
+        int end = text.IndexOf("-->", start + 4, StringComparison.Ordinal);
+        if (end < 0) {
+            return false;
+        }
+
+        consumed = end - start + 3;
+        html = RestoreRawInlineHtmlLiteral(text, start, consumed, sourceMap);
+        return true;
+    }
+
+    private static bool TryConsumeRawInlineHtmlProcessingInstruction(
+        string text,
+        int start,
+        MarkdownInlineSourceMap? sourceMap,
+        out int consumed,
+        out string html) {
+        consumed = 0;
+        html = string.Empty;
+
+        if (!StartsWithOrdinal(text, start, "<?")) {
+            return false;
+        }
+
+        int end = text.IndexOf("?>", start + 2, StringComparison.Ordinal);
+        if (end < 0) {
+            return false;
+        }
+
+        consumed = end - start + 2;
+        html = RestoreRawInlineHtmlLiteral(text, start, consumed, sourceMap);
+        return true;
+    }
+
+    private static bool TryConsumeRawInlineHtmlDeclaration(
+        string text,
+        int start,
+        MarkdownInlineSourceMap? sourceMap,
+        out int consumed,
+        out string html) {
+        consumed = 0;
+        html = string.Empty;
+
+        if (start + 2 >= text.Length || text[start] != '<' || text[start + 1] != '!' || !IsAsciiUppercaseLetter(text[start + 2])) {
+            return false;
+        }
+
+        int end = text.IndexOf('>', start + 3);
+        if (end < 0) {
+            return false;
+        }
+
+        consumed = end - start + 1;
+        html = RestoreRawInlineHtmlLiteral(text, start, consumed, sourceMap);
+        return true;
+    }
+
+    private static bool TryConsumeRawInlineHtmlCData(
+        string text,
+        int start,
+        MarkdownInlineSourceMap? sourceMap,
+        out int consumed,
+        out string html) {
+        consumed = 0;
+        html = string.Empty;
+
+        if (!StartsWithOrdinal(text, start, "<![CDATA[")) {
+            return false;
+        }
+
+        int end = text.IndexOf("]]>", start + 9, StringComparison.Ordinal);
+        if (end < 0) {
+            return false;
+        }
+
+        consumed = end - start + 3;
+        html = RestoreRawInlineHtmlLiteral(text, start, consumed, sourceMap);
+        return true;
+    }
+
+    private static bool StartsWithOrdinal(string text, int start, string value) =>
+        !string.IsNullOrEmpty(text)
+        && !string.IsNullOrEmpty(value)
+        && start >= 0
+        && start <= text.Length - value.Length
+        && string.Compare(text, start, value, 0, value.Length, StringComparison.Ordinal) == 0;
 
     private static string RestoreRawInlineHtmlLiteral(string text, int start, int consumed, MarkdownInlineSourceMap? sourceMap) =>
         sourceMap?.RestoreSourceLineBreaks(text, start, consumed) ?? text.Substring(start, consumed);
 
-    private static int ConsumeHtmlTagName(string text, int position) {
-        while (position < text.Length) {
-            char ch = text[position];
-            if (!IsAsciiLetter(ch) && !char.IsDigit(ch) && ch != '-') {
-                break;
-            }
-
-            position++;
-        }
-
-        return position;
-    }
-
     private static bool IsAsciiLetter(char value) =>
         (value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z');
 
+    private static bool IsAsciiUppercaseLetter(char value) =>
+        value >= 'A' && value <= 'Z';
+
     private static bool IsHtmlAttributeWhitespace(char value) =>
-        value == ' ' || value == '\t';
+        value == ' ' || value == '\t' || value == '\n' || value == '\r' || value == '\f';
 
     private static bool StartsWithExactHtmlTag(string text, int start, string tagName, bool opening) {
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(tagName) || start < 0 || start >= text.Length || text[start] != '<') {

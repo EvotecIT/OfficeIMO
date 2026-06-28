@@ -83,7 +83,7 @@ public static partial class MarkdownReader {
             // Avoid treating angle-bracket autolinks like "<https://...>" as HTML blocks.
             if (TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) return false;
 
-            if (!TryGetHtmlBlockState(trimmed, out var blockState)) return false;
+            if (!TryGetHtmlBlockState(trimmed, options, out var blockState)) return false;
 
             int j = i;
             var segments = new List<string>();
@@ -143,7 +143,7 @@ public static partial class MarkdownReader {
             string trimmed = indent == 0 ? line : line.Substring(indent);
             if (trimmed.Length == 0 || trimmed[0] != '<') return false;
             if (TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) return false;
-            if (!TryGetHtmlBlockState(trimmed, out var blockState)) return false;
+            if (!TryGetHtmlBlockState(trimmed, options, out var blockState)) return false;
 
             return blockState.Kind != HtmlBlockKind.Type7;
         }
@@ -238,7 +238,7 @@ public static partial class MarkdownReader {
             return count;
         }
 
-        private static bool TryGetHtmlBlockState(string trimmedLine, out HtmlBlockState state) {
+        private static bool TryGetHtmlBlockState(string trimmedLine, MarkdownReaderOptions options, out HtmlBlockState state) {
             if (IsType1Start(trimmedLine, out var token)) {
                 state = new HtmlBlockState(HtmlBlockKind.Type1, token, null, allowsBlankLineContinuation: false);
                 return true;
@@ -264,12 +264,12 @@ public static partial class MarkdownReader {
                 return true;
             }
 
-            if (IsType6Start(trimmedLine, out var tagName, out var allowsBlankLines)) {
+            if (IsType6Start(trimmedLine, options, out var tagName, out var allowsBlankLines)) {
                 state = new HtmlBlockState(HtmlBlockKind.Type6, null, tagName, allowsBlankLines);
                 return true;
             }
 
-            if (IsType7Start(trimmedLine, out var type7Tag, out var allowsBlankLinesType7)) {
+            if (IsType7Start(trimmedLine, options, out var type7Tag, out var allowsBlankLinesType7)) {
                 state = new HtmlBlockState(HtmlBlockKind.Type7, null, type7Tag, allowsBlankLinesType7);
                 return true;
             }
@@ -307,7 +307,7 @@ public static partial class MarkdownReader {
             return next is >= 'A' and <= 'Z';
         }
 
-        private static bool IsType6Start(string trimmedLine, out string? tagName, out bool allowsBlankLines) {
+        private static bool IsType6Start(string trimmedLine, MarkdownReaderOptions options, out string? tagName, out bool allowsBlankLines) {
             allowsBlankLines = false;
             tagName = null;
 
@@ -315,14 +315,14 @@ public static partial class MarkdownReader {
             if (!s_BlockTags.Contains(parsedName!)) return false;
 
             if (!isClosing) {
-                allowsBlankLines = AllowsBlankLineContinuation(parsedName!);
+                allowsBlankLines = AllowsBlankLineContinuation(parsedName!, options);
             }
 
             tagName = parsedName;
             return true;
         }
 
-        private static bool IsType7Start(string trimmedLine, out string? tagName, out bool allowsBlankLines) {
+        private static bool IsType7Start(string trimmedLine, MarkdownReaderOptions options, out string? tagName, out bool allowsBlankLines) {
             allowsBlankLines = false;
             if (!TryParseTag(trimmedLine, out tagName, out var isClosing, out var endIndex)) return false;
             if (endIndex < 0) return false;
@@ -331,7 +331,7 @@ public static partial class MarkdownReader {
             if (!isClosing && string.Equals(tagName, "style", StringComparison.OrdinalIgnoreCase)) return false;
             if (!isClosing && string.Equals(tagName, "pre", StringComparison.OrdinalIgnoreCase)) return false;
             if (!IsOnlyWhitespaceAfter(trimmedLine, endIndex + 1)) return false;
-            allowsBlankLines = AllowsBlankLineContinuation(tagName!);
+            allowsBlankLines = AllowsBlankLineContinuation(tagName!, options);
             return true;
         }
 
@@ -345,8 +345,8 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        private static bool AllowsBlankLineContinuation(string tagName) {
-            return s_BlankLineFriendlyTags.Contains(tagName);
+        private static bool AllowsBlankLineContinuation(string tagName, MarkdownReaderOptions options) {
+            return options.PreserveHtmlBlockBlankLineContent && s_BlankLineFriendlyTags.Contains(tagName);
         }
 
         internal static bool IsBlockOrRawTextHtmlTagName(string tagName) {
@@ -473,8 +473,12 @@ public static partial class MarkdownReader {
             index++;
             while (index < line.Length && IsHtmlAttributeNameContinuation(line[index])) index++;
 
+            int afterName = index;
             while (index < line.Length && IsHtmlAttributeWhitespace(line[index])) index++;
-            if (index >= line.Length || line[index] != '=') return true;
+            if (index >= line.Length || line[index] != '=') {
+                index = afterName;
+                return true;
+            }
 
             index++;
             while (index < line.Length && IsHtmlAttributeWhitespace(line[index])) index++;

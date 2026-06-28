@@ -168,6 +168,27 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void CommonMark_Profile_Type6_Table_Block_Ends_At_Blank_Line() {
+            string md = "<table>\n\n  <tr>";
+
+            var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("<table>", html.Html);
+            Assert.IsType<HtmlRawBlock>(doc.Blocks[1]);
+        }
+
+        [Fact]
+        public void OfficeImo_Profile_Type6_Table_Block_Can_Preserve_Blank_Line_Content() {
+            string md = "<table>\n\n  <tr>\n</table>";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = Assert.IsType<HtmlRawBlock>(Assert.Single(doc.Blocks));
+            Assert.Equal("<table>\n\n  <tr>\n</table>", html.Html);
+        }
+
+        [Fact]
         public void Type6_Closing_Tag_Does_Not_Consume_Following_Html() {
             string md = "</div>\n\n<div>\n<p>Next</p>\n</div>";
 
@@ -268,6 +289,39 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var secondParagraph = Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
             var secondText = Assert.IsType<TextRun>(secondParagraph.Inlines.Items[0]);
             Assert.Equal("Paragraph", secondText.Text);
+        }
+
+        [Fact]
+        public void CommonMark_Profile_Preserves_Inline_Raw_Html_Constructs() {
+            string md = "foo <!-- this is a --\ncomment - with hyphens -->\n\nfoo <?php echo $a; ?>\n\nfoo <!ELEMENT br EMPTY>\n\nfoo <![CDATA[>&<]]>";
+
+            string html = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile())
+                .ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
+
+            const string expected = "<p>foo <!-- this is a --\ncomment - with hyphens --></p>\n<p>foo <?php echo $a; ?></p>\n<p>foo <!ELEMENT br EMPTY></p>\n<p>foo <![CDATA[>&<]]></p>\n";
+            Assert.Equal(CommonMarkHtmlComparison.Normalize(expected), CommonMarkHtmlComparison.Normalize(html));
+        }
+
+        [Fact]
+        public void CommonMark_Profile_Rejects_Malformed_Inline_Raw_Html_Tags() {
+            string md = "<a h*#ref=\"hi\">\n\n<a href='bar'title=title>\n\n<bar/ >\n\n<foo bar=baz\nbim!bop />";
+
+            string html = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile())
+                .ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
+
+            const string expected = "<p>&lt;a h*#ref=&quot;hi&quot;&gt;</p>\n<p>&lt;a href='bar'title=title&gt;</p>\n<p>&lt;bar/ &gt;</p>\n<p>&lt;foo bar=baz\nbim!bop /&gt;</p>\n";
+            Assert.Equal(CommonMarkHtmlComparison.Normalize(expected), CommonMarkHtmlComparison.Normalize(html));
+        }
+
+        [Fact]
+        public void CommonMark_Profile_Treats_Comment_Shorthand_As_Raw_Html_Then_Text() {
+            string md = "foo <!--> foo -->\n\nfoo <!---> foo -->";
+
+            string html = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile())
+                .ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
+
+            const string expected = "<p>foo <!--> foo --&gt;</p>\n<p>foo <!---> foo --&gt;</p>\n";
+            Assert.Equal(CommonMarkHtmlComparison.Normalize(expected), CommonMarkHtmlComparison.Normalize(html));
         }
     }
 }
