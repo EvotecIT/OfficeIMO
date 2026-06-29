@@ -108,6 +108,10 @@ namespace OfficeIMO.Word {
         }
 
         private static void ApplyLegacyDocParagraphFormatting(WordParagraph paragraph, LegacyDocParagraphFormat paragraphFormat) {
+            if (paragraphFormat.StyleIndex != null && TryMapBuiltInParagraphStyle(paragraphFormat.StyleIndex.Value, out WordParagraphStyles style)) {
+                paragraph.SetStyle(style);
+            }
+
             if (paragraphFormat.Alignment != null && TryMapParagraphAlignment(paragraphFormat.Alignment.Value, out JustificationValues alignment)) {
                 paragraph.ParagraphAlignment = alignment;
             }
@@ -138,6 +142,44 @@ namespace OfficeIMO.Word {
                 } else {
                     paragraph.IndentationFirstLine = paragraphFormat.FirstLineIndentTwips;
                 }
+            }
+        }
+
+        private static bool TryMapBuiltInParagraphStyle(ushort styleIndex, out WordParagraphStyles style) {
+            switch (styleIndex) {
+                case 0:
+                    style = WordParagraphStyles.Normal;
+                    return true;
+                case 1:
+                    style = WordParagraphStyles.Heading1;
+                    return true;
+                case 2:
+                    style = WordParagraphStyles.Heading2;
+                    return true;
+                case 3:
+                    style = WordParagraphStyles.Heading3;
+                    return true;
+                case 4:
+                    style = WordParagraphStyles.Heading4;
+                    return true;
+                case 5:
+                    style = WordParagraphStyles.Heading5;
+                    return true;
+                case 6:
+                    style = WordParagraphStyles.Heading6;
+                    return true;
+                case 7:
+                    style = WordParagraphStyles.Heading7;
+                    return true;
+                case 8:
+                    style = WordParagraphStyles.Heading8;
+                    return true;
+                case 9:
+                    style = WordParagraphStyles.Heading9;
+                    return true;
+                default:
+                    style = default;
+                    return false;
             }
         }
 

@@ -2,6 +2,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     internal static class LegacyDocParagraphFormattingReader {
         private const int OleSectorSize = 512;
         private const int PapxFkpBxLength = 13;
+        private const ushort SprmPIstd = 0x4600;
         private const ushort SprmPJc = 0x2461;
         private const ushort SprmPJc80 = 0x2403;
         private const ushort SprmPDxaRight = 0x840E;
@@ -115,10 +116,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return LegacyDocParagraphFormat.Default;
             }
 
-            return ReadGrpprl(bytes, grpprlOffset + 2, grpprlLength - 2);
+            ushort styleIndex = LegacyDocFib.ReadUInt16(bytes, grpprlOffset);
+            return ReadGrpprl(bytes, grpprlOffset + 2, grpprlLength - 2, styleIndex == 0 ? null : styleIndex);
         }
 
-        private static LegacyDocParagraphFormat ReadGrpprl(byte[] bytes, int offset, int count) {
+        private static LegacyDocParagraphFormat ReadGrpprl(byte[] bytes, int offset, int count, ushort? baseStyleIndex) {
             int end = offset + count;
             LegacyDocParagraphAlignment? alignment = null;
             int? spacingBeforeTwips = null;
@@ -127,8 +129,19 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? leftIndentTwips = null;
             int? rightIndentTwips = null;
             int? firstLineIndentTwips = null;
+            ushort? styleIndex = baseStyleIndex;
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
+                if (sprm == SprmPIstd) {
+                    if (offset + 4 > end) {
+                        break;
+                    }
+
+                    styleIndex = LegacyDocFib.ReadUInt16(bytes, offset + 2);
+                    offset += 4;
+                    continue;
+                }
+
                 if (sprm == SprmPJc || sprm == SprmPJc80) {
                     if (offset + 3 > end) {
                         break;
@@ -191,6 +204,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             return new LegacyDocParagraphFormat(
                 alignment,
+                styleIndex,
                 spacingBeforeTwips,
                 spacingAfterTwips,
                 lineSpacingTwips,

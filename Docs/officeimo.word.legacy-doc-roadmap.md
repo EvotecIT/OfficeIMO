@@ -226,7 +226,10 @@ just to reserve names.
   - [x] Extend character projection to font family through the DOC font table.
   - [x] Project direct PAPX paragraph alignment into OfficeIMO paragraphs.
   - [x] Project direct PAPX paragraph spacing and indentation into OfficeIMO paragraphs.
-  - [ ] Add paragraph style projection after direct paragraph properties are stable.
+  - [x] Project fixed built-in paragraph styles from PAPX base style indexes and
+    `sprmPIstd` into OfficeIMO paragraph styles.
+  - [ ] Expand paragraph style projection to stylesheet-defined/custom styles
+    after STSH parsing exists.
 - [ ] Add common table projection after paragraph/run projection is stable.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
   separate fixture-backed slices.

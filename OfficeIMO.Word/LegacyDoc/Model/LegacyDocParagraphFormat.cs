@@ -2,6 +2,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     internal readonly struct LegacyDocParagraphFormat : IEquatable<LegacyDocParagraphFormat> {
         internal LegacyDocParagraphFormat(
             LegacyDocParagraphAlignment? alignment,
+            ushort? styleIndex = null,
             int? spacingBeforeTwips = null,
             int? spacingAfterTwips = null,
             int? lineSpacingTwips = null,
@@ -9,6 +10,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? rightIndentTwips = null,
             int? firstLineIndentTwips = null) {
             Alignment = alignment;
+            StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
             SpacingAfterTwips = spacingAfterTwips;
             LineSpacingTwips = lineSpacingTwips;
@@ -18,6 +20,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         internal LegacyDocParagraphAlignment? Alignment { get; }
+
+        internal ushort? StyleIndex { get; }
 
         internal int? SpacingBeforeTwips { get; }
 
@@ -32,6 +36,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal int? FirstLineIndentTwips { get; }
 
         internal bool HasFormatting => Alignment != null
+            || StyleIndex != null
             || SpacingBeforeTwips != null
             || SpacingAfterTwips != null
             || LineSpacingTwips != null
@@ -43,6 +48,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         public bool Equals(LegacyDocParagraphFormat other) {
             return Alignment == other.Alignment
+                && StyleIndex == other.StyleIndex
                 && SpacingBeforeTwips == other.SpacingBeforeTwips
                 && SpacingAfterTwips == other.SpacingAfterTwips
                 && LineSpacingTwips == other.LineSpacingTwips
@@ -58,6 +64,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         public override int GetHashCode() {
             int hash = 17;
             hash = (hash * 31) + Alignment.GetHashCode();
+            hash = (hash * 31) + StyleIndex.GetHashCode();
             hash = (hash * 31) + SpacingBeforeTwips.GetHashCode();
             hash = (hash * 31) + SpacingAfterTwips.GetHashCode();
             hash = (hash * 31) + LineSpacingTwips.GetHashCode();
