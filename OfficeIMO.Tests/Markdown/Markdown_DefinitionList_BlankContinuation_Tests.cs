@@ -59,6 +59,65 @@ lazy continuation
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
+    [Fact]
+    public void DefinitionList_BlankSeparatedNestedListLazyTail_PreservesListItemSoftBreak() {
+        const string markdown = """
+Term
+:   First
+
+    - item
+lazy continuation
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
+        var firstParagraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var nestedList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var item = Assert.Single(nestedList.Items);
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var listSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.UnorderedList);
+        var listItemSyntax = listSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.ListItem);
+        var itemParagraphSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First", firstParagraph.Inlines.RenderMarkdown());
+        Assert.Equal("item\nlazy continuation", item.Content.RenderMarkdown().Replace("\r\n", "\n"));
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.InlineText,
+                MarkdownSyntaxKind.InlineSoftBreak,
+                MarkdownSyntaxKind.InlineText
+            },
+            itemParagraphSyntax.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 17), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 5, 5, 17), listSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 5, 5, 17), listItemSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 7, 5, 17), itemParagraphSyntax.SourceSpan);
+        Assert.Equal("Term\n:   First\n    - item\n      lazy continuation", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        var nativeDefinitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var nativeDefinition = Assert.Single(Assert.Single(nativeDefinitionList.Groups).Definitions);
+        var nativeList = Assert.IsType<MarkdownNativeListBlock>(nativeDefinition.Children[1]);
+        var nativeItem = Assert.Single(nativeList.Items);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(nativeItem.Children));
+
+        Assert.Equal("First\n\n- item\n  lazy continuation", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 17), definitionBody.SourceSpan);
+        Assert.Equal("item\nlazy continuation", nativeParagraph.Text.Replace("\r\n", "\n"));
+        Assert.Contains(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.SoftBreak);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
     private static Markdig.MarkdownPipeline CreateMarkdigDefinitionListPipeline() {
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseDefinitionLists(builder);

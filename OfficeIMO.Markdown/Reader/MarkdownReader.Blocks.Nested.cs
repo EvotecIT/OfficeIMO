@@ -148,7 +148,11 @@ public static partial class MarkdownReader {
                     LooksLikeParagraphLine(collected, collected.Count - 1, options) &&
                     TryNormalizeListLazyContinuationLine(lines, k, options, breakOnAnyOrderedListLine, out var normalizedLazyLine)) {
                     collected.Add(normalizedLazyLine);
-                    sourceLines?.Add(new MarkdownSourceLineSlice(normalizedLazyLine, absoluteLineOffset + k + 1, indentColumns + 1));
+                    sourceLines?.Add(new MarkdownSourceLineSlice(
+                        normalizedLazyLine,
+                        absoluteLineOffset + k + 1,
+                        indentColumns + 1,
+                        isLazyQuoteContinuation: true));
                     k++;
                     continue;
                 }

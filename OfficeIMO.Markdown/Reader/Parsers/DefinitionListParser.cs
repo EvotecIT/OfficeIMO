@@ -567,7 +567,8 @@ public static partial class MarkdownReader {
                 definitionSourceLines.Add(new MarkdownSourceLineSlice(
                     firstContentIndex < line.Length ? line.Substring(firstContentIndex) : string.Empty,
                     absoluteLineOffset + index + 1,
-                    firstContentIndex + 1));
+                    firstContentIndex + 1,
+                    isLazyQuoteContinuation: true));
                 hasContent = true;
                 index++;
                 useFirstContinuationIndent = false;
