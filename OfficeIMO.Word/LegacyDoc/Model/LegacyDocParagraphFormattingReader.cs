@@ -6,6 +6,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPFKeep = 0x2405;
         private const ushort SprmPFKeepFollow = 0x2406;
         private const ushort SprmPFPageBreakBefore = 0x2407;
+        private const ushort SprmPFInTable = 0x2416;
+        private const ushort SprmPFTtp = 0x2417;
         private const ushort SprmPJc = 0x2461;
         private const ushort SprmPJc80 = 0x2403;
         private const ushort SprmPDxaRight = 0x840E;
@@ -137,6 +139,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? keepWithNext = null;
             bool? pageBreakBefore = null;
             bool? avoidWidowAndOrphan = null;
+            bool? isInTable = null;
+            bool? isTableTerminatingParagraph = null;
             ushort? styleIndex = baseStyleIndex;
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
@@ -150,7 +154,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                if (sprm == SprmPFKeep || sprm == SprmPFKeepFollow || sprm == SprmPFPageBreakBefore || sprm == SprmPFWidowControl) {
+                if (sprm == SprmPFKeep
+                    || sprm == SprmPFKeepFollow
+                    || sprm == SprmPFPageBreakBefore
+                    || sprm == SprmPFWidowControl
+                    || sprm == SprmPFInTable
+                    || sprm == SprmPFTtp) {
                     if (offset + 3 > end) {
                         break;
                     }
@@ -168,6 +177,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             break;
                         case SprmPFWidowControl:
                             avoidWidowAndOrphan = value;
+                            break;
+                        case SprmPFInTable:
+                            isInTable = value;
+                            break;
+                        case SprmPFTtp:
+                            isTableTerminatingParagraph = value;
                             break;
                     }
 
@@ -247,7 +262,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 keepLinesTogether,
                 keepWithNext,
                 pageBreakBefore,
-                avoidWidowAndOrphan);
+                avoidWidowAndOrphan,
+                isInTable,
+                isTableTerminatingParagraph);
         }
 
         private static bool? ReadBoolOperand(byte value) {

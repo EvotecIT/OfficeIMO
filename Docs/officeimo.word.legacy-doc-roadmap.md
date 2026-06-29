@@ -262,6 +262,9 @@ just to reserve names.
   - [x] Project simple DOC cell/row marker tables into `WordTable` instances
     with plain cell text.
   - [x] Preserve direct run formatting inside projected simple table cells.
+  - [x] Prefer explicit PAPX table cell and end-row markers when present,
+    including trailing empty cells, while retaining the simple marker heuristic
+    for existing minimal fixtures.
   - [ ] Add table formatting, merged cells, and nested tables as separate
     fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as

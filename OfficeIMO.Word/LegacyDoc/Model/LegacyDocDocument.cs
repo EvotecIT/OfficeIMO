@@ -336,7 +336,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             foreach (LegacyDocTextCharacter textCharacter in characters) {
                 if (textCharacter.Character == '\a') {
-                    AddCurrentTextAsTableCell(GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset));
+                    LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset);
+                    if (paragraphFormat.IsInTable == true) {
+                        if (paragraphFormat.IsTableTerminatingParagraph == true) {
+                            AddCurrentTableRow(paragraphFormat);
+                        } else {
+                            AddCurrentTextAsTableCell(paragraphFormat, allowHeuristicRowTerminator: false);
+                        }
+                    } else {
+                        AddCurrentTextAsTableCell(paragraphFormat, allowHeuristicRowTerminator: true);
+                    }
+
                     AddSectionBreaksAtBodyBoundary(textCharacter.CharacterPosition + 1);
                     continue;
                 }
@@ -453,14 +463,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 hasCurrentRun = false;
             }
 
-            void AddCurrentTextAsTableCell(LegacyDocParagraphFormat paragraphFormat) {
+            void AddCurrentTextAsTableCell(LegacyDocParagraphFormat paragraphFormat, bool allowHeuristicRowTerminator) {
                 FlushRun();
                 if (!inTable) {
                     inTable = true;
                     justClosedCell = false;
                 }
 
-                if (currentRuns.Count == 0 && justClosedCell) {
+                if (allowHeuristicRowTerminator && currentRuns.Count == 0 && justClosedCell) {
                     if (currentTableRow.Count > 0) {
                         tableRows.Add(new LegacyDocTableRow(currentTableRow.ToArray()));
                         currentTableRow.Clear();
@@ -474,6 +484,26 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 currentRuns.Clear();
                 hasCurrentRun = false;
                 justClosedCell = true;
+            }
+
+            void AddCurrentTableRow(LegacyDocParagraphFormat paragraphFormat) {
+                FlushRun();
+                if (!inTable) {
+                    inTable = true;
+                }
+
+                if (currentRuns.Count > 0 || (!justClosedCell && currentTableRow.Count == 0)) {
+                    currentTableRow.Add(new LegacyDocTableCell(currentRuns.ToArray(), paragraphFormat));
+                    currentRuns.Clear();
+                }
+
+                if (currentTableRow.Count > 0) {
+                    tableRows.Add(new LegacyDocTableRow(currentTableRow.ToArray()));
+                    currentTableRow.Clear();
+                }
+
+                hasCurrentRun = false;
+                justClosedCell = false;
             }
 
             void FlushTable(LegacyDocParagraphFormat paragraphFormat) {

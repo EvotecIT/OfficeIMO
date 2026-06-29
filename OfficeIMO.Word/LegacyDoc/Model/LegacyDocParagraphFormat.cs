@@ -12,7 +12,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? keepLinesTogether = null,
             bool? keepWithNext = null,
             bool? pageBreakBefore = null,
-            bool? avoidWidowAndOrphan = null) {
+            bool? avoidWidowAndOrphan = null,
+            bool? isInTable = null,
+            bool? isTableTerminatingParagraph = null) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -25,6 +27,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             KeepWithNext = keepWithNext;
             PageBreakBefore = pageBreakBefore;
             AvoidWidowAndOrphan = avoidWidowAndOrphan;
+            IsInTable = isInTable;
+            IsTableTerminatingParagraph = isTableTerminatingParagraph;
         }
 
         internal LegacyDocParagraphAlignment? Alignment { get; }
@@ -51,6 +55,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool? AvoidWidowAndOrphan { get; }
 
+        internal bool? IsInTable { get; }
+
+        internal bool? IsTableTerminatingParagraph { get; }
+
         internal bool HasFormatting => Alignment != null
             || StyleIndex != null
             || SpacingBeforeTwips != null
@@ -62,7 +70,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || KeepLinesTogether != null
             || KeepWithNext != null
             || PageBreakBefore != null
-            || AvoidWidowAndOrphan != null;
+            || AvoidWidowAndOrphan != null
+            || IsInTable != null
+            || IsTableTerminatingParagraph != null;
 
         internal static LegacyDocParagraphFormat Default { get; } = new LegacyDocParagraphFormat(null);
 
@@ -78,7 +88,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && KeepLinesTogether == other.KeepLinesTogether
                 && KeepWithNext == other.KeepWithNext
                 && PageBreakBefore == other.PageBreakBefore
-                && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan;
+                && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan
+                && IsInTable == other.IsInTable
+                && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph;
         }
 
         public override bool Equals(object? obj) {
@@ -99,6 +111,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + KeepWithNext.GetHashCode();
             hash = (hash * 31) + PageBreakBefore.GetHashCode();
             hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
+            hash = (hash * 31) + IsInTable.GetHashCode();
+            hash = (hash * 31) + IsTableTerminatingParagraph.GetHashCode();
             return hash;
         }
     }

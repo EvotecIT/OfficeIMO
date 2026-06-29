@@ -50,6 +50,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsExplicitTableMarkerTrailingEmptyCell() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithExplicitTableMarkersAndTrailingEmptyCell();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            WordTableRow row = Assert.Single(table.Rows);
+            Assert.Equal(2, row.Cells.Count);
+            Assert.Equal("A1", row.Cells[0].Paragraphs[0].Text);
+            Assert.Equal(string.Empty, row.Cells[1].Paragraphs[0].Text);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsFormattedTableCellRuns() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithFormattedTableCell();
 
@@ -1415,6 +1430,22 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithExplicitTableMarkersAndTrailingEmptyCell() {
+                const string text = "A1\a\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(text, textOffset, papxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithDocumentProperties(DateTime created, DateTime modified, params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
                 byte[] wordDocumentStream = CreateWordDocumentStream(text);
@@ -1898,6 +1929,45 @@ namespace OfficeIMO.Tests {
                             CreateParagraphSprm(0x2461, 1),
                             CreateParagraphSprm(0xA414, 0x78, 0x00),
                             CreateParagraphSprm(0x840F, 0x68, 0x01))
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
+            private static byte[] CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(string text, int textOffset, int papxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int firstCellMarkerEnd = textOffset + ("A1\a".Length * 2);
+                int emptyCellMarkerEnd = textOffset + ("A1\a\a".Length * 2);
+                int rowMarkerEnd = textOffset + ("A1\a\a\a".Length * 2);
+                int end = textOffset + (text.Length * 2);
+                byte[] tableCellPapx = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x2416, 1));
+                byte[] tableRowPapx = CreateParagraphPropertiesPapx(
+                    CreateParagraphSprm(0x2416, 1),
+                    CreateParagraphSprm(0x2417, 1));
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, firstCellMarkerEnd, emptyCellMarkerEnd, rowMarkerEnd, end },
+                    new Dictionary<int, byte[]> {
+                        [0] = tableCellPapx,
+                        [1] = tableCellPapx,
+                        [2] = tableRowPapx
                     });
 
                 if (stream.Length < fibLength) {
