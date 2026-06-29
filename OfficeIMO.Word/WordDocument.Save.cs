@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Shared;
+using OfficeIMO.Word.LegacyDoc.Write;
 using OfficeIMO.Word.Fluent;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -86,6 +87,15 @@ namespace OfficeIMO.Word {
 
                     if (string.IsNullOrEmpty(filePath)) {
                         // No destination specified, nothing to save
+                        return;
+                    }
+
+                    if (IsLegacyDocPath(filePath)) {
+                        SaveLegacyDocFile(filePath);
+                        if (openWord) {
+                            this.Open(filePath, true);
+                        }
+
                         return;
                     }
 
@@ -210,6 +220,15 @@ namespace OfficeIMO.Word {
             }
 
             try {
+                if (IsLegacyDocPath(filePath)) {
+                    SaveLegacyDocFile(filePath, updateFilePath: false);
+                    if (openWord) {
+                        Open(filePath, true);
+                    }
+
+                    return WordDocument.Load(filePath);
+                }
+
                 _wordprocessingDocument.Save();
 
                 if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
@@ -321,6 +340,20 @@ namespace OfficeIMO.Word {
                         return;
                     }
 
+                    if (IsLegacyDocPath(filePath)) {
+                        byte[] legacyDocBytes = CreateLegacyDocBytesAfterPreflight(filePath);
+                        using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous)) {
+                            await fs.WriteAsync(legacyDocBytes, 0, legacyDocBytes.Length, cancellationToken);
+                            await fs.FlushAsync(cancellationToken);
+                        }
+                        FilePath = filePath;
+                        if (openWord) {
+                            this.Open(filePath, true);
+                        }
+
+                        return;
+                    }
+
                     if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
                         throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
                     }
@@ -409,6 +442,30 @@ namespace OfficeIMO.Word {
             if (outputStream.CanSeek) {
                 outputStream.Seek(0, SeekOrigin.Begin);
             }
+        }
+
+        private static bool IsLegacyDocPath(string? filePath) {
+            return string.Equals(Path.GetExtension(filePath), ".doc", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void SaveLegacyDocFile(string filePath, bool updateFilePath = true) {
+            byte[] legacyDocBytes = CreateLegacyDocBytesAfterPreflight(filePath);
+            using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete)) {
+                fs.Write(legacyDocBytes, 0, legacyDocBytes.Length);
+                fs.Flush();
+            }
+
+            if (updateFilePath) {
+                FilePath = filePath;
+            }
+        }
+
+        private byte[] CreateLegacyDocBytesAfterPreflight(string filePath) {
+            if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
+                throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
+            }
+
+            return LegacyDocWriter.WriteDocument(this);
         }
 
     }

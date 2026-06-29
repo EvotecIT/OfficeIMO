@@ -232,9 +232,10 @@ just to reserve names.
 - [ ] Add fixture-generation helpers for Word COM and optional NPOI generation in
   test/support tooling only; checked-in fixtures are the source of CI proof.
 - [ ] Add corpus report approval tests with short Markdown baselines.
-- [ ] Define native `.doc` writer preflight from `InspectFeatures()` plus
-  DOC-specific binary limits before any writer bytes are committed.
-- [ ] Implement native writer first slice for simple documents and prove
+- [x] Define the first native `.doc` writer preflight for paragraph-only output,
+  including body element, document part, paragraph, and run blockers before any
+  target file bytes are committed.
+- [x] Implement native writer first slice for simple documents and prove
   OfficeIMO can reload written `.doc` output through the legacy reader.
 - [ ] Expand native writer slices for formatting, tables, properties, and simple
   sections only after preflight blocks all unsupported content.

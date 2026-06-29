@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_NormalLoad_BlocksAutoSaveUntilNativeDocSaveExists() {
+        public void LegacyDoc_NormalLoad_BlocksAutoSaveForLegacyDocProjection() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
@@ -123,6 +123,49 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => WordDocument.Load(docPath, autoSave: true));
 
                 Assert.Contains("Auto-save is not supported", exception.Message);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Zażółć gęślą jaźń");
+                    document.AddParagraph("Second plain paragraph");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(string.Empty, reloaded.FilePath);
+                string[] paragraphs = reloaded.Paragraphs
+                    .Select(paragraph => paragraph.Text)
+                    .Where(text => !string.IsNullOrEmpty(text))
+                    .ToArray();
+                Assert.Equal(new[] { "Zażółć gęślą jaźń", "Second plain paragraph" }, paragraphs);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksFormattedRunsBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Formatted").SetBold();
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("Run properties", exception.Message);
+                Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
             }
