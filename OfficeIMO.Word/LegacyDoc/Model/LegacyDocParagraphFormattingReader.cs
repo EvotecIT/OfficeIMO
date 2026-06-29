@@ -152,6 +152,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? isTableTerminatingParagraph = null;
             var tabStops = new List<LegacyDocTabStop>();
             IReadOnlyList<int>? tableCellWidthsTwips = null;
+            IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges = null;
             int? tableRowHeightTwips = null;
             bool tableRowHeightIsExact = false;
             bool? tableRowCantSplit = null;
@@ -309,11 +310,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 if (sprm == SprmTDefTable) {
-                    if (!TryReadTableDefinition(bytes, offset, end, out tableCellWidthsTwips, out bool tableDefinitionHasMergedCells, out int tableDefinitionOperandLength)) {
+                    if (!TryReadTableDefinition(
+                        bytes,
+                        offset,
+                        end,
+                        out tableCellWidthsTwips,
+                        out tableCellHorizontalMerges,
+                        out bool tableDefinitionHasUnsupportedMergedCells,
+                        out int tableDefinitionOperandLength)) {
                         break;
                     }
 
-                    hasMergedTableCells |= tableDefinitionHasMergedCells;
+                    hasMergedTableCells |= tableDefinitionHasUnsupportedMergedCells;
                     offset += 2 + tableDefinitionOperandLength;
                     continue;
                 }
@@ -346,12 +354,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableRowHeightIsExact,
                 tableRowCantSplit,
                 tableRowIsHeader,
+                tableCellHorizontalMerges,
                 hasMergedTableCells);
         }
 
-        private static bool TryReadTableDefinition(byte[] bytes, int sprmOffset, int end, out IReadOnlyList<int>? tableCellWidthsTwips, out bool hasMergedTableCells, out int operandLength) {
+        private static bool TryReadTableDefinition(
+            byte[] bytes,
+            int sprmOffset,
+            int end,
+            out IReadOnlyList<int>? tableCellWidthsTwips,
+            out IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges,
+            out bool hasUnsupportedMergedTableCells,
+            out int operandLength) {
             tableCellWidthsTwips = null;
-            hasMergedTableCells = false;
+            tableCellHorizontalMerges = null;
+            hasUnsupportedMergedTableCells = false;
             operandLength = 0;
             if (sprmOffset + 5 > end) {
                 return false;
@@ -368,6 +385,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int columnCount = bytes[sprmOffset + 4];
             if (columnCount <= 0) {
                 tableCellWidthsTwips = Array.Empty<int>();
+                tableCellHorizontalMerges = Array.Empty<LegacyDocTableCellHorizontalMerge>();
                 return true;
             }
 
@@ -378,6 +396,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             var widths = new int[columnCount];
+            var horizontalMerges = new LegacyDocTableCellHorizontalMerge[columnCount];
             int previousEdge = ReadInt16(bytes, edgesOffset);
             for (int index = 0; index < columnCount; index++) {
                 int nextEdge = ReadInt16(bytes, edgesOffset + ((index + 1) * 2));
@@ -388,13 +407,27 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             for (int index = 0; index < columnCount; index++) {
                 ushort tcgrf = LegacyDocFib.ReadUInt16(bytes, tc80Offset + (index * Tc80Length));
-                if ((tcgrf & (TcgrfHorizontalMergeMask | TcgrfVerticalMergeMask)) != 0) {
-                    hasMergedTableCells = true;
-                    break;
+                switch (tcgrf & TcgrfHorizontalMergeMask) {
+                    case 0x0001:
+                        horizontalMerges[index] = LegacyDocTableCellHorizontalMerge.Restart;
+                        break;
+                    case 0x0002:
+                        horizontalMerges[index] = LegacyDocTableCellHorizontalMerge.Continue;
+                        break;
+                    default:
+                        horizontalMerges[index] = LegacyDocTableCellHorizontalMerge.None;
+                        break;
+                }
+
+                if ((tcgrf & TcgrfVerticalMergeMask) != 0) {
+                    hasUnsupportedMergedTableCells = true;
                 }
             }
 
             tableCellWidthsTwips = widths.Where(width => width > 0).ToArray();
+            tableCellHorizontalMerges = horizontalMerges.Any(merge => merge != LegacyDocTableCellHorizontalMerge.None)
+                ? horizontalMerges
+                : Array.Empty<LegacyDocTableCellHorizontalMerge>();
             return true;
         }
 

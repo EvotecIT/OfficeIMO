@@ -187,7 +187,22 @@ namespace OfficeIMO.Word {
                         table.Rows[rowIndex].Cells[columnIndex].WidthType = TableWidthUnitValues.Dxa;
                         table.Rows[rowIndex].Cells[columnIndex].Width = sourceRow.CellWidthsTwips[columnIndex];
                     }
+
+                    if (columnIndex < sourceRow.CellHorizontalMerges.Count) {
+                        ApplyLegacyDocTableCellHorizontalMerge(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellHorizontalMerges[columnIndex]);
+                    }
                 }
+            }
+        }
+
+        private static void ApplyLegacyDocTableCellHorizontalMerge(WordTableCell cell, LegacyDocTableCellHorizontalMerge horizontalMerge) {
+            switch (horizontalMerge) {
+                case LegacyDocTableCellHorizontalMerge.Restart:
+                    cell.HorizontalMerge = MergedCellValues.Restart;
+                    break;
+                case LegacyDocTableCellHorizontalMerge.Continue:
+                    cell.HorizontalMerge = MergedCellValues.Continue;
+                    break;
             }
         }
 

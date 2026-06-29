@@ -1,4 +1,10 @@
 namespace OfficeIMO.Word.LegacyDoc.Model {
+    internal enum LegacyDocTableCellHorizontalMerge {
+        None,
+        Restart,
+        Continue
+    }
+
     internal abstract class LegacyDocBodyBlock {
         private protected LegacyDocBodyBlock() {
         }
@@ -38,7 +44,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? rowHeightTwips = null,
             bool rowHeightIsExact = false,
             bool? rowCantSplit = null,
-            bool? rowIsHeader = null) {
+            bool? rowIsHeader = null,
+            IReadOnlyList<LegacyDocTableCellHorizontalMerge>? cellHorizontalMerges = null) {
             Cells = cells;
             CellWidthsTwips = cellWidthsTwips == null || cellWidthsTwips.Count == 0
                 ? Array.Empty<int>()
@@ -47,6 +54,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             RowHeightIsExact = rowHeightIsExact;
             RowCantSplit = rowCantSplit;
             RowIsHeader = rowIsHeader;
+            CellHorizontalMerges = cellHorizontalMerges == null || cellHorizontalMerges.Count == 0
+                ? Array.Empty<LegacyDocTableCellHorizontalMerge>()
+                : cellHorizontalMerges.ToArray();
         }
 
         internal IReadOnlyList<LegacyDocTableCell> Cells { get; }
@@ -60,6 +70,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal bool? RowCantSplit { get; }
 
         internal bool? RowIsHeader { get; }
+
+        internal IReadOnlyList<LegacyDocTableCellHorizontalMerge> CellHorizontalMerges { get; }
     }
 
     internal sealed class LegacyDocTableCell {

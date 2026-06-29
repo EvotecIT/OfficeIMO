@@ -113,6 +113,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsHorizontalMergedTableCellsFromTableDefinition() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithHorizontalMergedTableCells();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.DoesNotContain(result.UnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.MergedTableCell);
+            WordTable table = Assert.Single(result.Document.Tables);
+            WordTableRow row = Assert.Single(table.Rows);
+            Assert.Equal(2, row.Cells.Count);
+            Assert.Equal(MergedCellValues.Restart, row.Cells[0].HorizontalMerge);
+            Assert.Equal(MergedCellValues.Continue, row.Cells[1].HorizontalMerge);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsMergedTableCellsFromTableDefinition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithMergedTableCellDefinition();
 
@@ -1752,18 +1768,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedMergedTablesBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocHorizontalMergedTableCellsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.Rows[0].Cells[0].AddParagraph("Merged", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph(string.Empty, removeExistingParagraphs: true);
+                    table.Rows[0].Cells[0].MergeHorizontally(1);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x08, 0xD6),
+                    "Expected the native DOC paragraph property stream to contain sprmTDefTable.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("Merged", row.Cells[0].Paragraphs[0].Text);
+                Assert.Equal(MergedCellValues.Restart, row.Cells[0].HorizontalMerge);
+                Assert.Equal(MergedCellValues.Continue, row.Cells[1].HorizontalMerge);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedVerticalMergedTablesBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
-                WordTable table = document.AddTable(1, 2);
+                WordTable table = document.AddTable(2, 1);
                 table.Rows[0].Cells[0].AddParagraph("Merged", removeExistingParagraphs: true);
-                table.Rows[0].Cells[0].MergeHorizontally(1);
+                table.Rows[1].Cells[0].AddParagraph(string.Empty, removeExistingParagraphs: true);
+                table.Rows[0].Cells[0].MergeVertically(1);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("table cell property", exception.Message.ToLowerInvariant());
+                Assert.Contains("vertical table cell merges", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -2239,6 +2288,27 @@ namespace OfficeIMO.Tests {
                     papxFkpOffset,
                     new[] { 1440, 2880 },
                     new ushort[] { 0x0001, 0x0020 });
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithHorizontalMergedTableCells() {
+                const string text = "A1\aB1\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 2880 },
+                    new ushort[] { 0x0001, 0x0002 });
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();

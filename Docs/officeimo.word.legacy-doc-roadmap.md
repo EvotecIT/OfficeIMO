@@ -302,6 +302,10 @@ just to reserve names.
   - [x] Report merged table cell descriptors from DOC `sprmTDefTable`/`TC80`
     row definitions before merged-cell projection exists, so native DOC re-save
     is blocked instead of flattening merged table structure.
+  - [x] Project simple horizontal merged cells from DOC `sprmTDefTable`/`TC80`
+    row definitions into normal OfficeIMO horizontal merge properties, while
+    keeping vertical merged cells diagnosed until their own fixture-backed
+    slice.
   - [x] Project simple row-level table heights from DOC `sprmTDyaRowHeight`
     row definitions into normal OfficeIMO table row height properties,
     preserving exact versus at-least height rules in the Open XML row.
@@ -435,6 +439,10 @@ just to reserve names.
   - [x] Write simple table row repeat-header and no-split flags with
     `sprmTTableHeader` and `sprmTFCantSplit90`, then reload them through the
     legacy reader.
+  - [x] Write simple horizontal table cell merges with `sprmTDefTable`/`TC80`,
+    including the normal OfficeIMO `gridSpan` save shape, and reload them
+    through the legacy reader while blocking vertical merges before bytes are
+    committed.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.
