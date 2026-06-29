@@ -332,6 +332,9 @@ just to reserve names.
   - [x] Project simple table cell margins from DOC `sprmTCellPadding` and
     `sprmTCellPaddingDefault` row definitions into normal OfficeIMO table cell
     margin properties, and preserve them through native DOC save/reload.
+  - [x] Project simple table-level cell spacing from DOC
+    `sprmTCellSpacingDefault` row definitions into normal OfficeIMO table cell
+    spacing, and preserve it through native DOC save/reload.
   - [x] Project simple palette-backed table cell shading from DOC
     `sprmTDefTableShd80`/`Shd80` row definitions into normal OfficeIMO table
     cell fill colors, and preserve it through native DOC save/reload.
@@ -481,6 +484,8 @@ just to reserve names.
   - [x] Write table-level default cell margins with `sprmTCellPaddingDefault`,
     then reload inherited defaults and per-cell overrides through the legacy
     reader.
+  - [x] Write table-level cell spacing with `sprmTCellSpacingDefault`, then
+    reload it through the legacy reader.
   - [x] Write simple palette-backed table cell shading with
     `sprmTDefTableShd80`, then reload it through the legacy reader while
     blocking non-palette fill colors before bytes are committed.

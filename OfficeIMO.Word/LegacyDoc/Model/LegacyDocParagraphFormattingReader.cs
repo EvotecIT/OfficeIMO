@@ -27,6 +27,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmTDefTable = 0xD608;
         private const ushort SprmTDefTableShd80 = 0xD609;
         private const ushort SprmTCellPadding = 0xD632;
+        private const ushort SprmTCellSpacingDefault = 0xD633;
         private const ushort SprmTCellPaddingDefault = 0xD634;
         private const ushort Shd80Nil = 0xFFFF;
         private const int Tc80Length = 20;
@@ -175,6 +176,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null;
             IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings = null;
             LegacyDocTableCellMargins? defaultTableCellMargins = null;
+            int? defaultTableCellSpacingTwips = null;
             int? tableRowHeightTwips = null;
             bool tableRowHeightIsExact = false;
             bool? tableRowCantSplit = null;
@@ -403,6 +405,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmTCellSpacingDefault) {
+                    if (!TryReadTableCellSpacing(
+                        bytes,
+                        offset,
+                        end,
+                        ref defaultTableCellSpacingTwips,
+                        out int tableCellSpacingOperandLength)) {
+                        break;
+                    }
+
+                    offset += 2 + tableCellSpacingOperandLength;
+                    continue;
+                }
+
                 if (!TryGetSprmOperandLength(bytes, offset, end, out int operandLength)) {
                     break;
                 }
@@ -440,6 +456,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableCellMargins,
                 tableCellShadings,
                 defaultTableCellMargins,
+                defaultTableCellSpacingTwips,
                 hasMergedTableCells,
                 paragraphShading);
         }
@@ -651,6 +668,32 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             tableCellMargins = marginArray.Any(margin => margin.HasAny)
                 ? marginArray
                 : Array.Empty<LegacyDocTableCellMargins>();
+            return true;
+        }
+
+        private static bool TryReadTableCellSpacing(
+            byte[] bytes,
+            int sprmOffset,
+            int end,
+            ref int? defaultTableCellSpacingTwips,
+            out int operandLength) {
+            operandLength = 0;
+            if (sprmOffset + 9 > end) {
+                return false;
+            }
+
+            int cb = bytes[sprmOffset + 2];
+            operandLength = 1 + cb;
+            if (cb != 6 || sprmOffset + 2 + operandLength > end) {
+                return false;
+            }
+
+            byte ftsWidth = bytes[sprmOffset + 6];
+            int width = LegacyDocFib.ReadUInt16(bytes, sprmOffset + 7);
+            if (ftsWidth == FtsDxa && width >= 0 && width <= 31680) {
+                defaultTableCellSpacingTwips = width;
+            }
+
             return true;
         }
 

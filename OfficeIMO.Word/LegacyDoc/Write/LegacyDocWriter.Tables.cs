@@ -16,6 +16,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             TableProperties? tableProperties = table.GetFirstChild<TableProperties>();
             LegacyDocTableAlignment? tableAlignment = ReadSupportedTableAlignment(tableProperties);
             LegacyDocTableCellMargins? defaultCellMargins = ReadSupportedTableDefaultCellMargins(tableProperties);
+            int? defaultCellSpacingTwips = ReadSupportedTableDefaultCellSpacing(tableProperties);
             IReadOnlyList<int> gridColumnWidthsTwips = ReadSupportedTableGridWidths(table.GetFirstChild<TableGrid>());
             foreach (TableRow row in rows) {
                 LegacyDocWritableTableRowFormatting rowFormatting = ReadSupportedTableRowFormatting(row, out TableCell[] cells);
@@ -60,7 +61,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         tableCellNoWraps: cellNoWraps,
                         tableCellMargins: cellMargins,
                         tableCellShadings: cellShadings,
-                        defaultTableCellMargins: defaultCellMargins)));
+                        defaultTableCellMargins: defaultCellMargins,
+                        defaultTableCellSpacingTwips: defaultCellSpacingTwips)));
             }
 
             text.Append('\r');
@@ -101,6 +103,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case TableCellMarginDefault tableCellMarginDefault:
                         ReadSupportedTableDefaultCellMargins(tableCellMarginDefault);
+                        break;
+                    case TableCellSpacing tableCellSpacing:
+                        ReadSupportedTableDefaultCellSpacing(tableCellSpacing);
                         break;
                     case TableLook:
                         break;
@@ -158,6 +163,26 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ReadSupportedTableCellMarginWidth(margins.BottomMargin, "default bottom"),
                 ReadSupportedTableCellMarginWidth(margins.TableCellLeftMargin, "default left"));
             return result.HasAny ? result : null;
+        }
+
+        private static int? ReadSupportedTableDefaultCellSpacing(TableProperties? tableProperties) {
+            TableCellSpacing? spacing = tableProperties?.GetFirstChild<TableCellSpacing>();
+            return spacing == null ? null : ReadSupportedTableDefaultCellSpacing(spacing);
+        }
+
+        private static int? ReadSupportedTableDefaultCellSpacing(TableCellSpacing spacing) {
+            if (spacing.Type?.Value != TableWidthUnitValues.Dxa) {
+                throw new NotSupportedException("Native DOC saving supports table cell spacing only as DXA twip values.");
+            }
+
+            string? widthText = spacing.Width?.Value;
+            if (!int.TryParse(widthText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int width)
+                || width < 0
+                || width > 31680) {
+                throw new NotSupportedException("Native DOC saving supports table cell spacing only as nonnegative DXA twip values within the Word 97-2003 limit.");
+            }
+
+            return width;
         }
 
         private static IReadOnlyList<int> ReadSupportedTableGridWidths(TableGrid? tableGrid) {

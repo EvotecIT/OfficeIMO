@@ -567,7 +567,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.TableCellFitTexts,
                         paragraphFormat.TableCellNoWraps,
                         paragraphFormat.GetTableCellMarginsForCellCount(currentTableRow.Count),
-                        paragraphFormat.GetTableCellShadingsForCellCount(currentTableRow.Count)));
+                        paragraphFormat.GetTableCellShadingsForCellCount(currentTableRow.Count),
+                        paragraphFormat.DefaultTableCellSpacingTwips));
                     currentTableRow.Clear();
                 }
 
@@ -597,7 +598,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.TableCellFitTexts,
                         paragraphFormat.TableCellNoWraps,
                         paragraphFormat.GetTableCellMarginsForCellCount(currentTableRow.Count),
-                        paragraphFormat.GetTableCellShadingsForCellCount(currentTableRow.Count)));
+                        paragraphFormat.GetTableCellShadingsForCellCount(currentTableRow.Count),
+                        paragraphFormat.DefaultTableCellSpacingTwips));
                     currentTableRow.Clear();
                 }
 

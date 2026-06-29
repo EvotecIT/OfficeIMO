@@ -185,6 +185,13 @@ namespace OfficeIMO.Word {
                 ApplyLegacyDocTableAlignment(table, tableAlignment.Value);
             }
 
+            int? tableCellSpacingTwips = tableBlock.Rows
+                .Select(row => row.DefaultCellSpacingTwips)
+                .FirstOrDefault(spacing => spacing.HasValue);
+            if (tableCellSpacingTwips != null) {
+                table.StyleDetails!.CellSpacing = checked((short)tableCellSpacingTwips.Value);
+            }
+
             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                 LegacyDocTableRow sourceRow = tableBlock.Rows[rowIndex];
                 ApplyLegacyDocTableRowFormatting(table.Rows[rowIndex], sourceRow);

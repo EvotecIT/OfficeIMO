@@ -206,6 +206,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTableCellSpacingFromSpacingSprm() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithTableCellSpacing();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            Assert.Equal((short)240, table.StyleDetails!.CellSpacing);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTableCellShadingFromShd80Sprms() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithTableCellShading();
 
@@ -2184,6 +2196,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellSpacingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.StyleDetails!.CellSpacing = 240;
+                    table.Rows[0].Cells[0].AddParagraph("Spaced A", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("Spaced B", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x33, 0xD6, 0x06),
+                    "Expected the native DOC paragraph property stream to contain sprmTCellSpacingDefault.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal((short)240, reloadedTable.StyleDetails!.CellSpacing);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("Spaced A", row.Cells[0].Paragraphs[0].Text);
+                Assert.Equal("Spaced B", row.Cells[1].Paragraphs[0].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellShadingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -2836,6 +2880,27 @@ namespace OfficeIMO.Tests {
                         CreateTableCellPaddingSprm(0xD632, 1, 2, 0x02, 240),
                         CreateTableCellPaddingSprm(0xD632, 1, 2, 0x08, 300)
                     });
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithTableCellSpacing() {
+                const string text = "A1\aB1\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 1440 },
+                    extraRowSprms: new[] { CreateTableCellSpacingSprm(240) });
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();
@@ -3669,6 +3734,10 @@ namespace OfficeIMO.Tests {
                     (byte)(widthTwips & 0xFF),
                     (byte)(widthTwips >> 8)
                 };
+            }
+
+            private static byte[] CreateTableCellSpacingSprm(ushort widthTwips) {
+                return CreateTableCellPaddingSprm(0xD633, 0, 1, 0x0F, widthTwips);
             }
 
             private static byte[] CreateTableCellShadingSprm(params ushort[] shd80Values) {

@@ -141,7 +141,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<bool>? cellFitTexts = null,
             IReadOnlyList<bool>? cellNoWraps = null,
             IReadOnlyList<LegacyDocTableCellMargins>? cellMargins = null,
-            IReadOnlyList<LegacyDocTableCellShading>? cellShadings = null) {
+            IReadOnlyList<LegacyDocTableCellShading>? cellShadings = null,
+            int? defaultCellSpacingTwips = null) {
             Cells = cells;
             CellWidthsTwips = cellWidthsTwips == null || cellWidthsTwips.Count == 0
                 ? Array.Empty<int>()
@@ -172,6 +173,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             CellShadings = cellShadings == null || cellShadings.Count == 0
                 ? Array.Empty<LegacyDocTableCellShading>()
                 : cellShadings.ToArray();
+            DefaultCellSpacingTwips = defaultCellSpacingTwips.HasValue && defaultCellSpacingTwips.Value >= 0 && defaultCellSpacingTwips.Value <= 31680
+                ? defaultCellSpacingTwips
+                : null;
         }
 
         internal IReadOnlyList<LegacyDocTableCell> Cells { get; }
@@ -201,6 +205,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal IReadOnlyList<LegacyDocTableCellMargins> CellMargins { get; }
 
         internal IReadOnlyList<LegacyDocTableCellShading> CellShadings { get; }
+
+        internal int? DefaultCellSpacingTwips { get; }
     }
 
     internal sealed class LegacyDocTableCell {
