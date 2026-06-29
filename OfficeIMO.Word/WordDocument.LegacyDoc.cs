@@ -120,7 +120,7 @@ namespace OfficeIMO.Word {
 
             LegacyDocTextRun firstRun = sourceCell.Runs[0];
             WordParagraph paragraph;
-            if (firstRun.Text.IndexOf('\t') < 0) {
+            if (!ContainsLegacyDocSpecialRunCharacter(firstRun.Text)) {
                 paragraph = cell.AddParagraph(firstRun.Text, removeExistingParagraphs: true);
                 ApplyLegacyDocRunFormatting(paragraph, firstRun);
             } else {
@@ -154,17 +154,45 @@ namespace OfficeIMO.Word {
             string text = legacyRun.Text;
             int segmentStart = 0;
             for (int index = 0; index < text.Length; index++) {
-                if (text[index] != '\t') {
+                char character = text[index];
+                if (!IsLegacyDocSpecialRunCharacter(character)) {
                     continue;
                 }
 
                 AddLegacyDocTextSegment(paragraph, legacyRun, segmentStart, index - segmentStart);
-                WordParagraph tabRun = paragraph.AddTab();
-                ApplyLegacyDocRunFormatting(tabRun, legacyRun);
+                if (character == '\t') {
+                    WordParagraph tabRun = paragraph.AddTab();
+                    ApplyLegacyDocRunFormatting(tabRun, legacyRun);
+                } else {
+                    AddLegacyDocBreak(paragraph, legacyRun, character == '\f' ? BreakValues.Page : null);
+                }
+
                 segmentStart = index + 1;
             }
 
             AddLegacyDocTextSegment(paragraph, legacyRun, segmentStart, text.Length - segmentStart);
+        }
+
+        private static bool ContainsLegacyDocSpecialRunCharacter(string text) {
+            for (int index = 0; index < text.Length; index++) {
+                if (IsLegacyDocSpecialRunCharacter(text[index])) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsLegacyDocSpecialRunCharacter(char character) {
+            return character == '\t' || character == '\v' || character == '\f';
+        }
+
+        private static void AddLegacyDocBreak(WordParagraph paragraph, LegacyDocTextRun legacyRun, BreakValues? breakType) {
+            var run = new Run();
+            run.Append(breakType == null ? new Break() : new Break { Type = breakType });
+            paragraph._paragraph.Append(run);
+            var breakRun = new WordParagraph(paragraph._document, paragraph._paragraph, run);
+            ApplyLegacyDocRunFormatting(breakRun, legacyRun);
         }
 
         private static void AddLegacyDocTextSegment(WordParagraph paragraph, LegacyDocTextRun legacyRun, int startIndex, int length) {

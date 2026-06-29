@@ -178,10 +178,28 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TabChar:
                         AppendFormattedText(text, runs, "\t", formatting);
                         break;
+                    case Break breakNode:
+                        AppendSupportedBreak(text, runs, breakNode, formatting);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports text and tabs only. Unsupported run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports text, tabs, line breaks, and page breaks only. Unsupported run element: {child.LocalName}.");
                 }
             }
+        }
+
+        private static void AppendSupportedBreak(StringBuilder text, List<LegacyDocWritableRun> runs, Break breakNode, LegacyDocWritableFormatting formatting) {
+            BreakValues? breakType = breakNode.Type?.Value;
+            if (breakType == null || breakType == BreakValues.TextWrapping) {
+                AppendFormattedText(text, runs, "\v", formatting);
+                return;
+            }
+
+            if (breakType == BreakValues.Page) {
+                AppendFormattedText(text, runs, "\f", formatting);
+                return;
+            }
+
+            throw new NotSupportedException($"Native DOC saving currently supports text-wrapping and page breaks only. Unsupported break type: {breakType}.");
         }
 
         private static LegacyDocWritableFormatting ReadSupportedRunFormatting(RunProperties? runProperties) {

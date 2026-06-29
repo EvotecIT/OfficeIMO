@@ -81,6 +81,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsLineAndPageBreaksAsWordBreakRuns() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDoc("Line\vBreak\fPage");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Paragraph paragraph = Assert.Single(result.Document._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
+            Break[] breaks = paragraph.Descendants<Break>().ToArray();
+            Assert.Equal(2, breaks.Length);
+            Assert.Null(breaks[0].Type);
+            Assert.Equal(BreakValues.Page, breaks[1].Type!.Value);
+            Assert.DoesNotContain(paragraph.Descendants<Text>(), text => text.Text.Contains('\v') || text.Text.Contains('\f'));
+            Assert.Equal(new[] { "Line", "Break", "Page" }, paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDocumentPropertiesAndCustomProperties() {
             DateTime created = new DateTime(2026, 6, 29, 8, 0, 0, DateTimeKind.Utc);
             DateTime modified = new DateTime(2026, 6, 29, 9, 15, 0, DateTimeKind.Utc);
@@ -627,6 +644,37 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, reloadedParagraph.Descendants<TabChar>().Count());
                 Assert.DoesNotContain(reloadedParagraph.Descendants<Text>(), text => text.Text.Contains('\t'));
                 Assert.Equal(new[] { "Left", "Right" }, reloadedParagraph.Descendants<Text>().Select(text => text.Text).ToArray());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBreaksAndReloadsAsWordBreakRuns() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph();
+                    paragraph.AddText("Line");
+                    paragraph.AddBreak();
+                    paragraph.AddText("Break");
+                    paragraph.AddBreak(BreakValues.Page);
+                    paragraph.AddText("Page");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Paragraph reloadedParagraph = Assert.Single(reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
+                Break[] breaks = reloadedParagraph.Descendants<Break>().ToArray();
+                Assert.Equal(2, breaks.Length);
+                Assert.Null(breaks[0].Type);
+                Assert.Equal(BreakValues.Page, breaks[1].Type!.Value);
+                Assert.DoesNotContain(reloadedParagraph.Descendants<Text>(), text => text.Text.Contains('\v') || text.Text.Contains('\f'));
+                Assert.Equal(new[] { "Line", "Break", "Page" }, reloadedParagraph.Descendants<Text>().Select(text => text.Text).ToArray());
             } finally {
                 DeleteIfExists(docPath);
             }

@@ -278,6 +278,8 @@ just to reserve names.
     the legacy reader.
   - [x] Project imported tab characters and native-written tabs as real Word
     tab runs after legacy DOC reload.
+  - [x] Project imported line/page break characters and native-written
+    text-wrapping/page breaks as real Word break runs after legacy DOC reload.
   - [ ] Add table and simple section writing as separate preflight-backed
     slices.
 - [ ] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests

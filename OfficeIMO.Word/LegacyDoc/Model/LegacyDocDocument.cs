@@ -361,6 +361,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return null;
                 case '\v':
                 case '\f':
+                    return character;
                 case '\n':
                     return '\r';
                 default:
