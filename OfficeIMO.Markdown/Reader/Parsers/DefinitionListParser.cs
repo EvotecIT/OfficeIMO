@@ -715,6 +715,7 @@ public static partial class MarkdownReader {
 
         var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(definitionSourceLines, options, state);
         (blocks, syntaxChildren) = MergeMarkdigDefinitionLazyListContinuations(blocks, syntaxChildren, definitionSourceLines);
+        (blocks, syntaxChildren) = PreserveMarkdigDefinitionLazyParagraphSoftBreaks(blocks, syntaxChildren, definitionSourceLines, options, state);
         if (blocks.Count > 0) {
             return (blocks, syntaxChildren);
         }

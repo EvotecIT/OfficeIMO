@@ -148,6 +148,9 @@ public abstract class MarkdownVisitor {
             case HardBreakInline hardBreak:
                 VisitHardBreakInline(hardBreak);
                 break;
+            case SoftBreakInline softBreak:
+                VisitSoftBreakInline(softBreak);
+                break;
             case BoldInline bold:
                 VisitBoldInline(bold);
                 break;
@@ -258,6 +261,7 @@ public abstract class MarkdownVisitor {
     protected virtual void VisitCodeSpanInline(CodeSpanInline inline) => VisitInline(inline);
     protected virtual void VisitFootnoteRefInline(FootnoteRefInline inline) => VisitInline(inline);
     protected virtual void VisitHardBreakInline(HardBreakInline inline) => VisitInline(inline);
+    protected virtual void VisitSoftBreakInline(SoftBreakInline inline) => VisitInline(inline);
     protected virtual void VisitBoldInline(BoldInline inline) => VisitInline(inline);
     protected virtual void VisitItalicInline(ItalicInline inline) => VisitInline(inline);
     protected virtual void VisitBoldItalicInline(BoldItalicInline inline) => VisitInline(inline);

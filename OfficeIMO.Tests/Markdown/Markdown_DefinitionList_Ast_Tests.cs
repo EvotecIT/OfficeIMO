@@ -184,14 +184,14 @@ Term 2
     }
 
     [Fact]
-    public void DefinitionList_MarkdigLazyContinuation_Stays_In_Definition_Paragraph_Source() {
+    public void DefinitionList_MarkdigLazyContinuation_Preserves_SoftBreak_In_Definition_Paragraph_Source() {
         const string markdown = """
 Term
 :   First paragraph
 lazy continuation
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
@@ -199,12 +199,83 @@ lazy continuation
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraphSyntax = Assert.Single(definitionValue.Children);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
-        Assert.Equal("First paragraph lazy continuation", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal("First paragraph\nlazy continuation", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.InlineText,
+                MarkdownSyntaxKind.InlineSoftBreak,
+                MarkdownSyntaxKind.InlineText
+            },
+            paragraphSyntax.Children.Select(child => child.Kind).ToArray());
+        Assert.IsType<SoftBreakInline>(paragraph.Inlines.Nodes[1]);
         Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 17), definitionValue.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 17), paragraphSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 19, 2, 19), paragraphSyntax.Children[1].SourceSpan);
+        Assert.Equal("Term\n:   First paragraph\n    lazy continuation", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        var nativeDefinitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(Assert.Single(Assert.Single(nativeDefinitionList.Groups).Definitions).Children));
+        Assert.Equal("First paragraph\nlazy continuation", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 17), definitionBody.SourceSpan);
+        Assert.Contains(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.SoftBreak);
+
         Assert.Same(definition, definitionValue.AssociatedObject);
         Assert.Same(paragraph, paragraphSyntax.AssociatedObject);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_MultipleLazyContinuationLines_Preserve_SoftBreaks_And_WriterReparse() {
+        const string markdown = """
+Term
+:   First paragraph
+lazy one
+lazy two
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks));
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var paragraphSyntax = Assert.Single(definitionValue.Children);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First paragraph\nlazy one\nlazy two", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.InlineText,
+                MarkdownSyntaxKind.InlineSoftBreak,
+                MarkdownSyntaxKind.InlineText,
+                MarkdownSyntaxKind.InlineSoftBreak,
+                MarkdownSyntaxKind.InlineText
+            },
+            paragraphSyntax.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, 8), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, 8), paragraphSyntax.SourceSpan);
+        Assert.Equal("Term\n:   First paragraph\n    lazy one\n    lazy two", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        var nativeDefinitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(Assert.Single(Assert.Single(nativeDefinitionList.Groups).Definitions).Children));
+        Assert.Equal("First paragraph\nlazy one\nlazy two", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, 8), definitionBody.SourceSpan);
+        Assert.Equal(2, nativeParagraph.InlineRuns.Count(inline => inline.Kind == MarkdownNativeInlineKind.SoftBreak));
+
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
@@ -479,7 +550,7 @@ Term
 
         var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
-        Assert.Equal(@"First paragraph \| A \| \|---\| \| B \|", definitionBody.Value);
+        Assert.Equal("First paragraph\n\\| A \\|\n\\|---\\|\n\\| B \\|", definitionBody.Value!.Replace("\r\n", "\n"));
         Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 5), definitionBody.SourceSpan);
         Assert.Contains(":   updated", native.CreateReplaceEdit(definitionBody, "updated").Apply(native.SourceMarkdown), StringComparison.Ordinal);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);

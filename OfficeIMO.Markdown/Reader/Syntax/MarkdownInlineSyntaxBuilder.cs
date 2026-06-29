@@ -77,6 +77,12 @@ internal static class MarkdownInlineSyntaxBuilder {
                     literal: "\\n",
                     children: hardBreakChildren,
                     associatedObject: inline);
+            case SoftBreakInline:
+                return new MarkdownSyntaxNode(
+                    MarkdownSyntaxKind.InlineSoftBreak,
+                    span,
+                    literal: "\\n",
+                    associatedObject: inline);
             case LinkInline link:
                 var linkChildren = MarkdownGenericAttributeSyntaxNodes.Append(
                     BuildInlineLinkChildren(link.LabelInlines, link.Text, link, link.Url, link.Title, link.LinkTarget, link.LinkRel),

@@ -53,6 +53,8 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     public InlineSequence Image(string alt, string src, string? title = null) { _inlines.Add(new ImageInline(alt, src, title)); return this; }
     /// <summary>Adds a hard line break.</summary>
     public InlineSequence HardBreak() { _inlines.Add(new HardBreakInline()); return this; }
+    /// <summary>Adds a soft line break.</summary>
+    public InlineSequence SoftBreak() { _inlines.Add(new SoftBreakInline()); return this; }
 
     // Internal escape hatch for the reader to attach richer inline nodes without expanding the public fluent API.
     internal InlineSequence AddRaw(IMarkdownInline node) { if (node != null) _inlines.Add(node); return this; }
@@ -85,7 +87,8 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             if (AutoSpacing && i > 0) {
                 var prev = _inlines[i - 1];
                 var cur = _inlines[i];
-                if (prev is not HardBreakInline && cur is not HardBreakInline) sb.Append(' ');
+                if (prev is not HardBreakInline && cur is not HardBreakInline &&
+                    prev is not SoftBreakInline && cur is not SoftBreakInline) sb.Append(' ');
             }
             sb.Append(RenderMarkdown(_inlines[i], context));
         }
@@ -102,7 +105,8 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             if (AutoSpacing && i > 0) {
                 var prev = _inlines[i - 1];
                 var cur = _inlines[i];
-                if (prev is not HardBreakInline && cur is not HardBreakInline) sb.Append(' ');
+                if (prev is not HardBreakInline && cur is not HardBreakInline &&
+                    prev is not SoftBreakInline && cur is not SoftBreakInline) sb.Append(' ');
             }
             sb.Append(RenderHtml(_inlines[i], options, context));
         }

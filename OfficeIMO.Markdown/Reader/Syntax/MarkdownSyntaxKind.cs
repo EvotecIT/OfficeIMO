@@ -64,6 +64,8 @@ public enum MarkdownSyntaxKind {
     InlineUnderline,
     /// <summary>Hard line break inline node.</summary>
     InlineHardBreak,
+    /// <summary>Soft line break inline node.</summary>
+    InlineSoftBreak,
     /// <summary>Hard line break marker token.</summary>
     InlineHardBreakMarker,
     /// <summary>Inline HTML tag wrapper node.</summary>

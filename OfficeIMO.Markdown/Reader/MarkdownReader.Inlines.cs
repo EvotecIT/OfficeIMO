@@ -67,8 +67,13 @@ public static partial class MarkdownReader {
             AddRawNode(node, start, length);
         }
         void AddHardBreakNode(int start, int length) {
-            var node = new HardBreakInline();
             var tokenLiteral = sourceMap?.GetTokenLiteral(start, length);
+            if (tokenLiteral == "\n") {
+                AddRawNode(new SoftBreakInline(), start, length);
+                return;
+            }
+
+            var node = new HardBreakInline();
             var isSyntheticSoftBreak = length == 1 && start >= 0 && start < text.Length && text[start] == '\n' && tokenLiteral == null;
             if (!isSyntheticSoftBreak) {
                 MarkdownInlineMetadataSourceSpans.SetHardBreakMarker(

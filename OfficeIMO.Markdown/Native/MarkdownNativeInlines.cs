@@ -461,6 +461,8 @@ internal static class MarkdownNativeInlineProjection {
                 return MarkdownNativeInlineKind.Underline;
             case MarkdownSyntaxKind.InlineHardBreak:
                 return MarkdownNativeInlineKind.HardBreak;
+            case MarkdownSyntaxKind.InlineSoftBreak:
+                return MarkdownNativeInlineKind.SoftBreak;
             case MarkdownSyntaxKind.InlineHtmlTag:
                 return MarkdownNativeInlineKind.HtmlTag;
             case MarkdownSyntaxKind.InlineHtmlRaw:
@@ -494,6 +496,7 @@ internal static class MarkdownNativeInlineProjection {
             case MarkdownSyntaxKind.InlineSubscript:
             case MarkdownSyntaxKind.InlineUnderline:
             case MarkdownSyntaxKind.InlineHardBreak:
+            case MarkdownSyntaxKind.InlineSoftBreak:
             case MarkdownSyntaxKind.InlineHtmlTag:
             case MarkdownSyntaxKind.InlineHtmlRaw:
             case MarkdownSyntaxKind.InlineFootnoteRef:

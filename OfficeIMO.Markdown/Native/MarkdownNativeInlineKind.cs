@@ -34,6 +34,8 @@ public enum MarkdownNativeInlineKind {
     Underline,
     /// <summary>Hard line break.</summary>
     HardBreak,
+    /// <summary>Soft line break.</summary>
+    SoftBreak,
     /// <summary>Inline HTML tag wrapper.</summary>
     HtmlTag,
     /// <summary>Raw inline HTML.</summary>
