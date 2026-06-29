@@ -263,6 +263,46 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void AbbreviationEnding_Paragraph_GenericAttributes_Preserve_NoSpace_Source_And_Target_Paragraph() {
+        const string markdown = "*[HTML]: Hyper Text Markup Language\n\nHTML{#abbr .wide}\n";
+        var options = new MarkdownReaderOptions {
+            Abbreviations = true,
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var paragraph = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.Paragraph);
+        var paragraphAttributes = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        var abbreviation = Assert.Single(paragraph.Descendants(), node => node.Kind == MarkdownSyntaxKind.InlineAbbreviation);
+
+        Assert.Equal("{#abbr .wide}", paragraphAttributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 17), paragraphAttributes.SourceSpan);
+        Assert.True(paragraph.SourceSpan!.Value.Contains(paragraphAttributes.SourceSpan!.Value));
+        Assert.True(abbreviation.Attributes.IsEmpty);
+        Assert.DoesNotContain(abbreviation.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        Assert.True(result.TryCreateOriginalSourceSlice(paragraphAttributes, out var slice));
+        Assert.Equal("{#abbr .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Equal("HTML", nativeParagraph.Text);
+        Assert.Same(nativeParagraph, field.Block);
+        Assert.Equal("{#abbr .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 17), field.SourceSpan);
+        Assert.Empty(native.EnumerateInlineMetadata("attributes"));
+
+        Assert.Equal("*[HTML]: Hyper Text Markup Language\n\nHTML{#abbr .wide}", result.Document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Inline_GenericAttribute_Tokens_Without_Duplicating_Native_Metadata() {
         const string markdown = "See [docs](old.md){#docs .primary} now\n";
         var options = new MarkdownReaderOptions {

@@ -302,6 +302,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "table-cell-inline", "*[HTML]: Hyper Text Markup Language\n\n| Term |\n| --- |\n| HTML |" };
     }
 
+    public static IEnumerable<object[]> GenericAttributesAbbreviationExtensionCases() {
+        yield return new object[] { "abbreviation-inline", "*[HTML]: Hyper Text Markup Language\n\nHTML{#abbr .wide}" };
+    }
+
     public static IEnumerable<object[]> GenericAttributesExtensionCases() {
         yield return new object[] { "atx-heading-id-class-title", "# Heading {#intro .wide title=\"Overview\"}" };
         yield return new object[] { "setext-heading-id-class-title", "Heading {#intro .wide title=\"Overview\"}\n=======" };
@@ -556,6 +560,31 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(GenericAttributesAbbreviationExtensionCases))]
+    public void MarkdownReader_GenericAttributes_On_Abbreviations_Match_Markdig_Extensions(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseAbbreviations(builder);
+        Markdig.MarkdownExtensions.UseGenericAttributes(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.Abbreviations = true;
+        officeOptions.GenericAttributes = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
     }
 
     [Theory]
