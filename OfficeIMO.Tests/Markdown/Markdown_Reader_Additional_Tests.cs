@@ -450,6 +450,13 @@ _Caption_
             Assert.Equal(
                 md.TrimEnd().Replace("\r\n", "\n"),
                 ((IMarkdownBlock)code).RenderMarkdown().Replace("\r\n", "\n"));
+
+            var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            });
+            Assert.Contains("<pre id=\"quarterly-overview\" class=\"wide accent\" pinned=\"true\" title=\"Quarterly Revenue\"><code class=\"language-chart\">", html, StringComparison.Ordinal);
         }
 
         [Fact]

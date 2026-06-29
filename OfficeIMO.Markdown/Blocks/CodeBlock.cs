@@ -92,6 +92,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
             return overridden;
         }
 
+        string attrs = MarkdownHtmlAttributes.Render(Attributes, options);
         string lang = string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{HtmlTextEncoder.Encode(Language, options)}\"";
         string code = HtmlTextEncoder.Encode(Content, options);
         if (code.Length > 0) {
@@ -100,7 +101,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
             code += "\n";
         }
         string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{HtmlTextEncoder.Encode(Caption!, options)}</div>";
-        return $"<pre><code{lang}>{code}</code></pre>{caption}";
+        return $"<pre{attrs}><code{lang}>{code}</code></pre>{caption}";
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
