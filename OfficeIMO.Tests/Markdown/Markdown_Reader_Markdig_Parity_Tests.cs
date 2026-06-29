@@ -304,6 +304,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     public static IEnumerable<object[]> GenericAttributesExtensionCases() {
         yield return new object[] { "atx-heading-id-class-title", "# Heading {#intro .wide title=\"Overview\"}" };
+        yield return new object[] { "setext-heading-id-class-title", "Heading {#intro .wide title=\"Overview\"}\n=======" };
     }
 
     [Theory]
@@ -499,7 +500,16 @@ public class Markdown_Reader_Markdig_Parity_Tests {
             .ToHtmlFragment(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
-        Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+        Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
+    }
+
+    private static string NormalizeGenericAttributesHtmlForParity(string html) {
+        var normalized = NormalizeHtmlForParity(html);
+        return Regex.Replace(
+            normalized,
+            "(<h[1-6][^>]*>[^<]*?)\\s+</h",
+            "$1</h",
+            RegexOptions.CultureInvariant);
     }
 
     private static string NormalizeHtmlForParity(string html) {

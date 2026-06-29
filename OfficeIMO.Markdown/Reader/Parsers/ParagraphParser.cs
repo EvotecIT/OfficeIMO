@@ -56,8 +56,24 @@ public static partial class MarkdownReader {
             if (!state.LazyQuoteContinuationLines.Contains(setextUnderlineLineIndex)
                 && TryParseSetextHeadingParagraphLines(paragraphLines, options, out int level, out string headingText)) {
                 var contentLines = paragraphLines.GetRange(0, paragraphLines.Count - 1);
+                MarkdownAttributeSet headingAttributes = MarkdownAttributeSet.Empty;
+                if (options.GenericAttributes && contentLines.Count > 0) {
+                    var lastContentLineIndex = contentLines.Count - 1;
+                    if (MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
+                        contentLines[lastContentLineIndex],
+                        out var lineWithoutAttributeBlock,
+                        out headingAttributes,
+                        out _)) {
+                        contentLines[lastContentLineIndex] = lineWithoutAttributeBlock;
+                        while (contentLines.Count > 0 && string.IsNullOrWhiteSpace(contentLines[contentLines.Count - 1])) {
+                            contentLines.RemoveAt(contentLines.Count - 1);
+                        }
+                    }
+                }
+
                 var (headingInlineText, headingSourceMap) = JoinParagraphLinesWithSourceMap(contentLines, state.SourceLineOffset + i, options, state);
                 var heading = new HeadingBlock(level, ParseInlines(headingInlineText, options, state, headingSourceMap));
+                heading.SetAttributes(headingAttributes);
                 var underline = paragraphLines[paragraphLines.Count - 1] ?? string.Empty;
                 var trimmedUnderline = underline.Trim();
                 var markerStartColumn = underline.IndexOf(trimmedUnderline, StringComparison.Ordinal) + 1;

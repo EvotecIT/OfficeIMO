@@ -502,6 +502,48 @@ _Caption_
         }
 
         [Fact]
+        public void GenericAttributes_Parse_SetextHeading_TrailingAttributeBlock_WhenEnabled() {
+            const string md = """
+Quarterly Revenue {#quarterly-overview .wide .accent title="Quarterly Revenue" pinned}
+=================
+""";
+            var options = new MarkdownReaderOptions {
+                GenericAttributes = true
+            };
+
+            var result = MarkdownReader.ParseWithSyntaxTree(md, options);
+            var heading = Assert.IsType<HeadingBlock>(result.Document.Blocks[0]);
+
+            Assert.Equal(1, heading.Level);
+            Assert.Equal("Quarterly Revenue", heading.Text);
+            Assert.Equal("quarterly-overview", heading.Attributes.ElementId);
+            Assert.Equal(new[] { "wide", "accent" }, heading.Attributes.Classes);
+            Assert.Equal("Quarterly Revenue", heading.Attributes.GetAttribute("title"));
+            Assert.Equal("true", heading.Attributes.GetAttribute("pinned"));
+
+            var syntax = Assert.Single(result.SyntaxTree.Children);
+            Assert.Equal("quarterly-overview", syntax.Attributes.ElementId);
+            Assert.Equal(new[] { "wide", "accent" }, syntax.Attributes.Classes);
+            Assert.Equal("true", syntax.Attributes.GetAttribute("pinned"));
+
+            var html = result.Document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            });
+            Assert.Contains("<h1 id=\"quarterly-overview\" class=\"wide accent\" pinned=\"true\" title=\"Quarterly Revenue\">Quarterly Revenue</h1>", html, StringComparison.Ordinal);
+
+            var written = result.Document.ToMarkdown().TrimEnd().Replace("\r\n", "\n");
+            Assert.Equal("# Quarterly Revenue {#quarterly-overview .wide .accent pinned title=\"Quarterly Revenue\"}", written);
+
+            var reparsed = MarkdownReader.Parse(written, options);
+            var reparsedHeading = Assert.IsType<HeadingBlock>(reparsed.Blocks[0]);
+            Assert.Equal("quarterly-overview", reparsedHeading.Attributes.ElementId);
+            Assert.Equal(new[] { "wide", "accent" }, reparsedHeading.Attributes.Classes);
+            Assert.Equal("Quarterly Revenue", reparsedHeading.Attributes.GetAttribute("title"));
+        }
+
+        [Fact]
         public void GenericAttributes_Parse_Paragraph_TrailingAttributeBlock_WhenEnabled() {
             const string md = "Lead paragraph {#lead .intro data-kind=\"summary\" pinned}";
             var options = new MarkdownReaderOptions {

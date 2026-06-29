@@ -20,8 +20,20 @@ public static partial class MarkdownReader {
             var t = next.Trim();
             var headingText = line.Trim();
             var contentStart = line.IndexOf(headingText, StringComparison.Ordinal);
+            var effectiveHeadingEnd = contentStart + headingText.Length;
+            MarkdownAttributeSet parsedAttributes = MarkdownAttributeSet.Empty;
+            if (options.GenericAttributes
+                && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(headingText, out var textWithoutAttributeBlock, out parsedAttributes, out var attributeStart)) {
+                headingText = textWithoutAttributeBlock;
+                effectiveHeadingEnd = contentStart + attributeStart;
+                while (effectiveHeadingEnd > contentStart && char.IsWhiteSpace(line[effectiveHeadingEnd - 1])) {
+                    effectiveHeadingEnd--;
+                }
+            }
+
             var sourceMap = BuildInlineSourceMapForSingleLine(headingText, state.SourceLineOffset + i + 1, contentStart + 1, state);
             var heading = new HeadingBlock(level, ParseInlines(headingText, options, state, sourceMap));
+            heading.SetAttributes(parsedAttributes);
             var markerStartColumn = next.IndexOf(t, StringComparison.Ordinal) + 1;
             var markerEndColumn = markerStartColumn + t.Length - 1;
             var absoluteMarkerLine = state.SourceLineOffset + i + 2;
@@ -33,7 +45,7 @@ public static partial class MarkdownReader {
                 t,
                 CreateSpan(state, absoluteMarkerLine, markerStartColumn, absoluteMarkerLine, markerEndColumn));
             if (headingText.Length > 0) {
-                heading.SetTextSourceInfo(0, contentStart + 1, contentStart + headingText.Length);
+                heading.SetTextSourceInfo(0, contentStart + 1, effectiveHeadingEnd);
             }
             doc.Add(heading);
             i += 2; // consume both lines
