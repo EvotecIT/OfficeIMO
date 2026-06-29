@@ -231,6 +231,8 @@ just to reserve names.
   - [x] Parse STSH paragraph style records and project stylesheet-defined
     custom paragraph styles as deterministic DOCX paragraph style IDs with
     local style definitions.
+  - [x] Validate stylesheet-defined custom paragraph style projection against a
+    Word COM-generated legacy `.doc` in the opt-in desktop validation lane.
   - [ ] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting once each mapping has a fixture and observable
     OfficeIMO contract.

@@ -14,6 +14,7 @@ namespace OfficeIMO.Tests {
         private const string LegacyDocComValidationEnv = "OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION";
         private const int WdDoNotSaveChanges = 0;
         private const int WdFormatDocument = 0;
+        private const int WdStyleTypeParagraph = 1;
         private const int WdStyleHeading1 = -2;
         private const int WdStyleNormal = -1;
         private const int WdAlignParagraphLeft = 0;
@@ -58,6 +59,44 @@ namespace OfficeIMO.Tests {
 
             result.Document.Save(nativeDocPath);
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { nativeDocPath }, "The OfficeIMO native legacy DOC output did not open through desktop Word.");
+        }
+
+        [Fact]
+        public void LegacyDoc_ComGeneratedCustomParagraphStyle_ImportsStylesheetStyleWhenRequested() {
+            if (GetType() != typeof(Word)) {
+                return;
+            }
+
+            if (!IsLegacyDocComValidationRequested()) {
+                return;
+            }
+
+            Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
+            Assert.True(IsWordComAvailable(), "Legacy DOC COM validation requires Microsoft Word COM automation.");
+
+            string directory = Path.Combine(_directoryWithFiles, "LegacyDocCom", GetCurrentTargetFrameworkLabel());
+            Directory.CreateDirectory(directory);
+            string sourceDocPath = Path.Combine(directory, "word-com-custom-style-source.doc");
+
+            CreateLegacyDocWithCustomParagraphStyleViaWordCom(sourceDocPath);
+            AssertDocumentsOpenViaWordComWhenAvailable(new[] { sourceDocPath }, "The generated custom-style legacy DOC source did not open through desktop Word.");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(sourceDocPath);
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = result.Document.Paragraphs
+                .First(item => item.Text == "Custom style Word COM paragraph");
+
+            Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
+            Assert.Equal("LegacyDocOfficeIMOCustomBody", paragraph.StyleId);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            WordParagraph convertedParagraph = converted.Paragraphs
+                .First(item => item.Text == "Custom style Word COM paragraph");
+            Assert.Equal(WordParagraphStyles.Custom, convertedParagraph.Style);
+            Assert.Equal("LegacyDocOfficeIMOCustomBody", convertedParagraph.StyleId);
+            Assert.Contains(
+                converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.OfType<Style>(),
+                style => style.StyleId?.Value == "LegacyDocOfficeIMOCustomBody" && style.StyleName?.Val?.Value == "OfficeIMO Custom Body");
         }
 
         [Fact]
@@ -131,11 +170,23 @@ namespace OfficeIMO.Tests {
 #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
 #endif
-        private static void CreateLegacyDocViaWordCom(string path) {
+        private static void CreateLegacyDocViaWordCom(string path) =>
+            CreateLegacyDocViaWordCom(path, CreateLegacyDocViaWordComOnStaThread);
+
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
+        private static void CreateLegacyDocWithCustomParagraphStyleViaWordCom(string path) =>
+            CreateLegacyDocViaWordCom(path, CreateLegacyDocWithCustomParagraphStyleViaWordComOnStaThread);
+
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
+        private static void CreateLegacyDocViaWordCom(string path, Action<string> createDocument) {
             var failures = new List<string>();
             var thread = new Thread(() => {
                 try {
-                    CreateLegacyDocViaWordComOnStaThread(path);
+                    createDocument(path);
                 } catch (Exception ex) when (ex is COMException or InvalidOperationException or MissingMethodException or TargetInvocationException) {
                     failures.Add(DescribeWordComFailure(ex));
                 }
@@ -222,6 +273,47 @@ namespace OfficeIMO.Tests {
             } finally {
                 CloseWordComDocument(document);
                 QuitWordComApplication(word);
+                ReleaseComObject(selection);
+                ReleaseComObject(document);
+                ReleaseComObject(documents);
+                ReleaseComObject(word);
+            }
+        }
+
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
+        private static void CreateLegacyDocWithCustomParagraphStyleViaWordComOnStaThread(string path) {
+            object? word = null;
+            object? documents = null;
+            object? document = null;
+            object? selection = null;
+            object? styles = null;
+            object? customStyle = null;
+
+            try {
+                word = CreateWordComApplication();
+                documents = GetComProperty(word, "Documents");
+                document = InvokeCom(documents!, "Add");
+                selection = GetComProperty(word, "Selection");
+                styles = GetComProperty(document!, "Styles");
+                customStyle = InvokeCom(styles!, "Add", "OfficeIMO Custom Body", WdStyleTypeParagraph);
+
+                AddWordComParagraph(selection!, "Custom style Word COM paragraph", selectionItem => {
+                    SetComProperty(selectionItem, "Style", "OfficeIMO Custom Body");
+                });
+                AddWordComParagraph(selection!, "Normal after custom style");
+
+                if (File.Exists(path)) {
+                    File.Delete(path);
+                }
+
+                InvokeCom(document!, "SaveAs2", path, WdFormatDocument);
+            } finally {
+                CloseWordComDocument(document);
+                QuitWordComApplication(word);
+                ReleaseComObject(customStyle);
+                ReleaseComObject(styles);
                 ReleaseComObject(selection);
                 ReleaseComObject(document);
                 ReleaseComObject(documents);
