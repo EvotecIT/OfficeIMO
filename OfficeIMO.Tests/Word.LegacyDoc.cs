@@ -2,6 +2,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 using OfficeIMO.Word.LegacyDoc.Model;
+using System.Text;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using OpenMcdf;
 using Xunit;
@@ -100,6 +101,46 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("First COM paragraph", paragraphs);
             Assert.Contains("Second COM paragraph", paragraphs);
+        }
+
+        [Fact]
+        public void LegacyDoc_CorpusImportReports_MatchCheckedInBaselines() {
+            string corpusDirectory = Path.Combine(GetWordTestsProjectRoot(), "Documents", "LegacyDocCorpus");
+            string[] docPaths = Directory.GetFiles(corpusDirectory, "*.doc", SearchOption.AllDirectories)
+                .Where(path => !Path.GetFileName(path).StartsWith("~$", StringComparison.Ordinal))
+                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            Assert.NotEmpty(docPaths);
+
+            bool updateBaselines = string.Equals(
+                Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_LEGACY_DOC_CORPUS_BASELINES"),
+                "1",
+                StringComparison.Ordinal);
+            var missingBaselines = new List<string>();
+            foreach (string docPath in docPaths) {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(docPath);
+                string actual = NormalizeLegacyDocBaselineText(result.ImportReport.ToMarkdown());
+                string baselinePath = Path.ChangeExtension(docPath, ".import-report.md");
+
+                if (updateBaselines) {
+                    File.WriteAllText(baselinePath, actual, Encoding.UTF8);
+                    continue;
+                }
+
+                if (!File.Exists(baselinePath)) {
+                    missingBaselines.Add(Path.GetRelativePath(corpusDirectory, baselinePath));
+                    continue;
+                }
+
+                string expected = NormalizeLegacyDocBaselineText(File.ReadAllText(baselinePath, Encoding.UTF8));
+                Assert.Equal(expected, actual);
+            }
+
+            Assert.True(
+                missingBaselines.Count == 0,
+                "Missing legacy DOC corpus baselines. Run with OFFICEIMO_UPDATE_LEGACY_DOC_CORPUS_BASELINES=1 to create: "
+                    + string.Join(", ", missingBaselines));
         }
 
         [Fact]
@@ -568,6 +609,23 @@ namespace OfficeIMO.Tests {
         private static void AssertSameInstant(DateTime expected, DateTime? actual) {
             Assert.NotNull(actual);
             Assert.Equal(expected.ToUniversalTime(), actual.Value.ToUniversalTime());
+        }
+
+        private static string NormalizeLegacyDocBaselineText(string text) {
+            return text.Replace("\r\n", "\n").Replace('\r', '\n').TrimEnd() + "\n";
+        }
+
+        private static string GetWordTestsProjectRoot() {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory != null) {
+                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Tests.csproj"))) {
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+
+            return AppContext.BaseDirectory;
         }
 
         private static void DeleteIfExists(string path) {
