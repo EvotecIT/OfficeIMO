@@ -66,6 +66,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDirectBoldItalicRuns() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithDirectCharacterFormatting();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph[] runs = result.Document.Paragraphs.ToArray();
+            Assert.Equal(3, runs.Length);
+            Assert.Equal("plain ", runs[0].Text);
+            Assert.False(runs[0].Bold);
+            Assert.False(runs[0].Italic);
+            Assert.Equal("bold ", runs[1].Text);
+            Assert.True(runs[1].Bold);
+            Assert.False(runs[1].Italic);
+            Assert.Equal("italic", runs[2].Text);
+            Assert.False(runs[2].Bold);
+            Assert.True(runs[2].Italic);
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_RoutesOleDocIntoProjectedWordDocument() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -354,6 +374,22 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithDirectCharacterFormatting() {
+                const string text = "plain bold italic\r";
+                const int textOffset = 0x200;
+                const int chpxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithDirectCharacterFormatting(text, textOffset, chpxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithCharacterBinTable(text.Length, textOffset, chpxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateCompoundWithoutWordDocumentStream() {
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
@@ -382,6 +418,38 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
+            private static byte[] CreateUnicodeWordDocumentStreamWithDirectCharacterFormatting(string text, int textOffset, int chpxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(chpxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0xFA, 21);
+                WriteInt32(stream, 0xFE, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int boldStart = textOffset + ("plain ".Length * 2);
+                int italicStart = boldStart + ("bold ".Length * 2);
+                int paragraphMarkStart = italicStart + ("italic".Length * 2);
+                int end = paragraphMarkStart + 2;
+                WriteChpxFkp(
+                    stream,
+                    chpxFkpOffset,
+                    new[] { textOffset, boldStart, italicStart, paragraphMarkStart, end },
+                    boldRunIndex: 1,
+                    italicRunIndex: 2);
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
             private static byte[] CreateTableStream(int characterCount) {
                 const int textOffset = 0x200;
                 var table = new byte[21];
@@ -393,6 +461,51 @@ namespace OfficeIMO.Tests {
                 WriteUInt32(table, 15, 0x40000000U | ((uint)textOffset * 2U));
                 WriteUInt16(table, 19, 0);
                 return table;
+            }
+
+            private static byte[] CreateUnicodeTableStreamWithCharacterBinTable(int characterCount, int textOffset, int chpxFkpPageNumber) {
+                var table = new byte[33];
+                table[0] = 0x02;
+                WriteInt32(table, 1, 16);
+                WriteInt32(table, 5, 0);
+                WriteInt32(table, 9, characterCount);
+                WriteUInt16(table, 13, 0);
+                WriteUInt32(table, 15, unchecked((uint)textOffset));
+                WriteUInt16(table, 19, 0);
+
+                int chpxPlcOffset = 21;
+                WriteInt32(table, chpxPlcOffset, textOffset);
+                WriteInt32(table, chpxPlcOffset + 4, textOffset + (characterCount * 2));
+                WriteInt32(table, chpxPlcOffset + 8, chpxFkpPageNumber);
+                return table;
+            }
+
+            private static void WriteChpxFkp(byte[] stream, int fkpOffset, int[] fileCharacterPositions, int boldRunIndex, int italicRunIndex) {
+                const int boldChpxOffset = 0xF0;
+                const int italicChpxOffset = 0xF8;
+                int runCount = fileCharacterPositions.Length - 1;
+                for (int i = 0; i < fileCharacterPositions.Length; i++) {
+                    WriteInt32(stream, fkpOffset + (i * 4), fileCharacterPositions[i]);
+                }
+
+                int rgbOffset = fkpOffset + (fileCharacterPositions.Length * 4);
+                for (int i = 0; i < runCount; i++) {
+                    if (i == boldRunIndex) {
+                        stream[rgbOffset + i] = boldChpxOffset / 2;
+                    } else if (i == italicRunIndex) {
+                        stream[rgbOffset + i] = italicChpxOffset / 2;
+                    }
+                }
+
+                WriteSingleToggleChpx(stream, fkpOffset + boldChpxOffset, 0x0835);
+                WriteSingleToggleChpx(stream, fkpOffset + italicChpxOffset, 0x0836);
+                stream[fkpOffset + 511] = checked((byte)runCount);
+            }
+
+            private static void WriteSingleToggleChpx(byte[] stream, int offset, ushort sprm) {
+                stream[offset] = 3;
+                WriteUInt16(stream, offset + 1, sprm);
+                stream[offset + 3] = 1;
             }
 
             private static byte[] CreateSummaryInformationPropertySet(DateTime created, DateTime modified) {

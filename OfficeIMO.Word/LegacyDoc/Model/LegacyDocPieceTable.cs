@@ -5,8 +5,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const uint CompressedTextFlag = 0x40000000;
         private const uint FcMask = 0x3FFFFFFF;
 
-        internal static bool TryRead(byte[] wordDocumentStream, byte[] tableStream, LegacyDocFib fib, out string text, out string? error) {
-            text = string.Empty;
+        internal static bool TryRead(byte[] wordDocumentStream, byte[] tableStream, LegacyDocFib fib, out LegacyDocTextContent content, out string? error) {
+            content = new LegacyDocTextContent(string.Empty, Array.Empty<LegacyDocTextCharacter>());
             error = null;
 
             if (fib.CcpText == 0) {
@@ -49,6 +49,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             int pieceCount = (pcdByteCount - 4) / 12;
             var builder = new System.Text.StringBuilder(fib.CcpText);
+            var characters = new List<LegacyDocTextCharacter>(fib.CcpText);
             int cpArrayOffset = pcdOffset;
             int pcdArrayOffset = cpArrayOffset + ((pieceCount + 1) * 4);
 
@@ -73,7 +74,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         return false;
                     }
 
-                    AppendWindows1252(builder, wordDocumentStream, byteOffset, characterCount);
+                    AppendWindows1252(builder, characters, wordDocumentStream, byteOffset, characterCount);
                 } else {
                     int byteCount = checked(characterCount * 2);
                     if (byteOffset + byteCount > wordDocumentStream.Length) {
@@ -81,17 +82,28 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         return false;
                     }
 
-                    builder.Append(System.Text.Encoding.Unicode.GetString(wordDocumentStream, byteOffset, byteCount));
+                    AppendUnicode(builder, characters, wordDocumentStream, byteOffset, characterCount);
                 }
             }
 
-            text = builder.ToString();
+            content = new LegacyDocTextContent(builder.ToString(), characters);
             return true;
         }
 
-        private static void AppendWindows1252(System.Text.StringBuilder builder, byte[] bytes, int offset, int count) {
+        private static void AppendWindows1252(System.Text.StringBuilder builder, List<LegacyDocTextCharacter> characters, byte[] bytes, int offset, int count) {
             for (int i = 0; i < count; i++) {
-                builder.Append(DecodeWindows1252(bytes[offset + i]));
+                char character = DecodeWindows1252(bytes[offset + i]);
+                builder.Append(character);
+                characters.Add(new LegacyDocTextCharacter(character, offset + i));
+            }
+        }
+
+        private static void AppendUnicode(System.Text.StringBuilder builder, List<LegacyDocTextCharacter> characters, byte[] bytes, int offset, int count) {
+            for (int i = 0; i < count; i++) {
+                int byteOffset = offset + (i * 2);
+                char character = (char)(bytes[byteOffset] | (bytes[byteOffset + 1] << 8));
+                builder.Append(character);
+                characters.Add(new LegacyDocTextCharacter(character, byteOffset));
             }
         }
 

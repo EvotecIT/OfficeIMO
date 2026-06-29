@@ -221,6 +221,9 @@ just to reserve names.
   into normal Word built-in, application, and scalar custom properties.
 - [ ] Add formatting projection for run/paragraph styles only when each mapping
   has a fixture and observable OfficeIMO contract.
+  - [x] Project direct CHPX bold/italic character runs into OfficeIMO runs.
+  - [ ] Extend character projection to underline, font, size, and color.
+  - [ ] Add paragraph style/properties projection after character runs are stable.
 - [ ] Add common table projection after paragraph/run projection is stable.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
   separate fixture-backed slices.

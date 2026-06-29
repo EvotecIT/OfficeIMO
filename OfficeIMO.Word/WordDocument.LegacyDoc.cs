@@ -77,16 +77,35 @@ namespace OfficeIMO.Word {
                 ? document.Sections[0]
                 : new WordSection(document, null!, null!);
 
-            if (legacyDocument.Paragraphs.Count == 0) {
+            if (legacyDocument.ParagraphTextRuns.Count == 0) {
                 section.AddParagraph();
             } else {
-                foreach (string paragraph in legacyDocument.Paragraphs) {
-                    section.AddParagraph(paragraph);
+                foreach (IReadOnlyList<LegacyDocTextRun> paragraphRuns in legacyDocument.ParagraphTextRuns) {
+                    AddLegacyDocParagraph(section, paragraphRuns);
                 }
             }
 
             document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument);
             return document;
+        }
+
+        private static void AddLegacyDocParagraph(WordSection section, IReadOnlyList<LegacyDocTextRun> paragraphRuns) {
+            if (paragraphRuns.Count == 0) {
+                section.AddParagraph();
+                return;
+            }
+
+            WordParagraph paragraph = section.AddParagraph(string.Empty);
+            foreach (LegacyDocTextRun legacyRun in paragraphRuns) {
+                WordParagraph run = paragraph.AddText(legacyRun.Text);
+                if (legacyRun.Bold) {
+                    run.SetBold();
+                }
+
+                if (legacyRun.Italic) {
+                    run.SetItalic();
+                }
+            }
         }
 
         private static void ApplyLegacyDocProperties(WordDocument document, LegacyDocDocumentProperties properties) {

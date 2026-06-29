@@ -8,6 +8,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     public sealed class LegacyDocDocument {
         private readonly List<LegacyDocImportDiagnostic> _diagnostics = new();
         private readonly List<string> _paragraphs = new();
+        private readonly List<IReadOnlyList<LegacyDocTextRun>> _paragraphTextRuns = new();
         private readonly List<LegacyDocUnsupportedFeature> _unsupportedFeatures = new();
 
         private LegacyDocDocument() {
@@ -18,6 +19,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         /// <summary>Gets body paragraphs projected from Word paragraph marks.</summary>
         public IReadOnlyList<string> Paragraphs => _paragraphs;
+
+        internal IReadOnlyList<IReadOnlyList<LegacyDocTextRun>> ParagraphTextRuns => _paragraphTextRuns;
 
         internal LegacyDocDocumentProperties DocumentProperties { get; } = new();
 
@@ -111,14 +114,19 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
             }
 
-            if (!LegacyDocPieceTable.TryRead(wordDocumentStream, tableStream, fib, out string text, out string? textError)) {
+            if (!LegacyDocPieceTable.TryRead(wordDocumentStream, tableStream, fib, out LegacyDocTextContent textContent, out string? textError)) {
                 AddError("DOC-PIECE-TABLE-INVALID", textError ?? "The legacy DOC piece table could not be decoded.");
                 return;
             }
 
-            Text = NormalizeBodyText(text);
-            foreach (string paragraph in SplitParagraphs(Text)) {
-                _paragraphs.Add(paragraph);
+            IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges = LegacyDocCharacterFormattingReader.ReadCharacterFormatting(wordDocumentStream, tableStream, fib, out string? formattingWarning);
+            if (formattingWarning != null) {
+                AddWarning("DOC-CHPX-INVALID", formattingWarning);
+            }
+
+            Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges);
+            foreach (IReadOnlyList<LegacyDocTextRun> paragraphRuns in _paragraphTextRuns) {
+                _paragraphs.Add(string.Concat(paragraphRuns.Select(run => run.Text)));
             }
         }
 
@@ -148,38 +156,82 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
-        private static string NormalizeBodyText(string text) {
-            var builder = new System.Text.StringBuilder(text.Length);
-            foreach (char character in text) {
-                switch (character) {
-                    case '\0':
-                    case '\a':
-                        break;
-                    case '\v':
-                    case '\f':
-                        builder.Append('\r');
-                        break;
-                    default:
-                        if (!char.IsControl(character) || character == '\t' || character == '\r' || character == '\n') {
-                            builder.Append(character);
-                        }
-                        break;
+        private string BuildFormattedParagraphs(IReadOnlyList<LegacyDocTextCharacter> characters, IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges) {
+            var bodyText = new System.Text.StringBuilder(characters.Count);
+            var currentRuns = new List<LegacyDocTextRun>();
+            var runText = new System.Text.StringBuilder();
+            LegacyDocCharacterFormat currentFormat = LegacyDocCharacterFormat.Default;
+            bool hasCurrentRun = false;
+
+            foreach (LegacyDocTextCharacter textCharacter in characters) {
+                char? normalized = NormalizeBodyCharacter(textCharacter.Character);
+                if (normalized == null) {
+                    continue;
+                }
+
+                LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, textCharacter.FileOffset);
+                if (normalized.Value == '\r') {
+                    FlushRun();
+                    _paragraphTextRuns.Add(currentRuns.ToArray());
+                    currentRuns.Clear();
+                    hasCurrentRun = false;
+                    bodyText.Append('\r');
+                    continue;
+                }
+
+                if (!hasCurrentRun || format.Bold != currentFormat.Bold || format.Italic != currentFormat.Italic) {
+                    FlushRun();
+                    currentFormat = format;
+                    hasCurrentRun = true;
+                }
+
+                runText.Append(normalized.Value);
+                bodyText.Append(normalized.Value);
+            }
+
+            FlushRun();
+            if (currentRuns.Count > 0) {
+                _paragraphTextRuns.Add(currentRuns.ToArray());
+            }
+
+            return bodyText.ToString();
+
+            void FlushRun() {
+                if (runText.Length == 0) {
+                    return;
+                }
+
+                currentRuns.Add(new LegacyDocTextRun(runText.ToString(), currentFormat.Bold, currentFormat.Italic));
+                runText.Clear();
+            }
+        }
+
+        private static char? NormalizeBodyCharacter(char character) {
+            switch (character) {
+                case '\0':
+                case '\a':
+                    return null;
+                case '\v':
+                case '\f':
+                case '\n':
+                    return '\r';
+                default:
+                    if (!char.IsControl(character) || character == '\t' || character == '\r' || character == '\n') {
+                        return character;
+                    }
+
+                    return null;
+            }
+        }
+
+        private static LegacyDocCharacterFormat GetFormatForFileOffset(IReadOnlyList<LegacyDocCharacterFormatRange> ranges, int fileOffset) {
+            for (int i = 0; i < ranges.Count; i++) {
+                if (ranges[i].Contains(fileOffset)) {
+                    return ranges[i].Format;
                 }
             }
 
-            return builder.ToString();
-        }
-
-        private static IEnumerable<string> SplitParagraphs(string text) {
-            string[] paragraphs = text.Replace("\r\n", "\r").Replace('\n', '\r').Split(new[] { '\r' }, StringSplitOptions.None);
-            int count = paragraphs.Length;
-            if (count > 0 && paragraphs[count - 1].Length == 0) {
-                count--;
-            }
-
-            for (int i = 0; i < count; i++) {
-                yield return paragraphs[i];
-            }
+            return LegacyDocCharacterFormat.Default;
         }
 
         internal void AddInfo(string code, string message) {
