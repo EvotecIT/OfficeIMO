@@ -205,6 +205,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "http-url-trailing-double-quote", "Visit https://example.com/path\" now" };
         yield return new object[] { "http-url-paired-single-quotes-stays-literal", "Visit 'https://example.com/path' now" };
         yield return new object[] { "http-url-userinfo-stays-literal", "Visit https://user@example.com/path now" };
+        yield return new object[] { "http-url-host-underscore-stays-literal", "Visit https://exa_mple.com/path now" };
         yield return new object[] { "www-url-path-tilde", "Visit www.example.com/path~tilde now" };
         yield return new object[] { "www-url-trailing-semicolon-links", "Visit www.example.com/path; now" };
         yield return new object[] { "www-url-userinfo-stays-literal", "Visit www.user@example.com/path now" };
@@ -213,6 +214,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "ftp-url", "Visit ftp://example.com/file.txt now" };
         yield return new object[] { "ftp-url-trailing-semicolon-links", "Visit ftp://example.com/file; now" };
         yield return new object[] { "ftp-url-userinfo-stays-literal", "Visit ftp://user@example.com/file now" };
+        yield return new object[] { "ftp-url-host-underscore-stays-literal", "Visit ftp://exa_mple.com/file now" };
         yield return new object[] { "ftp-url-query-ampersand", "Visit ftp://example.com/path?q=1&next=2 now" };
         yield return new object[] { "ftp-url-query-parens", "Visit ftp://example.com/search?q=(x) now" };
         yield return new object[] { "ftp-url-trailing-dot", "Visit ftp://example.com/file.txt. now" };
@@ -224,6 +226,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "http-url-after-underscore", "Visit _https://example.com now" };
         yield return new object[] { "ftp-localhost-stays-literal", "Visit ftp://localhost/file now" };
         yield return new object[] { "tel-url", "Call tel:+123456789 now" };
+        yield return new object[] { "tel-url-after-apostrophe-stays-literal", "Call 'tel:+123-456 now" };
         yield return new object[] { "tel-url-trailing-semicolon-links", "Call tel:+123-456; now" };
         yield return new object[] { "tel-url-trailing-dot", "Call tel:+123-456. now" };
         yield return new object[] { "tel-url-parentheses", "Call tel:(123)456 now" };
@@ -231,6 +234,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "uppercase-ftp-stays-literal", "Visit FTP://example.com/file now" };
         yield return new object[] { "uppercase-tel-stays-literal", "Call TEL:+123-456 now" };
         yield return new object[] { "lowercase-mailto-links", "Contact mailto:user@example.com now" };
+        yield return new object[] { "lowercase-mailto-after-apostrophe-stays-literal", "Contact 'mailto:user@example.com now" };
+        yield return new object[] { "lowercase-mailto-address-trailing-colon-links", "Contact mailto:user@example.com:: now" };
+        yield return new object[] { "lowercase-mailto-address-trailing-dash-links", "Contact mailto:user@example.com- now" };
         yield return new object[] { "lowercase-mailto-address-semicolon-stays-literal", "Contact mailto:user@example.com; now" };
         yield return new object[] { "lowercase-mailto-path-links", "Contact mailto:user@example.com/path now" };
         yield return new object[] { "lowercase-mailto-path-semicolon-links", "Contact mailto:user@example.com/path; now" };
@@ -338,6 +344,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
         officeOptions.AutolinkKeepTrailingSemicolonPunctuation = true;
         officeOptions.AutolinkRejectUnderscoreInWwwHost = true;
+        officeOptions.AutolinkRejectUnderscoreInUrlHost = true;
         officeOptions.AutolinkRejectUserInfoAuthority = true;
         officeOptions.AutolinkAllowClosingBracketInUrl = true;
         officeOptions.AutolinkKeepTrailingQuotePunctuation = true;
@@ -373,6 +380,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
         officeOptions.AutolinkKeepTrailingSemicolonPunctuation = true;
         officeOptions.AutolinkRejectUnderscoreInWwwHost = true;
+        officeOptions.AutolinkRejectUnderscoreInUrlHost = true;
         officeOptions.AutolinkRejectUserInfoAuthority = true;
         officeOptions.AutolinkAllowClosingBracketInUrl = true;
         officeOptions.AutolinkKeepTrailingQuotePunctuation = true;

@@ -80,6 +80,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.AutolinkTrimSingleTrailingPunctuationOrUnderscore);
         Assert.True(options.AutolinkRequireLowercaseWwwPrefix);
         Assert.False(options.AutolinkRejectUnderscoreInWwwHost);
+        Assert.False(options.AutolinkRejectUnderscoreInUrlHost);
         Assert.True(options.AutolinkRequireLowercaseBareSchemePrefix);
         Assert.False(options.AutolinkBareMailtoDisplayAddressOnly);
         Assert.Null(options.AutolinkValidPreviousCharacters);
@@ -120,6 +121,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(office.AutolinkTrimSingleTrailingPunctuationOrUnderscore);
         Assert.False(office.AutolinkRequireLowercaseWwwPrefix);
         Assert.False(office.AutolinkRejectUnderscoreInWwwHost);
+        Assert.False(office.AutolinkRejectUnderscoreInUrlHost);
         Assert.False(office.AutolinkRequireLowercaseBareSchemePrefix);
         Assert.False(office.AutolinkBareMailtoDisplayAddressOnly);
         Assert.Equal(3, office.BlockParserExtensions.Count);

@@ -110,6 +110,7 @@ public static partial class MarkdownReader {
         int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
         if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
         if (options.AutolinkRejectUserInfoAuthority && AutolinkAuthorityContainsUserInfo(text, start, i)) return false;
+        if (options.AutolinkRejectUnderscoreInUrlHost && AutolinkAuthorityHostContainsUnderscore(text, start, i)) return false;
         if (!options.AutolinkAllowQueryAndFragmentSpecialCharacters && ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
         if (!options.AutolinkAllowBalancedParenthesesWithTrailingPunctuation && ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
         if (!options.AutolinkAllowDomainWithoutPeriod && !HttpAutolinkHasDomainPeriod(text, start, i)) return false;
@@ -203,6 +204,41 @@ public static partial class MarkdownReader {
         return text.IndexOf('@', authorityStart, authorityEnd - authorityStart) >= 0;
     }
 
+    private static bool AutolinkAuthorityHostContainsUnderscore(string text, int start, int end) {
+        if (string.IsNullOrEmpty(text) || start < 0 || end <= start || end > text.Length) return false;
+
+        int schemeSeparator = text.IndexOf("://", start, end - start, StringComparison.Ordinal);
+        if (schemeSeparator < start) return false;
+
+        int authorityStart = schemeSeparator + 3;
+        int authorityEnd = end;
+        for (int i = authorityStart; i < end; i++) {
+            char c = text[i];
+            if (c == '/' || c == '?' || c == '#') {
+                authorityEnd = i;
+                break;
+            }
+        }
+
+        if (authorityEnd <= authorityStart) return false;
+
+        int hostStart = authorityStart;
+        int at = text.LastIndexOf('@', authorityEnd - 1, authorityEnd - authorityStart);
+        if (at >= authorityStart) {
+            hostStart = at + 1;
+        }
+
+        int hostEnd = authorityEnd;
+        for (int i = hostStart; i < authorityEnd; i++) {
+            if (text[i] == ':') {
+                hostEnd = i;
+                break;
+            }
+        }
+
+        return hostEnd > hostStart && text.IndexOf('_', hostStart, hostEnd - hostStart) >= 0;
+    }
+
     private static bool TryConsumeBareSchemeAutolink(string text, int start, MarkdownReaderOptions options, out int end, out string label, out string href) {
         end = start;
         label = href = string.Empty;
@@ -212,6 +248,7 @@ public static partial class MarkdownReader {
 
         if (IsBareSchemePrefixEnabled(options, "mailto:") &&
             StartsWithAutolinkScheme(text, start, "mailto:", options)) {
+            if (ShouldRejectBareSchemeAfterOpeningSingleQuote(text, start, options)) return false;
             int emailStart = start + "mailto:".Length;
             if (!TryConsumeBareMailtoAddress(text, emailStart, options, out int emailEnd, out string email)) return false;
             end = emailEnd;
@@ -228,6 +265,7 @@ public static partial class MarkdownReader {
             int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
             if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
             if (options.AutolinkRejectUserInfoAuthority && AutolinkAuthorityContainsUserInfo(text, start, i)) return false;
+            if (options.AutolinkRejectUnderscoreInUrlHost && AutolinkAuthorityHostContainsUnderscore(text, start, i)) return false;
             if (!options.AutolinkAllowQueryAndFragmentSpecialCharacters && ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
             if (!options.AutolinkAllowBalancedParenthesesWithTrailingPunctuation && ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
             if (!options.AutolinkAllowDomainWithoutPeriod && !HttpAutolinkHasDomainPeriod(text, start, i)) return false;
@@ -240,6 +278,7 @@ public static partial class MarkdownReader {
 
         if (IsBareSchemePrefixEnabled(options, "tel:") &&
             StartsWithAutolinkScheme(text, start, "tel:", options)) {
+            if (ShouldRejectBareSchemeAfterOpeningSingleQuote(text, start, options)) return false;
             int valueStart = start + "tel:".Length;
             int rawEnd = ConsumeLiteralUrl(text, start, options);
             int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
@@ -315,11 +354,40 @@ public static partial class MarkdownReader {
         if (addressEnd <= start) return false;
 
         string address = text.Substring(start, addressEnd - start);
-        if (!LooksLikeEmail(address)) return false;
+        if (!LooksLikeEmail(address)) {
+            if (!options.AutolinkBareMailtoMarkdigSemicolonHandling
+                || !TryTrimMarkdigBareMailtoAddressSuffix(text, start, ref addressEnd, out address)) {
+                return false;
+            }
+        }
 
         end = i;
         email = text.Substring(start, i - start);
         return true;
+    }
+
+    private static bool TryTrimMarkdigBareMailtoAddressSuffix(string text, int start, ref int addressEnd, out string address) {
+        address = string.Empty;
+        if (string.IsNullOrEmpty(text) || addressEnd <= start) return false;
+
+        char suffix = text[addressEnd - 1];
+        if (suffix != ':' && suffix != '-') return false;
+
+        int candidateEnd = addressEnd - 1;
+        if (candidateEnd <= start) return false;
+
+        string candidate = text.Substring(start, candidateEnd - start);
+        if (!LooksLikeEmail(candidate)) return false;
+
+        addressEnd = candidateEnd;
+        address = candidate;
+        return true;
+    }
+
+    private static bool ShouldRejectBareSchemeAfterOpeningSingleQuote(string text, int start, MarkdownReaderOptions options) {
+        return options.AutolinkKeepTrailingQuotePunctuation
+            && start > 0
+            && text[start - 1] == '\'';
     }
 
     private static bool TryApplyBareMailtoMarkdigSemicolonHandling(string text, int start, int rawEnd, ref int end) {

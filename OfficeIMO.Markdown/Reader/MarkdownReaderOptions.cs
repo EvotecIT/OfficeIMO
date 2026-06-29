@@ -277,6 +277,14 @@ public sealed class MarkdownReaderOptions {
     public bool AutolinkRejectUnderscoreInWwwHost { get; set; } = false;
 
     /// <summary>
+    /// When <c>true</c>, bare URL autolinks with an authority such as <c>https://</c> or
+    /// <c>ftp://</c> reject host labels containing underscores. Markdig <c>UseAutoLinks</c>
+    /// leaves those URL-shaped tokens as literal text; OfficeIMO's legacy behavior can still
+    /// link them.
+    /// </summary>
+    public bool AutolinkRejectUnderscoreInUrlHost { get; set; } = false;
+
+    /// <summary>
     /// When <c>true</c>, bare URL autolinks reject authority/user-info forms containing <c>@</c>,
     /// such as <c>https://user@example.com/path</c>. Markdig <c>UseAutoLinks</c> leaves those
     /// tokens as literal text; OfficeIMO's legacy behavior can still link them.
