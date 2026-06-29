@@ -4,6 +4,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool bold,
             bool italic,
             bool strike,
+            LegacyDocCapsKind? caps,
             LegacyDocVerticalPositionKind? verticalPosition,
             LegacyDocUnderlineKind? underline,
             LegacyDocHighlightColorKind? highlight,
@@ -13,6 +14,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Bold = bold;
             Italic = italic;
             Strike = strike;
+            Caps = caps;
             VerticalPosition = verticalPosition;
             Underline = underline;
             Highlight = highlight;
@@ -26,6 +28,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal bool Italic { get; }
 
         internal bool Strike { get; }
+
+        internal LegacyDocCapsKind? Caps { get; }
 
         internal LegacyDocVerticalPositionKind? VerticalPosition { get; }
 
@@ -43,6 +47,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Bold
             || Italic
             || Strike
+            || Caps != null
             || VerticalPosition != null
             || Underline != null
             || Highlight != null
@@ -50,12 +55,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || ColorHex != null
             || FontFamily != null;
 
-        internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, false, null, null, null, null, null, null);
+        internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, false, null, null, null, null, null, null, null);
 
         public bool Equals(LegacyDocCharacterFormat other) {
             return Bold == other.Bold
                 && Italic == other.Italic
                 && Strike == other.Strike
+                && Caps == other.Caps
                 && VerticalPosition == other.VerticalPosition
                 && Underline == other.Underline
                 && Highlight == other.Highlight
@@ -73,6 +79,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + Bold.GetHashCode();
             hash = (hash * 31) + Italic.GetHashCode();
             hash = (hash * 31) + Strike.GetHashCode();
+            hash = (hash * 31) + Caps.GetHashCode();
             hash = (hash * 31) + VerticalPosition.GetHashCode();
             hash = (hash * 31) + Underline.GetHashCode();
             hash = (hash * 31) + Highlight.GetHashCode();

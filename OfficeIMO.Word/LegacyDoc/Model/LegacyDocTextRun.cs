@@ -5,6 +5,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool bold,
             bool italic,
             bool strike,
+            LegacyDocCapsKind? caps,
             LegacyDocVerticalPositionKind? verticalPosition,
             LegacyDocUnderlineKind? underline,
             LegacyDocHighlightColorKind? highlight,
@@ -15,6 +16,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Bold = bold;
             Italic = italic;
             Strike = strike;
+            Caps = caps;
             VerticalPosition = verticalPosition;
             Underline = underline;
             Highlight = highlight;
@@ -30,6 +32,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal bool Italic { get; }
 
         internal bool Strike { get; }
+
+        internal LegacyDocCapsKind? Caps { get; }
 
         internal LegacyDocVerticalPositionKind? VerticalPosition { get; }
 

@@ -523,6 +523,14 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
+            if (characterFormat.Caps == LegacyDocCapsKind.Caps) {
+                properties.Append(new Caps());
+                hasProperties = true;
+            } else if (characterFormat.Caps == LegacyDocCapsKind.SmallCaps) {
+                properties.Append(new SmallCaps());
+                hasProperties = true;
+            }
+
             if (!string.IsNullOrEmpty(characterFormat.ColorHex)) {
                 properties.Append(new Color { Val = characterFormat.ColorHex! });
                 hasProperties = true;
@@ -602,6 +610,12 @@ namespace OfficeIMO.Word {
 
             if (legacyRun.Strike) {
                 run.SetStrike();
+            }
+
+            if (legacyRun.Caps == LegacyDocCapsKind.Caps) {
+                run.CapsStyle = CapsStyle.Caps;
+            } else if (legacyRun.Caps == LegacyDocCapsKind.SmallCaps) {
+                run.CapsStyle = CapsStyle.SmallCaps;
             }
 
             if (legacyRun.VerticalPosition != null && TryMapVerticalPosition(legacyRun.VerticalPosition.Value, out VerticalPositionValues verticalPosition)) {

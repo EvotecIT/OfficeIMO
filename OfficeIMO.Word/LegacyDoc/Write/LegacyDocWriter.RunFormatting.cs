@@ -49,6 +49,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool bold = false;
             bool italic = false;
             bool strike = false;
+            byte? caps = null;
             byte? verticalPosition = null;
             byte? underline = null;
             byte? highlight = null;
@@ -72,6 +73,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Strike strikeProperty:
                         strike = IsEnabled(strikeProperty);
                         break;
+                    case Caps capsProperty:
+                        caps = IsEnabled(capsProperty) ? (byte)1 : null;
+                        break;
+                    case SmallCaps smallCapsProperty:
+                        caps = IsEnabled(smallCapsProperty) ? (byte)2 : null;
+                        break;
                     case VerticalTextAlignment verticalTextAlignment:
                         verticalPosition = ReadSupportedVerticalPosition(verticalTextAlignment);
                         break;
@@ -91,11 +98,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         fontFamily = ReadSupportedRunFontFamily(runFonts);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, superscript/subscript, underline, highlight, font size, color, and font family run formatting. Unsupported run property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family run formatting. Unsupported run property: {property.LocalName}.");
                 }
             }
 
-            return new LegacyDocWritableFormatting(bold, italic, strike, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocWritableFormatting(bold, italic, strike, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
         }
 
         private static bool IsEnabled(OnOffType property) {
@@ -315,6 +322,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmCFStrike, 1);
             }
 
+            if (formatting.Caps == 1) {
+                AddSingleByteSprm(grpprl, SprmCFCaps, 1);
+            } else if (formatting.Caps == 2) {
+                AddSingleByteSprm(grpprl, SprmCFSmallCaps, 1);
+            }
+
             if (formatting.VerticalPosition != null) {
                 AddSingleByteSprm(grpprl, SprmCIss, formatting.VerticalPosition.Value);
             }
@@ -411,12 +424,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableFormatting : IEquatable<LegacyDocWritableFormatting> {
-            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, null, null, null, null, null, null);
+            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, null, null, null, null, null, null, null);
 
-            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily) {
+            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily) {
                 Bold = bold;
                 Italic = italic;
                 Strike = strike;
+                Caps = caps;
                 VerticalPosition = verticalPosition;
                 Underline = underline;
                 Highlight = highlight;
@@ -431,6 +445,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool Strike { get; }
 
+            internal byte? Caps { get; }
+
             internal byte? VerticalPosition { get; }
 
             internal byte? Underline { get; }
@@ -443,12 +459,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal string? FontFamily { get; }
 
-            internal bool HasFormatting => Bold || Italic || Strike || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
+            internal bool HasFormatting => Bold || Italic || Strike || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
 
             public bool Equals(LegacyDocWritableFormatting other) {
                 return Bold == other.Bold
                     && Italic == other.Italic
                     && Strike == other.Strike
+                    && Caps == other.Caps
                     && VerticalPosition == other.VerticalPosition
                     && Underline == other.Underline
                     && Highlight == other.Highlight
@@ -466,6 +483,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 hash = (hash * 31) + Bold.GetHashCode();
                 hash = (hash * 31) + Italic.GetHashCode();
                 hash = (hash * 31) + Strike.GetHashCode();
+                hash = (hash * 31) + Caps.GetHashCode();
                 hash = (hash * 31) + VerticalPosition.GetHashCode();
                 hash = (hash * 31) + Underline.GetHashCode();
                 hash = (hash * 31) + Highlight.GetHashCode();

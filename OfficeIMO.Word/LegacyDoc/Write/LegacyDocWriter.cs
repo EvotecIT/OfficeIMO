@@ -18,6 +18,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmCFBold = 0x0835;
         private const ushort SprmCFItalic = 0x0836;
         private const ushort SprmCFStrike = 0x0837;
+        private const ushort SprmCFSmallCaps = 0x0838;
+        private const ushort SprmCFCaps = 0x0839;
         private const ushort SprmCHighlight = 0x2A0C;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCIss = 0x2A48;

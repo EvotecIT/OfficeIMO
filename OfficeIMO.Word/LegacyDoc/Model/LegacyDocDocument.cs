@@ -443,6 +443,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentFormat.Bold,
                     currentFormat.Italic,
                     currentFormat.Strike,
+                    currentFormat.Caps,
                     currentFormat.VerticalPosition,
                     currentFormat.Underline,
                     currentFormat.Highlight,
