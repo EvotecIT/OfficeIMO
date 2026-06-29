@@ -340,7 +340,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
             BodyClass = null,
-            PercentEncodeTildeInUrlAttributes = true
+            PercentEncodeTildeInUrlAttributes = true,
+            EscapeNonAsciiText = false
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseAutoLinks(builder);
@@ -375,7 +376,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
             BodyClass = null,
-            PercentEncodeTildeInUrlAttributes = true
+            PercentEncodeTildeInUrlAttributes = true,
+            EscapeNonAsciiText = false
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UsePipeTables(builder);
