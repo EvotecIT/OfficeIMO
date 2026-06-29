@@ -213,6 +213,8 @@ just to reserve names.
   staying on the existing paths.
 - [x] Build a minimal `LegacyDocDocument` model from the FIB and document/table
   stream boundaries, with diagnostics for unsupported or unsafe streams.
+  - [x] Reject pre-Word97 FIB versions as explicit import errors before
+    projection, while continuing to allow Word 97+ binary FIB streams.
 - [x] Project plain body text into normal `WordDocument` paragraphs/runs and
   prove save-to-`.docx` reload through normal OfficeIMO APIs.
 - [x] Validate the first DOC reader against real Word COM/NPOI-generated corpus

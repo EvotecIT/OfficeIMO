@@ -342,6 +342,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsUnsupportedPreWord97FibVersion() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFibVersion(0x0065, "Older body");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            Assert.False(result.HasDocument);
+            Assert.True(result.HasImportErrors);
+            LegacyDocImportDiagnostic diagnostic = Assert.Single(result.Diagnostics);
+            Assert.Equal("DOC-FIB-INVALID", diagnostic.Code);
+            Assert.Equal(LegacyDocDiagnosticSeverity.Error, diagnostic.Severity);
+            Assert.Contains("Unsupported Word FIB version 0x0065", diagnostic.Message);
+            Assert.Equal(1, result.ImportReport.ErrorCount);
+            Assert.Equal(1, result.ImportReport.DiagnosticsByCode["DOC-FIB-INVALID"]);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsUnsupportedCompoundFeatures() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Preserve-only body");
 
@@ -1221,6 +1237,20 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithFibVersion(ushort nFib, params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text, nFib: nFib);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithUnsupportedStoryCounts(params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
                 byte[] wordDocumentStream = CreateWordDocumentStream(
@@ -1340,13 +1370,14 @@ namespace OfficeIMO.Tests {
                 int ccpEdn = 0,
                 int ccpTxbx = 0,
                 int ccpHdrTxbx = 0,
+                ushort nFib = 0x00D9,
                 ushort fibFlags = 0x0200) {
                 const int fibLength = 0x1AA;
                 const int textOffset = 0x200;
                 byte[] textBytes = EncodeWindows1252(text);
                 var stream = new byte[textOffset + textBytes.Length];
                 WriteUInt16(stream, 0x00, 0xA5EC);
-                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x02, nFib);
                 WriteUInt16(stream, 0x0A, fibFlags);
                 WriteInt32(stream, 0x4C, text.Length);
                 WriteInt32(stream, 0x50, ccpFtn);

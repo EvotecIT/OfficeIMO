@@ -2,6 +2,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     internal readonly struct LegacyDocFib {
         private const int MinimumFibBytes = 0x1AA;
         private const ushort WordDocumentMagic = 0xA5EC;
+        private const ushort MinimumSupportedNFib = 0x00C1;
         private const int FlagsOffset = 0x0A;
         private const int CcpTextOffset = 0x4C;
         private const int CcpFtnOffset = 0x50;
@@ -137,6 +138,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             ushort nFib = ReadUInt16(wordDocumentStream, 0x02);
+            if (nFib < MinimumSupportedNFib) {
+                error = $"Unsupported Word FIB version 0x{nFib:X4}. OfficeIMO imports Word 97-2003 binary DOC streams with nFib 0x{MinimumSupportedNFib:X4} or newer.";
+                return false;
+            }
+
             ushort flags = ReadUInt16(wordDocumentStream, FlagsOffset);
             int ccpText = ReadInt32(wordDocumentStream, CcpTextOffset);
             int ccpFtn = ReadInt32(wordDocumentStream, CcpFtnOffset);
