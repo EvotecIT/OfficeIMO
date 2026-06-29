@@ -245,6 +245,9 @@ just to reserve names.
   - [x] Project direct CHPX strikethrough runs plus stylesheet-level
     strikethrough run formatting into normal OfficeIMO runs and custom DOCX
     style definitions with synthetic legacy DOC fixture proof.
+  - [x] Project direct CHPX outline runs plus stylesheet-level outline run
+    formatting into normal OfficeIMO runs, custom DOCX style definitions, and
+    built-in DOCX style definitions with synthetic legacy DOC fixture proof.
   - [x] Project direct CHPX double-strikethrough runs plus stylesheet-level
     double-strikethrough run formatting into normal OfficeIMO runs and custom
     DOCX style definitions with synthetic legacy DOC fixture proof.
@@ -345,6 +348,7 @@ just to reserve names.
     through the legacy reader.
   - [x] Write direct strikethrough CHPX runs and reload them through the legacy
     reader.
+  - [x] Write direct outline CHPX runs and reload them through the legacy reader.
   - [x] Write direct double-strikethrough CHPX runs and reload them through
     the legacy reader.
   - [x] Write direct all-caps and small-caps CHPX runs and reload them through

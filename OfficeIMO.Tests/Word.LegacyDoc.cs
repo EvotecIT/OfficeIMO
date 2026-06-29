@@ -196,11 +196,12 @@ namespace OfficeIMO.Tests {
 
             result.EnsureNoImportErrors();
             WordParagraph[] runs = result.Document.Paragraphs.ToArray();
-            Assert.Equal(12, runs.Length);
+            Assert.Equal(13, runs.Length);
             Assert.Equal("plain ", runs[0].Text);
             Assert.Null(runs[0].Underline);
             Assert.False(runs[0].Strike);
             Assert.False(runs[0].DoubleStrike);
+            Assert.False(runs[0].Outline);
             Assert.Equal(CapsStyle.None, runs[0].CapsStyle);
             Assert.Null(runs[0].VerticalTextAlignment);
             Assert.Null(runs[0].Highlight);
@@ -214,18 +215,20 @@ namespace OfficeIMO.Tests {
             Assert.True(runs[4].Strike);
             Assert.Equal("double ", runs[5].Text);
             Assert.True(runs[5].DoubleStrike);
-            Assert.Equal("caps ", runs[6].Text);
-            Assert.Equal(CapsStyle.Caps, runs[6].CapsStyle);
-            Assert.Equal("small ", runs[7].Text);
-            Assert.Equal(CapsStyle.SmallCaps, runs[7].CapsStyle);
-            Assert.Equal("super ", runs[8].Text);
-            Assert.Equal(VerticalPositionValues.Superscript, runs[8].VerticalTextAlignment);
-            Assert.Equal("sub ", runs[9].Text);
-            Assert.Equal(VerticalPositionValues.Subscript, runs[9].VerticalTextAlignment);
-            Assert.Equal("mark ", runs[10].Text);
-            Assert.Equal(HighlightColorValues.Yellow, runs[10].Highlight);
-            Assert.Equal("direct", runs[11].Text);
-            Assert.Equal("336699", runs[11].ColorHex);
+            Assert.Equal("outline ", runs[6].Text);
+            Assert.True(runs[6].Outline);
+            Assert.Equal("caps ", runs[7].Text);
+            Assert.Equal(CapsStyle.Caps, runs[7].CapsStyle);
+            Assert.Equal("small ", runs[8].Text);
+            Assert.Equal(CapsStyle.SmallCaps, runs[8].CapsStyle);
+            Assert.Equal("super ", runs[9].Text);
+            Assert.Equal(VerticalPositionValues.Superscript, runs[9].VerticalTextAlignment);
+            Assert.Equal("sub ", runs[10].Text);
+            Assert.Equal(VerticalPositionValues.Subscript, runs[10].VerticalTextAlignment);
+            Assert.Equal("mark ", runs[11].Text);
+            Assert.Equal(HighlightColorValues.Yellow, runs[11].Highlight);
+            Assert.Equal("direct", runs[12].Text);
+            Assert.Equal("336699", runs[12].ColorHex);
         }
 
         [Fact]
@@ -383,6 +386,7 @@ namespace OfficeIMO.Tests {
             StyleRunProperties capsProperties = Assert.IsType<StyleRunProperties>(capsStyle.StyleRunProperties);
             Assert.NotNull(capsProperties.GetFirstChild<Caps>());
             Assert.NotNull(capsProperties.GetFirstChild<DoubleStrike>());
+            Assert.NotNull(capsProperties.GetFirstChild<Outline>());
 
             Style smallCapsStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == "LegacyDocSmallCaps");
             StyleRunProperties smallCapsProperties = Assert.IsType<StyleRunProperties>(smallCapsStyle.StyleRunProperties);
@@ -428,6 +432,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4320, tabStops[1].Position!.Value);
             StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(headingStyle.StyleRunProperties);
             Assert.NotNull(runProperties.GetFirstChild<Bold>());
+            Assert.NotNull(runProperties.GetFirstChild<Outline>());
             Underline underline = Assert.IsType<Underline>(runProperties.GetFirstChild<Underline>());
             Assert.Equal(UnderlineValues.Single, underline.Val!.Value);
             Highlight highlight = Assert.IsType<Highlight>(runProperties.GetFirstChild<Highlight>());
@@ -1027,6 +1032,7 @@ namespace OfficeIMO.Tests {
                     paragraph.AddText("sized ").SetFontSize(14);
                     paragraph.AddText("strike ").SetStrike();
                     paragraph.AddText("double ").SetDoubleStrike();
+                    paragraph.AddText("outline ").SetOutline();
                     paragraph.AddText("caps ").SetCapsStyle(CapsStyle.Caps);
                     paragraph.AddText("small ").SetSmallCaps();
                     paragraph.AddText("super ").SetSuperScript();
@@ -1041,11 +1047,12 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
                 WordParagraph[] runs = reloaded.Paragraphs.ToArray();
-                Assert.Equal(11, runs.Length);
+                Assert.Equal(12, runs.Length);
                 Assert.Equal("plain ", runs[0].Text);
                 Assert.Null(runs[0].Underline);
                 Assert.False(runs[0].Strike);
                 Assert.False(runs[0].DoubleStrike);
+                Assert.False(runs[0].Outline);
                 Assert.Equal(CapsStyle.None, runs[0].CapsStyle);
                 Assert.Null(runs[0].VerticalTextAlignment);
                 Assert.Null(runs[0].Highlight);
@@ -1057,18 +1064,20 @@ namespace OfficeIMO.Tests {
                 Assert.True(runs[3].Strike);
                 Assert.Equal("double ", runs[4].Text);
                 Assert.True(runs[4].DoubleStrike);
-                Assert.Equal("caps ", runs[5].Text);
-                Assert.Equal(CapsStyle.Caps, runs[5].CapsStyle);
-                Assert.Equal("small ", runs[6].Text);
-                Assert.Equal(CapsStyle.SmallCaps, runs[6].CapsStyle);
-                Assert.Equal("super ", runs[7].Text);
-                Assert.Equal(VerticalPositionValues.Superscript, runs[7].VerticalTextAlignment);
-                Assert.Equal("sub ", runs[8].Text);
-                Assert.Equal(VerticalPositionValues.Subscript, runs[8].VerticalTextAlignment);
-                Assert.Equal("mark ", runs[9].Text);
-                Assert.Equal(HighlightColorValues.Yellow, runs[9].Highlight);
-                Assert.Equal("color", runs[10].Text);
-                Assert.Equal("336699", runs[10].ColorHex);
+                Assert.Equal("outline ", runs[5].Text);
+                Assert.True(runs[5].Outline);
+                Assert.Equal("caps ", runs[6].Text);
+                Assert.Equal(CapsStyle.Caps, runs[6].CapsStyle);
+                Assert.Equal("small ", runs[7].Text);
+                Assert.Equal(CapsStyle.SmallCaps, runs[7].CapsStyle);
+                Assert.Equal("super ", runs[8].Text);
+                Assert.Equal(VerticalPositionValues.Superscript, runs[8].VerticalTextAlignment);
+                Assert.Equal("sub ", runs[9].Text);
+                Assert.Equal(VerticalPositionValues.Subscript, runs[9].VerticalTextAlignment);
+                Assert.Equal("mark ", runs[10].Text);
+                Assert.Equal(HighlightColorValues.Yellow, runs[10].Highlight);
+                Assert.Equal("color", runs[11].Text);
+                Assert.Equal("336699", runs[11].ColorHex);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -1506,7 +1515,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Formatted").SetOutline();
+                document.AddParagraph("Formatted").SetShadow();
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
@@ -2034,7 +2043,7 @@ namespace OfficeIMO.Tests {
             }
 
             internal static byte[] CreateUnicodeDocWithExtendedDirectCharacterFormatting() {
-                const string text = "plain under sized red strike double caps small super sub mark direct\r";
+                const string text = "plain under sized red strike double outline caps small super sub mark direct\r";
                 const int textOffset = 0x200;
                 const int chpxFkpOffset = 0x400;
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExtendedCharacterFormatting(text, textOffset, chpxFkpOffset);
@@ -2168,7 +2177,8 @@ namespace OfficeIMO.Tests {
                         Array.Empty<byte>(),
                         CreateStyleCharacterFormatting(
                             CreateCharacterSprm(0x083B, 1),
-                            CreateCharacterSprm(0x2A53, 1))),
+                            CreateCharacterSprm(0x2A53, 1),
+                            CreateCharacterSprm(0x0838, 1))),
                     CreateParagraphStyleRecord(
                         0x0FFF,
                         0,
@@ -2219,6 +2229,7 @@ namespace OfficeIMO.Tests {
                                 (4320, 2, 3))),
                         CreateStyleCharacterFormatting(
                             CreateCharacterSprm(0x0835, 1),
+                            CreateCharacterSprm(0x0838, 1),
                             CreateCharacterSprm(0x2A3E, 1),
                             CreateCharacterSprm(0x2A0C, 7),
                             CreateCharacterSprm(0x6870, 0x33, 0x66, 0x99, 0x00),
@@ -2540,7 +2551,8 @@ namespace OfficeIMO.Tests {
                 int redStart = sizedStart + ("sized ".Length * 2);
                 int strikeStart = redStart + ("red ".Length * 2);
                 int doubleStrikeStart = strikeStart + ("strike ".Length * 2);
-                int capsStart = doubleStrikeStart + ("double ".Length * 2);
+                int outlineStart = doubleStrikeStart + ("double ".Length * 2);
+                int capsStart = outlineStart + ("outline ".Length * 2);
                 int smallCapsStart = capsStart + ("caps ".Length * 2);
                 int superStart = smallCapsStart + ("small ".Length * 2);
                 int subStart = superStart + ("super ".Length * 2);
@@ -2551,19 +2563,20 @@ namespace OfficeIMO.Tests {
                 WriteChpxFkp(
                     stream,
                     chpxFkpOffset,
-                    new[] { textOffset, underStart, sizedStart, redStart, strikeStart, doubleStrikeStart, capsStart, smallCapsStart, superStart, subStart, markStart, directStart, paragraphMarkStart, end },
+                    new[] { textOffset, underStart, sizedStart, redStart, strikeStart, doubleStrikeStart, outlineStart, capsStart, smallCapsStart, superStart, subStart, markStart, directStart, paragraphMarkStart, end },
                     new Dictionary<int, byte[]> {
                         [1] = CreateSingleSprmChpx(0x2A3E, 1),
                         [2] = CreateSingleSprmChpx(0x4A43, 28, 0),
                         [3] = CreateSingleSprmChpx(0x2A42, 6),
                         [4] = CreateSingleSprmChpx(0x0837, 1),
                         [5] = CreateSingleSprmChpx(0x2A53, 1),
-                        [6] = CreateSingleSprmChpx(0x083B, 1),
-                        [7] = CreateSingleSprmChpx(0x083A, 1),
-                        [8] = CreateSingleSprmChpx(0x2A48, 1),
-                        [9] = CreateSingleSprmChpx(0x2A48, 2),
-                        [10] = CreateSingleSprmChpx(0x2A0C, 7),
-                        [11] = CreateSingleSprmChpx(0x6870, 0x33, 0x66, 0x99, 0)
+                        [6] = CreateSingleSprmChpx(0x0838, 1),
+                        [7] = CreateSingleSprmChpx(0x083B, 1),
+                        [8] = CreateSingleSprmChpx(0x083A, 1),
+                        [9] = CreateSingleSprmChpx(0x2A48, 1),
+                        [10] = CreateSingleSprmChpx(0x2A48, 2),
+                        [11] = CreateSingleSprmChpx(0x2A0C, 7),
+                        [12] = CreateSingleSprmChpx(0x6870, 0x33, 0x66, 0x99, 0)
                     });
 
                 if (stream.Length < fibLength) {

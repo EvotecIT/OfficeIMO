@@ -568,6 +568,11 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
+            if (characterFormat.Outline) {
+                properties.Append(new Outline());
+                hasProperties = true;
+            }
+
             if (characterFormat.Caps == LegacyDocCapsKind.Caps) {
                 properties.Append(new Caps());
                 hasProperties = true;
@@ -659,6 +664,10 @@ namespace OfficeIMO.Word {
 
             if (legacyRun.DoubleStrike) {
                 run.SetDoubleStrike();
+            }
+
+            if (legacyRun.Outline) {
+                run.SetOutline();
             }
 
             if (legacyRun.Caps == LegacyDocCapsKind.Caps) {

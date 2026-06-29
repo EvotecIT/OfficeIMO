@@ -18,6 +18,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmCFBold = 0x0835;
         private const ushort SprmCFItalic = 0x0836;
         private const ushort SprmCFStrike = 0x0837;
+        private const ushort SprmCFOutline = 0x0838;
         private const ushort SprmCFSmallCaps = 0x083A;
         private const ushort SprmCFCaps = 0x083B;
         private const ushort SprmCHighlight = 0x2A0C;
@@ -140,7 +141,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         finalSectionFormat = ReadSupportedSectionProperties(sectionProperties);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs and simple tables with bold, italic, strikethrough, double-strikethrough, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs and simple tables with bold, italic, strikethrough, double-strikethrough, outline, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");
                 }
             }
 
@@ -219,7 +220,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedRunText(text, runs, run);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs with bold, italic, strikethrough, double-strikethrough, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs with bold, italic, strikethrough, double-strikethrough, outline, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 
