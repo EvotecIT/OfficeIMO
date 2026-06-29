@@ -307,18 +307,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelCapsAndDoubleStrike() {
-            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelCapsAndDoubleStrike();
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelCapsDoubleStrikeAndVerticalPosition() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelCapsDoubleStrikeAndVerticalPosition();
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
 
             result.EnsureNoImportErrors();
             WordParagraph[] paragraphs = result.Document.Paragraphs.ToArray();
-            Assert.Equal(2, paragraphs.Length);
+            Assert.Equal(4, paragraphs.Length);
             Assert.Equal("caps style", paragraphs[0].Text);
             Assert.Equal("small style", paragraphs[1].Text);
+            Assert.Equal("super style", paragraphs[2].Text);
+            Assert.Equal("sub style", paragraphs[3].Text);
             Assert.Equal("LegacyDocCapsDouble", paragraphs[0].StyleId);
             Assert.Equal("LegacyDocSmallCaps", paragraphs[1].StyleId);
+            Assert.Equal("LegacyDocSuper", paragraphs[2].StyleId);
+            Assert.Equal("LegacyDocSub", paragraphs[3].StyleId);
 
             Styles styles = result.Document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
             Style capsStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == "LegacyDocCapsDouble");
@@ -329,6 +333,16 @@ namespace OfficeIMO.Tests {
             Style smallCapsStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == "LegacyDocSmallCaps");
             StyleRunProperties smallCapsProperties = Assert.IsType<StyleRunProperties>(smallCapsStyle.StyleRunProperties);
             Assert.NotNull(smallCapsProperties.GetFirstChild<SmallCaps>());
+
+            Style superStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == "LegacyDocSuper");
+            StyleRunProperties superProperties = Assert.IsType<StyleRunProperties>(superStyle.StyleRunProperties);
+            VerticalTextAlignment superPosition = Assert.IsType<VerticalTextAlignment>(superProperties.GetFirstChild<VerticalTextAlignment>());
+            Assert.Equal(VerticalPositionValues.Superscript, superPosition.Val!.Value);
+
+            Style subStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == "LegacyDocSub");
+            StyleRunProperties subProperties = Assert.IsType<StyleRunProperties>(subStyle.StyleRunProperties);
+            VerticalTextAlignment subPosition = Assert.IsType<VerticalTextAlignment>(subProperties.GetFirstChild<VerticalTextAlignment>());
+            Assert.Equal(VerticalPositionValues.Subscript, subPosition.Val!.Value);
         }
 
         [Fact]
@@ -1876,8 +1890,8 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateUnicodeDocWithStyleLevelCapsAndDoubleStrike() {
-                const string text = "caps style\rsmall style\r";
+            internal static byte[] CreateUnicodeDocWithStyleLevelCapsDoubleStrikeAndVerticalPosition() {
+                const string text = "caps style\rsmall style\rsuper style\rsub style\r";
                 const int textOffset = 0x200;
                 const int papxFkpOffset = 0x400;
                 byte[] styleSheet = CreateStyleSheet(
@@ -1895,8 +1909,20 @@ namespace OfficeIMO.Tests {
                         0,
                         "Small Caps",
                         Array.Empty<byte>(),
-                        CreateStyleCharacterFormatting(CreateCharacterSprm(0x083A, 1))));
-                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleLevelCapsAndDoubleStrike(text, textOffset, papxFkpOffset, styleSheet.Length);
+                        CreateStyleCharacterFormatting(CreateCharacterSprm(0x083A, 1))),
+                    CreateParagraphStyleRecord(
+                        0x0FFF,
+                        0,
+                        "Super",
+                        Array.Empty<byte>(),
+                        CreateStyleCharacterFormatting(CreateCharacterSprm(0x2A48, 1))),
+                    CreateParagraphStyleRecord(
+                        0x0FFF,
+                        0,
+                        "Sub",
+                        Array.Empty<byte>(),
+                        CreateStyleCharacterFormatting(CreateCharacterSprm(0x2A48, 2))));
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleLevelCapsDoubleStrikeAndVerticalPosition(text, textOffset, papxFkpOffset, styleSheet.Length);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
 
                 using var package = new MemoryStream();
@@ -2356,7 +2382,7 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
-            private static byte[] CreateUnicodeWordDocumentStreamWithStyleLevelCapsAndDoubleStrike(string text, int textOffset, int papxFkpOffset, int styleSheetLength) {
+            private static byte[] CreateUnicodeWordDocumentStreamWithStyleLevelCapsDoubleStrikeAndVerticalPosition(string text, int textOffset, int papxFkpOffset, int styleSheetLength) {
                 const int fibLength = 0x1AA;
                 byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
                 var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
@@ -2373,14 +2399,18 @@ namespace OfficeIMO.Tests {
                 Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
 
                 int secondParagraphStart = textOffset + ("caps style\r".Length * 2);
-                int end = secondParagraphStart + ("small style\r".Length * 2);
+                int thirdParagraphStart = secondParagraphStart + ("small style\r".Length * 2);
+                int fourthParagraphStart = thirdParagraphStart + ("super style\r".Length * 2);
+                int end = fourthParagraphStart + ("sub style\r".Length * 2);
                 WritePapxFkp(
                     stream,
                     papxFkpOffset,
-                    new[] { textOffset, secondParagraphStart, end },
+                    new[] { textOffset, secondParagraphStart, thirdParagraphStart, fourthParagraphStart, end },
                     new Dictionary<int, byte[]> {
                         [0] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x4600, 1, 0)),
-                        [1] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x4600, 2, 0))
+                        [1] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x4600, 2, 0)),
+                        [2] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x4600, 3, 0)),
+                        [3] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x4600, 4, 0))
                     });
 
                 if (stream.Length < fibLength) {

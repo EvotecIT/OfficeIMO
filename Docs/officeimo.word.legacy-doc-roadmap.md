@@ -252,8 +252,8 @@ just to reserve names.
     caps/small-caps run formatting into normal OfficeIMO runs and custom DOCX
     style definitions with synthetic legacy DOC fixture proof.
   - [x] Project direct CHPX superscript/subscript runs plus stylesheet-level
-    superscript run formatting into normal OfficeIMO runs and custom DOCX style
-    definitions with synthetic legacy DOC fixture proof.
+    superscript/subscript run formatting into normal OfficeIMO runs and custom
+    DOCX style definitions with synthetic legacy DOC fixture proof.
   - [x] Project direct CHPX highlight runs plus stylesheet-level highlight run
     formatting into normal OfficeIMO runs and custom DOCX style definitions
     with synthetic legacy DOC fixture proof.
