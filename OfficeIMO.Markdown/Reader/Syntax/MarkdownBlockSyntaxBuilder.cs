@@ -158,7 +158,7 @@ internal static class MarkdownBlockSyntaxBuilder {
 
         return new MarkdownSyntaxNode(
             node.Kind,
-            node.SourceSpan,
+            MarkdownGenericAttributeSyntaxNodes.GetContainingSpan(node.SourceSpan, children),
             node.Literal,
             children,
             node.AssociatedObject,
@@ -171,15 +171,15 @@ internal static class MarkdownBlockSyntaxBuilder {
             throw new InvalidOperationException("Markdown syntax block builders must return a syntax node.");
         }
 
-        if (!node.Attributes.IsEmpty ||
-            block is not MarkdownObject markdownObject ||
+        if (block is not MarkdownObject markdownObject ||
             markdownObject.Attributes.IsEmpty) {
             return node;
         }
 
-        var children = node.Children.Count == 0
+        var clonedChildren = node.Children.Count == 0
             ? Array.Empty<MarkdownSyntaxNode>()
             : node.Children.Select(CloneSyntaxNode).ToArray();
+        var children = MarkdownGenericAttributeSyntaxNodes.Append(clonedChildren, markdownObject);
 
         return new MarkdownSyntaxNode(
             node.Kind,
@@ -188,7 +188,7 @@ internal static class MarkdownBlockSyntaxBuilder {
             children,
             node.AssociatedObject,
             node.CustomKind,
-            markdownObject.Attributes);
+            node.Attributes.IsEmpty ? markdownObject.Attributes : node.Attributes);
     }
 
     private static bool IsSyntaxChildCompatibleWithBlock(MarkdownSyntaxNode? syntaxNode, IMarkdownBlock block) {

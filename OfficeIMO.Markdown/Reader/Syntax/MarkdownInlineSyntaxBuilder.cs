@@ -47,10 +47,10 @@ internal static class MarkdownInlineSyntaxBuilder {
                     children: decodedEntityChildren,
                     associatedObject: text);
             case CodeSpanInline code:
-                var codeSpanChildren = BuildCodeSpanChildren(code);
+                var codeSpanChildren = MarkdownGenericAttributeSyntaxNodes.Append(BuildCodeSpanChildren(code), code);
                 return new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.InlineCodeSpan,
-                    span ?? MarkdownBlockSyntaxBuilder.GetAggregateSpan(codeSpanChildren),
+                    MarkdownGenericAttributeSyntaxNodes.GetContainingSpan(span, codeSpanChildren),
                     literal: code.Text,
                     children: codeSpanChildren,
                     associatedObject: code,
@@ -78,61 +78,66 @@ internal static class MarkdownInlineSyntaxBuilder {
                     children: hardBreakChildren,
                     associatedObject: inline);
             case LinkInline link:
+                var linkChildren = MarkdownGenericAttributeSyntaxNodes.Append(
+                    BuildInlineLinkChildren(link.LabelInlines, link.Text, link, link.Url, link.Title, link.LinkTarget, link.LinkRel),
+                    link);
                 return new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.InlineLink,
-                    span,
+                    MarkdownGenericAttributeSyntaxNodes.GetContainingSpan(span, linkChildren),
                     literal: link.Url,
-                    children: BuildInlineLinkChildren(link.LabelInlines, link.Text, link, link.Url, link.Title, link.LinkTarget, link.LinkRel),
+                    children: linkChildren,
                     associatedObject: link,
                     attributes: link.Attributes);
             case ImageLinkInline imageLink:
+                var imageLinkChildren = MarkdownGenericAttributeSyntaxNodes.Append(BuildInlineImageLinkChildren(imageLink), imageLink);
                 return new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.InlineImageLink,
-                    span,
+                    MarkdownGenericAttributeSyntaxNodes.GetContainingSpan(span, imageLinkChildren),
                     literal: imageLink.LinkUrl,
-                    children: BuildInlineImageLinkChildren(imageLink),
+                    children: imageLinkChildren,
                     associatedObject: imageLink,
                     attributes: imageLink.Attributes);
             case ImageInline image:
+                var imageChildren = MarkdownGenericAttributeSyntaxNodes.Append(BuildInlineImageChildren(image), image);
                 return new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.InlineImage,
-                    span,
+                    MarkdownGenericAttributeSyntaxNodes.GetContainingSpan(span, imageChildren),
                     literal: image.Src,
-                    children: BuildInlineImageChildren(image),
+                    children: imageChildren,
                     associatedObject: image,
                     attributes: image.Attributes);
             case BoldSequenceInline bold:
                 return BuildContainerNode(MarkdownSyntaxKind.InlineStrong, bold, bold.Inlines, span);
             case BoldInline bold:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineStrong, span, literal: bold.Text, associatedObject: bold, attributes: bold.Attributes);
+                return BuildAttributedLeafNode(MarkdownSyntaxKind.InlineStrong, bold, bold.Text, span);
             case ItalicSequenceInline italic:
                 return BuildContainerNode(MarkdownSyntaxKind.InlineEmphasis, italic, italic.Inlines, span);
             case ItalicInline italic:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineEmphasis, span, literal: italic.Text, associatedObject: italic, attributes: italic.Attributes);
+                return BuildAttributedLeafNode(MarkdownSyntaxKind.InlineEmphasis, italic, italic.Text, span);
             case BoldItalicSequenceInline boldItalic:
                 return BuildContainerNode(MarkdownSyntaxKind.InlineStrongEmphasis, boldItalic, boldItalic.Inlines, span);
             case BoldItalicInline boldItalic:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineStrongEmphasis, span, literal: boldItalic.Text, associatedObject: boldItalic, attributes: boldItalic.Attributes);
+                return BuildAttributedLeafNode(MarkdownSyntaxKind.InlineStrongEmphasis, boldItalic, boldItalic.Text, span);
             case StrikethroughSequenceInline strike:
                 return BuildContainerNode(MarkdownSyntaxKind.InlineStrikethrough, strike, strike.Inlines, span);
             case StrikethroughInline strike:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineStrikethrough, span, literal: strike.Text, associatedObject: strike, attributes: strike.Attributes);
+                return BuildAttributedLeafNode(MarkdownSyntaxKind.InlineStrikethrough, strike, strike.Text, span);
             case HighlightSequenceInline highlight:
                 return BuildContainerNode(MarkdownSyntaxKind.InlineHighlight, highlight, highlight.Inlines, span);
             case HighlightInline highlight:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineHighlight, span, literal: highlight.Text, associatedObject: highlight, attributes: highlight.Attributes);
+                return BuildAttributedLeafNode(MarkdownSyntaxKind.InlineHighlight, highlight, highlight.Text, span);
             case InsertedSequenceInline inserted:
                 return BuildContainerNode(MarkdownSyntaxKind.InlineInserted, inserted, inserted.Inlines, span);
             case InsertedInline inserted:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineInserted, span, literal: inserted.Text, associatedObject: inserted, attributes: inserted.Attributes);
+                return BuildAttributedLeafNode(MarkdownSyntaxKind.InlineInserted, inserted, inserted.Text, span);
             case SuperscriptSequenceInline superscript:
                 return BuildContainerNode(MarkdownSyntaxKind.InlineSuperscript, superscript, superscript.Inlines, span);
             case SuperscriptInline superscript:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineSuperscript, span, literal: superscript.Text, associatedObject: superscript, attributes: superscript.Attributes);
+                return BuildAttributedLeafNode(MarkdownSyntaxKind.InlineSuperscript, superscript, superscript.Text, span);
             case SubscriptSequenceInline subscript:
                 return BuildContainerNode(MarkdownSyntaxKind.InlineSubscript, subscript, subscript.Inlines, span);
             case SubscriptInline subscript:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineSubscript, span, literal: subscript.Text, associatedObject: subscript, attributes: subscript.Attributes);
+                return BuildAttributedLeafNode(MarkdownSyntaxKind.InlineSubscript, subscript, subscript.Text, span);
             case UnderlineInline underline:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineUnderline, span, literal: underline.Text, associatedObject: underline);
             case HtmlTagSequenceInline htmlTag:
@@ -162,12 +167,23 @@ internal static class MarkdownInlineSyntaxBuilder {
 
     private static MarkdownSyntaxNode BuildContainerNode(MarkdownSyntaxKind kind, MarkdownInline owner, InlineSequence sequence, MarkdownSourceSpan? span) {
         var children = BuildChildren(sequence);
-        var markerChildren = BuildInlineMarkerChildren(owner, children);
+        var markerChildren = MarkdownGenericAttributeSyntaxNodes.Append(BuildInlineMarkerChildren(owner, children), owner);
         return new MarkdownSyntaxNode(
             kind,
-            span ?? MarkdownBlockSyntaxBuilder.GetAggregateSpan(markerChildren),
+            MarkdownGenericAttributeSyntaxNodes.GetContainingSpan(span, markerChildren),
             literal: sequence.RenderMarkdown(),
             children: markerChildren,
+            associatedObject: owner,
+            attributes: owner.Attributes);
+    }
+
+    private static MarkdownSyntaxNode BuildAttributedLeafNode(MarkdownSyntaxKind kind, MarkdownInline owner, string? literal, MarkdownSourceSpan? span) {
+        var children = MarkdownGenericAttributeSyntaxNodes.Append(Array.Empty<MarkdownSyntaxNode>(), owner);
+        return new MarkdownSyntaxNode(
+            kind,
+            MarkdownGenericAttributeSyntaxNodes.GetContainingSpan(span, children),
+            literal: literal,
+            children: children,
             associatedObject: owner,
             attributes: owner.Attributes);
     }

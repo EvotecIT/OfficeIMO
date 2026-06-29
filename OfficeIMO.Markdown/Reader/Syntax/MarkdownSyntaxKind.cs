@@ -86,6 +86,8 @@ public enum MarkdownSyntaxKind {
     InlineAbbreviationText,
     /// <summary>Abbreviation title metadata.</summary>
     InlineAbbreviationTitle,
+    /// <summary>Generic Markdown attribute block token such as <c>{#id .class key=value}</c>.</summary>
+    GenericAttributeBlock,
     /// <summary>Paragraph block.</summary>
     Paragraph,
     /// <summary>Blockquote block.</summary>

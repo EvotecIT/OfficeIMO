@@ -376,6 +376,10 @@ internal static class MarkdownNativeInlineProjection {
             return;
         }
 
+        if (metadata.Any(static item => string.Equals(item.Name, "attributes", StringComparison.OrdinalIgnoreCase))) {
+            return;
+        }
+
         var sourceSpan = MarkdownGenericAttributeSourceSpans.GetSourceSpan(markdownObject);
         if (!sourceSpan.HasValue) {
             return;
@@ -537,6 +541,9 @@ internal static class MarkdownNativeInlineProjection {
                 return true;
             case MarkdownSyntaxKind.InlineAbbreviationText:
                 name = "text";
+                return true;
+            case MarkdownSyntaxKind.GenericAttributeBlock:
+                name = "attributes";
                 return true;
             default:
                 name = string.Empty;
