@@ -90,7 +90,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         bodyContentCount++;
                         break;
                     case Table table:
-                        AppendTable(text, runs, table);
+                        AppendTable(text, runs, paragraphFormats, table);
                         bodyContentCount++;
                         break;
                     case SectionProperties sectionProperties:

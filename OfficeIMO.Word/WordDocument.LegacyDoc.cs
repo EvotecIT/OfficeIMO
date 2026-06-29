@@ -114,7 +114,8 @@ namespace OfficeIMO.Word {
 
         private static void AddLegacyDocTableCell(WordTableCell cell, LegacyDocTableCell sourceCell) {
             if (sourceCell.Runs.Count == 0) {
-                cell.AddParagraph(string.Empty, removeExistingParagraphs: true);
+                WordParagraph emptyParagraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: true);
+                ApplyLegacyDocParagraphFormatting(emptyParagraph, sourceCell.Format);
                 return;
             }
 
@@ -127,6 +128,8 @@ namespace OfficeIMO.Word {
                 paragraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: true);
                 AddLegacyDocRunContent(paragraph, firstRun);
             }
+
+            ApplyLegacyDocParagraphFormatting(paragraph, sourceCell.Format);
 
             for (int index = 1; index < sourceCell.Runs.Count; index++) {
                 AddLegacyDocRunContent(paragraph, sourceCell.Runs[index]);

@@ -838,6 +838,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellParagraphFormattingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    WordParagraph formatted = table.Rows[0].Cells[0].AddParagraph("Centered", removeExistingParagraphs: true);
+                    formatted.ParagraphAlignment = JustificationValues.Center;
+                    formatted.LineSpacingAfter = 120;
+                    formatted.IndentationBefore = 360;
+                    table.Rows[0].Cells[1].AddParagraph("Plain", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordParagraph formattedCellParagraph = reloadedTable.Rows[0].Cells[0].Paragraphs[0];
+                WordParagraph plainCellParagraph = reloadedTable.Rows[0].Cells[1].Paragraphs[0];
+                Assert.Equal("Centered", formattedCellParagraph.Text);
+                Assert.Equal(JustificationValues.Center, formattedCellParagraph.ParagraphAlignment);
+                Assert.Equal(120, formattedCellParagraph.LineSpacingAfter);
+                Assert.Equal(360, formattedCellParagraph.IndentationBefore);
+                Assert.Equal("Plain", plainCellParagraph.Text);
+                Assert.Null(plainCellParagraph.ParagraphAlignment);
+                Assert.Null(plainCellParagraph.LineSpacingAfter);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedMergedTablesBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

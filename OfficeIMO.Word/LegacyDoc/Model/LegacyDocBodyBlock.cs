@@ -32,13 +32,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     }
 
     internal sealed class LegacyDocTableCell {
-        internal LegacyDocTableCell(IReadOnlyList<LegacyDocTextRun> runs) {
+        internal LegacyDocTableCell(IReadOnlyList<LegacyDocTextRun> runs, LegacyDocParagraphFormat format) {
             Runs = runs;
+            Format = format;
             Text = string.Concat(runs.Select(run => run.Text));
         }
 
         internal string Text { get; }
 
         internal IReadOnlyList<LegacyDocTextRun> Runs { get; }
+
+        internal LegacyDocParagraphFormat Format { get; }
     }
 }

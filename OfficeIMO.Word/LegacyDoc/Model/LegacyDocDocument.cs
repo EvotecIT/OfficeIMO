@@ -263,7 +263,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             foreach (LegacyDocTextCharacter textCharacter in characters) {
                 if (textCharacter.Character == '\a') {
-                    AddCurrentTextAsTableCell();
+                    AddCurrentTextAsTableCell(GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset));
                     continue;
                 }
 
@@ -275,7 +275,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, textCharacter.FileOffset);
                 if (normalized.Value == '\r') {
                     if (inTable) {
-                        FlushTable();
+                        FlushTable(GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset));
                     } else {
                         AddCurrentTextAsParagraph(GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset));
                     }
@@ -289,7 +289,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             if (inTable) {
-                FlushTable();
+                FlushTable(LegacyDocParagraphFormat.Default);
             } else if (currentRuns.Count > 0 || runText.Length > 0) {
                 AddCurrentTextAsParagraph(LegacyDocParagraphFormat.Default);
             }
@@ -336,7 +336,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 hasCurrentRun = false;
             }
 
-            void AddCurrentTextAsTableCell() {
+            void AddCurrentTextAsTableCell(LegacyDocParagraphFormat paragraphFormat) {
                 FlushRun();
                 if (!inTable) {
                     inTable = true;
@@ -353,16 +353,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return;
                 }
 
-                currentTableRow.Add(new LegacyDocTableCell(currentRuns.ToArray()));
+                currentTableRow.Add(new LegacyDocTableCell(currentRuns.ToArray(), paragraphFormat));
                 currentRuns.Clear();
                 hasCurrentRun = false;
                 justClosedCell = true;
             }
 
-            void FlushTable() {
+            void FlushTable(LegacyDocParagraphFormat paragraphFormat) {
                 FlushRun();
                 if (currentRuns.Count > 0) {
-                    currentTableRow.Add(new LegacyDocTableCell(currentRuns.ToArray()));
+                    currentTableRow.Add(new LegacyDocTableCell(currentRuns.ToArray(), paragraphFormat));
                     currentRuns.Clear();
                 }
 

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static void AppendTable(StringBuilder text, List<LegacyDocWritableRun> runs, Table table) {
+        private static void AppendTable(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, Table table) {
             ThrowIfUnsupportedTableShape(table);
 
             TableRow[] rows = table.Elements<TableRow>().ToArray();
@@ -19,8 +19,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
 
                 foreach (TableCell cell in cells) {
-                    AppendTableCell(text, runs, cell);
+                    int cellStart = text.Length;
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, cell);
                     text.Append('\a');
+                    if (paragraphFormatting.HasFormatting) {
+                        paragraphFormats.Add(new LegacyDocWritableParagraph(cellStart, text.Length - cellStart, paragraphFormatting));
+                    }
                 }
 
                 text.Append('\a');
@@ -77,7 +81,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendTableCell(StringBuilder text, List<LegacyDocWritableRun> runs, TableCell cell) {
+        private static LegacyDocWritableParagraphFormatting AppendTableCell(StringBuilder text, List<LegacyDocWritableRun> runs, TableCell cell) {
             Paragraph? paragraph = null;
             foreach (OpenXmlElement child in cell.ChildElements) {
                 switch (child) {
@@ -97,8 +101,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (paragraph != null) {
-                AppendTableCellParagraph(text, runs, paragraph);
+                return AppendTableCellParagraph(text, runs, paragraph);
             }
+
+            return LegacyDocWritableParagraphFormatting.Plain;
         }
 
         private static void ThrowIfUnsupportedTableCellProperties(TableCellProperties cellProperties) {
@@ -115,11 +121,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, Paragraph paragraph) {
+        private static LegacyDocWritableParagraphFormatting AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, Paragraph paragraph) {
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties);
-            if (paragraphFormatting.HasFormatting) {
-                throw new NotSupportedException("Native DOC saving supports simple table cells only without paragraph formatting.");
-            }
 
             foreach (OpenXmlElement child in paragraph.ChildElements) {
                 switch (child) {
@@ -132,6 +135,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         throw new NotSupportedException($"Native DOC saving supports simple table cell paragraphs only with text runs. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
+
+            return paragraphFormatting;
         }
     }
 }

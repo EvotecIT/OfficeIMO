@@ -284,6 +284,9 @@ just to reserve names.
     text-wrapping/page breaks as real Word break runs after legacy DOC reload.
   - [x] Write simple body tables with one paragraph per cell and supported run
     content, then reload them as `WordTable` instances through the legacy reader.
+  - [x] Preserve supported paragraph formatting inside simple native-written
+    table cells and project table-cell paragraph formatting during legacy DOC
+    reload.
   - [x] Block non-default final section page setup before native `.doc` bytes are
     committed, so page size, orientation, margins, and other section properties
     are not silently dropped before section writing exists.
