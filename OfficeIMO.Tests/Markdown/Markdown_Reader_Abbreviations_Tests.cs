@@ -141,6 +141,32 @@ public class Markdown_Reader_Abbreviations_Tests {
         Assert.Equal(10, snapshot.MetadataSourceSpans["title"]!.StartColumn);
     }
 
+    [Fact]
+    public void Abbreviations_Propagate_Into_Nested_Containers_And_Table_Cell_Ast() {
+        const string markdown = "*[HTML]: Hyper Text Markup Language\n\n> HTML quoted\n\n| Term |\n| --- |\n| HTML |";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Abbreviations = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        var quote = Assert.IsType<QuoteBlock>(result.Document.Blocks[0]);
+        var quotedParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
+        var quotedAbbreviation = Assert.IsType<AbbreviationInline>(quotedParagraph.Inlines.Nodes[0]);
+        Assert.Equal("HTML", quotedAbbreviation.Text);
+        Assert.Equal("Hyper Text Markup Language", quotedAbbreviation.Title);
+
+        var table = Assert.IsType<TableBlock>(result.Document.Blocks[1]);
+        var tableAbbreviation = Assert.IsType<AbbreviationInline>(Assert.Single(table.RowInlines[0][0].Nodes));
+        Assert.Equal("HTML", tableAbbreviation.Text);
+        Assert.Equal("Hyper Text Markup Language", tableAbbreviation.Title);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeTable = Assert.IsType<MarkdownNativeTableBlock>(native.Blocks[1]);
+        var nativeCellAbbreviation = Assert.Single(nativeTable.Rows[0][0].InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Abbreviation);
+        Assert.Equal("HTML", nativeCellAbbreviation.Text);
+        Assert.Equal("Hyper Text Markup Language", Assert.Single(nativeCellAbbreviation.Metadata, metadata => metadata.Name == "title").Value);
+    }
+
     private static HtmlOptions CreatePlainHtmlOptions() =>
         new HtmlOptions {
             Style = HtmlStyle.Plain,

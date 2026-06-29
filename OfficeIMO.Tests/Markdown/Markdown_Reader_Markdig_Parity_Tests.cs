@@ -253,6 +253,15 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "duplicate-last-definition-wins", "*[HTML]: First\n*[HTML]: Second\nHTML" };
         yield return new object[] { "case-sensitive", "*[html]: Lower\nHTML html Html" };
         yield return new object[] { "punctuation-label", "*[C++]: Language\nC++ C+++ C++-like" };
+        yield return new object[] { "emphasis-inline", "*[HTML]: Hyper Text Markup Language\n\n*HTML* and **HTML**" };
+        yield return new object[] { "link-label-inline", "*[HTML]: Hyper Text Markup Language\n\n[HTML](https://example.com)" };
+        yield return new object[] { "blockquote-inline", "*[HTML]: Hyper Text Markup Language\n\n> HTML quoted" };
+        yield return new object[] { "list-inline", "*[HTML]: Hyper Text Markup Language\n\n- HTML item" };
+        yield return new object[] { "definition-later-applies-earlier", "HTML before\n\n*[HTML]: Hyper Text Markup Language\n\nHTML after" };
+    }
+
+    public static IEnumerable<object[]> AbbreviationPipeTableExtensionCases() {
+        yield return new object[] { "table-cell-inline", "*[HTML]: Hyper Text Markup Language\n\n| Term |\n| --- |\n| HTML |" };
     }
 
     [Theory]
@@ -367,6 +376,29 @@ public class Markdown_Reader_Markdig_Parity_Tests {
             BodyClass = null
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseAbbreviations(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.Abbreviations = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(AbbreviationPipeTableExtensionCases))]
+    public void MarkdownReader_Abbreviations_In_PipeTables_Match_Markdig_Extensions(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UsePipeTables(builder);
         Markdig.MarkdownExtensions.UseAbbreviations(builder);
 
         var officeOptions = MarkdownReaderOptions.CreatePortableProfile();

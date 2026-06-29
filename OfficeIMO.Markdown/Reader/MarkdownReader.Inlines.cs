@@ -304,7 +304,6 @@ public static partial class MarkdownReader {
             }
 
             if (options.Abbreviations
-                && allowLinks
                 && TryConsumeAbbreviation(text, pos, state, out var abbreviation)) {
                 AddAbbreviationNode(abbreviation, pos);
                 pos += abbreviation.Label.Length;
@@ -888,7 +887,7 @@ public static partial class MarkdownReader {
                 if (options.AutolinkWwwUrls && (text[pos] == 'w' || text[pos] == 'W') && StartsWithWww(text, pos, options, out _)) break;
                 if (options.AutolinkBareSchemeUrls && IsBareSchemeAutolinkStartCandidate(text[pos]) && TryConsumeBareSchemeAutolink(text, pos, options, out _, out _, out _)) break;
                 if (options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, options, out _, out _)) break;
-                if (options.Abbreviations && allowLinks && TryConsumeAbbreviation(text, pos, state, out _)) break;
+                if (options.Abbreviations && TryConsumeAbbreviation(text, pos, state, out _)) break;
                 if (inlineParserExtensions.Count > 0
                     && TryParseInlineExtension(
                         text,
