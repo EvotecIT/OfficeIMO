@@ -416,7 +416,7 @@ public static partial class MarkdownReader {
         }
 
         int next = index + 1;
-        ConsumeDefinitionContinuationLines(
+        var consumedLeadingBlankLine = ConsumeDefinitionContinuationLines(
             lines,
             ref next,
             markerIndent + DefinitionContinuationIndentOffset,
@@ -441,6 +441,11 @@ public static partial class MarkdownReader {
                 lineNumber,
                 Math.Max(definitionStartIndex + 1, definitionEndExclusive));
         var definition = new DefinitionListDefinition(definitionBlocks);
+        if (consumedLeadingBlankLine) {
+            definition.ForceParagraphHtml = true;
+            definition.HasLeadingBlankLineBeforeBody = true;
+        }
+
         definitionNode = new MarkdownSyntaxNode(
             MarkdownSyntaxKind.DefinitionValue,
             definitionSpan,
@@ -500,7 +505,7 @@ public static partial class MarkdownReader {
         }
     }
 
-    private static void ConsumeDefinitionContinuationLines(
+    private static bool ConsumeDefinitionContinuationLines(
         string[] lines,
         ref int index,
         int continuationIndent,
@@ -509,10 +514,12 @@ public static partial class MarkdownReader {
         List<MarkdownSourceLineSlice> definitionSourceLines,
         bool allowLazyContinuation) {
         if (lines == null || definitionSourceLines == null) {
-            return;
+            return false;
         }
 
         bool useFirstContinuationIndent = firstContinuationIndent.HasValue;
+        bool hasContent = definitionSourceLines.Any(static sourceLine => !string.IsNullOrWhiteSpace(sourceLine.Text));
+        bool consumedLeadingBlankLine = false;
         while (index < lines.Length) {
             var line = lines[index] ?? string.Empty;
             int effectiveContinuationIndent = useFirstContinuationIndent
@@ -525,7 +532,11 @@ public static partial class MarkdownReader {
                 }
 
                 if (peek >= lines.Length || CountLeadingIndentColumns(lines[peek] ?? string.Empty) < effectiveContinuationIndent) {
-                    return;
+                    return consumedLeadingBlankLine;
+                }
+
+                if (!hasContent) {
+                    consumedLeadingBlankLine = true;
                 }
 
                 while (index < peek) {
@@ -538,7 +549,7 @@ public static partial class MarkdownReader {
             if (CountLeadingIndentColumns(line) < effectiveContinuationIndent) {
                 if (!allowLazyContinuation ||
                     !ShouldConsumeMarkdigDefinitionLazyContinuation(lines, index)) {
-                    return;
+                    return consumedLeadingBlankLine;
                 }
 
                 int firstContentIndex = GetFirstNonWhitespaceIndex(line);
@@ -546,6 +557,7 @@ public static partial class MarkdownReader {
                     firstContentIndex < line.Length ? line.Substring(firstContentIndex) : string.Empty,
                     absoluteLineOffset + index + 1,
                     firstContentIndex + 1));
+                hasContent = true;
                 index++;
                 useFirstContinuationIndent = false;
                 continue;
@@ -556,9 +568,15 @@ public static partial class MarkdownReader {
                 stripped,
                 absoluteLineOffset + index + 1,
                 GetStartColumnAfterStrippingIndent(line, effectiveContinuationIndent)));
+            if (!string.IsNullOrWhiteSpace(stripped)) {
+                hasContent = true;
+            }
+
             index++;
             useFirstContinuationIndent = false;
         }
+
+        return consumedLeadingBlankLine;
     }
 
     private static bool ShouldConsumeMarkdigDefinitionLazyContinuation(

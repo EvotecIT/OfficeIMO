@@ -70,6 +70,7 @@ Term
 :   First paragraph
     > quote
 """,
+        "Term\n:   \n\n    code",
         """
 Term
 :   ```
@@ -245,6 +246,40 @@ Term
         Assert.Equal("code", definitionValue.Literal);
         Assert.Same(definition, definitionValue.AssociatedObject);
         Assert.Same(paragraph, paragraphSyntax.AssociatedObject);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_EmptyMarkdigMarker_BlankSeparatedBody_Writes_LooseMarkerSyntax_ForReparse() {
+        const string markdown = "Term\n:   \n\n    code";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks));
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+        var marker = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionMarker);
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var paragraphSyntax = Assert.Single(definitionValue.Children);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("code", paragraph.Inlines.RenderMarkdown());
+        Assert.True(definition.ForceParagraphHtml);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 1), marker.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 5, 4, 8), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 5, 4, 8), paragraphSyntax.SourceSpan);
+        Assert.Equal(markdown, written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        Assert.Equal("code", definitionBody.Value);
+        Assert.Equal(new MarkdownSourceSpan(4, 5, 4, 8), definitionBody.SourceSpan);
+        Assert.Contains("    updated", native.CreateReplaceEdit(definitionBody, "updated").Apply(native.SourceMarkdown), StringComparison.Ordinal);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 

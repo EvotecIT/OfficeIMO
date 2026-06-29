@@ -36,7 +36,7 @@ Parity is not "more tests." Tests are the measuring system. Parity means the reu
   - [ ] `UseCjkFriendlyEmphasis`: Markdig-compatible delimiter option with CJK comparison and delimiter source-token proof.
 
 - [ ] **Engine-plus-proof work: promote partial rows that already mostly exist.**
-  - [ ] `UseDefinitionLists`: close remaining source-map and writer edge breadth for marker groups, lazy continuation, loose definitions, nested bodies, multiline bodies, and reparse stability.
+  - [ ] `UseDefinitionLists`: close remaining parser/source-map/writer breadth for blank-separated marker groups, lazy continuation, nested bodies, multiline bodies, table-shaped continuations, and reparse stability.
   - [ ] `UseAlertBlocks`: align callout/alert AST fields, source spans, renderer customization, writer output, and Markdig/GFM comparison behavior.
   - [ ] `UseFigures`: separate HTML-import figure recovery from Markdown figure syntax, then prove parser, renderer, writer, and source behavior.
   - [ ] `UseMathematics`: decide inline/block math delimiter ownership, then add AST/source/native/writer and renderer handoff contracts.
@@ -76,19 +76,18 @@ Parity is not "more tests." Tests are the measuring system. Parity means the reu
 
 ## P0 - Active Slice
 
-- [ ] **Finish `UseGenericAttributes`.**
-  Covered now: fenced-code info attributes, standalone attribute blocks before fenced code, headings, paragraphs, root ordered lists, root unordered lists, HTML blocks, dash setext/thematic forms, and indented code, Markdig-compatible literal standalone attribute blocks before blockquotes, consumed paragraph separator whitespace, thematic-break-like attributed paragraphs including dash/asterisk/underscore spellings, no-space bare-URL paragraph attributes with literal URL text and no-space Markdown writing, no-space abbreviation-ending paragraph attributes that target the owning paragraph when `UseAbbreviations` is combined with `UseGenericAttributes`, ordinary no-space plain-text paragraph attributes such as `word{#id}` and `C++{#id}` without stealing paired inline delimiter targets, root/nested/blockquote list items, task-list interaction, pipe-table promotion, definition-list-looking text without `UseDefinitionLists`, definition-list term projection, definition-list definition-value consumption, inline links/reference links/images/reference images/linked images/common emphasis/code spans/angle autolinks/superscript/subscript, raw inline HTML consumption, footnote-definition paragraph attributes, standalone attributes before footnote definitions consumed without metadata, footnote-reference attribute consumption, and Markdig-compatible literal handling for strikethrough/highlight/inserted emphasis-extra attribute blocks.
-  Missing before promotion:
-  - [ ] Probe the remaining Markdig-supported block and inline shapes before writing code.
-  - [ ] Implement only shapes Markdig actually consumes or projects as generic attributes.
-  - [ ] Use shared attribute parser/writer helpers instead of per-block string rescans.
-  - [ ] Project each newly supported shape through semantic AST, syntax AST, native source fields/metadata, HTML rendering, Markdown writing, and preserved-trivia source edits.
-  - [ ] Document unsupported or intentional differences instead of leaving silent gaps.
-
-## P1 - Markdig Extension Rows
-
 - [ ] **Promote or explicitly bound `UseDefinitionLists`.**
-  Missing: remaining marker-group, lazy-continuation, loose-definition, nested-definition, multiline-body, source-map, writer, and reparse-stability edge breadth.
+  Covered now: structured definition-list AST, Markdig-style colon-marker term grouping, multiple definitions in one group, marker syntax tokens, native source-backed marker fields/source edits, loose-definition writer preservation, blank-separated marker-group writer preservation, tight nested-list writer preservation, setext-continuation writer reparse proof, empty-marker first-continuation handling, empty-marker blank-separated body source/writer preservation, and multiline definition-body edits that keep continuation indentation valid for simple and marker forms.
+  Missing before promotion:
+  - [ ] Parse blank-separated multi-term groups before a marker, for example `Term 1`, blank, `Term 2`, `: Definition`, where Markdig keeps both terms in one `<dl>`.
+  - [ ] Decide and prove table-shaped continuation text inside definitions, including whether pipe-table-looking lines stay literal or become a nested table under the active profile.
+  - [ ] Broaden lazy-continuation cases with explicit semantic AST, syntax AST, native source field, HTML, writer, and reparse checks.
+  - [ ] Broaden nested-body cases for lists, blockquotes, fenced code, HTML, headings, and setext-looking lines inside `<dd>`.
+  - [ ] Finish multiline-body source mapping, including exact spans for marker lines, blank separators, continuation indentation, and generated paragraph wrappers.
+  - [ ] Promote to `Covered` only after parser behavior, source/native projection, HTML rendering, Markdown writing, reparse stability, generated inventory docs, and the compatibility matrix all agree.
+
+## P1 - Markdig Extension Rows After Active Slice
+
 - [ ] **Decide and close `UseAlertBlocks`.**
   Missing: an explicit decision whether Markdig alert rendering callbacks become an OfficeIMO renderer contract or remain an intentional OfficeIMO callout difference.
 - [ ] **Decide and close `UseCjkFriendlyEmphasis`.**
@@ -135,10 +134,10 @@ Parity is not "more tests." Tests are the measuring system. Parity means the reu
 
 ## Next Ordered Work
 
-- [ ] **1. Continue `UseGenericAttributes`, but only after probing actual missing Markdig behavior.**
-  The most recent probes closed standalone attributes before fenced code, the literal standalone-attribute-before-blockquote boundary, HTML blocks, dash setext/thematic forms, indented code, and definition-list-looking text without `UseDefinitionLists`. Next probes should move beyond this standalone-target sweep into less-covered block families and remaining inline families.
-- [ ] **2. Promote or bound `UseDefinitionLists`.**
-  This is the next concrete parser/source/writer row after generic attributes.
+- [ ] **1. Promote or bound `UseDefinitionLists`.**
+  Current probes closed empty-marker blank-separated body source/writer preservation. Next probes should target blank-separated multi-term groups, table-shaped continuations, lazy continuation breadth, and nested/multiline body source spans.
+- [ ] **2. Continue `UseGenericAttributes`, but only after probing actual missing Markdig behavior.**
+  The most recent probes closed standalone attributes before fenced code, the literal standalone-attribute-before-blockquote boundary, HTML blocks, dash setext/thematic forms, indented code, no-space paragraph attributes, and definition-list-looking text without `UseDefinitionLists`. Next probes should move beyond this standalone-target sweep into less-covered block families and remaining inline families.
 - [ ] **3. Decide `UseAlertBlocks` and `UseCjkFriendlyEmphasis`.**
   These need scope decisions before more fixtures.
 - [ ] **4. Return to AST/source/lossless architecture.**
@@ -155,3 +154,4 @@ Parity is not "more tests." Tests are the measuring system. Parity means the reu
 - [x] `UseFootnotes` moved to covered.
 - [x] CommonMark `0.31.2` full inventory moved to green.
 - [x] `UseGenericAttributes` moved through fenced-code info attributes, standalone attribute blocks before fenced code/headings/paragraphs/root ordered and unordered lists/HTML blocks/dash setext forms/indented code, standalone-before-blockquote literal behavior, common inline elements, reference links/images, angle autolinks, pipe tables, blockquote behavior bounds, list items, task-list interaction, footnotes, standalone-before-footnote-definition consumption, paragraph separator whitespace, no-space bare-URL paragraph attributes, no-space abbreviation-ending paragraph attributes, ordinary no-space plain-text paragraph attributes, raw inline HTML/image edges, emphasis-extra parity bounds, and definition-list interactions.
+- [x] `UseDefinitionLists` gained empty-marker blank-separated body source/writer preservation, so `Term`, `:   `, blank, indented body reparses to Markdig-compatible loose definition HTML instead of collapsing the body to a tight definition.

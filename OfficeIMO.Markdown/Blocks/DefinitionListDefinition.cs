@@ -11,6 +11,7 @@ public sealed class DefinitionListDefinition : MarkdownObject {
     /// <summary>Structured markdown blocks that belong to this definition body.</summary>
     public List<IMarkdownBlock> Blocks => _blocks;
     internal bool ForceParagraphHtml { get; set; }
+    internal bool HasLeadingBlankLineBeforeBody { get; set; }
 
     /// <summary>Creates a definition body.</summary>
     public DefinitionListDefinition(IEnumerable<IMarkdownBlock>? blocks = null) {

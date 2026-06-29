@@ -346,7 +346,10 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
             return;
         }
 
-        if (blocks[0] is ParagraphBlock) {
+        if (definition?.HasLeadingBlankLineBeforeBody == true && blocks[0] is ParagraphBlock) {
+            sb.Append(":   \n\n");
+            AppendIndentedDefinitionBlockMarkdown(sb, blocks[0], firstBlock: false, continuationIndent: "    ");
+        } else if (blocks[0] is ParagraphBlock) {
             sb.Append(":   ");
             AppendIndentedDefinitionBlockMarkdown(sb, blocks[0], firstBlock: true, continuationIndent: "    ");
         } else {
