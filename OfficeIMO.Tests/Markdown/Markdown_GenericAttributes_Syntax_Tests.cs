@@ -104,4 +104,29 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         var native = MarkdownNativeDocument.Parse(markdown, options);
         Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
     }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_ListItem_GenericAttribute_Tokens() {
+        const string markdown = "- item {#li .selected}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var listItem = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.ListItem);
+        var attributes = Assert.Single(listItem.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        Assert.Equal("{#li .selected}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 22), attributes.SourceSpan);
+        Assert.True(listItem.SourceSpan!.Value.Contains(attributes.SourceSpan!.Value));
+        Assert.Equal(MarkdownSyntaxKind.GenericAttributeBlock, result.FindDeepestFinalNodeAtPosition(1, 12)!.Kind);
+
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#li .selected}", slice.Text);
+    }
 }

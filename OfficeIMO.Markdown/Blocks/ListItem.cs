@@ -47,6 +47,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public MarkdownSourceSpan? TaskMarkerSourceSpan { get; internal set; }
     /// <summary>Exact task marker token (<c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>) when parsed from markdown.</summary>
     public string? TaskMarkerText { get; internal set; }
+    internal string GenericAttributeConsumedWhitespace { get; set; } = string.Empty;
     /// <summary>Indentation level (0 = top-level). Used for nested lists.</summary>
     public int Level { get; set; }
     /// <summary>Forces paragraph-wrapped loose rendering even when only the first paragraph and child blocks exist.</summary>
@@ -88,7 +89,11 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     }
 
     internal string RenderMarkdown() {
-        var parts = Paragraphs().Select(p => p.RenderMarkdown());
+        var parts = Paragraphs().Select(p => p.RenderMarkdown()).ToList();
+        if (!Attributes.IsEmpty && parts.Count > 0) {
+            parts[0] = parts[0].TrimEnd() + MarkdownAttributeBlockRenderer.RenderTrailing(Attributes);
+        }
+
         return string.Join("\n\n", parts);
     }
 
@@ -97,8 +102,9 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     internal string RenderHtml(bool forceLoose) {
         bool renderLoose = forceLoose || ForceLoose;
         string checkbox = BuildCheckboxHtml();
+        string attributeWhitespace = RenderGenericAttributeConsumedWhitespace();
         if (!renderLoose && AdditionalParagraphs.Count == 0 && Children.Count == 0) {
-            return checkbox + Content.RenderHtml();
+            return checkbox + Content.RenderHtml() + attributeWhitespace;
         }
 
         if (renderLoose
@@ -111,7 +117,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         // Tight list behavior: when there is exactly one paragraph, keep it inline even if child blocks exist.
         if (!renderLoose && AdditionalParagraphs.Count == 0) {
             var sbTight = new StringBuilder();
-            sbTight.Append(checkbox).Append(Content.RenderHtml());
+            sbTight.Append(checkbox).Append(Content.RenderHtml()).Append(attributeWhitespace);
             for (int i = 0; i < Children.Count; i++) {
                 if (Children[i] is ITightListItemHtmlMarkdownBlock tightHtmlBlock) {
                     sbTight.Append(tightHtmlBlock.RenderTightListItemHtml());
@@ -129,6 +135,9 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             sb.Append("<p>");
             if (first && IsTask) sb.Append(checkbox);
             sb.Append(p.RenderHtml());
+            if (first) {
+                sb.Append(attributeWhitespace);
+            }
             sb.Append("</p>");
             first = false;
         }
@@ -137,6 +146,14 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(Children[i]));
         }
         return sb.ToString();
+    }
+
+    private string RenderGenericAttributeConsumedWhitespace() {
+        if (string.IsNullOrEmpty(GenericAttributeConsumedWhitespace) || Attributes.IsEmpty) {
+            return string.Empty;
+        }
+
+        return HtmlTextEncoder.Encode(GenericAttributeConsumedWhitespace, HtmlRenderContext.Options);
     }
 
     private string BuildCheckboxHtml() {
@@ -247,6 +264,10 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     internal MarkdownSyntaxNode BuildSyntaxNode(MarkdownSyntaxNode? nestedList) {
         var children = BuildListMarkerSyntaxNodes();
         children.AddRange(MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this));
+        var attributeNode = MarkdownGenericAttributeSyntaxNodes.Create(this);
+        if (attributeNode != null) {
+            children.Add(attributeNode);
+        }
 
         if (nestedList != null) {
             children.Add(nestedList);
@@ -261,7 +282,8 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             MarkdownBlockSyntaxBuilder.GetAggregateSpan(children),
             literal,
             children,
-            this);
+            this,
+            attributes: Attributes);
     }
 
     private List<MarkdownSyntaxNode> BuildListMarkerSyntaxNodes() {

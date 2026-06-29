@@ -110,6 +110,46 @@ public class Markdown_Native_Block_Source_Field_Tests {
     }
 
     [Fact]
+    public void GenericAttributes_ListItem_SourceField_Is_Source_Addressable() {
+        const string markdown = "- item {#li .selected}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var list = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(native.Blocks));
+        var item = Assert.Single(list.Items);
+
+        Assert.Equal("li", item.Item.Attributes.ElementId);
+        Assert.Equal(new[] { "selected" }, item.Item.Attributes.Classes.ToArray());
+
+        var attributes = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Same(list, attributes.Block);
+        Assert.Equal(0, attributes.Index);
+        Assert.Equal("{#li .selected}", attributes.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 22), attributes.SourceSpan);
+
+        var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 12));
+        Assert.Equal("attributes", found.Name);
+        Assert.Equal(attributes.SourceSpan, found.SourceSpan);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "attributes"
+            && field.Value == "{#li .selected}"
+            && field.Index == 0
+            && field.SourceSpan.StartColumn == 8
+            && field.SourceSpan.EndColumn == 22);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributes, "{#task .done}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("- item {#task .done}\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void Paragraph_Text_SourceField_Uses_Paragraph_Source_Span() {
         const string markdown = "Old **body**\n";
 

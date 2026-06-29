@@ -309,6 +309,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "blockquote-atx-heading-attribute-stays-literal", "> # Heading {#h .wide}" };
         yield return new object[] { "blockquote-setext-heading-attribute-stays-literal", "> Heading {#h .wide}\n> -------" };
         yield return new object[] { "nested-blockquote-paragraph-attribute-stays-literal", "> > quote {#q .lead}" };
+        yield return new object[] { "unordered-list-item-attribute-is-consumed", "- item {#li .selected}" };
+        yield return new object[] { "ordered-list-item-attribute-is-consumed", "1. item {#li .selected}" };
+        yield return new object[] { "blockquote-list-item-attribute-is-consumed", "> - item {#li .selected}" };
+        yield return new object[] { "nested-list-item-attribute-is-consumed", "- outer\n  - inner {#li .selected}" };
         yield return new object[] { "inline-link-id-class-title", "[site](https://example.com){#lnk .primary title=\"Site\"}" };
         yield return new object[] { "inline-emphasis-id-class", "*emphasis*{#em .marked}" };
         yield return new object[] { "inline-strong-id-class", "**strong**{#strong .marked}" };

@@ -423,6 +423,21 @@ public static partial class MarkdownReader {
         }
 
         int firstBlank = lines.FindIndex(string.IsNullOrWhiteSpace);
+        ParsedListItemGenericAttributes? listItemAttributes = TryConsumeListItemGenericAttributes(lines, sourceLines, options, state, lineOffset, firstBlank, out var parsedListItemAttributes)
+            ? parsedListItemAttributes
+            : null;
+
+        ListItem AttachListItemAttributes(ListItem item) {
+            if (item == null || listItemAttributes == null || listItemAttributes.Value.Attributes.IsEmpty) {
+                return item!;
+            }
+
+            item.SetAttributes(listItemAttributes.Value.Attributes);
+            item.GenericAttributeConsumedWhitespace = listItemAttributes.Value.ConsumedWhitespace;
+            MarkdownGenericAttributeSourceSpans.Set(item, listItemAttributes.Value.SourceText, listItemAttributes.Value.SourceSpan);
+            return item;
+        }
+
         if (firstBlank <= 0) {
             var paragraphs = sourceLines != null && sourceLines.Count == lines.Count
                 ? ParseParagraphsFromSourceLines(sourceLines, options, state)
@@ -431,13 +446,13 @@ public static partial class MarkdownReader {
             for (int i = 1; i < paragraphs.Count; i++) {
                 item.AdditionalParagraphs.Add(paragraphs[i]);
             }
-            return AttachLeadingAbbreviationSyntax(item);
+            return AttachLeadingAbbreviationSyntax(AttachListItemAttributes(item));
         }
 
         var firstParagraph = sourceLines != null && sourceLines.Count >= firstBlank
             ? ParseParagraphsFromSourceLines(sourceLines.GetRange(0, firstBlank), options, state)[0]
             : ParseParagraphsFromLines(lines.GetRange(0, firstBlank), options, state)[0];
-        var mixedItem = isTask ? ListItem.TaskInlines(firstParagraph, done) : new ListItem(firstParagraph);
+        var mixedItem = AttachListItemAttributes(isTask ? ListItem.TaskInlines(firstParagraph, done) : new ListItem(firstParagraph));
 
         if (firstBlank + 1 >= lines.Count) return AttachLeadingAbbreviationSyntax(mixedItem);
 
@@ -473,6 +488,80 @@ public static partial class MarkdownReader {
         }
         mixedItem.ForceLoose = true;
         return AttachLeadingAbbreviationSyntax(mixedItem);
+    }
+
+    private readonly struct ParsedListItemGenericAttributes {
+        public ParsedListItemGenericAttributes(MarkdownAttributeSet attributes, string sourceText, MarkdownSourceSpan sourceSpan, string consumedWhitespace) {
+            Attributes = attributes;
+            SourceText = sourceText ?? string.Empty;
+            SourceSpan = sourceSpan;
+            ConsumedWhitespace = consumedWhitespace ?? string.Empty;
+        }
+
+        public MarkdownAttributeSet Attributes { get; }
+        public string SourceText { get; }
+        public MarkdownSourceSpan SourceSpan { get; }
+        public string ConsumedWhitespace { get; }
+    }
+
+    private static bool TryConsumeListItemGenericAttributes(
+        List<string> lines,
+        List<MarkdownSourceLineSlice>? sourceLines,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        int lineOffset,
+        int firstBlank,
+        out ParsedListItemGenericAttributes parsed) {
+        parsed = default;
+        if (options?.GenericAttributes != true || lines == null || lines.Count == 0) {
+            return false;
+        }
+
+        int searchEnd = firstBlank > 0 ? firstBlank - 1 : lines.Count - 1;
+        for (int lineIndex = searchEnd; lineIndex >= 0; lineIndex--) {
+            var line = lines[lineIndex] ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(line)) {
+                continue;
+            }
+
+            if (!MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
+                    line,
+                    out _,
+                    out var attributes,
+                    out var attributeStart,
+                    out var attributeEnd,
+                    requireLeadingWhitespace: true)) {
+                return false;
+            }
+
+            var lineWithoutAttributeBlock = line.Substring(0, attributeStart);
+            var trimmedTextLength = lineWithoutAttributeBlock.TrimEnd().Length;
+            var consumedWhitespace = lineWithoutAttributeBlock.Substring(trimmedTextLength);
+            var sourceText = line.Substring(attributeStart, attributeEnd - attributeStart + 1);
+            var sourceLine = sourceLines != null && lineIndex >= 0 && lineIndex < sourceLines.Count
+                ? sourceLines[lineIndex]
+                : new MarkdownSourceLineSlice(line, (state?.SourceLineOffset ?? 0) + lineOffset + lineIndex + 1, 1);
+            var span = CreateSpan(
+                state,
+                sourceLine.AbsoluteLine,
+                sourceLine.StartColumn + attributeStart,
+                sourceLine.AbsoluteLine,
+                sourceLine.StartColumn + attributeEnd);
+
+            lines[lineIndex] = lineWithoutAttributeBlock;
+            if (sourceLines != null && lineIndex >= 0 && lineIndex < sourceLines.Count) {
+                sourceLines[lineIndex] = new MarkdownSourceLineSlice(
+                    lineWithoutAttributeBlock,
+                    sourceLine.AbsoluteLine,
+                    sourceLine.StartColumn,
+                    sourceLine.IsLazyQuoteContinuation);
+            }
+
+            parsed = new ParsedListItemGenericAttributes(attributes, sourceText, span, consumedWhitespace);
+            return true;
+        }
+
+        return false;
     }
 
     private static List<MarkdownSyntaxNode> RemoveLeadingListItemAbbreviationDefinitions(

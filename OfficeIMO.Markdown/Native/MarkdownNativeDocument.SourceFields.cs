@@ -273,6 +273,18 @@ public sealed partial class MarkdownNativeDocument {
             if (item.TaskMarkerSourceSpan.HasValue) {
                 yield return new MarkdownNativeBlockSourceField("taskMarker", item.TaskMarkerText, item.TaskMarkerSourceSpan.Value, list, i);
             }
+
+            if (!item.Item.Attributes.IsEmpty) {
+                var sourceSpan = MarkdownGenericAttributeSourceSpans.GetSourceSpan(item.Item);
+                if (sourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField(
+                        "attributes",
+                        MarkdownGenericAttributeSourceSpans.GetSourceText(item.Item),
+                        sourceSpan.Value,
+                        list,
+                        i);
+                }
+            }
         }
     }
 

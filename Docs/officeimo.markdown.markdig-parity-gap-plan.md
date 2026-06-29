@@ -11,7 +11,7 @@ This is the short checklist to use before starting the next slice. If a task can
 - [x] **CommonMark parser correctness.** The official CommonMark `0.31.2` inventory is green: 652 of 652 examples match.
 - [x] **Core scoreboards.** CommonMark, tracked GFM, Markdig extension-family inventory, compatibility docs, and benchmark hooks exist.
 - [x] **Covered GFM/core features.** Pipe tables, task lists, footnotes, strikethrough/emphasis extras, auto identifiers, extended autolinks, soft-line-as-hard-line, YAML front matter, abbreviations, and current tracked GFM fixtures have engine behavior plus proof.
-- [ ] **Engine slice 1: finish `UseGenericAttributes`.** Probe Markdig behavior for the remaining block/container shapes, then fix only supported shapes in parser, AST, syntax/native source fields, HTML render, Markdown writer, and reparse/source-edit proof.
+- [ ] **Engine slice 1: continue `UseGenericAttributes` breadth.** List-item trailing attributes are now closed for root, nested, ordered, unordered, and blockquote-contained list items; next probe the remaining block/container shapes and fix only supported shapes in parser, AST, syntax/native source fields, HTML render, Markdown writer, and reparse/source-edit proof.
 - [ ] **Engine slice 2: finish or explicitly bound `UseDefinitionLists`.** Close remaining source-map and writer edges for marker groups, lazy continuation, loose definitions, nested definitions, multiline body edits, and reparse stability.
 - [ ] **Decision slice 3: close `UseAlertBlocks` and `UseCjkFriendlyEmphasis`.** Decide whether each is an OfficeIMO compatibility contract, renderer/profile policy, deferred row, or intentional difference before adding more fixtures.
 - [ ] **Architecture slice 4: finish source/lossless parity.** Complete canonical node shapes, trivia capture, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, and broader source-preserving edits.
@@ -73,8 +73,8 @@ The short answer to "are we only doing tests?" is no:
 
 ### P1 - Engine Work We Are Missing Next
 
-- [ ] **Finish `UseGenericAttributes` breadth.** This is the active engine slice. Already covered: fenced code, ATX headings, Setext headings, paragraphs, Markdig-style pipe-table cell attributes that promote to the owning table, and common no-space inline attributes. Missing before promotion:
-  - [ ] Probe and close remaining block families: list items/lists, thematic breaks, table-edge forms, HTML blocks, footnotes, definition lists, callouts, and standalone media/image shapes.
+- [ ] **Finish `UseGenericAttributes` breadth.** This is the active engine slice. Already covered: fenced code, ATX headings, Setext headings, paragraphs, root/nested/blockquote list-item trailing attributes, Markdig-style pipe-table cell attributes that promote to the owning table, and common no-space inline attributes. Missing before promotion:
+  - [ ] Probe and close remaining block families: thematic breaks, table-edge forms, HTML blocks, footnotes, definition lists, callouts, standalone media/image shapes, and any list-extra forms Markdig treats differently from ordinary list items.
   - [ ] Implement only the shapes Markdig actually treats as generic attributes, using shared parser helpers instead of per-block string rescans.
   - [ ] Project every newly supported attribute through semantic AST, syntax AST, native fields/metadata, HTML rendering, Markdown writing, and preserved-trivia source edits.
   - [ ] Keep unsupported or intentionally different shapes documented as profile differences, not silent gaps.
@@ -109,7 +109,7 @@ The short answer to "are we only doing tests?" is no:
 
 ### Next Ordered Slices
 
-- [ ] **1. Finish the active `UseGenericAttributes` slice.** First probe Markdig's real supported shapes, then implement the missing reusable parser/source/writer behavior for the supported block/inline families.
+- [ ] **1. Continue the active `UseGenericAttributes` slice.** List-item trailing attributes are closed; next probe Markdig's remaining supported shapes, then implement the missing reusable parser/source/writer behavior for those block/inline families.
 - [ ] **2. Promote or bound `UseDefinitionLists`.** Close the remaining source-map/writer edge cases or document precise writer/source limits.
 - [ ] **3. Decide `UseAlertBlocks` and `UseCjkFriendlyEmphasis`.** Make the scope decision explicit before adding more fixture cases.
 - [ ] **4. Return to source/lossless architecture.** Canonical node shapes, trivia, delimiter tokens, original mapping, and broader roundtrip edits are the next big parity body of work.
@@ -127,6 +127,7 @@ The short answer to "are we only doing tests?" is no:
 - [x] **Moved `UseGenericAttributes` through syntax-token coverage for covered shapes.** Covered block and inline attribute blocks now appear as source-addressable `GenericAttributeBlock` syntax tokens, caret/navigation can land on them, and native inline metadata remains single-projected from the token.
 - [x] **Moved `UseGenericAttributes` through Markdig-style pipe-table cells.** Trailing generic attribute blocks in header or body cells are consumed from the cell text, promoted to the owning `TableBlock`, rendered on `<table>`, written back into a stable reparsable table cell form, and exposed through syntax/native/source-edit proof.
 - [x] **Bound `UseGenericAttributes` inside blockquotes to Markdig behavior.** Blockquote paragraph and heading trailing attribute blocks now stay literal, including nested blockquotes, while pipe-table attributes inside blockquotes still promote to the owning table.
+- [x] **Moved `UseGenericAttributes` through list-item trailing blocks.** Root ordered/unordered, nested, and blockquote-contained list items now consume Markdig-style trailing attribute blocks, preserve Markdig's consumed separator whitespace in HTML without projecting attributes onto `<li>`, write normalized trailing attribute blocks, and expose semantic attributes through syntax/native/source-edit proof.
 
 ## Execution Rules
 
@@ -289,7 +290,7 @@ These are the actual parity gaps. Engine work is listed first; tests and invento
 - [x] **Core scoreboards.** Checked-in inventories exist for CommonMark, tracked GFM fixtures, and reflected Markdig extension families.
 - [x] **Initial editor/source architecture.** Many canonical nodes expose syntax/source/native spans, source fields, and source-edit helpers.
 - [x] **Finish the active `UseGenericAttributes` engine slice.** Covered generic attribute blocks are semantic/native/source-backed and now project as `GenericAttributeBlock` syntax tokens with caret/navigation and native metadata proof.
-- [ ] **Finish `UseGenericAttributes` breadth.** Extend parsing/writing/source preservation beyond the currently covered ATX headings, Setext headings, paragraphs, fenced code, Markdig-style pipe-table cell attributes, blockquote literal-boundary behavior, and common no-space inline elements into the remaining block families and inline shapes that Markdig supports.
+- [ ] **Finish `UseGenericAttributes` breadth.** Extend parsing/writing/source preservation beyond the currently covered ATX headings, Setext headings, paragraphs, fenced code, list-item trailing attributes, Markdig-style pipe-table cell attributes, blockquote literal-boundary behavior, and common no-space inline elements into the remaining block families and inline shapes that Markdig supports.
 - [ ] **Finish `UseDefinitionLists` breadth.** Marker syntax and native fields exist; finish source-map and writer edge cases for marker groups, lazy continuation, loose definitions, nested definitions, multiline body edits, and reparse stability.
 - [ ] **Decide `UseAlertBlocks`.** Choose whether Markdig alert rendering callbacks are an OfficeIMO engine/renderer contract or an intentional OfficeIMO callout difference, then implement or document that decision.
 - [ ] **Decide `UseCjkFriendlyEmphasis`.** Either add a real delimiter option with CJK comparison fixtures and source-token proof, or document it as deferred/intentional.
@@ -303,8 +304,8 @@ These are the actual parity gaps. Engine work is listed first; tests and invento
 
 ## Immediate Work Order
 
-- [ ] **Active slice: finish `UseGenericAttributes` breadth.**
-  - [ ] Probe Markdig output for remaining block and inline attribute shapes before changing code.
+- [ ] **Active slice: continue `UseGenericAttributes` breadth.**
+  - [ ] Probe Markdig output for remaining block and inline attribute shapes before changing code; list-item trailing attributes are already closed in the current branch.
   - [ ] Implement supported missing shapes in the shared parser/source/writer path.
   - [ ] Add Markdig comparison, syntax/native/source-edit, HTML, Markdown writer, and reparse proof for each newly supported shape.
   - [ ] Refresh the Markdig extension inventory and promote `UseGenericAttributes` only if arbitrary supported block/inline breadth is truly closed.
