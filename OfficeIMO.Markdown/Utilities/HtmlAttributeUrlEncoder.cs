@@ -11,7 +11,10 @@ internal static class HtmlAttributeUrlEncoder {
         }
 
         var value = url!;
-        return System.Net.WebUtility.HtmlEncode(NormalizeUrl(value, options?.NormalizeUrlHostsToIdn != false));
+        return System.Net.WebUtility.HtmlEncode(NormalizeUrl(
+            value,
+            options?.NormalizeUrlHostsToIdn != false,
+            options?.PercentEncodeTildeInUrlAttributes == true));
     }
 
     internal static string EncodeSrcSet(string? srcSet) {
@@ -33,19 +36,19 @@ internal static class HtmlAttributeUrlEncoder {
         return string.Join(", ", encodedCandidates);
     }
 
-    private static string NormalizeUrl(string value, bool normalizeHostsToIdn) {
+    private static string NormalizeUrl(string value, bool normalizeHostsToIdn, bool percentEncodeTilde) {
         if (string.IsNullOrEmpty(value)) {
             return string.Empty;
         }
 
-        if (normalizeHostsToIdn && TryNormalizeAbsoluteUrlWithIdn(value, out var normalized)) {
+        if (normalizeHostsToIdn && TryNormalizeAbsoluteUrlWithIdn(value, percentEncodeTilde, out var normalized)) {
             return normalized;
         }
 
-        return PercentEncodeRelativeUrl(value);
+        return PercentEncodeRelativeUrl(value, percentEncodeTilde);
     }
 
-    private static bool TryNormalizeAbsoluteUrlWithIdn(string value, out string normalized) {
+    private static bool TryNormalizeAbsoluteUrlWithIdn(string value, bool percentEncodeTilde, out string normalized) {
         normalized = string.Empty;
         if (!ContainsNonAscii(value)) {
             return false;
@@ -74,7 +77,7 @@ internal static class HtmlAttributeUrlEncoder {
         }
 
         builder.Append(scheme).Append("://").Append(NormalizeAuthorityHost(authority));
-        builder.Append(PercentEncodeRelativeUrl(value.Substring(authorityEnd)));
+        builder.Append(PercentEncodeRelativeUrl(value.Substring(authorityEnd), percentEncodeTilde));
         normalized = builder.ToString();
         return true;
     }
@@ -129,7 +132,7 @@ internal static class HtmlAttributeUrlEncoder {
         return false;
     }
 
-    private static string PercentEncodeRelativeUrl(string value) {
+    private static string PercentEncodeRelativeUrl(string value, bool percentEncodeTilde) {
         var builder = new System.Text.StringBuilder(value.Length);
         for (var i = 0; i < value.Length; i++) {
             var current = value[i];
@@ -142,7 +145,7 @@ internal static class HtmlAttributeUrlEncoder {
             }
 
             if (current <= 0x7F) {
-                if (ShouldPercentEncodeAsciiUrlCharacter(current)) {
+                if (ShouldPercentEncodeAsciiUrlCharacter(current, percentEncodeTilde)) {
                     AppendPercentEncodedByte(builder, (byte)current);
                 } else {
                     builder.Append(current);
@@ -167,8 +170,9 @@ internal static class HtmlAttributeUrlEncoder {
         return builder.ToString();
     }
 
-    private static bool ShouldPercentEncodeAsciiUrlCharacter(char value) =>
+    private static bool ShouldPercentEncodeAsciiUrlCharacter(char value, bool percentEncodeTilde) =>
         value <= 0x20
+        || (percentEncodeTilde && value == '~')
         || value == '"'
         || value == '<'
         || value == '>'

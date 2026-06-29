@@ -243,6 +243,43 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Markdig_Autolinks_Can_PercentEncode_Tilde_In_Href_While_Preserving_Display_Source_And_Writer() {
+        const string markdown = "Visit https://example.com/path~tilde now\n";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var defaultHtml = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var markdigHtml = result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            PercentEncodeTildeInUrlAttributes = true
+        });
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
+        var target = Assert.Single(link.Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
+        var semanticLink = Assert.Single(semanticParagraph.Inlines.Nodes.OfType<LinkInline>());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var nativeLink = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var nativeTarget = Assert.Single(nativeLink.Metadata, metadata => metadata.Name == "target");
+        var written = result.Document.ToMarkdown().Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<a href=\"https://example.com/path~tilde\">https://example.com/path~tilde</a>", defaultHtml, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"https://example.com/path%7Etilde\">https://example.com/path~tilde</a>", markdigHtml, StringComparison.Ordinal);
+        Assert.Equal("https://example.com/path~tilde", semanticLink.Text);
+        Assert.Equal("https://example.com/path~tilde", semanticLink.Url);
+        Assert.Equal("https://example.com/path~tilde", link.Literal);
+        Assert.Equal("https://example.com/path~tilde", target.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 36), target.SourceSpan);
+        Assert.Equal("https://example.com/path~tilde", nativeTarget.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 36), nativeTarget.SourceSpan);
+        Assert.Equal("Visit https://example.com/path~tilde now", written);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void Gfm_Autolinks_Render_Unicode_Www_Domain_As_Idn_While_Preserving_Source_Literal() {
         const string markdown = "Visit www.пример.рф/path now\n";
 

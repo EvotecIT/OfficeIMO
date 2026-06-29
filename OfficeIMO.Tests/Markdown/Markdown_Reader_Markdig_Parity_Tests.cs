@@ -197,6 +197,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "mixed-case-www-host", "Visit www.Example.com now" };
         yield return new object[] { "unicode-http-domain", "Visit https://пример.рф/path now" };
         yield return new object[] { "unicode-http-path", "Visit https://example.com/ścieżka?q=zażółć now" };
+        yield return new object[] { "http-url-path-tilde", "Visit https://example.com/path~tilde now" };
+        yield return new object[] { "www-url-path-tilde", "Visit www.example.com/path~tilde now" };
         yield return new object[] { "unicode-www-domain", "Visit www.пример.рф/path now" };
         yield return new object[] { "unicode-ftp-domain", "Visit ftp://пример.рф/path now" };
         yield return new object[] { "ftp-url", "Visit ftp://example.com/file.txt now" };
@@ -227,6 +229,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     public static IEnumerable<object[]> AutoLinksPipeTableExtensionCases() {
         yield return new object[] { "table-http-query-ampersand", "| Link |\n| --- |\n| https://example.com/path?q=1&next=2 |\n" };
         yield return new object[] { "table-www-query-parens", "| Link |\n| --- |\n| www.example.com/search?q=(x) |\n" };
+        yield return new object[] { "table-http-path-tilde", "| Link |\n| --- |\n| https://example.com/path~tilde |\n" };
         yield return new object[] { "table-mailto-url", "| Link |\n| --- |\n| mailto:user@example.com |\n" };
         yield return new object[] { "table-plain-email-stays-literal", "| Link |\n| --- |\n| user@example.com |\n" };
     }
@@ -309,7 +312,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var htmlOptions = new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
-            BodyClass = null
+            BodyClass = null,
+            PercentEncodeTildeInUrlAttributes = true
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseAutoLinks(builder);
@@ -337,7 +341,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var htmlOptions = new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
-            BodyClass = null
+            BodyClass = null,
+            PercentEncodeTildeInUrlAttributes = true
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UsePipeTables(builder);

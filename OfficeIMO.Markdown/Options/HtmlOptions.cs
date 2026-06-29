@@ -133,6 +133,11 @@ public sealed class HtmlOptions {
     /// </summary>
     public bool NormalizeUrlHostsToIdn { get; set; } = true;
     /// <summary>
+    /// When <c>true</c>, rendered URL attributes percent-encode the ASCII tilde character (<c>~</c>).
+    /// Default: <c>false</c>; enable for Markdig-compatible URL attribute output.
+    /// </summary>
+    public bool PercentEncodeTildeInUrlAttributes { get; set; } = false;
+    /// <summary>
     /// Optional block render extensions that can override HTML emitted for specific block types.
     /// Later registrations win when block types overlap.
     /// </summary>
