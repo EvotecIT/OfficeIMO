@@ -4,6 +4,27 @@ This is the working plan for getting `OfficeIMO.Markdown` to Markdig-class parit
 
 The important distinction: parity is not "more tests." Parity means the parser, AST, renderer, writer, extension model, source mapping, lossless behavior, and performance story all line up behind a documented contract. Tests and inventories are the proof gates for those contracts.
 
+## Operator Plan
+
+This is the short checklist to use before starting the next slice. If a task cannot name one of these rows, it is probably scope drift.
+
+- [x] **CommonMark parser correctness.** The official CommonMark `0.31.2` inventory is green: 652 of 652 examples match.
+- [x] **Core scoreboards.** CommonMark, tracked GFM, Markdig extension-family inventory, compatibility docs, and benchmark hooks exist.
+- [x] **Covered GFM/core features.** Pipe tables, task lists, footnotes, strikethrough/emphasis extras, auto identifiers, extended autolinks, soft-line-as-hard-line, YAML front matter, abbreviations, and current tracked GFM fixtures have engine behavior plus proof.
+- [ ] **Engine slice 1: finish `UseGenericAttributes`.** Probe Markdig behavior for the remaining block/container shapes, then fix only supported shapes in parser, AST, syntax/native source fields, HTML render, Markdown writer, and reparse/source-edit proof.
+- [ ] **Engine slice 2: finish or explicitly bound `UseDefinitionLists`.** Close remaining source-map and writer edges for marker groups, lazy continuation, loose definitions, nested definitions, multiline body edits, and reparse stability.
+- [ ] **Decision slice 3: close `UseAlertBlocks` and `UseCjkFriendlyEmphasis`.** Decide whether each is an OfficeIMO compatibility contract, renderer/profile policy, deferred row, or intentional difference before adding more fixtures.
+- [ ] **Architecture slice 4: finish source/lossless parity.** Complete canonical node shapes, trivia capture, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, and broader source-preserving edits.
+- [ ] **Extension slice 5: implement only chosen optional Markdig rows.** Custom containers, grid tables, math, diagrams, figures, media links, emoji/smiley, Jira links, list extras, and SmartyPants need explicit ownership and promotion bars before implementation.
+- [ ] **Policy slice 6: separate parser parity from security/render policy.** Raw HTML, GFM tag filtering, sanitizing/escaping/stripping, URL policy, referral links, and theme/bootstrap behavior stay independent contracts.
+- [ ] **Proof-only slice 7: broaden fixtures and benchmarks after engine contracts stabilize.** Expand GFM fixture breadth and run release-mode Markdig benchmarks only after parser/source/writer behavior stops moving.
+
+Rule of thumb:
+
+- [ ] If behavior is missing, change the reusable engine first.
+- [ ] If behavior exists but is not proven, add focused comparison/source/writer proof.
+- [ ] If the row is optional, deferred, or policy-only, document that decision before writing parser code.
+
 ## Current Scoreboard
 
 | Area | Current state |
