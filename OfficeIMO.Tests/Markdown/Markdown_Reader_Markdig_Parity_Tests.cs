@@ -326,6 +326,16 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "blockquote-pipe-table-cell-attribute", "> | A {#tbl .wide} |\n> |---|\n> | B |" };
     }
 
+    public static IEnumerable<object[]> GenericAttributesTaskListExtensionCases() {
+        yield return new object[] { "task-list-item-attribute-is-consumed", "- [x] task {#task .done}" };
+        yield return new object[] { "unchecked-task-list-item-attribute-is-consumed", "- [ ] task {#task .todo}" };
+        yield return new object[] { "nested-task-list-item-attribute-is-consumed", "- outer\n  - [x] task {#task .done}" };
+    }
+
+    public static IEnumerable<object[]> GenericAttributesFootnoteExtensionCases() {
+        yield return new object[] { "footnote-definition-paragraph-attribute", "[^a]: note {#fn .wide}\n\ntext[^a]" };
+    }
+
     [Theory]
     [MemberData(nameof(CoreParityCases))]
     public void MarkdownReader_Matches_Markdig_On_Curated_Cases(string _, string markdown) {
@@ -547,6 +557,60 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
     }
 
+    [Theory]
+    [MemberData(nameof(GenericAttributesTaskListExtensionCases))]
+    public void MarkdownReader_GenericAttributes_In_TaskLists_Match_Markdig_Extensions(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseTaskLists(builder);
+        Markdig.MarkdownExtensions.UseGenericAttributes(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        officeOptions.GenericAttributes = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeTaskListHtmlForParity(markdig), NormalizeTaskListHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(GenericAttributesFootnoteExtensionCases))]
+    public void MarkdownReader_GenericAttributes_In_Footnotes_Match_Markdig_Extensions(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false,
+            GitHubFootnoteHtml = true
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseFootnotes(builder);
+        Markdig.MarkdownExtensions.UseGenericAttributes(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        officeOptions.GenericAttributes = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        var normalizedOffice = NormalizeGenericAttributesHtmlForParity(office);
+        var normalizedMarkdig = NormalizeGenericAttributesHtmlForParity(markdig);
+
+        Assert.Contains("<p id=\"fn\" class=\"wide\">note ", normalizedMarkdig, StringComparison.Ordinal);
+        Assert.Contains("<p id=\"fn\" class=\"wide\">note ", normalizedOffice, StringComparison.Ordinal);
+        Assert.DoesNotContain("{#fn .wide}", normalizedOffice, StringComparison.Ordinal);
+    }
+
     private static string NormalizeGenericAttributesHtmlForParity(string html) {
         var normalized = NormalizeHtmlForParity(html);
         return Regex.Replace(
@@ -554,6 +618,20 @@ public class Markdown_Reader_Markdig_Parity_Tests {
             "(<h[1-6][^>]*>[^<]*?)\\s+</h",
             "$1</h",
             RegexOptions.CultureInvariant);
+    }
+
+    private static string NormalizeTaskListHtmlForParity(string html) {
+        var normalized = NormalizeGenericAttributesHtmlForParity(html)
+            .Replace("checked=\"\"", "checked=\"checked\"")
+            .Replace("disabled=\"\"", "disabled=\"disabled\"");
+        normalized = Regex.Replace(
+            normalized,
+            "<input[^>]*>",
+            match => match.Value.Contains("checked", StringComparison.OrdinalIgnoreCase)
+                ? "<input type=\"checkbox\" checked=\"checked\" />"
+                : "<input type=\"checkbox\" />",
+            RegexOptions.CultureInvariant);
+        return normalized;
     }
 
     private static string NormalizeHtmlForParity(string html) {

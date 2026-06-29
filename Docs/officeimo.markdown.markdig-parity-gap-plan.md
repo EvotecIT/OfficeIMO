@@ -11,7 +11,7 @@ This is the short checklist to use before starting the next slice. If a task can
 - [x] **CommonMark parser correctness.** The official CommonMark `0.31.2` inventory is green: 652 of 652 examples match.
 - [x] **Core scoreboards.** CommonMark, tracked GFM, Markdig extension-family inventory, compatibility docs, and benchmark hooks exist.
 - [x] **Covered GFM/core features.** Pipe tables, task lists, footnotes, strikethrough/emphasis extras, auto identifiers, extended autolinks, soft-line-as-hard-line, YAML front matter, abbreviations, and current tracked GFM fixtures have engine behavior plus proof.
-- [ ] **Engine slice 1: continue `UseGenericAttributes` breadth.** List-item trailing attributes are now closed for root, nested, ordered, unordered, and blockquote-contained list items; next probe the remaining block/container shapes and fix only supported shapes in parser, AST, syntax/native source fields, HTML render, Markdown writer, and reparse/source-edit proof.
+- [ ] **Engine slice 1: continue `UseGenericAttributes` breadth.** List-item trailing attributes are now closed for root, nested, ordered, unordered, blockquote-contained, and task-list interaction cases, with footnote-definition paragraph interaction proof also in place; next probe the remaining block/container shapes and fix only supported shapes in parser, AST, syntax/native source fields, HTML render, Markdown writer, and reparse/source-edit proof.
 - [ ] **Engine slice 2: finish or explicitly bound `UseDefinitionLists`.** Close remaining source-map and writer edges for marker groups, lazy continuation, loose definitions, nested definitions, multiline body edits, and reparse stability.
 - [ ] **Decision slice 3: close `UseAlertBlocks` and `UseCjkFriendlyEmphasis`.** Decide whether each is an OfficeIMO compatibility contract, renderer/profile policy, deferred row, or intentional difference before adding more fixtures.
 - [ ] **Architecture slice 4: finish source/lossless parity.** Complete canonical node shapes, trivia capture, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, and broader source-preserving edits.
@@ -73,7 +73,7 @@ The short answer to "are we only doing tests?" is no:
 
 ### P1 - Engine Work We Are Missing Next
 
-- [ ] **Finish `UseGenericAttributes` breadth.** This is the active engine slice. Already covered: fenced code, ATX headings, Setext headings, paragraphs, root/nested/blockquote list-item trailing attributes, Markdig-style pipe-table cell attributes that promote to the owning table, and common no-space inline attributes. Missing before promotion:
+- [ ] **Finish `UseGenericAttributes` breadth.** This is the active engine slice. Already covered: fenced code, ATX headings, Setext headings, paragraphs, root/nested/blockquote/task-list list-item trailing attributes, footnote-definition body paragraphs, Markdig-style pipe-table cell attributes that promote to the owning table, and common no-space inline attributes. Missing before promotion:
   - [ ] Probe and close remaining block families: thematic breaks, table-edge forms, HTML blocks, footnotes, definition lists, callouts, standalone media/image shapes, and any list-extra forms Markdig treats differently from ordinary list items.
   - [ ] Implement only the shapes Markdig actually treats as generic attributes, using shared parser helpers instead of per-block string rescans.
   - [ ] Project every newly supported attribute through semantic AST, syntax AST, native fields/metadata, HTML rendering, Markdown writing, and preserved-trivia source edits.
@@ -128,6 +128,7 @@ The short answer to "are we only doing tests?" is no:
 - [x] **Moved `UseGenericAttributes` through Markdig-style pipe-table cells.** Trailing generic attribute blocks in header or body cells are consumed from the cell text, promoted to the owning `TableBlock`, rendered on `<table>`, written back into a stable reparsable table cell form, and exposed through syntax/native/source-edit proof.
 - [x] **Bound `UseGenericAttributes` inside blockquotes to Markdig behavior.** Blockquote paragraph and heading trailing attribute blocks now stay literal, including nested blockquotes, while pipe-table attributes inside blockquotes still promote to the owning table.
 - [x] **Moved `UseGenericAttributes` through list-item trailing blocks.** Root ordered/unordered, nested, and blockquote-contained list items now consume Markdig-style trailing attribute blocks, preserve Markdig's consumed separator whitespace in HTML without projecting attributes onto `<li>`, write normalized trailing attribute blocks, and expose semantic attributes through syntax/native/source-edit proof.
+- [x] **Proved `UseGenericAttributes` extension interactions for task lists and footnotes.** Markdig comparison coverage now protects task-list item attribute consumption when `UseTaskLists` is enabled and footnote-definition paragraph attribute projection when `UseFootnotes` is enabled, without promoting the still-partial arbitrary block-family row.
 
 ## Execution Rules
 
