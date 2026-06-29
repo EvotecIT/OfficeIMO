@@ -77,6 +77,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 false,
                 null,
                 null,
+                null,
                 null);
         }
 

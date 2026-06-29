@@ -129,8 +129,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ReportsMergedTableCellsFromTableDefinition() {
-            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithMergedTableCellDefinition();
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsVerticalMergedTableCellsFromTableDefinition() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithVerticalMergedTableCells();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.DoesNotContain(result.UnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.MergedTableCell);
+            WordTable table = Assert.Single(result.Document.Tables);
+            Assert.Equal(2, table.Rows.Count);
+            Assert.Equal(MergedCellValues.Restart, table.Rows[0].Cells[0].VerticalMerge);
+            Assert.Equal(MergedCellValues.Continue, table.Rows[1].Cells[0].VerticalMerge);
+        }
+
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsInvalidMergedTableCellsFromTableDefinition() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithInvalidMergedTableCellDefinition();
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
 
@@ -1800,20 +1815,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedVerticalMergedTablesBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocVerticalMergedTableCellsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                WordTable table = document.AddTable(2, 1);
-                table.Rows[0].Cells[0].AddParagraph("Merged", removeExistingParagraphs: true);
-                table.Rows[1].Cells[0].AddParagraph(string.Empty, removeExistingParagraphs: true);
-                table.Rows[0].Cells[0].MergeVertically(1);
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(2, 1);
+                    table.Rows[0].Cells[0].AddParagraph("Merged", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph(string.Empty, removeExistingParagraphs: true);
+                    table.Rows[0].Cells[0].MergeVertically(1);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                    document.Save(docPath);
+                }
 
-                Assert.Contains("vertical table cell merges", exception.Message.ToLowerInvariant());
-                Assert.False(File.Exists(docPath));
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x08, 0xD6),
+                    "Expected the native DOC paragraph property stream to contain sprmTDefTable.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal(2, reloadedTable.Rows.Count);
+                Assert.Equal("Merged", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal(MergedCellValues.Restart, reloadedTable.Rows[0].Cells[0].VerticalMerge);
+                Assert.Equal(MergedCellValues.Continue, reloadedTable.Rows[1].Cells[0].VerticalMerge);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -2112,7 +2139,7 @@ namespace OfficeIMO.Tests {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                using WordDocument document = WordDocument.Load(new MemoryStream(LegacyDocTestBuilder.CreateUnicodeDocWithMergedTableCellDefinition()));
+                using WordDocument document = WordDocument.Load(new MemoryStream(LegacyDocTestBuilder.CreateUnicodeDocWithInvalidMergedTableCellDefinition()));
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
@@ -2278,7 +2305,7 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateUnicodeDocWithMergedTableCellDefinition() {
+            internal static byte[] CreateUnicodeDocWithInvalidMergedTableCellDefinition() {
                 const string text = "A1\aB1\a\a\r";
                 const int textOffset = 0x200;
                 const int papxFkpOffset = 0x400;
@@ -2287,7 +2314,29 @@ namespace OfficeIMO.Tests {
                     textOffset,
                     papxFkpOffset,
                     new[] { 1440, 2880 },
-                    new ushort[] { 0x0001, 0x0020 });
+                    new ushort[] { 0x0003, 0x0000 });
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithVerticalMergedTableCells() {
+                const string text = "A1\aB1\a\aA2\aB2\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithTwoExplicitTableRows(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 2880 },
+                    firstRowCellFormattingFlags: new ushort[] { 0x0020, 0x0000 },
+                    secondRowCellFormattingFlags: new ushort[] { 0x0040, 0x0000 });
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();
@@ -3083,6 +3132,67 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
+            private static byte[] CreateUnicodeWordDocumentStreamWithTwoExplicitTableRows(
+                string text,
+                int textOffset,
+                int papxFkpOffset,
+                IReadOnlyList<int> tableCellWidthsTwips,
+                IReadOnlyList<ushort> firstRowCellFormattingFlags,
+                IReadOnlyList<ushort> secondRowCellFormattingFlags) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int[] markerEnds = GetFirstMarkerEnds(text, textOffset, 6);
+                int end = textOffset + (text.Length * 2);
+                byte[] tableCellPapx = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x2416, 1));
+                byte[] firstRowPapx = CreateParagraphPropertiesPapx(
+                    CreateParagraphSprm(0x2416, 1),
+                    CreateParagraphSprm(0x2417, 1),
+                    CreateTableDefinitionSprm(tableCellWidthsTwips, firstRowCellFormattingFlags));
+                byte[] secondRowPapx = CreateParagraphPropertiesPapx(
+                    CreateParagraphSprm(0x2416, 1),
+                    CreateParagraphSprm(0x2417, 1),
+                    CreateTableDefinitionSprm(tableCellWidthsTwips, secondRowCellFormattingFlags));
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] {
+                        textOffset,
+                        markerEnds[0],
+                        markerEnds[1],
+                        markerEnds[2],
+                        markerEnds[3],
+                        markerEnds[4],
+                        markerEnds[5],
+                        end
+                    },
+                    new Dictionary<int, byte[]> {
+                        [0] = tableCellPapx,
+                        [1] = tableCellPapx,
+                        [2] = firstRowPapx,
+                        [3] = tableCellPapx,
+                        [4] = tableCellPapx,
+                        [5] = secondRowPapx
+                    },
+                    initialPapxOffset: 0x100);
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
             private static byte[] CreateUnicodeWordDocumentStreamWithDirectCharacterFormatting(string text, int textOffset, int chpxFkpOffset) {
                 const int fibLength = 0x1AA;
                 byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
@@ -3629,7 +3739,10 @@ namespace OfficeIMO.Tests {
                 stream[fkpOffset + 511] = checked((byte)runCount);
             }
 
-            private static void WritePapxFkp(byte[] stream, int fkpOffset, int[] fileParagraphPositions, IReadOnlyDictionary<int, byte[]> papxByParagraphIndex) {
+            private static void WritePapxFkp(byte[] stream, int fkpOffset, int[] fileParagraphPositions, IReadOnlyDictionary<int, byte[]> papxByParagraphIndex) =>
+                WritePapxFkp(stream, fkpOffset, fileParagraphPositions, papxByParagraphIndex, initialPapxOffset: 0x180);
+
+            private static void WritePapxFkp(byte[] stream, int fkpOffset, int[] fileParagraphPositions, IReadOnlyDictionary<int, byte[]> papxByParagraphIndex, int initialPapxOffset) {
                 const int bxLength = 13;
                 int paragraphCount = fileParagraphPositions.Length - 1;
                 for (int i = 0; i < fileParagraphPositions.Length; i++) {
@@ -3637,7 +3750,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 int rgbxOffset = fkpOffset + (fileParagraphPositions.Length * 4);
-                int papxOffset = 0x180;
+                int papxOffset = initialPapxOffset;
                 for (int i = 0; i < paragraphCount; i++) {
                     if (!papxByParagraphIndex.TryGetValue(i, out byte[]? papx)) {
                         continue;

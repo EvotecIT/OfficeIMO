@@ -358,7 +358,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
                     LegacyDocUnsupportedFeatureKind.MergedTableCell,
                     "DOC-MERGED-TABLE-CELLS-PRESENT",
-                    "The legacy DOC contains merged table cell descriptors. Merged DOC table cells are preserved in the source file but are not projected into the OfficeIMO table model yet.",
+                    "The legacy DOC contains unsupported or conflicting merged table cell descriptors. That table structure is preserved in the source file but cannot be safely projected into the OfficeIMO table model yet.",
                     detailCode: "PAPX:sprmTDefTable"));
                 return;
             }
@@ -560,7 +560,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.TableRowHeightIsExact,
                         paragraphFormat.TableRowCantSplit,
                         paragraphFormat.TableRowIsHeader,
-                        paragraphFormat.TableCellHorizontalMerges));
+                        paragraphFormat.TableCellHorizontalMerges,
+                        paragraphFormat.TableCellVerticalMerges));
                     currentTableRow.Clear();
                 }
 
@@ -583,7 +584,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.TableRowHeightIsExact,
                         paragraphFormat.TableRowCantSplit,
                         paragraphFormat.TableRowIsHeader,
-                        paragraphFormat.TableCellHorizontalMerges));
+                        paragraphFormat.TableCellHorizontalMerges,
+                        paragraphFormat.TableCellVerticalMerges));
                     currentTableRow.Clear();
                 }
 
