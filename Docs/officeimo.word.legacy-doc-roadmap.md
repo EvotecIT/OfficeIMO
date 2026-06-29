@@ -239,8 +239,11 @@ just to reserve names.
   `OfficeIMO.Tests\Documents\LegacyDocCorpus` and
   keep `OfficeIMO.Tests\Documents\LegacyDocDiagnosticCorpus` for the first
   diagnostic corpus slice.
-- [ ] Add fixture-generation helpers for Word COM and optional NPOI generation in
-  test/support tooling only; checked-in fixtures are the source of CI proof.
+- [x] Add a Word COM fixture-generation helper for simple paragraph, character
+  formatting, and paragraph formatting fixtures in test/support tooling only;
+  checked-in fixtures are the source of CI proof.
+- [ ] Add optional NPOI fixture-generation tooling only if a feature slice needs
+  deterministic `.doc` shapes that are awkward to produce through Word COM.
 - [x] Add corpus report approval tests with short Markdown baselines.
 - [x] Define the first native `.doc` writer preflight for paragraph-only output,
   including body element, document part, paragraph, and run blockers before any
