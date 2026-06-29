@@ -604,9 +604,14 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsContinuousSectionBreakType() {
-            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithContinuousSectionBreak();
+        [Theory]
+        [InlineData(0, "continuous", "Continuous section")]
+        [InlineData(1, "nextColumn", "Next-column section")]
+        [InlineData(2, "nextPage", "Next-page section")]
+        [InlineData(3, "evenPage", "Even-page section")]
+        [InlineData(4, "oddPage", "Odd-page section")]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphBoundarySectionBreakType(int sectionBreakOperand, string expectedSectionTypeKey, string sectionText) {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithSectionBreakKind(sectionBreakOperand, sectionText);
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
 
@@ -617,8 +622,8 @@ namespace OfficeIMO.Tests {
             Assert.True(document.WasLoadedFromLegacyDoc);
             Assert.Equal(2, document.Sections.Count);
             Assert.Equal("Before continuous section", Assert.Single(document.Sections[0].Paragraphs).Text);
-            Assert.Equal("Continuous section", Assert.Single(document.Sections[1].Paragraphs).Text);
-            Assert.Equal(SectionMarkValues.Continuous, GetParagraphSectionType(document));
+            Assert.Equal(sectionText, Assert.Single(document.Sections[1].Paragraphs).Text);
+            Assert.Equal(GetSectionMarkValue(expectedSectionTypeKey), GetParagraphSectionType(document));
         }
 
         [Fact]
@@ -1268,15 +1273,21 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        [Fact]
-        public void LegacyDoc_SaveDocPath_WritesNativeDocContinuousSectionBreakAndReloadsThroughLegacyReader() {
+        [Theory]
+        [InlineData("continuous", "Continuous section")]
+        [InlineData("nextColumn", "Next-column section")]
+        [InlineData("nextPage", "Next-page section")]
+        [InlineData("evenPage", "Even-page section")]
+        [InlineData("oddPage", "Odd-page section")]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionBreakTypeAndReloadsThroughLegacyReader(string sectionBreakTypeKey, string sectionText) {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            SectionMarkValues sectionBreakType = GetSectionMarkValue(sectionBreakTypeKey);
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Before continuous section");
-                    WordSection secondSection = document.AddSection(SectionMarkValues.Continuous);
-                    secondSection.AddParagraph("Continuous section");
+                    WordSection secondSection = document.AddSection(sectionBreakType);
+                    secondSection.AddParagraph(sectionText);
 
                     document.Save(docPath);
                 }
@@ -1286,8 +1297,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
                 Assert.Equal(2, reloaded.Sections.Count);
                 Assert.Equal("Before continuous section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
-                Assert.Equal("Continuous section", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
-                Assert.Equal(SectionMarkValues.Continuous, GetParagraphSectionType(reloaded));
+                Assert.Equal(sectionText, Assert.Single(reloaded.Sections[1].Paragraphs).Text);
+                Assert.Equal(sectionBreakType, GetParagraphSectionType(reloaded));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -1586,9 +1597,8 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateSimpleDocWithContinuousSectionBreak() {
+            internal static byte[] CreateSimpleDocWithSectionBreakKind(int sectionBreakOperand, string secondParagraph) {
                 const string firstParagraph = "Before continuous section";
-                const string secondParagraph = "Continuous section";
                 string text = firstParagraph + "\r" + secondParagraph + "\r";
                 int firstSectionEnd = firstParagraph.Length + 1;
                 const int secondSepxOffset = 0x300;
@@ -1607,7 +1617,7 @@ namespace OfficeIMO.Tests {
                     text,
                     fcPlcfSed: fcPlcfSed,
                     lcbPlcfSed: sectionDescriptorPlc.Length);
-                WriteBytesAt(ref wordDocumentStream, secondSepxOffset, CreateSectionSepx(sectionBreakType: 0));
+                WriteBytesAt(ref wordDocumentStream, secondSepxOffset, CreateSectionSepx(sectionBreakType: checked((byte)sectionBreakOperand)));
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
@@ -2571,6 +2581,23 @@ namespace OfficeIMO.Tests {
                 .Elements<Paragraph>()
                 .Select(paragraph => paragraph.ParagraphProperties?.SectionProperties?.GetFirstChild<SectionType>()?.Val?.Value)
                 .FirstOrDefault(value => value != null);
+        }
+
+        private static SectionMarkValues GetSectionMarkValue(string key) {
+            switch (key) {
+                case "continuous":
+                    return SectionMarkValues.Continuous;
+                case "nextColumn":
+                    return SectionMarkValues.NextColumn;
+                case "nextPage":
+                    return SectionMarkValues.NextPage;
+                case "evenPage":
+                    return SectionMarkValues.EvenPage;
+                case "oddPage":
+                    return SectionMarkValues.OddPage;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(key), key, "Unsupported section mark test key.");
+            }
         }
     }
 }
