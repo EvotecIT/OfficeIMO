@@ -205,13 +205,15 @@ just to reserve names.
   `OfficeIMO.Tests` build, and the full focused `LegacyXls` test sweep.
 - [ ] Fold the existing encryption private compound helper and OLE property-set
   reader/writer into the shared owner when the DOC reader needs that surface.
-- [ ] Add `WordDocument` load routing for `.doc` signature/extension detection
+- [x] Add `WordDocument` load routing for `.doc` signature/extension detection
   before `WordprocessingDocument.Open(...)`, with `.docx` and encrypted OOXML
   staying on the existing paths.
-- [ ] Build a minimal `LegacyDocDocument` model from the FIB and document/table
+- [x] Build a minimal `LegacyDocDocument` model from the FIB and document/table
   stream boundaries, with diagnostics for unsupported or unsafe streams.
-- [ ] Project plain body text into normal `WordDocument` paragraphs/runs and
+- [x] Project plain body text into normal `WordDocument` paragraphs/runs and
   prove save-to-`.docx` reload through normal OfficeIMO APIs.
+- [ ] Validate the first DOC reader against real Word COM/NPOI-generated corpus
+  fixtures, then keep expanding only where the fixture proves the contract.
 - [ ] Add formatting projection for run/paragraph styles only when each mapping
   has a fixture and observable OfficeIMO contract.
 - [ ] Add common table projection after paragraph/run projection is stable.

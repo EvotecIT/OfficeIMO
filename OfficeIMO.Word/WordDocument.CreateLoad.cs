@@ -341,6 +341,13 @@ namespace OfficeIMO.Word {
                 var memoryStream = new MemoryStream();
                 fileStream.CopyTo(memoryStream);
                 memoryStream.Seek(0, SeekOrigin.Begin);
+                byte[] sourceBytes = memoryStream.ToArray();
+
+                if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
+                    return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, autoSave);
+                }
+
+                memoryStream.Seek(0, SeekOrigin.Begin);
 
                 var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
 
@@ -457,6 +464,13 @@ namespace OfficeIMO.Word {
             var memoryStream = new MemoryStream();
             await fileStream.CopyToAsync(memoryStream, 81920, cancellationToken);
             memoryStream.Seek(0, SeekOrigin.Begin);
+            byte[] sourceBytes = memoryStream.ToArray();
+
+            if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
+                return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, autoSave);
+            }
+
+            memoryStream.Seek(0, SeekOrigin.Begin);
 
             var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
 
@@ -492,6 +506,26 @@ namespace OfficeIMO.Word {
         /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <returns></returns>
         public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, OpenSettings? openSettings = null) {
+            if (stream == null) {
+                throw new ArgumentNullException(nameof(stream));
+            }
+            if (!stream.CanRead) {
+                throw new ArgumentException("Stream must be readable.", nameof(stream));
+            }
+
+            if (stream.CanSeek) {
+                long originalPosition = stream.Position;
+                using var buffer = new MemoryStream();
+                stream.CopyTo(buffer);
+                byte[] sourceBytes = buffer.ToArray();
+                if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
+                    stream.Position = originalPosition;
+                    return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, autoSave);
+                }
+
+                stream.Position = originalPosition;
+            }
+
             var document = new WordDocument() {
                 OriginalStream = stream,
             };
