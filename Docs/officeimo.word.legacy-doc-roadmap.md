@@ -242,6 +242,8 @@ just to reserve names.
   - [x] Resolve stylesheet-level font-family run formatting through the DOC font
     table, including styles that carry character formatting after an empty
     paragraph UPX, with synthetic fixture proof and opt-in Word COM validation.
+  - [x] Prove stylesheet-level italic and underline run formatting projects into
+    custom DOCX style definitions with a synthetic legacy DOC fixture.
   - [ ] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting beyond the first supported mapping set once each
     additional mapping has a fixture and observable OfficeIMO contract.
