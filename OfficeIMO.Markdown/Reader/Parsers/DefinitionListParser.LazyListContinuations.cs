@@ -1,0 +1,138 @@
+namespace OfficeIMO.Markdown;
+
+public static partial class MarkdownReader {
+    private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) MergeMarkdigDefinitionLazyListContinuations(
+        IReadOnlyList<IMarkdownBlock> blocks,
+        IReadOnlyList<MarkdownSyntaxNode> syntaxChildren) {
+        if (blocks == null || syntaxChildren == null || blocks.Count < 2 || blocks.Count != syntaxChildren.Count) {
+            return (blocks ?? Array.Empty<IMarkdownBlock>(), syntaxChildren ?? Array.Empty<MarkdownSyntaxNode>());
+        }
+
+        var mergedAny = false;
+        var mergedBlocks = new List<IMarkdownBlock>(blocks.Count);
+        var mergedSyntax = new List<MarkdownSyntaxNode>(syntaxChildren.Count);
+        for (int index = 0; index < blocks.Count; index++) {
+            var currentBlock = blocks[index];
+            var currentSyntax = syntaxChildren[index];
+
+            while (index + 1 < blocks.Count &&
+                   TryMergeDefinitionLazyListContinuation(currentBlock, currentSyntax, blocks[index + 1], syntaxChildren[index + 1], out var combinedSyntax)) {
+                currentSyntax = combinedSyntax;
+                index++;
+                mergedAny = true;
+            }
+
+            mergedBlocks.Add(currentBlock);
+            mergedSyntax.Add(currentSyntax);
+        }
+
+        return mergedAny
+            ? (mergedBlocks, mergedSyntax)
+            : (blocks, syntaxChildren);
+    }
+
+    private static bool TryMergeDefinitionLazyListContinuation(
+        IMarkdownBlock currentBlock,
+        MarkdownSyntaxNode currentSyntax,
+        IMarkdownBlock nextBlock,
+        MarkdownSyntaxNode nextSyntax,
+        out MarkdownSyntaxNode combinedSyntax) {
+        combinedSyntax = currentSyntax;
+        if (!IsDefinitionLazyListContinuationCandidate(currentSyntax, nextSyntax)) {
+            return false;
+        }
+
+        if (currentBlock is UnorderedListBlock currentUnordered &&
+            nextBlock is UnorderedListBlock nextUnordered &&
+            string.Equals(GetFirstListMarkerLiteral(currentSyntax), GetFirstListMarkerLiteral(nextSyntax), StringComparison.Ordinal)) {
+            currentUnordered.Items.AddRange(nextUnordered.Items);
+            combinedSyntax = CombineDefinitionLazyListSyntax(currentSyntax, nextSyntax, currentUnordered);
+            return true;
+        }
+
+        if (currentBlock is OrderedListBlock currentOrdered &&
+            nextBlock is OrderedListBlock nextOrdered) {
+            currentOrdered.Items.AddRange(nextOrdered.Items);
+            combinedSyntax = CombineDefinitionLazyListSyntax(currentSyntax, nextSyntax, currentOrdered);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsDefinitionLazyListContinuationCandidate(MarkdownSyntaxNode currentSyntax, MarkdownSyntaxNode nextSyntax) {
+        if (currentSyntax == null ||
+            nextSyntax == null ||
+            currentSyntax.Kind != nextSyntax.Kind ||
+            !currentSyntax.SourceSpan.HasValue ||
+            !nextSyntax.SourceSpan.HasValue) {
+            return false;
+        }
+
+        var currentSpan = currentSyntax.SourceSpan.Value;
+        var nextSpan = nextSyntax.SourceSpan.Value;
+        return currentSpan.EndLine + 1 == nextSpan.StartLine &&
+            currentSpan.StartColumn.HasValue &&
+            nextSpan.StartColumn.HasValue &&
+            currentSpan.StartColumn.Value > nextSpan.StartColumn.Value;
+    }
+
+    private static MarkdownSyntaxNode CombineDefinitionLazyListSyntax(
+        MarkdownSyntaxNode currentSyntax,
+        MarkdownSyntaxNode nextSyntax,
+        IMarkdownBlock associatedBlock) {
+        var children = new List<MarkdownSyntaxNode>(currentSyntax.Children.Count + nextSyntax.Children.Count);
+        children.AddRange(currentSyntax.Children);
+        children.AddRange(nextSyntax.Children);
+        return new MarkdownSyntaxNode(
+            currentSyntax.Kind,
+            CombineDefinitionLazyListSourceSpans(currentSyntax.SourceSpan, nextSyntax.SourceSpan),
+            currentSyntax.Literal,
+            children,
+            associatedBlock,
+            currentSyntax.CustomKind,
+            currentSyntax.Attributes);
+    }
+
+    private static MarkdownSourceSpan? CombineDefinitionLazyListSourceSpans(MarkdownSourceSpan? first, MarkdownSourceSpan? second) {
+        if (!first.HasValue) {
+            return second;
+        }
+
+        if (!second.HasValue) {
+            return first;
+        }
+
+        var start = first.Value;
+        var end = second.Value;
+        if (!start.StartColumn.HasValue || !end.EndColumn.HasValue) {
+            return new MarkdownSourceSpan(start.StartLine, end.EndLine);
+        }
+
+        return new MarkdownSourceSpan(
+            start.StartLine,
+            start.StartColumn.Value,
+            end.EndLine,
+            end.EndColumn.Value);
+    }
+
+    private static string? GetFirstListMarkerLiteral(MarkdownSyntaxNode listSyntax) {
+        if (listSyntax == null) {
+            return null;
+        }
+
+        foreach (var listItem in listSyntax.Children) {
+            if (listItem.Kind != MarkdownSyntaxKind.ListItem) {
+                continue;
+            }
+
+            foreach (var child in listItem.Children) {
+                if (child.Kind == MarkdownSyntaxKind.ListMarker) {
+                    return child.Literal;
+                }
+            }
+        }
+
+        return null;
+    }
+}

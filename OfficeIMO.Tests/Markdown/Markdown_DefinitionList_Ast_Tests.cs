@@ -701,6 +701,121 @@ Term
     }
 
     [Fact]
+    public void DefinitionList_NestedListBody_Merges_UnindentedSameMarkerLazyListItem() {
+        const string markdown = """
+Term
+:   First paragraph
+    - item
+- sibling item
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var list = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var listSyntax = Assert.IsType<MarkdownSyntaxNode>(definitionValue.Children[1]);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal(new[] { "item", "sibling item" }, list.Items.Select(item => item.Content.RenderMarkdown()).ToArray());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.UnorderedList
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(MarkdownSyntaxKind.UnorderedList, listSyntax.Kind);
+        Assert.Equal(2, listSyntax.Children.Count(child => child.Kind == MarkdownSyntaxKind.ListItem));
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 5), list.Items[0].MarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 1), list.Items[1].MarkerSourceSpan);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_NestedOrderedListBody_Merges_UnindentedLazyOrderedItem() {
+        const string markdown = """
+Term
+:   First paragraph
+    1. item
+2. sibling item
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var list = Assert.IsType<OrderedListBlock>(definition.Blocks[1]);
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var listSyntax = definitionValue.Children[1];
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal(new[] { "item", "sibling item" }, list.Items.Select(item => item.Content.RenderMarkdown()).ToArray());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.OrderedList
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(MarkdownSyntaxKind.OrderedList, listSyntax.Kind);
+        Assert.Equal(2, listSyntax.Children.Count(child => child.Kind == MarkdownSyntaxKind.ListItem));
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 6), list.Items[0].MarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 2), list.Items[1].MarkerSourceSpan);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_NestedListBody_Keeps_DifferentUnorderedMarkers_Separate() {
+        const string markdown = """
+Term
+:   First paragraph
+    - item
+* sibling item
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var firstList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var secondList = Assert.IsType<UnorderedListBlock>(definition.Blocks[2]);
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal("item", Assert.Single(firstList.Items).Content.RenderMarkdown());
+        Assert.Equal("sibling item", Assert.Single(secondList.Items).Content.RenderMarkdown());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.UnorderedList,
+                MarkdownSyntaxKind.UnorderedList
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void DefinitionList_NestedListBody_Stops_Before_UnindentedHeading() {
         const string markdown = """
 Term

@@ -14,7 +14,7 @@ public sealed class UnorderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyn
             Attributes,
             Items,
             (item, _) => {
-                char marker = MarkdownRenderContext.Options?.UnorderedListMarker ?? '-';
+                char marker = GetRenderMarker(item);
                 return item.IsTask
                     ? marker + " [" + (item.Checked ? "x" : " ") + "] "
                     : marker + " ";
@@ -28,4 +28,13 @@ public sealed class UnorderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyn
     string? IMarkdownListBlock.ListLiteral => null;
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
         MarkdownListSyntax.BuildListBlockNode(this, span);
+
+    private static char GetRenderMarker(ListItem item) {
+        if (item?.MarkerText is { Length: 1 } markerText &&
+            (markerText[0] == '-' || markerText[0] == '*' || markerText[0] == '+')) {
+            return markerText[0];
+        }
+
+        return MarkdownRenderContext.Options?.UnorderedListMarker ?? '-';
+    }
 }
