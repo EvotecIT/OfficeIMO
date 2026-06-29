@@ -180,6 +180,7 @@ namespace OfficeIMO.Word {
             WordTable table = section.AddTable(rowCount, columnCount, WordTableStyle.TableGrid);
             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                 LegacyDocTableRow sourceRow = tableBlock.Rows[rowIndex];
+                ApplyLegacyDocTableRowFormatting(table.Rows[rowIndex], sourceRow);
                 for (int columnIndex = 0; columnIndex < sourceRow.Cells.Count && columnIndex < columnCount; columnIndex++) {
                     AddLegacyDocTableCell(table.Rows[rowIndex].Cells[columnIndex], sourceRow.Cells[columnIndex], styleSheet);
                     if (columnIndex < sourceRow.CellWidthsTwips.Count) {
@@ -188,6 +189,25 @@ namespace OfficeIMO.Word {
                     }
                 }
             }
+        }
+
+        private static void ApplyLegacyDocTableRowFormatting(WordTableRow row, LegacyDocTableRow sourceRow) {
+            if (sourceRow.RowHeightTwips == null) {
+                return;
+            }
+
+            row.AddTableRowProperties();
+            TableRowProperties rowProperties = row._tableRow.TableRowProperties!;
+            TableRowHeight? rowHeight = rowProperties.GetFirstChild<TableRowHeight>();
+            if (rowHeight == null) {
+                rowHeight = new TableRowHeight();
+                rowProperties.InsertAt(rowHeight, 0);
+            }
+
+            rowHeight.Val = (uint)sourceRow.RowHeightTwips.Value;
+            rowHeight.HeightType = sourceRow.RowHeightIsExact
+                ? HeightRuleValues.Exact
+                : HeightRuleValues.AtLeast;
         }
 
         private static void AddLegacyDocTableCell(WordTableCell cell, LegacyDocTableCell sourceCell, LegacyDocStyleSheet styleSheet) {

@@ -32,16 +32,22 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     }
 
     internal sealed class LegacyDocTableRow {
-        internal LegacyDocTableRow(IReadOnlyList<LegacyDocTableCell> cells, IReadOnlyList<int>? cellWidthsTwips = null) {
+        internal LegacyDocTableRow(IReadOnlyList<LegacyDocTableCell> cells, IReadOnlyList<int>? cellWidthsTwips = null, int? rowHeightTwips = null, bool rowHeightIsExact = false) {
             Cells = cells;
             CellWidthsTwips = cellWidthsTwips == null || cellWidthsTwips.Count == 0
                 ? Array.Empty<int>()
                 : cellWidthsTwips.ToArray();
+            RowHeightTwips = rowHeightTwips;
+            RowHeightIsExact = rowHeightIsExact;
         }
 
         internal IReadOnlyList<LegacyDocTableCell> Cells { get; }
 
         internal IReadOnlyList<int> CellWidthsTwips { get; }
+
+        internal int? RowHeightTwips { get; }
+
+        internal bool RowHeightIsExact { get; }
     }
 
     internal sealed class LegacyDocTableCell {

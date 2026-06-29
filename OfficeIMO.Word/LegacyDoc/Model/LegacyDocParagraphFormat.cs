@@ -17,6 +17,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? isTableTerminatingParagraph = null,
             IReadOnlyList<LegacyDocTabStop>? tabStops = null,
             IReadOnlyList<int>? tableCellWidthsTwips = null,
+            int? tableRowHeightTwips = null,
+            bool tableRowHeightIsExact = false,
             bool hasMergedTableCells = false) {
             Alignment = alignment;
             StyleIndex = styleIndex;
@@ -38,6 +40,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             TableCellWidthsTwips = tableCellWidthsTwips == null || tableCellWidthsTwips.Count == 0
                 ? Array.Empty<int>()
                 : tableCellWidthsTwips.ToArray();
+            TableRowHeightTwips = tableRowHeightTwips;
+            TableRowHeightIsExact = tableRowHeightIsExact;
             HasMergedTableCells = hasMergedTableCells;
         }
 
@@ -73,6 +77,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<int> TableCellWidthsTwips { get; }
 
+        internal int? TableRowHeightTwips { get; }
+
+        internal bool TableRowHeightIsExact { get; }
+
         internal bool HasMergedTableCells { get; }
 
         internal bool HasFormatting => Alignment != null
@@ -91,6 +99,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || IsTableTerminatingParagraph != null
             || TabStops.Count > 0
             || TableCellWidthsTwips.Count > 0
+            || TableRowHeightTwips != null
             || HasMergedTableCells;
 
         internal static LegacyDocParagraphFormat Default { get; } = new LegacyDocParagraphFormat(null);
@@ -112,6 +121,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph
                 && TabStopsEqual(TabStops, other.TabStops)
                 && TableCellWidthsEqual(TableCellWidthsTwips, other.TableCellWidthsTwips)
+                && TableRowHeightTwips == other.TableRowHeightTwips
+                && TableRowHeightIsExact == other.TableRowHeightIsExact
                 && HasMergedTableCells == other.HasMergedTableCells;
         }
 
@@ -135,6 +146,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
             hash = (hash * 31) + IsInTable.GetHashCode();
             hash = (hash * 31) + IsTableTerminatingParagraph.GetHashCode();
+            hash = (hash * 31) + TableRowHeightTwips.GetHashCode();
+            hash = (hash * 31) + TableRowHeightIsExact.GetHashCode();
             hash = (hash * 31) + HasMergedTableCells.GetHashCode();
             foreach (LegacyDocTabStop tabStop in TabStops) {
                 hash = (hash * 31) + tabStop.GetHashCode();

@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             IReadOnlyList<int> gridColumnWidthsTwips = ReadSupportedTableGridWidths(table.GetFirstChild<TableGrid>());
             foreach (TableRow row in rows) {
-                TableCell[] cells = row.Elements<TableCell>().ToArray();
+                LegacyDocWritableTableRowFormatting rowFormatting = ReadSupportedTableRowFormatting(row, out TableCell[] cells);
                 if (cells.Length == 0) {
                     throw new NotSupportedException("Native DOC saving supports simple tables only when every row contains at least one cell.");
                 }
@@ -33,7 +33,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 paragraphFormats.Add(new LegacyDocWritableParagraph(
                     rowTerminatorStart,
                     1,
-                    LegacyDocWritableParagraphFormatting.Plain.WithTableMarkers(isTableTerminatingParagraph: true, cellWidthsTwips)));
+                    LegacyDocWritableParagraphFormatting.Plain.WithTableMarkers(
+                        isTableTerminatingParagraph: true,
+                        cellWidthsTwips,
+                        rowFormatting.RowHeightTwips,
+                        rowFormatting.RowHeightIsExact)));
             }
 
             text.Append('\r');
@@ -111,6 +115,80 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return widths;
+        }
+
+        private static LegacyDocWritableTableRowFormatting ReadSupportedTableRowFormatting(TableRow row, out TableCell[] cells) {
+            var tableCells = new List<TableCell>();
+            LegacyDocWritableTableRowFormatting rowFormatting = LegacyDocWritableTableRowFormatting.Empty;
+            bool hasTableRowProperties = false;
+            foreach (OpenXmlElement child in row.ChildElements) {
+                switch (child) {
+                    case TableRowProperties tableRowProperties:
+                        if (hasTableRowProperties) {
+                            throw new NotSupportedException("Native DOC saving supports simple tables only with one table row property collection per row.");
+                        }
+
+                        rowFormatting = ReadSupportedTableRowProperties(tableRowProperties);
+                        hasTableRowProperties = true;
+                        break;
+                    case TableCell tableCell:
+                        tableCells.Add(tableCell);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table row element: {child.LocalName}.");
+                }
+            }
+
+            cells = tableCells.ToArray();
+            return rowFormatting;
+        }
+
+        private static LegacyDocWritableTableRowFormatting ReadSupportedTableRowProperties(TableRowProperties tableRowProperties) {
+            int? rowHeightTwips = null;
+            bool rowHeightIsExact = false;
+            bool hasRowHeight = false;
+            foreach (OpenXmlElement property in tableRowProperties.ChildElements) {
+                switch (property) {
+                    case TableRowHeight rowHeight:
+                        if (hasRowHeight) {
+                            throw new NotSupportedException("Native DOC saving supports simple tables only with one table row height per row.");
+                        }
+
+                        ReadSupportedTableRowHeight(rowHeight, out rowHeightTwips, out rowHeightIsExact);
+                        hasRowHeight = true;
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table row property: {property.LocalName}.");
+                }
+            }
+
+            return new LegacyDocWritableTableRowFormatting(rowHeightTwips, rowHeightIsExact);
+        }
+
+        private static void ReadSupportedTableRowHeight(TableRowHeight rowHeight, out int? rowHeightTwips, out bool rowHeightIsExact) {
+            rowHeightTwips = null;
+            rowHeightIsExact = false;
+
+            uint? rawValue = rowHeight.Val?.Value;
+            if (rawValue == null || rawValue.Value == 0) {
+                return;
+            }
+
+            if (rawValue.Value > short.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports table row heights only as positive twip values within the Word 97-2003 signed twip range.");
+            }
+
+            HeightRuleValues? heightRule = rowHeight.HeightType?.Value;
+            if (heightRule == HeightRuleValues.Auto) {
+                throw new NotSupportedException("Native DOC saving supports table row heights only with exact or at-least height rules.");
+            }
+
+            if (heightRule != null && heightRule != HeightRuleValues.Exact && heightRule != HeightRuleValues.AtLeast) {
+                throw new NotSupportedException($"Native DOC saving does not support table row height rule '{heightRule}'.");
+            }
+
+            rowHeightTwips = checked((int)rawValue.Value);
+            rowHeightIsExact = heightRule == HeightRuleValues.Exact;
         }
 
         private static IReadOnlyList<int> ReadSupportedTableCellWidths(IReadOnlyList<TableCell> cells, IReadOnlyList<int> gridColumnWidthsTwips) {
@@ -205,6 +283,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return paragraphFormatting;
+        }
+
+        private readonly struct LegacyDocWritableTableRowFormatting {
+            internal static readonly LegacyDocWritableTableRowFormatting Empty = new LegacyDocWritableTableRowFormatting(null, false);
+
+            internal LegacyDocWritableTableRowFormatting(int? rowHeightTwips, bool rowHeightIsExact) {
+                RowHeightTwips = rowHeightTwips;
+                RowHeightIsExact = rowHeightIsExact;
+            }
+
+            internal int? RowHeightTwips { get; }
+
+            internal bool RowHeightIsExact { get; }
         }
     }
 }

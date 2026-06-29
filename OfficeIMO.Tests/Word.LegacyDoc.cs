@@ -81,6 +81,23 @@ namespace OfficeIMO.Tests {
             Assert.Equal(TableWidthUnitValues.Dxa, row.Cells[1].WidthType);
         }
 
+        [Theory]
+        [InlineData(-720, true)]
+        [InlineData(720, false)]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTableRowHeightFromRowDefinition(int rowHeightOperand, bool expectExactHeight) {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithTableRowHeight(rowHeightOperand);
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            WordTableRow row = Assert.Single(table.Rows);
+            Assert.Equal(720, row.Height);
+            TableRowHeight rowHeight = Assert.Single(row._tableRow.TableRowProperties!.Elements<TableRowHeight>());
+            Assert.Equal(expectExactHeight ? HeightRuleValues.Exact : HeightRuleValues.AtLeast, rowHeight.HeightType!.Value);
+        }
+
         [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsMergedTableCellsFromTableDefinition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithMergedTableCellDefinition();
@@ -1631,6 +1648,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableRowHeightAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.Rows[0].Height = 720;
+                    table.Rows[0].Cells[0].AddParagraph("Short", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("Row", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x07, 0x94),
+                    "Expected the native DOC paragraph property stream to contain sprmTDyaRowHeight.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal(720, row.Height);
+                TableRowHeight rowHeight = Assert.Single(row._tableRow.TableRowProperties!.Elements<TableRowHeight>());
+                Assert.Equal(HeightRuleValues.Exact, rowHeight.HeightType!.Value);
+                Assert.Equal("Short", row.Cells[0].Paragraphs[0].Text);
+                Assert.Equal("Row", row.Cells[1].Paragraphs[0].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedTableGridColumnWidthsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -1645,6 +1696,25 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("table grid column widths", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedTableRowHeaderBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordTable table = document.AddTable(1, 1);
+                table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
+                table.Rows[0].Cells[0].AddParagraph("Header", removeExistingParagraphs: true);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("table row property", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -2072,6 +2142,28 @@ namespace OfficeIMO.Tests {
                 const int textOffset = 0x200;
                 const int papxFkpOffset = 0x400;
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(text, textOffset, papxFkpOffset, new[] { 1440, 2880 });
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithTableRowHeight(int rowHeightOperand) {
+                const string text = "A1\aB1\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 2880 },
+                    tableCellFormattingFlags: null,
+                    rowHeightOperand: rowHeightOperand);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();
@@ -2806,7 +2898,8 @@ namespace OfficeIMO.Tests {
                 int textOffset,
                 int papxFkpOffset,
                 IReadOnlyList<int>? tableCellWidthsTwips = null,
-                IReadOnlyList<ushort>? tableCellFormattingFlags = null) {
+                IReadOnlyList<ushort>? tableCellFormattingFlags = null,
+                int? rowHeightOperand = null) {
                 const int fibLength = 0x1AA;
                 byte[] textBytes = Encoding.Unicode.GetBytes(text);
                 var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
@@ -2826,14 +2919,19 @@ namespace OfficeIMO.Tests {
                 int rowMarkerEnd = markerEnds[2];
                 int end = textOffset + (text.Length * 2);
                 byte[] tableCellPapx = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x2416, 1));
-                byte[] tableRowPapx = tableCellWidthsTwips == null
-                    ? CreateParagraphPropertiesPapx(
-                        CreateParagraphSprm(0x2416, 1),
-                        CreateParagraphSprm(0x2417, 1))
-                    : CreateParagraphPropertiesPapx(
-                        CreateParagraphSprm(0x2416, 1),
-                        CreateParagraphSprm(0x2417, 1),
-                        CreateTableDefinitionSprm(tableCellWidthsTwips, tableCellFormattingFlags));
+                var rowSprms = new List<byte[]> {
+                    CreateParagraphSprm(0x2416, 1),
+                    CreateParagraphSprm(0x2417, 1)
+                };
+                if (tableCellWidthsTwips != null) {
+                    rowSprms.Add(CreateTableDefinitionSprm(tableCellWidthsTwips, tableCellFormattingFlags));
+                }
+
+                if (rowHeightOperand != null) {
+                    rowSprms.Add(CreateTableRowHeightSprm(rowHeightOperand.Value));
+                }
+
+                byte[] tableRowPapx = CreateParagraphPropertiesPapx(rowSprms.ToArray());
                 WritePapxFkp(
                     stream,
                     papxFkpOffset,
@@ -3532,6 +3630,12 @@ namespace OfficeIMO.Tests {
                 };
                 operand.AddRange(remainder);
                 return CreateParagraphSprm(0xD608, operand.ToArray());
+            }
+
+            private static byte[] CreateTableRowHeightSprm(int rowHeightOperand) {
+                var operand = new List<byte>();
+                AddInt16(operand, rowHeightOperand);
+                return CreateParagraphSprm(0x9407, operand.ToArray());
             }
 
             private static void AddInt16(List<byte> bytes, int value) {

@@ -72,7 +72,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 null,
                 null,
                 tabStops,
-                null);
+                null,
+                null,
+                false);
         }
 
         private static IReadOnlyList<LegacyDocTabStop> ReadSupportedTabStops(Tabs tabs) {

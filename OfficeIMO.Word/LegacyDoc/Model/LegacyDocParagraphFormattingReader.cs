@@ -18,6 +18,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPDyaAfter = 0xA414;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
+        private const ushort SprmTDyaRowHeight = 0x9407;
         private const ushort SprmTDefTable = 0xD608;
         private const int Tc80Length = 20;
         private const ushort TcgrfHorizontalMergeMask = 0x0003;
@@ -148,6 +149,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? isTableTerminatingParagraph = null;
             var tabStops = new List<LegacyDocTabStop>();
             IReadOnlyList<int>? tableCellWidthsTwips = null;
+            int? tableRowHeightTwips = null;
+            bool tableRowHeightIsExact = false;
             bool hasMergedTableCells = false;
             ushort? styleIndex = baseStyleIndex;
             while (offset + 2 <= end) {
@@ -266,6 +269,24 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmTDyaRowHeight) {
+                    if (offset + 4 > end) {
+                        break;
+                    }
+
+                    int rowHeight = ReadInt16(bytes, offset + 2);
+                    if (rowHeight < 0) {
+                        tableRowHeightTwips = -rowHeight;
+                        tableRowHeightIsExact = true;
+                    } else if (rowHeight > 0) {
+                        tableRowHeightTwips = rowHeight;
+                        tableRowHeightIsExact = false;
+                    }
+
+                    offset += 4;
+                    continue;
+                }
+
                 if (sprm == SprmTDefTable) {
                     if (!TryReadTableDefinition(bytes, offset, end, out tableCellWidthsTwips, out bool tableDefinitionHasMergedCells, out int tableDefinitionOperandLength)) {
                         break;
@@ -300,6 +321,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 isTableTerminatingParagraph,
                 tabStops,
                 tableCellWidthsTwips,
+                tableRowHeightTwips,
+                tableRowHeightIsExact,
                 hasMergedTableCells);
         }
 

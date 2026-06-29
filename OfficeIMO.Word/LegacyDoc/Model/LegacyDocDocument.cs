@@ -553,7 +553,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 if (currentTableRow.Count > 0) {
-                    tableRows.Add(new LegacyDocTableRow(currentTableRow.ToArray(), paragraphFormat.TableCellWidthsTwips));
+                    tableRows.Add(new LegacyDocTableRow(
+                        currentTableRow.ToArray(),
+                        paragraphFormat.TableCellWidthsTwips,
+                        paragraphFormat.TableRowHeightTwips,
+                        paragraphFormat.TableRowHeightIsExact));
                     currentTableRow.Clear();
                 }
 
@@ -569,7 +573,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 if (currentTableRow.Count > 0) {
-                    tableRows.Add(new LegacyDocTableRow(currentTableRow.ToArray(), paragraphFormat.TableCellWidthsTwips));
+                    tableRows.Add(new LegacyDocTableRow(
+                        currentTableRow.ToArray(),
+                        paragraphFormat.TableCellWidthsTwips,
+                        paragraphFormat.TableRowHeightTwips,
+                        paragraphFormat.TableRowHeightIsExact));
                     currentTableRow.Clear();
                 }
 

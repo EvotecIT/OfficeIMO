@@ -17,6 +17,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPDyaAfter = 0xA414;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
+        private const ushort SprmTDyaRowHeight = 0x9407;
         private const ushort SprmTDefTable = 0xD608;
         private const int Tc80Length = 20;
 
@@ -121,6 +122,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddTableDefinitionSprm(grpprl, formatting.TableCellWidthsTwips);
             }
 
+            if (formatting.TableRowHeightTwips != null) {
+                AddTableRowHeightSprm(grpprl, formatting.TableRowHeightTwips.Value, formatting.TableRowHeightIsExact);
+            }
+
             if (grpprl.Count % 2 != 0) {
                 grpprl.Add(0);
             }
@@ -159,6 +164,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AddInt16Sprm(grpprl, SprmPDyaLine, lineSpacingTwips);
             grpprl.Add(0);
             grpprl.Add(0);
+        }
+
+        private static void AddTableRowHeightSprm(List<byte> grpprl, int rowHeightTwips, bool isExact) {
+            if (rowHeightTwips <= 0 || rowHeightTwips > short.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports table row heights only as positive twip values within the Word 97-2003 signed twip range.");
+            }
+
+            int operand = isExact ? -rowHeightTwips : rowHeightTwips;
+            AddInt16Sprm(grpprl, SprmTDyaRowHeight, operand);
         }
 
         private static void AddTabStopsSprm(List<byte> grpprl, IReadOnlyList<LegacyDocTabStop> tabStops) {
@@ -311,7 +325,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false);
 
         internal LegacyDocWritableParagraphFormatting(
             byte? alignment,
@@ -329,7 +343,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? isInTable,
             bool? isTableTerminatingParagraph,
             IReadOnlyList<LegacyDocTabStop>? tabStops,
-            IReadOnlyList<int>? tableCellWidthsTwips) {
+            IReadOnlyList<int>? tableCellWidthsTwips,
+            int? tableRowHeightTwips,
+            bool tableRowHeightIsExact) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -350,6 +366,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             TableCellWidthsTwips = tableCellWidthsTwips == null || tableCellWidthsTwips.Count == 0
                 ? Array.Empty<int>()
                 : tableCellWidthsTwips.ToArray();
+            TableRowHeightTwips = tableRowHeightTwips;
+            TableRowHeightIsExact = tableRowHeightIsExact;
         }
 
         internal byte? Alignment { get; }
@@ -384,6 +402,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal IReadOnlyList<int> TableCellWidthsTwips { get; }
 
+        internal int? TableRowHeightTwips { get; }
+
+        internal bool TableRowHeightIsExact { get; }
+
         internal bool HasFormatting => Alignment != null
             || StyleIndex != null
             || SpacingBeforeTwips != null
@@ -399,9 +421,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || IsInTable != null
             || IsTableTerminatingParagraph != null
             || TabStops.Count > 0
-            || TableCellWidthsTwips.Count > 0;
+            || TableCellWidthsTwips.Count > 0
+            || TableRowHeightTwips != null;
 
-        internal LegacyDocWritableParagraphFormatting WithTableMarkers(bool isTableTerminatingParagraph, IReadOnlyList<int>? tableCellWidthsTwips = null) {
+        internal LegacyDocWritableParagraphFormatting WithTableMarkers(bool isTableTerminatingParagraph, IReadOnlyList<int>? tableCellWidthsTwips = null, int? tableRowHeightTwips = null, bool tableRowHeightIsExact = false) {
             return new LegacyDocWritableParagraphFormatting(
                 Alignment,
                 StyleIndex,
@@ -418,7 +441,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 true,
                 isTableTerminatingParagraph ? true : null,
                 TabStops,
-                tableCellWidthsTwips);
+                tableCellWidthsTwips,
+                tableRowHeightTwips,
+                tableRowHeightIsExact);
         }
 
         public bool Equals(LegacyDocWritableParagraphFormatting other) {
@@ -437,7 +462,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && IsInTable == other.IsInTable
                 && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph
                 && TabStopsEqual(TabStops, other.TabStops)
-                && TableCellWidthsEqual(TableCellWidthsTwips, other.TableCellWidthsTwips);
+                && TableCellWidthsEqual(TableCellWidthsTwips, other.TableCellWidthsTwips)
+                && TableRowHeightTwips == other.TableRowHeightTwips
+                && TableRowHeightIsExact == other.TableRowHeightIsExact;
         }
 
         public override bool Equals(object? obj) {
@@ -460,6 +487,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
             hash = (hash * 31) + IsInTable.GetHashCode();
             hash = (hash * 31) + IsTableTerminatingParagraph.GetHashCode();
+            hash = (hash * 31) + TableRowHeightTwips.GetHashCode();
+            hash = (hash * 31) + TableRowHeightIsExact.GetHashCode();
             foreach (LegacyDocTabStop tabStop in TabStops) {
                 hash = (hash * 31) + tabStop.GetHashCode();
             }

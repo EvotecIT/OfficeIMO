@@ -302,6 +302,9 @@ just to reserve names.
   - [x] Report merged table cell descriptors from DOC `sprmTDefTable`/`TC80`
     row definitions before merged-cell projection exists, so native DOC re-save
     is blocked instead of flattening merged table structure.
+  - [x] Project simple row-level table heights from DOC `sprmTDyaRowHeight`
+    row definitions into normal OfficeIMO table row height properties,
+    preserving exact versus at-least height rules in the Open XML row.
   - [ ] Add table formatting, merged cells, and nested tables as separate
     fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
@@ -423,6 +426,9 @@ just to reserve names.
     paragraph marks from normal paragraphs before a table.
   - [x] Block nested table cells before native `.doc` bytes are committed until
     nested table projection has TAP-backed read/write coverage.
+  - [x] Write simple table row heights with `sprmTDyaRowHeight`, reload them
+    through the legacy reader, and block unsupported row-level table properties
+    before native `.doc` bytes are committed.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.
