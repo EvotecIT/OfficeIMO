@@ -17,6 +17,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         Bottom
     }
 
+    internal enum LegacyDocTableCellTextDirection {
+        LeftToRightTopToBottom,
+        TopToBottomRightToLeft,
+        BottomToTopLeftToRight,
+        LeftToRightTopToBottomRotated,
+        TopToBottomRightToLeftRotated
+    }
+
     internal enum LegacyDocTableAlignment {
         Left,
         Center,
@@ -263,6 +271,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? cellHorizontalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? cellVerticalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? cellVerticalAlignments = null,
+            IReadOnlyList<LegacyDocTableCellTextDirection>? cellTextDirections = null,
             IReadOnlyList<bool>? cellFitTexts = null,
             IReadOnlyList<bool>? cellNoWraps = null,
             IReadOnlyList<LegacyDocTableCellMargins>? cellMargins = null,
@@ -292,6 +301,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             CellVerticalAlignments = cellVerticalAlignments == null || cellVerticalAlignments.Count == 0
                 ? Array.Empty<LegacyDocTableCellVerticalAlignment>()
                 : cellVerticalAlignments.ToArray();
+            CellTextDirections = cellTextDirections == null || cellTextDirections.Count == 0
+                ? Array.Empty<LegacyDocTableCellTextDirection>()
+                : cellTextDirections.ToArray();
             CellFitTexts = cellFitTexts == null || cellFitTexts.Count == 0
                 ? Array.Empty<bool>()
                 : cellFitTexts.ToArray();
@@ -335,6 +347,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal IReadOnlyList<LegacyDocTableCellVerticalMerge> CellVerticalMerges { get; }
 
         internal IReadOnlyList<LegacyDocTableCellVerticalAlignment> CellVerticalAlignments { get; }
+
+        internal IReadOnlyList<LegacyDocTableCellTextDirection> CellTextDirections { get; }
 
         internal IReadOnlyList<bool> CellFitTexts { get; }
 

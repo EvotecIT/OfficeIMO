@@ -216,6 +216,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTableCellTextDirectionsFromTableDefinition() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithTableCellTextDirections();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            WordTableRow row = Assert.Single(table.Rows);
+            Assert.Equal(TextDirectionValues.TopToBottomRightToLeft, row.Cells[0].TextDirection);
+            Assert.Equal(TextDirectionValues.BottomToTopLeftToRight, row.Cells[1].TextDirection);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTableCellMarginsFromPaddingSprms() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithTableCellMargins();
 
@@ -2233,6 +2247,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellTextDirectionsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 4);
+                    table.Rows[0].Cells[0].AddParagraph("Clockwise", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[0].TextDirection = TextDirectionValues.TopToBottomRightToLeft;
+                    table.Rows[0].Cells[1].AddParagraph("Counter", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].TextDirection = TextDirectionValues.BottomToTopLeftToRight;
+                    table.Rows[0].Cells[2].AddParagraph("Asian", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[2].TextDirection = TextDirectionValues.LefttoRightTopToBottomRotated;
+                    table.Rows[0].Cells[3].AddParagraph("Mixed", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[3].TextDirection = TextDirectionValues.TopToBottomRightToLeftRotated;
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x04, 0x00),
+                    "Expected the native DOC table cell descriptor to contain the clockwise text-flow flag.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x0C, 0x00),
+                    "Expected the native DOC table cell descriptor to contain the counter-clockwise text-flow flag.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x10, 0x00),
+                    "Expected the native DOC table cell descriptor to contain the East Asian rotated text-flow flag.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x14, 0x00),
+                    "Expected the native DOC table cell descriptor to contain the rotated East Asian text-flow flag.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("Clockwise", row.Cells[0].Paragraphs[0].Text);
+                Assert.Equal(TextDirectionValues.TopToBottomRightToLeft, row.Cells[0].TextDirection);
+                Assert.Equal("Counter", row.Cells[1].Paragraphs[0].Text);
+                Assert.Equal(TextDirectionValues.BottomToTopLeftToRight, row.Cells[1].TextDirection);
+                Assert.Equal("Asian", row.Cells[2].Paragraphs[0].Text);
+                Assert.Equal(TextDirectionValues.LefttoRightTopToBottomRotated, row.Cells[2].TextDirection);
+                Assert.Equal("Mixed", row.Cells[3].Paragraphs[0].Text);
+                Assert.Equal(TextDirectionValues.TopToBottomRightToLeftRotated, row.Cells[3].TextDirection);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellMarginsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -3104,6 +3169,30 @@ namespace OfficeIMO.Tests {
                     papxFkpOffset,
                     new[] { 1440, 1440 },
                     new ushort[] { 0x1000, 0x2000 });
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithTableCellTextDirections() {
+                const string text = "Clock\aCounter\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 1440 },
+                    new ushort[] {
+                        0x0004,
+                        0x000C
+                    });
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();

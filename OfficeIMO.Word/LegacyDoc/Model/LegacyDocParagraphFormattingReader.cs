@@ -41,6 +41,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const byte FtsPercent = 0x02;
         private const byte FtsDxa = 0x03;
         private const ushort TcgrfHorizontalMergeMask = 0x0003;
+        private const ushort TcgrfTextFlowMask = 0x001C;
         private const ushort TcgrfVerticalMergeMask = 0x0060;
         private const ushort TcgrfVerticalAlignmentMask = 0x0180;
         private const ushort TcgrfFitTextMask = 0x1000;
@@ -176,6 +177,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges = null;
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges = null;
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null;
+            IReadOnlyList<LegacyDocTableCellTextDirection>? tableCellTextDirections = null;
             IReadOnlyList<bool>? tableCellFitTexts = null;
             IReadOnlyList<bool>? tableCellNoWraps = null;
             IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null;
@@ -392,6 +394,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         out tableCellHorizontalMerges,
                         out tableCellVerticalMerges,
                         out tableCellVerticalAlignments,
+                        out tableCellTextDirections,
                         out tableCellFitTexts,
                         out tableCellNoWraps,
                         out tableCellBorders,
@@ -484,6 +487,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableCellHorizontalMerges,
                 tableCellVerticalMerges,
                 tableCellVerticalAlignments,
+                tableCellTextDirections,
                 tableCellFitTexts,
                 tableCellNoWraps,
                 tableCellMargins,
@@ -516,6 +520,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             out IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges,
             out IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges,
             out IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments,
+            out IReadOnlyList<LegacyDocTableCellTextDirection>? tableCellTextDirections,
             out IReadOnlyList<bool>? tableCellFitTexts,
             out IReadOnlyList<bool>? tableCellNoWraps,
             out IReadOnlyList<LegacyDocTableCellBorders>? tableCellBorders,
@@ -526,6 +531,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             tableCellHorizontalMerges = null;
             tableCellVerticalMerges = null;
             tableCellVerticalAlignments = null;
+            tableCellTextDirections = null;
             tableCellFitTexts = null;
             tableCellNoWraps = null;
             tableCellBorders = null;
@@ -550,6 +556,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableCellHorizontalMerges = Array.Empty<LegacyDocTableCellHorizontalMerge>();
                 tableCellVerticalMerges = Array.Empty<LegacyDocTableCellVerticalMerge>();
                 tableCellVerticalAlignments = Array.Empty<LegacyDocTableCellVerticalAlignment>();
+                tableCellTextDirections = Array.Empty<LegacyDocTableCellTextDirection>();
                 tableCellFitTexts = Array.Empty<bool>();
                 tableCellNoWraps = Array.Empty<bool>();
                 tableCellBorders = Array.Empty<LegacyDocTableCellBorders>();
@@ -566,6 +573,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var horizontalMerges = new LegacyDocTableCellHorizontalMerge[columnCount];
             var verticalMerges = new LegacyDocTableCellVerticalMerge[columnCount];
             var verticalAlignments = new LegacyDocTableCellVerticalAlignment[columnCount];
+            var textDirections = new LegacyDocTableCellTextDirection[columnCount];
             var fitTexts = new bool[columnCount];
             var noWraps = new bool[columnCount];
             var borders = new LegacyDocTableCellBorders[columnCount];
@@ -630,6 +638,27 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         break;
                 }
 
+                switch ((tcgrf & TcgrfTextFlowMask) >> 2) {
+                    case 0:
+                        textDirections[index] = LegacyDocTableCellTextDirection.LeftToRightTopToBottom;
+                        break;
+                    case 1:
+                        textDirections[index] = LegacyDocTableCellTextDirection.TopToBottomRightToLeft;
+                        break;
+                    case 3:
+                        textDirections[index] = LegacyDocTableCellTextDirection.BottomToTopLeftToRight;
+                        break;
+                    case 4:
+                        textDirections[index] = LegacyDocTableCellTextDirection.LeftToRightTopToBottomRotated;
+                        break;
+                    case 5:
+                        textDirections[index] = LegacyDocTableCellTextDirection.TopToBottomRightToLeftRotated;
+                        break;
+                    default:
+                        textDirections[index] = LegacyDocTableCellTextDirection.LeftToRightTopToBottom;
+                        break;
+                }
+
                 fitTexts[index] = (tcgrf & TcgrfFitTextMask) != 0;
                 noWraps[index] = (tcgrf & TcgrfNoWrapMask) != 0;
                 borders[index] = ReadTableCellBorders(bytes, tc80Offset + (index * Tc80Length));
@@ -645,6 +674,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             tableCellVerticalAlignments = verticalAlignments.Any(alignment => alignment != LegacyDocTableCellVerticalAlignment.Top)
                 ? verticalAlignments
                 : Array.Empty<LegacyDocTableCellVerticalAlignment>();
+            tableCellTextDirections = textDirections.Any(textDirection => textDirection != LegacyDocTableCellTextDirection.LeftToRightTopToBottom)
+                ? textDirections
+                : Array.Empty<LegacyDocTableCellTextDirection>();
             tableCellFitTexts = fitTexts.Any(fitText => fitText)
                 ? fitTexts
                 : Array.Empty<bool>();

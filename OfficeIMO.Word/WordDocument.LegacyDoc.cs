@@ -235,6 +235,10 @@ namespace OfficeIMO.Word {
                         ApplyLegacyDocTableCellVerticalAlignment(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellVerticalAlignments[columnIndex]);
                     }
 
+                    if (columnIndex < sourceRow.CellTextDirections.Count) {
+                        ApplyLegacyDocTableCellTextDirection(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellTextDirections[columnIndex]);
+                    }
+
                     if (columnIndex < sourceRow.CellFitTexts.Count && sourceRow.CellFitTexts[columnIndex]) {
                         table.Rows[rowIndex].Cells[columnIndex].FitText = true;
                     }
@@ -417,6 +421,23 @@ namespace OfficeIMO.Word {
                     break;
                 case LegacyDocTableCellVerticalAlignment.Bottom:
                     cell.VerticalAlignment = TableVerticalAlignmentValues.Bottom;
+                    break;
+            }
+        }
+
+        private static void ApplyLegacyDocTableCellTextDirection(WordTableCell cell, LegacyDocTableCellTextDirection textDirection) {
+            switch (textDirection) {
+                case LegacyDocTableCellTextDirection.TopToBottomRightToLeft:
+                    cell.TextDirection = TextDirectionValues.TopToBottomRightToLeft;
+                    break;
+                case LegacyDocTableCellTextDirection.BottomToTopLeftToRight:
+                    cell.TextDirection = TextDirectionValues.BottomToTopLeftToRight;
+                    break;
+                case LegacyDocTableCellTextDirection.LeftToRightTopToBottomRotated:
+                    cell.TextDirection = TextDirectionValues.LefttoRightTopToBottomRotated;
+                    break;
+                case LegacyDocTableCellTextDirection.TopToBottomRightToLeftRotated:
+                    cell.TextDirection = TextDirectionValues.TopToBottomRightToLeftRotated;
                     break;
             }
         }

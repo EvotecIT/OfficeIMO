@@ -34,6 +34,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 IReadOnlyList<LegacyDocTableCellHorizontalMerge> cellHorizontalMerges = ReadSupportedTableCellHorizontalMerges(writableCells);
                 IReadOnlyList<LegacyDocTableCellVerticalMerge> cellVerticalMerges = ReadSupportedTableCellVerticalMerges(writableCells);
                 IReadOnlyList<LegacyDocTableCellVerticalAlignment> cellVerticalAlignments = ReadSupportedTableCellVerticalAlignments(writableCells);
+                IReadOnlyList<LegacyDocTableCellTextDirection> cellTextDirections = ReadSupportedTableCellTextDirections(writableCells);
                 IReadOnlyList<bool> cellFitTexts = ReadSupportedTableCellFitTexts(writableCells);
                 IReadOnlyList<bool> cellNoWraps = ReadSupportedTableCellNoWraps(writableCells);
                 IReadOnlyList<LegacyDocTableCellMargins> cellMargins = ReadSupportedTableCellMargins(writableCells);
@@ -64,6 +65,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         tableCellHorizontalMerges: cellHorizontalMerges,
                         tableCellVerticalMerges: cellVerticalMerges,
                         tableCellVerticalAlignments: cellVerticalAlignments,
+                        tableCellTextDirections: cellTextDirections,
                         tableCellFitTexts: cellFitTexts,
                         tableCellNoWraps: cellNoWraps,
                         tableCellMargins: cellMargins,
@@ -433,6 +435,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocTableCellHorizontalMerge horizontalMerge = ReadSupportedTableCellHorizontalMerge(cell);
                 LegacyDocTableCellVerticalMerge verticalMerge = ReadSupportedTableCellVerticalMerge(cell);
                 LegacyDocTableCellVerticalAlignment verticalAlignment = ReadSupportedTableCellVerticalAlignment(cellProperties);
+                LegacyDocTableCellTextDirection textDirection = ReadSupportedTableCellTextDirection(cellProperties);
                 bool fitText = ReadSupportedTableCellFitText(cellProperties);
                 bool noWrap = ReadSupportedTableCellNoWrap(cellProperties);
                 LegacyDocTableCellMargins margins = ReadSupportedTableCellMargins(cellProperties);
@@ -449,7 +452,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         : spanIndex == 0
                             ? LegacyDocTableCellHorizontalMerge.Restart
                             : LegacyDocTableCellHorizontalMerge.Continue;
-                    writableCells.Add(new LegacyDocWritableTableCell(spanIndex == 0 ? cell : null, width, merge, verticalMerge, verticalAlignment, fitText, noWrap, margins, shading, borders));
+                    writableCells.Add(new LegacyDocWritableTableCell(spanIndex == 0 ? cell : null, width, merge, verticalMerge, verticalAlignment, textDirection, fitText, noWrap, margins, shading, borders));
                 }
 
                 logicalColumnIndex += gridSpan;
@@ -551,6 +554,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return hasNonDefaultAlignment ? alignments : Array.Empty<LegacyDocTableCellVerticalAlignment>();
+        }
+
+        private static IReadOnlyList<LegacyDocTableCellTextDirection> ReadSupportedTableCellTextDirections(IReadOnlyList<LegacyDocWritableTableCell> cells) {
+            var textDirections = new LegacyDocTableCellTextDirection[cells.Count];
+            bool hasNonDefaultTextDirection = false;
+            for (int index = 0; index < cells.Count; index++) {
+                textDirections[index] = cells[index].TextDirection;
+                if (textDirections[index] != LegacyDocTableCellTextDirection.LeftToRightTopToBottom) {
+                    hasNonDefaultTextDirection = true;
+                }
+            }
+
+            return hasNonDefaultTextDirection ? textDirections : Array.Empty<LegacyDocTableCellTextDirection>();
         }
 
         private static IReadOnlyList<bool> ReadSupportedTableCellFitTexts(IReadOnlyList<LegacyDocWritableTableCell> cells) {
@@ -674,6 +690,36 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             throw new NotSupportedException($"Native DOC saving does not support table cell vertical alignment value '{value}'.");
+        }
+
+        private static LegacyDocTableCellTextDirection ReadSupportedTableCellTextDirection(TableCellProperties? cellProperties) {
+            TextDirection? textDirection = cellProperties?.GetFirstChild<TextDirection>();
+            if (textDirection == null) {
+                return LegacyDocTableCellTextDirection.LeftToRightTopToBottom;
+            }
+
+            TextDirectionValues? value = textDirection.Val?.Value;
+            if (value == null || value == TextDirectionValues.LefToRightTopToBottom) {
+                return LegacyDocTableCellTextDirection.LeftToRightTopToBottom;
+            }
+
+            if (value == TextDirectionValues.TopToBottomRightToLeft) {
+                return LegacyDocTableCellTextDirection.TopToBottomRightToLeft;
+            }
+
+            if (value == TextDirectionValues.BottomToTopLeftToRight) {
+                return LegacyDocTableCellTextDirection.BottomToTopLeftToRight;
+            }
+
+            if (value == TextDirectionValues.LefttoRightTopToBottomRotated) {
+                return LegacyDocTableCellTextDirection.LeftToRightTopToBottomRotated;
+            }
+
+            if (value == TextDirectionValues.TopToBottomRightToLeftRotated) {
+                return LegacyDocTableCellTextDirection.TopToBottomRightToLeftRotated;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support table cell text direction value '{value}'.");
         }
 
         private static bool ReadSupportedTableCellFitText(TableCellProperties? cellProperties) {
@@ -968,6 +1014,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TableCellVerticalAlignment:
                         ReadSupportedTableCellVerticalAlignment(cellProperties);
                         break;
+                    case TextDirection:
+                        ReadSupportedTableCellTextDirection(cellProperties);
+                        break;
                     case TableCellFitText:
                         ReadSupportedTableCellFitText(cellProperties);
                         break;
@@ -1063,12 +1112,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableTableCell {
-            internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, bool fitText, bool noWrap, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders) {
+            internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, LegacyDocTableCellTextDirection textDirection, bool fitText, bool noWrap, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders) {
                 SourceCell = sourceCell;
                 WidthTwips = widthTwips;
                 HorizontalMerge = horizontalMerge;
                 VerticalMerge = verticalMerge;
                 VerticalAlignment = verticalAlignment;
+                TextDirection = textDirection;
                 FitText = fitText;
                 NoWrap = noWrap;
                 Margins = margins;
@@ -1086,6 +1136,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal LegacyDocTableCellVerticalAlignment VerticalAlignment { get; }
 
+            internal LegacyDocTableCellTextDirection TextDirection { get; }
+
             internal bool FitText { get; }
 
             internal bool NoWrap { get; }
@@ -1097,7 +1149,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal LegacyDocTableCellBorders Borders { get; }
 
             internal LegacyDocWritableTableCell WithBorders(LegacyDocTableCellBorders borders) =>
-                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, FitText, NoWrap, Margins, Shading, borders);
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, Margins, Shading, borders);
         }
     }
 }

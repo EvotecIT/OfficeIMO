@@ -28,6 +28,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null,
+            IReadOnlyList<LegacyDocTableCellTextDirection>? tableCellTextDirections = null,
             IReadOnlyList<bool>? tableCellFitTexts = null,
             IReadOnlyList<bool>? tableCellNoWraps = null,
             IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null,
@@ -76,6 +77,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             TableCellVerticalAlignments = tableCellVerticalAlignments == null || tableCellVerticalAlignments.Count == 0
                 ? Array.Empty<LegacyDocTableCellVerticalAlignment>()
                 : tableCellVerticalAlignments.ToArray();
+            TableCellTextDirections = tableCellTextDirections == null || tableCellTextDirections.Count == 0
+                ? Array.Empty<LegacyDocTableCellTextDirection>()
+                : tableCellTextDirections.ToArray();
             TableCellFitTexts = tableCellFitTexts == null || tableCellFitTexts.Count == 0
                 ? Array.Empty<bool>()
                 : tableCellFitTexts.ToArray();
@@ -157,6 +161,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<LegacyDocTableCellVerticalAlignment> TableCellVerticalAlignments { get; }
 
+        internal IReadOnlyList<LegacyDocTableCellTextDirection> TableCellTextDirections { get; }
+
         internal IReadOnlyList<bool> TableCellFitTexts { get; }
 
         internal IReadOnlyList<bool> TableCellNoWraps { get; }
@@ -201,6 +207,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || TableCellHorizontalMerges.Count > 0
             || TableCellVerticalMerges.Count > 0
             || TableCellVerticalAlignments.Count > 0
+            || TableCellTextDirections.Count > 0
             || TableCellFitTexts.Count > 0
             || TableCellNoWraps.Count > 0
             || TableCellMargins.Count > 0
@@ -241,6 +248,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && TableCellHorizontalMergesEqual(TableCellHorizontalMerges, other.TableCellHorizontalMerges)
                 && TableCellVerticalMergesEqual(TableCellVerticalMerges, other.TableCellVerticalMerges)
                 && TableCellVerticalAlignmentsEqual(TableCellVerticalAlignments, other.TableCellVerticalAlignments)
+                && TableCellTextDirectionsEqual(TableCellTextDirections, other.TableCellTextDirections)
                 && TableCellBooleansEqual(TableCellFitTexts, other.TableCellFitTexts)
                 && TableCellBooleansEqual(TableCellNoWraps, other.TableCellNoWraps)
                 && TableCellMarginsEqual(TableCellMargins, other.TableCellMargins)
@@ -293,6 +301,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             foreach (LegacyDocTableCellVerticalAlignment alignment in TableCellVerticalAlignments) {
                 hash = (hash * 31) + alignment.GetHashCode();
+            }
+
+            foreach (LegacyDocTableCellTextDirection textDirection in TableCellTextDirections) {
+                hash = (hash * 31) + textDirection.GetHashCode();
             }
 
             foreach (bool fitText in TableCellFitTexts) {
@@ -376,6 +388,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             for (int index = 0; index < first.Count; index++) {
                 if (first[index] != second[index]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellTextDirectionsEqual(IReadOnlyList<LegacyDocTableCellTextDirection> first, IReadOnlyList<LegacyDocTableCellTextDirection> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int i = 0; i < first.Count; i++) {
+                if (first[i] != second[i]) {
                     return false;
                 }
             }
