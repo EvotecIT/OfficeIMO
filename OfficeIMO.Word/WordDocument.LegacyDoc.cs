@@ -588,6 +588,11 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
+            if (characterFormat.Hidden) {
+                properties.Append(new Vanish());
+                hasProperties = true;
+            }
+
             if (characterFormat.Caps == LegacyDocCapsKind.Caps) {
                 properties.Append(new Caps());
                 hasProperties = true;
@@ -697,6 +702,12 @@ namespace OfficeIMO.Word {
                 RunProperties runProperties = run._runProperties ?? new RunProperties();
                 run._runProperties = runProperties;
                 runProperties.Imprint = new Imprint();
+            }
+
+            if (legacyRun.Hidden) {
+                RunProperties runProperties = run._runProperties ?? new RunProperties();
+                run._runProperties = runProperties;
+                runProperties.Vanish = new Vanish();
             }
 
             if (legacyRun.Caps == LegacyDocCapsKind.Caps) {

@@ -54,6 +54,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool shadow = false;
             bool emboss = false;
             bool imprint = false;
+            bool hidden = false;
             byte? caps = null;
             byte? verticalPosition = null;
             byte? underline = null;
@@ -93,6 +94,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Imprint imprintProperty:
                         imprint = IsEnabled(imprintProperty);
                         break;
+                    case Vanish vanishProperty:
+                        hidden = IsEnabled(vanishProperty);
+                        break;
                     case Caps capsProperty:
                         caps = IsEnabled(capsProperty) ? (byte)1 : null;
                         break;
@@ -118,11 +122,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         fontFamily = ReadSupportedRunFontFamily(runFonts);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family run formatting. Unsupported run property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family run formatting. Unsupported run property: {property.LocalName}.");
                 }
             }
 
-            return new LegacyDocWritableFormatting(bold, italic, strike, doubleStrike, outline, shadow, emboss, imprint, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocWritableFormatting(bold, italic, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
         }
 
         private static bool IsEnabled(OnOffType property) {
@@ -362,6 +366,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmCFImprint, 1);
             }
 
+            if (formatting.Hidden) {
+                AddSingleByteSprm(grpprl, SprmCFVanish, 1);
+            }
+
             if (formatting.Caps == 1) {
                 AddSingleByteSprm(grpprl, SprmCFCaps, 1);
             } else if (formatting.Caps == 2) {
@@ -464,9 +472,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableFormatting : IEquatable<LegacyDocWritableFormatting> {
-            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, null, null, null, null, null, null, null);
+            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null);
 
-            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily) {
+            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily) {
                 Bold = bold;
                 Italic = italic;
                 Strike = strike;
@@ -475,6 +483,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 Shadow = shadow;
                 Emboss = emboss;
                 Imprint = imprint;
+                Hidden = hidden;
                 Caps = caps;
                 VerticalPosition = verticalPosition;
                 Underline = underline;
@@ -500,6 +509,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool Imprint { get; }
 
+            internal bool Hidden { get; }
+
             internal byte? Caps { get; }
 
             internal byte? VerticalPosition { get; }
@@ -514,7 +525,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal string? FontFamily { get; }
 
-            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
+            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
 
             public bool Equals(LegacyDocWritableFormatting other) {
                 return Bold == other.Bold
@@ -525,6 +536,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     && Shadow == other.Shadow
                     && Emboss == other.Emboss
                     && Imprint == other.Imprint
+                    && Hidden == other.Hidden
                     && Caps == other.Caps
                     && VerticalPosition == other.VerticalPosition
                     && Underline == other.Underline
@@ -548,6 +560,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 hash = (hash * 31) + Shadow.GetHashCode();
                 hash = (hash * 31) + Emboss.GetHashCode();
                 hash = (hash * 31) + Imprint.GetHashCode();
+                hash = (hash * 31) + Hidden.GetHashCode();
                 hash = (hash * 31) + Caps.GetHashCode();
                 hash = (hash * 31) + VerticalPosition.GetHashCode();
                 hash = (hash * 31) + Underline.GetHashCode();

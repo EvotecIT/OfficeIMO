@@ -158,6 +158,10 @@ namespace OfficeIMO.Word {
                 ReplaceStyleProperty(properties, new Imprint());
             }
 
+            if (characterFormat.Hidden) {
+                ReplaceStyleProperty(properties, new Vanish());
+            }
+
             if (characterFormat.Caps == LegacyDocCapsKind.Caps) {
                 RemoveStyleProperties<Caps>(properties);
                 RemoveStyleProperties<SmallCaps>(properties);
