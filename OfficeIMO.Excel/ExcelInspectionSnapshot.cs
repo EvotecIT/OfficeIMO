@@ -1065,5 +1065,10 @@ namespace OfficeIMO.Excel {
         /// Target URI or workbook location.
         /// </summary>
         public string Target { get; internal set; } = string.Empty;
+
+        /// <summary>
+        /// Optional hyperlink ScreenTip text.
+        /// </summary>
+        public string? Tooltip { get; internal set; }
     }
 }

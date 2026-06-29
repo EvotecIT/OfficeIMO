@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Excel)](https://www.nuget.org/packages/OfficeIMO.Excel)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Excel?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Excel)
 
-`OfficeIMO.Excel` is the main Excel package in the OfficeIMO family. It creates, edits, reads, and saves `.xlsx` workbooks without COM automation and without Microsoft Excel installed. It can also open legacy binary `.xls` workbooks and project supported content into the normal OfficeIMO Excel model; saving produces `.xlsx` content, and native `.xls` writing is not supported.
+`OfficeIMO.Excel` is the main Excel package in the OfficeIMO family. It creates, edits, reads, and saves `.xlsx` workbooks without COM automation and without Microsoft Excel installed. It can also open BIFF8 legacy binary `.xls` workbooks, project supported content into the normal OfficeIMO Excel model, and save a native `.xls` subset through the first-party BIFF writer.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
@@ -54,20 +54,29 @@ foreach (var row in sheet.Rows()) {
 }
 ```
 
-### Convert a legacy XLS workbook
+### Work with legacy XLS workbooks
 
 ```csharp
 using var document = ExcelDocument.Load("legacy.xls");
 ExcelFeatureReport report = document.InspectFeatures();
 
 document.Save("converted.xlsx");
+document.Save("native-copy.xls");
 ```
 
-Legacy `.xls` files load through the normal `ExcelDocument.Load` entry point.
-Unsupported legacy features are reported through `InspectFeatures()` and the
-legacy import diagnostics attached to the document. Saving back to legacy binary
-formats such as `.xls` or `.xlt` is intentionally blocked until native XLS
-writing exists.
+BIFF8 `.xls` files load through the normal `ExcelDocument.Load` entry point.
+Supported cells, formulas, styles, names, comments, filters, validations,
+conditional formatting, layout, protection metadata, document properties, and
+other workbook metadata project into the normal OfficeIMO model. Preserve-only
+legacy content such as drawings, charts, PivotTables, external query caches,
+macros, embedded OLE objects, signatures, and older BIFF formats is reported
+through `InspectFeatures()` and the legacy import diagnostics attached to the
+document instead of being silently dropped.
+
+Native `.xls` save uses the same `Save("*.xls")` path as other OfficeIMO saves.
+When a workbook contains a feature outside the supported BIFF8 writer subset,
+OfficeIMO throws a preflight error with the unsupported feature name so the
+caller can save as `.xlsx`, remove the feature, or choose a different workflow.
 
 ### Map rows to objects
 

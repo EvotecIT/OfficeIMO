@@ -19,6 +19,25 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            if (element is CalculationProperties) {
+                OpenXmlElement? before = workbook.ChildElements.FirstOrDefault(child =>
+                    string.Equals(child.LocalName, "oleSize", StringComparison.Ordinal)
+                    || string.Equals(child.LocalName, "customWorkbookViews", StringComparison.Ordinal)
+                    || string.Equals(child.LocalName, "pivotCaches", StringComparison.Ordinal)
+                    || string.Equals(child.LocalName, "smartTagPr", StringComparison.Ordinal)
+                    || string.Equals(child.LocalName, "smartTagTypes", StringComparison.Ordinal)
+                    || string.Equals(child.LocalName, "webPublishing", StringComparison.Ordinal)
+                    || string.Equals(child.LocalName, "fileRecoveryPr", StringComparison.Ordinal)
+                    || string.Equals(child.LocalName, "webPublishObjects", StringComparison.Ordinal)
+                    || string.Equals(child.LocalName, "extLst", StringComparison.Ordinal));
+                if (before != null) {
+                    workbook.InsertBefore(element, before);
+                } else {
+                    workbook.Append(element);
+                }
+                return;
+            }
+
             workbook.Append(element);
         }
     }

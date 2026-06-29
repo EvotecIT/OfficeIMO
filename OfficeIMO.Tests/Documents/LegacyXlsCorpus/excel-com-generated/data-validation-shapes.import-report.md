@@ -19,6 +19,7 @@ External cell caches: 0
 External cached cells: 0
 External query connections: 0
 Data consolidation references: 0
+Data consolidation named sources: 0
 Pivot table records: 4
 Chart records: 0
 Drawing records: 1
@@ -46,12 +47,12 @@ Future function aliases: 0
 Workbook metadata records: 23
 Workbook future metadata records: 5
 Worksheet metadata records: 14
-Worksheet future metadata records: 4
+Worksheet future metadata records: 2
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 119
+Unsupported features: 116
 Unsupported projection gaps: 0
-Preserved feature records: 119
+Preserved feature records: 116
 Errors: 0
 Warnings: 0
 
@@ -60,10 +61,8 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 4 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 110 |
-| XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
 
 ## Formula Tokens By Name
@@ -385,10 +384,8 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 4 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 110 |
-| XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
 
 ## Unsupported Features By Kind
@@ -396,10 +393,8 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject | 1 |
-| FeatureExtension | 2 |
 | PivotTable | 4 |
 | StyleExtension | 110 |
-| TableStyle | 1 |
 | Theme | 1 |
 
 ## Unsupported Feature Record Types
@@ -407,14 +402,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x08A3 | 1 |
-| FeatureExtension\|XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|0x0867 | 2 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 2 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x087C | 1 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x087D | 62 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x0892 | 47 |
-| TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|0x088E | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|0x0896 | 1 |
 
 ## Unsupported Feature Details
@@ -422,14 +415,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |
-| FeatureExtension\|XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|FeatureExtension:Feat | 2 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 2 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:StyleExt | 47 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XFCRC | 1 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 62 |
-| TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyles | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
 
 ## Unsupported Feature Locations
@@ -437,13 +428,10 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 1 |
-| XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|Lookup | 1 |
-| XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|Validation | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Lookup | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Validation | 1 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|(workbook) | 110 |
-| XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|(workbook) | 1 |
 
 ## File Format States
@@ -1081,8 +1069,9 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| FutureMetadata | 4 |
+| FutureMetadata | 2 |
 | GridSet | 2 |
+| HeaderFooter | 2 |
 | OutlineLevels | 2 |
 | RowBlockIndex | 2 |
 | Selection | 2 |
@@ -1092,23 +1081,20 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| HeaderFooter | 2 |
 | PageLayoutView | 2 |
 
 ## Worksheet Future Metadata Records By Sheet
 
 | Key | Count |
 | --- | --- |
-| Lookup | 2 |
-| Validation | 2 |
+| Lookup | 1 |
+| Validation | 1 |
 
 ## Worksheet Future Metadata Records By Sheet And Kind
 
 | Key | Count |
 | --- | --- |
-| Lookup\|HeaderFooter | 1 |
 | Lookup\|PageLayoutView | 1 |
-| Validation\|HeaderFooter | 1 |
 | Validation\|PageLayoutView | 1 |
 
 ## Worksheet Future Metadata Records By Record Type
@@ -1116,46 +1102,41 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | 0x088B | 2 |
-| 0x089C | 2 |
 
 ## Worksheet Future Metadata Records By Record Name
 
 | Key | Count |
 | --- | --- |
-| HeaderFooter | 2 |
 | PLV | 2 |
 
 ## Worksheet Future Metadata Records By Header State
 
 | Key | Count |
 | --- | --- |
-| MatchingFutureHeader | 4 |
+| MatchingFutureHeader | 2 |
 
 ## Worksheet Future Metadata Records By Header Record Type
 
 | Key | Count |
 | --- | --- |
 | 0x088B | 2 |
-| 0x089C | 2 |
 
 ## Worksheet Future Metadata Records By Header Flags
 
 | Key | Count |
 | --- | --- |
-| Flags:0x0000 | 4 |
+| Flags:0x0000 | 2 |
 
 ## Worksheet Future Metadata Records By Payload Length
 
 | Key | Count |
 | --- | --- |
 | Bytes:16 | 2 |
-| Bytes:38 | 2 |
 
 ## Worksheet Future Metadata Records By Body Byte Count
 
 | Key | Count |
 | --- | --- |
-| Bytes:26 | 2 |
 | Bytes:4 | 2 |
 
 ## Preserved Feature Records By Kind
@@ -1163,10 +1144,8 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject | 1 |
-| FeatureExtension | 2 |
 | PivotTable | 4 |
 | StyleExtension | 110 |
-| TableStyle | 1 |
 | Theme | 1 |
 
 ## Preserved Feature Record Details
@@ -1174,12 +1153,10 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |
-| FeatureExtension\|XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED\|FeatureExtension:Feat | 2 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 2 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:StyleExt | 47 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XFCRC | 1 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 62 |
-| TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyles | 1 |
 | Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |

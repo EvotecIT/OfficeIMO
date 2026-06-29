@@ -83,12 +83,12 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(workbook.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.Equal(1, report.WorksheetCount);
-            Assert.Equal(8, report.UnsupportedFeatureCount);
-            Assert.Equal(8, report.PreservedFeatureRecordCount);
-            Assert.Equal(6, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
+            Assert.Equal(7, report.UnsupportedFeatureCount);
+            Assert.Equal(7, report.PreservedFeatureRecordCount);
+            Assert.Equal(5, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
-            Assert.Equal(6, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
+            Assert.Equal(5, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
             Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
             Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
             Assert.Equal(1, report.PivotTableRecordCount);
@@ -209,7 +209,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingChildAnchorEntriesBySize["Width:600;Height:700"]);
             Assert.Equal(1, report.DrawingRecordsByLocation["(workbook)"]);
             Assert.Equal(5, report.DrawingRecordsByLocation["FeatureMap"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup"]);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup", report.UnsupportedFeaturesByDetail.Keys);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:Obj"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawing"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:ShapePropsStream"]);
@@ -217,7 +217,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:RichTextStream"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:SxView"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup"]);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup", report.PreservedFeatureRecordsByDetail.Keys);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:Obj"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawing"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:ShapePropsStream"]);
@@ -225,7 +225,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:RichTextStream"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:SxView"]);
-            Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:MsoDrawingGroup" && record.SheetName == null);
+            Assert.DoesNotContain(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:MsoDrawingGroup" && record.SheetName == null);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:Obj" && record.SheetName == "FeatureMap");
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:ShapePropsStream" && record.SheetName == "FeatureMap");
             Assert.Contains(workbook.DrawingRecords, record => record.SheetName == "FeatureMap" && record.ObjectType == 0x0008 && record.ObjectTypeKind == LegacyXlsDrawingObjectType.Picture && record.ObjectTypeName == "Picture" && record.ObjectId == 1 && record.ObjectFlags == 0x4011 && record.IsObjectLocked && record.IsObjectPrintable);
@@ -375,8 +375,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.Diagnostics, d => d.DetailCode == "Chart:Chart");
             Assert.Contains(workbook.Diagnostics, d => d.DetailCode == "PivotTable:SxView");
             string markdown = report.ToMarkdown();
-            Assert.Contains("Preserved feature records: 8", markdown);
-            Assert.Contains("Drawing:MsoDrawingGroup", markdown);
+            Assert.Contains("Preserved feature records: 7", markdown);
             Assert.Contains("Pivot Table Records By Name", markdown);
             Assert.Contains("Chart Records By Name", markdown);
             Assert.Contains("Drawing Records By Name", markdown);
@@ -461,8 +460,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.TableStyleElementsByDifferentialFormatIndex["Dxf:3"]);
             Assert.Equal(1, report.TableStyleElementsByDifferentialFormatIndex["Dxf:4"]);
             Assert.Equal(1, report.TableStyleElementsByStripeSize["Size:2"]);
-            Assert.Equal(4, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.TableStyle]);
-            Assert.Equal(4, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.TableStyle]);
+            Assert.Equal(3, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.TableStyle]);
+            Assert.Equal(3, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.TableStyle]);
         }
 
         [Theory]
@@ -1079,10 +1078,11 @@ namespace OfficeIMO.Tests {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateCalculationSettingsWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
-            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
             });
-            LegacyXlsImportReport report = workbook.CreateImportReport();
+            LegacyXlsWorkbook workbook = result.Workbook;
+            LegacyXlsImportReport report = result.ImportReport;
 
             Assert.DoesNotContain(workbook.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.Equal(7, workbook.CalculationSettings.Records.Count);
@@ -1096,6 +1096,15 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(workbook.CalculationSettings.Records, record => record.SheetName != null);
             Assert.DoesNotContain(workbook.UnsupportedFeatures, feature => feature.DetailCode == "BiffRecord:CalcMode");
             Assert.DoesNotContain(workbook.UnsupportedFeatures, feature => feature.DetailCode == "BiffRecord:CalcCount");
+            DocumentFormat.OpenXml.Spreadsheet.CalculationProperties projectedProperties = result.Document.WorkbookRoot
+                .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.CalculationProperties>()!;
+            Assert.Equal(DocumentFormat.OpenXml.Spreadsheet.CalculateModeValues.Auto, projectedProperties.CalculationMode!.Value);
+            Assert.Equal(42U, projectedProperties.IterateCount!.Value);
+            Assert.True(projectedProperties.FullPrecision!.Value);
+            Assert.Equal(DocumentFormat.OpenXml.Spreadsheet.ReferenceModeValues.A1, projectedProperties.ReferenceMode!.Value);
+            Assert.Equal(0.001d, projectedProperties.IterateDelta!.Value);
+            Assert.True(projectedProperties.Iterate!.Value);
+            Assert.True(projectedProperties.CalculationOnSave!.Value);
             Assert.Equal(7, report.CalculationSettingRecordCount);
             Assert.Equal(1, report.CalculationSettingsByKind[LegacyXlsCalculationSettingKind.Mode]);
             Assert.Equal(1, report.CalculationSettingsByKind[LegacyXlsCalculationSettingKind.IterationCount]);
@@ -2866,6 +2875,55 @@ namespace OfficeIMO.Tests {
             Assert.Contains("OleObject", markdown);
             Assert.Contains("Compound Feature Entries By Name", markdown);
             Assert.Contains("Compound Feature Entries By Role", markdown);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ReportsDigitalSignatureStreamAsDiagnosed() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithDigitalSignatureStream(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.Single(result.Document.Sheets);
+            LegacyXlsUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DigitalSignature);
+            Assert.Equal("XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED", feature.Code);
+            Assert.Contains("_signatures", feature.Description);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED");
+            LegacyXlsCompoundFeatureRecord compoundRecord = Assert.Single(result.Workbook.CompoundFeatureRecords);
+            Assert.Equal(LegacyXlsCompoundFeatureRecordKind.DigitalSignature, compoundRecord.Kind);
+            Assert.Contains("_signatures", compoundRecord.Entries);
+            Assert.Equal(LegacyXlsCompoundFeatureEntryRole.DigitalSignatureStream, compoundRecord.EntryRoles["_signatures"]);
+            Assert.Equal(LegacyXlsCompoundFeatureEntryObjectType.Stream, compoundRecord.EntryObjectTypes["_signatures"]);
+            Assert.Equal(LegacyXlsCompoundFeatureEntryContentKind.DigitalSignatureStream, compoundRecord.EntryContentKinds["_signatures"]);
+            LegacyXlsCompoundFeatureEntryInfo entry = Assert.Single(compoundRecord.EntryDetails);
+            Assert.Equal("_signatures", entry.Path);
+            Assert.Equal(LegacyXlsCompoundFeatureEntryRole.DigitalSignatureStream, entry.Role);
+            Assert.Equal(LegacyXlsCompoundFeatureEntryObjectType.Stream, entry.ObjectType);
+            Assert.Equal(LegacyXlsCompoundFeatureEntryContentKind.DigitalSignatureStream, entry.ContentKind);
+            Assert.False(entry.IsStorage);
+            Assert.True(entry.IsStream);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureRecordCount);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntryCount);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureRecordsByKind[LegacyXlsCompoundFeatureRecordKind.DigitalSignature]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByKind[LegacyXlsCompoundFeatureRecordKind.DigitalSignature]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByName["_signatures"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByRole["DigitalSignatureStream"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByKindAndRole["DigitalSignature|DigitalSignatureStream"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByObjectType["Stream"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByRoleAndObjectType["DigitalSignatureStream|Stream"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByContentKind["DigitalSignatureStream"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByRoleAndContentKind["DigitalSignatureStream|DigitalSignatureStream"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.DigitalSignature]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["DigitalSignature|XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED|Compound:DigitalSignature"]);
+            Assert.Equal(0, result.ImportReport.UnsupportedProjectionGapCount);
+            Assert.Empty(result.ImportReport.UnsupportedProjectionGapsByKind);
+            string markdown = result.ImportReport.ToMarkdown();
+            Assert.Contains("DigitalSignature", markdown);
+            Assert.Contains("Compound Feature Entries By Content Kind", markdown);
         }
     }
 }

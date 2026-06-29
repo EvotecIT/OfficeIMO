@@ -59,9 +59,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            string start = FormatCellReference(area.FirstRow, area.FirstColumnBits);
-            string end = FormatCellReference(area.LastRow, area.LastColumnBits);
-            reference = area.SheetQualifier + "!" + (start == end ? start : start + ":" + end);
+            reference = area.SheetQualifier + "!" + FormatAreaReference(area.FirstRow, area.LastRow, area.FirstColumnBits, area.LastColumnBits);
             return true;
         }
 
@@ -123,12 +121,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            string name = externalReference.ExternalNames[nameIndex].Name;
-            if (string.IsNullOrWhiteSpace(name)) {
+            LegacyXlsExternalName externalName = externalReference.ExternalNames[nameIndex];
+            if (string.IsNullOrWhiteSpace(externalName.Name)) {
                 return false;
             }
 
-            reference = FormatExternalNameReference(externalReference, name);
+            reference = FormatExternalNameReference(externalReference, externalName);
             return true;
         }
 
@@ -177,6 +175,38 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 + (zeroBasedRow + 1).ToString(CultureInfo.InvariantCulture);
         }
 
+        internal static string FormatAreaReference(ushort firstRow, ushort lastRow, ushort firstColumnBits, ushort lastColumnBits) {
+            bool spansAllRows = firstRow == 0 && lastRow == ushort.MaxValue;
+            bool spansAllColumns = GetZeroBasedColumn(firstColumnBits) == 0 && GetZeroBasedColumn(lastColumnBits) == 255;
+            if (spansAllRows && !spansAllColumns) {
+                return FormatColumnReference(firstColumnBits) + ":" + FormatColumnReference(lastColumnBits);
+            }
+
+            if (spansAllColumns && !spansAllRows) {
+                return FormatRowReference(firstRow, firstColumnBits) + ":" + FormatRowReference(lastRow, lastColumnBits);
+            }
+
+            string start = FormatCellReference(firstRow, firstColumnBits);
+            string end = FormatCellReference(lastRow, lastColumnBits);
+            return start + ":" + end;
+        }
+
+        private static string FormatColumnReference(ushort columnBits) {
+            bool columnRelative = (columnBits & 0x4000) != 0;
+            return (columnRelative ? string.Empty : "$")
+                + A1.ColumnIndexToLetters(GetZeroBasedColumn(columnBits) + 1);
+        }
+
+        private static string FormatRowReference(ushort zeroBasedRow, ushort columnBits) {
+            bool rowRelative = (columnBits & 0x8000) != 0;
+            return (rowRelative ? string.Empty : "$")
+                + (zeroBasedRow + 1).ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static int GetZeroBasedColumn(ushort columnBits) {
+            return columnBits & 0x3fff;
+        }
+
         private static bool TryResolveSheetQualifier(
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
@@ -213,13 +243,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
-        private static string FormatExternalNameReference(LegacyXlsExternalReference externalReference, string name) {
+        private static string FormatExternalNameReference(LegacyXlsExternalReference externalReference, LegacyXlsExternalName name) {
             if (externalReference.Kind == LegacyXlsExternalReferenceKind.ExternalWorkbook
                 && !string.IsNullOrWhiteSpace(externalReference.Target)) {
-                return QuoteSheetReference(NormalizeExternalWorkbookTarget(externalReference.Target)) + "!" + name;
+                if (name.LocalSheetIndex.HasValue
+                    && name.LocalSheetIndex.Value >= 0
+                    && name.LocalSheetIndex.Value < externalReference.SheetNames.Count) {
+                    string sheetReference = "[" + NormalizeExternalWorkbookTarget(externalReference.Target) + "]" + externalReference.SheetNames[name.LocalSheetIndex.Value];
+                    return QuoteSheetReference(sheetReference) + "!" + name.Name;
+                }
+
+                return QuoteSheetReference(NormalizeExternalWorkbookTarget(externalReference.Target)) + "!" + name.Name;
             }
 
-            return name;
+            return name.Name;
         }
 
         private static bool TryResolveExternalWorkbookSheetQualifier(

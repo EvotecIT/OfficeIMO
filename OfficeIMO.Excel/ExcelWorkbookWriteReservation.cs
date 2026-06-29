@@ -115,8 +115,13 @@ namespace OfficeIMO.Excel {
         }
 
         private static string? GetFileSharingReservationPassword(FileSharing fileSharing) {
-            OpenXmlAttribute attribute = fileSharing.GetAttribute("reservationPassword", string.Empty);
-            return string.IsNullOrWhiteSpace(attribute.Value) ? null : attribute.Value;
+            foreach (OpenXmlAttribute attribute in fileSharing.GetAttributes()) {
+                if (string.Equals(attribute.LocalName, "reservationPassword", StringComparison.Ordinal)) {
+                    return string.IsNullOrWhiteSpace(attribute.Value) ? null : attribute.Value;
+                }
+            }
+
+            return null;
         }
 
         private static void InsertFileSharingInSchemaOrder(Workbook workbook, FileSharing fileSharing) {

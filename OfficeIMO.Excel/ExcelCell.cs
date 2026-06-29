@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
 
@@ -604,16 +605,124 @@ namespace OfficeIMO.Excel {
         public bool Underline { get; set; }
         /// <summary>Gets or sets whether the run is struck through.</summary>
         public bool Strikethrough { get; set; }
+        /// <summary>Gets or sets the run underline style.</summary>
+        public UnderlineValues? UnderlineStyle { get; set; }
         /// <summary>Gets or sets the run font color as a hex value.</summary>
         public string? FontColor { get; set; }
         /// <summary>Gets or sets the run font name.</summary>
         public string? FontName { get; set; }
         /// <summary>Gets or sets the run font size.</summary>
         public double? FontSize { get; set; }
+        /// <summary>Gets or sets the run vertical text alignment.</summary>
+        public VerticalAlignmentRunValues? VerticalTextAlignment { get; set; }
+        /// <summary>Gets or sets whether the run font uses outline text.</summary>
+        public bool Outline { get; set; }
+        /// <summary>Gets or sets whether the run font uses shadow text.</summary>
+        public bool Shadow { get; set; }
+        /// <summary>Gets or sets whether the run font uses condensed text.</summary>
+        public bool Condense { get; set; }
+        /// <summary>Gets or sets whether the run font uses extended text.</summary>
+        public bool Extend { get; set; }
+        /// <summary>Gets or sets the run font family classification byte.</summary>
+        public byte? FontFamily { get; set; }
+        /// <summary>Gets or sets the run font character set byte.</summary>
+        public byte? FontCharacterSet { get; set; }
 
         /// <summary>
         /// Creates a plain rich text run.
         /// </summary>
         public static ExcelRichTextRun Plain(string text) => new ExcelRichTextRun(text);
+
+        internal static void AppendFontMetadata(RunProperties properties, ExcelRichTextRun run) {
+            if (run.VerticalTextAlignment.HasValue) {
+                properties.Append(new VerticalTextAlignment { Val = run.VerticalTextAlignment.Value });
+            }
+
+            if (run.Outline) {
+                properties.Append(new Outline());
+            }
+
+            if (run.Shadow) {
+                properties.Append(new Shadow());
+            }
+
+            if (run.Condense) {
+                properties.Append(new Condense());
+            }
+
+            if (run.Extend) {
+                properties.Append(new Extend());
+            }
+
+            if (run.FontFamily.HasValue) {
+                properties.Append(new FontFamilyNumbering { Val = run.FontFamily.Value });
+            }
+
+            if (run.FontCharacterSet.HasValue) {
+                var charset = new OpenXmlUnknownElement(string.Empty, "charset", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
+                charset.SetAttribute(new OpenXmlAttribute("val", string.Empty, run.FontCharacterSet.Value.ToString(CultureInfo.InvariantCulture)));
+                properties.Append(charset);
+            }
+        }
+
+        internal static byte? GetFontFamily(RunProperties? properties) {
+            return TryGetByte(properties?.GetFirstChild<FontFamilyNumbering>()?.Val?.Value, out byte family)
+                ? family
+                : null;
+        }
+
+        internal static byte? GetFontCharacterSet(RunProperties? properties) {
+            OpenXmlElement? charset = properties?.ChildElements.FirstOrDefault(child =>
+                string.Equals(child.LocalName, "charset", StringComparison.Ordinal)
+                && string.Equals(child.NamespaceUri, "http://schemas.openxmlformats.org/spreadsheetml/2006/main", StringComparison.Ordinal));
+            return TryGetByte(charset?.GetAttribute("val", string.Empty).Value, out byte characterSet)
+                ? characterSet
+                : null;
+        }
+
+        internal static VerticalAlignmentRunValues? GetVerticalTextAlignment(RunProperties? properties) {
+            return properties?.GetFirstChild<VerticalTextAlignment>()?.Val?.Value;
+        }
+
+        internal static UnderlineValues? GetUnderlineStyle(RunProperties? properties) {
+            Underline? underline = properties?.GetFirstChild<Underline>();
+            if (underline == null) {
+                return null;
+            }
+
+            return underline.Val?.Value ?? UnderlineValues.Single;
+        }
+
+        private static bool TryGetByte(uint? value, out byte result) {
+            if (value.HasValue && value.Value <= byte.MaxValue) {
+                result = checked((byte)value.Value);
+                return true;
+            }
+
+            result = 0;
+            return false;
+        }
+
+        private static bool TryGetByte(int? value, out byte result) {
+            if (value.HasValue && value.Value >= 0 && value.Value <= byte.MaxValue) {
+                result = checked((byte)value.Value);
+                return true;
+            }
+
+            result = 0;
+            return false;
+        }
+
+        private static bool TryGetByte(string? value, out byte result) {
+            if (!string.IsNullOrWhiteSpace(value)
+                && uint.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint parsed)
+                && parsed <= byte.MaxValue) {
+                result = checked((byte)parsed);
+                return true;
+            }
+
+            result = 0;
+            return false;
+        }
     }
 }

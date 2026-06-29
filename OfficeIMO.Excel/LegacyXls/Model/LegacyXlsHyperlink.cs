@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>
         /// Creates a parsed legacy XLS hyperlink.
         /// </summary>
-        public LegacyXlsHyperlink(int startRow, int startColumn, int endRow, int endColumn, string target, string? displayText = null, bool isExternal = true) {
+        public LegacyXlsHyperlink(int startRow, int startColumn, int endRow, int endColumn, string target, string? displayText = null, bool isExternal = true, string? tooltip = null) {
             StartRow = startRow;
             StartColumn = startColumn;
             EndRow = endRow;
@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Target = target;
             DisplayText = displayText;
             IsExternal = isExternal;
+            Tooltip = tooltip;
         }
 
         /// <summary>Gets the first 1-based row covered by the hyperlink.</summary>
@@ -36,5 +37,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets optional display text stored in the hyperlink object.</summary>
         public string? DisplayText { get; }
+
+        /// <summary>Gets optional ScreenTip text stored in a companion HLinkTooltip record.</summary>
+        public string? Tooltip { get; }
+
+        internal LegacyXlsHyperlink WithTooltip(string? tooltip) {
+            return new LegacyXlsHyperlink(StartRow, StartColumn, EndRow, EndColumn, Target, DisplayText, IsExternal, tooltip);
+        }
     }
 }

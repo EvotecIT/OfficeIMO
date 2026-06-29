@@ -111,13 +111,17 @@ namespace OfficeIMO.Excel {
 
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
             var originalFilePath = FilePath;
-            EnsureLegacyXlsCanSaveToPath(path);
+            EnsureLegacyBinaryExcelSaveTargetSupported(path, allowNativeXls: true, options);
 
             // Ensure target directory is writable
             if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
                 throw new IOException($"Failed to save to '{path}'. The file is read-only.");
             }
             EnsureDirectoryWritable(path);
+
+            if (TrySaveNativeLegacyXlsToFile(path, openExcel, options)) {
+                return;
+            }
 
             if (TrySaveDirectDataSetPackageToFile(path, options, CancellationToken.None, out _)) {
                 if (openExcel) {
@@ -198,7 +202,7 @@ namespace OfficeIMO.Excel {
 
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
             var originalFilePath = FilePath;
-            EnsureLegacyXlsCanSaveToPath(path);
+            EnsureLegacyBinaryEncryptedSaveTargetSupported(path);
             if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
                 throw new IOException($"Failed to save to '{path}'. The file is read-only.");
             }
@@ -302,11 +306,15 @@ namespace OfficeIMO.Excel {
 
             var target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
             var originalFilePath = FilePath;
-            EnsureLegacyXlsCanSaveToPath(target);
+            EnsureLegacyBinaryExcelSaveTargetSupported(target, allowNativeXls: true, options);
             if (File.Exists(target) && new FileInfo(target).IsReadOnly) {
                 throw new IOException($"Failed to save to '{target}'. The file is read-only.");
             }
             EnsureDirectoryWritable(target);
+
+            if (await TrySaveNativeLegacyXlsToFileAsync(target, openExcel, options, cancellationToken).ConfigureAwait(false)) {
+                return;
+            }
 
             if (TrySaveDirectDataSetPackageToFile(target, options, cancellationToken, out _)) {
                 if (openExcel) {
@@ -389,6 +397,10 @@ namespace OfficeIMO.Excel {
         public void Save(Stream destination, ExcelSaveOptions? options) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+
+            if (TrySaveNativeLegacyXlsToStream(destination, options)) {
+                return;
+            }
 
             if (TryWriteUnchangedPackageToStream(destination, options)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.UnchangedPackage();
@@ -490,6 +502,10 @@ namespace OfficeIMO.Excel {
         public async Task SaveAsync(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+
+            if (await TrySaveNativeLegacyXlsToStreamAsync(destination, options, cancellationToken).ConfigureAwait(false)) {
+                return;
+            }
 
             if (await TryWriteUnchangedPackageToStreamAsync(destination, options, cancellationToken).ConfigureAwait(false)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.UnchangedPackage();

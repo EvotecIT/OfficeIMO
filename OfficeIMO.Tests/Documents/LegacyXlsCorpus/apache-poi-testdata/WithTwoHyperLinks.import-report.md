@@ -19,6 +19,7 @@ External cell caches: 0
 External cached cells: 0
 External query connections: 0
 Data consolidation references: 0
+Data consolidation named sources: 0
 Pivot table records: 6
 Chart records: 0
 Drawing records: 0

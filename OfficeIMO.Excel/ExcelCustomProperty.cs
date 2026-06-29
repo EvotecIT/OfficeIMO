@@ -63,6 +63,11 @@ namespace OfficeIMO.Excel {
         public bool? Bool => Value is bool value ? value : null;
 
         /// <summary>
+        /// Gets the value as binary data when the property type is Binary.
+        /// </summary>
+        public byte[]? Binary => Value is byte[] value ? (byte[])value.Clone() : null;
+
+        /// <summary>
         /// Creates an empty custom property.
         /// </summary>
         public ExcelCustomProperty() {
@@ -102,6 +107,11 @@ namespace OfficeIMO.Excel {
         /// Creates a floating point custom property.
         /// </summary>
         public ExcelCustomProperty(double value) : this(value, ExcelCustomPropertyType.NumberDouble) { }
+
+        /// <summary>
+        /// Creates a binary custom property.
+        /// </summary>
+        public ExcelCustomProperty(byte[] value) : this(value == null ? throw new ArgumentNullException(nameof(value)) : (byte[])value.Clone(), ExcelCustomPropertyType.Binary) { }
 
         internal ExcelCustomProperty(CustomDocumentProperty property) {
             if (property.VTInt32 != null) {
@@ -144,6 +154,12 @@ namespace OfficeIMO.Excel {
             } else if (property.VTBool != null) {
                 _value = ParseBooleanProperty(property.VTBool.Text);
                 _propertyType = ExcelCustomPropertyType.YesNo;
+            } else if (property.VTBlob != null) {
+                _value = ParseBinaryProperty(property.VTBlob.Text);
+                _propertyType = ExcelCustomPropertyType.Binary;
+            } else if (property.VTOBlob != null) {
+                _value = ParseBinaryProperty(property.VTOBlob.Text);
+                _propertyType = ExcelCustomPropertyType.Binary;
             } else {
                 _value = string.Empty;
                 _propertyType = ExcelCustomPropertyType.Text;
@@ -165,7 +181,11 @@ namespace OfficeIMO.Excel {
                     property.VTFileTime = new VTFileTime(string.Format(CultureInfo.InvariantCulture, "{0:s}Z", Convert.ToDateTime(Value, CultureInfo.InvariantCulture).ToUniversalTime()));
                     break;
                 case ExcelCustomPropertyType.NumberInteger:
-                    if (Value is ulong unsignedLong) {
+                    if (Value is byte unsignedByte) {
+                        property.VTUnsignedByte = new VTUnsignedByte(unsignedByte.ToString(CultureInfo.InvariantCulture));
+                    } else if (Value is ushort unsignedShort) {
+                        property.VTUnsignedShort = new VTUnsignedShort(unsignedShort.ToString(CultureInfo.InvariantCulture));
+                    } else if (Value is ulong unsignedLong) {
                         property.VTUnsignedInt64 = new VTUnsignedInt64(unsignedLong.ToString(CultureInfo.InvariantCulture));
                     } else if (Value is uint unsignedInteger) {
                         property.VTUnsignedInt32 = new VTUnsignedInt32(unsignedInteger.ToString(CultureInfo.InvariantCulture));
@@ -183,6 +203,9 @@ namespace OfficeIMO.Excel {
                     break;
                 case ExcelCustomPropertyType.YesNo:
                     property.VTBool = new VTBool(Convert.ToBoolean(Value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture).ToLowerInvariant());
+                    break;
+                case ExcelCustomPropertyType.Binary:
+                    property.VTBlob = new VTBlob(Convert.ToBase64String(GetBinaryValue()));
                     break;
                 default:
                     property.VTLPWSTR = new VTLPWSTR(Convert.ToString(Value, CultureInfo.InvariantCulture) ?? string.Empty);
@@ -202,6 +225,18 @@ namespace OfficeIMO.Excel {
             }
 
             throw new FormatException($"The custom property boolean value '{text}' is not valid.");
+        }
+
+        private static byte[] ParseBinaryProperty(string? text) {
+            return string.IsNullOrEmpty(text)
+                ? Array.Empty<byte>()
+                : Convert.FromBase64String(text);
+        }
+
+        private byte[] GetBinaryValue() {
+            return Value is byte[] bytes
+                ? bytes
+                : Convert.FromBase64String(Convert.ToString(Value, CultureInfo.InvariantCulture) ?? string.Empty);
         }
 
         private void MarkChanged() {

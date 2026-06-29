@@ -78,11 +78,17 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Extended encryption metadata from an EntExU2 record.</summary>
         ExtendedEncryption,
 
+        /// <summary>Write-reservation and read-only recommendation metadata from a FileSharing record.</summary>
+        FileSharing,
+
         /// <summary>Future-record continuation metadata from a ContinueFrt record.</summary>
         FutureRecordContinuation,
 
         /// <summary>Page Layout view metadata from a PLV record.</summary>
         PageLayoutView,
+
+        /// <summary>Worksheet extension metadata from a SheetExt record.</summary>
+        SheetExtension,
 
         /// <summary>Compatibility metadata from a Compat12 record.</summary>
         Compatibility12,

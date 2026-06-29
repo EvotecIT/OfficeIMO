@@ -1025,7 +1025,7 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-SHARED-UNRESOLVED");
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.Array);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.Array);
             LegacyXlsImportReport report = legacy.CreateImportReport();
             Assert.Equal(3, report.FormulaTokensByContext["ArrayFormula"]);
             Assert.Equal(3, report.FormulaTokensByContextAndSheet["ArrayFormula|ArrayFormula"]);

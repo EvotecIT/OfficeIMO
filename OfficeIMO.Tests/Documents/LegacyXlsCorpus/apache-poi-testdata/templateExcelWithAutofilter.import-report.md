@@ -19,6 +19,7 @@ External cell caches: 0
 External cached cells: 0
 External query connections: 0
 Data consolidation references: 0
+Data consolidation named sources: 0
 Pivot table records: 4
 Chart records: 0
 Drawing records: 9
@@ -49,9 +50,9 @@ Worksheet metadata records: 6
 Worksheet future metadata records: 0
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 13
+Unsupported features: 12
 Unsupported projection gaps: 0
-Preserved feature records: 13
+Preserved feature records: 12
 Errors: 0
 Warnings: 0
 
@@ -59,7 +60,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 9 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 8 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 4 |
 
 ## Formula Tokens By Name
@@ -192,14 +193,14 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 9 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 8 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 4 |
 
 ## Unsupported Features By Kind
 
 | Key | Count |
 | --- | --- |
-| DrawingObject | 9 |
+| DrawingObject | 8 |
 | PivotTable | 4 |
 
 ## Unsupported Feature Record Types
@@ -207,7 +208,6 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x005D | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EB | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 4 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 1 |
@@ -219,7 +219,6 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 4 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 1 |
@@ -230,7 +229,6 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Initial sheet | 8 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Initial sheet | 2 |
@@ -802,7 +800,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| DrawingObject | 9 |
+| DrawingObject | 8 |
 | PivotTable | 4 |
 
 ## Preserved Feature Record Details
@@ -810,7 +808,6 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 4 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 1 |

@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private readonly List<LegacyXlsImportDiagnostic> _diagnostics;
         private readonly LegacyXlsImportOptions _options;
         private readonly Dictionary<SharedFormulaAnchor, SharedFormulaDefinition> _definitions = new();
+        private readonly Dictionary<SharedFormulaAnchor, ArrayFormulaDefinition> _arrayDefinitions = new();
         private readonly List<PendingSharedFormulaCell> _pendingCells = new();
         private PendingSharedFormulaCell? _lastSharedFormulaCell;
 
@@ -61,6 +62,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             _lastSharedFormulaCell = pendingCell;
             if (_definitions.TryGetValue(reference.Value.Anchor, out SharedFormulaDefinition definition)) {
                 ResolveCell(pendingCell, definition);
+                return;
+            }
+
+            if (_arrayDefinitions.TryGetValue(reference.Value.Anchor, out ArrayFormulaDefinition arrayDefinition)
+                && arrayDefinition.Contains(row - 1, column - 1)) {
+                ResolveArrayCell(pendingCell, arrayDefinition);
                 return;
             }
 
@@ -146,8 +153,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             bool formulaTextProjected = false;
             int formulaTokenByteCount = 0;
             int formulaExtraByteCount = 0;
+            byte[]? formulaPayloadForDefinition = null;
             if (matchingCells.Count > 0
                 && TryCreateArrayFormulaPayload(payload, out byte[] formulaPayload, out formulaTokenByteCount, out formulaExtraByteCount)) {
+                formulaPayloadForDefinition = formulaPayload;
                 PendingSharedFormulaCell formulaCell = lastSharedFormulaCell.Value;
                 string cellReference = A1.ColumnIndexToLetters(formulaCell.Column) + formulaCell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 BiffFormulaTokenScanner.ScanLengthPrefixed(
@@ -193,19 +202,47 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
             }
 
-            _sheet.AddArrayFormulaRecord(new LegacyXlsArrayFormulaRecord(
-                firstRow + 1,
-                firstColumn + 1,
-                lastRow + 1,
-                lastColumn + 1,
-                optionFlags,
-                formulaTokenByteCount,
-                formulaExtraByteCount,
-                matchingCells.Count,
-                formulaTextProjected,
-                recordOffset,
-                (ushort)BiffRecordType.Array,
-                payload.Length));
+            if (formulaPayloadForDefinition != null) {
+                var arrayFormulaRecord = new LegacyXlsArrayFormulaRecord(
+                    firstRow + 1,
+                    firstColumn + 1,
+                    lastRow + 1,
+                    lastColumn + 1,
+                    optionFlags,
+                    formulaTokenByteCount,
+                    formulaExtraByteCount,
+                    matchingCells.Count,
+                    formulaTextProjected,
+                    recordOffset,
+                    (ushort)BiffRecordType.Array,
+                    payload.Length);
+                var definition = new ArrayFormulaDefinition(
+                    anchor,
+                    firstRow,
+                    lastRow,
+                    firstColumn,
+                    lastColumn,
+                    formulaPayloadForDefinition,
+                    recordOffset,
+                    arrayFormulaRecord);
+                _arrayDefinitions[anchor] = definition;
+                ResolvePendingArrayCells(definition);
+                _sheet.AddArrayFormulaRecord(arrayFormulaRecord);
+            } else {
+                _sheet.AddArrayFormulaRecord(new LegacyXlsArrayFormulaRecord(
+                    firstRow + 1,
+                    firstColumn + 1,
+                    lastRow + 1,
+                    lastColumn + 1,
+                    optionFlags,
+                    formulaTokenByteCount,
+                    formulaExtraByteCount,
+                    matchingCells.Count,
+                    formulaTextProjected,
+                    recordOffset,
+                    (ushort)BiffRecordType.Array,
+                    payload.Length));
+            }
             return true;
         }
 
@@ -235,6 +272,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 PendingSharedFormulaCell cell = _pendingCells[i];
                 if (cell.Anchor.Equals(definition.Anchor) && definition.Contains(cell.Row - 1, cell.Column - 1)) {
                     ResolveCell(cell, definition);
+                    _pendingCells.RemoveAt(i);
+                }
+            }
+        }
+
+        private void ResolvePendingArrayCells(ArrayFormulaDefinition definition) {
+            for (int i = _pendingCells.Count - 1; i >= 0; i--) {
+                PendingSharedFormulaCell cell = _pendingCells[i];
+                if (cell.Anchor.Equals(definition.Anchor) && definition.Contains(cell.Row - 1, cell.Column - 1)) {
+                    ResolveArrayCell(cell, definition);
                     _pendingCells.RemoveAt(i);
                 }
             }
@@ -277,6 +324,52 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 recordType: (ushort)BiffRecordType.ShrFmla,
                 detailCode: failure?.DetailCode,
                 formulaContext: "SharedFormula",
+                formulaToken: failure?.Token,
+                formulaTokenName: failure?.TokenName,
+                formulaTokenOffset: failure?.TokenOffset));
+        }
+
+        private void ResolveArrayCell(PendingSharedFormulaCell cell, ArrayFormulaDefinition definition) {
+            if (!definition.Contains(cell.Row - 1, cell.Column - 1)) {
+                return;
+            }
+
+            bool formulaTextProjected = false;
+            if (BiffFormulaTextReader.TryRead(
+                definition.FormulaPayload,
+                0,
+                cell.Row - 1,
+                cell.Column - 1,
+                _externSheets,
+                _externalReferences,
+                _sheetNames,
+                _definedNames,
+                out string? formulaText,
+                out BiffFormulaReadFailure? failure)) {
+                if (!string.IsNullOrWhiteSpace(formulaText)) {
+                    formulaTextProjected = _sheet.TryReplaceFormulaText(cell.Row, cell.Column, formulaText!);
+                }
+
+                definition.ArrayFormulaRecord?.AddMatchedFormulaCell(formulaTextProjected);
+                return;
+            }
+
+            definition.ArrayFormulaRecord?.AddMatchedFormulaCell(formulaTextProjected);
+
+            if (!_options.ReportUnsupportedRecords) {
+                return;
+            }
+
+            string failureDescription = failure == null ? "Unsupported array formula tokens" : failure.Description;
+            _diagnostics.Add(new LegacyXlsImportDiagnostic(
+                LegacyXlsDiagnosticSeverity.Info,
+                "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED",
+                $"{failureDescription} Array formula at {A1.ColumnIndexToLetters(cell.Column)}{cell.Row} was imported from its cached result.",
+                sheetName: _sheet.Name,
+                recordOffset: definition.RecordOffset,
+                recordType: (ushort)BiffRecordType.Array,
+                detailCode: failure?.DetailCode,
+                formulaContext: "ArrayFormula",
                 formulaToken: failure?.Token,
                 formulaTokenName: failure?.TokenName,
                 formulaTokenOffset: failure?.TokenOffset));
@@ -341,6 +434,47 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             internal byte[] FormulaPayload { get; }
 
             internal int RecordOffset { get; }
+
+            internal bool Contains(int row, int column) {
+                return ContainsCell(FirstRow, LastRow, FirstColumn, LastColumn, row, column);
+            }
+        }
+
+        private readonly struct ArrayFormulaDefinition {
+            internal ArrayFormulaDefinition(
+                SharedFormulaAnchor anchor,
+                ushort firstRow,
+                ushort lastRow,
+                ushort firstColumn,
+                ushort lastColumn,
+                byte[] formulaPayload,
+                int recordOffset,
+                LegacyXlsArrayFormulaRecord? arrayFormulaRecord = null) {
+                Anchor = anchor;
+                FirstRow = firstRow;
+                LastRow = lastRow;
+                FirstColumn = firstColumn;
+                LastColumn = lastColumn;
+                FormulaPayload = formulaPayload;
+                RecordOffset = recordOffset;
+                ArrayFormulaRecord = arrayFormulaRecord;
+            }
+
+            internal SharedFormulaAnchor Anchor { get; }
+
+            internal ushort FirstRow { get; }
+
+            internal ushort LastRow { get; }
+
+            internal ushort FirstColumn { get; }
+
+            internal ushort LastColumn { get; }
+
+            internal byte[] FormulaPayload { get; }
+
+            internal int RecordOffset { get; }
+
+            internal LegacyXlsArrayFormulaRecord? ArrayFormulaRecord { get; }
 
             internal bool Contains(int row, int column) {
                 return ContainsCell(FirstRow, LastRow, FirstColumn, LastColumn, row, column);
