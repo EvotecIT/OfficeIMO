@@ -92,8 +92,8 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
         return null;
     }
     internal string RenderHtml() {
-        string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
         var o = HtmlRenderContext.Options;
+        string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{HtmlTextEncoder.Encode(Title!, o)}\"";
         if (!UrlOriginPolicy.IsAllowedHttpLink(o, Url)) {
             if (LabelInlines != null) return LabelInlines.RenderHtml();
             return HtmlTextEncoder.Encode(Text, o);

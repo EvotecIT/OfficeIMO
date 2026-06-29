@@ -84,12 +84,12 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
-        string alt = System.Net.WebUtility.HtmlEncode(PlainAlt ?? string.Empty);
-        string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
+        var o = HtmlRenderContext.Options;
+        string alt = HtmlTextEncoder.Encode(PlainAlt ?? string.Empty, o);
+        string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{HtmlTextEncoder.Encode(Title!, o)}\"";
         string size = string.Empty;
         if (Width != null) size += $" width=\"{Width.Value}\"";
         if (Height != null) size += $" height=\"{Height.Value}\"";
-        var o = HtmlRenderContext.Options;
         if (!UrlOriginPolicy.IsAllowedHttpImage(o, Path)) {
             string captionBlocked = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{HtmlTextEncoder.Encode(Caption!, o)}</div>";
             return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt, o) + captionBlocked;
@@ -101,7 +101,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         }
         if (!string.IsNullOrWhiteSpace(LinkUrl) && UrlOriginPolicy.IsAllowedHttpLink(o, LinkUrl!)) {
             string linkExtra = BuildLinkHtmlAttributes(o, LinkUrl!, LinkTarget, LinkRel);
-            string linkTitle = string.IsNullOrEmpty(LinkTitle) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(LinkTitle!)}\"";
+            string linkTitle = string.IsNullOrEmpty(LinkTitle) ? string.Empty : $" title=\"{HtmlTextEncoder.Encode(LinkTitle!, o)}\"";
             img = $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl!, o)}\"{linkTitle}{linkExtra}>{img}</a>";
         }
         string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{HtmlTextEncoder.Encode(Caption!, o)}</div>";
@@ -129,9 +129,9 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
             sb.Append("<source srcset=\"")
                 .Append(HtmlAttributeUrlEncoder.EncodeSrcSet(srcSet, options))
                 .Append('"');
-            AppendAttribute(sb, "media", NormalizeAttributeValue(source.Media));
-            AppendAttribute(sb, "type", NormalizeAttributeValue(source.Type));
-            AppendAttribute(sb, "sizes", NormalizeAttributeValue(source.Sizes));
+            AppendAttribute(sb, "media", NormalizeAttributeValue(source.Media), options);
+            AppendAttribute(sb, "type", NormalizeAttributeValue(source.Type), options);
+            AppendAttribute(sb, "sizes", NormalizeAttributeValue(source.Sizes), options);
             sb.Append(" />");
         }
 
@@ -219,9 +219,9 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         rel = HardenRelForTarget(target, rel);
 
         var sb = new System.Text.StringBuilder();
-        AppendAttribute(sb, "target", target);
-        AppendAttribute(sb, "rel", rel);
-        AppendAttribute(sb, "referrerpolicy", referrerPolicy);
+        AppendAttribute(sb, "target", target, options);
+        AppendAttribute(sb, "rel", rel, options);
+        AppendAttribute(sb, "referrerpolicy", referrerPolicy, options);
         return sb.ToString();
     }
 
@@ -280,7 +280,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         return string.IsNullOrWhiteSpace(value) ? token : value + " " + token;
     }
 
-    private static void AppendAttribute(System.Text.StringBuilder sb, string attributeName, string? value) {
+    private static void AppendAttribute(System.Text.StringBuilder sb, string attributeName, string? value, HtmlOptions? options) {
         if (string.IsNullOrEmpty(value)) {
             return;
         }
@@ -288,7 +288,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         sb.Append(' ')
             .Append(attributeName)
             .Append("=\"")
-            .Append(System.Net.WebUtility.HtmlEncode(value))
+            .Append(HtmlTextEncoder.Encode(value, options))
             .Append('"');
     }
 }

@@ -27,7 +27,7 @@ public sealed class HtmlCommentBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMar
         return handling switch {
             RawHtmlHandling.Allow => Comment,
             RawHtmlHandling.Escape => "<pre class=\"md-raw-html\"><code>" + HtmlTextEncoder.Encode(Comment, o) + "</code></pre>",
-            RawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Comment),
+            RawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Comment, o),
             _ => string.Empty
         };
     }

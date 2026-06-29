@@ -497,6 +497,36 @@ Lead[^1]
     }
 
     [Fact]
+    public void Html_Block_Render_Extension_Can_Use_Active_NonAscii_Encoding_Helpers() {
+        const string markdown = "> åAlpha\r\n";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        MarkdownSourceSlice originalSlice = default;
+        var originalOk = false;
+
+        var options = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        options.BlockRenderExtensions.Add(MarkdownBlockHtmlRenderExtension.CreateContextual(
+            "quote-policy-helpers",
+            typeof(QuoteBlock),
+            (block, context) => {
+                originalOk = context.TryCreateOriginalSourceSlice(block, out originalSlice);
+                return "<aside data-source=\"" + context.EncodeAttributeValue(originalSlice.Text) + "\">"
+                    + context.EncodeText("åbody < &")
+                    + "</aside>";
+            }));
+
+        var html = document.ToHtmlFragment(options);
+
+        Assert.Contains("<aside data-source=\"&gt; åAlpha\">åbody &lt; &amp;</aside>", html, StringComparison.Ordinal);
+        Assert.True(originalOk);
+        Assert.Equal(MarkdownSourceTextKind.Original, originalSlice.TextKind);
+    }
+
+    [Fact]
     public void Markdown_Inline_Render_Extension_Can_Create_Source_Slices_From_Metadata_Source_Spans() {
         const string markdown = "Go [there](https://example.com \"Example\") now.";
         var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
@@ -528,6 +558,36 @@ Lead[^1]
         Assert.True(titleOk);
         Assert.Equal(MarkdownSourceTextKind.Normalized, targetSlice.TextKind);
         Assert.Equal(MarkdownSourceTextKind.Normalized, titleSlice.TextKind);
+    }
+
+    [Fact]
+    public void Html_Inline_Render_Extension_Can_Use_Active_NonAscii_Encoding_Helpers() {
+        const string markdown = "Use `åcode` now.";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        MarkdownSourceSlice sourceSlice = default;
+        var sourceOk = false;
+
+        var options = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        options.SyntaxInlineRenderExtensions.Add(MarkdownSyntaxInlineHtmlRenderExtension.CreateContextual(
+            "inline-policy-helpers",
+            MarkdownSyntaxKind.InlineCodeSpan,
+            (inline, syntaxNode, context) => {
+                sourceOk = context.TryCreateSourceSlice(syntaxNode, out sourceSlice);
+                return "<kbd data-source=\"" + context.EncodeAttributeValue(sourceSlice.Text) + "\">"
+                    + context.EncodeText("åinline < &")
+                    + "</kbd>";
+            }));
+
+        var html = document.ToHtmlFragment(options);
+
+        Assert.Contains("<p>Use <kbd data-source=\"`åcode`\">åinline &lt; &amp;</kbd> now.</p>", html, StringComparison.Ordinal);
+        Assert.True(sourceOk);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, sourceSlice.TextKind);
     }
 
     [Fact]

@@ -36,9 +36,9 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
         return $"[![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(ImageUrl)}{title})]({MarkdownEscaper.EscapeLinkUrl(LinkUrl)}{linkTitle})";
     }
     internal string RenderHtml() {
-        var title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
-        var linkTitle = string.IsNullOrEmpty(LinkTitle) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(LinkTitle!)}\"";
         var o = HtmlRenderContext.Options;
+        var title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{HtmlTextEncoder.Encode(Title!, o)}\"";
+        var linkTitle = string.IsNullOrEmpty(LinkTitle) ? string.Empty : $" title=\"{HtmlTextEncoder.Encode(LinkTitle!, o)}\"";
         bool linkAllowed = UrlOriginPolicy.IsAllowedHttpLink(o, LinkUrl);
         bool imageAllowed = UrlOriginPolicy.IsAllowedHttpImage(o, ImageUrl);
 
@@ -50,10 +50,10 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
             return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl, o)}\"{linkTitle}{extra}>{HtmlTextEncoder.Encode(PlainAlt, o)}</a>";
         }
         if (!linkAllowed) {
-            return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl, o)}\" alt=\"{System.Net.WebUtility.HtmlEncode(PlainAlt)}\"{title}{imgExtra} />";
+            return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl, o)}\" alt=\"{HtmlTextEncoder.Encode(PlainAlt, o)}\"{title}{imgExtra} />";
         }
 
-        return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl, o)}\"{linkTitle}{extra}><img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl, o)}\" alt=\"{System.Net.WebUtility.HtmlEncode(PlainAlt)}\"{title}{imgExtra} /></a>";
+        return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl, o)}\"{linkTitle}{extra}><img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl, o)}\" alt=\"{HtmlTextEncoder.Encode(PlainAlt, o)}\"{title}{imgExtra} /></a>";
     }
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();

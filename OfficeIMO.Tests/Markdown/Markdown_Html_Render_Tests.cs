@@ -278,8 +278,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains(">åAnchor</a>", html, StringComparison.Ordinal);
             Assert.Contains(">åTop</a>", html, StringComparison.Ordinal);
             Assert.Contains("<div class=\"caption\">åCaption</div>", html, StringComparison.Ordinal);
-            Assert.Contains("alt=\"&#229;Alt\"", html, StringComparison.Ordinal);
-            Assert.Contains("title=\"&#229;Title\"", html, StringComparison.Ordinal);
+            Assert.Contains("alt=\"åAlt\"", html, StringComparison.Ordinal);
+            Assert.Contains("title=\"åTitle\"", html, StringComparison.Ordinal);
 
             string documentHtml = doc.ToHtmlDocument(new HtmlOptions {
                 Title = "åDocument",
@@ -299,6 +299,38 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                     BlockExternalHttpImages = true
                 });
             Assert.Contains(">åBadge</a>", blockedLinkedImage, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void HtmlOptions_Can_Render_NonAscii_Attribute_Text_Literally_For_Markdig_Style_Output() {
+            var paragraph = new ParagraphBlock(new InlineSequence()
+                .Link("ålink", "https://example.com/docs", "åLink title")
+                .Image("åImage alt", "https://example.com/image.png", "åImage title")
+                .ImageLink("åBadge", "https://img.example/badge.svg", "https://example.com", "åBadge title", "åBadge link"));
+            var image = new ImageBlock("https://example.com/photo.png", "åBlock alt", "åBlock title", linkUrl: "https://example.com/photo", linkTitle: "åBlock link");
+            image.PictureSources.Add(new ImagePictureSource(
+                "https://example.com/photo.webp",
+                "(min-width: 960px)",
+                "image/webp",
+                "åwide",
+                "https://example.com/photo.webp 1x"));
+            var doc = MarkdownDoc.Create().Add(paragraph).Add(image);
+
+            string html = doc.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            });
+
+            Assert.Contains("title=\"åLink title\"", html, StringComparison.Ordinal);
+            Assert.Contains("alt=\"åImage alt\" title=\"åImage title\"", html, StringComparison.Ordinal);
+            Assert.Contains("title=\"åBadge link\"", html, StringComparison.Ordinal);
+            Assert.Contains("alt=\"åBadge\" title=\"åBadge title\"", html, StringComparison.Ordinal);
+            Assert.Contains("title=\"åBlock link\"", html, StringComparison.Ordinal);
+            Assert.Contains("alt=\"åBlock alt\" title=\"åBlock title\"", html, StringComparison.Ordinal);
+            Assert.Contains("sizes=\"åwide\"", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("&#229;", html, StringComparison.Ordinal);
         }
 
         [Fact]

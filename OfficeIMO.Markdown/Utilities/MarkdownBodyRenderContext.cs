@@ -78,6 +78,21 @@ public sealed class MarkdownBodyRenderContext {
         MarkdownBlockRenderDispatcher.RenderHtml(block, this);
 
     /// <summary>
+    /// Encodes text content with the active HTML escaping policy.
+    /// </summary>
+    public string EncodeText(string? text) => HtmlTextEncoder.Encode(text, Options);
+
+    /// <summary>
+    /// Encodes a quoted HTML attribute value with the active HTML escaping policy.
+    /// </summary>
+    public string EncodeAttributeValue(string? value) => HtmlTextEncoder.Encode(value, Options);
+
+    /// <summary>
+    /// Encodes a URL-bearing HTML attribute value with the active URL and HTML escaping policy.
+    /// </summary>
+    public string EncodeUrlAttribute(string? url) => HtmlAttributeUrlEncoder.Encode(url, Options);
+
+    /// <summary>
     /// Finds the final syntax-tree node associated with a parsed model object, or <c>null</c> for builder-only documents.
     /// </summary>
     public MarkdownSyntaxNode? FindSyntaxNode(object associatedObject) =>

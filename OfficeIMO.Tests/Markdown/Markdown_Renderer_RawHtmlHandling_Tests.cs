@@ -58,6 +58,25 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
         Assert.Contains("&lt;script&gt;alert(1)&lt;/script&gt;", html, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void HtmlOptions_Can_Sanitize_RawHtml_With_NonAscii_Text_Literal_For_Markdig_Style_Output() {
+        const string md = "<details><summary>åTitle</summary><script>åbad</script><u>åok</u></details>";
+        var opts = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            RawHtmlHandling = RawHtmlHandling.Sanitize,
+            EscapeNonAsciiText = false
+        };
+
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(opts);
+
+        Assert.Contains("<summary>åTitle</summary>", html, StringComparison.Ordinal);
+        Assert.Contains("<u>åok</u>", html, StringComparison.Ordinal);
+        Assert.Contains("&lt;script&gt;åbad&lt;/script&gt;", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("&#229;", html, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("type 1 script", "<script>\nalert(1)\n</script>", "<script>", "&lt;script&gt;")]
     [InlineData("type 2 comment", "<!-- keep -->", "<!-- keep -->", "&lt;!-- keep --&gt;")]

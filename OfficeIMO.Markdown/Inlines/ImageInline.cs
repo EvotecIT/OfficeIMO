@@ -28,13 +28,13 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
         return $"![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(Src)}{title})";
     }
     internal string RenderHtml() {
-        var titleAttr = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title)}\"";
         var o = HtmlRenderContext.Options;
+        var titleAttr = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{HtmlTextEncoder.Encode(Title, o)}\"";
         if (!UrlOriginPolicy.IsAllowedHttpImage(o, Src)) {
             return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt, o);
         }
         var extra = ImageHtmlAttributes.BuildImageAttributes(o, Src);
-        return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(Src, o)}\" alt=\"{System.Net.WebUtility.HtmlEncode(PlainAlt)}\"{titleAttr}{extra} />";
+        return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(Src, o)}\" alt=\"{HtmlTextEncoder.Encode(PlainAlt, o)}\"{titleAttr}{extra} />";
     }
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
