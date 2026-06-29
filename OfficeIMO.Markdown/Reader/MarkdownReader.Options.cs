@@ -37,6 +37,7 @@ public static partial class MarkdownReader {
             AutolinkTrimSingleTrailingPunctuationOrUnderscore = source.AutolinkTrimSingleTrailingPunctuationOrUnderscore,
             AutolinkRequireLowercaseWwwPrefix = source.AutolinkRequireLowercaseWwwPrefix,
             AutolinkRejectUnderscoreInWwwHost = source.AutolinkRejectUnderscoreInWwwHost,
+            AutolinkRejectUserInfoAuthority = source.AutolinkRejectUserInfoAuthority,
             AutolinkRequireLowercaseBareSchemePrefix = source.AutolinkRequireLowercaseBareSchemePrefix,
             AutolinkBareMailtoDisplayAddressOnly = source.AutolinkBareMailtoDisplayAddressOnly,
             AutolinkValidPreviousCharacters = source.AutolinkValidPreviousCharacters,

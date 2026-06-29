@@ -198,10 +198,13 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "unicode-http-domain", "Visit https://пример.рф/path now" };
         yield return new object[] { "unicode-http-path", "Visit https://example.com/ścieżka?q=zażółć now" };
         yield return new object[] { "http-url-path-tilde", "Visit https://example.com/path~tilde now" };
+        yield return new object[] { "http-url-userinfo-stays-literal", "Visit https://user@example.com/path now" };
         yield return new object[] { "www-url-path-tilde", "Visit www.example.com/path~tilde now" };
+        yield return new object[] { "www-url-userinfo-stays-literal", "Visit www.user@example.com/path now" };
         yield return new object[] { "unicode-www-domain", "Visit www.пример.рф/path now" };
         yield return new object[] { "unicode-ftp-domain", "Visit ftp://пример.рф/path now" };
         yield return new object[] { "ftp-url", "Visit ftp://example.com/file.txt now" };
+        yield return new object[] { "ftp-url-userinfo-stays-literal", "Visit ftp://user@example.com/file now" };
         yield return new object[] { "ftp-url-query-ampersand", "Visit ftp://example.com/path?q=1&next=2 now" };
         yield return new object[] { "ftp-url-query-parens", "Visit ftp://example.com/search?q=(x) now" };
         yield return new object[] { "ftp-url-trailing-dot", "Visit ftp://example.com/file.txt. now" };
@@ -322,6 +325,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         officeOptions.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
         officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
         officeOptions.AutolinkRejectUnderscoreInWwwHost = true;
+        officeOptions.AutolinkRejectUserInfoAuthority = true;
         officeOptions.AutolinkEmails = false;
         officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
         officeOptions.AutolinkValidPreviousCharacters = "_('";
@@ -352,6 +356,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         officeOptions.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
         officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
         officeOptions.AutolinkRejectUnderscoreInWwwHost = true;
+        officeOptions.AutolinkRejectUserInfoAuthority = true;
         officeOptions.AutolinkEmails = false;
         officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
         officeOptions.AutolinkValidPreviousCharacters = "_('";

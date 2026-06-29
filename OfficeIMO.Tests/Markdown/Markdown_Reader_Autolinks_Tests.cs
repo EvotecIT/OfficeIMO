@@ -280,6 +280,31 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Markdig_Autolinks_Can_Reject_UserInfo_Authorities_With_Source_And_Writer_Proof() {
+        const string markdown = "Visit https://user@example.com/path and www.user@example.com/path and ftp://user@example.com/file now\n";
+
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.AutolinkRejectUserInfoAuthority = true;
+        options.AutolinkBareSchemePrefixes = new[] { "mailto:", "ftp://", "tel:" };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var written = result.Document.ToMarkdown().Replace("\r\n", "\n").Trim();
+
+        Assert.DoesNotContain("href=", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
+        Assert.DoesNotContain(semanticParagraph.Inlines.Nodes.OfType<LinkInline>(), link => link.Url.Contains("@", StringComparison.Ordinal));
+        Assert.DoesNotContain(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        Assert.Equal(markdown.Trim(), written);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void Gfm_Autolinks_Render_Unicode_Www_Domain_As_Idn_While_Preserving_Source_Literal() {
         const string markdown = "Visit www.пример.рф/path now\n";
 

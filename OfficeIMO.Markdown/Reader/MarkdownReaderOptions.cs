@@ -270,6 +270,13 @@ public sealed class MarkdownReaderOptions {
     public bool AutolinkRejectUnderscoreInWwwHost { get; set; } = false;
 
     /// <summary>
+    /// When <c>true</c>, bare URL autolinks reject authority/user-info forms containing <c>@</c>,
+    /// such as <c>https://user@example.com/path</c>. Markdig <c>UseAutoLinks</c> leaves those
+    /// tokens as literal text; OfficeIMO's legacy behavior can still link them.
+    /// </summary>
+    public bool AutolinkRejectUserInfoAuthority { get; set; } = false;
+
+    /// <summary>
     /// When <c>true</c>, bare scheme autolinks such as <c>mailto:</c>, <c>ftp://</c>, and
     /// <c>tel:</c> require the scheme prefix itself to be lowercase.
     /// </summary>

@@ -109,6 +109,7 @@ public static partial class MarkdownReader {
         int rawEnd = ConsumeLiteralUrl(text, start, options);
         int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
         if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
+        if (options.AutolinkRejectUserInfoAuthority && AutolinkAuthorityContainsUserInfo(text, start, i)) return false;
         if (!options.AutolinkAllowQueryAndFragmentSpecialCharacters && ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
         if (!options.AutolinkAllowBalancedParenthesesWithTrailingPunctuation && ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
         if (!options.AutolinkAllowDomainWithoutPeriod && !HttpAutolinkHasDomainPeriod(text, start, i)) return false;
@@ -128,6 +129,7 @@ public static partial class MarkdownReader {
         int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
         int scanEnd = rawEnd;
         if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
+        if (options.AutolinkRejectUserInfoAuthority && AutolinkAuthorityContainsUserInfo(text, start, i)) return false;
         if (!options.AutolinkAllowQueryAndFragmentSpecialCharacters && ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
         if (!options.AutolinkAllowBalancedParenthesesWithTrailingPunctuation && ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
 
@@ -180,6 +182,27 @@ public static partial class MarkdownReader {
         return true;
     }
 
+    private static bool AutolinkAuthorityContainsUserInfo(string text, int start, int end) {
+        if (string.IsNullOrEmpty(text) || start < 0 || end <= start || end > text.Length) return false;
+
+        int authorityStart = start;
+        int schemeSeparator = text.IndexOf("://", start, end - start, StringComparison.Ordinal);
+        if (schemeSeparator >= start) {
+            authorityStart = schemeSeparator + 3;
+        }
+
+        int authorityEnd = end;
+        for (int i = authorityStart; i < end; i++) {
+            char c = text[i];
+            if (c == '/' || c == '?' || c == '#') {
+                authorityEnd = i;
+                break;
+            }
+        }
+
+        return text.IndexOf('@', authorityStart, authorityEnd - authorityStart) >= 0;
+    }
+
     private static bool TryConsumeBareSchemeAutolink(string text, int start, MarkdownReaderOptions options, out int end, out string label, out string href) {
         end = start;
         label = href = string.Empty;
@@ -204,6 +227,7 @@ public static partial class MarkdownReader {
             int rawEnd = ConsumeLiteralUrl(text, start, options);
             int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
             if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
+            if (options.AutolinkRejectUserInfoAuthority && AutolinkAuthorityContainsUserInfo(text, start, i)) return false;
             if (!options.AutolinkAllowQueryAndFragmentSpecialCharacters && ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
             if (!options.AutolinkAllowBalancedParenthesesWithTrailingPunctuation && ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
             if (!options.AutolinkAllowDomainWithoutPeriod && !HttpAutolinkHasDomainPeriod(text, start, i)) return false;
