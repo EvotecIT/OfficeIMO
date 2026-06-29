@@ -533,6 +533,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsMultipleSectionsAndBlocksNativeDocResave() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithMultipleSectionDescriptors("Section one");
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures);
+                Assert.Equal(LegacyDocUnsupportedFeatureKind.Section, feature.Kind);
+                Assert.Equal("DOC-MULTIPLE-SECTIONS-PRESENT", feature.Code);
+                Assert.Equal("Fib:PlcfSed", feature.DetailCode);
+                Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.Section]);
+                Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-MULTIPLE-SECTIONS-PRESENT"]);
+                Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["Section|DOC-MULTIPLE-SECTIONS-PRESENT|Fib:PlcfSed"]);
+                Assert.Contains("| Section | DOC-MULTIPLE-SECTIONS-PRESENT | Fib:PlcfSed |  |", result.ImportReport.ToMarkdown());
+
+                using WordDocument document = WordDocument.Load(new MemoryStream(docBytes));
+
+                Assert.Contains(document.LegacyDocUnsupportedFeatures, item => item.Kind == LegacyDocUnsupportedFeatureKind.Section);
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                Assert.Contains("DOC-MULTIPLE-SECTIONS-PRESENT", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_ExposesUnsupportedCompoundFeaturesOnProjectedDocument() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Normal load with unsupported features");
 
@@ -1373,6 +1402,27 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithMultipleSectionDescriptors(params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] tableStream = CreateTableStream(text.Length);
+                int fcPlcfSed = tableStream.Length;
+                byte[] sectionDescriptorPlc = CreateTwoSectionDescriptorPlc(text.Length);
+                Array.Resize(ref tableStream, tableStream.Length + sectionDescriptorPlc.Length);
+                Buffer.BlockCopy(sectionDescriptorPlc, 0, tableStream, fcPlcfSed, sectionDescriptorPlc.Length);
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    fcPlcfSed: fcPlcfSed,
+                    lcbPlcfSed: sectionDescriptorPlc.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithDirectCharacterFormatting() {
                 const string text = "plain bold italic\r";
                 const int textOffset = 0x200;
@@ -1488,7 +1538,9 @@ namespace OfficeIMO.Tests {
                 int ccpTxbx = 0,
                 int ccpHdrTxbx = 0,
                 ushort nFib = 0x00D9,
-                ushort fibFlags = 0x0200) {
+                ushort fibFlags = 0x0200,
+                int fcPlcfSed = 0,
+                int lcbPlcfSed = 0) {
                 const int fibLength = 0x1AA;
                 const int textOffset = 0x200;
                 byte[] textBytes = EncodeWindows1252(text);
@@ -1503,6 +1555,8 @@ namespace OfficeIMO.Tests {
                 WriteInt32(stream, 0x60, ccpEdn);
                 WriteInt32(stream, 0x64, ccpTxbx);
                 WriteInt32(stream, 0x68, ccpHdrTxbx);
+                WriteInt32(stream, 0xCA, fcPlcfSed);
+                WriteInt32(stream, 0xCE, lcbPlcfSed);
                 WriteInt32(stream, 0x1A2, 0);
                 WriteInt32(stream, 0x1A6, 21);
                 Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
@@ -1511,6 +1565,14 @@ namespace OfficeIMO.Tests {
                 }
 
                 return stream;
+            }
+
+            private static byte[] CreateTwoSectionDescriptorPlc(int characterCount) {
+                var plc = new byte[36];
+                WriteInt32(plc, 0, 0);
+                WriteInt32(plc, 4, Math.Max(0, characterCount - 1));
+                WriteInt32(plc, 8, characterCount);
+                return plc;
             }
 
             private static byte[] CreateUnicodeWordDocumentStreamWithFormattedTableCell(string text, int textOffset, int chpxFkpOffset) {

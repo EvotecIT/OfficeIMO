@@ -159,6 +159,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile, LegacyDocFib fib) {
             AddUnsupportedFibFlagFeatures(fib);
+            AddUnsupportedSectionFeatures(fib);
 
             AddUnsupportedCompoundEntryIfPresent(
                 compoundFile,
@@ -274,6 +275,32 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     "The legacy DOC FIB indicates picture payloads. Pictures are preserved in the source file but are not projected into the OfficeIMO document.",
                     detailCode: "Fib:FHasPic"));
             }
+        }
+
+        private void AddUnsupportedSectionFeatures(LegacyDocFib fib) {
+            if (!TryGetSectionDescriptorCount(fib, out int sectionCount) || sectionCount <= 1) {
+                return;
+            }
+
+            AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
+                LegacyDocUnsupportedFeatureKind.Section,
+                "DOC-MULTIPLE-SECTIONS-PRESENT",
+                $"The legacy DOC contains {sectionCount} section descriptor records. Only the first section page setup is projected into the OfficeIMO document.",
+                detailCode: "Fib:PlcfSed"));
+        }
+
+        private static bool TryGetSectionDescriptorCount(LegacyDocFib fib, out int sectionCount) {
+            sectionCount = 0;
+            if (fib.LcbPlcfSed == 0) {
+                return true;
+            }
+
+            if (fib.LcbPlcfSed < 20 || (fib.LcbPlcfSed - 4) % 16 != 0) {
+                return false;
+            }
+
+            sectionCount = (fib.LcbPlcfSed - 4) / 16;
+            return true;
         }
 
         private void AddUnsupportedDataStreamFeatureIfPresent(OfficeCompoundFile compoundFile) {

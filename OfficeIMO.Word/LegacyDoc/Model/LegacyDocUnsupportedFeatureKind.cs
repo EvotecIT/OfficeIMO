@@ -44,6 +44,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         HeaderFooter,
 
         /// <summary>
+        /// Multiple legacy DOC sections exist but are not projected yet.
+        /// </summary>
+        Section,
+
+        /// <summary>
         /// Footnote story text exists but is not projected yet.
         /// </summary>
         Footnote,

@@ -269,6 +269,9 @@ just to reserve names.
   - [x] Project single-section page size, orientation, margins, header/footer
     distance, and gutter from DOC `PlcfSed`/`Sepx` records into normal
     OfficeIMO section properties.
+  - [x] Report multiple section descriptor records as unsupported/preserve-only
+    before multi-section projection exists, so native DOC re-save is blocked
+    instead of flattening section boundaries.
   - [ ] Add multi-section breaks, headers, footers, footnotes, and endnotes as
     separate fixture-backed slices.
 - [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
