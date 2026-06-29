@@ -179,7 +179,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                if (!hasCurrentRun || format.Bold != currentFormat.Bold || format.Italic != currentFormat.Italic) {
+                if (!hasCurrentRun || !format.Equals(currentFormat)) {
                     FlushRun();
                     currentFormat = format;
                     hasCurrentRun = true;
@@ -201,7 +201,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return;
                 }
 
-                currentRuns.Add(new LegacyDocTextRun(runText.ToString(), currentFormat.Bold, currentFormat.Italic));
+                currentRuns.Add(new LegacyDocTextRun(
+                    runText.ToString(),
+                    currentFormat.Bold,
+                    currentFormat.Italic,
+                    currentFormat.Underline,
+                    currentFormat.FontSizeHalfPoints,
+                    currentFormat.ColorHex));
                 runText.Clear();
             }
         }

@@ -3,6 +3,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const int OleSectorSize = 512;
         private const ushort SprmCFBold = 0x0835;
         private const ushort SprmCFItalic = 0x0836;
+        private const ushort SprmCKul = 0x2A3E;
+        private const ushort SprmCIco = 0x2A42;
+        private const ushort SprmCHps = 0x4A43;
+        private const ushort SprmCCv = 0x6870;
 
         internal static IReadOnlyList<LegacyDocCharacterFormatRange> ReadCharacterFormatting(
             byte[] wordDocumentStream,
@@ -87,7 +91,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 LegacyDocCharacterFormat format = ReadGrpprl(wordDocumentStream, grpprlOffset, cbGrpprl);
-                if (format.Bold || format.Italic) {
+                if (format.HasFormatting) {
                     ranges.Add(new LegacyDocCharacterFormatRange(fcStart, fcEnd, format));
                 }
             }
@@ -97,6 +101,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int end = offset + count;
             bool bold = false;
             bool italic = false;
+            LegacyDocUnderlineKind? underline = null;
+            int? fontSizeHalfPoints = null;
+            string? colorHex = null;
 
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
@@ -116,6 +123,46 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmCKul) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    underline = MapUnderline(bytes[offset + 2]);
+                    offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmCIco) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    colorHex = MapIndexedColor(bytes[offset + 2]);
+                    offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmCHps) {
+                    if (offset + 4 > end) {
+                        break;
+                    }
+
+                    fontSizeHalfPoints = LegacyDocFib.ReadUInt16(bytes, offset + 2);
+                    offset += 4;
+                    continue;
+                }
+
+                if (sprm == SprmCCv) {
+                    if (offset + 6 > end) {
+                        break;
+                    }
+
+                    colorHex = ReadColorRef(bytes, offset + 2);
+                    offset += 6;
+                    continue;
+                }
+
                 if (!TryGetSprmOperandLength(bytes, offset, end, out int operandLength)) {
                     break;
                 }
@@ -123,7 +170,106 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 offset += 2 + operandLength;
             }
 
-            return new LegacyDocCharacterFormat(bold, italic);
+            return new LegacyDocCharacterFormat(bold, italic, underline, fontSizeHalfPoints, colorHex);
+        }
+
+        private static LegacyDocUnderlineKind? MapUnderline(byte value) {
+            switch (value) {
+                case 0:
+                case 5:
+                    return null;
+                case 1:
+                    return LegacyDocUnderlineKind.Single;
+                case 2:
+                    return LegacyDocUnderlineKind.Words;
+                case 3:
+                    return LegacyDocUnderlineKind.Double;
+                case 4:
+                    return LegacyDocUnderlineKind.Dotted;
+                case 6:
+                    return LegacyDocUnderlineKind.Thick;
+                case 7:
+                    return LegacyDocUnderlineKind.Dash;
+                case 8:
+                    return LegacyDocUnderlineKind.DotDash;
+                case 9:
+                    return LegacyDocUnderlineKind.DotDotDash;
+                case 10:
+                    return LegacyDocUnderlineKind.Wave;
+                case 11:
+                    return LegacyDocUnderlineKind.DottedHeavy;
+                case 12:
+                    return LegacyDocUnderlineKind.DashedHeavy;
+                case 13:
+                    return LegacyDocUnderlineKind.DashDotHeavy;
+                case 14:
+                    return LegacyDocUnderlineKind.DashDotDotHeavy;
+                case 15:
+                    return LegacyDocUnderlineKind.WavyHeavy;
+                case 16:
+                    return LegacyDocUnderlineKind.DashLong;
+                case 17:
+                    return LegacyDocUnderlineKind.WavyDouble;
+                case 18:
+                    return LegacyDocUnderlineKind.DashLongHeavy;
+                default:
+                    return null;
+            }
+        }
+
+        private static string? MapIndexedColor(byte value) {
+            switch (value) {
+                case 0:
+                    return null;
+                case 1:
+                    return "000000";
+                case 2:
+                    return "0000ff";
+                case 3:
+                    return "00ffff";
+                case 4:
+                    return "00ff00";
+                case 5:
+                    return "ff00ff";
+                case 6:
+                    return "ff0000";
+                case 7:
+                    return "ffff00";
+                case 8:
+                    return "ffffff";
+                case 9:
+                    return "000080";
+                case 10:
+                    return "008080";
+                case 11:
+                    return "008000";
+                case 12:
+                    return "800080";
+                case 13:
+                    return "800000";
+                case 14:
+                    return "808000";
+                case 15:
+                    return "808080";
+                case 16:
+                    return "c0c0c0";
+                default:
+                    return null;
+            }
+        }
+
+        private static string ReadColorRef(byte[] bytes, int offset) {
+            var chars = new char[6];
+            WriteHexByte(chars, 0, bytes[offset]);
+            WriteHexByte(chars, 2, bytes[offset + 1]);
+            WriteHexByte(chars, 4, bytes[offset + 2]);
+            return new string(chars);
+        }
+
+        private static void WriteHexByte(char[] destination, int offset, byte value) {
+            const string hex = "0123456789abcdef";
+            destination[offset] = hex[value >> 4];
+            destination[offset + 1] = hex[value & 0x0F];
         }
 
         private static bool TryGetSprmOperandLength(byte[] bytes, int sprmOffset, int end, out int operandLength) {

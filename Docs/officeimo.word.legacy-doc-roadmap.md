@@ -222,7 +222,8 @@ just to reserve names.
 - [ ] Add formatting projection for run/paragraph styles only when each mapping
   has a fixture and observable OfficeIMO contract.
   - [x] Project direct CHPX bold/italic character runs into OfficeIMO runs.
-  - [ ] Extend character projection to underline, font, size, and color.
+  - [x] Project direct CHPX underline, size, and color runs into OfficeIMO runs.
+  - [ ] Extend character projection to font family through the DOC font table.
   - [ ] Add paragraph style/properties projection after character runs are stable.
 - [ ] Add common table projection after paragraph/run projection is stable.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as

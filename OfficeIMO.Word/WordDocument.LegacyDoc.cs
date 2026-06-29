@@ -2,6 +2,7 @@ using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 using OfficeIMO.Word.LegacyDoc.Model;
 using DocumentFormat.OpenXml.ExtendedProperties;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
@@ -98,13 +99,92 @@ namespace OfficeIMO.Word {
             WordParagraph paragraph = section.AddParagraph(string.Empty);
             foreach (LegacyDocTextRun legacyRun in paragraphRuns) {
                 WordParagraph run = paragraph.AddText(legacyRun.Text);
-                if (legacyRun.Bold) {
-                    run.SetBold();
-                }
+                ApplyLegacyDocRunFormatting(run, legacyRun);
+            }
+        }
 
-                if (legacyRun.Italic) {
-                    run.SetItalic();
-                }
+        private static void ApplyLegacyDocRunFormatting(WordParagraph run, LegacyDocTextRun legacyRun) {
+            if (legacyRun.Bold) {
+                run.SetBold();
+            }
+
+            if (legacyRun.Italic) {
+                run.SetItalic();
+            }
+
+            if (legacyRun.Underline != null && TryMapUnderline(legacyRun.Underline.Value, out UnderlineValues underline)) {
+                run.Underline = underline;
+            }
+
+            if (legacyRun.FontSizeHalfPoints != null) {
+                RunProperties runProperties = run._runProperties ?? new RunProperties();
+                run._runProperties = runProperties;
+                runProperties.FontSize = new FontSize {
+                    Val = legacyRun.FontSizeHalfPoints.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                };
+            }
+
+            if (!string.IsNullOrEmpty(legacyRun.ColorHex)) {
+                run.ColorHex = legacyRun.ColorHex!;
+            }
+        }
+
+        private static bool TryMapUnderline(LegacyDocUnderlineKind underline, out UnderlineValues value) {
+            switch (underline) {
+                case LegacyDocUnderlineKind.Single:
+                    value = UnderlineValues.Single;
+                    return true;
+                case LegacyDocUnderlineKind.Words:
+                    value = UnderlineValues.Words;
+                    return true;
+                case LegacyDocUnderlineKind.Double:
+                    value = UnderlineValues.Double;
+                    return true;
+                case LegacyDocUnderlineKind.Dotted:
+                    value = UnderlineValues.Dotted;
+                    return true;
+                case LegacyDocUnderlineKind.Thick:
+                    value = UnderlineValues.Thick;
+                    return true;
+                case LegacyDocUnderlineKind.Dash:
+                    value = UnderlineValues.Dash;
+                    return true;
+                case LegacyDocUnderlineKind.DotDash:
+                    value = UnderlineValues.DotDash;
+                    return true;
+                case LegacyDocUnderlineKind.DotDotDash:
+                    value = UnderlineValues.DotDotDash;
+                    return true;
+                case LegacyDocUnderlineKind.Wave:
+                    value = UnderlineValues.Wave;
+                    return true;
+                case LegacyDocUnderlineKind.DottedHeavy:
+                    value = UnderlineValues.DottedHeavy;
+                    return true;
+                case LegacyDocUnderlineKind.DashedHeavy:
+                    value = UnderlineValues.DashedHeavy;
+                    return true;
+                case LegacyDocUnderlineKind.DashDotHeavy:
+                    value = UnderlineValues.DashDotHeavy;
+                    return true;
+                case LegacyDocUnderlineKind.DashDotDotHeavy:
+                    value = UnderlineValues.DashDotDotHeavy;
+                    return true;
+                case LegacyDocUnderlineKind.WavyHeavy:
+                    value = UnderlineValues.WavyHeavy;
+                    return true;
+                case LegacyDocUnderlineKind.DashLong:
+                    value = UnderlineValues.DashLong;
+                    return true;
+                case LegacyDocUnderlineKind.WavyDouble:
+                    value = UnderlineValues.WavyDouble;
+                    return true;
+                case LegacyDocUnderlineKind.DashLongHeavy:
+                    value = UnderlineValues.DashLongHeavy;
+                    return true;
+                default:
+                    value = default;
+                    return false;
             }
         }
 

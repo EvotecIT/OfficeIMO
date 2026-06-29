@@ -87,6 +87,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDirectUnderlineSizeAndColorRuns() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithExtendedDirectCharacterFormatting();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph[] runs = result.Document.Paragraphs.ToArray();
+            Assert.Equal(5, runs.Length);
+            Assert.Equal("plain ", runs[0].Text);
+            Assert.Null(runs[0].Underline);
+            Assert.Equal("under ", runs[1].Text);
+            Assert.Equal(UnderlineValues.Single, runs[1].Underline);
+            Assert.Equal("sized ", runs[2].Text);
+            Assert.Equal(14, runs[2].FontSize);
+            Assert.Equal("red ", runs[3].Text);
+            Assert.Equal("ff0000", runs[3].ColorHex);
+            Assert.Equal("direct", runs[4].Text);
+            Assert.Equal("336699", runs[4].ColorHex);
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_RoutesOleDocIntoProjectedWordDocument() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -424,6 +445,22 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithExtendedDirectCharacterFormatting() {
+                const string text = "plain under sized red direct\r";
+                const int textOffset = 0x200;
+                const int chpxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExtendedCharacterFormatting(text, textOffset, chpxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithCharacterBinTable(text.Length, textOffset, chpxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateCompoundWithoutWordDocumentStream() {
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
@@ -484,6 +521,44 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
+            private static byte[] CreateUnicodeWordDocumentStreamWithExtendedCharacterFormatting(string text, int textOffset, int chpxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(chpxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0xFA, 21);
+                WriteInt32(stream, 0xFE, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int underStart = textOffset + ("plain ".Length * 2);
+                int sizedStart = underStart + ("under ".Length * 2);
+                int redStart = sizedStart + ("sized ".Length * 2);
+                int directStart = redStart + ("red ".Length * 2);
+                int paragraphMarkStart = directStart + ("direct".Length * 2);
+                int end = paragraphMarkStart + 2;
+                WriteChpxFkp(
+                    stream,
+                    chpxFkpOffset,
+                    new[] { textOffset, underStart, sizedStart, redStart, directStart, paragraphMarkStart, end },
+                    new Dictionary<int, byte[]> {
+                        [1] = CreateSingleSprmChpx(0x2A3E, 1),
+                        [2] = CreateSingleSprmChpx(0x4A43, 28, 0),
+                        [3] = CreateSingleSprmChpx(0x2A42, 6),
+                        [4] = CreateSingleSprmChpx(0x6870, 0x33, 0x66, 0x99, 0)
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
             private static byte[] CreateTableStream(int characterCount) {
                 const int textOffset = 0x200;
                 var table = new byte[21];
@@ -536,10 +611,44 @@ namespace OfficeIMO.Tests {
                 stream[fkpOffset + 511] = checked((byte)runCount);
             }
 
+            private static void WriteChpxFkp(byte[] stream, int fkpOffset, int[] fileCharacterPositions, IReadOnlyDictionary<int, byte[]> chpxByRunIndex) {
+                int runCount = fileCharacterPositions.Length - 1;
+                for (int i = 0; i < fileCharacterPositions.Length; i++) {
+                    WriteInt32(stream, fkpOffset + (i * 4), fileCharacterPositions[i]);
+                }
+
+                int rgbOffset = fkpOffset + (fileCharacterPositions.Length * 4);
+                int chpxOffset = 0xE0;
+                for (int i = 0; i < runCount; i++) {
+                    if (!chpxByRunIndex.TryGetValue(i, out byte[]? chpx)) {
+                        continue;
+                    }
+
+                    chpxOffset = AlignToEven(chpxOffset);
+                    stream[rgbOffset + i] = checked((byte)(chpxOffset / 2));
+                    Buffer.BlockCopy(chpx, 0, stream, fkpOffset + chpxOffset, chpx.Length);
+                    chpxOffset += chpx.Length;
+                }
+
+                stream[fkpOffset + 511] = checked((byte)runCount);
+            }
+
             private static void WriteSingleToggleChpx(byte[] stream, int offset, ushort sprm) {
                 stream[offset] = 3;
                 WriteUInt16(stream, offset + 1, sprm);
                 stream[offset + 3] = 1;
+            }
+
+            private static byte[] CreateSingleSprmChpx(ushort sprm, params byte[] operand) {
+                var chpx = new byte[3 + operand.Length];
+                chpx[0] = checked((byte)(2 + operand.Length));
+                WriteUInt16(chpx, 1, sprm);
+                Buffer.BlockCopy(operand, 0, chpx, 3, operand.Length);
+                return chpx;
+            }
+
+            private static int AlignToEven(int value) {
+                return value % 2 == 0 ? value : value + 1;
             }
 
             private static byte[] CreateSummaryInformationPropertySet(DateTime created, DateTime modified) {
