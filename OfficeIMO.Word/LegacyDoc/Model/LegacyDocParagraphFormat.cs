@@ -30,7 +30,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null,
             IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings = null,
             LegacyDocTableCellMargins? defaultTableCellMargins = null,
-            bool hasMergedTableCells = false) {
+            bool hasMergedTableCells = false,
+            LegacyDocParagraphShading? paragraphShading = null) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -81,6 +82,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ? defaultTableCellMargins
                 : null;
             HasMergedTableCells = hasMergedTableCells;
+            ParagraphShading = paragraphShading.HasValue && paragraphShading.Value.HasAny
+                ? paragraphShading
+                : null;
         }
 
         internal LegacyDocParagraphAlignment? Alignment { get; }
@@ -143,6 +147,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool HasMergedTableCells { get; }
 
+        internal LegacyDocParagraphShading? ParagraphShading { get; }
+
         internal bool HasFormatting => Alignment != null
             || StyleIndex != null
             || SpacingBeforeTwips != null
@@ -171,7 +177,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || TableCellMargins.Count > 0
             || TableCellShadings.Count > 0
             || DefaultTableCellMargins != null
-            || HasMergedTableCells;
+            || HasMergedTableCells
+            || ParagraphShading != null;
 
         internal static LegacyDocParagraphFormat Default { get; } = new LegacyDocParagraphFormat(null);
 
@@ -205,7 +212,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && TableCellMarginsEqual(TableCellMargins, other.TableCellMargins)
                 && TableCellShadingsEqual(TableCellShadings, other.TableCellShadings)
                 && DefaultTableCellMargins.Equals(other.DefaultTableCellMargins)
-                && HasMergedTableCells == other.HasMergedTableCells;
+                && HasMergedTableCells == other.HasMergedTableCells
+                && ParagraphShading.Equals(other.ParagraphShading);
         }
 
         public override bool Equals(object? obj) {
@@ -234,6 +242,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + TableRowIsHeader.GetHashCode();
             hash = (hash * 31) + TableAlignment.GetHashCode();
             hash = (hash * 31) + HasMergedTableCells.GetHashCode();
+            hash = (hash * 31) + ParagraphShading.GetHashCode();
             foreach (LegacyDocTableCellHorizontalMerge merge in TableCellHorizontalMerges) {
                 hash = (hash * 31) + merge.GetHashCode();
             }

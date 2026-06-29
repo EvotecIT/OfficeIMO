@@ -20,6 +20,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? keepWithNext = null;
             bool? pageBreakBefore = null;
             bool? avoidWidowAndOrphan = null;
+            LegacyDocParagraphShading? paragraphShading = null;
             IReadOnlyList<LegacyDocTabStop>? tabStops = null;
             ushort? styleIndex = null;
             foreach (OpenXmlElement property in paragraphProperties.ChildElements) {
@@ -48,11 +49,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case WidowControl widowControl:
                         avoidWidowAndOrphan = ReadOnOffValue(widowControl);
                         break;
+                    case Shading shading:
+                        paragraphShading = ReadSupportedParagraphShading(shading);
+                        break;
                     case Tabs tabs:
                         tabStops = ReadSupportedTabStops(tabs);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, alignment, spacing, indentation, pagination flags, and tab stops. Unsupported paragraph property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, alignment, spacing, indentation, pagination flags, tab stops, and palette-backed paragraph shading. Unsupported paragraph property: {property.LocalName}.");
                 }
             }
 
@@ -84,7 +88,27 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 null,
                 null,
                 null,
-                null);
+                null,
+                paragraphShading);
+        }
+
+        private static LegacyDocParagraphShading ReadSupportedParagraphShading(Shading shading) {
+            ShadingPatternValues? pattern = shading.Val?.Value;
+            if (pattern != null && pattern != ShadingPatternValues.Clear) {
+                throw new NotSupportedException("Native DOC saving supports paragraph shading only for clear fill patterns.");
+            }
+
+            string? fillColorHex = shading.Fill?.Value;
+            if (string.IsNullOrWhiteSpace(fillColorHex)
+                || string.Equals(fillColorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
+                return default;
+            }
+
+            if (!LegacyDocColorPalette.TryGetIcoForHex(fillColorHex, out _)) {
+                throw new NotSupportedException("Native DOC saving supports paragraph shading only for Word 97-2003 palette fill colors.");
+            }
+
+            return new LegacyDocParagraphShading(fillColorHex);
         }
 
         private static IReadOnlyList<LegacyDocTabStop> ReadSupportedTabStops(Tabs tabs) {

@@ -470,6 +470,10 @@ namespace OfficeIMO.Word {
                 paragraph.AvoidWidowAndOrphan = true;
             }
 
+            if (paragraphFormat.ParagraphShading != null && !string.IsNullOrEmpty(paragraphFormat.ParagraphShading.Value.FillColorHex)) {
+                paragraph.ShadingFillColorHex = paragraphFormat.ParagraphShading.Value.FillColorHex!;
+            }
+
             foreach (LegacyDocTabStop tabStop in paragraphFormat.TabStops) {
                 if (TryMapTabStopAlignment(tabStop.Alignment, out TabStopValues tabAlignment)
                     && TryMapTabStopLeader(tabStop.Leader, out TabStopLeaderCharValues leader)) {
@@ -644,6 +648,15 @@ namespace OfficeIMO.Word {
 
             if (paragraphFormat.AvoidWidowAndOrphan == true) {
                 properties.Append(new WidowControl());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.ParagraphShading != null && !string.IsNullOrEmpty(paragraphFormat.ParagraphShading.Value.FillColorHex)) {
+                properties.Append(new Shading {
+                    Val = ShadingPatternValues.Clear,
+                    Color = "auto",
+                    Fill = paragraphFormat.ParagraphShading.Value.FillColorHex!
+                });
                 hasProperties = true;
             }
 

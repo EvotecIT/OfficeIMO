@@ -276,6 +276,9 @@ just to reserve names.
     keep-lines, keep-next, page-break-before, and widow-control formatting into
     normal OfficeIMO paragraphs and custom DOCX style definitions with
     synthetic legacy DOC fixture proof.
+  - [x] Project simple palette-backed direct PAPX paragraph shading from DOC
+    `sprmPShd80` into normal OfficeIMO paragraphs with synthetic legacy DOC
+    fixture proof.
   - [x] Project direct PAPX paragraph tab-stop changes, including clear stops,
     into normal OfficeIMO paragraph `TabStops` with synthetic legacy DOC fixture
     proof.
@@ -420,6 +423,9 @@ just to reserve names.
   - [x] Write direct paragraph pagination flags and reload keep-lines,
     keep-next, page-break-before, and widow-control formatting through the
     legacy reader.
+  - [x] Write simple palette-backed paragraph shading with `sprmPShd80`, then
+    reload it through the legacy reader while blocking non-palette fill colors
+    before bytes are committed.
   - [x] Write built-in paragraph style PAPX records and reload them through
     the legacy reader.
   - [x] Write direct paragraph tab-stop PAPX records, including clear stops,

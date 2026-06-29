@@ -498,6 +498,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphShading() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithParagraphShading();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph[] paragraphs = result.Document.Paragraphs.ToArray();
+            Assert.Equal(2, paragraphs.Length);
+            Assert.Equal("plain", paragraphs[0].Text);
+            Assert.Equal(string.Empty, paragraphs[0].ShadingFillColorHex);
+            Assert.Equal("shaded", paragraphs[1].Text);
+            Assert.Equal("ff0000", paragraphs[1].ShadingFillColorHex);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphTabStops() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithParagraphTabStops();
 
@@ -1557,6 +1572,56 @@ namespace OfficeIMO.Tests {
                 Assert.True(paragraphs[1].KeepWithNext);
                 Assert.True(paragraphs[1].PageBreakBefore);
                 Assert.True(paragraphs[1].AvoidWidowAndOrphan);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphShadingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("plain");
+                    WordParagraph shaded = document.AddParagraph("shaded");
+                    shaded.ShadingFillColorHex = "ff0000";
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x2D, 0x44, 0xC0, 0x00),
+                    "Expected the native DOC paragraph property stream to contain sprmPShd80.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
+                Assert.Equal(2, paragraphs.Length);
+                Assert.Equal("plain", paragraphs[0].Text);
+                Assert.Equal(string.Empty, paragraphs[0].ShadingFillColorHex);
+                Assert.Equal("shaded", paragraphs[1].Text);
+                Assert.Equal("ff0000", paragraphs[1].ShadingFillColorHex);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedParagraphShadingColorBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph paragraph = document.AddParagraph("Custom");
+                paragraph.ShadingFillColorHex = "336699";
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("palette fill colors", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -3104,6 +3169,22 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithParagraphShading() {
+                const string text = "plain\rshaded\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithParagraphShading(text, textOffset, papxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithParagraphTabStops() {
                 const string text = "plain\rtabs\rclear\r";
                 const int textOffset = 0x200;
@@ -3847,6 +3928,38 @@ namespace OfficeIMO.Tests {
                             CreateParagraphSprm(0x2406, 1),
                             CreateParagraphSprm(0x2407, 1),
                             CreateParagraphSprm(0x2431, 1))
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
+            private static byte[] CreateUnicodeWordDocumentStreamWithParagraphShading(string text, int textOffset, int papxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int shadedStart = textOffset + ("plain\r".Length * 2);
+                int end = shadedStart + ("shaded\r".Length * 2);
+                ushort redBackground = CreateShd80(backgroundIco: 6);
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, shadedStart, end },
+                    new Dictionary<int, byte[]> {
+                        [1] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x442D, (byte)(redBackground & 0xFF), (byte)(redBackground >> 8)))
                     });
 
                 if (stream.Length < fibLength) {

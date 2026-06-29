@@ -16,6 +16,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPDyaLine = 0x6412;
         private const ushort SprmPDyaBefore = 0xA413;
         private const ushort SprmPDyaAfter = 0xA414;
+        private const ushort SprmPShd80 = 0x442D;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
         private const ushort SprmTFCantSplit = 0x3403;
@@ -161,6 +162,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? keepWithNext = null;
             bool? pageBreakBefore = null;
             bool? avoidWidowAndOrphan = null;
+            LegacyDocParagraphShading? paragraphShading = null;
             bool? isInTable = null;
             bool? isTableTerminatingParagraph = null;
             var tabStops = new List<LegacyDocTabStop>();
@@ -307,6 +309,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmPShd80) {
+                    if (offset + 4 > end) {
+                        break;
+                    }
+
+                    paragraphShading = ReadParagraphShading(LegacyDocFib.ReadUInt16(bytes, offset + 2));
+                    offset += 4;
+                    continue;
+                }
+
                 if (sprm == SprmPChgTabsPapx) {
                     if (offset + 3 > end) {
                         break;
@@ -428,7 +440,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableCellMargins,
                 tableCellShadings,
                 defaultTableCellMargins,
-                hasMergedTableCells);
+                hasMergedTableCells,
+                paragraphShading);
+        }
+
+        private static LegacyDocParagraphShading ReadParagraphShading(ushort shd80) {
+            if (shd80 == 0 || shd80 == Shd80Nil) {
+                return default;
+            }
+
+            byte backgroundIco = (byte)((shd80 >> 5) & 0x1F);
+            string? fillColorHex = LegacyDocColorPalette.GetHexForIco(backgroundIco);
+            return string.IsNullOrEmpty(fillColorHex)
+                ? default
+                : new LegacyDocParagraphShading(fillColorHex);
         }
 
         private static bool TryReadTableDefinition(

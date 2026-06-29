@@ -15,6 +15,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPDyaLine = 0x6412;
         private const ushort SprmPDyaBefore = 0xA413;
         private const ushort SprmPDyaAfter = 0xA414;
+        private const ushort SprmPShd80 = 0x442D;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
         private const ushort SprmTTableHeader = 0x3404;
@@ -133,6 +134,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddTabStopsSprm(grpprl, formatting.TabStops);
             }
 
+            if (formatting.ParagraphShading != null && formatting.ParagraphShading.Value.HasAny) {
+                AddParagraphShadingSprm(grpprl, formatting.ParagraphShading.Value);
+            }
+
             if (formatting.TableCellWidthsTwips.Count > 0) {
                 AddTableDefinitionSprm(grpprl, formatting.TableCellWidthsTwips, formatting.TableCellHorizontalMerges, formatting.TableCellVerticalMerges, formatting.TableCellVerticalAlignments, formatting.TableCellFitTexts, formatting.TableCellNoWraps);
             }
@@ -195,6 +200,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AddInt16Sprm(grpprl, SprmPDyaLine, lineSpacingTwips);
             grpprl.Add(0);
             grpprl.Add(0);
+        }
+
+        private static void AddParagraphShadingSprm(List<byte> grpprl, LegacyDocParagraphShading shading) {
+            if (!LegacyDocColorPalette.TryGetIcoForHex(shading.FillColorHex, out byte backgroundIco) || backgroundIco == 0) {
+                throw new NotSupportedException("Native DOC saving supports paragraph shading only for Word 97-2003 palette fill colors.");
+            }
+
+            ushort shd80 = (ushort)(backgroundIco << 5);
+            grpprl.Add((byte)(SprmPShd80 & 0xFF));
+            grpprl.Add((byte)(SprmPShd80 >> 8));
+            grpprl.Add((byte)(shd80 & 0xFF));
+            grpprl.Add((byte)(shd80 >> 8));
         }
 
         private static void AddTableRowHeightSprm(List<byte> grpprl, int rowHeightTwips, bool isExact) {
@@ -535,7 +552,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             IReadOnlyList<bool>? tableCellFitTexts,
             IReadOnlyList<bool>? tableCellNoWraps,
             IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins,
-            IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings) {
+            IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings,
+            LegacyDocParagraphShading? paragraphShading = null) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -582,6 +600,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             TableRowCantSplit = tableRowCantSplit;
             TableRowIsHeader = tableRowIsHeader;
             TableAlignment = tableAlignment;
+            ParagraphShading = paragraphShading.HasValue && paragraphShading.Value.HasAny
+                ? paragraphShading
+                : null;
         }
 
         internal byte? Alignment { get; }
@@ -640,6 +661,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal LegacyDocTableAlignment? TableAlignment { get; }
 
+        internal LegacyDocParagraphShading? ParagraphShading { get; }
+
         internal bool HasFormatting => Alignment != null
             || StyleIndex != null
             || SpacingBeforeTwips != null
@@ -666,7 +689,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || TableRowHeightTwips != null
             || TableRowCantSplit != null
             || TableRowIsHeader != null
-            || TableAlignment != null;
+            || TableAlignment != null
+            || ParagraphShading != null;
 
         internal LegacyDocWritableParagraphFormatting WithTableMarkers(
             bool isTableTerminatingParagraph,
@@ -711,7 +735,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 tableCellFitTexts,
                 tableCellNoWraps,
                 tableCellMargins,
-                tableCellShadings);
+                tableCellShadings,
+                ParagraphShading);
         }
 
         public bool Equals(LegacyDocWritableParagraphFormatting other) {
@@ -742,7 +767,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && TableRowHeightIsExact == other.TableRowHeightIsExact
                 && TableRowCantSplit == other.TableRowCantSplit
                 && TableRowIsHeader == other.TableRowIsHeader
-                && TableAlignment == other.TableAlignment;
+                && TableAlignment == other.TableAlignment
+                && ParagraphShading.Equals(other.ParagraphShading);
         }
 
         public override bool Equals(object? obj) {
@@ -770,6 +796,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + TableRowCantSplit.GetHashCode();
             hash = (hash * 31) + TableRowIsHeader.GetHashCode();
             hash = (hash * 31) + TableAlignment.GetHashCode();
+            hash = (hash * 31) + ParagraphShading.GetHashCode();
             foreach (LegacyDocTableCellHorizontalMerge merge in TableCellHorizontalMerges) {
                 hash = (hash * 31) + merge.GetHashCode();
             }
