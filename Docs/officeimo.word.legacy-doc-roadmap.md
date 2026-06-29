@@ -245,10 +245,12 @@ just to reserve names.
   - [x] Project direct CHPX strikethrough runs plus stylesheet-level
     strikethrough run formatting into normal OfficeIMO runs and custom DOCX
     style definitions with synthetic legacy DOC fixture proof.
-  - [x] Project direct CHPX double-strikethrough runs into normal OfficeIMO
-    run formatting with synthetic legacy DOC fixture proof.
-  - [x] Project direct CHPX all-caps and small-caps runs into normal OfficeIMO
-    run `CapsStyle` values with synthetic legacy DOC fixture proof.
+  - [x] Project direct CHPX double-strikethrough runs plus stylesheet-level
+    double-strikethrough run formatting into normal OfficeIMO runs and custom
+    DOCX style definitions with synthetic legacy DOC fixture proof.
+  - [x] Project direct CHPX all-caps and small-caps runs plus stylesheet-level
+    caps/small-caps run formatting into normal OfficeIMO runs and custom DOCX
+    style definitions with synthetic legacy DOC fixture proof.
   - [x] Project direct CHPX superscript/subscript runs plus stylesheet-level
     superscript run formatting into normal OfficeIMO runs and custom DOCX style
     definitions with synthetic legacy DOC fixture proof.

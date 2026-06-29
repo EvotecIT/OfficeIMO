@@ -307,6 +307,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelCapsAndDoubleStrike() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelCapsAndDoubleStrike();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph[] paragraphs = result.Document.Paragraphs.ToArray();
+            Assert.Equal(2, paragraphs.Length);
+            Assert.Equal("caps style", paragraphs[0].Text);
+            Assert.Equal("small style", paragraphs[1].Text);
+            Assert.Equal("LegacyDocCapsDouble", paragraphs[0].StyleId);
+            Assert.Equal("LegacyDocSmallCaps", paragraphs[1].StyleId);
+
+            Styles styles = result.Document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style capsStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == "LegacyDocCapsDouble");
+            StyleRunProperties capsProperties = Assert.IsType<StyleRunProperties>(capsStyle.StyleRunProperties);
+            Assert.NotNull(capsProperties.GetFirstChild<Caps>());
+            Assert.NotNull(capsProperties.GetFirstChild<DoubleStrike>());
+
+            Style smallCapsStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == "LegacyDocSmallCaps");
+            StyleRunProperties smallCapsProperties = Assert.IsType<StyleRunProperties>(smallCapsStyle.StyleRunProperties);
+            Assert.NotNull(smallCapsProperties.GetFirstChild<SmallCaps>());
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_RoutesOleDocIntoProjectedWordDocument() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -1811,6 +1836,38 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithStyleLevelCapsAndDoubleStrike() {
+                const string text = "caps style\rsmall style\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] styleSheet = CreateStyleSheet(
+                    CreateParagraphStyleRecord(0, 0x0FFF, "Normal"),
+                    CreateParagraphStyleRecord(
+                        0x0FFF,
+                        0,
+                        "Caps Double",
+                        Array.Empty<byte>(),
+                        CreateStyleCharacterFormatting(
+                            CreateCharacterSprm(0x083B, 1),
+                            CreateCharacterSprm(0x2A53, 1))),
+                    CreateParagraphStyleRecord(
+                        0x0FFF,
+                        0,
+                        "Small Caps",
+                        Array.Empty<byte>(),
+                        CreateStyleCharacterFormatting(CreateCharacterSprm(0x083A, 1))));
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleLevelCapsAndDoubleStrike(text, textOffset, papxFkpOffset, styleSheet.Length);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateCompoundWithoutWordDocumentStream() {
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
@@ -2259,6 +2316,40 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
+            private static byte[] CreateUnicodeWordDocumentStreamWithStyleLevelCapsAndDoubleStrike(string text, int textOffset, int papxFkpOffset, int styleSheetLength) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0xA2, 34);
+                WriteInt32(stream, 0xA6, styleSheetLength);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int secondParagraphStart = textOffset + ("caps style\r".Length * 2);
+                int end = secondParagraphStart + ("small style\r".Length * 2);
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, secondParagraphStart, end },
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x4600, 1, 0)),
+                        [1] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x4600, 2, 0))
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
             private static byte[] CreateTableStream(int characterCount) {
                 const int textOffset = 0x200;
                 var table = new byte[21];
@@ -2286,6 +2377,13 @@ namespace OfficeIMO.Tests {
                 WriteInt32(table, papxPlcOffset, textOffset);
                 WriteInt32(table, papxPlcOffset + 4, textOffset + (characterCount * 2));
                 WriteInt32(table, papxPlcOffset + 8, papxFkpPageNumber);
+                return table;
+            }
+
+            private static byte[] CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(int characterCount, int textOffset, int papxFkpPageNumber, byte[] styleSheet) {
+                byte[] table = CreateUnicodeTableStreamWithParagraphBinTable(characterCount, textOffset, papxFkpPageNumber);
+                Array.Resize(ref table, table.Length + 1 + styleSheet.Length);
+                Buffer.BlockCopy(styleSheet, 0, table, 34, styleSheet.Length);
                 return table;
             }
 
@@ -2333,6 +2431,62 @@ namespace OfficeIMO.Tests {
                 WriteInt32(table, chpxPlcOffset + 4, textOffset + (characterCount * 2));
                 WriteInt32(table, chpxPlcOffset + 8, chpxFkpPageNumber);
                 return table;
+            }
+
+            private static byte[] CreateStyleSheet(params byte[][] styleRecords) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 4);
+                WriteUInt16(stream, checked((ushort)styleRecords.Length));
+                WriteUInt16(stream, 8);
+
+                foreach (byte[] styleRecord in styleRecords) {
+                    WriteUInt16(stream, checked((ushort)styleRecord.Length));
+                    stream.Write(styleRecord, 0, styleRecord.Length);
+                    if ((stream.Position & 1) != 0) {
+                        stream.WriteByte(0);
+                    }
+                }
+
+                return stream.ToArray();
+            }
+
+            private static byte[] CreateParagraphStyleRecord(ushort sti, ushort baseStyleIndex, string name, params byte[][] upxs) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, sti);
+                WriteUInt16(stream, checked((ushort)((baseStyleIndex << 4) | 1)));
+                WriteUInt16(stream, checked((ushort)upxs.Length));
+                WriteUInt16(stream, 0);
+                WriteXstz(stream, name);
+
+                foreach (byte[] upx in upxs) {
+                    WriteUInt16(stream, checked((ushort)upx.Length));
+                    stream.Write(upx, 0, upx.Length);
+                    if ((stream.Position & 1) != 0) {
+                        stream.WriteByte(0);
+                    }
+                }
+
+                return stream.ToArray();
+            }
+
+            private static byte[] CreateStyleCharacterFormatting(params byte[][] sprms) {
+                using var stream = new MemoryStream();
+                foreach (byte[] sprm in sprms) {
+                    stream.Write(sprm, 0, sprm.Length);
+                }
+
+                return stream.ToArray();
+            }
+
+            private static byte[] CreateCharacterSprm(ushort sprm, params byte[] operand) {
+                return CreateParagraphSprm(sprm, operand);
+            }
+
+            private static void WriteXstz(Stream stream, string value) {
+                WriteUInt16(stream, checked((ushort)value.Length));
+                byte[] bytes = System.Text.Encoding.Unicode.GetBytes(value);
+                stream.Write(bytes, 0, bytes.Length);
+                WriteUInt16(stream, 0);
             }
 
             private static void WriteChpxFkp(byte[] stream, int fkpOffset, int[] fileCharacterPositions, int boldRunIndex, int italicRunIndex) {
