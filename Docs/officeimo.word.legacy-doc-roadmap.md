@@ -244,6 +244,8 @@ just to reserve names.
   target file bytes are committed.
 - [x] Implement native writer first slice for simple documents and prove
   OfficeIMO can reload written `.doc` output through the legacy reader.
+- [x] Introduce `WordSaveOptions` and `WordStreamSaveFormat` for explicit native
+  `.doc` stream saves once the native writer first slice was ready.
 - [ ] Expand native writer slices for formatting, tables, and simple
   sections only after preflight blocks all unsupported content.
   - [x] Write direct bold/italic CHPX runs and reload them through the legacy
@@ -335,8 +337,9 @@ dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --configuration Release --fil
 
 ## Remaining Design Choices
 
-- Introduce `WordSaveOptions` and `WordStreamSaveFormat` only when native `.doc`
-  stream writing is implemented. Do not add public options early as placeholders.
+- `WordSaveOptions` and `WordStreamSaveFormat` now exist for native `.doc`
+  stream saves. Keep future save options tied to real implemented behavior
+  rather than reserving placeholder names.
 - Use `AllowLossyLegacyDocSave` only if native writer work reaches a real
   preserve-only import state where an explicit caller override is safer than a
   blanket block.

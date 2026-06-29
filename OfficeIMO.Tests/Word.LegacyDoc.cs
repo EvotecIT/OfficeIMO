@@ -336,6 +336,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveStreamWithLegacyDocFormat_WritesNativeDocAndReloadsThroughLegacyReader() {
+            using var stream = new MemoryStream();
+            using (WordDocument document = WordDocument.Create()) {
+                document.AddParagraph("Native DOC stream");
+                document.Save(stream, new WordSaveOptions {
+                    StreamFormat = WordStreamSaveFormat.LegacyDoc
+                });
+            }
+
+            byte[] bytes = stream.ToArray();
+            Assert.True(bytes.Length > 512);
+            Assert.Equal(0xD0, bytes[0]);
+            Assert.Equal(0xCF, bytes[1]);
+            Assert.Equal(0x11, bytes[2]);
+            Assert.Equal(0xE0, bytes[3]);
+
+            stream.Seek(0, SeekOrigin.Begin);
+            using WordDocument reloaded = WordDocument.Load(stream);
+
+            Assert.True(reloaded.WasLoadedFromLegacyDoc);
+            WordParagraph paragraph = Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text));
+            Assert.Equal("Native DOC stream", paragraph.Text);
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveStreamWithDefaultFormat_KeepsOpenXmlStreamSave() {
+            using var stream = new MemoryStream();
+            using (WordDocument document = WordDocument.Create()) {
+                document.AddParagraph("Default stream format");
+                document.Save(stream, WordSaveOptions.None);
+            }
+
+            byte[] bytes = stream.ToArray();
+            Assert.True(bytes.Length > 4);
+            Assert.Equal((byte)'P', bytes[0]);
+            Assert.Equal((byte)'K', bytes[1]);
+
+            stream.Seek(0, SeekOrigin.Begin);
+            using WordDocument reloaded = WordDocument.Load(stream);
+
+            Assert.False(reloaded.WasLoadedFromLegacyDoc);
+            WordParagraph paragraph = Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text));
+            Assert.Equal("Default stream format", paragraph.Text);
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocPropertiesAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             DateTime created = new DateTime(2026, 6, 29, 10, 0, 0, DateTimeKind.Utc);
