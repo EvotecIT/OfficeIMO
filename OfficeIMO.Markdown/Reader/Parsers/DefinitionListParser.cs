@@ -548,7 +548,7 @@ public static partial class MarkdownReader {
 
             if (CountLeadingIndentColumns(line) < effectiveContinuationIndent) {
                 if (!allowLazyContinuation ||
-                    !ShouldConsumeMarkdigDefinitionLazyContinuation(lines, index)) {
+                    !ShouldConsumeMarkdigDefinitionLazyContinuation(lines, index, definitionSourceLines)) {
                     return consumedLeadingBlankLine;
                 }
 
@@ -581,7 +581,8 @@ public static partial class MarkdownReader {
 
     private static bool ShouldConsumeMarkdigDefinitionLazyContinuation(
         string[] lines,
-        int index) {
+        int index,
+        List<MarkdownSourceLineSlice> definitionSourceLines) {
         if (lines == null || index < 0 || index >= lines.Length) {
             return false;
         }
@@ -600,7 +601,20 @@ public static partial class MarkdownReader {
             return false;
         }
 
+        if (PreviousDefinitionLineIsSetextUnderline(definitionSourceLines)) {
+            return false;
+        }
+
         return true;
+    }
+
+    private static bool PreviousDefinitionLineIsSetextUnderline(List<MarkdownSourceLineSlice> definitionSourceLines) {
+        if (definitionSourceLines == null || definitionSourceLines.Count == 0) {
+            return false;
+        }
+
+        var previous = definitionSourceLines[definitionSourceLines.Count - 1].Text;
+        return TryGetSetextHeadingUnderlineLevel(previous, out _);
     }
 
     private static int GetFirstNonWhitespaceIndex(string line) {

@@ -267,6 +267,48 @@ Term
     }
 
     [Fact]
+    public void DefinitionList_SetextContinuation_Stops_LazyContinuation_Before_FollowingParagraph() {
+        const string markdown = """
+Term
+:   First paragraph
+---
+text
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        Assert.Equal(2, result.Document.Blocks.Count);
+        var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
+        var trailingParagraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[1]);
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var heading = Assert.IsType<HeadingBlock>(Assert.Single(definition.Blocks));
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var headingSyntax = Assert.Single(definitionValue.Children);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal(2, heading.Level);
+        Assert.Equal("First paragraph", heading.Text);
+        Assert.Equal("text", trailingParagraph.Inlines.RenderMarkdown());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 3), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 3), headingSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 4), result.SyntaxTree.Children[1].SourceSpan);
+        Assert.Equal("Term\n:   \n    ## First paragraph\n\ntext", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        Assert.Equal(2, native.Blocks.Count);
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        Assert.Equal("## First paragraph", definitionBody.Value);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 3), definitionBody.SourceSpan);
+        Assert.Contains("Term\n:   Updated\ntext", native.CreateReplaceEdit(definitionBody, "Updated").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void DefinitionList_EmptyMarkdigMarkerContinuation_Strips_FirstContinuationIndent_Source() {
         const string markdown = "Term\n:   \n    code\n";
 
