@@ -367,7 +367,14 @@ namespace OfficeIMO.Word {
                 StringComparer.OrdinalIgnoreCase);
 
             foreach (LegacyDocParagraphStyle legacyStyle in styleSheet.ParagraphStyles) {
-                if (legacyStyle.BuiltInStyle != null || string.IsNullOrWhiteSpace(legacyStyle.StyleId)) {
+                if (legacyStyle.BuiltInStyle != null) {
+                    string builtInStyleId = legacyStyle.BuiltInStyle.Value.ToStringStyle();
+                    Style builtInStyle = GetOrCreateLegacyDocBuiltInStyle(styles, builtInStyleId, legacyStyle.Name);
+                    MergeLegacyDocBuiltInStyleFormatting(builtInStyle, legacyStyle);
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(legacyStyle.StyleId)) {
                     continue;
                 }
 
@@ -375,20 +382,20 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                var style = new Style { Type = StyleValues.Paragraph, StyleId = legacyStyle.StyleId, CustomStyle = true };
-                style.Append(new StyleName { Val = legacyStyle.Name });
-                style.Append(new BasedOn { Val = ResolveLegacyDocBasedOnStyleId(legacyStyle, styleSheet) });
+                var customStyle = new Style { Type = StyleValues.Paragraph, StyleId = legacyStyle.StyleId, CustomStyle = true };
+                customStyle.Append(new StyleName { Val = legacyStyle.Name });
+                customStyle.Append(new BasedOn { Val = ResolveLegacyDocBasedOnStyleId(legacyStyle, styleSheet) });
                 StyleParagraphProperties? styleParagraphProperties = CreateLegacyDocStyleParagraphProperties(legacyStyle.ParagraphFormat);
                 if (styleParagraphProperties != null) {
-                    style.Append(styleParagraphProperties);
+                    customStyle.Append(styleParagraphProperties);
                 }
 
                 StyleRunProperties? styleRunProperties = CreateLegacyDocStyleRunProperties(legacyStyle.CharacterFormat);
                 if (styleRunProperties != null) {
-                    style.Append(styleRunProperties);
+                    customStyle.Append(styleRunProperties);
                 }
 
-                styles.Append(style);
+                styles.Append(customStyle);
             }
 
             styles.Save();

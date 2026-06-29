@@ -346,6 +346,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsBuiltInStyleLevelFormatting() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithBuiltInStyleLevelFormatting();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+            Assert.Equal("built in heading", paragraph.Text);
+            Assert.Equal(WordParagraphStyles.Heading1.ToStringStyle(), paragraph.StyleId);
+
+            Styles styles = result.Document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style headingStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == WordParagraphStyles.Heading1.ToStringStyle());
+            StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(headingStyle.StyleParagraphProperties);
+            Justification justification = Assert.IsType<Justification>(paragraphProperties.GetFirstChild<Justification>());
+            Assert.Equal(JustificationValues.Center, justification.Val!.Value);
+            SpacingBetweenLines spacing = Assert.IsType<SpacingBetweenLines>(paragraphProperties.GetFirstChild<SpacingBetweenLines>());
+            Assert.Equal("240", spacing.Before!.Value);
+            Assert.Equal("120", spacing.After!.Value);
+            StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(headingStyle.StyleRunProperties);
+            Assert.NotNull(runProperties.GetFirstChild<Bold>());
+            Underline underline = Assert.IsType<Underline>(runProperties.GetFirstChild<Underline>());
+            Assert.Equal(UnderlineValues.Single, underline.Val!.Value);
+            Highlight highlight = Assert.IsType<Highlight>(runProperties.GetFirstChild<Highlight>());
+            Assert.Equal(HighlightColorValues.Yellow, highlight.Val!.Value);
+            Color color = Assert.IsType<Color>(runProperties.GetFirstChild<Color>());
+            Assert.Equal("336699", color.Val!.Value);
+            FontSize fontSize = Assert.IsType<FontSize>(runProperties.GetFirstChild<FontSize>());
+            Assert.Equal("32", fontSize.Val!.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_RoutesOleDocIntoProjectedWordDocument() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -1988,6 +2019,38 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithBuiltInStyleLevelFormatting() {
+                const string text = "built in heading\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] styleSheet = CreateStyleSheet(
+                    CreateParagraphStyleRecord(0, 0x0FFF, "Normal"),
+                    CreateParagraphStyleRecord(
+                        1,
+                        0,
+                        "heading 1",
+                        CreateStyleParagraphFormatting(
+                            CreateParagraphSprm(0x2461, 1),
+                            CreateParagraphSprm(0xA413, 0xF0, 0x00),
+                            CreateParagraphSprm(0xA414, 0x78, 0x00)),
+                        CreateStyleCharacterFormatting(
+                            CreateCharacterSprm(0x0835, 1),
+                            CreateCharacterSprm(0x2A3E, 1),
+                            CreateCharacterSprm(0x2A0C, 7),
+                            CreateCharacterSprm(0x6870, 0x33, 0x66, 0x99, 0x00),
+                            CreateCharacterSprm(0x4A43, 0x20, 0x00))));
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithBuiltInStyleLevelFormatting(text, textOffset, papxFkpOffset, styleSheet.Length);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateCompoundWithoutWordDocumentStream() {
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
@@ -2475,6 +2538,37 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
+            private static byte[] CreateUnicodeWordDocumentStreamWithBuiltInStyleLevelFormatting(string text, int textOffset, int papxFkpOffset, int styleSheetLength) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0xA2, 34);
+                WriteInt32(stream, 0xA6, styleSheetLength);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, textOffset + textBytes.Length },
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x4600, 1, 0))
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
             private static byte[] CreateTableStream(int characterCount) {
                 const int textOffset = 0x200;
                 var table = new byte[21];
@@ -2589,6 +2683,16 @@ namespace OfficeIMO.Tests {
                     if ((stream.Position & 1) != 0) {
                         stream.WriteByte(0);
                     }
+                }
+
+                return stream.ToArray();
+            }
+
+            private static byte[] CreateStyleParagraphFormatting(params byte[][] sprms) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0);
+                foreach (byte[] sprm in sprms) {
+                    stream.Write(sprm, 0, sprm.Length);
                 }
 
                 return stream.ToArray();

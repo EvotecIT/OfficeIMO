@@ -261,6 +261,9 @@ just to reserve names.
     keep-lines, keep-next, page-break-before, and widow-control formatting into
     normal OfficeIMO paragraphs and custom DOCX style definitions with
     synthetic legacy DOC fixture proof.
+  - [x] Merge supported DOC stylesheet paragraph/run formatting into built-in
+    DOCX style definitions, starting with a Heading 1 fixture that proves
+    alignment, spacing, bold, underline, highlight, color, and size projection.
   - [ ] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting beyond the first supported mapping set once each
     additional mapping has a fixture and observable OfficeIMO contract.
