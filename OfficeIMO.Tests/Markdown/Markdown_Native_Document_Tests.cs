@@ -616,6 +616,28 @@ Second: Other
         }
     }
 
+    [Theory]
+    [InlineData("**Term**: Intro\n\n  - first\n", "**Term**: Updated\n  - second\n")]
+    [InlineData("Term\n:   Intro\n    - first\n", "Term\n:   Updated\n    - second\n")]
+    [InlineData("Term\n:   Intro\nlazy continuation\n", "Term\n:   Updated\n    - second\n")]
+    public void Definition_List_Definition_Source_Edit_Indents_Multiline_Body_For_Reparse(string markdown, string expected) {
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        options.DefinitionLists = true;
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var definition = Assert.Single(native.EnumerateDefinitionListDefinitions());
+
+        var edited = native.CreateReplaceEdit(definition, "Updated\n- second").Apply(native.SourceMarkdown);
+        var reparsed = MarkdownNativeDocument.Parse(edited, options);
+        var reparsedDefinition = Assert.Single(reparsed.EnumerateDefinitionListDefinitions());
+
+        Assert.Equal(expected, edited);
+        Assert.Equal("Updated\n\n- second", reparsedDefinition.Markdown.Replace("\r\n", "\n"));
+        Assert.Collection(
+            reparsedDefinition.Children,
+            child => Assert.IsType<MarkdownNativeParagraphBlock>(child),
+            child => Assert.IsType<MarkdownNativeListBlock>(child));
+    }
+
     [Fact]
     public void Parse_Projects_Footnote_Definitions_With_Label_SourceSpan_And_Children() {
         var markdown = """

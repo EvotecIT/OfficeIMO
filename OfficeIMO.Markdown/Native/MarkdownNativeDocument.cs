@@ -332,7 +332,9 @@ public sealed partial class MarkdownNativeDocument {
             throw new InvalidOperationException("The native definition-list definition does not have a source span.");
         }
 
-        return CreateReplaceEdit(definition.SourceSpan.Value, replacementMarkdown);
+        return CreateReplaceEdit(
+            definition.SourceSpan.Value,
+            FormatDefinitionListDefinitionReplacement(definition, replacementMarkdown));
     }
 
     /// <summary>Creates a non-mutating source edit that replaces source-backed inline metadata.</summary>

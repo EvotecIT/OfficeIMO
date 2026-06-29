@@ -382,6 +382,24 @@ Term 2
     }
 
     [Fact]
+    public void DefinitionList_NestedListBody_Writes_MarkerSyntax_ForMarkdigReparse() {
+        const string markdown = """
+Term
+:   First paragraph
+    - item
+""";
+
+        var document = MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var written = NormalizeMarkdown(document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal(markdown, written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+    }
+
+    [Fact]
     public void DefinitionList_SimpleInlineSyntax_Still_Writes_Simple_Inline_Syntax() {
         const string markdown = "Term: Definition";
 
