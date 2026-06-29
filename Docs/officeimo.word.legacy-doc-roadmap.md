@@ -203,8 +203,10 @@ just to reserve names.
   behavior unchanged.
 - [x] Validate the XLS shared-compound slice with `OfficeIMO.Excel` build,
   `OfficeIMO.Tests` build, and the full focused `LegacyXls` test sweep.
+- [x] Promote the OLE property-set reader into the shared owner and consume it
+  from XLS and DOC import paths.
 - [ ] Fold the existing encryption private compound helper and OLE property-set
-  reader/writer into the shared owner when the DOC reader needs that surface.
+  writer into the shared owner when native DOC write needs that surface.
 - [x] Add `WordDocument` load routing for `.doc` signature/extension detection
   before `WordprocessingDocument.Open(...)`, with `.docx` and encrypted OOXML
   staying on the existing paths.
@@ -214,6 +216,8 @@ just to reserve names.
   prove save-to-`.docx` reload through normal OfficeIMO APIs.
 - [x] Validate the first DOC reader against real Word COM/NPOI-generated corpus
   fixtures, then keep expanding only where the fixture proves the contract.
+- [x] Project OLE SummaryInformation and DocumentSummaryInformation metadata
+  into normal Word built-in, application, and scalar custom properties.
 - [ ] Add formatting projection for run/paragraph styles only when each mapping
   has a fixture and observable OfficeIMO contract.
 - [ ] Add common table projection after paragraph/run projection is stable.

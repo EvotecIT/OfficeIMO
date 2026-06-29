@@ -12,6 +12,7 @@ namespace OfficeIMO.Word.LegacyDoc {
 
             ParagraphCount = document.Paragraphs.Count;
             CharacterCount = document.Text.Length;
+            DocumentPropertyCount = document.DocumentProperties.Count;
             DiagnosticCount = document.Diagnostics.Count;
             ErrorCount = document.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error);
             WarningCount = document.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Warning);
@@ -26,6 +27,9 @@ namespace OfficeIMO.Word.LegacyDoc {
 
         /// <summary>Gets the number of body text characters decoded from the piece table.</summary>
         public int CharacterCount { get; }
+
+        /// <summary>Gets the number of projected built-in, application, and custom document properties.</summary>
+        public int DocumentPropertyCount { get; }
 
         /// <summary>Gets the total number of diagnostics.</summary>
         public int DiagnosticCount { get; }
@@ -50,6 +54,7 @@ namespace OfficeIMO.Word.LegacyDoc {
             builder.AppendLine("| --- | ---: |");
             builder.AppendLine($"| Paragraphs | {ParagraphCount} |");
             builder.AppendLine($"| Characters | {CharacterCount} |");
+            builder.AppendLine($"| Document properties | {DocumentPropertyCount} |");
             builder.AppendLine($"| Diagnostics | {DiagnosticCount} |");
             builder.AppendLine($"| Errors | {ErrorCount} |");
             builder.AppendLine($"| Warnings | {WarningCount} |");

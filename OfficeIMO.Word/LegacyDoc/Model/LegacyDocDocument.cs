@@ -18,6 +18,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// <summary>Gets body paragraphs projected from Word paragraph marks.</summary>
         public IReadOnlyList<string> Paragraphs => _paragraphs;
 
+        internal LegacyDocDocumentProperties DocumentProperties { get; } = new();
+
         /// <summary>Gets diagnostics produced while reading the legacy document.</summary>
         public IReadOnlyList<LegacyDocImportDiagnostic> Diagnostics => _diagnostics;
 
@@ -92,6 +94,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddKnownUnsupportedFeatureDiagnostics(compoundFile);
             }
 
+            LegacyDocOleDocumentPropertyReader.AddDocumentProperties(compoundFile, this, options);
+
             string tableStreamName = fib.UsesOneTableStream ? "1Table" : "0Table";
             if (!compoundFile.Streams.TryGetValue(tableStreamName, out byte[]? tableStream)) {
                 string alternateName = fib.UsesOneTableStream ? "0Table" : "1Table";
@@ -160,11 +164,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
+        internal void AddInfo(string code, string message) {
+            _diagnostics.Add(new LegacyDocImportDiagnostic(code, LegacyDocDiagnosticSeverity.Info, message));
+        }
+
         private void AddError(string code, string message) {
             _diagnostics.Add(new LegacyDocImportDiagnostic(code, LegacyDocDiagnosticSeverity.Error, message));
         }
 
-        private void AddWarning(string code, string message) {
+        internal void AddWarning(string code, string message) {
             _diagnostics.Add(new LegacyDocImportDiagnostic(code, LegacyDocDiagnosticSeverity.Warning, message));
         }
     }

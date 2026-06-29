@@ -29,6 +29,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDocumentPropertiesAndCustomProperties() {
+            DateTime created = new DateTime(2026, 6, 29, 8, 0, 0, DateTimeKind.Utc);
+            DateTime modified = new DateTime(2026, 6, 29, 9, 15, 0, DateTimeKind.Utc);
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithDocumentProperties(created, modified, "Metadata paragraph");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.Equal(13, result.ImportReport.DocumentPropertyCount);
+            Assert.Equal("Legacy DOC Metadata Title", result.Document.BuiltinDocumentProperties.Title);
+            Assert.Equal("Legacy DOC metadata subject", result.Document.BuiltinDocumentProperties.Subject);
+            Assert.Equal("OfficeIMO Legacy Import", result.Document.BuiltinDocumentProperties.Creator);
+            Assert.Equal("doc, metadata, officeimo", result.Document.BuiltinDocumentProperties.Keywords);
+            Assert.Equal("OLE SummaryInformation comments", result.Document.BuiltinDocumentProperties.Description);
+            Assert.Equal("Legacy Category", result.Document.BuiltinDocumentProperties.Category);
+            AssertSameInstant(created, result.Document.BuiltinDocumentProperties.Created);
+            AssertSameInstant(modified, result.Document.BuiltinDocumentProperties.Modified);
+            Assert.Equal("EvotecIT", result.Document.ApplicationProperties.Company);
+            Assert.Equal("Document Manager", result.Document.ApplicationProperties.Manager?.Text);
+            Assert.Equal("Ready", result.Document.CustomDocumentProperties["ReleaseStatus"].Text);
+            Assert.True(result.Document.CustomDocumentProperties["Reviewed"].Bool);
+            Assert.Equal(2003, result.Document.CustomDocumentProperties["Ticket"].NumberInteger);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Assert.False(converted.WasLoadedFromLegacyDoc);
+            Assert.Equal("Legacy DOC Metadata Title", converted.BuiltinDocumentProperties.Title);
+            Assert.Equal("EvotecIT", converted.ApplicationProperties.Company);
+            Assert.Equal("Ready", converted.CustomDocumentProperties["ReleaseStatus"].Text);
+            Assert.True(converted.CustomDocumentProperties["Reviewed"].Bool);
+            Assert.Equal(2003, converted.CustomDocumentProperties["Ticket"].NumberInteger);
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_RoutesOleDocIntoProjectedWordDocument() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -109,6 +143,24 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithDocumentProperties(DateTime created, DateTime modified, params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text);
+                byte[] tableStream = CreateTableStream(text.Length);
+                byte[] summaryInformation = CreateSummaryInformationPropertySet(created, modified);
+                byte[] documentSummaryInformation = CreateDocumentSummaryInformationPropertySet();
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                    WriteStream(root, "\u0005SummaryInformation", summaryInformation);
+                    WriteStream(root, "\u0005DocumentSummaryInformation", documentSummaryInformation);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateCompoundWithoutWordDocumentStream() {
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
@@ -150,6 +202,87 @@ namespace OfficeIMO.Tests {
                 return table;
             }
 
+            private static byte[] CreateSummaryInformationPropertySet(DateTime created, DateTime modified) {
+                var properties = new List<OleTestProperty> {
+                    OleTestProperty.Int16(1, 1200),
+                    OleTestProperty.String(2, "Legacy DOC Metadata Title"),
+                    OleTestProperty.String(3, "Legacy DOC metadata subject"),
+                    OleTestProperty.String(4, "OfficeIMO Legacy Import"),
+                    OleTestProperty.String(5, "doc, metadata, officeimo"),
+                    OleTestProperty.String(6, "OLE SummaryInformation comments"),
+                    OleTestProperty.FileTime(12, created),
+                    OleTestProperty.FileTime(13, modified)
+                };
+
+                return CreateOlePropertySet(CreateOlePropertySection(properties));
+            }
+
+            private static byte[] CreateDocumentSummaryInformationPropertySet() {
+                var documentProperties = new List<OleTestProperty> {
+                    OleTestProperty.Int16(1, 1200),
+                    OleTestProperty.String(2, "Legacy Category"),
+                    OleTestProperty.String(14, "Document Manager"),
+                    OleTestProperty.String(15, "EvotecIT")
+                };
+                var customProperties = new List<OleTestProperty> {
+                    OleTestProperty.Int16(1, 1200),
+                    OleTestProperty.Dictionary(0, new Dictionary<uint, string> {
+                        [2] = "ReleaseStatus",
+                        [3] = "Reviewed",
+                        [4] = "Ticket"
+                    }),
+                    OleTestProperty.String(2, "Ready"),
+                    OleTestProperty.Boolean(3, true),
+                    OleTestProperty.Int32(4, 2003)
+                };
+
+                return CreateOlePropertySet(CreateOlePropertySection(documentProperties), CreateOlePropertySection(customProperties));
+            }
+
+            private static byte[] CreateOlePropertySet(params byte[][] sections) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0xfffe);
+                WriteUInt16(stream, 0);
+                WriteUInt32(stream, 0);
+                stream.Write(new byte[16], 0, 16);
+                WriteUInt32(stream, checked((uint)sections.Length));
+
+                int sectionOffset = 28 + sections.Length * 20;
+                foreach (byte[] section in sections) {
+                    stream.Write(new byte[16], 0, 16);
+                    WriteUInt32(stream, checked((uint)sectionOffset));
+                    sectionOffset += section.Length;
+                }
+
+                foreach (byte[] section in sections) {
+                    stream.Write(section, 0, section.Length);
+                }
+
+                return stream.ToArray();
+            }
+
+            private static byte[] CreateOlePropertySection(IReadOnlyList<OleTestProperty> properties) {
+                using var values = new MemoryStream();
+                var offsets = new List<uint>(properties.Count);
+                foreach (OleTestProperty property in properties) {
+                    offsets.Add(checked((uint)(8 + properties.Count * 8 + values.Length)));
+                    values.Write(property.ValueBytes, 0, property.ValueBytes.Length);
+                    PadToInt32(values);
+                }
+
+                using var stream = new MemoryStream();
+                WriteUInt32(stream, checked((uint)(8 + properties.Count * 8 + values.Length)));
+                WriteUInt32(stream, checked((uint)properties.Count));
+                for (int i = 0; i < properties.Count; i++) {
+                    WriteUInt32(stream, properties[i].PropertyId);
+                    WriteUInt32(stream, offsets[i]);
+                }
+
+                byte[] valueBytes = values.ToArray();
+                stream.Write(valueBytes, 0, valueBytes.Length);
+                return stream.ToArray();
+            }
+
             private static void WriteStream(RootStorage root, string name, byte[] bytes) {
                 using CfbStream stream = root.CreateStream(name);
                 stream.Write(bytes, 0, bytes.Length);
@@ -165,6 +298,29 @@ namespace OfficeIMO.Tests {
                 }
 
                 return bytes;
+            }
+
+            private static void PadToInt32(Stream stream) {
+                while (stream.Position % 4 != 0) {
+                    stream.WriteByte(0);
+                }
+            }
+
+            private static void WriteUInt16(Stream stream, ushort value) {
+                stream.WriteByte((byte)(value & 0xff));
+                stream.WriteByte((byte)((value >> 8) & 0xff));
+            }
+
+            private static void WriteUInt32(Stream stream, uint value) {
+                stream.WriteByte((byte)(value & 0xff));
+                stream.WriteByte((byte)((value >> 8) & 0xff));
+                stream.WriteByte((byte)((value >> 16) & 0xff));
+                stream.WriteByte((byte)((value >> 24) & 0xff));
+            }
+
+            private static void WriteUInt64(Stream stream, ulong value) {
+                WriteUInt32(stream, unchecked((uint)(value & 0xffffffffUL)));
+                WriteUInt32(stream, unchecked((uint)(value >> 32)));
             }
 
             private static void WriteUInt16(byte[] bytes, int offset, ushort value) {
@@ -185,6 +341,81 @@ namespace OfficeIMO.Tests {
                 bytes[offset + 2] = (byte)(value >> 16);
                 bytes[offset + 3] = (byte)(value >> 24);
             }
+
+            private readonly struct OleTestProperty {
+                private OleTestProperty(uint propertyId, byte[] valueBytes) {
+                    PropertyId = propertyId;
+                    ValueBytes = valueBytes;
+                }
+
+                internal uint PropertyId { get; }
+
+                internal byte[] ValueBytes { get; }
+
+                internal static OleTestProperty Int16(uint id, short value) {
+                    using var stream = new MemoryStream();
+                    WriteUInt16(stream, 0x0002);
+                    WriteUInt16(stream, 0);
+                    WriteUInt16(stream, unchecked((ushort)value));
+                    WriteUInt16(stream, 0);
+                    return new OleTestProperty(id, stream.ToArray());
+                }
+
+                internal static OleTestProperty Int32(uint id, int value) {
+                    using var stream = new MemoryStream();
+                    WriteUInt16(stream, 0x0003);
+                    WriteUInt16(stream, 0);
+                    WriteUInt32(stream, unchecked((uint)value));
+                    return new OleTestProperty(id, stream.ToArray());
+                }
+
+                internal static OleTestProperty Boolean(uint id, bool value) {
+                    using var stream = new MemoryStream();
+                    WriteUInt16(stream, 0x000b);
+                    WriteUInt16(stream, 0);
+                    WriteUInt16(stream, value ? (ushort)0xffff : (ushort)0);
+                    WriteUInt16(stream, 0);
+                    return new OleTestProperty(id, stream.ToArray());
+                }
+
+                internal static OleTestProperty FileTime(uint id, DateTime value) {
+                    using var stream = new MemoryStream();
+                    WriteUInt16(stream, 0x0040);
+                    WriteUInt16(stream, 0);
+                    WriteUInt64(stream, unchecked((ulong)value.ToUniversalTime().ToFileTimeUtc()));
+                    return new OleTestProperty(id, stream.ToArray());
+                }
+
+                internal static OleTestProperty String(uint id, string value) {
+                    using var stream = new MemoryStream();
+                    WriteUInt16(stream, 0x001f);
+                    WriteUInt16(stream, 0);
+                    WriteUInt32(stream, checked((uint)(value.Length + 1)));
+                    byte[] bytes = System.Text.Encoding.Unicode.GetBytes(value + '\0');
+                    stream.Write(bytes, 0, bytes.Length);
+                    PadToInt32(stream);
+                    return new OleTestProperty(id, stream.ToArray());
+                }
+
+                internal static OleTestProperty Dictionary(uint id, IReadOnlyDictionary<uint, string> names) {
+                    using var stream = new MemoryStream();
+                    WriteUInt32(stream, checked((uint)names.Count));
+                    foreach (KeyValuePair<uint, string> name in names.OrderBy(entry => entry.Key)) {
+                        WriteUInt32(stream, name.Key);
+                        WriteUInt32(stream, checked((uint)(name.Value.Length + 1)));
+                        byte[] bytes = System.Text.Encoding.Unicode.GetBytes(name.Value + '\0');
+                        stream.Write(bytes, 0, bytes.Length);
+                        PadToInt32(stream);
+                    }
+
+                    return new OleTestProperty(id, stream.ToArray());
+                }
+            }
+        }
+
+        private static void AssertSameInstant(DateTime expected, DateTime? actual) {
+            Assert.NotNull(actual);
+            Assert.Equal(expected.ToUniversalTime(), actual.Value.ToUniversalTime());
         }
 
         private static void DeleteIfExists(string path) {

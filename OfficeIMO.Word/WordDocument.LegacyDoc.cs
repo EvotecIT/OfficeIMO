@@ -1,6 +1,7 @@
 using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 using OfficeIMO.Word.LegacyDoc.Model;
+using DocumentFormat.OpenXml.ExtendedProperties;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
@@ -71,6 +72,7 @@ namespace OfficeIMO.Word {
             }
 
             WordDocument document = CreateInternal(filePath: null, stream: null, DocumentFormat.OpenXml.WordprocessingDocumentType.Document, autoSave: false);
+            ApplyLegacyDocProperties(document, legacyDocument.DocumentProperties);
             WordSection section = document.Sections.Count > 0
                 ? document.Sections[0]
                 : new WordSection(document, null!, null!);
@@ -85,6 +87,61 @@ namespace OfficeIMO.Word {
 
             document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument);
             return document;
+        }
+
+        private static void ApplyLegacyDocProperties(WordDocument document, LegacyDocDocumentProperties properties) {
+            if (!properties.HasAnyProperties) {
+                return;
+            }
+
+            document.BuiltinDocumentProperties.Title = properties.Title;
+            document.BuiltinDocumentProperties.Subject = properties.Subject;
+            document.BuiltinDocumentProperties.Creator = properties.Creator;
+            document.BuiltinDocumentProperties.Keywords = properties.Keywords;
+            document.BuiltinDocumentProperties.Description = properties.Description;
+            document.BuiltinDocumentProperties.Category = properties.Category;
+            document.BuiltinDocumentProperties.LastModifiedBy = properties.LastModifiedBy;
+            document.BuiltinDocumentProperties.Revision = properties.Revision;
+            document.BuiltinDocumentProperties.Created = properties.Created;
+            document.BuiltinDocumentProperties.Modified = properties.Modified;
+            document.BuiltinDocumentProperties.LastPrinted = properties.LastPrinted;
+
+            if (properties.Company != null) {
+                document.ApplicationProperties.Company = properties.Company;
+            }
+
+            if (properties.Manager != null) {
+                document.ApplicationProperties.Manager = new Manager { Text = properties.Manager };
+            }
+
+            foreach (KeyValuePair<string, LegacyDocDocumentPropertyValue> property in properties.CustomProperties) {
+                if (TryCreateWordCustomProperty(property.Value, out WordCustomProperty? wordProperty)) {
+                    document.CustomDocumentProperties[property.Key] = wordProperty!;
+                }
+            }
+        }
+
+        private static bool TryCreateWordCustomProperty(LegacyDocDocumentPropertyValue property, out WordCustomProperty? wordProperty) {
+            switch (property.Kind) {
+                case LegacyDocDocumentPropertyValueKind.Text:
+                    wordProperty = new WordCustomProperty(Convert.ToString(property.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
+                    return true;
+                case LegacyDocDocumentPropertyValueKind.Boolean:
+                    wordProperty = new WordCustomProperty(Convert.ToBoolean(property.Value, System.Globalization.CultureInfo.InvariantCulture));
+                    return true;
+                case LegacyDocDocumentPropertyValueKind.DateTime:
+                    wordProperty = new WordCustomProperty(Convert.ToDateTime(property.Value, System.Globalization.CultureInfo.InvariantCulture));
+                    return true;
+                case LegacyDocDocumentPropertyValueKind.Integer:
+                    wordProperty = new WordCustomProperty(Convert.ToInt32(property.Value, System.Globalization.CultureInfo.InvariantCulture));
+                    return true;
+                case LegacyDocDocumentPropertyValueKind.Number:
+                    wordProperty = new WordCustomProperty(Convert.ToDouble(property.Value, System.Globalization.CultureInfo.InvariantCulture));
+                    return true;
+                default:
+                    wordProperty = null;
+                    return false;
+            }
         }
 
         private static string FormatLegacyDocDiagnostics(IEnumerable<LegacyDocImportDiagnostic> diagnostics) {
