@@ -336,6 +336,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     }
 
     public static IEnumerable<object[]> GenericAttributesAutoLinksExtensionCases() {
+        yield return new object[] { "bare-url-paragraph-attribute", "https://example.com{#auto .wide}" };
         yield return new object[] { "angle-url-autolink", "<https://example.com>{#auto .wide}" };
         yield return new object[] { "angle-email-autolink", "<user@example.com>{#mail .wide}" };
     }

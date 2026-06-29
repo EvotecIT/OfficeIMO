@@ -7,6 +7,7 @@ public sealed class ParagraphBlock : MarkdownBlock, IMarkdownBlock, IParagraphMa
     /// <summary>Inline content within this paragraph.</summary>
     public InlineSequence Inlines { get; }
     internal string GenericAttributeConsumedWhitespace { get; set; } = string.Empty;
+    internal bool GenericAttributeSuppressSeparator { get; set; }
     /// <summary>Creates a paragraph block.</summary>
     public ParagraphBlock(InlineSequence inlines) { Inlines = inlines; }
     /// <inheritdoc />
@@ -15,9 +16,11 @@ public sealed class ParagraphBlock : MarkdownBlock, IMarkdownBlock, IParagraphMa
             return Inlines.RenderMarkdown();
         }
 
-        var separator = string.IsNullOrEmpty(GenericAttributeConsumedWhitespace)
-            ? " "
-            : GenericAttributeConsumedWhitespace;
+        var separator = GenericAttributeSuppressSeparator
+            ? string.Empty
+            : string.IsNullOrEmpty(GenericAttributeConsumedWhitespace)
+                ? " "
+                : GenericAttributeConsumedWhitespace;
         return Inlines.RenderMarkdown() + separator + MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes);
     }
     /// <inheritdoc />

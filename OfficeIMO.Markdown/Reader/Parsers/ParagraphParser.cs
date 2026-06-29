@@ -117,22 +117,20 @@ public static partial class MarkdownReader {
             MarkdownSourceSpan? paragraphAttributeSpan = null;
             string? paragraphAttributeSourceText = null;
             string paragraphAttributeConsumedWhitespace = string.Empty;
+            bool suppressBareAutolinkParagraph = false;
             if (ShouldParseBlockGenericAttributes(options, state) && paragraphLines.Count > 0) {
                 var lastLineIndex = paragraphLines.Count - 1;
-                if (MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
+                if (TryConsumeParagraphTrailingGenericAttributes(
                     paragraphLines[lastLineIndex],
+                    options,
                     out var lineWithoutAttributeBlock,
                     out paragraphAttributes,
                     out var attributeStart,
                     out var attributeEnd,
-                    requireLeadingWhitespace: true)) {
+                    out paragraphAttributeConsumedWhitespace,
+                    out suppressBareAutolinkParagraph)) {
                     var attributeLine = paragraphLines[lastLineIndex];
                     var absoluteAttributeLine = state.SourceLineOffset + i + lastLineIndex + 1;
-                    if (attributeStart >= lineWithoutAttributeBlock.Length) {
-                        paragraphAttributeConsumedWhitespace = attributeLine.Substring(
-                            lineWithoutAttributeBlock.Length,
-                            attributeStart - lineWithoutAttributeBlock.Length);
-                    }
 
                     paragraphAttributeSourceText = attributeLine.Substring(attributeStart, attributeEnd - attributeStart + 1);
                     paragraphAttributeSpan = CreateSpan(
@@ -149,12 +147,104 @@ public static partial class MarkdownReader {
             }
 
             var (text, sourceMap) = JoinParagraphLinesWithSourceMap(paragraphLines, state.SourceLineOffset + i, options, state);
-            var paragraph = new ParagraphBlock(ParseInlines(text, options, state, sourceMap));
+            var inlineOptions = suppressBareAutolinkParagraph ? CloneOptionsWithoutInlineAutolinks(options) : options;
+            var paragraph = new ParagraphBlock(ParseInlines(text, inlineOptions, state, sourceMap));
             paragraph.SetAttributes(paragraphAttributes);
             paragraph.GenericAttributeConsumedWhitespace = paragraphAttributeConsumedWhitespace;
+            paragraph.GenericAttributeSuppressSeparator = suppressBareAutolinkParagraph;
             MarkdownGenericAttributeSourceSpans.Set(paragraph, paragraphAttributeSourceText, paragraphAttributeSpan);
             doc.Add(paragraph);
             i = j; return true;
+        }
+
+        private static bool TryConsumeParagraphTrailingGenericAttributes(
+            string line,
+            MarkdownReaderOptions options,
+            out string lineWithoutAttributeBlock,
+            out MarkdownAttributeSet attributes,
+            out int attributeStart,
+            out int attributeEnd,
+            out string consumedWhitespace,
+            out bool suppressBareAutolinkParagraph) {
+            consumedWhitespace = string.Empty;
+            suppressBareAutolinkParagraph = false;
+
+            if (MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
+                line,
+                out lineWithoutAttributeBlock,
+                out attributes,
+                out attributeStart,
+                out attributeEnd,
+                requireLeadingWhitespace: true)) {
+                if (attributeStart >= lineWithoutAttributeBlock.Length) {
+                    consumedWhitespace = line.Substring(
+                        lineWithoutAttributeBlock.Length,
+                        attributeStart - lineWithoutAttributeBlock.Length);
+                }
+
+                return true;
+            }
+
+            if (!MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
+                line,
+                out lineWithoutAttributeBlock,
+                out attributes,
+                out attributeStart,
+                out attributeEnd,
+                requireLeadingWhitespace: false)) {
+                return false;
+            }
+
+            if (!IsNoSpaceBareAutolinkParagraphAttribute(line, lineWithoutAttributeBlock, attributeStart, options)) {
+                lineWithoutAttributeBlock = line;
+                attributes = MarkdownAttributeSet.Empty;
+                attributeStart = -1;
+                attributeEnd = -1;
+                return false;
+            }
+
+            suppressBareAutolinkParagraph = true;
+            return true;
+        }
+
+        private static bool IsNoSpaceBareAutolinkParagraphAttribute(
+            string line,
+            string lineWithoutAttributeBlock,
+            int attributeStart,
+            MarkdownReaderOptions options) {
+            if (string.IsNullOrEmpty(line)
+                || string.IsNullOrWhiteSpace(lineWithoutAttributeBlock)
+                || attributeStart <= 0
+                || attributeStart > line.Length
+                || char.IsWhiteSpace(line[attributeStart - 1])) {
+                return false;
+            }
+
+            var candidate = lineWithoutAttributeBlock.Trim();
+            if (candidate.Length == 0 || candidate.IndexOfAny(new[] { ' ', '\t', '\r', '\n' }) >= 0) {
+                return false;
+            }
+
+            if (options.AutolinkUrls && StartsWithHttp(candidate, 0, options, out int httpEnd) && httpEnd == candidate.Length) {
+                return true;
+            }
+
+            if (options.AutolinkWwwUrls && StartsWithWww(candidate, 0, options, out int wwwEnd) && wwwEnd == candidate.Length) {
+                return true;
+            }
+
+            return options.AutolinkBareSchemeUrls
+                && TryConsumeBareSchemeAutolink(candidate, 0, options, out int schemeEnd, out _, out _)
+                && schemeEnd == candidate.Length;
+        }
+
+        private static MarkdownReaderOptions CloneOptionsWithoutInlineAutolinks(MarkdownReaderOptions source) {
+            var clone = CloneOptionsWithoutFrontMatter(source);
+            clone.AutolinkUrls = false;
+            clone.AutolinkWwwUrls = false;
+            clone.AutolinkBareSchemeUrls = false;
+            clone.AutolinkEmails = false;
+            return clone;
         }
 
         private static bool IsFootnoteDefinitionStarter(string line, MarkdownReaderOptions options) {

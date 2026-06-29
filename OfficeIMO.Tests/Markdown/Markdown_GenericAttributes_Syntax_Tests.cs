@@ -62,6 +62,49 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void BareUrl_Paragraph_GenericAttributes_Preserve_NoSpace_Source_And_Literal_Text() {
+        const string markdown = "https://example.com{#auto .wide}\n";
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.GenericAttributes = true;
+        options.PreserveTrivia = true;
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var paragraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("auto", paragraphBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, paragraphBlock.Attributes.Classes);
+        Assert.Equal("https://example.com{#auto .wide}", ((IMarkdownBlock)paragraphBlock).RenderMarkdown());
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var paragraph = Assert.Single(result.FinalSyntaxTree.Children);
+        var attributes = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        Assert.Equal("{#auto .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 20, 1, 32), attributes.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#auto .wide}", slice.Text);
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.InlineLink);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var inline = Assert.Single(nativeParagraph.InlineRuns);
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Equal("https://example.com", nativeParagraph.Text);
+        Assert.Equal(MarkdownNativeInlineKind.Text, inline.Kind);
+        Assert.Equal("https://example.com", inline.Text);
+        Assert.Same(nativeParagraph, field.Block);
+        Assert.Equal("{#auto .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 20, 1, 32), field.SourceSpan);
+        Assert.Empty(native.EnumerateInlineMetadata("attributes"));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Inline_GenericAttribute_Tokens_Without_Duplicating_Native_Metadata() {
         const string markdown = "See [docs](old.md){#docs .primary} now\n";
         var options = new MarkdownReaderOptions {
