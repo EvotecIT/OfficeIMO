@@ -14,6 +14,7 @@ public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISynta
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() =>
         MarkdownListRendering.RenderMarkdown(
+            Attributes,
             Items,
             (item, topLevelIndex) => {
                 string baseMarker = item.Level == 0
@@ -29,6 +30,7 @@ public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISynta
         MarkdownListRendering.RenderHtml(
             "ol",
             Items,
+            Attributes,
             _ => Start != 1 ? " start=\"" + Start + "\"" : string.Empty);
 
     IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => ListItems;

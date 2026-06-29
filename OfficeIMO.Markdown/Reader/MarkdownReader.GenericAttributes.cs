@@ -97,6 +97,16 @@ public static partial class MarkdownReader {
                 return true;
             }
 
+            if (options.UnorderedLists
+                && IsUnorderedListLine(lines[i], out _, out _, out _, out _)) {
+                return true;
+            }
+
+            if (options.OrderedLists
+                && IsOrderedListLine(lines[i], out _, out _)) {
+                return true;
+            }
+
             return options.Paragraphs
                 && !IsCodeFenceOpen(lines[i], out _, out _, out _)
                 && !StartsTable(lines, i, options)

@@ -1,15 +1,24 @@
 namespace OfficeIMO.Markdown;
 
 internal static class MarkdownHtmlAttributes {
-    internal static string Render(MarkdownAttributeSet? attributes, HtmlOptions? options, string? fallbackElementId = null) {
-        if ((attributes == null || attributes.IsEmpty) && string.IsNullOrWhiteSpace(fallbackElementId)) {
+    internal static string Render(
+        MarkdownAttributeSet? attributes,
+        HtmlOptions? options,
+        string? fallbackElementId = null,
+        IReadOnlyList<string>? additionalClasses = null) {
+        if ((attributes == null || attributes.IsEmpty)
+            && string.IsNullOrWhiteSpace(fallbackElementId)
+            && (additionalClasses == null || additionalClasses.Count == 0)) {
             return string.Empty;
         }
 
         var builder = new StringBuilder();
         AppendId(builder, attributes?.ElementId ?? fallbackElementId, options);
+        if (attributes != null || additionalClasses != null) {
+            AppendClasses(builder, attributes?.Classes, additionalClasses, options);
+        }
+
         if (attributes != null) {
-            AppendClasses(builder, attributes.Classes, options);
             AppendAttributes(builder, attributes, options);
         }
 
@@ -26,19 +35,19 @@ internal static class MarkdownHtmlAttributes {
             .Append('"');
     }
 
-    private static void AppendClasses(StringBuilder builder, IReadOnlyList<string> classes, HtmlOptions? options) {
-        if (classes.Count == 0) {
+    private static void AppendClasses(
+        StringBuilder builder,
+        IReadOnlyList<string>? classes,
+        IReadOnlyList<string>? additionalClasses,
+        HtmlOptions? options) {
+        if ((classes == null || classes.Count == 0)
+            && (additionalClasses == null || additionalClasses.Count == 0)) {
             return;
         }
 
         var normalized = new List<string>();
-        for (int i = 0; i < classes.Count; i++) {
-            if (string.IsNullOrWhiteSpace(classes[i])) {
-                continue;
-            }
-
-            normalized.Add(classes[i].Trim());
-        }
+        AppendNormalizedClasses(classes, normalized);
+        AppendNormalizedClasses(additionalClasses, normalized);
 
         if (normalized.Count == 0) {
             return;
@@ -47,6 +56,18 @@ internal static class MarkdownHtmlAttributes {
         builder.Append(" class=\"")
             .Append(HtmlTextEncoder.Encode(string.Join(" ", normalized), options))
             .Append('"');
+    }
+
+    private static void AppendNormalizedClasses(IReadOnlyList<string>? classes, List<string> normalized) {
+        if (classes == null) {
+            return;
+        }
+
+        for (int i = 0; i < classes.Count; i++) {
+            if (!string.IsNullOrWhiteSpace(classes[i])) {
+                normalized.Add(classes[i].Trim());
+            }
+        }
     }
 
     private static void AppendAttributes(StringBuilder builder, MarkdownAttributeSet attributes, HtmlOptions? options) {

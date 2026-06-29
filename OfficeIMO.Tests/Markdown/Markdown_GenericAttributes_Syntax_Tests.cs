@@ -109,7 +109,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
-    public void Standalone_GenericAttributes_Before_Unsupported_Block_Family_Remain_Literal() {
+    public void Standalone_GenericAttributes_Attach_To_Following_List_With_Source_Backup() {
         const string markdown = "{#list .wide}\n- item\n";
         var options = new MarkdownReaderOptions {
             GenericAttributes = true,
@@ -117,15 +117,43 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         };
 
         var document = MarkdownReader.Parse(markdown, options);
+        var listBlock = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
 
-        Assert.Collection(
-            document.Blocks,
-            block => {
-                var paragraph = Assert.IsType<ParagraphBlock>(block);
-                Assert.Equal("list", paragraph.Attributes.ElementId);
-                Assert.Equal(new[] { "wide" }, paragraph.Attributes.Classes);
-            },
-            block => Assert.IsType<UnorderedListBlock>(block));
+        Assert.Equal("list", listBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, listBlock.Attributes.Classes);
+        Assert.Equal(
+            "{#list .wide}\n- item",
+            ((IMarkdownBlock)listBlock).RenderMarkdown().Replace("\r\n", "\n"));
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var list = Assert.Single(result.FinalSyntaxTree.Children);
+        var attributes = Assert.Single(list.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        var item = Assert.Single(list.Descendants(), node => node.Kind == MarkdownSyntaxKind.ListItem);
+
+        Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 6), list.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 6), item.SourceSpan);
+        Assert.Equal("{#list .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), attributes.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#list .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeList = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(native.Blocks));
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Same(nativeList, field.Block);
+        Assert.Equal("{#list .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), field.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(field, "{#docs .items}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("{#docs .items}\n- item\n", roundtrip.Markdown);
     }
 
     [Fact]

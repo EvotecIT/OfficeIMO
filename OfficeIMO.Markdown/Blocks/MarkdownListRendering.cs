@@ -2,9 +2,15 @@ namespace OfficeIMO.Markdown;
 
 internal static class MarkdownListRendering {
     internal static string RenderMarkdown(
+        MarkdownAttributeSet? attributes,
         IReadOnlyList<ListItem> items,
         Func<ListItem, int, string> markerFactory) {
         var sb = new System.Text.StringBuilder();
+        var attributeBlock = MarkdownAttributeBlockRenderer.RenderInlineTrailing(attributes);
+        if (!string.IsNullOrEmpty(attributeBlock)) {
+            sb.Append(attributeBlock).AppendLine();
+        }
+
         int topLevelIndex = 0;
 
         for (int idx = 0; idx < items.Count; idx++) {
@@ -28,6 +34,7 @@ internal static class MarkdownListRendering {
     internal static string RenderHtml(
         string listTag,
         IReadOnlyList<ListItem> items,
+        MarkdownAttributeSet? attributes,
         Func<int, string> topLevelAttributesFactory) {
         var sb = new System.Text.StringBuilder();
 
@@ -52,14 +59,19 @@ internal static class MarkdownListRendering {
 
         void AppendOpenList(int startIndex, int level, bool isTopLevel) {
             var options = HtmlRenderContext.Options;
+            var containsTasks = ContainsTasksInScope(startIndex, level);
+            var useGitHubTaskListHtml = options?.GitHubTaskListHtml == true;
             sb.Append('<').Append(listTag);
             if (isTopLevel) {
+                var taskClasses = containsTasks && !useGitHubTaskListHtml
+                    ? new[] { "contains-task-list" }
+                    : null;
+                sb.Append(MarkdownHtmlAttributes.Render(attributes, options, additionalClasses: taskClasses));
                 var attrs = topLevelAttributesFactory(startIndex);
                 if (!string.IsNullOrEmpty(attrs)) {
                     sb.Append(attrs);
                 }
-            }
-            if (ContainsTasksInScope(startIndex, level) && options?.GitHubTaskListHtml != true) {
+            } else if (containsTasks && !useGitHubTaskListHtml) {
                 sb.Append(" class=\"contains-task-list\"");
             }
             sb.Append('>');

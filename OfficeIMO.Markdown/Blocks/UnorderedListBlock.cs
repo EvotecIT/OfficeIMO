@@ -11,6 +11,7 @@ public sealed class UnorderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyn
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() =>
         MarkdownListRendering.RenderMarkdown(
+            Attributes,
             Items,
             (item, _) => {
                 char marker = MarkdownRenderContext.Options?.UnorderedListMarker ?? '-';
@@ -20,7 +21,7 @@ public sealed class UnorderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyn
             });
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() =>
-        MarkdownListRendering.RenderHtml("ul", Items, _ => string.Empty);
+        MarkdownListRendering.RenderHtml("ul", Items, Attributes, _ => string.Empty);
 
     IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => ListItems;
     MarkdownSyntaxKind IMarkdownListBlock.ListSyntaxKind => MarkdownSyntaxKind.UnorderedList;
