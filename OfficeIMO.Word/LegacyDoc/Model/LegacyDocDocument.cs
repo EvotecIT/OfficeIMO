@@ -564,7 +564,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.TableCellVerticalMerges,
                         paragraphFormat.TableCellVerticalAlignments,
                         paragraphFormat.TableCellFitTexts,
-                        paragraphFormat.TableCellNoWraps));
+                        paragraphFormat.TableCellNoWraps,
+                        paragraphFormat.GetTableCellMarginsForCellCount(currentTableRow.Count)));
                     currentTableRow.Clear();
                 }
 
@@ -591,7 +592,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.TableCellVerticalMerges,
                         paragraphFormat.TableCellVerticalAlignments,
                         paragraphFormat.TableCellFitTexts,
-                        paragraphFormat.TableCellNoWraps));
+                        paragraphFormat.TableCellNoWraps,
+                        paragraphFormat.GetTableCellMarginsForCellCount(currentTableRow.Count)));
                     currentTableRow.Clear();
                 }
 

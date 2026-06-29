@@ -26,6 +26,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null,
             IReadOnlyList<bool>? tableCellFitTexts = null,
             IReadOnlyList<bool>? tableCellNoWraps = null,
+            IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null,
+            LegacyDocTableCellMargins? defaultTableCellMargins = null,
             bool hasMergedTableCells = false) {
             Alignment = alignment;
             StyleIndex = styleIndex;
@@ -66,6 +68,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             TableCellNoWraps = tableCellNoWraps == null || tableCellNoWraps.Count == 0
                 ? Array.Empty<bool>()
                 : tableCellNoWraps.ToArray();
+            TableCellMargins = tableCellMargins == null || tableCellMargins.Count == 0
+                ? Array.Empty<LegacyDocTableCellMargins>()
+                : tableCellMargins.ToArray();
+            DefaultTableCellMargins = defaultTableCellMargins.HasValue && defaultTableCellMargins.Value.HasAny
+                ? defaultTableCellMargins
+                : null;
             HasMergedTableCells = hasMergedTableCells;
         }
 
@@ -119,6 +127,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<bool> TableCellNoWraps { get; }
 
+        internal IReadOnlyList<LegacyDocTableCellMargins> TableCellMargins { get; }
+
+        internal LegacyDocTableCellMargins? DefaultTableCellMargins { get; }
+
         internal bool HasMergedTableCells { get; }
 
         internal bool HasFormatting => Alignment != null
@@ -145,6 +157,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || TableCellVerticalAlignments.Count > 0
             || TableCellFitTexts.Count > 0
             || TableCellNoWraps.Count > 0
+            || TableCellMargins.Count > 0
+            || DefaultTableCellMargins != null
             || HasMergedTableCells;
 
         internal static LegacyDocParagraphFormat Default { get; } = new LegacyDocParagraphFormat(null);
@@ -175,6 +189,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && TableCellVerticalAlignmentsEqual(TableCellVerticalAlignments, other.TableCellVerticalAlignments)
                 && TableCellBooleansEqual(TableCellFitTexts, other.TableCellFitTexts)
                 && TableCellBooleansEqual(TableCellNoWraps, other.TableCellNoWraps)
+                && TableCellMarginsEqual(TableCellMargins, other.TableCellMargins)
+                && DefaultTableCellMargins.Equals(other.DefaultTableCellMargins)
                 && HasMergedTableCells == other.HasMergedTableCells;
         }
 
@@ -221,6 +237,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             foreach (bool noWrap in TableCellNoWraps) {
                 hash = (hash * 31) + noWrap.GetHashCode();
+            }
+
+            hash = (hash * 31) + DefaultTableCellMargins.GetHashCode();
+            foreach (LegacyDocTableCellMargins margins in TableCellMargins) {
+                hash = (hash * 31) + margins.GetHashCode();
             }
 
             foreach (LegacyDocTabStop tabStop in TabStops) {
@@ -297,6 +318,42 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             for (int index = 0; index < first.Count; index++) {
                 if (first[index] != second[index]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        internal IReadOnlyList<LegacyDocTableCellMargins> GetTableCellMarginsForCellCount(int cellCount) {
+            if (cellCount <= 0 || (TableCellMargins.Count == 0 && DefaultTableCellMargins == null)) {
+                return Array.Empty<LegacyDocTableCellMargins>();
+            }
+
+            int count = Math.Max(cellCount, TableCellMargins.Count);
+            var margins = new LegacyDocTableCellMargins[count];
+            if (DefaultTableCellMargins != null) {
+                for (int index = 0; index < count; index++) {
+                    margins[index] = DefaultTableCellMargins.Value;
+                }
+            }
+
+            for (int index = 0; index < TableCellMargins.Count; index++) {
+                margins[index] = margins[index].Merge(TableCellMargins[index]);
+            }
+
+            return margins.Any(margin => margin.HasAny)
+                ? margins
+                : Array.Empty<LegacyDocTableCellMargins>();
+        }
+
+        private static bool TableCellMarginsEqual(IReadOnlyList<LegacyDocTableCellMargins> first, IReadOnlyList<LegacyDocTableCellMargins> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (!first[index].Equals(second[index])) {
                     return false;
                 }
             }

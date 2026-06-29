@@ -207,7 +207,29 @@ namespace OfficeIMO.Word {
                     if (columnIndex < sourceRow.CellNoWraps.Count && sourceRow.CellNoWraps[columnIndex]) {
                         table.Rows[rowIndex].Cells[columnIndex].WrapText = false;
                     }
+
+                    if (columnIndex < sourceRow.CellMargins.Count) {
+                        ApplyLegacyDocTableCellMargins(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellMargins[columnIndex]);
+                    }
                 }
+            }
+        }
+
+        private static void ApplyLegacyDocTableCellMargins(WordTableCell cell, LegacyDocTableCellMargins margins) {
+            if (margins.TopTwips != null) {
+                cell.MarginTopWidth = checked((short)margins.TopTwips.Value);
+            }
+
+            if (margins.RightTwips != null) {
+                cell.MarginRightWidth = checked((short)margins.RightTwips.Value);
+            }
+
+            if (margins.BottomTwips != null) {
+                cell.MarginBottomWidth = checked((short)margins.BottomTwips.Value);
+            }
+
+            if (margins.LeftTwips != null) {
+                cell.MarginLeftWidth = checked((short)margins.LeftTwips.Value);
             }
         }
 

@@ -27,6 +27,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 IReadOnlyList<LegacyDocTableCellVerticalAlignment> cellVerticalAlignments = ReadSupportedTableCellVerticalAlignments(writableCells);
                 IReadOnlyList<bool> cellFitTexts = ReadSupportedTableCellFitTexts(writableCells);
                 IReadOnlyList<bool> cellNoWraps = ReadSupportedTableCellNoWraps(writableCells);
+                IReadOnlyList<LegacyDocTableCellMargins> cellMargins = ReadSupportedTableCellMargins(writableCells);
                 foreach (LegacyDocWritableTableCell writableCell in writableCells) {
                     int cellStart = text.Length;
                     LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, writableCell.SourceCell)
@@ -51,7 +52,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         tableCellVerticalMerges: cellVerticalMerges,
                         tableCellVerticalAlignments: cellVerticalAlignments,
                         tableCellFitTexts: cellFitTexts,
-                        tableCellNoWraps: cellNoWraps)));
+                        tableCellNoWraps: cellNoWraps,
+                        tableCellMargins: cellMargins)));
             }
 
             text.Append('\r');
@@ -257,6 +259,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocTableCellVerticalAlignment verticalAlignment = ReadSupportedTableCellVerticalAlignment(cellProperties);
                 bool fitText = ReadSupportedTableCellFitText(cellProperties);
                 bool noWrap = ReadSupportedTableCellNoWrap(cellProperties);
+                LegacyDocTableCellMargins margins = ReadSupportedTableCellMargins(cellProperties);
                 if (gridSpan > 1 && horizontalMerge == LegacyDocTableCellHorizontalMerge.Continue) {
                     throw new NotSupportedException("Native DOC saving supports simple horizontal table cell merges only. A continued horizontal merge cannot also define gridSpan.");
                 }
@@ -268,7 +271,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         : spanIndex == 0
                             ? LegacyDocTableCellHorizontalMerge.Restart
                             : LegacyDocTableCellHorizontalMerge.Continue;
-                    writableCells.Add(new LegacyDocWritableTableCell(spanIndex == 0 ? cell : null, width, merge, verticalMerge, verticalAlignment, fitText, noWrap));
+                    writableCells.Add(new LegacyDocWritableTableCell(spanIndex == 0 ? cell : null, width, merge, verticalMerge, verticalAlignment, fitText, noWrap, margins));
                 }
 
                 logicalColumnIndex += gridSpan;
@@ -351,6 +354,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return hasNoWrap ? noWraps : Array.Empty<bool>();
         }
 
+        private static IReadOnlyList<LegacyDocTableCellMargins> ReadSupportedTableCellMargins(IReadOnlyList<LegacyDocWritableTableCell> cells) {
+            var margins = new LegacyDocTableCellMargins[cells.Count];
+            bool hasMargins = false;
+            for (int index = 0; index < cells.Count; index++) {
+                margins[index] = cells[index].Margins;
+                if (margins[index].HasAny) {
+                    hasMargins = true;
+                }
+            }
+
+            return hasMargins ? margins : Array.Empty<LegacyDocTableCellMargins>();
+        }
+
         private static LegacyDocTableCellHorizontalMerge ReadSupportedTableCellHorizontalMerge(TableCell cell) {
             HorizontalMerge? horizontalMerge = cell.TableCellProperties?.GetFirstChild<HorizontalMerge>();
             if (horizontalMerge == null) {
@@ -417,6 +433,47 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static bool ReadSupportedTableCellNoWrap(TableCellProperties? cellProperties) {
             NoWrap? noWrap = cellProperties?.GetFirstChild<NoWrap>();
             return noWrap != null && ReadTableCellOnOffValue(noWrap);
+        }
+
+        private static LegacyDocTableCellMargins ReadSupportedTableCellMargins(TableCellProperties? cellProperties) {
+            TableCellMargin? margins = cellProperties?.GetFirstChild<TableCellMargin>();
+            if (margins == null) {
+                return default;
+            }
+
+            return new LegacyDocTableCellMargins(
+                ReadSupportedTableCellMarginWidth(margins.TopMargin, "top"),
+                ReadSupportedTableCellMarginWidth(margins.RightMargin, "right"),
+                ReadSupportedTableCellMarginWidth(margins.BottomMargin, "bottom"),
+                ReadSupportedTableCellMarginWidth(margins.LeftMargin, "left"));
+        }
+
+        private static int? ReadSupportedTableCellMarginWidth(OpenXmlElement? margin, string sideName) {
+            if (margin == null) {
+                return null;
+            }
+
+            string? widthText = margin.GetAttributes()
+                .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "w", StringComparison.OrdinalIgnoreCase))
+                .Value;
+            string? typeText = margin.GetAttributes()
+                .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "type", StringComparison.OrdinalIgnoreCase))
+                .Value;
+            if (!string.IsNullOrEmpty(typeText) && !string.Equals(typeText, "dxa", StringComparison.OrdinalIgnoreCase)) {
+                throw new NotSupportedException($"Native DOC saving supports table cell {sideName} margins only as DXA twip values.");
+            }
+
+            if (string.IsNullOrWhiteSpace(widthText)) {
+                return null;
+            }
+
+            if (!int.TryParse(widthText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int width)
+                || width < 0
+                || width > 31680) {
+                throw new NotSupportedException($"Native DOC saving supports table cell {sideName} margins only as nonnegative DXA twip values within the Word 97-2003 limit.");
+            }
+
+            return width;
         }
 
         private static bool ReadTableCellOnOffValue(OpenXmlElement element) {
@@ -551,6 +608,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case NoWrap:
                         ReadSupportedTableCellNoWrap(cellProperties);
                         break;
+                    case TableCellMargin:
+                        ReadSupportedTableCellMargins(cellProperties);
+                        break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table cell property: {property.LocalName}.");
                 }
@@ -595,7 +655,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableTableCell {
-            internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, bool fitText, bool noWrap) {
+            internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, bool fitText, bool noWrap, LegacyDocTableCellMargins margins) {
                 SourceCell = sourceCell;
                 WidthTwips = widthTwips;
                 HorizontalMerge = horizontalMerge;
@@ -603,6 +663,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 VerticalAlignment = verticalAlignment;
                 FitText = fitText;
                 NoWrap = noWrap;
+                Margins = margins;
             }
 
             internal TableCell? SourceCell { get; }
@@ -618,6 +679,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal bool FitText { get; }
 
             internal bool NoWrap { get; }
+
+            internal LegacyDocTableCellMargins Margins { get; }
         }
     }
 }

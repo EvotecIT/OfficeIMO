@@ -81,6 +81,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 null,
                 null,
                 null,
+                null,
                 null);
         }
 

@@ -23,7 +23,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmTFCantSplit90 = 0x3466;
         private const ushort SprmTDyaRowHeight = 0x9407;
         private const ushort SprmTDefTable = 0xD608;
+        private const ushort SprmTCellPadding = 0xD632;
+        private const ushort SprmTCellPaddingDefault = 0xD634;
         private const int Tc80Length = 20;
+        private const byte FbrcTop = 0x01;
+        private const byte FbrcLeft = 0x02;
+        private const byte FbrcBottom = 0x04;
+        private const byte FbrcRight = 0x08;
+        private const byte FtsDxa = 0x03;
         private const ushort TcgrfHorizontalMergeMask = 0x0003;
         private const ushort TcgrfVerticalMergeMask = 0x0060;
         private const ushort TcgrfVerticalAlignmentMask = 0x0180;
@@ -160,6 +167,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null;
             IReadOnlyList<bool>? tableCellFitTexts = null;
             IReadOnlyList<bool>? tableCellNoWraps = null;
+            IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null;
+            LegacyDocTableCellMargins? defaultTableCellMargins = null;
             int? tableRowHeightTwips = null;
             bool tableRowHeightIsExact = false;
             bool? tableRowCantSplit = null;
@@ -337,6 +346,22 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmTCellPadding || sprm == SprmTCellPaddingDefault) {
+                    if (!TryReadTableCellPadding(
+                        bytes,
+                        offset,
+                        end,
+                        sprm == SprmTCellPaddingDefault,
+                        ref tableCellMargins,
+                        ref defaultTableCellMargins,
+                        out int tableCellPaddingOperandLength)) {
+                        break;
+                    }
+
+                    offset += 2 + tableCellPaddingOperandLength;
+                    continue;
+                }
+
                 if (!TryGetSprmOperandLength(bytes, offset, end, out int operandLength)) {
                     break;
                 }
@@ -370,6 +395,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableCellVerticalAlignments,
                 tableCellFitTexts,
                 tableCellNoWraps,
+                tableCellMargins,
+                defaultTableCellMargins,
                 hasMergedTableCells);
         }
 
@@ -506,6 +533,77 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ? noWraps
                 : Array.Empty<bool>();
             return true;
+        }
+
+        private static bool TryReadTableCellPadding(
+            byte[] bytes,
+            int sprmOffset,
+            int end,
+            bool isDefault,
+            ref IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins,
+            ref LegacyDocTableCellMargins? defaultTableCellMargins,
+            out int operandLength) {
+            operandLength = 0;
+            if (sprmOffset + 9 > end) {
+                return false;
+            }
+
+            int cb = bytes[sprmOffset + 2];
+            operandLength = 1 + cb;
+            if (cb != 6 || sprmOffset + 2 + operandLength > end) {
+                return false;
+            }
+
+            int itcFirst = bytes[sprmOffset + 3];
+            int itcLim = bytes[sprmOffset + 4];
+            byte grfbrc = bytes[sprmOffset + 5];
+            byte ftsWidth = bytes[sprmOffset + 6];
+            int width = LegacyDocFib.ReadUInt16(bytes, sprmOffset + 7);
+            if (ftsWidth != FtsDxa || width < 0 || width > 31680) {
+                return true;
+            }
+
+            LegacyDocTableCellMargins margins = CreateTableCellMargins(grfbrc, width);
+            if (!margins.HasAny) {
+                return true;
+            }
+
+            if (isDefault) {
+                defaultTableCellMargins = (defaultTableCellMargins ?? default).Merge(margins);
+                return true;
+            }
+
+            if (itcFirst >= itcLim) {
+                return true;
+            }
+
+            LegacyDocTableCellMargins[] marginArray;
+            if (tableCellMargins == null || tableCellMargins.Count < itcLim) {
+                marginArray = new LegacyDocTableCellMargins[itcLim];
+                if (tableCellMargins != null) {
+                    for (int index = 0; index < tableCellMargins.Count; index++) {
+                        marginArray[index] = tableCellMargins[index];
+                    }
+                }
+            } else {
+                marginArray = tableCellMargins.ToArray();
+            }
+            for (int index = itcFirst; index < itcLim; index++) {
+                marginArray[index] = marginArray[index].Merge(margins);
+            }
+
+            tableCellMargins = marginArray.Any(margin => margin.HasAny)
+                ? marginArray
+                : Array.Empty<LegacyDocTableCellMargins>();
+            return true;
+        }
+
+        private static LegacyDocTableCellMargins CreateTableCellMargins(byte sideMask, int widthTwips) {
+            return new LegacyDocTableCellMargins(
+                (sideMask & FbrcTop) != 0 ? widthTwips : null,
+                (sideMask & FbrcRight) != 0 ? widthTwips : null,
+                (sideMask & FbrcBottom) != 0 ? widthTwips : null,
+                (sideMask & FbrcLeft) != 0 ? widthTwips : null);
         }
 
         private static void ReadTabChanges(byte[] bytes, int offset, int end, List<LegacyDocTabStop> tabStops) {

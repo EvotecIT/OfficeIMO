@@ -320,6 +320,9 @@ just to reserve names.
   - [x] Project simple table cell fit-text and no-wrap flags from DOC
     `sprmTDefTable` / `TC80` row definitions into normal OfficeIMO table cell
     text layout properties, and preserve them through native DOC save/reload.
+  - [x] Project simple table cell margins from DOC `sprmTCellPadding` and
+    `sprmTCellPaddingDefault` row definitions into normal OfficeIMO table cell
+    margin properties, and preserve them through native DOC save/reload.
   - [ ] Add table formatting, merged cells, and nested tables as separate
     fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
@@ -456,6 +459,8 @@ just to reserve names.
     merge descriptors blocked before native `.doc` bytes are committed.
   - [x] Write simple table cell fit-text and no-wrap flags with
     `sprmTDefTable`/`TC80`, then reload them through the legacy reader.
+  - [x] Write simple table cell margins with `sprmTCellPadding`, then reload
+    them through the legacy reader.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.
