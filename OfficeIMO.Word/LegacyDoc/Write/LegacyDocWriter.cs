@@ -82,21 +82,25 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var text = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var paragraphFormats = new List<LegacyDocWritableParagraph>();
-            int paragraphCount = 0;
+            int bodyContentCount = 0;
             foreach (OpenXmlElement child in body.ChildElements) {
                 switch (child) {
                     case Paragraph paragraph:
                         AppendParagraph(text, runs, paragraphFormats, paragraph);
-                        paragraphCount++;
+                        bodyContentCount++;
+                        break;
+                    case Table table:
+                        AppendTable(text, runs, table);
+                        bodyContentCount++;
                         break;
                     case SectionProperties:
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs with bold, italic, underline, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs and simple tables with bold, italic, underline, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");
                 }
             }
 
-            if (paragraphCount == 0) {
+            if (bodyContentCount == 0) {
                 text.Append('\r');
             }
 
@@ -104,10 +108,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void ThrowIfUnsupportedDocumentParts(WordDocument document, DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart) {
-            if (document.TablesIncludingNestedTables.Count > 0) {
-                throw new NotSupportedException("Native DOC saving currently supports only plain paragraphs. Tables are not supported yet.");
-            }
-
             if (document.Sections.Count > 1) {
                 throw new NotSupportedException("Native DOC saving currently supports a single section only.");
             }
@@ -130,6 +130,136 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (mainPart.ChartParts.Any()) {
                 throw new NotSupportedException("Native DOC saving currently supports text only. Charts are not supported yet.");
+            }
+        }
+
+        private static void AppendTable(StringBuilder text, List<LegacyDocWritableRun> runs, Table table) {
+            ThrowIfUnsupportedTableShape(table);
+
+            TableRow[] rows = table.Elements<TableRow>().ToArray();
+            if (rows.Length == 0) {
+                throw new NotSupportedException("Native DOC saving supports simple tables only when at least one row is present.");
+            }
+
+            foreach (TableRow row in rows) {
+                TableCell[] cells = row.Elements<TableCell>().ToArray();
+                if (cells.Length == 0) {
+                    throw new NotSupportedException("Native DOC saving supports simple tables only when every row contains at least one cell.");
+                }
+
+                foreach (TableCell cell in cells) {
+                    AppendTableCell(text, runs, cell);
+                    text.Append('\a');
+                }
+
+                text.Append('\a');
+            }
+
+            text.Append('\r');
+        }
+
+        private static void ThrowIfUnsupportedTableShape(Table table) {
+            foreach (OpenXmlElement child in table.ChildElements) {
+                switch (child) {
+                    case TableProperties tableProperties:
+                        ThrowIfUnsupportedTableProperties(tableProperties);
+                        break;
+                    case TableGrid tableGrid:
+                        ThrowIfUnsupportedTableGrid(tableGrid);
+                        break;
+                    case TableRow:
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table element: {child.LocalName}.");
+                }
+            }
+        }
+
+        private static void ThrowIfUnsupportedTableProperties(TableProperties tableProperties) {
+            foreach (OpenXmlElement property in tableProperties.ChildElements) {
+                switch (property) {
+                    case TableStyle tableStyle:
+                        if (!string.Equals(tableStyle.Val?.Value, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
+                            throw new NotSupportedException("Native DOC saving supports simple tables only with the TableGrid table style.");
+                        }
+                        break;
+                    case TableWidth tableWidth:
+                        if (tableWidth.Type?.Value != TableWidthUnitValues.Auto || tableWidth.Width?.Value != "0") {
+                            throw new NotSupportedException("Native DOC saving supports simple tables only with the default automatic table width.");
+                        }
+                        break;
+                    case TableLook:
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table property: {property.LocalName}.");
+                }
+            }
+        }
+
+        private static void ThrowIfUnsupportedTableGrid(TableGrid tableGrid) {
+            foreach (OpenXmlElement child in tableGrid.ChildElements) {
+                if (child is GridColumn) {
+                    continue;
+                }
+
+                throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table grid element: {child.LocalName}.");
+            }
+        }
+
+        private static void AppendTableCell(StringBuilder text, List<LegacyDocWritableRun> runs, TableCell cell) {
+            Paragraph? paragraph = null;
+            foreach (OpenXmlElement child in cell.ChildElements) {
+                switch (child) {
+                    case TableCellProperties cellProperties:
+                        ThrowIfUnsupportedTableCellProperties(cellProperties);
+                        break;
+                    case Paragraph cellParagraph:
+                        if (paragraph != null) {
+                            throw new NotSupportedException("Native DOC saving supports simple tables only with one paragraph per cell.");
+                        }
+
+                        paragraph = cellParagraph;
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table cell element: {child.LocalName}.");
+                }
+            }
+
+            if (paragraph != null) {
+                AppendTableCellParagraph(text, runs, paragraph);
+            }
+        }
+
+        private static void ThrowIfUnsupportedTableCellProperties(TableCellProperties cellProperties) {
+            foreach (OpenXmlElement property in cellProperties.ChildElements) {
+                switch (property) {
+                    case TableCellWidth cellWidth:
+                        if (cellWidth.Type?.Value != TableWidthUnitValues.Dxa || cellWidth.Width?.Value != "2400") {
+                            throw new NotSupportedException("Native DOC saving supports simple tables only with the default table cell width.");
+                        }
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table cell property: {property.LocalName}.");
+                }
+            }
+        }
+
+        private static void AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, Paragraph paragraph) {
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties);
+            if (paragraphFormatting.HasFormatting) {
+                throw new NotSupportedException("Native DOC saving supports simple table cells only without paragraph formatting.");
+            }
+
+            foreach (OpenXmlElement child in paragraph.ChildElements) {
+                switch (child) {
+                    case ParagraphProperties:
+                        break;
+                    case Run run:
+                        AppendSupportedRunText(text, runs, run);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports simple table cell paragraphs only with text runs. Unsupported paragraph element: {child.LocalName}.");
+                }
             }
         }
 

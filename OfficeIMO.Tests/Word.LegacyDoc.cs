@@ -755,6 +755,84 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSimpleTableAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(2, 2);
+                    table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal(2, reloadedTable.Rows.Count);
+                Assert.Equal(2, reloadedTable.Rows[0].Cells.Count);
+                Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal("B1", reloadedTable.Rows[0].Cells[1].Paragraphs[0].Text);
+                Assert.Equal("A2", reloadedTable.Rows[1].Cells[0].Paragraphs[0].Text);
+                Assert.Equal("B2", reloadedTable.Rows[1].Cells[1].Paragraphs[0].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedTableCellRunsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    WordParagraph firstCellParagraph = table.Rows[0].Cells[0].AddParagraph(removeExistingParagraphs: true);
+                    firstCellParagraph.AddText("A1").SetBold();
+                    table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordParagraph firstCellRun = reloadedTable.Rows[0].Cells[0].Paragraphs[0];
+                WordParagraph secondCellRun = reloadedTable.Rows[0].Cells[1].Paragraphs[0];
+                Assert.Equal("A1", firstCellRun.Text);
+                Assert.True(firstCellRun.Bold);
+                Assert.Equal("B1", secondCellRun.Text);
+                Assert.False(secondCellRun.Bold);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedMergedTablesBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordTable table = document.AddTable(1, 2);
+                table.Rows[0].Cells[0].AddParagraph("Merged", removeExistingParagraphs: true);
+                table.Rows[0].Cells[0].MergeHorizontally(1);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("table cell property", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedRunFormattingBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

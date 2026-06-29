@@ -234,8 +234,8 @@ just to reserve names.
   - [x] Project simple DOC cell/row marker tables into `WordTable` instances
     with plain cell text.
   - [x] Preserve direct run formatting inside projected simple table cells.
-  - [ ] Add table formatting, merged cells, nested tables, and table writer
-    support as separate fixture-backed slices.
+  - [ ] Add table formatting, merged cells, and nested tables as separate
+    fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
   separate fixture-backed slices.
 - [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
@@ -280,8 +280,10 @@ just to reserve names.
     tab runs after legacy DOC reload.
   - [x] Project imported line/page break characters and native-written
     text-wrapping/page breaks as real Word break runs after legacy DOC reload.
-  - [ ] Add table and simple section writing as separate preflight-backed
-    slices.
+  - [x] Write simple body tables with one paragraph per cell and supported run
+    content, then reload them as `WordTable` instances through the legacy reader.
+  - [ ] Add table formatting, merged/nested tables, and simple section writing
+    as separate preflight-backed slices.
 - [ ] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound
