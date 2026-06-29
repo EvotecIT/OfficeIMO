@@ -35,12 +35,12 @@ public static class MarkdownBlockRenderBuiltInExtensions {
             throw new ArgumentNullException(nameof(options));
         }
 
-        AddIfMissing(options.BlockRenderExtensions, PortableCalloutHtmlName, typeof(CalloutBlock), static (block, _) => {
+        AddIfMissing(options.BlockRenderExtensions, PortableCalloutHtmlName, typeof(CalloutBlock), static (block, options) => {
             if (block is not CalloutBlock callout) {
                 return null;
             }
 
-            return RenderPortableCalloutHtml(callout);
+            return RenderPortableCalloutHtml(callout, options as HtmlOptions);
         });
     }
 
@@ -66,7 +66,7 @@ public static class MarkdownBlockRenderBuiltInExtensions {
 
         var prior = options.TocHtmlRenderer;
         options.TocHtmlRenderer = (tocOptions, entries, htmlOptions) =>
-            prior?.Invoke(tocOptions, entries, htmlOptions) ?? RenderPortableTocHtml(tocOptions, entries);
+            prior?.Invoke(tocOptions, entries, htmlOptions) ?? RenderPortableTocHtml(tocOptions, entries, htmlOptions);
     }
 
     /// <summary>Adds a portable HTML fallback for the aggregated footnote section.</summary>
@@ -140,7 +140,7 @@ public static class MarkdownBlockRenderBuiltInExtensions {
         return PrefixQuoteLines(string.Join("\n\n", parts));
     }
 
-    private static string RenderPortableCalloutHtml(CalloutBlock callout) {
+    private static string RenderPortableCalloutHtml(CalloutBlock callout, HtmlOptions? options) {
         var titleMarkdown = callout.TitleInlines.RenderMarkdown();
         var visibleTitle = string.IsNullOrWhiteSpace(titleMarkdown)
             ? FormatTitleFromKind(callout.Kind)
@@ -152,7 +152,7 @@ public static class MarkdownBlockRenderBuiltInExtensions {
         if (!string.IsNullOrWhiteSpace(titleMarkdown)) {
             sb.Append("<p><strong>").Append(callout.TitleInlines.RenderHtml()).Append("</strong></p>");
         } else if (!string.IsNullOrWhiteSpace(visibleTitle)) {
-            sb.Append("<p><strong>").Append(System.Net.WebUtility.HtmlEncode(visibleTitle)).Append("</strong></p>");
+            sb.Append("<p><strong>").Append(HtmlTextEncoder.Encode(visibleTitle, options)).Append("</strong></p>");
         }
 
         if (callout.ChildBlocks.Count > 0) {
@@ -166,7 +166,7 @@ public static class MarkdownBlockRenderBuiltInExtensions {
                 if (i > 0) {
                     sb.Append("<br/>");
                 }
-                sb.Append(System.Net.WebUtility.HtmlEncode(lines[i]));
+                sb.Append(HtmlTextEncoder.Encode(lines[i], options));
             }
             sb.Append("</p>");
         }
@@ -175,7 +175,7 @@ public static class MarkdownBlockRenderBuiltInExtensions {
         return sb.ToString();
     }
 
-    private static string RenderPortableTocHtml(TocOptions options, IReadOnlyList<TocBlock.Entry> entries) {
+    private static string RenderPortableTocHtml(TocOptions options, IReadOnlyList<TocBlock.Entry> entries, HtmlOptions? htmlOptions) {
         if (entries == null || entries.Count == 0) {
             return string.Empty;
         }
@@ -200,7 +200,7 @@ public static class MarkdownBlockRenderBuiltInExtensions {
         }
 
         int titleLevel = options.TitleLevel < 1 ? 1 : (options.TitleLevel > 6 ? 6 : options.TitleLevel);
-        return $"<h{titleLevel}>{System.Net.WebUtility.HtmlEncode(options.Title)}</h{titleLevel}>" + bodyHtml;
+        return $"<h{titleLevel}>{HtmlTextEncoder.Encode(options.Title, htmlOptions)}</h{titleLevel}>" + bodyHtml;
     }
 
     private static string RenderPortableFootnoteSectionHtml(IReadOnlyList<FootnoteDefinitionBlock> footnotes) {

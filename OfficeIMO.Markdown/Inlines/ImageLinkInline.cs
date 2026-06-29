@@ -45,9 +45,9 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
         var imgExtra = imageAllowed ? ImageHtmlAttributes.BuildImageAttributes(o, ImageUrl) : string.Empty;
         var extra = linkAllowed ? LinkHtmlAttributes.BuildExternalLinkAttributes(o, LinkUrl) : string.Empty;
 
-        if (!linkAllowed && !imageAllowed) return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt);
+        if (!linkAllowed && !imageAllowed) return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt, o);
         if (!imageAllowed) {
-            return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl, o)}\"{linkTitle}{extra}>{System.Net.WebUtility.HtmlEncode(PlainAlt)}</a>";
+            return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl, o)}\"{linkTitle}{extra}>{HtmlTextEncoder.Encode(PlainAlt, o)}</a>";
         }
         if (!linkAllowed) {
             return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl, o)}\" alt=\"{System.Net.WebUtility.HtmlEncode(PlainAlt)}\"{title}{imgExtra} />";

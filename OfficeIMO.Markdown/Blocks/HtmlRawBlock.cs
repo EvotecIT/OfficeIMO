@@ -26,7 +26,7 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         var handling = o?.RawHtmlHandling ?? RawHtmlHandling.Allow;
         return handling switch {
             RawHtmlHandling.Allow => o?.GitHubHtmlTagFilter == true ? GitHubHtmlTagFilter.Apply(Html) : Html,
-            RawHtmlHandling.Escape => "<pre class=\"md-raw-html\"><code>" + System.Net.WebUtility.HtmlEncode(Html) + "</code></pre>",
+            RawHtmlHandling.Escape => "<pre class=\"md-raw-html\"><code>" + HtmlTextEncoder.Encode(Html, o) + "</code></pre>",
             RawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Html),
             _ => string.Empty
         };

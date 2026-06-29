@@ -31,7 +31,7 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
         var titleAttr = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title)}\"";
         var o = HtmlRenderContext.Options;
         if (!UrlOriginPolicy.IsAllowedHttpImage(o, Src)) {
-            return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt);
+            return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt, o);
         }
         var extra = ImageHtmlAttributes.BuildImageAttributes(o, Src);
         return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(Src, o)}\" alt=\"{System.Net.WebUtility.HtmlEncode(PlainAlt)}\"{titleAttr}{extra} />";

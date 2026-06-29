@@ -15,11 +15,11 @@ internal static class ImageHtmlAttributes {
         return sb.ToString();
     }
 
-    internal static string BuildBlockedPlaceholder(string? alt) {
+    internal static string BuildBlockedPlaceholder(string? alt, HtmlOptions? options) {
         // Keep markup minimal and safe.
         alt ??= string.Empty;
         var trimmed = alt.Trim();
         var text = trimmed.Length == 0 ? "image blocked" : ("image blocked: " + trimmed);
-        return "<span class=\"omd-image-blocked\">" + System.Net.WebUtility.HtmlEncode(text) + "</span>";
+        return "<span class=\"omd-image-blocked\">" + HtmlTextEncoder.Encode(text, options) + "</span>";
     }
 }

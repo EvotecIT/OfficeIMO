@@ -135,7 +135,7 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         sb.Append(">");
         sb.Append(Inlines.RenderHtml());
         if (!string.IsNullOrEmpty(id) && (context.Options.IncludeAnchorLinks || context.Options.ShowAnchorIcons)) {
-            var icon = System.Net.WebUtility.HtmlEncode(context.Options.AnchorIcon ?? "🔗");
+            var icon = HtmlTextEncoder.Encode(context.Options.AnchorIcon ?? "🔗", context.Options);
             sb.Append("<a class=\"heading-anchor\" href=\"#")
               .Append(System.Net.WebUtility.HtmlEncode(id))
               .Append("\" data-anchor-id=\"")
@@ -147,7 +147,7 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         sb.Append("</h").Append(Level).Append('>');
 
         if (context.Options.BackToTopLinks && Level >= context.Options.BackToTopMinLevel) {
-            var text = System.Net.WebUtility.HtmlEncode(context.Options.BackToTopText ?? "Back to top");
+            var text = HtmlTextEncoder.Encode(context.Options.BackToTopText ?? "Back to top", context.Options);
             sb.Append("<div class=\"back-to-top\"><a href=\"#top\">").Append(text).Append("</a></div>");
         }
 

@@ -15,7 +15,7 @@ internal static class HtmlRenderer {
         // Full document
         var sb = new StringBuilder();
         sb.Append("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">");
-        sb.Append("<title>").Append(System.Net.WebUtility.HtmlEncode(options.Title ?? "Document")).Append("</title>");
+        sb.Append("<title>").Append(HtmlTextEncoder.Encode(options.Title ?? "Document", options)).Append("</title>");
         if (!string.IsNullOrEmpty(parts.Css)) sb.Append("<style>\n").Append(parts.Css).Append("\n</style>");
         if (!string.IsNullOrEmpty(parts.Head)) sb.Append(parts.Head);
         sb.Append("</head><body>");

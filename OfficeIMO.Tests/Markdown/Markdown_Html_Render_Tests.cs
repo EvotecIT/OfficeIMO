@@ -245,6 +245,63 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void HtmlOptions_Can_Render_NonAscii_Helper_Text_Literally_For_Markdig_Style_Output() {
+            var toc = new TocBlock {
+                NormalizeLevels = true
+            };
+            toc.Entries.Add(new TocBlock.Entry {
+                Level = 2,
+                Text = "åHeading",
+                Anchor = "åheading"
+            });
+
+            var doc = MarkdownDoc.Create()
+                .Add(toc)
+                .H2("åHeading")
+                .Add(new ImageBlock("https://example.com/image.png", "åAlt", "åTitle") {
+                    Caption = "åCaption"
+                });
+
+            string html = doc.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false,
+                IncludeAnchorLinks = true,
+                AnchorIcon = "åAnchor",
+                BackToTopLinks = true,
+                BackToTopMinLevel = 2,
+                BackToTopText = "åTop"
+            });
+
+            Assert.Contains(">åHeading</a>", html, StringComparison.Ordinal);
+            Assert.Contains(">åAnchor</a>", html, StringComparison.Ordinal);
+            Assert.Contains(">åTop</a>", html, StringComparison.Ordinal);
+            Assert.Contains("<div class=\"caption\">åCaption</div>", html, StringComparison.Ordinal);
+            Assert.Contains("alt=\"&#229;Alt\"", html, StringComparison.Ordinal);
+            Assert.Contains("title=\"&#229;Title\"", html, StringComparison.Ordinal);
+
+            string documentHtml = doc.ToHtmlDocument(new HtmlOptions {
+                Title = "åDocument",
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            });
+            Assert.Contains("<title>åDocument</title>", documentHtml, StringComparison.Ordinal);
+
+            string blockedLinkedImage = MarkdownReader.Parse("[![åBadge](https://img.example/badge.svg)](https://example.com)")
+                .ToHtmlFragment(new HtmlOptions {
+                    Style = HtmlStyle.Plain,
+                    CssDelivery = CssDelivery.None,
+                    BodyClass = null,
+                    EscapeNonAsciiText = false,
+                    BlockExternalHttpImages = true
+                });
+            Assert.Contains(">åBadge</a>", blockedLinkedImage, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void GitHubFlavoredMarkdown_Html_Profile_Uses_GitHub_Heading_Identifiers() {
             const string markdown = """
 # Hello World!

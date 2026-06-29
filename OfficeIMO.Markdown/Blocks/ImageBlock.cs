@@ -91,8 +91,8 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         if (Height != null) size += $" height=\"{Height.Value}\"";
         var o = HtmlRenderContext.Options;
         if (!UrlOriginPolicy.IsAllowedHttpImage(o, Path)) {
-            string captionBlocked = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(Caption!)}</div>";
-            return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt) + captionBlocked;
+            string captionBlocked = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{HtmlTextEncoder.Encode(Caption!, o)}</div>";
+            return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt, o) + captionBlocked;
         }
         var extra = ImageHtmlAttributes.BuildImageAttributes(o, Path);
         string img = $"<img src=\"{HtmlAttributeUrlEncoder.Encode(GetRenderedFallbackImagePath(o), o)}\" alt=\"{alt}\"{title}{size}{extra} />";
@@ -104,7 +104,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
             string linkTitle = string.IsNullOrEmpty(LinkTitle) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(LinkTitle!)}\"";
             img = $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl!, o)}\"{linkTitle}{linkExtra}>{img}</a>";
         }
-        string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(Caption!)}</div>";
+        string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{HtmlTextEncoder.Encode(Caption!, o)}</div>";
         return img + caption;
     }
 
