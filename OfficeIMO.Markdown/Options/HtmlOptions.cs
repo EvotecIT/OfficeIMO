@@ -40,7 +40,8 @@ public sealed class HtmlOptions {
             GitHubHtmlTagFilter = true,
             HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.GitHub,
             RawHtmlHandling = RawHtmlHandling.Allow,
-            NormalizeUrlHostsToIdn = false
+            NormalizeUrlHostsToIdn = false,
+            EscapeNonAsciiText = false
         };
     }
 
@@ -137,6 +138,13 @@ public sealed class HtmlOptions {
     /// Default: <c>false</c>; enable for Markdig-compatible URL attribute output.
     /// </summary>
     public bool PercentEncodeTildeInUrlAttributes { get; set; } = false;
+    /// <summary>
+    /// When <c>true</c>, HTML text rendering uses the historical .NET encoder behavior that may emit numeric
+    /// character references for non-ASCII text. Set to <c>false</c> for Markdig/cmark-style output that keeps
+    /// non-ASCII text literal while still escaping HTML-sensitive characters such as <c>&amp;</c>, <c>&lt;</c>,
+    /// <c>&gt;</c>, quotes, and apostrophes.
+    /// </summary>
+    public bool EscapeNonAsciiText { get; set; } = true;
     /// <summary>
     /// Optional block render extensions that can override HTML emitted for specific block types.
     /// Later registrations win when block types overlap.

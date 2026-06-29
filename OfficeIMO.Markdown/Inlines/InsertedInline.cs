@@ -13,7 +13,7 @@ public sealed class InsertedInline : MarkdownInline, IRenderableMarkdownInline, 
     }
 
     internal string RenderMarkdown() => "++" + MarkdownEscaper.EscapeEmphasis(Text) + "++";
-    internal string RenderHtml() => "<ins>" + System.Net.WebUtility.HtmlEncode(Text) + "</ins>";
+    internal string RenderHtml() => "<ins>" + HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options) + "</ins>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);

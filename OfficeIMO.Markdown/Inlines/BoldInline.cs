@@ -9,7 +9,7 @@ public sealed class BoldInline : MarkdownInline, IRenderableMarkdownInline, IPla
     /// <summary>Creates a bold inline with the given text.</summary>
     public BoldInline(string text) { Text = text ?? string.Empty; }
     internal string RenderMarkdown() => "**" + MarkdownEscaper.EscapeEmphasis(Text) + "**";
-    internal string RenderHtml() => "<strong>" + System.Net.WebUtility.HtmlEncode(Text) + "</strong>";
+    internal string RenderHtml() => "<strong>" + HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options) + "</strong>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);

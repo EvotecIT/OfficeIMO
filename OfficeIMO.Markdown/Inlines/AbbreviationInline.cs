@@ -19,8 +19,8 @@ public sealed class AbbreviationInline : MarkdownInline, IRenderableMarkdownInli
     internal string RenderMarkdown() => MarkdownEscaper.EscapeText(Text);
 
     internal string RenderHtml() =>
-        "<abbr title=\"" + System.Net.WebUtility.HtmlEncode(Title) + "\">" +
-        System.Net.WebUtility.HtmlEncode(Text) +
+        "<abbr title=\"" + HtmlTextEncoder.Encode(Title, HtmlRenderContext.Options) + "\">" +
+        HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options) +
         "</abbr>";
 
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();

@@ -162,6 +162,22 @@ public class Markdown_Reader_Abbreviations_Tests {
     }
 
     [Fact]
+    public void Abbreviations_Can_Render_NonAscii_Text_Literally_For_Markdig_Style_Output() {
+        const string markdown = "*[åbc]: Unicode\n\nåbc ÅBC";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Abbreviations = true;
+
+        var html = MarkdownReader.Parse(markdown, options).ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Contains("<abbr title=\"Unicode\">åbc</abbr> ÅBC", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Abbreviation_Definitions_Are_Written_After_FrontMatter() {
         const string markdown = "---\ntitle: Doc\n---\n\n  *[HTML]:   Hyper Text Markup Language\n\nHTML";
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();

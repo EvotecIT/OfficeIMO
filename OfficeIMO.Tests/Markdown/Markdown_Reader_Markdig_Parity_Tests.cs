@@ -285,6 +285,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "code-span-stays-literal", "*[HTML]: Hyper Text Markup Language\n\n`HTML` HTML" };
         yield return new object[] { "duplicate-last-definition-wins", "*[HTML]: First\n*[HTML]: Second\nHTML" };
         yield return new object[] { "case-sensitive", "*[html]: Lower\nHTML html Html" };
+        yield return new object[] { "unicode-label", "*[åbc]: Unicode\nåbc ÅBC" };
         yield return new object[] { "punctuation-label", "*[C++]: Language\nC++ C+++ C++-like" };
         yield return new object[] { "trailing-dash-boundary", "*[HTML]: Hyper Text Markup Language\nHTML- HTML-like" };
         yield return new object[] { "opening-punctuation-boundaries-stay-literal", "*[HTML]: Hyper Text Markup Language\n(HTML) 'HTML' \"HTML\" /HTML .HTML" };
@@ -409,7 +410,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var htmlOptions = new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
-            BodyClass = null
+            BodyClass = null,
+            EscapeNonAsciiText = false
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseEmphasisExtras(builder);
@@ -431,7 +433,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var htmlOptions = new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
-            BodyClass = null
+            BodyClass = null,
+            EscapeNonAsciiText = false
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseAbbreviations(builder);
@@ -453,7 +456,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var htmlOptions = new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
-            BodyClass = null
+            BodyClass = null,
+            EscapeNonAsciiText = false
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UsePipeTables(builder);

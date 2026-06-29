@@ -13,7 +13,7 @@ public sealed class SuperscriptInline : MarkdownInline, IRenderableMarkdownInlin
     }
 
     internal string RenderMarkdown() => "^" + MarkdownEscaper.EscapeSuperscriptText(Text) + "^";
-    internal string RenderHtml() => "<sup>" + System.Net.WebUtility.HtmlEncode(Text) + "</sup>";
+    internal string RenderHtml() => "<sup>" + HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options) + "</sup>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);

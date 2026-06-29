@@ -18,7 +18,7 @@ public sealed class CodeSpanInline : MarkdownInline, IRenderableMarkdownInline, 
         string rightPad = (Text.EndsWith("`") || Text.EndsWith(" ")) ? " " : string.Empty;
         return fence + leftPad + Text + rightPad + fence;
     }
-    internal string RenderHtml() => "<code>" + System.Net.WebUtility.HtmlEncode(Text) + "</code>";
+    internal string RenderHtml() => "<code>" + HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options) + "</code>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);

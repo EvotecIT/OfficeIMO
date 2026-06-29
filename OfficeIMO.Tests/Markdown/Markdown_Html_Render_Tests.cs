@@ -213,6 +213,38 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void HtmlOptions_Can_Render_NonAscii_Text_Literally_For_Markdig_Style_Output() {
+            const string markdown = """
+åbc 1 < 2 & 'quote'
+
+[ålink](https://example.com)
+
+```
+åcode < &
+```
+""";
+
+            var defaultHtml = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            });
+            var markdigStyleHtml = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            });
+
+            Assert.Contains("&#229;bc", defaultHtml, StringComparison.Ordinal);
+            Assert.Contains("&#229;link", defaultHtml, StringComparison.Ordinal);
+            Assert.Contains("&#229;code", defaultHtml, StringComparison.Ordinal);
+            Assert.Contains("åbc 1 &lt; 2 &amp; &#39;quote&#39;", markdigStyleHtml, StringComparison.Ordinal);
+            Assert.Contains("<a href=\"https://example.com\">ålink</a>", markdigStyleHtml, StringComparison.Ordinal);
+            Assert.Contains("åcode &lt; &amp;\n", markdigStyleHtml, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void GitHubFlavoredMarkdown_Html_Profile_Uses_GitHub_Heading_Identifiers() {
             const string markdown = """
 # Hello World!

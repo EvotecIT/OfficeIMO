@@ -13,7 +13,7 @@ public sealed class SubscriptInline : MarkdownInline, IRenderableMarkdownInline,
     }
 
     internal string RenderMarkdown() => "~" + MarkdownEscaper.EscapeSubscriptText(Text) + "~";
-    internal string RenderHtml() => "<sub>" + System.Net.WebUtility.HtmlEncode(Text) + "</sub>";
+    internal string RenderHtml() => "<sub>" + HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options) + "</sub>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);

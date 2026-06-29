@@ -120,7 +120,7 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
         var kind = System.Net.WebUtility.HtmlEncode(Kind);
         var titleMarkdown = TitleInlines.RenderMarkdown();
         var hasTitleInlines = !string.IsNullOrWhiteSpace(titleMarkdown);
-        var titleText = hasTitleInlines ? TitleInlines.RenderHtml() : System.Net.WebUtility.HtmlEncode(FormatTitleFromKind(Kind));
+        var titleText = hasTitleInlines ? TitleInlines.RenderHtml() : HtmlTextEncoder.Encode(FormatTitleFromKind(Kind), HtmlRenderContext.Options);
         var hasVisibleTitle = hasTitleInlines || !string.IsNullOrWhiteSpace(FormatTitleFromKind(Kind));
 
         var sb = new StringBuilder();
@@ -145,7 +145,7 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
             sb.Append("<p>");
             for (int i = 0; i < lines.Length; i++) {
                 if (i > 0) sb.Append("<br/>");
-                sb.Append(System.Net.WebUtility.HtmlEncode(lines[i]));
+                sb.Append(HtmlTextEncoder.Encode(lines[i], HtmlRenderContext.Options));
             }
             sb.Append("</p>");
         }

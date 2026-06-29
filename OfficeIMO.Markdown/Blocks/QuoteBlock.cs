@@ -80,7 +80,7 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
             return "<blockquote></blockquote>";
         }
 
-        var encoded = System.Net.WebUtility.HtmlEncode(string.Join("\n", Lines)).Replace("\n", "<br/>");
+        var encoded = HtmlTextEncoder.Encode(string.Join("\n", Lines), HtmlRenderContext.Options).Replace("\n", "<br/>");
         return $"<blockquote><p>{encoded}</p></blockquote>";
     }
 

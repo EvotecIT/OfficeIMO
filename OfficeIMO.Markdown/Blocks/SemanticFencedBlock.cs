@@ -102,12 +102,12 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
         }
 
         string lang = string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{System.Net.WebUtility.HtmlEncode(Language)}\"";
-        string code = System.Net.WebUtility.HtmlEncode(Content);
+        string code = HtmlTextEncoder.Encode(Content, options);
         if (code.Length > 0) {
             code += "\n";
         }
 
-        string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(Caption!)}</div>";
+        string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{HtmlTextEncoder.Encode(Caption!, options)}</div>";
         return $"<pre><code{lang}>{code}</code></pre>{caption}";
     }
 

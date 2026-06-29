@@ -9,7 +9,7 @@ public sealed class TextRun : MarkdownInline, IRenderableMarkdownInline, IPlainT
     /// <summary>Creates a plain text run.</summary>
     public TextRun(string text) { Text = text ?? string.Empty; }
     internal string RenderMarkdown() => MarkdownEscaper.EscapeText(Text);
-    internal string RenderHtml() => System.Net.WebUtility.HtmlEncode(Text);
+    internal string RenderHtml() => HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options);
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);

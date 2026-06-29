@@ -9,7 +9,7 @@ public sealed class BoldItalicInline : MarkdownInline, IRenderableMarkdownInline
     /// <summary>Create a bold+italic inline.</summary>
     public BoldItalicInline(string text) { Text = text ?? string.Empty; }
     internal string RenderMarkdown() => "***" + MarkdownEscaper.EscapeEmphasis(Text) + "***";
-    internal string RenderHtml() => "<strong><em>" + System.Net.WebUtility.HtmlEncode(Text) + "</em></strong>";
+    internal string RenderHtml() => "<strong><em>" + HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options) + "</em></strong>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);
