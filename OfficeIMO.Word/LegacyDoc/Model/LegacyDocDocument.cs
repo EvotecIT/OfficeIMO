@@ -32,6 +32,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal LegacyDocStyleSheet StyleSheet { get; private set; } = LegacyDocStyleSheet.Empty;
 
+        internal LegacyDocSectionFormat SectionFormat { get; private set; } = LegacyDocSectionFormat.Default;
+
         /// <summary>Gets diagnostics produced while reading the legacy document.</summary>
         public IReadOnlyList<LegacyDocImportDiagnostic> Diagnostics => _diagnostics;
 
@@ -135,6 +137,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             StyleSheet = LegacyDocStyleSheet.Read(tableStream, fib, fontFamilies, out string? styleSheetWarning);
             if (styleSheetWarning != null) {
                 AddWarning("DOC-STYLESHEET-INVALID", styleSheetWarning);
+            }
+
+            SectionFormat = LegacyDocSectionFormattingReader.ReadSectionFormatting(wordDocumentStream, tableStream, fib, out string? sectionFormattingWarning);
+            if (sectionFormattingWarning != null) {
+                AddWarning("DOC-SEPX-INVALID", sectionFormattingWarning);
             }
 
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges = LegacyDocCharacterFormattingReader.ReadCharacterFormatting(wordDocumentStream, tableStream, fib, fontFamilies, out string? formattingWarning);

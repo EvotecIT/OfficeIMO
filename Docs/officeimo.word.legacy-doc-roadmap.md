@@ -266,6 +266,11 @@ just to reserve names.
     fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
   separate fixture-backed slices.
+  - [x] Project single-section page size, orientation, margins, header/footer
+    distance, and gutter from DOC `PlcfSed`/`Sepx` records into normal
+    OfficeIMO section properties.
+  - [ ] Add multi-section breaks, headers, footers, footnotes, and endnotes as
+    separate fixture-backed slices.
 - [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
   and loaded `WordDocument` state.
   - [x] Report unsupported header/footer, footnote, endnote, comment, and text
@@ -337,11 +342,13 @@ just to reserve names.
   - [x] Block multi-paragraph table cells before native `.doc` bytes are
     committed until TAP-backed table parsing can disambiguate table-internal
     paragraph marks from normal paragraphs before a table.
-  - [x] Block non-default final section page setup before native `.doc` bytes are
-    committed, so page size, orientation, margins, and other section properties
-    are not silently dropped before section writing exists.
-  - [ ] Add table formatting, merged/nested tables, and simple section writing
-    as separate preflight-backed slices.
+  - [x] Write simple final-section page size, orientation, and margins, then
+    reload them through the legacy reader.
+  - [x] Keep blocking unsupported final-section properties before native `.doc`
+    bytes are committed so unimplemented section features are not silently
+    dropped.
+  - [ ] Add table formatting, merged/nested tables, multi-section breaks, and
+    richer section writing as separate preflight-backed slices.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound

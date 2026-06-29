@@ -1110,35 +1110,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionOrientationBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionPageSetupAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Landscape section");
-                document.PageOrientation = PageOrientationValues.Landscape;
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Landscape section");
+                    document.PageSettings.PageSize = WordPageSize.Letter;
+                    document.PageOrientation = PageOrientationValues.Landscape;
+                    document.Sections[0].SetMargins(WordMargin.Narrow);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                    document.Save(docPath);
+                }
 
-                Assert.Contains("section page setup", exception.Message.ToLowerInvariant());
-                Assert.False(File.Exists(docPath));
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Landscape section", Assert.Single(reloaded.Paragraphs).Text);
+                Assert.Equal(PageOrientationValues.Landscape, reloaded.PageOrientation);
+                Assert.Equal((uint)15840, reloaded.PageSettings.Width?.Value);
+                Assert.Equal((uint)12240, reloaded.PageSettings.Height?.Value);
+                Assert.Equal(720, reloaded.Margins.Top);
+                Assert.Equal((uint)720, reloaded.Margins.Right.Value);
+                Assert.Equal(720, reloaded.Margins.Bottom);
+                Assert.Equal((uint)720, reloaded.Margins.Left.Value);
             } finally {
                 DeleteIfExists(docPath);
             }
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionMarginsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionColumnsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Narrow margins");
-                document.Sections[0].SetMargins(WordMargin.Narrow);
+                document.AddParagraph("Columns");
+                document.Sections[0].ColumnCount = 2;
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("section margins", exception.Message.ToLowerInvariant());
+                Assert.Contains("section property", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

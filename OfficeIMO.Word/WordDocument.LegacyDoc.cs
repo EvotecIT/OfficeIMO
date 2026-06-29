@@ -79,6 +79,7 @@ namespace OfficeIMO.Word {
             WordSection section = document.Sections.Count > 0
                 ? document.Sections[0]
                 : new WordSection(document, null!, null!);
+            ApplyLegacyDocSectionFormatting(section, legacyDocument.SectionFormat);
 
             if (legacyDocument.BodyBlocks.Count == 0) {
                 section.AddParagraph();
@@ -94,6 +95,68 @@ namespace OfficeIMO.Word {
 
             document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument);
             return document;
+        }
+
+        private static void ApplyLegacyDocSectionFormatting(WordSection section, LegacyDocSectionFormat sectionFormat) {
+            if (!sectionFormat.HasFormatting) {
+                return;
+            }
+
+            if (sectionFormat.Orientation != null) {
+                section.PageOrientation = sectionFormat.Orientation.Value;
+            }
+
+            if (sectionFormat.PageWidthTwips != null) {
+                section.PageSettings.Width = (DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageWidthTwips.Value;
+            }
+
+            if (sectionFormat.PageHeightTwips != null) {
+                section.PageSettings.Height = (DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageHeightTwips.Value;
+            }
+
+            if (sectionFormat.MarginTopTwips != null) {
+                section.Margins.Top = sectionFormat.MarginTopTwips.Value;
+            }
+
+            if (sectionFormat.MarginRightTwips != null) {
+                section.Margins.Right = (DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginRightTwips.Value;
+            }
+
+            if (sectionFormat.MarginBottomTwips != null) {
+                section.Margins.Bottom = sectionFormat.MarginBottomTwips.Value;
+            }
+
+            if (sectionFormat.MarginLeftTwips != null) {
+                section.Margins.Left = (DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginLeftTwips.Value;
+            }
+
+            PageMargin? pageMargin = section._sectionProperties.GetFirstChild<PageMargin>();
+            if (pageMargin == null && (sectionFormat.HeaderDistanceTwips != null || sectionFormat.FooterDistanceTwips != null || sectionFormat.GutterTwips != null)) {
+                section._sectionProperties.Append(new PageMargin {
+                    Top = 1440,
+                    Right = 1440U,
+                    Bottom = 1440,
+                    Left = 1440U,
+                    Header = 720U,
+                    Footer = 720U,
+                    Gutter = 0U
+                });
+                pageMargin = section._sectionProperties.GetFirstChild<PageMargin>();
+            }
+
+            if (pageMargin != null) {
+                if (sectionFormat.HeaderDistanceTwips != null) {
+                    pageMargin.Header = (DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.HeaderDistanceTwips.Value;
+                }
+
+                if (sectionFormat.FooterDistanceTwips != null) {
+                    pageMargin.Footer = (DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.FooterDistanceTwips.Value;
+                }
+
+                if (sectionFormat.GutterTwips != null) {
+                    pageMargin.Gutter = (DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.GutterTwips.Value;
+                }
+            }
         }
 
         private static void AddLegacyDocTable(WordSection section, LegacyDocTableBlock tableBlock, LegacyDocStyleSheet styleSheet) {

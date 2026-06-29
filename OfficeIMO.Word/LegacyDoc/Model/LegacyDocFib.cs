@@ -13,6 +13,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const int CcpHdrTxbxOffset = 0x68;
         private const int FcStshfOffset = 0xA2;
         private const int LcbStshfOffset = 0xA6;
+        private const int FcPlcfSedOffset = 0xCA;
+        private const int LcbPlcfSedOffset = 0xCE;
         private const int FcPlcfBteChpxOffset = 0xFA;
         private const int LcbPlcfBteChpxOffset = 0xFE;
         private const int FcPlcfBtePapxOffset = 0x102;
@@ -43,6 +45,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int ccpHdrTxbx,
             int fcStshf,
             int lcbStshf,
+            int fcPlcfSed,
+            int lcbPlcfSed,
             int fcPlcfBteChpx,
             int lcbPlcfBteChpx,
             int fcPlcfBtePapx,
@@ -66,6 +70,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             CcpHdrTxbx = ccpHdrTxbx;
             FcStshf = fcStshf;
             LcbStshf = lcbStshf;
+            FcPlcfSed = fcPlcfSed;
+            LcbPlcfSed = lcbPlcfSed;
             FcPlcfBteChpx = fcPlcfBteChpx;
             LcbPlcfBteChpx = lcbPlcfBteChpx;
             FcPlcfBtePapx = fcPlcfBtePapx;
@@ -105,6 +111,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal int FcStshf { get; }
 
         internal int LcbStshf { get; }
+
+        internal int FcPlcfSed { get; }
+
+        internal int LcbPlcfSed { get; }
 
         internal int FcPlcfBteChpx { get; }
 
@@ -153,6 +163,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int ccpHdrTxbx = ReadInt32(wordDocumentStream, CcpHdrTxbxOffset);
             int fcStshf = ReadInt32(wordDocumentStream, FcStshfOffset);
             int lcbStshf = ReadInt32(wordDocumentStream, LcbStshfOffset);
+            int fcPlcfSed = ReadInt32(wordDocumentStream, FcPlcfSedOffset);
+            int lcbPlcfSed = ReadInt32(wordDocumentStream, LcbPlcfSedOffset);
             int fcPlcfBteChpx = ReadInt32(wordDocumentStream, FcPlcfBteChpxOffset);
             int lcbPlcfBteChpx = ReadInt32(wordDocumentStream, LcbPlcfBteChpxOffset);
             int fcPlcfBtePapx = ReadInt32(wordDocumentStream, FcPlcfBtePapxOffset);
@@ -171,6 +183,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 || ccpHdrTxbx < 0
                 || fcStshf < 0
                 || lcbStshf < 0
+                || fcPlcfSed < 0
+                || lcbPlcfSed < 0
                 || fcPlcfBteChpx < 0
                 || lcbPlcfBteChpx < 0
                 || fcPlcfBtePapx < 0
@@ -199,6 +213,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ccpHdrTxbx,
                 fcStshf,
                 lcbStshf,
+                fcPlcfSed,
+                lcbPlcfSed,
                 fcPlcfBteChpx,
                 lcbPlcfBteChpx,
                 fcPlcfBtePapx,

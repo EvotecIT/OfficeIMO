@@ -13,6 +13,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int ClxLength = 21;
         private const int ChpxPlcLength = 12;
         private const int PapxPlcLength = 12;
+        private const int SedPlcLength = 20;
         private const uint CompressedTextFlag = 0x40000000;
         private const ushort SprmCFBold = 0x0835;
         private const ushort SprmCFItalic = 0x0836;
@@ -34,6 +35,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort FibRgFcLcb97Size = 0x00B7;
         private const ushort OneTableStreamFlag = 0x0200;
         private const ushort ExtendedCharacterFlag = 0x1000;
+        private const int FcPlcfSedOffset = 0xCA;
+        private const int LcbPlcfSedOffset = 0xCE;
         private const int FcPlcfBtePapxOffset = 0x102;
         private const int LcbPlcfBtePapxOffset = 0x106;
         private const int FcSttbfFfnOffset = 0x112;
@@ -106,6 +109,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var text = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var paragraphFormats = new List<LegacyDocWritableParagraph>();
+            LegacyDocSectionFormat sectionFormat = LegacyDocSectionFormat.Default;
             int bodyContentCount = 0;
             foreach (OpenXmlElement child in body.ChildElements) {
                 switch (child) {
@@ -118,7 +122,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         bodyContentCount++;
                         break;
                     case SectionProperties sectionProperties:
-                        ThrowIfUnsupportedSectionProperties(sectionProperties);
+                        sectionFormat = ReadSupportedSectionProperties(sectionProperties);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports body paragraphs and simple tables with bold, italic, strikethrough, superscript/subscript, underline, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");
@@ -129,7 +133,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 text.Append('\r');
             }
 
-            return new LegacyDocWritableBody(text.ToString(), runs, paragraphFormats);
+            return new LegacyDocWritableBody(text.ToString(), runs, paragraphFormats, sectionFormat);
         }
 
         private static void ThrowIfUnsupportedDocumentParts(WordDocument document, DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart) {
@@ -201,11 +205,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int papxFkpOffset = body.HasParagraphFormatting
                 ? AlignToSector(body.HasCharacterFormatting ? chpxFkpOffset + OleSectorSize : TextOffset + textBytes.Length)
                 : 0;
+            byte[] sepx = body.HasSectionFormatting ? CreateSepx(body.SectionFormat) : Array.Empty<byte>();
+            int sepxOffset = body.HasSectionFormatting
+                ? AlignToEven(body.HasParagraphFormatting
+                    ? papxFkpOffset + OleSectorSize
+                    : body.HasCharacterFormatting
+                        ? chpxFkpOffset + OleSectorSize
+                        : TextOffset + textBytes.Length)
+                : 0;
             int streamLength = body.HasParagraphFormatting
                 ? papxFkpOffset + OleSectorSize
                 : body.HasCharacterFormatting
                     ? chpxFkpOffset + OleSectorSize
                     : TextOffset + textBytes.Length;
+            if (body.HasSectionFormatting) {
+                streamLength = Math.Max(streamLength, sepxOffset + sepx.Length);
+            }
             var stream = new byte[Math.Max(FibLength, streamLength)];
             WriteUInt16(stream, 0x00, WordDocumentMagic);
             WriteUInt16(stream, 0x02, Word97FibVersion);
@@ -223,6 +238,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteInt32(stream, 0xFE, body.HasCharacterFormatting ? ChpxPlcLength : 0);
             WriteInt32(stream, FcPlcfBtePapxOffset, body.HasParagraphFormatting ? body.PapxPlcOffsetInTableStream : 0);
             WriteInt32(stream, LcbPlcfBtePapxOffset, body.HasParagraphFormatting ? PapxPlcLength : 0);
+            WriteInt32(stream, FcPlcfSedOffset, body.HasSectionFormatting ? body.SedPlcOffsetInTableStream : 0);
+            WriteInt32(stream, LcbPlcfSedOffset, body.HasSectionFormatting ? SedPlcLength : 0);
             WriteInt32(stream, FcSttbfFfnOffset, body.HasFontTable ? body.FontTableOffsetInTableStream : 0);
             WriteInt32(stream, LcbSttbfFfnOffset, fontTable.Length);
             WriteInt32(stream, 0x1A2, 0);
@@ -236,6 +253,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocParagraphFormattingWriter.WritePapxFkp(stream, papxFkpOffset, TextOffset, OleSectorSize, body.CreateParagraphSegments(), bytesPerCharacter);
             }
 
+            if (body.HasSectionFormatting) {
+                Buffer.BlockCopy(sepx, 0, stream, sepxOffset, sepx.Length);
+            }
+
             return stream;
         }
 
@@ -244,7 +265,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool compressedText = CanWriteCompressedText(body.Text);
             int bytesPerCharacter = compressedText ? 1 : 2;
             int textByteLength = checked(body.Text.Length * bytesPerCharacter);
-            var table = new byte[ClxLength + (body.HasCharacterFormatting ? ChpxPlcLength : 0) + (body.HasParagraphFormatting ? PapxPlcLength : 0) + fontTable.Length];
+            var table = new byte[ClxLength + (body.HasCharacterFormatting ? ChpxPlcLength : 0) + (body.HasParagraphFormatting ? PapxPlcLength : 0) + (body.HasSectionFormatting ? SedPlcLength : 0) + fontTable.Length];
             table[0] = 0x02;
             WriteInt32(table, 1, 16);
             WriteInt32(table, 5, 0);
@@ -268,6 +289,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 WriteInt32(table, body.PapxPlcOffsetInTableStream, TextOffset);
                 WriteInt32(table, body.PapxPlcOffsetInTableStream + 4, TextOffset + textByteLength);
                 WriteInt32(table, body.PapxPlcOffsetInTableStream + 8, papxFkpOffset / OleSectorSize);
+            }
+
+            if (body.HasSectionFormatting) {
+                int chpxFkpOffset = body.HasCharacterFormatting
+                    ? AlignToSector(TextOffset + textByteLength)
+                    : 0;
+                int papxFkpOffset = body.HasParagraphFormatting
+                    ? AlignToSector(body.HasCharacterFormatting ? chpxFkpOffset + OleSectorSize : TextOffset + textByteLength)
+                    : 0;
+                int sepxOffset = AlignToEven(body.HasParagraphFormatting
+                    ? papxFkpOffset + OleSectorSize
+                    : body.HasCharacterFormatting
+                        ? chpxFkpOffset + OleSectorSize
+                        : TextOffset + textByteLength);
+                WritePlcfSed(table, body.SedPlcOffsetInTableStream, body.Text.Length, sepxOffset);
             }
 
             if (fontTable.Length > 0) {
@@ -329,10 +365,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableBody {
-            internal LegacyDocWritableBody(string text, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs) {
+            internal LegacyDocWritableBody(string text, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs, LegacyDocSectionFormat sectionFormat) {
                 Text = text;
                 FormattedRuns = formattedRuns;
                 FormattedParagraphs = formattedParagraphs;
+                SectionFormat = sectionFormat;
                 FontFamilies = formattedRuns
                     .Select(run => run.Formatting.FontFamily)
                     .Where(fontFamily => !string.IsNullOrWhiteSpace(fontFamily))
@@ -350,6 +387,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal IReadOnlyList<LegacyDocWritableParagraph> FormattedParagraphs { get; }
 
+            internal LegacyDocSectionFormat SectionFormat { get; }
+
             internal IReadOnlyList<string> FontFamilies { get; }
 
             internal IReadOnlyDictionary<string, int> FontFamilyIndexes { get; }
@@ -360,9 +399,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasFontTable => FontFamilies.Count > 0;
 
+            internal bool HasSectionFormatting => SectionFormat.HasFormatting;
+
             internal int PapxPlcOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0);
 
-            internal int FontTableOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0) + (HasParagraphFormatting ? PapxPlcLength : 0);
+            internal int SedPlcOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0) + (HasParagraphFormatting ? PapxPlcLength : 0);
+
+            internal int FontTableOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0) + (HasParagraphFormatting ? PapxPlcLength : 0) + (HasSectionFormatting ? SedPlcLength : 0);
 
             internal IReadOnlyList<LegacyDocWritableSegment> CreateFormattingSegments() {
                 var segments = new List<LegacyDocWritableSegment>();
