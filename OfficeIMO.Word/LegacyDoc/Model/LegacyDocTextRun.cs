@@ -9,6 +9,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool outline,
             bool shadow,
             bool emboss,
+            bool imprint,
             LegacyDocCapsKind? caps,
             LegacyDocVerticalPositionKind? verticalPosition,
             LegacyDocUnderlineKind? underline,
@@ -24,6 +25,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Outline = outline;
             Shadow = shadow;
             Emboss = emboss;
+            Imprint = imprint;
             Caps = caps;
             VerticalPosition = verticalPosition;
             Underline = underline;
@@ -48,6 +50,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal bool Shadow { get; }
 
         internal bool Emboss { get; }
+
+        internal bool Imprint { get; }
 
         internal LegacyDocCapsKind? Caps { get; }
 
