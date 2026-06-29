@@ -82,6 +82,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsMergedTableCellsFromTableDefinition() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithMergedTableCellDefinition();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures);
+            Assert.Equal(LegacyDocUnsupportedFeatureKind.MergedTableCell, feature.Kind);
+            Assert.Equal("DOC-MERGED-TABLE-CELLS-PRESENT", feature.Code);
+            Assert.Equal("PAPX:sprmTDefTable", feature.DetailCode);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.MergedTableCell]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-MERGED-TABLE-CELLS-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["MergedTableCell|DOC-MERGED-TABLE-CELLS-PRESENT|PAPX:sprmTDefTable"]);
+            Assert.Contains(result.Document.LegacyDocUnsupportedFeatures, item => item.Code == "DOC-MERGED-TABLE-CELLS-PRESENT");
+
+            WordTable table = Assert.Single(result.Document.Tables);
+            WordTableRow row = Assert.Single(table.Rows);
+            Assert.Equal(2, row.Cells.Count);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsFormattedTableCellRuns() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithFormattedTableCell();
 
@@ -1937,6 +1959,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksNativeDocSaveWhenImportedLegacyDocHasMergedTableCellsBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Load(new MemoryStream(LegacyDocTestBuilder.CreateUnicodeDocWithMergedTableCellDefinition()));
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("imported from a legacy DOC", exception.Message);
+                Assert.Contains("DOC-MERGED-TABLE-CELLS-PRESENT", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveStream_BlocksNativeDocSaveWhenImportedLegacyDocHasUnsupportedFeaturesBeforeWritingStream() {
             using WordDocument document = WordDocument.Load(new MemoryStream(LegacyDocTestBuilder.CreateSimpleDocWithDataStream("Blocked")));
             using var output = new MemoryStream(new byte[] { 1, 2, 3, 4 }, writable: true);
@@ -2033,6 +2072,27 @@ namespace OfficeIMO.Tests {
                 const int textOffset = 0x200;
                 const int papxFkpOffset = 0x400;
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(text, textOffset, papxFkpOffset, new[] { 1440, 2880 });
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithMergedTableCellDefinition() {
+                const string text = "A1\aB1\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 2880 },
+                    new ushort[] { 0x0001, 0x0020 });
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();
@@ -2741,7 +2801,12 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
-            private static byte[] CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(string text, int textOffset, int papxFkpOffset, IReadOnlyList<int>? tableCellWidthsTwips = null) {
+            private static byte[] CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                string text,
+                int textOffset,
+                int papxFkpOffset,
+                IReadOnlyList<int>? tableCellWidthsTwips = null,
+                IReadOnlyList<ushort>? tableCellFormattingFlags = null) {
                 const int fibLength = 0x1AA;
                 byte[] textBytes = Encoding.Unicode.GetBytes(text);
                 var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
@@ -2768,7 +2833,7 @@ namespace OfficeIMO.Tests {
                     : CreateParagraphPropertiesPapx(
                         CreateParagraphSprm(0x2416, 1),
                         CreateParagraphSprm(0x2417, 1),
-                        CreateTableDefinitionSprm(tableCellWidthsTwips));
+                        CreateTableDefinitionSprm(tableCellWidthsTwips, tableCellFormattingFlags));
                 WritePapxFkp(
                     stream,
                     papxFkpOffset,
@@ -3439,7 +3504,7 @@ namespace OfficeIMO.Tests {
                 return CreateParagraphSprm(0xC60D, new[] { checked((byte)operand.Count) }.Concat(operand).ToArray());
             }
 
-            private static byte[] CreateTableDefinitionSprm(IReadOnlyList<int> cellWidthsTwips) {
+            private static byte[] CreateTableDefinitionSprm(IReadOnlyList<int> cellWidthsTwips, IReadOnlyList<ushort>? tableCellFormattingFlags = null) {
                 var remainder = new List<byte>();
                 remainder.Add(checked((byte)cellWidthsTwips.Count));
                 AddInt16(remainder, 0);
@@ -3450,7 +3515,12 @@ namespace OfficeIMO.Tests {
                 }
 
                 for (int index = 0; index < cellWidthsTwips.Count; index++) {
-                    for (int byteIndex = 0; byteIndex < 20; byteIndex++) {
+                    ushort flags = tableCellFormattingFlags != null && index < tableCellFormattingFlags.Count
+                        ? tableCellFormattingFlags[index]
+                        : (ushort)0;
+                    remainder.Add((byte)(flags & 0xFF));
+                    remainder.Add((byte)(flags >> 8));
+                    for (int byteIndex = 2; byteIndex < 20; byteIndex++) {
                         remainder.Add(0);
                     }
                 }

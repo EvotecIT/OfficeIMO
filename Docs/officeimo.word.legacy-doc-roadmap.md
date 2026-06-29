@@ -299,6 +299,9 @@ just to reserve names.
     for existing minimal fixtures.
   - [x] Project simple row-level table cell widths from DOC `sprmTDefTable`
     row definitions into normal OfficeIMO table cell width properties.
+  - [x] Report merged table cell descriptors from DOC `sprmTDefTable`/`TC80`
+    row definitions before merged-cell projection exists, so native DOC re-save
+    is blocked instead of flattening merged table structure.
   - [ ] Add table formatting, merged cells, and nested tables as separate
     fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as

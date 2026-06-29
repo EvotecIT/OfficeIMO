@@ -157,6 +157,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-PAPX-INVALID", paragraphFormattingWarning);
             }
 
+            AddUnsupportedParagraphFormattingFeaturesIfPresent(paragraphFormattingRanges, options.ReportUnsupportedFeatures);
+
             Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges, Sections, options.ReportUnsupportedFeatures);
         }
 
@@ -341,6 +343,25 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             AddUnsupportedFeature(new LegacyDocUnsupportedFeature(kind, code, description, detailCode: detailCode));
+        }
+
+        private void AddUnsupportedParagraphFormattingFeaturesIfPresent(IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges, bool reportUnsupportedFeatures) {
+            if (!reportUnsupportedFeatures) {
+                return;
+            }
+
+            for (int index = 0; index < paragraphFormattingRanges.Count; index++) {
+                if (!paragraphFormattingRanges[index].Format.HasMergedTableCells) {
+                    continue;
+                }
+
+                AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
+                    LegacyDocUnsupportedFeatureKind.MergedTableCell,
+                    "DOC-MERGED-TABLE-CELLS-PRESENT",
+                    "The legacy DOC contains merged table cell descriptors. Merged DOC table cells are preserved in the source file but are not projected into the OfficeIMO table model yet.",
+                    detailCode: "PAPX:sprmTDefTable"));
+                return;
+            }
         }
 
         private string BuildFormattedParagraphs(

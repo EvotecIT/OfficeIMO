@@ -20,6 +20,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPChgTabsPapx = 0xC60D;
         private const ushort SprmTDefTable = 0xD608;
         private const int Tc80Length = 20;
+        private const ushort TcgrfHorizontalMergeMask = 0x0003;
+        private const ushort TcgrfVerticalMergeMask = 0x0060;
 
         internal static IReadOnlyList<LegacyDocParagraphFormatRange> ReadParagraphFormatting(
             byte[] wordDocumentStream,
@@ -146,6 +148,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? isTableTerminatingParagraph = null;
             var tabStops = new List<LegacyDocTabStop>();
             IReadOnlyList<int>? tableCellWidthsTwips = null;
+            bool hasMergedTableCells = false;
             ushort? styleIndex = baseStyleIndex;
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
@@ -264,10 +267,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 if (sprm == SprmTDefTable) {
-                    if (!TryReadTableDefinition(bytes, offset, end, out tableCellWidthsTwips, out int tableDefinitionOperandLength)) {
+                    if (!TryReadTableDefinition(bytes, offset, end, out tableCellWidthsTwips, out bool tableDefinitionHasMergedCells, out int tableDefinitionOperandLength)) {
                         break;
                     }
 
+                    hasMergedTableCells |= tableDefinitionHasMergedCells;
                     offset += 2 + tableDefinitionOperandLength;
                     continue;
                 }
@@ -295,11 +299,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 isInTable,
                 isTableTerminatingParagraph,
                 tabStops,
-                tableCellWidthsTwips);
+                tableCellWidthsTwips,
+                hasMergedTableCells);
         }
 
-        private static bool TryReadTableDefinition(byte[] bytes, int sprmOffset, int end, out IReadOnlyList<int>? tableCellWidthsTwips, out int operandLength) {
+        private static bool TryReadTableDefinition(byte[] bytes, int sprmOffset, int end, out IReadOnlyList<int>? tableCellWidthsTwips, out bool hasMergedTableCells, out int operandLength) {
             tableCellWidthsTwips = null;
+            hasMergedTableCells = false;
             operandLength = 0;
             if (sprmOffset + 5 > end) {
                 return false;
@@ -332,6 +338,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 int width = nextEdge - previousEdge;
                 widths[index] = width > 0 ? width : 0;
                 previousEdge = nextEdge;
+            }
+
+            for (int index = 0; index < columnCount; index++) {
+                ushort tcgrf = LegacyDocFib.ReadUInt16(bytes, tc80Offset + (index * Tc80Length));
+                if ((tcgrf & (TcgrfHorizontalMergeMask | TcgrfVerticalMergeMask)) != 0) {
+                    hasMergedTableCells = true;
+                    break;
+                }
             }
 
             tableCellWidthsTwips = widths.Where(width => width > 0).ToArray();

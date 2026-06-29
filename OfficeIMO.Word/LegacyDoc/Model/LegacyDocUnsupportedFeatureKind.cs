@@ -71,6 +71,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// <summary>
         /// Text box story text exists but is not projected yet.
         /// </summary>
-        TextBox
+        TextBox,
+
+        /// <summary>
+        /// Merged table cell descriptors exist but are not projected yet.
+        /// </summary>
+        MergedTableCell
     }
 }
