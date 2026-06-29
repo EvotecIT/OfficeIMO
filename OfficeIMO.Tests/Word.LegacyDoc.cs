@@ -67,6 +67,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTabsAsWordTabRuns() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDoc("Left\tRight");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Paragraph paragraph = Assert.Single(result.Document._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
+            Assert.Equal(1, paragraph.Descendants<TabChar>().Count());
+            Assert.DoesNotContain(paragraph.Descendants<Text>(), text => text.Text.Contains('\t'));
+            Assert.Equal(new[] { "Left", "Right" }, paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDocumentPropertiesAndCustomProperties() {
             DateTime created = new DateTime(2026, 6, 29, 8, 0, 0, DateTimeKind.Utc);
             DateTime modified = new DateTime(2026, 6, 29, 9, 15, 0, DateTimeKind.Utc);
@@ -587,6 +601,32 @@ namespace OfficeIMO.Tests {
                 Assert.Null(runs[0].FontFamily);
                 Assert.Equal("font", runs[1].Text);
                 Assert.Equal("Courier New", runs[1].FontFamily);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTabsAndReloadsAsWordTabRuns() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph();
+                    paragraph.AddText("Left");
+                    paragraph.AddTab();
+                    paragraph.AddText("Right");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Paragraph reloadedParagraph = Assert.Single(reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
+                Assert.Equal(1, reloadedParagraph.Descendants<TabChar>().Count());
+                Assert.DoesNotContain(reloadedParagraph.Descendants<Text>(), text => text.Text.Contains('\t'));
+                Assert.Equal(new[] { "Left", "Right" }, reloadedParagraph.Descendants<Text>().Select(text => text.Text).ToArray());
             } finally {
                 DeleteIfExists(docPath);
             }

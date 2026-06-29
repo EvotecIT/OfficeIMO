@@ -276,6 +276,8 @@ just to reserve names.
     them through the legacy reader.
   - [x] Write built-in paragraph style PAPX records and reload them through
     the legacy reader.
+  - [x] Project imported tab characters and native-written tabs as real Word
+    tab runs after legacy DOC reload.
   - [ ] Add table and simple section writing as separate preflight-backed
     slices.
 - [ ] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests

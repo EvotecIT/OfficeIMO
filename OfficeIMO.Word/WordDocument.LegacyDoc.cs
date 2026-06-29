@@ -119,12 +119,17 @@ namespace OfficeIMO.Word {
             }
 
             LegacyDocTextRun firstRun = sourceCell.Runs[0];
-            WordParagraph paragraph = cell.AddParagraph(firstRun.Text, removeExistingParagraphs: true);
-            ApplyLegacyDocRunFormatting(paragraph, firstRun);
+            WordParagraph paragraph;
+            if (firstRun.Text.IndexOf('\t') < 0) {
+                paragraph = cell.AddParagraph(firstRun.Text, removeExistingParagraphs: true);
+                ApplyLegacyDocRunFormatting(paragraph, firstRun);
+            } else {
+                paragraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: true);
+                AddLegacyDocRunContent(paragraph, firstRun);
+            }
+
             for (int index = 1; index < sourceCell.Runs.Count; index++) {
-                LegacyDocTextRun legacyRun = sourceCell.Runs[index];
-                WordParagraph run = paragraph.AddText(legacyRun.Text);
-                ApplyLegacyDocRunFormatting(run, legacyRun);
+                AddLegacyDocRunContent(paragraph, sourceCell.Runs[index]);
             }
         }
 
@@ -141,9 +146,34 @@ namespace OfficeIMO.Word {
 
         private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns) {
             foreach (LegacyDocTextRun legacyRun in paragraphRuns) {
-                WordParagraph run = paragraph.AddText(legacyRun.Text);
-                ApplyLegacyDocRunFormatting(run, legacyRun);
+                AddLegacyDocRunContent(paragraph, legacyRun);
             }
+        }
+
+        private static void AddLegacyDocRunContent(WordParagraph paragraph, LegacyDocTextRun legacyRun) {
+            string text = legacyRun.Text;
+            int segmentStart = 0;
+            for (int index = 0; index < text.Length; index++) {
+                if (text[index] != '\t') {
+                    continue;
+                }
+
+                AddLegacyDocTextSegment(paragraph, legacyRun, segmentStart, index - segmentStart);
+                WordParagraph tabRun = paragraph.AddTab();
+                ApplyLegacyDocRunFormatting(tabRun, legacyRun);
+                segmentStart = index + 1;
+            }
+
+            AddLegacyDocTextSegment(paragraph, legacyRun, segmentStart, text.Length - segmentStart);
+        }
+
+        private static void AddLegacyDocTextSegment(WordParagraph paragraph, LegacyDocTextRun legacyRun, int startIndex, int length) {
+            if (length <= 0) {
+                return;
+            }
+
+            WordParagraph run = paragraph.AddText(legacyRun.Text.Substring(startIndex, length));
+            ApplyLegacyDocRunFormatting(run, legacyRun);
         }
 
         private static void ApplyLegacyDocParagraphFormatting(WordParagraph paragraph, LegacyDocParagraphFormat paragraphFormat) {
