@@ -19,6 +19,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPChgTabsPapx = 0xC60D;
         private const ushort SprmTTableHeader = 0x3404;
         private const ushort SprmTFCantSplit90 = 0x3466;
+        private const ushort SprmTJc = 0x548A;
         private const ushort SprmTDyaRowHeight = 0x9407;
         private const ushort SprmTDefTable = 0xD608;
         private const ushort SprmTCellPadding = 0xD632;
@@ -96,6 +97,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (formatting.IsTableTerminatingParagraph == true) {
                 AddSingleByteSprm(grpprl, SprmPFTtp, 1);
+            }
+
+            if (formatting.TableAlignment != null) {
+                AddInt16Sprm(grpprl, SprmTJc, MapTableAlignment(formatting.TableAlignment.Value));
             }
 
             if (formatting.LeftIndentTwips != null) {
@@ -193,6 +198,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             int operand = isExact ? -rowHeightTwips : rowHeightTwips;
             AddInt16Sprm(grpprl, SprmTDyaRowHeight, operand);
+        }
+
+        private static int MapTableAlignment(LegacyDocTableAlignment alignment) {
+            switch (alignment) {
+                case LegacyDocTableAlignment.Left:
+                    return 0;
+                case LegacyDocTableAlignment.Center:
+                    return 1;
+                case LegacyDocTableAlignment.Right:
+                    return 2;
+                default:
+                    throw new NotSupportedException($"Native DOC saving does not support table alignment '{alignment}'.");
+            }
         }
 
         private static void AddTabStopsSprm(List<byte> grpprl, IReadOnlyList<LegacyDocTabStop> tabStops) {
@@ -456,7 +474,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null, null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null);
 
         internal LegacyDocWritableParagraphFormatting(
             byte? alignment,
@@ -479,6 +497,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool tableRowHeightIsExact,
             bool? tableRowCantSplit,
             bool? tableRowIsHeader,
+            LegacyDocTableAlignment? tableAlignment,
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges,
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges,
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments,
@@ -527,6 +546,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             TableRowHeightIsExact = tableRowHeightIsExact;
             TableRowCantSplit = tableRowCantSplit;
             TableRowIsHeader = tableRowIsHeader;
+            TableAlignment = tableAlignment;
         }
 
         internal byte? Alignment { get; }
@@ -581,6 +601,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal bool? TableRowIsHeader { get; }
 
+        internal LegacyDocTableAlignment? TableAlignment { get; }
+
         internal bool HasFormatting => Alignment != null
             || StyleIndex != null
             || SpacingBeforeTwips != null
@@ -605,7 +627,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || TableCellMargins.Count > 0
             || TableRowHeightTwips != null
             || TableRowCantSplit != null
-            || TableRowIsHeader != null;
+            || TableRowIsHeader != null
+            || TableAlignment != null;
 
         internal LegacyDocWritableParagraphFormatting WithTableMarkers(
             bool isTableTerminatingParagraph,
@@ -614,6 +637,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool tableRowHeightIsExact = false,
             bool? tableRowCantSplit = null,
             bool? tableRowIsHeader = null,
+            LegacyDocTableAlignment? tableAlignment = null,
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null,
@@ -641,6 +665,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 tableRowHeightIsExact,
                 tableRowCantSplit,
                 tableRowIsHeader,
+                tableAlignment,
                 tableCellHorizontalMerges,
                 tableCellVerticalMerges,
                 tableCellVerticalAlignments,
@@ -675,7 +700,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && TableRowHeightTwips == other.TableRowHeightTwips
                 && TableRowHeightIsExact == other.TableRowHeightIsExact
                 && TableRowCantSplit == other.TableRowCantSplit
-                && TableRowIsHeader == other.TableRowIsHeader;
+                && TableRowIsHeader == other.TableRowIsHeader
+                && TableAlignment == other.TableAlignment;
         }
 
         public override bool Equals(object? obj) {
@@ -702,6 +728,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + TableRowHeightIsExact.GetHashCode();
             hash = (hash * 31) + TableRowCantSplit.GetHashCode();
             hash = (hash * 31) + TableRowIsHeader.GetHashCode();
+            hash = (hash * 31) + TableAlignment.GetHashCode();
             foreach (LegacyDocTableCellHorizontalMerge merge in TableCellHorizontalMerges) {
                 hash = (hash * 31) + merge.GetHashCode();
             }

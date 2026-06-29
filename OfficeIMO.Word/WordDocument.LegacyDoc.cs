@@ -178,6 +178,13 @@ namespace OfficeIMO.Word {
             }
 
             WordTable table = section.AddTable(rowCount, columnCount, WordTableStyle.TableGrid);
+            LegacyDocTableAlignment? tableAlignment = tableBlock.Rows
+                .Select(row => row.TableAlignment)
+                .FirstOrDefault(alignment => alignment.HasValue);
+            if (tableAlignment != null) {
+                ApplyLegacyDocTableAlignment(table, tableAlignment.Value);
+            }
+
             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                 LegacyDocTableRow sourceRow = tableBlock.Rows[rowIndex];
                 ApplyLegacyDocTableRowFormatting(table.Rows[rowIndex], sourceRow);
@@ -212,6 +219,20 @@ namespace OfficeIMO.Word {
                         ApplyLegacyDocTableCellMargins(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellMargins[columnIndex]);
                     }
                 }
+            }
+        }
+
+        private static void ApplyLegacyDocTableAlignment(WordTable table, LegacyDocTableAlignment tableAlignment) {
+            switch (tableAlignment) {
+                case LegacyDocTableAlignment.Left:
+                    table.Alignment = TableRowAlignmentValues.Left;
+                    break;
+                case LegacyDocTableAlignment.Center:
+                    table.Alignment = TableRowAlignmentValues.Center;
+                    break;
+                case LegacyDocTableAlignment.Right:
+                    table.Alignment = TableRowAlignmentValues.Right;
+                    break;
             }
         }
 

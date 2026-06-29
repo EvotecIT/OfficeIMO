@@ -113,6 +113,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTableAlignmentFromRowDefinition() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithTableAlignment();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            Assert.Equal(TableRowAlignmentValues.Center, table.Alignment);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsHorizontalMergedTableCellsFromTableDefinition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithHorizontalMergedTableCells();
 
@@ -1833,6 +1845,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableAlignmentAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 1);
+                    table.Alignment = TableRowAlignmentValues.Right;
+                    table.Rows[0].Cells[0].AddParagraph("Right table", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x8A, 0x54, 0x02, 0x00),
+                    "Expected the native DOC paragraph property stream to contain sprmTJc with right table alignment.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal(TableRowAlignmentValues.Right, reloadedTable.Alignment);
+                Assert.Equal("Right table", Assert.Single(reloadedTable.Rows).Cells[0].Paragraphs[0].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocHorizontalMergedTableCellsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -2465,6 +2506,27 @@ namespace OfficeIMO.Tests {
                     rowHeightOperand: null,
                     rowCantSplit: rowCantSplit,
                     rowIsHeader: rowIsHeader);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithTableAlignment() {
+                const string text = "A1\aB1\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 2880 },
+                    extraRowSprms: new[] { CreateParagraphSprm(0x548A, 0x01, 0x00) });
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();
@@ -3314,7 +3376,8 @@ namespace OfficeIMO.Tests {
                 int? rowHeightOperand = null,
                 bool rowCantSplit = false,
                 bool rowIsHeader = false,
-                IReadOnlyList<byte[]>? tableCellPaddingSprms = null) {
+                IReadOnlyList<byte[]>? tableCellPaddingSprms = null,
+                IReadOnlyList<byte[]>? extraRowSprms = null) {
                 const int fibLength = 0x1AA;
                 byte[] textBytes = Encoding.Unicode.GetBytes(text);
                 var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
@@ -3356,6 +3419,10 @@ namespace OfficeIMO.Tests {
 
                 if (tableCellPaddingSprms != null) {
                     rowSprms.AddRange(tableCellPaddingSprms);
+                }
+
+                if (extraRowSprms != null) {
+                    rowSprms.AddRange(extraRowSprms);
                 }
 
                 byte[] tableRowPapx = CreateParagraphPropertiesPapx(rowSprms.ToArray());

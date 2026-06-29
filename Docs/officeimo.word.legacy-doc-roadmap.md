@@ -314,6 +314,9 @@ just to reserve names.
   - [x] Project simple row-level repeat-header and no-split flags from DOC
     `sprmTTableHeader` and `sprmTFCantSplit*` row definitions into normal
     OfficeIMO table row properties.
+  - [x] Project simple table alignment from DOC `sprmTJc` row definitions into
+    normal OfficeIMO table alignment, and preserve it through native DOC
+    save/reload.
   - [x] Project simple table cell vertical alignment from DOC `sprmTDefTable`
     / `TC80` row definitions into normal OfficeIMO table cell vertical
     alignment properties, and preserve it through native DOC save/reload.
@@ -450,6 +453,8 @@ just to reserve names.
   - [x] Write simple table row repeat-header and no-split flags with
     `sprmTTableHeader` and `sprmTFCantSplit90`, then reload them through the
     legacy reader.
+  - [x] Write simple table alignment with `sprmTJc`, then reload it through
+    the legacy reader.
   - [x] Write simple horizontal table cell merges with `sprmTDefTable`/`TC80`,
     including the normal OfficeIMO `gridSpan` save shape, and reload them
     through the legacy reader while blocking vertical merges before bytes are

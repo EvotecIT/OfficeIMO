@@ -21,6 +21,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmTFCantSplit = 0x3403;
         private const ushort SprmTTableHeader = 0x3404;
         private const ushort SprmTFCantSplit90 = 0x3466;
+        private const ushort SprmTJc = 0x548A;
         private const ushort SprmTDyaRowHeight = 0x9407;
         private const ushort SprmTDefTable = 0xD608;
         private const ushort SprmTCellPadding = 0xD632;
@@ -173,6 +174,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool tableRowHeightIsExact = false;
             bool? tableRowCantSplit = null;
             bool? tableRowIsHeader = null;
+            LegacyDocTableAlignment? tableAlignment = null;
             bool hasMergedTableCells = false;
             ushort? styleIndex = baseStyleIndex;
             while (offset + 2 <= end) {
@@ -246,6 +248,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmTJc) {
+                    if (offset + 4 > end) {
+                        break;
+                    }
+
+                    tableAlignment = MapTableAlignment(LegacyDocFib.ReadUInt16(bytes, offset + 2));
+                    offset += 4;
                     continue;
                 }
 
@@ -390,6 +402,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableRowHeightIsExact,
                 tableRowCantSplit,
                 tableRowIsHeader,
+                tableAlignment,
                 tableCellHorizontalMerges,
                 tableCellVerticalMerges,
                 tableCellVerticalAlignments,
@@ -705,6 +718,19 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return LegacyDocParagraphAlignment.Right;
                 case 3:
                     return LegacyDocParagraphAlignment.Justify;
+                default:
+                    return null;
+            }
+        }
+
+        private static LegacyDocTableAlignment? MapTableAlignment(ushort value) {
+            switch (value) {
+                case 0:
+                    return LegacyDocTableAlignment.Left;
+                case 1:
+                    return LegacyDocTableAlignment.Center;
+                case 2:
+                    return LegacyDocTableAlignment.Right;
                 default:
                     return null;
             }

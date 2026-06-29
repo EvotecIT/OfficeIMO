@@ -17,6 +17,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         Bottom
     }
 
+    internal enum LegacyDocTableAlignment {
+        Left,
+        Center,
+        Right
+    }
+
     internal readonly struct LegacyDocTableCellMargins : IEquatable<LegacyDocTableCellMargins> {
         internal LegacyDocTableCellMargins(int? topTwips, int? rightTwips, int? bottomTwips, int? leftTwips) {
             TopTwips = topTwips;
@@ -104,6 +110,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool rowHeightIsExact = false,
             bool? rowCantSplit = null,
             bool? rowIsHeader = null,
+            LegacyDocTableAlignment? tableAlignment = null,
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? cellHorizontalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? cellVerticalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? cellVerticalAlignments = null,
@@ -118,6 +125,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             RowHeightIsExact = rowHeightIsExact;
             RowCantSplit = rowCantSplit;
             RowIsHeader = rowIsHeader;
+            TableAlignment = tableAlignment;
             CellHorizontalMerges = cellHorizontalMerges == null || cellHorizontalMerges.Count == 0
                 ? Array.Empty<LegacyDocTableCellHorizontalMerge>()
                 : cellHorizontalMerges.ToArray();
@@ -149,6 +157,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal bool? RowCantSplit { get; }
 
         internal bool? RowIsHeader { get; }
+
+        internal LegacyDocTableAlignment? TableAlignment { get; }
 
         internal IReadOnlyList<LegacyDocTableCellHorizontalMerge> CellHorizontalMerges { get; }
 
