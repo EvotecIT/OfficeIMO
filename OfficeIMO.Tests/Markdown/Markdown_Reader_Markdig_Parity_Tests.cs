@@ -286,6 +286,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "duplicate-last-definition-wins", "*[HTML]: First\n*[HTML]: Second\nHTML" };
         yield return new object[] { "case-sensitive", "*[html]: Lower\nHTML html Html" };
         yield return new object[] { "punctuation-label", "*[C++]: Language\nC++ C+++ C++-like" };
+        yield return new object[] { "trailing-dash-boundary", "*[HTML]: Hyper Text Markup Language\nHTML- HTML-like" };
+        yield return new object[] { "opening-punctuation-boundaries-stay-literal", "*[HTML]: Hyper Text Markup Language\n(HTML) 'HTML' \"HTML\" /HTML .HTML" };
+        yield return new object[] { "empty-title", "*[HTML]:   \nHTML" };
         yield return new object[] { "emphasis-inline", "*[HTML]: Hyper Text Markup Language\n\n*HTML* and **HTML**" };
         yield return new object[] { "link-label-inline", "*[HTML]: Hyper Text Markup Language\n\n[HTML](https://example.com)" };
         yield return new object[] { "blockquote-inline", "*[HTML]: Hyper Text Markup Language\n\n> HTML quoted" };

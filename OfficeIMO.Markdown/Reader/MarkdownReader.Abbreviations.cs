@@ -143,19 +143,17 @@ public static partial class MarkdownReader {
             titleStart++;
         }
 
-        if (titleStart >= trimmed.Length) {
-            return false;
-        }
-
         label = trimmed.Substring(2, closingBracket - 2);
-        title = trimmed.Substring(titleStart);
-        if (string.IsNullOrWhiteSpace(label) || string.IsNullOrWhiteSpace(title)) {
+        title = titleStart < trimmed.Length ? trimmed.Substring(titleStart) : string.Empty;
+        if (string.IsNullOrWhiteSpace(label)) {
             return false;
         }
 
         int absoluteLine = state?.SourceLineOffset + lineIndex + 1 ?? lineIndex + 1;
         labelSpan = CreateSpan(state, absoluteLine, leading + 3, absoluteLine, leading + closingBracket);
-        titleSpan = CreateSpan(state, absoluteLine, leading + titleStart + 1, absoluteLine, leading + titleStart + title.Length);
+        titleSpan = title.Length > 0
+            ? CreateSpan(state, absoluteLine, leading + titleStart + 1, absoluteLine, leading + titleStart + title.Length)
+            : null;
         openingMarkerSpan = CreateSpan(state, absoluteLine, leading + 1, absoluteLine, leading + 2);
         separatorMarkerSpan = CreateSpan(state, absoluteLine, leading + closingBracket + 1, absoluteLine, leading + closingBracket + 2);
         return true;
@@ -180,7 +178,8 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            if (!IsAbbreviationBoundary(text, position - 1) || !IsAbbreviationBoundary(text, position + candidate.Label.Length)) {
+            if (!IsAbbreviationOpeningBoundary(text, position - 1)
+                || !IsAbbreviationClosingBoundary(text, position + candidate.Label.Length)) {
                 continue;
             }
 
@@ -191,12 +190,30 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool IsAbbreviationBoundary(string text, int index) {
+    private static bool IsAbbreviationOpeningBoundary(string text, int index) {
         if (index < 0 || index >= text.Length) {
             return true;
         }
 
         var value = text[index];
-        return !char.IsLetterOrDigit(value) && value != '-';
+        return char.IsWhiteSpace(value) || value == '_' || value == '[' || value == '*';
+    }
+
+    private static bool IsAbbreviationClosingBoundary(string text, int index) {
+        if (index < 0 || index >= text.Length) {
+            return true;
+        }
+
+        var value = text[index];
+        if (char.IsLetterOrDigit(value)) {
+            return false;
+        }
+
+        if (value != '-') {
+            return true;
+        }
+
+        int next = index + 1;
+        return next >= text.Length || !char.IsLetterOrDigit(text[next]);
     }
 }

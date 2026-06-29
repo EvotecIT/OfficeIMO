@@ -750,8 +750,7 @@ public class MarkdownDoc : MarkdownObject {
         for (int i = 0; i < parseResult.AbbreviationDefinitions.Count; i++) {
             var definition = parseResult.AbbreviationDefinitions[i];
             if (definition == null
-                || string.IsNullOrWhiteSpace(definition.Label)
-                || string.IsNullOrWhiteSpace(definition.Title)) {
+                || string.IsNullOrWhiteSpace(definition.Label)) {
                 continue;
             }
 

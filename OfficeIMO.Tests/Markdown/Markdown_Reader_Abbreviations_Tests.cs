@@ -58,6 +58,57 @@ public class Markdown_Reader_Abbreviations_Tests {
     }
 
     [Fact]
+    public void Abbreviation_Definitions_Can_Have_Empty_Title_With_Source_And_Writer_Proof() {
+        const string markdown = "*[HTML]:   \n\nHTML";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Abbreviations = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var definition = Assert.Single(result.AbbreviationDefinitions);
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
+        var abbreviation = Assert.IsType<AbbreviationInline>(Assert.Single(paragraph.Inlines.Nodes));
+        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeAbbreviation = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Abbreviation);
+        var nativeTitle = Assert.Single(nativeAbbreviation.Metadata, metadata => metadata.Name == "title");
+        var written = result.Document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n');
+
+        Assert.Equal("HTML", definition.Label);
+        Assert.Equal(string.Empty, definition.Title);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 6), definition.LabelSourceSpan);
+        Assert.Null(definition.TitleSourceSpan);
+        Assert.Equal("HTML", abbreviation.Text);
+        Assert.Equal(string.Empty, abbreviation.Title);
+        Assert.Contains("<abbr title=\"\">HTML</abbr>", html, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, nativeTitle.Value);
+        Assert.Null(nativeTitle.SourceSpan);
+        Assert.Equal(markdown.TrimEnd('\n'), written);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void Abbreviations_Use_Markdig_Boundaries_Around_Dashes_And_Opening_Punctuation() {
+        const string markdown = "*[HTML]: Hyper Text Markup Language\n\nHTML- HTML-like (HTML) 'HTML' \"HTML\" /HTML .HTML";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Abbreviations = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
+        var abbreviations = paragraph.Inlines.Nodes.OfType<AbbreviationInline>().ToArray();
+
+        var abbreviation = Assert.Single(abbreviations);
+        Assert.Equal("HTML", abbreviation.Text);
+        Assert.Contains("<abbr title=\"Hyper Text Markup Language\">HTML</abbr>- HTML-like", html, StringComparison.Ordinal);
+        Assert.Contains("(HTML) &#39;HTML&#39; &quot;HTML&quot; /HTML .HTML", html, StringComparison.Ordinal);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void Abbreviation_Definitions_Are_Written_After_FrontMatter() {
         const string markdown = "---\ntitle: Doc\n---\n\n  *[HTML]:   Hyper Text Markup Language\n\nHTML";
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
