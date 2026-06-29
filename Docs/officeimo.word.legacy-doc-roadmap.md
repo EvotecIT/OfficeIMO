@@ -264,6 +264,9 @@ just to reserve names.
   - [x] Project direct PAPX paragraph tab-stop changes, including clear stops,
     into normal OfficeIMO paragraph `TabStops` with synthetic legacy DOC fixture
     proof.
+  - [x] Project stylesheet-level paragraph tab-stop changes, including clear
+    stops, into custom and built-in DOCX style definitions with synthetic
+    legacy DOC fixture proof.
   - [x] Merge supported DOC stylesheet paragraph/run formatting into built-in
     DOCX style definitions, starting with a Heading 1 fixture that proves
     alignment, spacing, bold, underline, highlight, color, and size projection.

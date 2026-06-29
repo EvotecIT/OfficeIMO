@@ -337,6 +337,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelParagraphTabStops() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelParagraphTabStops();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+            Assert.Equal("style tabs", paragraph.Text);
+            Assert.Equal("LegacyDocTabStyle", paragraph.StyleId);
+
+            Styles styles = result.Document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style tabStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == "LegacyDocTabStyle");
+            StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(tabStyle.StyleParagraphProperties);
+            Tabs tabs = Assert.IsType<Tabs>(paragraphProperties.GetFirstChild<Tabs>());
+            TabStop[] tabStops = tabs.Elements<TabStop>().ToArray();
+            Assert.Equal(2, tabStops.Length);
+            TabStop centerStop = Assert.Single(tabStops, tabStop => tabStop.Position?.Value == 1800);
+            Assert.Equal(TabStopValues.Center, centerStop.Val!.Value);
+            Assert.Equal(TabStopLeaderCharValues.Dot, centerStop.Leader!.Value);
+            TabStop clearStop = Assert.Single(tabStops, tabStop => tabStop.Position?.Value == 3600);
+            Assert.Equal(TabStopValues.Clear, clearStop.Val!.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelCapsDoubleStrikeAndVerticalPosition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelCapsDoubleStrikeAndVerticalPosition();
 
@@ -394,6 +418,14 @@ namespace OfficeIMO.Tests {
             SpacingBetweenLines spacing = Assert.IsType<SpacingBetweenLines>(paragraphProperties.GetFirstChild<SpacingBetweenLines>());
             Assert.Equal("240", spacing.Before!.Value);
             Assert.Equal("120", spacing.After!.Value);
+            Tabs tabs = Assert.IsType<Tabs>(paragraphProperties.GetFirstChild<Tabs>());
+            TabStop[] tabStops = tabs.Elements<TabStop>().ToArray();
+            Assert.Equal(2, tabStops.Length);
+            Assert.Equal(TabStopValues.Left, tabStops[0].Val!.Value);
+            Assert.Equal(1440, tabStops[0].Position!.Value);
+            Assert.Equal(TabStopValues.Right, tabStops[1].Val!.Value);
+            Assert.Equal(TabStopLeaderCharValues.Underscore, tabStops[1].Leader!.Value);
+            Assert.Equal(4320, tabStops[1].Position!.Value);
             StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(headingStyle.StyleRunProperties);
             Assert.NotNull(runProperties.GetFirstChild<Bold>());
             Underline underline = Assert.IsType<Underline>(runProperties.GetFirstChild<Underline>());
@@ -2098,6 +2130,31 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithStyleLevelParagraphTabStops() {
+                const string text = "style tabs\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] styleSheet = CreateStyleSheet(
+                    CreateParagraphStyleRecord(0, 0x0FFF, "Normal"),
+                    CreateParagraphStyleRecord(
+                        0x0FFF,
+                        0,
+                        "Tab Style",
+                        CreateStyleParagraphFormatting(CreateParagraphTabStopsSprm(
+                            new[] { 3600 },
+                            (1800, 1, 1)))));
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleIndex(text, textOffset, papxFkpOffset, styleSheet.Length, 1);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithStyleLevelCapsDoubleStrikeAndVerticalPosition() {
                 const string text = "caps style\rsmall style\rsuper style\rsub style\r";
                 const int textOffset = 0x200;
@@ -2155,7 +2212,11 @@ namespace OfficeIMO.Tests {
                         CreateStyleParagraphFormatting(
                             CreateParagraphSprm(0x2461, 1),
                             CreateParagraphSprm(0xA413, 0xF0, 0x00),
-                            CreateParagraphSprm(0xA414, 0x78, 0x00)),
+                            CreateParagraphSprm(0xA414, 0x78, 0x00),
+                            CreateParagraphTabStopsSprm(
+                                Array.Empty<int>(),
+                                (1440, 0, 0),
+                                (4320, 2, 3))),
                         CreateStyleCharacterFormatting(
                             CreateCharacterSprm(0x0835, 1),
                             CreateCharacterSprm(0x2A3E, 1),
