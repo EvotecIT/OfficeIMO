@@ -275,6 +275,9 @@ just to reserve names.
   - [x] Project paragraph-boundary multi-section breaks with per-section page
     setup from DOC `PlcfSed`/`Sepx` records, and preserve that simple shape
     through native DOC save/reload.
+  - [x] Project paragraph-boundary section break kinds from DOC `sprmSBkc`
+    records and preserve continuous section breaks through native DOC
+    save/reload.
   - [ ] Add section breaks inside richer body shapes, headers, footers,
     footnotes, and endnotes as separate fixture-backed slices.
 - [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
@@ -356,6 +359,8 @@ just to reserve names.
     dropped.
   - [x] Write paragraph-boundary next-page section breaks with simple
     per-section page setup, then reload them through the legacy reader.
+  - [x] Write paragraph-boundary section break kinds, including continuous
+    breaks, then reload them through the legacy reader.
   - [ ] Add table formatting, merged/nested tables, section breaks inside richer
     body shapes, and richer section writing as separate preflight-backed slices.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests

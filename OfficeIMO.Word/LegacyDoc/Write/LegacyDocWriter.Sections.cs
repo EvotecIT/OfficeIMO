@@ -8,6 +8,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int DefaultPageHeightTwips = 15840;
         private const int DefaultPageMarginTwips = 1440;
         private const int DefaultHeaderFooterMarginTwips = 720;
+        private const ushort SprmSBkc = 0x3009;
         private const ushort SprmSDyaHdrTop = 0xB017;
         private const ushort SprmSDyaHdrBottom = 0xB018;
         private const ushort SprmSBOrientation = 0x301D;
@@ -30,6 +31,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int? headerDistance = null;
             int? footerDistance = null;
             int? gutter = null;
+            SectionMarkValues? sectionBreakType = null;
 
             foreach (OpenXmlElement property in sectionProperties.ChildElements) {
                 switch (property) {
@@ -52,8 +54,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         gutter = ReadTwipValue(pageMargin.Gutter, 0, "section gutter");
                         break;
                     case SectionType sectionType:
-                        if (sectionType.Val != null && sectionType.Val.Value != SectionMarkValues.NextPage) {
-                            throw new NotSupportedException("Native DOC saving currently supports next-page section breaks only.");
+                        if (sectionType.Val != null) {
+                            sectionBreakType = sectionType.Val.Value;
                         }
 
                         break;
@@ -63,6 +65,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return new LegacyDocSectionFormat(
+                sectionBreakType,
                 pageWidth,
                 pageHeight,
                 orientation,
@@ -91,6 +94,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static byte[] CreateSepx(LegacyDocSectionFormat sectionFormat) {
             var grpprl = new List<byte>();
+
+            if (sectionFormat.SectionBreakType != null && sectionFormat.SectionBreakType.Value != SectionMarkValues.NextPage) {
+                AddSingleByteSprm(grpprl, SprmSBkc, GetSectionBreakTypeOperand(sectionFormat.SectionBreakType.Value));
+            }
 
             if (sectionFormat.HeaderDistanceTwips != null) {
                 AddUInt16Sprm(grpprl, SprmSDyaHdrTop, sectionFormat.HeaderDistanceTwips.Value);
@@ -141,6 +148,30 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             sepx[1] = (byte)(grpprl.Count >> 8);
             grpprl.CopyTo(sepx, 2);
             return sepx;
+        }
+
+        private static byte GetSectionBreakTypeOperand(SectionMarkValues sectionBreakType) {
+            if (sectionBreakType == SectionMarkValues.Continuous) {
+                return 0;
+            }
+
+            if (sectionBreakType == SectionMarkValues.NextColumn) {
+                return 1;
+            }
+
+            if (sectionBreakType == SectionMarkValues.NextPage) {
+                return 2;
+            }
+
+            if (sectionBreakType == SectionMarkValues.EvenPage) {
+                return 3;
+            }
+
+            if (sectionBreakType == SectionMarkValues.OddPage) {
+                return 4;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support section break type '{sectionBreakType}'.");
         }
 
         private static void WritePlcfSed(byte[] table, int offset, IReadOnlyList<LegacyDocWritableSectionRecord> sectionRecords) {

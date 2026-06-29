@@ -605,6 +605,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsContinuousSectionBreakType() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithContinuousSectionBreak();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.Empty(result.UnsupportedFeatures);
+
+            WordDocument document = result.Document;
+            Assert.True(document.WasLoadedFromLegacyDoc);
+            Assert.Equal(2, document.Sections.Count);
+            Assert.Equal("Before continuous section", Assert.Single(document.Sections[0].Paragraphs).Text);
+            Assert.Equal("Continuous section", Assert.Single(document.Sections[1].Paragraphs).Text);
+            Assert.Equal(SectionMarkValues.Continuous, GetParagraphSectionType(document));
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_ExposesUnsupportedCompoundFeaturesOnProjectedDocument() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Normal load with unsupported features");
 
@@ -1252,6 +1269,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocContinuousSectionBreakAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Before continuous section");
+                    WordSection secondSection = document.AddSection(SectionMarkValues.Continuous);
+                    secondSection.AddParagraph("Continuous section");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(2, reloaded.Sections.Count);
+                Assert.Equal("Before continuous section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
+                Assert.Equal("Continuous section", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
+                Assert.Equal(SectionMarkValues.Continuous, GetParagraphSectionType(reloaded));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionColumnsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -1544,6 +1586,38 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithContinuousSectionBreak() {
+                const string firstParagraph = "Before continuous section";
+                const string secondParagraph = "Continuous section";
+                string text = firstParagraph + "\r" + secondParagraph + "\r";
+                int firstSectionEnd = firstParagraph.Length + 1;
+                const int secondSepxOffset = 0x300;
+
+                byte[] tableStream = CreateTableStream(text.Length);
+                int fcPlcfSed = tableStream.Length;
+                byte[] sectionDescriptorPlc = CreateTwoSectionDescriptorPlc(
+                    firstSectionEnd,
+                    text.Length,
+                    0,
+                    secondSepxOffset);
+                Array.Resize(ref tableStream, tableStream.Length + sectionDescriptorPlc.Length);
+                Buffer.BlockCopy(sectionDescriptorPlc, 0, tableStream, fcPlcfSed, sectionDescriptorPlc.Length);
+
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    fcPlcfSed: fcPlcfSed,
+                    lcbPlcfSed: sectionDescriptorPlc.Length);
+                WriteBytesAt(ref wordDocumentStream, secondSepxOffset, CreateSectionSepx(sectionBreakType: 0));
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithDirectCharacterFormatting() {
                 const string text = "plain bold italic\r";
                 const int textOffset = 0x200;
@@ -1703,6 +1777,7 @@ namespace OfficeIMO.Tests {
             }
 
             private static byte[] CreateSectionSepx(
+                byte? sectionBreakType = null,
                 byte? orientation = null,
                 int? pageWidth = null,
                 int? pageHeight = null,
@@ -1711,6 +1786,10 @@ namespace OfficeIMO.Tests {
                 int? marginTop = null,
                 int? marginBottom = null) {
                 var grpprl = new List<byte>();
+                if (sectionBreakType != null) {
+                    AddSingleByteSprm(grpprl, 0x3009, sectionBreakType.Value);
+                }
+
                 if (orientation != null) {
                     AddSingleByteSprm(grpprl, 0x301D, orientation.Value);
                 }
@@ -2485,6 +2564,13 @@ namespace OfficeIMO.Tests {
             if (File.Exists(path)) {
                 File.Delete(path);
             }
+        }
+
+        private static SectionMarkValues? GetParagraphSectionType(WordDocument document) {
+            return document._wordprocessingDocument.MainDocumentPart!.Document.Body!
+                .Elements<Paragraph>()
+                .Select(paragraph => paragraph.ParagraphProperties?.SectionProperties?.GetFirstChild<SectionType>()?.Val?.Value)
+                .FirstOrDefault(value => value != null);
         }
     }
 }

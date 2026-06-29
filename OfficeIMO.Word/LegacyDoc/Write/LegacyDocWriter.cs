@@ -111,6 +111,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var paragraphFormats = new List<LegacyDocWritableParagraph>();
             LegacyDocSectionFormat finalSectionFormat = LegacyDocSectionFormat.Default;
             var sections = new List<LegacyDocWritableSection>();
+            SectionMarkValues? pendingSectionBreakType = null;
             int bodyContentCount = 0;
             foreach (OpenXmlElement child in body.ChildElements) {
                 switch (child) {
@@ -122,7 +123,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         SectionProperties? paragraphSectionProperties = paragraph.ParagraphProperties?.SectionProperties;
                         if (paragraphSectionProperties != null) {
-                            AddSection(sections, text.Length, ReadSupportedSectionProperties(paragraphSectionProperties));
+                            LegacyDocSectionFormat paragraphSectionFormat = ReadSupportedSectionProperties(paragraphSectionProperties);
+                            AddSection(sections, text.Length, paragraphSectionFormat.WithSectionBreakType(pendingSectionBreakType));
+                            pendingSectionBreakType = paragraphSectionFormat.SectionBreakType;
                         }
 
                         break;
@@ -142,7 +145,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 text.Append('\r');
             }
 
-            AddSection(sections, text.Length, finalSectionFormat);
+            AddSection(sections, text.Length, finalSectionFormat.WithSectionBreakType(pendingSectionBreakType));
             return new LegacyDocWritableBody(text.ToString(), runs, paragraphFormats, sections);
         }
 

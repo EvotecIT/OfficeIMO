@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.LegacyDoc.Model {
     internal readonly struct LegacyDocSectionFormat {
         internal LegacyDocSectionFormat(
+            SectionMarkValues? sectionBreakType,
             int? pageWidthTwips,
             int? pageHeightTwips,
             PageOrientationValues? orientation,
@@ -13,6 +14,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? headerDistanceTwips,
             int? footerDistanceTwips,
             int? gutterTwips) {
+            SectionBreakType = sectionBreakType;
             PageWidthTwips = pageWidthTwips;
             PageHeightTwips = pageHeightTwips;
             Orientation = orientation;
@@ -24,6 +26,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             FooterDistanceTwips = footerDistanceTwips;
             GutterTwips = gutterTwips;
         }
+
+        internal SectionMarkValues? SectionBreakType { get; }
 
         internal int? PageWidthTwips { get; }
 
@@ -45,7 +49,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal int? GutterTwips { get; }
 
-        internal bool HasFormatting => PageWidthTwips != null
+        internal bool HasFormatting => IsNonDefaultSectionBreakType(SectionBreakType)
+            || PageWidthTwips != null
             || PageHeightTwips != null
             || Orientation != null
             || MarginTopTwips != null
@@ -56,6 +61,25 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || FooterDistanceTwips != null
             || GutterTwips != null;
 
-        internal static LegacyDocSectionFormat Default { get; } = new LegacyDocSectionFormat(null, null, null, null, null, null, null, null, null, null);
+        private static bool IsNonDefaultSectionBreakType(SectionMarkValues? sectionBreakType) {
+            return sectionBreakType != null && sectionBreakType.Value != SectionMarkValues.NextPage;
+        }
+
+        internal LegacyDocSectionFormat WithSectionBreakType(SectionMarkValues? sectionBreakType) {
+            return new LegacyDocSectionFormat(
+                sectionBreakType,
+                PageWidthTwips,
+                PageHeightTwips,
+                Orientation,
+                MarginTopTwips,
+                MarginRightTwips,
+                MarginBottomTwips,
+                MarginLeftTwips,
+                HeaderDistanceTwips,
+                FooterDistanceTwips,
+                GutterTwips);
+        }
+
+        internal static LegacyDocSectionFormat Default { get; } = new LegacyDocSectionFormat(null, null, null, null, null, null, null, null, null, null, null);
     }
 }

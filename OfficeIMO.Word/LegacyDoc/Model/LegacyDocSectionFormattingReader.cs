@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.LegacyDoc.Model {
     internal static class LegacyDocSectionFormattingReader {
         private const int SedLength = 12;
+        private const ushort SprmSBkc = 0x3009;
         private const ushort SprmSDyaHdrTop = 0xB017;
         private const ushort SprmSDyaHdrBottom = 0xB018;
         private const ushort SprmSBOrientation = 0x301D;
@@ -101,9 +102,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? headerDistance = null;
             int? footerDistance = null;
             int? gutter = null;
+            SectionMarkValues? sectionBreakType = null;
 
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
+                if (sprm == SprmSBkc) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    sectionBreakType = ReadSectionBreakType(bytes[offset + 2]);
+                    offset += 3;
+                    continue;
+                }
+
                 if (sprm == SprmSBOrientation) {
                     if (offset + 3 > end) {
                         break;
@@ -173,7 +185,24 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 orientation = PageOrientationValues.Landscape;
             }
 
-            return new LegacyDocSectionFormat(pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, headerDistance, footerDistance, gutter);
+            return new LegacyDocSectionFormat(sectionBreakType, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, headerDistance, footerDistance, gutter);
+        }
+
+        private static SectionMarkValues? ReadSectionBreakType(byte value) {
+            switch (value) {
+                case 0:
+                    return SectionMarkValues.Continuous;
+                case 1:
+                    return SectionMarkValues.NextColumn;
+                case 2:
+                    return SectionMarkValues.NextPage;
+                case 3:
+                    return SectionMarkValues.EvenPage;
+                case 4:
+                    return SectionMarkValues.OddPage;
+                default:
+                    return null;
+            }
         }
 
         private static bool TryGetSprmOperandLength(byte[] bytes, int sprmOffset, int end, out int operandLength) {

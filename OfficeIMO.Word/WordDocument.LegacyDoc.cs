@@ -88,7 +88,7 @@ namespace OfficeIMO.Word {
                     if (block is LegacyDocParagraphBlock paragraphBlock) {
                         AddLegacyDocParagraph(section, paragraphBlock.Runs, paragraphBlock.Format, legacyDocument.StyleSheet);
                     } else if (block is LegacyDocSectionBreakBlock sectionBreakBlock) {
-                        section = document.AddSection(SectionMarkValues.NextPage);
+                        section = document.AddSection(sectionBreakBlock.Format.SectionBreakType ?? SectionMarkValues.NextPage);
                         ApplyLegacyDocSectionFormatting(section, sectionBreakBlock.Format);
                     } else if (block is LegacyDocTableBlock tableBlock) {
                         AddLegacyDocTable(section, tableBlock, legacyDocument.StyleSheet);
@@ -103,6 +103,12 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocSectionFormatting(WordSection section, LegacyDocSectionFormat sectionFormat) {
             if (!sectionFormat.HasFormatting) {
                 return;
+            }
+
+            if (sectionFormat.SectionBreakType != null) {
+                SectionType? existingSectionType = section._sectionProperties.GetFirstChild<SectionType>();
+                existingSectionType?.Remove();
+                section._sectionProperties.Append(new SectionType { Val = sectionFormat.SectionBreakType.Value });
             }
 
             if (sectionFormat.Orientation != null) {
