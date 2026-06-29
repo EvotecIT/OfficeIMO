@@ -426,6 +426,16 @@ namespace OfficeIMO.Word {
             var properties = new StyleRunProperties();
             bool hasProperties = false;
 
+            if (!string.IsNullOrEmpty(characterFormat.FontFamily)) {
+                properties.Append(new RunFonts {
+                    Ascii = characterFormat.FontFamily,
+                    HighAnsi = characterFormat.FontFamily,
+                    ComplexScript = characterFormat.FontFamily,
+                    EastAsia = characterFormat.FontFamily
+                });
+                hasProperties = true;
+            }
+
             if (characterFormat.Bold) {
                 properties.Append(new Bold());
                 hasProperties = true;
@@ -441,13 +451,8 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
-            if (characterFormat.VerticalPosition != null && TryMapVerticalPosition(characterFormat.VerticalPosition.Value, out VerticalPositionValues verticalPosition)) {
-                properties.Append(new VerticalTextAlignment { Val = verticalPosition });
-                hasProperties = true;
-            }
-
-            if (characterFormat.Underline != null && TryMapUnderline(characterFormat.Underline.Value, out UnderlineValues underline)) {
-                properties.Append(new Underline { Val = underline });
+            if (!string.IsNullOrEmpty(characterFormat.ColorHex)) {
+                properties.Append(new Color { Val = characterFormat.ColorHex! });
                 hasProperties = true;
             }
 
@@ -458,18 +463,18 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
-            if (!string.IsNullOrEmpty(characterFormat.ColorHex)) {
-                properties.Append(new Color { Val = characterFormat.ColorHex! });
+            if (characterFormat.Highlight != null && TryMapHighlight(characterFormat.Highlight.Value, out HighlightColorValues highlight)) {
+                properties.Append(new Highlight { Val = highlight });
                 hasProperties = true;
             }
 
-            if (!string.IsNullOrEmpty(characterFormat.FontFamily)) {
-                properties.Append(new RunFonts {
-                    Ascii = characterFormat.FontFamily,
-                    HighAnsi = characterFormat.FontFamily,
-                    ComplexScript = characterFormat.FontFamily,
-                    EastAsia = characterFormat.FontFamily
-                });
+            if (characterFormat.Underline != null && TryMapUnderline(characterFormat.Underline.Value, out UnderlineValues underline)) {
+                properties.Append(new Underline { Val = underline });
+                hasProperties = true;
+            }
+
+            if (characterFormat.VerticalPosition != null && TryMapVerticalPosition(characterFormat.VerticalPosition.Value, out VerticalPositionValues verticalPosition)) {
+                properties.Append(new VerticalTextAlignment { Val = verticalPosition });
                 hasProperties = true;
             }
 
@@ -535,6 +540,10 @@ namespace OfficeIMO.Word {
                 run.Underline = underline;
             }
 
+            if (legacyRun.Highlight != null && TryMapHighlight(legacyRun.Highlight.Value, out HighlightColorValues highlight)) {
+                run.Highlight = highlight;
+            }
+
             if (legacyRun.FontSizeHalfPoints != null) {
                 RunProperties runProperties = run._runProperties ?? new RunProperties();
                 run._runProperties = runProperties;
@@ -549,6 +558,62 @@ namespace OfficeIMO.Word {
 
             if (!string.IsNullOrEmpty(legacyRun.FontFamily)) {
                 run.SetFontFamily(legacyRun.FontFamily!);
+            }
+        }
+
+        private static bool TryMapHighlight(LegacyDocHighlightColorKind highlightKind, out HighlightColorValues value) {
+            switch (highlightKind) {
+                case LegacyDocHighlightColorKind.Black:
+                    value = HighlightColorValues.Black;
+                    return true;
+                case LegacyDocHighlightColorKind.Blue:
+                    value = HighlightColorValues.Blue;
+                    return true;
+                case LegacyDocHighlightColorKind.Cyan:
+                    value = HighlightColorValues.Cyan;
+                    return true;
+                case LegacyDocHighlightColorKind.Green:
+                    value = HighlightColorValues.Green;
+                    return true;
+                case LegacyDocHighlightColorKind.Magenta:
+                    value = HighlightColorValues.Magenta;
+                    return true;
+                case LegacyDocHighlightColorKind.Red:
+                    value = HighlightColorValues.Red;
+                    return true;
+                case LegacyDocHighlightColorKind.Yellow:
+                    value = HighlightColorValues.Yellow;
+                    return true;
+                case LegacyDocHighlightColorKind.White:
+                    value = HighlightColorValues.White;
+                    return true;
+                case LegacyDocHighlightColorKind.DarkBlue:
+                    value = HighlightColorValues.DarkBlue;
+                    return true;
+                case LegacyDocHighlightColorKind.DarkCyan:
+                    value = HighlightColorValues.DarkCyan;
+                    return true;
+                case LegacyDocHighlightColorKind.DarkGreen:
+                    value = HighlightColorValues.DarkGreen;
+                    return true;
+                case LegacyDocHighlightColorKind.DarkMagenta:
+                    value = HighlightColorValues.DarkMagenta;
+                    return true;
+                case LegacyDocHighlightColorKind.DarkRed:
+                    value = HighlightColorValues.DarkRed;
+                    return true;
+                case LegacyDocHighlightColorKind.DarkYellow:
+                    value = HighlightColorValues.DarkYellow;
+                    return true;
+                case LegacyDocHighlightColorKind.DarkGray:
+                    value = HighlightColorValues.DarkGray;
+                    return true;
+                case LegacyDocHighlightColorKind.LightGray:
+                    value = HighlightColorValues.LightGray;
+                    return true;
+                default:
+                    value = default;
+                    return false;
             }
         }
 

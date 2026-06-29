@@ -6,6 +6,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool strike,
             LegacyDocVerticalPositionKind? verticalPosition,
             LegacyDocUnderlineKind? underline,
+            LegacyDocHighlightColorKind? highlight,
             int? fontSizeHalfPoints,
             string? colorHex,
             string? fontFamily) {
@@ -14,6 +15,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Strike = strike;
             VerticalPosition = verticalPosition;
             Underline = underline;
+            Highlight = highlight;
             FontSizeHalfPoints = fontSizeHalfPoints;
             ColorHex = colorHex;
             FontFamily = fontFamily;
@@ -29,6 +31,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal LegacyDocUnderlineKind? Underline { get; }
 
+        internal LegacyDocHighlightColorKind? Highlight { get; }
+
         internal int? FontSizeHalfPoints { get; }
 
         internal string? ColorHex { get; }
@@ -41,11 +45,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || Strike
             || VerticalPosition != null
             || Underline != null
+            || Highlight != null
             || FontSizeHalfPoints != null
             || ColorHex != null
             || FontFamily != null;
 
-        internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, false, null, null, null, null, null);
+        internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, false, null, null, null, null, null, null);
 
         public bool Equals(LegacyDocCharacterFormat other) {
             return Bold == other.Bold
@@ -53,6 +58,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && Strike == other.Strike
                 && VerticalPosition == other.VerticalPosition
                 && Underline == other.Underline
+                && Highlight == other.Highlight
                 && FontSizeHalfPoints == other.FontSizeHalfPoints
                 && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase);
@@ -69,6 +75,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + Strike.GetHashCode();
             hash = (hash * 31) + VerticalPosition.GetHashCode();
             hash = (hash * 31) + Underline.GetHashCode();
+            hash = (hash * 31) + Highlight.GetHashCode();
             hash = (hash * 31) + FontSizeHalfPoints.GetHashCode();
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(FontFamily ?? string.Empty);

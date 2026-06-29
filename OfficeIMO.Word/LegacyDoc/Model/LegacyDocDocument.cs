@@ -380,6 +380,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentFormat.Strike,
                     currentFormat.VerticalPosition,
                     currentFormat.Underline,
+                    currentFormat.Highlight,
                     currentFormat.FontSizeHalfPoints,
                     currentFormat.ColorHex,
                     currentFormat.FontFamily));

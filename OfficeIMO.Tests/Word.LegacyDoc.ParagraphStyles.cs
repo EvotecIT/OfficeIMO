@@ -149,27 +149,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleItalicUnderlineStrikeAndVerticalFromStyleSheet() {
-            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleItalicUnderlineStrikeAndVertical();
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleItalicUnderlineStrikeVerticalAndHighlightFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleItalicUnderlineStrikeVerticalAndHighlight();
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
 
             result.EnsureNoImportErrors();
             WordParagraph paragraph = Assert.Single(
                 result.Document.Paragraphs,
-                item => item.Text == "Styled Italic Underline Strike Super");
+                item => item.Text == "Styled Italic Underline Strike Super Mark");
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
-            Assert.Equal("LegacyDocCustomItalicUnderlineStrikeSuper", paragraph.StyleId);
+            Assert.Equal("LegacyDocCustomItalicUnderlineStrikeSuperMark", paragraph.StyleId);
 
             using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
             Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
-                .First(style => style.StyleId?.Value == "LegacyDocCustomItalicUnderlineStrikeSuper");
+                .First(style => style.StyleId?.Value == "LegacyDocCustomItalicUnderlineStrikeSuperMark");
             StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.GetFirstChild<StyleRunProperties>());
             Assert.NotNull(runProperties.GetFirstChild<Italic>());
             Assert.Equal(UnderlineValues.Single, runProperties.GetFirstChild<Underline>()?.Val?.Value);
             Assert.NotNull(runProperties.GetFirstChild<Strike>());
             Assert.Equal(VerticalPositionValues.Superscript, runProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
+            DocumentFormat.OpenXml.OpenXmlElement highlight = Assert.Single(runProperties.ChildElements, element => element.LocalName == "highlight");
+            Assert.Equal("yellow", highlight.GetAttribute("val", "http://schemas.openxmlformats.org/wordprocessingml/2006/main").Value);
         }
 
         [Fact]
@@ -223,6 +225,7 @@ namespace OfficeIMO.Tests {
             private const ushort SprmCFBold = 0x0835;
             private const ushort SprmCFItalic = 0x0836;
             private const ushort SprmCFStrike = 0x0837;
+            private const ushort SprmCHighlight = 0x2A0C;
             private const ushort SprmCKul = 0x2A3E;
             private const ushort SprmCIss = 0x2A48;
             private const ushort SprmCIco = 0x2A42;
@@ -303,17 +306,18 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateDocWithCustomParagraphStyleItalicUnderlineStrikeAndVertical() {
-                const string text = "Styled Italic Underline Strike Super\rBody\r";
+            internal static byte[] CreateDocWithCustomParagraphStyleItalicUnderlineStrikeVerticalAndHighlight() {
+                const string text = "Styled Italic Underline Strike Super Mark\rBody\r";
                 byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
                     [CustomStyleIndex] = new LegacyDocStyleDefinition(
-                        "Custom Italic Underline Strike Super",
+                        "Custom Italic Underline Strike Super Mark",
                         basedOnStyleIndex: 0,
                         paragraphUpx: null,
                         characterUpx: CreateStyleCharacterUpx(
                             CreateCharacterSprm(SprmCFItalic, 1),
                             CreateCharacterSprm(SprmCFStrike, 1),
                             CreateCharacterSprm(SprmCIss, 1),
+                            CreateCharacterSprm(SprmCHighlight, 7),
                             CreateCharacterSprm(SprmCKul, 1)))
                 });
                 byte[] wordDocumentStream = CreateWordDocumentStream(

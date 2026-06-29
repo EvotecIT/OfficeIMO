@@ -248,6 +248,9 @@ just to reserve names.
   - [x] Project direct CHPX superscript/subscript runs plus stylesheet-level
     superscript run formatting into normal OfficeIMO runs and custom DOCX style
     definitions with synthetic legacy DOC fixture proof.
+  - [x] Project direct CHPX highlight runs plus stylesheet-level highlight run
+    formatting into normal OfficeIMO runs and custom DOCX style definitions
+    with synthetic legacy DOC fixture proof.
   - [x] Project direct PAPX paragraph pagination flags plus stylesheet-level
     keep-lines, keep-next, page-break-before, and widow-control formatting into
     normal OfficeIMO paragraphs and custom DOCX style definitions with
@@ -306,6 +309,8 @@ just to reserve names.
     reader.
   - [x] Write direct superscript/subscript CHPX runs and reload them through
     the legacy reader.
+  - [x] Write direct highlight CHPX runs and reload them through the legacy
+    reader.
   - [x] Extend native character writing to font family through the DOC font
     table.
   - [x] Write direct paragraph alignment PAPX records and reload them through

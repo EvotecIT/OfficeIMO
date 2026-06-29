@@ -173,18 +173,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDirectUnderlineSizeColorStrikeAndVerticalRuns() {
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDirectUnderlineSizeColorStrikeVerticalAndHighlightRuns() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithExtendedDirectCharacterFormatting();
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
 
             result.EnsureNoImportErrors();
             WordParagraph[] runs = result.Document.Paragraphs.ToArray();
-            Assert.Equal(8, runs.Length);
+            Assert.Equal(9, runs.Length);
             Assert.Equal("plain ", runs[0].Text);
             Assert.Null(runs[0].Underline);
             Assert.False(runs[0].Strike);
             Assert.Null(runs[0].VerticalTextAlignment);
+            Assert.Null(runs[0].Highlight);
             Assert.Equal("under ", runs[1].Text);
             Assert.Equal(UnderlineValues.Single, runs[1].Underline);
             Assert.Equal("sized ", runs[2].Text);
@@ -197,8 +198,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(VerticalPositionValues.Superscript, runs[5].VerticalTextAlignment);
             Assert.Equal("sub ", runs[6].Text);
             Assert.Equal(VerticalPositionValues.Subscript, runs[6].VerticalTextAlignment);
-            Assert.Equal("direct", runs[7].Text);
-            Assert.Equal("336699", runs[7].ColorHex);
+            Assert.Equal("mark ", runs[7].Text);
+            Assert.Equal(HighlightColorValues.Yellow, runs[7].Highlight);
+            Assert.Equal("direct", runs[8].Text);
+            Assert.Equal("336699", runs[8].ColorHex);
         }
 
         [Fact]
@@ -717,7 +720,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_WritesNativeDocUnderlineSizeColorStrikeAndVerticalRunsAndReloadsThroughLegacyReader() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocUnderlineSizeColorStrikeVerticalAndHighlightRunsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
@@ -729,6 +732,7 @@ namespace OfficeIMO.Tests {
                     paragraph.AddText("strike ").SetStrike();
                     paragraph.AddText("super ").SetSuperScript();
                     paragraph.AddText("sub ").SetSubScript();
+                    paragraph.AddText("mark ").SetHighlight(HighlightColorValues.Yellow);
                     paragraph.AddText("color").SetColorHex("336699");
 
                     document.Save(docPath);
@@ -738,11 +742,12 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
                 WordParagraph[] runs = reloaded.Paragraphs.ToArray();
-                Assert.Equal(7, runs.Length);
+                Assert.Equal(8, runs.Length);
                 Assert.Equal("plain ", runs[0].Text);
                 Assert.Null(runs[0].Underline);
                 Assert.False(runs[0].Strike);
                 Assert.Null(runs[0].VerticalTextAlignment);
+                Assert.Null(runs[0].Highlight);
                 Assert.Equal("under ", runs[1].Text);
                 Assert.Equal(UnderlineValues.Single, runs[1].Underline);
                 Assert.Equal("sized ", runs[2].Text);
@@ -753,8 +758,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(VerticalPositionValues.Superscript, runs[4].VerticalTextAlignment);
                 Assert.Equal("sub ", runs[5].Text);
                 Assert.Equal(VerticalPositionValues.Subscript, runs[5].VerticalTextAlignment);
-                Assert.Equal("color", runs[6].Text);
-                Assert.Equal("336699", runs[6].ColorHex);
+                Assert.Equal("mark ", runs[6].Text);
+                Assert.Equal(HighlightColorValues.Yellow, runs[6].Highlight);
+                Assert.Equal("color", runs[7].Text);
+                Assert.Equal("336699", runs[7].ColorHex);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -1091,11 +1098,11 @@ namespace OfficeIMO.Tests {
 
             try {
                 using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Formatted").SetHighlight(HighlightColorValues.Yellow);
+                document.AddParagraph("Formatted").SetCapsStyle(CapsStyle.Caps);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("highlight", exception.Message.ToLowerInvariant());
+                Assert.Contains("caps", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -1365,7 +1372,7 @@ namespace OfficeIMO.Tests {
             }
 
             internal static byte[] CreateUnicodeDocWithExtendedDirectCharacterFormatting() {
-                const string text = "plain under sized red strike super sub direct\r";
+                const string text = "plain under sized red strike super sub mark direct\r";
                 const int textOffset = 0x200;
                 const int chpxFkpOffset = 0x400;
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExtendedCharacterFormatting(text, textOffset, chpxFkpOffset);
@@ -1605,13 +1612,14 @@ namespace OfficeIMO.Tests {
                 int strikeStart = redStart + ("red ".Length * 2);
                 int superStart = strikeStart + ("strike ".Length * 2);
                 int subStart = superStart + ("super ".Length * 2);
-                int directStart = subStart + ("sub ".Length * 2);
+                int markStart = subStart + ("sub ".Length * 2);
+                int directStart = markStart + ("mark ".Length * 2);
                 int paragraphMarkStart = directStart + ("direct".Length * 2);
                 int end = paragraphMarkStart + 2;
                 WriteChpxFkp(
                     stream,
                     chpxFkpOffset,
-                    new[] { textOffset, underStart, sizedStart, redStart, strikeStart, superStart, subStart, directStart, paragraphMarkStart, end },
+                    new[] { textOffset, underStart, sizedStart, redStart, strikeStart, superStart, subStart, markStart, directStart, paragraphMarkStart, end },
                     new Dictionary<int, byte[]> {
                         [1] = CreateSingleSprmChpx(0x2A3E, 1),
                         [2] = CreateSingleSprmChpx(0x4A43, 28, 0),
@@ -1619,7 +1627,8 @@ namespace OfficeIMO.Tests {
                         [4] = CreateSingleSprmChpx(0x0837, 1),
                         [5] = CreateSingleSprmChpx(0x2A48, 1),
                         [6] = CreateSingleSprmChpx(0x2A48, 2),
-                        [7] = CreateSingleSprmChpx(0x6870, 0x33, 0x66, 0x99, 0)
+                        [7] = CreateSingleSprmChpx(0x2A0C, 7),
+                        [8] = CreateSingleSprmChpx(0x6870, 0x33, 0x66, 0x99, 0)
                     });
 
                 if (stream.Length < fibLength) {

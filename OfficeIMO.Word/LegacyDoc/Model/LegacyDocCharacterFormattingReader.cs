@@ -4,6 +4,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmCFBold = 0x0835;
         private const ushort SprmCFItalic = 0x0836;
         private const ushort SprmCFStrike = 0x0837;
+        private const ushort SprmCHighlight = 0x2A0C;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCIco = 0x2A42;
         private const ushort SprmCIss = 0x2A48;
@@ -108,6 +109,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool strike = false;
             LegacyDocVerticalPositionKind? verticalPosition = null;
             LegacyDocUnderlineKind? underline = null;
+            LegacyDocHighlightColorKind? highlight = null;
             int? fontSizeHalfPoints = null;
             string? colorHex = null;
             string? fontFamily = null;
@@ -128,6 +130,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         strike = enabled;
                     }
 
+                    offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmCHighlight) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    highlight = MapHighlight(bytes[offset + 2]);
                     offset += 3;
                     continue;
                 }
@@ -203,7 +215,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 offset += 2 + operandLength;
             }
 
-            return new LegacyDocCharacterFormat(bold, italic, strike, verticalPosition, underline, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocCharacterFormat(bold, italic, strike, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
         }
 
         private static LegacyDocVerticalPositionKind? MapVerticalPosition(byte value) {
@@ -256,6 +268,45 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return LegacyDocUnderlineKind.WavyDouble;
                 case 18:
                     return LegacyDocUnderlineKind.DashLongHeavy;
+                default:
+                    return null;
+            }
+        }
+
+        private static LegacyDocHighlightColorKind? MapHighlight(byte value) {
+            switch (value) {
+                case 1:
+                    return LegacyDocHighlightColorKind.Black;
+                case 2:
+                    return LegacyDocHighlightColorKind.Blue;
+                case 3:
+                    return LegacyDocHighlightColorKind.Cyan;
+                case 4:
+                    return LegacyDocHighlightColorKind.Green;
+                case 5:
+                    return LegacyDocHighlightColorKind.Magenta;
+                case 6:
+                    return LegacyDocHighlightColorKind.Red;
+                case 7:
+                    return LegacyDocHighlightColorKind.Yellow;
+                case 8:
+                    return LegacyDocHighlightColorKind.White;
+                case 9:
+                    return LegacyDocHighlightColorKind.DarkBlue;
+                case 10:
+                    return LegacyDocHighlightColorKind.DarkCyan;
+                case 11:
+                    return LegacyDocHighlightColorKind.DarkGreen;
+                case 12:
+                    return LegacyDocHighlightColorKind.DarkMagenta;
+                case 13:
+                    return LegacyDocHighlightColorKind.DarkRed;
+                case 14:
+                    return LegacyDocHighlightColorKind.DarkYellow;
+                case 15:
+                    return LegacyDocHighlightColorKind.DarkGray;
+                case 16:
+                    return LegacyDocHighlightColorKind.LightGray;
                 default:
                     return null;
             }
