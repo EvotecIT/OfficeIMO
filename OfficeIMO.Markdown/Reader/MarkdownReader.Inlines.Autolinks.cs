@@ -514,7 +514,7 @@ public static partial class MarkdownReader {
         while (i < text.Length) {
             char c = text[i];
             if (char.IsWhiteSpace(c)) break;
-            if (c == ']' || c == '<') break;
+            if ((c == ']' && !options.AutolinkAllowClosingBracketInUrl) || c == '<') break;
             if (c == '(') {
                 parenDepth++;
                 i++;

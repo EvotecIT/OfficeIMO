@@ -277,6 +277,13 @@ public sealed class MarkdownReaderOptions {
     public bool AutolinkRejectUserInfoAuthority { get; set; } = false;
 
     /// <summary>
+    /// When <c>true</c>, bare URL autolinks may include a closing square bracket <c>]</c>
+    /// in the consumed URL target. Markdig <c>UseAutoLinks</c> keeps this character inside
+    /// the link; OfficeIMO's legacy behavior stops before it to avoid crossing bracketed text.
+    /// </summary>
+    public bool AutolinkAllowClosingBracketInUrl { get; set; } = false;
+
+    /// <summary>
     /// When <c>true</c>, bare scheme autolinks such as <c>mailto:</c>, <c>ftp://</c>, and
     /// <c>tel:</c> require the scheme prefix itself to be lowercase.
     /// </summary>

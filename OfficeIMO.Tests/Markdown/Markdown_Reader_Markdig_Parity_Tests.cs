@@ -198,6 +198,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "unicode-http-domain", "Visit https://пример.рф/path now" };
         yield return new object[] { "unicode-http-path", "Visit https://example.com/ścieżka?q=zażółć now" };
         yield return new object[] { "http-url-path-tilde", "Visit https://example.com/path~tilde now" };
+        yield return new object[] { "http-url-closing-bracket", "Visit https://example.com/path] now" };
         yield return new object[] { "http-url-userinfo-stays-literal", "Visit https://user@example.com/path now" };
         yield return new object[] { "www-url-path-tilde", "Visit www.example.com/path~tilde now" };
         yield return new object[] { "www-url-userinfo-stays-literal", "Visit www.user@example.com/path now" };
@@ -326,6 +327,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
         officeOptions.AutolinkRejectUnderscoreInWwwHost = true;
         officeOptions.AutolinkRejectUserInfoAuthority = true;
+        officeOptions.AutolinkAllowClosingBracketInUrl = true;
         officeOptions.AutolinkEmails = false;
         officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
         officeOptions.AutolinkValidPreviousCharacters = "_('";
@@ -357,6 +359,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
         officeOptions.AutolinkRejectUnderscoreInWwwHost = true;
         officeOptions.AutolinkRejectUserInfoAuthority = true;
+        officeOptions.AutolinkAllowClosingBracketInUrl = true;
         officeOptions.AutolinkEmails = false;
         officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
         officeOptions.AutolinkValidPreviousCharacters = "_('";
