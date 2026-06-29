@@ -370,7 +370,7 @@ namespace OfficeIMO.Word {
                 if (legacyStyle.BuiltInStyle != null) {
                     string builtInStyleId = legacyStyle.BuiltInStyle.Value.ToStringStyle();
                     Style builtInStyle = GetOrCreateLegacyDocBuiltInStyle(styles, builtInStyleId, legacyStyle.Name);
-                    MergeLegacyDocBuiltInStyleFormatting(builtInStyle, legacyStyle);
+                    MergeLegacyDocBuiltInStyleFormatting(builtInStyle, legacyStyle, styleSheet);
                     continue;
                 }
 

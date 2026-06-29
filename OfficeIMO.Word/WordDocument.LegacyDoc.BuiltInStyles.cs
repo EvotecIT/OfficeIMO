@@ -22,9 +22,23 @@ namespace OfficeIMO.Word {
             return style;
         }
 
-        private static void MergeLegacyDocBuiltInStyleFormatting(Style style, LegacyDocParagraphStyle legacyStyle) {
+        private static void MergeLegacyDocBuiltInStyleFormatting(Style style, LegacyDocParagraphStyle legacyStyle, LegacyDocStyleSheet styleSheet) {
+            MergeLegacyDocBuiltInStyleBasedOn(style, legacyStyle, styleSheet);
             MergeLegacyDocBuiltInStyleParagraphFormatting(style, legacyStyle.ParagraphFormat);
             MergeLegacyDocBuiltInStyleRunFormatting(style, legacyStyle.CharacterFormat);
+        }
+
+        private static void MergeLegacyDocBuiltInStyleBasedOn(Style style, LegacyDocParagraphStyle legacyStyle, LegacyDocStyleSheet styleSheet) {
+            if (legacyStyle.BasedOnStyleIndex == null || legacyStyle.BasedOnStyleIndex.Value == legacyStyle.Index) {
+                return;
+            }
+
+            string basedOnStyleId = ResolveLegacyDocBasedOnStyleId(legacyStyle, styleSheet);
+            if (string.Equals(basedOnStyleId, style.StyleId?.Value, StringComparison.OrdinalIgnoreCase)) {
+                return;
+            }
+
+            ReplaceStyleProperty(style, new BasedOn { Val = basedOnStyleId });
         }
 
         private static void MergeLegacyDocBuiltInStyleParagraphFormatting(Style style, LegacyDocParagraphFormat paragraphFormat) {

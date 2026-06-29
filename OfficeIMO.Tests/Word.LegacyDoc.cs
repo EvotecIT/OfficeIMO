@@ -377,6 +377,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleInheritanceFromBuiltInStyle() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithInheritedBuiltInStyleFormatting();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+            Assert.Equal("inherited heading", paragraph.Text);
+            Assert.Equal("LegacyDocInheritedHeading", paragraph.StyleId);
+
+            Styles styles = result.Document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style headingStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == WordParagraphStyles.Heading1.ToStringStyle());
+            BasedOn headingBasedOn = Assert.IsType<BasedOn>(headingStyle.GetFirstChild<BasedOn>());
+            Assert.Equal(WordParagraphStyles.Normal.ToStringStyle(), headingBasedOn.Val!.Value);
+            StyleParagraphProperties headingParagraphProperties = Assert.IsType<StyleParagraphProperties>(headingStyle.StyleParagraphProperties);
+            Justification headingJustification = Assert.IsType<Justification>(headingParagraphProperties.GetFirstChild<Justification>());
+            Assert.Equal(JustificationValues.Center, headingJustification.Val!.Value);
+            StyleRunProperties headingRunProperties = Assert.IsType<StyleRunProperties>(headingStyle.StyleRunProperties);
+            Assert.NotNull(headingRunProperties.GetFirstChild<Bold>());
+            Color headingColor = Assert.IsType<Color>(headingRunProperties.GetFirstChild<Color>());
+            Assert.Equal("336699", headingColor.Val!.Value);
+
+            Style childStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == "LegacyDocInheritedHeading");
+            BasedOn childBasedOn = Assert.IsType<BasedOn>(childStyle.GetFirstChild<BasedOn>());
+            Assert.Equal(WordParagraphStyles.Heading1.ToStringStyle(), childBasedOn.Val!.Value);
+            StyleRunProperties childRunProperties = Assert.IsType<StyleRunProperties>(childStyle.StyleRunProperties);
+            Assert.NotNull(childRunProperties.GetFirstChild<Italic>());
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_RoutesOleDocIntoProjectedWordDocument() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -2051,6 +2081,38 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithInheritedBuiltInStyleFormatting() {
+                const string text = "inherited heading\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] styleSheet = CreateStyleSheet(
+                    CreateParagraphStyleRecord(0, 0x0FFF, "Normal"),
+                    CreateParagraphStyleRecord(
+                        1,
+                        0,
+                        "heading 1",
+                        CreateStyleParagraphFormatting(CreateParagraphSprm(0x2461, 1)),
+                        CreateStyleCharacterFormatting(
+                            CreateCharacterSprm(0x0835, 1),
+                            CreateCharacterSprm(0x6870, 0x33, 0x66, 0x99, 0x00))),
+                    CreateParagraphStyleRecord(
+                        0x0FFF,
+                        1,
+                        "Inherited Heading",
+                        Array.Empty<byte>(),
+                        CreateStyleCharacterFormatting(CreateCharacterSprm(0x0836, 1))));
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleIndex(text, textOffset, papxFkpOffset, styleSheet.Length, 2);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateCompoundWithoutWordDocumentStream() {
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
@@ -2539,6 +2601,10 @@ namespace OfficeIMO.Tests {
             }
 
             private static byte[] CreateUnicodeWordDocumentStreamWithBuiltInStyleLevelFormatting(string text, int textOffset, int papxFkpOffset, int styleSheetLength) {
+                return CreateUnicodeWordDocumentStreamWithStyleIndex(text, textOffset, papxFkpOffset, styleSheetLength, 1);
+            }
+
+            private static byte[] CreateUnicodeWordDocumentStreamWithStyleIndex(string text, int textOffset, int papxFkpOffset, int styleSheetLength, ushort styleIndex) {
                 const int fibLength = 0x1AA;
                 byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
                 var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
@@ -2559,7 +2625,11 @@ namespace OfficeIMO.Tests {
                     papxFkpOffset,
                     new[] { textOffset, textOffset + textBytes.Length },
                     new Dictionary<int, byte[]> {
-                        [0] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x4600, 1, 0))
+                        [0] = CreateParagraphPropertiesPapx(
+                            CreateParagraphSprm(
+                                0x4600,
+                                (byte)(styleIndex & 0xFF),
+                                (byte)(styleIndex >> 8)))
                     });
 
                 if (stream.Length < fibLength) {

@@ -264,6 +264,8 @@ just to reserve names.
   - [x] Merge supported DOC stylesheet paragraph/run formatting into built-in
     DOCX style definitions, starting with a Heading 1 fixture that proves
     alignment, spacing, bold, underline, highlight, color, and size projection.
+  - [x] Preserve DOC stylesheet inheritance across built-in and custom styles,
+    with a custom style inheriting from a formatted Heading 1 fixture.
   - [ ] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting beyond the first supported mapping set once each
     additional mapping has a fixture and observable OfficeIMO contract.
