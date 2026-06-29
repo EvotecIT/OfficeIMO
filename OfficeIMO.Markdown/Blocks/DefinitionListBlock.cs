@@ -358,7 +358,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         }
 
         for (int i = 1; i < blocks.Count; i++) {
-            sb.Append(ShouldSeparateDefinitionBlocksWithBlankLine(blocks[i]) ? "\n\n" : "\n");
+            sb.Append(ShouldSeparateDefinitionBlocksWithBlankLine(blocks[i - 1], blocks[i]) ? "\n\n" : "\n");
             AppendIndentedDefinitionBlockMarkdown(sb, blocks[i], firstBlock: false, continuationIndent: "    ");
         }
     }
@@ -388,13 +388,14 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         }
 
         for (int i = 1; i < blocks.Count; i++) {
-            sb.Append(ShouldSeparateDefinitionBlocksWithBlankLine(blocks[i]) ? "\n\n" : "\n");
+            sb.Append(ShouldSeparateDefinitionBlocksWithBlankLine(blocks[i - 1], blocks[i]) ? "\n\n" : "\n");
             AppendIndentedDefinitionBlockMarkdown(sb, blocks[i], firstBlock: false);
         }
     }
 
-    private static bool ShouldSeparateDefinitionBlocksWithBlankLine(IMarkdownBlock block) =>
-        block is ParagraphBlock;
+    private static bool ShouldSeparateDefinitionBlocksWithBlankLine(IMarkdownBlock previousBlock, IMarkdownBlock block) =>
+        block is ParagraphBlock ||
+        (previousBlock is ParagraphBlock && block is HorizontalRuleBlock);
 
     private static void AppendIndentedDefinitionBlockMarkdown(
         StringBuilder sb,

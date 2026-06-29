@@ -601,20 +601,21 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        if (PreviousDefinitionLineIsSetextUnderline(definitionSourceLines)) {
+        if (PreviousDefinitionLineStopsLazyContinuation(definitionSourceLines)) {
             return false;
         }
 
         return true;
     }
 
-    private static bool PreviousDefinitionLineIsSetextUnderline(List<MarkdownSourceLineSlice> definitionSourceLines) {
+    private static bool PreviousDefinitionLineStopsLazyContinuation(List<MarkdownSourceLineSlice> definitionSourceLines) {
         if (definitionSourceLines == null || definitionSourceLines.Count == 0) {
             return false;
         }
 
         var previous = definitionSourceLines[definitionSourceLines.Count - 1].Text;
-        return TryGetSetextHeadingUnderlineLevel(previous, out _);
+        return TryGetSetextHeadingUnderlineLevel(previous, out _) ||
+            IsParagraphInterruptingThematicBreakLine(previous);
     }
 
     private static int GetFirstNonWhitespaceIndex(string line) {
