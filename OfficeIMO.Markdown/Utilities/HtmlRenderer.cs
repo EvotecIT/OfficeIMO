@@ -43,7 +43,7 @@ internal static class HtmlRenderer {
         }
         if (!string.IsNullOrEmpty(options.BodyClass)) {
             // Wrap in article
-            bodyContent = $"<article class=\"{System.Net.WebUtility.HtmlEncode(options.BodyClass)}\">" + bodyContent + "</article>";
+            bodyContent = $"<article class=\"{HtmlTextEncoder.Encode(options.BodyClass, options)}\">" + bodyContent + "</article>";
         }
 
         StringBuilder head = new StringBuilder();
@@ -63,7 +63,7 @@ internal static class HtmlRenderer {
         // Additional JS: link in head when Online; download+inline into scripts when Offline
         if (options.AssetMode == AssetMode.Online) {
             foreach (var js in options.AdditionalJsHrefs.Where(u => !string.IsNullOrWhiteSpace(u))) {
-                head.Append($"<script src=\"{System.Net.WebUtility.HtmlEncode(js)}\"></script>\n");
+                head.Append($"<script src=\"{HtmlAttributeUrlEncoder.Encode(js, options)}\"></script>\n");
             }
         } else {
             foreach (var js in options.AdditionalJsHrefs.Where(u => !string.IsNullOrWhiteSpace(u))) {
@@ -87,8 +87,8 @@ internal static class HtmlRenderer {
                 foreach (var a in parts.Assets) {
                     if (a.Kind == HtmlAssetKind.Css) {
                         if (!string.IsNullOrEmpty(a.Href)) {
-                            var media = string.IsNullOrEmpty(a.Media) ? string.Empty : $" media=\"{System.Net.WebUtility.HtmlEncode(a.Media)}\"";
-                            head.Append($"<link rel=\"stylesheet\" data-asset-id=\"{System.Net.WebUtility.HtmlEncode(a.Id)}\" href=\"{System.Net.WebUtility.HtmlEncode(a.Href)}\"{media}>\n");
+                            var media = string.IsNullOrEmpty(a.Media) ? string.Empty : $" media=\"{HtmlTextEncoder.Encode(a.Media, options)}\"";
+                            head.Append($"<link rel=\"stylesheet\" data-asset-id=\"{HtmlTextEncoder.Encode(a.Id, options)}\" href=\"{HtmlAttributeUrlEncoder.Encode(a.Href, options)}\"{media}>\n");
                         } else if (!string.IsNullOrEmpty(a.Inline)) {
                             if (options.CssDelivery == CssDelivery.ExternalFile) {
                                 // When writing CSS to a sidecar file, ensure Prism inline CSS is included there too.
@@ -98,7 +98,7 @@ internal static class HtmlRenderer {
                             }
                         }
                     } else {
-                        if (!string.IsNullOrEmpty(a.Href)) head.Append($"<script data-asset-id=\"{System.Net.WebUtility.HtmlEncode(a.Id)}\" src=\"{System.Net.WebUtility.HtmlEncode(a.Href)}\"></script>\n");
+                        if (!string.IsNullOrEmpty(a.Href)) head.Append($"<script data-asset-id=\"{HtmlTextEncoder.Encode(a.Id, options)}\" src=\"{HtmlAttributeUrlEncoder.Encode(a.Href, options)}\"></script>\n");
                         else if (!string.IsNullOrEmpty(a.Inline)) scripts.Append(a.Inline).Append('\n');
                     }
                 }
@@ -210,7 +210,7 @@ internal static class HtmlRenderer {
         var blocks = GetFootnoteBlocksForRender(footnote);
         var sb = new StringBuilder();
         sb.Append("<li id=\"fn-")
-            .Append(System.Net.WebUtility.HtmlEncode(info.Value.EscapedLabel))
+            .Append(HtmlTextEncoder.Encode(info.Value.EscapedLabel, context.Options))
             .Append("\">");
 
         if (blocks.Count == 0) {
@@ -288,11 +288,11 @@ internal static class HtmlRenderer {
                 : info.Number.ToString() + "-" + (i + 1).ToString();
 
             sb.Append("<a href=\"#")
-                .Append(System.Net.WebUtility.HtmlEncode(info.ReferenceIds[i]))
+                .Append(HtmlTextEncoder.Encode(info.ReferenceIds[i], HtmlRenderContext.Options))
                 .Append("\" class=\"footnote-backref\" data-footnote-backref data-footnote-backref-idx=\"")
-                .Append(System.Net.WebUtility.HtmlEncode(backrefIndex))
+                .Append(HtmlTextEncoder.Encode(backrefIndex, HtmlRenderContext.Options))
                 .Append("\" aria-label=\"Back to reference ")
-                .Append(System.Net.WebUtility.HtmlEncode(backrefIndex))
+                .Append(HtmlTextEncoder.Encode(backrefIndex, HtmlRenderContext.Options))
                 .Append("\">")
                 .Append(i == 0 ? "↩" : "↩<sup>" + (i + 1).ToString() + "</sup>")
                 .Append("</a>");
@@ -321,7 +321,7 @@ internal static class HtmlRenderer {
             // Still emit links for additional CSS if Online
             if (options.AssetMode == AssetMode.Online) {
                 foreach (var href in options.AdditionalCssHrefs.Where(u => !string.IsNullOrWhiteSpace(u)))
-                    headLinks.Append($"<link rel=\"stylesheet\" href=\"{System.Net.WebUtility.HtmlEncode(href)}\">\n");
+                    headLinks.Append($"<link rel=\"stylesheet\" href=\"{HtmlAttributeUrlEncoder.Encode(href, options)}\">\n");
             }
             // AdditionalJs handled later in head (scripts in body for full doc)
             extraHeadLinks = headLinks.ToString();
@@ -331,9 +331,9 @@ internal static class HtmlRenderer {
         bool linkPrimary = false;
         if (options.CssDelivery == CssDelivery.LinkHref && !string.IsNullOrWhiteSpace(options.CssHref) && options.AssetMode == AssetMode.Online) {
             linkPrimary = true;
-            cssLinkTag = $"<link rel=\"stylesheet\" href=\"{System.Net.WebUtility.HtmlEncode(options.CssHref)}\">\n";
+            cssLinkTag = $"<link rel=\"stylesheet\" href=\"{HtmlAttributeUrlEncoder.Encode(options.CssHref, options)}\">\n";
             foreach (var href in options.AdditionalCssHrefs.Where(u => !string.IsNullOrWhiteSpace(u)))
-                headLinks.Append($"<link rel=\"stylesheet\" href=\"{System.Net.WebUtility.HtmlEncode(href)}\">\n");
+                headLinks.Append($"<link rel=\"stylesheet\" href=\"{HtmlAttributeUrlEncoder.Encode(href, options)}\">\n");
             extraHeadLinks = headLinks.ToString();
             // Do not return; we may inline small theme overrides below
         }
@@ -350,7 +350,7 @@ internal static class HtmlRenderer {
         // Additional CSS URLs
         foreach (var href in options.AdditionalCssHrefs.Where(u => !string.IsNullOrWhiteSpace(u))) {
             if (options.AssetMode == AssetMode.Online && options.CssDelivery == CssDelivery.LinkHref) {
-                headLinks.Append($"<link rel=\"stylesheet\" href=\"{System.Net.WebUtility.HtmlEncode(href)}\">\n");
+                headLinks.Append($"<link rel=\"stylesheet\" href=\"{HtmlAttributeUrlEncoder.Encode(href, options)}\">\n");
             } else {
                 var downloaded = TryDownloadText(href);
                 if (!string.IsNullOrEmpty(downloaded)) cssBuilder.Append(downloaded).Append('\n');
@@ -367,7 +367,7 @@ internal static class HtmlRenderer {
             cssToWrite = aggregatedCss;
             var fileName = options.ExternalCssOutputPath != null ? System.IO.Path.GetFileName(options.ExternalCssOutputPath) : "styles.css";
             var styleId = $"omd-style:{effectiveStyle}";
-            cssLinkTag = $"<link rel=\"stylesheet\" data-asset-id=\"{System.Net.WebUtility.HtmlEncode(styleId)}\" href=\"{System.Net.WebUtility.HtmlEncode(fileName)}\">\n";
+            cssLinkTag = $"<link rel=\"stylesheet\" data-asset-id=\"{HtmlTextEncoder.Encode(styleId, options)}\" href=\"{HtmlAttributeUrlEncoder.Encode(fileName, options)}\">\n";
             return string.Empty;
         }
         return aggregatedCss;

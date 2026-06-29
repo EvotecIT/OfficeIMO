@@ -105,7 +105,7 @@ internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISynt
             }
 
             sbNested.Append("<li><a href=\"")
-                .Append('#').Append(System.Net.WebUtility.HtmlEncode(e.Anchor))
+                .Append('#').Append(HtmlTextEncoder.Encode(e.Anchor, context.Options))
                 .Append("\">")
                 .Append(HtmlTextEncoder.Encode(e.Text, context.Options))
                 .Append("</a>");
@@ -140,7 +140,7 @@ internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISynt
             if (Options.Chrome == TocChrome.Outline) classes.Append(" outline");
             if (Options.Chrome == TocChrome.Panel) classes.Append(" panel");
             if (Options.HideOnNarrow) classes.Append(" hide-narrow");
-            string aria = System.Net.WebUtility.HtmlEncode(Options.AriaLabel ?? "Table of Contents");
+            string aria = HtmlTextEncoder.Encode(Options.AriaLabel ?? "Table of Contents", context.Options);
             var sb = new System.Text.StringBuilder();
             sb.Append("<nav role=\"navigation\" aria-label=\"").Append(aria).Append("\" class=\"").Append(classes).Append("\"");
             if (Options.ScrollSpy) sb.Append(" data-md-scrollspy=\"1\"");

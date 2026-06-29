@@ -10,7 +10,7 @@ internal static class ImageHtmlAttributes {
         if (o.ImagesDecodingAsync) sb.Append(" decoding=\"async\"");
 
         var rp = (o.ImagesReferrerPolicy ?? string.Empty).Trim();
-        if (rp.Length > 0) sb.Append(" referrerpolicy=\"").Append(System.Net.WebUtility.HtmlEncode(rp)).Append("\"");
+        if (rp.Length > 0) sb.Append(" referrerpolicy=\"").Append(HtmlTextEncoder.Encode(rp, o)).Append("\"");
 
         return sb.ToString();
     }

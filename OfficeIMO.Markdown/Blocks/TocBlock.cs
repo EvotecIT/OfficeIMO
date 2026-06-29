@@ -85,7 +85,7 @@ public sealed class TocBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlo
             foreach (var n in nodes) {
                 var e = n.Entry!;
                 sb.Append("<li>");
-                sb.Append($"<a href=\"#{System.Net.WebUtility.HtmlEncode(e.Anchor)}\">{HtmlTextEncoder.Encode(e.Text, options)}</a>");
+                sb.Append($"<a href=\"#{HtmlTextEncoder.Encode(e.Anchor, options)}\">{HtmlTextEncoder.Encode(e.Text, options)}</a>");
                 if (n.Children.Count > 0) RenderList(sb, n.Children, ordered, options);
                 sb.Append("</li>");
             }

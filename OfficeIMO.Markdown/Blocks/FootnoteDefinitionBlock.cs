@@ -122,7 +122,7 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
     string IMarkdownBlock.RenderMarkdown() => RenderMarkdown();
     string IMarkdownBlock.RenderHtml() {
         // Standalone rendering; HtmlRenderer aggregates footnotes into a dedicated section.
-        var encLabel = System.Net.WebUtility.HtmlEncode(Label);
+        var encLabel = HtmlTextEncoder.Encode(Label, HtmlRenderContext.Options);
         var blocks = GetBlocksForRender();
         if (AreAllParagraphBlocks(blocks)) {
             var paragraphs = CreateParagraphBlocks(blocks);
@@ -161,7 +161,7 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
             return string.Empty;
         }
 
-        var encLabel = System.Net.WebUtility.HtmlEncode(label);
+        var encLabel = HtmlTextEncoder.Encode(label, HtmlRenderContext.Options);
         var blocks = GetBlocksForRender();
 
         var sb = new System.Text.StringBuilder();

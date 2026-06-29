@@ -117,7 +117,7 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
-        var kind = System.Net.WebUtility.HtmlEncode(Kind);
+        var kind = HtmlTextEncoder.Encode(Kind, HtmlRenderContext.Options);
         var titleMarkdown = TitleInlines.RenderMarkdown();
         var hasTitleInlines = !string.IsNullOrWhiteSpace(titleMarkdown);
         var titleText = hasTitleInlines ? TitleInlines.RenderHtml() : HtmlTextEncoder.Encode(FormatTitleFromKind(Kind), HtmlRenderContext.Options);

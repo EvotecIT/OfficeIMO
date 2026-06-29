@@ -91,7 +91,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
             return overridden;
         }
 
-        string lang = string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{System.Net.WebUtility.HtmlEncode(Language)}\"";
+        string lang = string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{HtmlTextEncoder.Encode(Language, options)}\"";
         string code = HtmlTextEncoder.Encode(Content, options);
         if (code.Length > 0) {
             // CommonMark-style HTML keeps the terminating line break inside <code>

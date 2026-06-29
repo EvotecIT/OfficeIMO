@@ -101,7 +101,7 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
             return codeFallback;
         }
 
-        string lang = string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{System.Net.WebUtility.HtmlEncode(Language)}\"";
+        string lang = string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{HtmlTextEncoder.Encode(Language, options)}\"";
         string code = HtmlTextEncoder.Encode(Content, options);
         if (code.Length > 0) {
             code += "\n";

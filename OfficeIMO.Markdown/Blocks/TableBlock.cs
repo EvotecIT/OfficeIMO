@@ -403,6 +403,6 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         style ??= new StringBuilder();
         style.Append(name);
         style.Append(':');
-        style.Append(System.Net.WebUtility.HtmlEncode(value!.Trim()));
+        style.Append(HtmlTextEncoder.Encode(value!.Trim(), HtmlRenderContext.Options));
     }
 }
