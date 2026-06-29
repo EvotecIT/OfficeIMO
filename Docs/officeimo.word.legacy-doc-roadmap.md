@@ -246,8 +246,10 @@ just to reserve names.
   sections only after preflight blocks all unsupported content.
   - [x] Write direct bold/italic CHPX runs and reload them through the legacy
     reader.
-  - [ ] Extend native character writing to underline, font, size, and color
-    after matching reader fixtures exist.
+  - [x] Write direct underline, size, and color CHPX runs and reload them
+    through the legacy reader.
+  - [ ] Extend native character writing to font family through the DOC font
+    table.
   - [ ] Add table and simple section writing as separate preflight-backed
     slices.
 - [ ] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests

@@ -12,6 +12,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int ChpxPlcLength = 12;
         private const ushort SprmCFBold = 0x0835;
         private const ushort SprmCFItalic = 0x0836;
+        private const ushort SprmCKul = 0x2A3E;
+        private const ushort SprmCHps = 0x4A43;
+        private const ushort SprmCCv = 0x6870;
         private const ushort WordDocumentMagic = 0xA5EC;
         private const ushort Word97FibVersion = 0x00D9;
         private const ushort OneTableStreamFlag = 0x0200;
@@ -59,7 +62,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SectionProperties:
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs with bold and italic text runs. Unsupported body element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs with bold, italic, underline, font size, and color text runs. Unsupported body element: {child.LocalName}.");
                 }
             }
 
@@ -123,7 +126,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedRunText(text, runs, run);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs with bold and italic formatting. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs with bold, italic, underline, font size, and color formatting. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 
@@ -156,6 +159,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             bool bold = false;
             bool italic = false;
+            byte? underline = null;
+            int? fontSizeHalfPoints = null;
+            string? colorHex = null;
             foreach (OpenXmlElement property in runProperties.ChildElements) {
                 switch (property) {
                     case Bold boldProperty:
@@ -170,16 +176,94 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case ItalicComplexScript italicComplexScript:
                         italic = IsEnabled(italicComplexScript);
                         break;
+                    case Underline underlineProperty:
+                        underline = ReadSupportedUnderline(underlineProperty);
+                        break;
+                    case FontSize fontSize:
+                        fontSizeHalfPoints = ReadFontSizeHalfPoints(fontSize);
+                        break;
+                    case Color color:
+                        colorHex = ReadSupportedColorHex(color);
+                        break;
+                    case RunFonts:
+                        throw new NotSupportedException("Native DOC saving does not support font family yet. Font family requires a DOC font-table writer slice.");
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only bold and italic run formatting. Unsupported run property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, underline, font size, and color run formatting. Unsupported run property: {property.LocalName}.");
                 }
             }
 
-            return new LegacyDocWritableFormatting(bold, italic);
+            return new LegacyDocWritableFormatting(bold, italic, underline, fontSizeHalfPoints, colorHex);
         }
 
         private static bool IsEnabled(OnOffType property) {
             return property.Val == null || property.Val.Value;
+        }
+
+        private static byte? ReadSupportedUnderline(Underline underline) {
+            UnderlineValues value = underline.Val?.Value ?? UnderlineValues.Single;
+            if (value == UnderlineValues.None) {
+                return null;
+            } else if (value == UnderlineValues.Single) {
+                return 1;
+            } else if (value == UnderlineValues.Words) {
+                return 2;
+            } else if (value == UnderlineValues.Double) {
+                return 3;
+            } else if (value == UnderlineValues.Dotted) {
+                return 4;
+            } else if (value == UnderlineValues.Thick) {
+                return 6;
+            } else if (value == UnderlineValues.Dash) {
+                return 7;
+            } else if (value == UnderlineValues.DotDash) {
+                return 8;
+            } else if (value == UnderlineValues.DotDotDash) {
+                return 9;
+            } else if (value == UnderlineValues.Wave) {
+                return 10;
+            } else if (value == UnderlineValues.DottedHeavy) {
+                return 11;
+            } else if (value == UnderlineValues.DashedHeavy) {
+                return 12;
+            } else if (value == UnderlineValues.DashDotHeavy) {
+                return 13;
+            } else if (value == UnderlineValues.DashDotDotHeavy) {
+                return 14;
+            } else if (value == UnderlineValues.WavyHeavy) {
+                return 15;
+            } else if (value == UnderlineValues.DashLong) {
+                return 16;
+            } else if (value == UnderlineValues.WavyDouble) {
+                return 17;
+            } else if (value == UnderlineValues.DashLongHeavy) {
+                return 18;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support underline style '{value}'.");
+        }
+
+        private static int ReadFontSizeHalfPoints(FontSize fontSize) {
+            string? value = fontSize.Val?.Value;
+            if (string.IsNullOrWhiteSpace(value) || !int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int halfPoints)) {
+                throw new NotSupportedException("Native DOC saving supports font size only when it is stored as a numeric half-point value.");
+            }
+
+            return halfPoints;
+        }
+
+        private static string? ReadSupportedColorHex(Color color) {
+            string? value = color.Val?.Value;
+            if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)) {
+                return null;
+            }
+
+            string colorValue = value!;
+            string hex = colorValue.Trim().TrimStart('#').ToLowerInvariant();
+            if (hex.Length != 6 || hex.Any(character => !Uri.IsHexDigit(character))) {
+                throw new NotSupportedException("Native DOC saving supports text color only when it is stored as a 6-digit RGB hex value.");
+            }
+
+            return hex;
         }
 
         private static void AppendFormattedText(
@@ -257,7 +341,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static void WriteChpxFkp(byte[] stream, int pageOffset, IReadOnlyList<LegacyDocWritableSegment> segments) {
             if (segments.Count == 0 || segments.Count > byte.MaxValue) {
-                throw new NotSupportedException("Native DOC saving currently supports bold and italic formatting only when it fits in one character-format page.");
+                throw new NotSupportedException("Native DOC saving currently supports run formatting only when it fits in one character-format page.");
             }
 
             int rgbOffset = pageOffset + ((segments.Count + 1) * 4);
@@ -270,7 +354,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     byte[] chpx = CreateChpx(segment.Formatting);
                     chpxOffset = AlignToEven(chpxOffset);
                     if (chpxOffset + chpx.Length >= OleSectorSize - 1 || chpxOffset / 2 > byte.MaxValue) {
-                        throw new NotSupportedException("Native DOC saving currently supports bold and italic formatting only when it fits in one character-format page.");
+                        throw new NotSupportedException("Native DOC saving currently supports run formatting only when it fits in one character-format page.");
                     }
 
                     Buffer.BlockCopy(chpx, 0, stream, pageOffset + chpxOffset, chpx.Length);
@@ -285,23 +369,53 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static byte[] CreateChpx(LegacyDocWritableFormatting formatting) {
-            var grpprl = new List<byte>(6);
+            var grpprl = new List<byte>(18);
             if (formatting.Bold) {
-                grpprl.Add((byte)(SprmCFBold & 0xFF));
-                grpprl.Add((byte)(SprmCFBold >> 8));
-                grpprl.Add(1);
+                AddSingleByteSprm(grpprl, SprmCFBold, 1);
             }
 
             if (formatting.Italic) {
-                grpprl.Add((byte)(SprmCFItalic & 0xFF));
-                grpprl.Add((byte)(SprmCFItalic >> 8));
-                grpprl.Add(1);
+                AddSingleByteSprm(grpprl, SprmCFItalic, 1);
+            }
+
+            if (formatting.Underline != null) {
+                AddSingleByteSprm(grpprl, SprmCKul, formatting.Underline.Value);
+            }
+
+            if (formatting.FontSizeHalfPoints != null) {
+                AddUInt16Sprm(grpprl, SprmCHps, checked((ushort)formatting.FontSizeHalfPoints.Value));
+            }
+
+            if (formatting.ColorHex != null) {
+                AddColorRefSprm(grpprl, formatting.ColorHex);
             }
 
             var chpx = new byte[grpprl.Count + 1];
             chpx[0] = (byte)grpprl.Count;
             grpprl.CopyTo(chpx, 1);
             return chpx;
+        }
+
+        private static void AddSingleByteSprm(List<byte> grpprl, ushort sprm, byte operand) {
+            grpprl.Add((byte)(sprm & 0xFF));
+            grpprl.Add((byte)(sprm >> 8));
+            grpprl.Add(operand);
+        }
+
+        private static void AddUInt16Sprm(List<byte> grpprl, ushort sprm, ushort operand) {
+            grpprl.Add((byte)(sprm & 0xFF));
+            grpprl.Add((byte)(sprm >> 8));
+            grpprl.Add((byte)(operand & 0xFF));
+            grpprl.Add((byte)(operand >> 8));
+        }
+
+        private static void AddColorRefSprm(List<byte> grpprl, string colorHex) {
+            grpprl.Add((byte)(SprmCCv & 0xFF));
+            grpprl.Add((byte)(SprmCCv >> 8));
+            grpprl.Add(Convert.ToByte(colorHex.Substring(0, 2), 16));
+            grpprl.Add(Convert.ToByte(colorHex.Substring(2, 2), 16));
+            grpprl.Add(Convert.ToByte(colorHex.Substring(4, 2), 16));
+            grpprl.Add(0);
         }
 
         private static int AlignToSector(int value) {
@@ -384,21 +498,34 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableFormatting : IEquatable<LegacyDocWritableFormatting> {
-            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false);
+            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, null, null, null);
 
-            internal LegacyDocWritableFormatting(bool bold, bool italic) {
+            internal LegacyDocWritableFormatting(bool bold, bool italic, byte? underline, int? fontSizeHalfPoints, string? colorHex) {
                 Bold = bold;
                 Italic = italic;
+                Underline = underline;
+                FontSizeHalfPoints = fontSizeHalfPoints;
+                ColorHex = colorHex;
             }
 
             internal bool Bold { get; }
 
             internal bool Italic { get; }
 
-            internal bool HasFormatting => Bold || Italic;
+            internal byte? Underline { get; }
+
+            internal int? FontSizeHalfPoints { get; }
+
+            internal string? ColorHex { get; }
+
+            internal bool HasFormatting => Bold || Italic || Underline != null || FontSizeHalfPoints != null || ColorHex != null;
 
             public bool Equals(LegacyDocWritableFormatting other) {
-                return Bold == other.Bold && Italic == other.Italic;
+                return Bold == other.Bold
+                    && Italic == other.Italic
+                    && Underline == other.Underline
+                    && FontSizeHalfPoints == other.FontSizeHalfPoints
+                    && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase);
             }
 
             public override bool Equals(object? obj) {
@@ -409,6 +536,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 int hash = 17;
                 hash = (hash * 31) + Bold.GetHashCode();
                 hash = (hash * 31) + Italic.GetHashCode();
+                hash = (hash * 31) + Underline.GetHashCode();
+                hash = (hash * 31) + FontSizeHalfPoints.GetHashCode();
+                hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);
                 return hash;
             }
         }

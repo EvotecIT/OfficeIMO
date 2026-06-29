@@ -364,16 +364,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocUnderlineSizeAndColorRunsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph();
+                    paragraph.AddText("plain ");
+                    paragraph.AddText("under ").SetUnderline(UnderlineValues.Single);
+                    paragraph.AddText("sized ").SetFontSize(14);
+                    paragraph.AddText("color").SetColorHex("336699");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph[] runs = reloaded.Paragraphs.ToArray();
+                Assert.Equal(4, runs.Length);
+                Assert.Equal("plain ", runs[0].Text);
+                Assert.Null(runs[0].Underline);
+                Assert.Equal("under ", runs[1].Text);
+                Assert.Equal(UnderlineValues.Single, runs[1].Underline);
+                Assert.Equal("sized ", runs[2].Text);
+                Assert.Equal(14, runs[2].FontSize);
+                Assert.Equal("color", runs[3].Text);
+                Assert.Equal("336699", runs[3].ColorHex);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedRunFormattingBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Formatted").SetUnderline(UnderlineValues.Single);
+                document.AddParagraph("Formatted").SetFontFamily("Arial");
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("bold and italic", exception.Message);
+                Assert.Contains("font family", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
