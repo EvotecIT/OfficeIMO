@@ -53,6 +53,11 @@ Term
         """
 Term
 :   First paragraph
+---
+""",
+        """
+Term
+:   First paragraph
     - item
 """,
         """
@@ -192,6 +197,32 @@ Term
         Assert.Same(definition, definitionValue.AssociatedObject);
         Assert.Same(paragraph, definitionValue.Children[0].AssociatedObject);
         Assert.Same(heading, definitionValue.Children[1].AssociatedObject);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_MarkdigSetextContinuation_Stays_In_Definition_Body_Source() {
+        const string markdown = """
+Term
+:   First paragraph
+---
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var heading = Assert.IsType<HeadingBlock>(Assert.Single(definition.Blocks));
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var headingSyntax = Assert.Single(definitionValue.Children);
+
+        Assert.Equal(2, heading.Level);
+        Assert.Equal("First paragraph", heading.Text);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 3), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 3), headingSyntax.SourceSpan);
+        Assert.Same(definition, definitionValue.AssociatedObject);
+        Assert.Same(heading, headingSyntax.AssociatedObject);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
@@ -396,6 +427,24 @@ Term
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal(markdown, written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+    }
+
+    [Fact]
+    public void DefinitionList_SetextContinuation_Writes_MarkerSyntax_ForMarkdigReparse() {
+        const string markdown = """
+Term
+:   First paragraph
+---
+""";
+
+        var document = MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var written = NormalizeMarkdown(document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("Term\n:   \n    ## First paragraph", written);
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
     }
 
