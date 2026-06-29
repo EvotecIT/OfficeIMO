@@ -62,11 +62,19 @@ public sealed class DefinitionListDefinition : MarkdownObject {
 
         var sb = new StringBuilder();
         for (int i = 0; i < _blocks.Count; i++) {
-            sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(_blocks[i]));
+            var rendered = MarkdownBlockRenderDispatcher.RenderHtml(_blocks[i]);
+            sb.Append(rendered);
+            if (_blocks[i] is HtmlRawBlock && rendered.Length > 0 && !EndsWithLineBreak(rendered)) {
+                sb.Append('\n');
+            }
         }
 
         return sb.ToString();
     }
+
+    private static bool EndsWithLineBreak(string value) =>
+        !string.IsNullOrEmpty(value) &&
+        (value[value.Length - 1] == '\n' || value[value.Length - 1] == '\r');
 
     private static string RenderConsumedGenericAttributeWhitespace(ParagraphBlock paragraph) {
         if (paragraph == null ||
