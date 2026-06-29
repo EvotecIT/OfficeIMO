@@ -16,6 +16,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const uint CompressedTextFlag = 0x40000000;
         private const ushort SprmCFBold = 0x0835;
         private const ushort SprmCFItalic = 0x0836;
+        private const ushort SprmCFStrike = 0x0837;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCHps = 0x4A43;
         private const ushort SprmCRgFtc0 = 0x4A4F;
@@ -118,7 +119,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ThrowIfUnsupportedSectionProperties(sectionProperties);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs and simple tables with bold, italic, underline, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs and simple tables with bold, italic, strikethrough, underline, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");
                 }
             }
 
@@ -177,7 +178,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedRunText(text, runs, run);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs with bold, italic, underline, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs with bold, italic, strikethrough, underline, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 

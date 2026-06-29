@@ -4,6 +4,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string text,
             bool bold,
             bool italic,
+            bool strike,
             LegacyDocUnderlineKind? underline,
             int? fontSizeHalfPoints,
             string? colorHex,
@@ -11,6 +12,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Text = text;
             Bold = bold;
             Italic = italic;
+            Strike = strike;
             Underline = underline;
             FontSizeHalfPoints = fontSizeHalfPoints;
             ColorHex = colorHex;
@@ -22,6 +24,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal bool Bold { get; }
 
         internal bool Italic { get; }
+
+        internal bool Strike { get; }
 
         internal LegacyDocUnderlineKind? Underline { get; }
 

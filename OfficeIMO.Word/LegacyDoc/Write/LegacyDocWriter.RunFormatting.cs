@@ -48,6 +48,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             bool bold = false;
             bool italic = false;
+            bool strike = false;
             byte? underline = null;
             int? fontSizeHalfPoints = null;
             string? colorHex = null;
@@ -66,6 +67,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case ItalicComplexScript italicComplexScript:
                         italic = IsEnabled(italicComplexScript);
                         break;
+                    case Strike strikeProperty:
+                        strike = IsEnabled(strikeProperty);
+                        break;
                     case Underline underlineProperty:
                         underline = ReadSupportedUnderline(underlineProperty);
                         break;
@@ -79,11 +83,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         fontFamily = ReadSupportedRunFontFamily(runFonts);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, underline, font size, color, and font family run formatting. Unsupported run property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, underline, font size, color, and font family run formatting. Unsupported run property: {property.LocalName}.");
                 }
             }
 
-            return new LegacyDocWritableFormatting(bold, italic, underline, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocWritableFormatting(bold, italic, strike, underline, fontSizeHalfPoints, colorHex, fontFamily);
         }
 
         private static bool IsEnabled(OnOffType property) {
@@ -256,6 +260,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmCFItalic, 1);
             }
 
+            if (formatting.Strike) {
+                AddSingleByteSprm(grpprl, SprmCFStrike, 1);
+            }
+
             if (formatting.Underline != null) {
                 AddSingleByteSprm(grpprl, SprmCKul, formatting.Underline.Value);
             }
@@ -344,11 +352,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableFormatting : IEquatable<LegacyDocWritableFormatting> {
-            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, null, null, null, null);
+            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, null, null, null, null);
 
-            internal LegacyDocWritableFormatting(bool bold, bool italic, byte? underline, int? fontSizeHalfPoints, string? colorHex, string? fontFamily) {
+            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, byte? underline, int? fontSizeHalfPoints, string? colorHex, string? fontFamily) {
                 Bold = bold;
                 Italic = italic;
+                Strike = strike;
                 Underline = underline;
                 FontSizeHalfPoints = fontSizeHalfPoints;
                 ColorHex = colorHex;
@@ -359,6 +368,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool Italic { get; }
 
+            internal bool Strike { get; }
+
             internal byte? Underline { get; }
 
             internal int? FontSizeHalfPoints { get; }
@@ -367,11 +378,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal string? FontFamily { get; }
 
-            internal bool HasFormatting => Bold || Italic || Underline != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
+            internal bool HasFormatting => Bold || Italic || Strike || Underline != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
 
             public bool Equals(LegacyDocWritableFormatting other) {
                 return Bold == other.Bold
                     && Italic == other.Italic
+                    && Strike == other.Strike
                     && Underline == other.Underline
                     && FontSizeHalfPoints == other.FontSizeHalfPoints
                     && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase)
@@ -386,6 +398,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 int hash = 17;
                 hash = (hash * 31) + Bold.GetHashCode();
                 hash = (hash * 31) + Italic.GetHashCode();
+                hash = (hash * 31) + Strike.GetHashCode();
                 hash = (hash * 31) + Underline.GetHashCode();
                 hash = (hash * 31) + FontSizeHalfPoints.GetHashCode();
                 hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);

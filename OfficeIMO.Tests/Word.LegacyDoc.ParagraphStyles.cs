@@ -124,25 +124,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleItalicUnderlineFromStyleSheet() {
-            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleItalicUnderline();
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleItalicUnderlineStrikeFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleItalicUnderlineStrike();
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
 
             result.EnsureNoImportErrors();
             WordParagraph paragraph = Assert.Single(
                 result.Document.Paragraphs,
-                item => item.Text == "Styled Italic Underline");
+                item => item.Text == "Styled Italic Underline Strike");
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
-            Assert.Equal("LegacyDocCustomItalicUnderline", paragraph.StyleId);
+            Assert.Equal("LegacyDocCustomItalicUnderlineStrike", paragraph.StyleId);
 
             using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
             Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
-                .First(style => style.StyleId?.Value == "LegacyDocCustomItalicUnderline");
+                .First(style => style.StyleId?.Value == "LegacyDocCustomItalicUnderlineStrike");
             StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.GetFirstChild<StyleRunProperties>());
             Assert.NotNull(runProperties.GetFirstChild<Italic>());
             Assert.Equal(UnderlineValues.Single, runProperties.GetFirstChild<Underline>()?.Val?.Value);
+            Assert.NotNull(runProperties.GetFirstChild<Strike>());
         }
 
         [Fact]
@@ -191,6 +192,7 @@ namespace OfficeIMO.Tests {
             private const ushort SprmPDyaAfter = 0xA414;
             private const ushort SprmCFBold = 0x0835;
             private const ushort SprmCFItalic = 0x0836;
+            private const ushort SprmCFStrike = 0x0837;
             private const ushort SprmCKul = 0x2A3E;
             private const ushort SprmCIco = 0x2A42;
             private const ushort SprmCHps = 0x4A43;
@@ -240,15 +242,16 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateDocWithCustomParagraphStyleItalicUnderline() {
-                const string text = "Styled Italic Underline\rBody\r";
+            internal static byte[] CreateDocWithCustomParagraphStyleItalicUnderlineStrike() {
+                const string text = "Styled Italic Underline Strike\rBody\r";
                 byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
                     [CustomStyleIndex] = new LegacyDocStyleDefinition(
-                        "Custom Italic Underline",
+                        "Custom Italic Underline Strike",
                         basedOnStyleIndex: 0,
                         paragraphUpx: null,
                         characterUpx: CreateStyleCharacterUpx(
                             CreateCharacterSprm(SprmCFItalic, 1),
+                            CreateCharacterSprm(SprmCFStrike, 1),
                             CreateCharacterSprm(SprmCKul, 1)))
                 });
                 byte[] wordDocumentStream = CreateWordDocumentStream(

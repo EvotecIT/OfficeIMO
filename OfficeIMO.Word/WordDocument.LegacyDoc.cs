@@ -400,6 +400,11 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
+            if (characterFormat.Strike) {
+                properties.Append(new Strike());
+                hasProperties = true;
+            }
+
             if (characterFormat.Underline != null && TryMapUnderline(characterFormat.Underline.Value, out UnderlineValues underline)) {
                 properties.Append(new Underline { Val = underline });
                 hasProperties = true;
@@ -475,6 +480,10 @@ namespace OfficeIMO.Word {
 
             if (legacyRun.Italic) {
                 run.SetItalic();
+            }
+
+            if (legacyRun.Strike) {
+                run.SetStrike();
             }
 
             if (legacyRun.Underline != null && TryMapUnderline(legacyRun.Underline.Value, out UnderlineValues underline)) {

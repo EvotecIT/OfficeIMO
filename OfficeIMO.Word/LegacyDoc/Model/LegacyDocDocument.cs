@@ -377,6 +377,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     runText.ToString(),
                     currentFormat.Bold,
                     currentFormat.Italic,
+                    currentFormat.Strike,
                     currentFormat.Underline,
                     currentFormat.FontSizeHalfPoints,
                     currentFormat.ColorHex,

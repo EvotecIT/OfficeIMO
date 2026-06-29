@@ -3,6 +3,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const int OleSectorSize = 512;
         private const ushort SprmCFBold = 0x0835;
         private const ushort SprmCFItalic = 0x0836;
+        private const ushort SprmCFStrike = 0x0837;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCIco = 0x2A42;
         private const ushort SprmCHps = 0x4A43;
@@ -103,6 +104,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int end = offset + count;
             bool bold = false;
             bool italic = false;
+            bool strike = false;
             LegacyDocUnderlineKind? underline = null;
             int? fontSizeHalfPoints = null;
             string? colorHex = null;
@@ -110,7 +112,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
-                if (sprm == SprmCFBold || sprm == SprmCFItalic) {
+                if (sprm == SprmCFBold || sprm == SprmCFItalic || sprm == SprmCFStrike) {
                     if (offset + 3 > end) {
                         break;
                     }
@@ -118,8 +120,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     bool enabled = bytes[offset + 2] != 0;
                     if (sprm == SprmCFBold) {
                         bold = enabled;
-                    } else {
+                    } else if (sprm == SprmCFItalic) {
                         italic = enabled;
+                    } else {
+                        strike = enabled;
                     }
 
                     offset += 3;
@@ -187,7 +191,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 offset += 2 + operandLength;
             }
 
-            return new LegacyDocCharacterFormat(bold, italic, underline, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocCharacterFormat(bold, italic, strike, underline, fontSizeHalfPoints, colorHex, fontFamily);
         }
 
         private static LegacyDocUnderlineKind? MapUnderline(byte value) {
