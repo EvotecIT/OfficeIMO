@@ -195,6 +195,10 @@ namespace OfficeIMO.Word {
                     if (columnIndex < sourceRow.CellVerticalMerges.Count) {
                         ApplyLegacyDocTableCellVerticalMerge(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellVerticalMerges[columnIndex]);
                     }
+
+                    if (columnIndex < sourceRow.CellVerticalAlignments.Count) {
+                        ApplyLegacyDocTableCellVerticalAlignment(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellVerticalAlignments[columnIndex]);
+                    }
                 }
             }
         }
@@ -217,6 +221,17 @@ namespace OfficeIMO.Word {
                     break;
                 case LegacyDocTableCellVerticalMerge.Continue:
                     cell.VerticalMerge = MergedCellValues.Continue;
+                    break;
+            }
+        }
+
+        private static void ApplyLegacyDocTableCellVerticalAlignment(WordTableCell cell, LegacyDocTableCellVerticalAlignment verticalAlignment) {
+            switch (verticalAlignment) {
+                case LegacyDocTableCellVerticalAlignment.Center:
+                    cell.VerticalAlignment = TableVerticalAlignmentValues.Center;
+                    break;
+                case LegacyDocTableCellVerticalAlignment.Bottom:
+                    cell.VerticalAlignment = TableVerticalAlignmentValues.Bottom;
                     break;
             }
         }

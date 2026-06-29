@@ -23,6 +23,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? tableRowIsHeader = null,
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges = null,
+            IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null,
             bool hasMergedTableCells = false) {
             Alignment = alignment;
             StyleIndex = styleIndex;
@@ -54,6 +55,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             TableCellVerticalMerges = tableCellVerticalMerges == null || tableCellVerticalMerges.Count == 0
                 ? Array.Empty<LegacyDocTableCellVerticalMerge>()
                 : tableCellVerticalMerges.ToArray();
+            TableCellVerticalAlignments = tableCellVerticalAlignments == null || tableCellVerticalAlignments.Count == 0
+                ? Array.Empty<LegacyDocTableCellVerticalAlignment>()
+                : tableCellVerticalAlignments.ToArray();
             HasMergedTableCells = hasMergedTableCells;
         }
 
@@ -101,6 +105,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<LegacyDocTableCellVerticalMerge> TableCellVerticalMerges { get; }
 
+        internal IReadOnlyList<LegacyDocTableCellVerticalAlignment> TableCellVerticalAlignments { get; }
+
         internal bool HasMergedTableCells { get; }
 
         internal bool HasFormatting => Alignment != null
@@ -124,6 +130,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || TableRowIsHeader != null
             || TableCellHorizontalMerges.Count > 0
             || TableCellVerticalMerges.Count > 0
+            || TableCellVerticalAlignments.Count > 0
             || HasMergedTableCells;
 
         internal static LegacyDocParagraphFormat Default { get; } = new LegacyDocParagraphFormat(null);
@@ -151,6 +158,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && TableRowIsHeader == other.TableRowIsHeader
                 && TableCellHorizontalMergesEqual(TableCellHorizontalMerges, other.TableCellHorizontalMerges)
                 && TableCellVerticalMergesEqual(TableCellVerticalMerges, other.TableCellVerticalMerges)
+                && TableCellVerticalAlignmentsEqual(TableCellVerticalAlignments, other.TableCellVerticalAlignments)
                 && HasMergedTableCells == other.HasMergedTableCells;
         }
 
@@ -185,6 +193,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             foreach (LegacyDocTableCellVerticalMerge merge in TableCellVerticalMerges) {
                 hash = (hash * 31) + merge.GetHashCode();
+            }
+
+            foreach (LegacyDocTableCellVerticalAlignment alignment in TableCellVerticalAlignments) {
+                hash = (hash * 31) + alignment.GetHashCode();
             }
 
             foreach (LegacyDocTabStop tabStop in TabStops) {
@@ -227,6 +239,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private static bool TableCellVerticalMergesEqual(IReadOnlyList<LegacyDocTableCellVerticalMerge> first, IReadOnlyList<LegacyDocTableCellVerticalMerge> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (first[index] != second[index]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellVerticalAlignmentsEqual(IReadOnlyList<LegacyDocTableCellVerticalAlignment> first, IReadOnlyList<LegacyDocTableCellVerticalAlignment> second) {
             if (first.Count != second.Count) {
                 return false;
             }

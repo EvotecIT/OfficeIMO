@@ -314,6 +314,9 @@ just to reserve names.
   - [x] Project simple row-level repeat-header and no-split flags from DOC
     `sprmTTableHeader` and `sprmTFCantSplit*` row definitions into normal
     OfficeIMO table row properties.
+  - [x] Project simple table cell vertical alignment from DOC `sprmTDefTable`
+    / `TC80` row definitions into normal OfficeIMO table cell vertical
+    alignment properties, and preserve it through native DOC save/reload.
   - [ ] Add table formatting, merged cells, and nested tables as separate
     fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as

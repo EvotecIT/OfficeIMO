@@ -561,7 +561,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.TableRowCantSplit,
                         paragraphFormat.TableRowIsHeader,
                         paragraphFormat.TableCellHorizontalMerges,
-                        paragraphFormat.TableCellVerticalMerges));
+                        paragraphFormat.TableCellVerticalMerges,
+                        paragraphFormat.TableCellVerticalAlignments));
                     currentTableRow.Clear();
                 }
 
@@ -585,7 +586,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.TableRowCantSplit,
                         paragraphFormat.TableRowIsHeader,
                         paragraphFormat.TableCellHorizontalMerges,
-                        paragraphFormat.TableCellVerticalMerges));
+                        paragraphFormat.TableCellVerticalMerges,
+                        paragraphFormat.TableCellVerticalAlignments));
                     currentTableRow.Clear();
                 }
 

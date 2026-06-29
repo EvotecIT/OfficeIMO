@@ -26,6 +26,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const int Tc80Length = 20;
         private const ushort TcgrfHorizontalMergeMask = 0x0003;
         private const ushort TcgrfVerticalMergeMask = 0x0060;
+        private const ushort TcgrfVerticalAlignmentMask = 0x0180;
 
         internal static IReadOnlyList<LegacyDocParagraphFormatRange> ReadParagraphFormatting(
             byte[] wordDocumentStream,
@@ -154,6 +155,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<int>? tableCellWidthsTwips = null;
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges = null;
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges = null;
+            IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null;
             int? tableRowHeightTwips = null;
             bool tableRowHeightIsExact = false;
             bool? tableRowCantSplit = null;
@@ -318,6 +320,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         out tableCellWidthsTwips,
                         out tableCellHorizontalMerges,
                         out tableCellVerticalMerges,
+                        out tableCellVerticalAlignments,
                         out bool tableDefinitionHasUnsupportedMergedCells,
                         out int tableDefinitionOperandLength)) {
                         break;
@@ -358,6 +361,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableRowIsHeader,
                 tableCellHorizontalMerges,
                 tableCellVerticalMerges,
+                tableCellVerticalAlignments,
                 hasMergedTableCells);
         }
 
@@ -368,11 +372,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             out IReadOnlyList<int>? tableCellWidthsTwips,
             out IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges,
             out IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges,
+            out IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments,
             out bool hasUnsupportedMergedTableCells,
             out int operandLength) {
             tableCellWidthsTwips = null;
             tableCellHorizontalMerges = null;
             tableCellVerticalMerges = null;
+            tableCellVerticalAlignments = null;
             hasUnsupportedMergedTableCells = false;
             operandLength = 0;
             if (sprmOffset + 5 > end) {
@@ -392,6 +398,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableCellWidthsTwips = Array.Empty<int>();
                 tableCellHorizontalMerges = Array.Empty<LegacyDocTableCellHorizontalMerge>();
                 tableCellVerticalMerges = Array.Empty<LegacyDocTableCellVerticalMerge>();
+                tableCellVerticalAlignments = Array.Empty<LegacyDocTableCellVerticalAlignment>();
                 return true;
             }
 
@@ -404,6 +411,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var widths = new int[columnCount];
             var horizontalMerges = new LegacyDocTableCellHorizontalMerge[columnCount];
             var verticalMerges = new LegacyDocTableCellVerticalMerge[columnCount];
+            var verticalAlignments = new LegacyDocTableCellVerticalAlignment[columnCount];
             int previousEdge = ReadInt16(bytes, edgesOffset);
             for (int index = 0; index < columnCount; index++) {
                 int nextEdge = ReadInt16(bytes, edgesOffset + ((index + 1) * 2));
@@ -445,6 +453,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         hasUnsupportedMergedTableCells = true;
                         break;
                 }
+
+                switch (tcgrf & TcgrfVerticalAlignmentMask) {
+                    case 0:
+                        verticalAlignments[index] = LegacyDocTableCellVerticalAlignment.Top;
+                        break;
+                    case 0x0080:
+                        verticalAlignments[index] = LegacyDocTableCellVerticalAlignment.Center;
+                        break;
+                    case 0x0100:
+                        verticalAlignments[index] = LegacyDocTableCellVerticalAlignment.Bottom;
+                        break;
+                    default:
+                        verticalAlignments[index] = LegacyDocTableCellVerticalAlignment.Top;
+                        break;
+                }
             }
 
             tableCellWidthsTwips = widths.Where(width => width > 0).ToArray();
@@ -454,6 +477,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             tableCellVerticalMerges = verticalMerges.Any(merge => merge != LegacyDocTableCellVerticalMerge.None)
                 ? verticalMerges
                 : Array.Empty<LegacyDocTableCellVerticalMerge>();
+            tableCellVerticalAlignments = verticalAlignments.Any(alignment => alignment != LegacyDocTableCellVerticalAlignment.Top)
+                ? verticalAlignments
+                : Array.Empty<LegacyDocTableCellVerticalAlignment>();
             return true;
         }
 

@@ -144,6 +144,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTableCellVerticalAlignmentFromTableDefinition() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithTableCellVerticalAlignment();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            WordTableRow row = Assert.Single(table.Rows);
+            Assert.Equal(TableVerticalAlignmentValues.Center, row.Cells[0].VerticalAlignment);
+            Assert.Equal(TableVerticalAlignmentValues.Bottom, row.Cells[1].VerticalAlignment);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsInvalidMergedTableCellsFromTableDefinition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithInvalidMergedTableCellDefinition();
 
@@ -1847,6 +1861,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellVerticalAlignmentAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 3);
+                    table.Rows[0].Cells[0].AddParagraph("Top", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("Center", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].VerticalAlignment = TableVerticalAlignmentValues.Center;
+                    table.Rows[0].Cells[2].AddParagraph("Bottom", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[2].VerticalAlignment = TableVerticalAlignmentValues.Bottom;
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x80, 0x00),
+                    "Expected the native DOC table cell descriptor to contain center vertical alignment flags.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x00, 0x01),
+                    "Expected the native DOC table cell descriptor to contain bottom vertical alignment flags.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("Top", row.Cells[0].Paragraphs[0].Text);
+                Assert.Null(row.Cells[0].VerticalAlignment);
+                Assert.Equal("Center", row.Cells[1].Paragraphs[0].Text);
+                Assert.Equal(TableVerticalAlignmentValues.Center, row.Cells[1].VerticalAlignment);
+                Assert.Equal("Bottom", row.Cells[2].Paragraphs[0].Text);
+                Assert.Equal(TableVerticalAlignmentValues.Bottom, row.Cells[2].VerticalAlignment);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedMultiParagraphTableCellsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -2358,6 +2412,27 @@ namespace OfficeIMO.Tests {
                     papxFkpOffset,
                     new[] { 1440, 2880 },
                     new ushort[] { 0x0001, 0x0002 });
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithTableCellVerticalAlignment() {
+                const string text = "A1\aB1\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 1440 },
+                    new ushort[] { 0x0080, 0x0100 });
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();

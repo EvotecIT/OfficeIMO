@@ -24,6 +24,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 IReadOnlyList<int> cellWidthsTwips = ReadSupportedTableCellWidths(writableCells);
                 IReadOnlyList<LegacyDocTableCellHorizontalMerge> cellHorizontalMerges = ReadSupportedTableCellHorizontalMerges(writableCells);
                 IReadOnlyList<LegacyDocTableCellVerticalMerge> cellVerticalMerges = ReadSupportedTableCellVerticalMerges(writableCells);
+                IReadOnlyList<LegacyDocTableCellVerticalAlignment> cellVerticalAlignments = ReadSupportedTableCellVerticalAlignments(writableCells);
                 foreach (LegacyDocWritableTableCell writableCell in writableCells) {
                     int cellStart = text.Length;
                     LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, writableCell.SourceCell)
@@ -45,7 +46,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         tableRowCantSplit: rowFormatting.RowCantSplit,
                         tableRowIsHeader: rowFormatting.RowIsHeader,
                         tableCellHorizontalMerges: cellHorizontalMerges,
-                        tableCellVerticalMerges: cellVerticalMerges)));
+                        tableCellVerticalMerges: cellVerticalMerges,
+                        tableCellVerticalAlignments: cellVerticalAlignments)));
             }
 
             text.Append('\r');
@@ -248,6 +250,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 int gridSpan = ReadSupportedGridSpan(cellProperties);
                 LegacyDocTableCellHorizontalMerge horizontalMerge = ReadSupportedTableCellHorizontalMerge(cell);
                 LegacyDocTableCellVerticalMerge verticalMerge = ReadSupportedTableCellVerticalMerge(cell);
+                LegacyDocTableCellVerticalAlignment verticalAlignment = ReadSupportedTableCellVerticalAlignment(cellProperties);
                 if (gridSpan > 1 && horizontalMerge == LegacyDocTableCellHorizontalMerge.Continue) {
                     throw new NotSupportedException("Native DOC saving supports simple horizontal table cell merges only. A continued horizontal merge cannot also define gridSpan.");
                 }
@@ -259,7 +262,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         : spanIndex == 0
                             ? LegacyDocTableCellHorizontalMerge.Restart
                             : LegacyDocTableCellHorizontalMerge.Continue;
-                    writableCells.Add(new LegacyDocWritableTableCell(spanIndex == 0 ? cell : null, width, merge, verticalMerge));
+                    writableCells.Add(new LegacyDocWritableTableCell(spanIndex == 0 ? cell : null, width, merge, verticalMerge, verticalAlignment));
                 }
 
                 logicalColumnIndex += gridSpan;
@@ -303,6 +306,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return hasMerge ? merges : Array.Empty<LegacyDocTableCellVerticalMerge>();
         }
 
+        private static IReadOnlyList<LegacyDocTableCellVerticalAlignment> ReadSupportedTableCellVerticalAlignments(IReadOnlyList<LegacyDocWritableTableCell> cells) {
+            var alignments = new LegacyDocTableCellVerticalAlignment[cells.Count];
+            bool hasNonDefaultAlignment = false;
+            for (int index = 0; index < cells.Count; index++) {
+                alignments[index] = cells[index].VerticalAlignment;
+                if (alignments[index] != LegacyDocTableCellVerticalAlignment.Top) {
+                    hasNonDefaultAlignment = true;
+                }
+            }
+
+            return hasNonDefaultAlignment ? alignments : Array.Empty<LegacyDocTableCellVerticalAlignment>();
+        }
+
         private static LegacyDocTableCellHorizontalMerge ReadSupportedTableCellHorizontalMerge(TableCell cell) {
             HorizontalMerge? horizontalMerge = cell.TableCellProperties?.GetFirstChild<HorizontalMerge>();
             if (horizontalMerge == null) {
@@ -337,6 +353,28 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             throw new NotSupportedException($"Native DOC saving does not support table cell vertical merge value '{value}'.");
+        }
+
+        private static LegacyDocTableCellVerticalAlignment ReadSupportedTableCellVerticalAlignment(TableCellProperties? cellProperties) {
+            TableCellVerticalAlignment? verticalAlignment = cellProperties?.GetFirstChild<TableCellVerticalAlignment>();
+            if (verticalAlignment == null) {
+                return LegacyDocTableCellVerticalAlignment.Top;
+            }
+
+            TableVerticalAlignmentValues? value = verticalAlignment.Val?.Value;
+            if (value == null || value == TableVerticalAlignmentValues.Top) {
+                return LegacyDocTableCellVerticalAlignment.Top;
+            }
+
+            if (value == TableVerticalAlignmentValues.Center) {
+                return LegacyDocTableCellVerticalAlignment.Center;
+            }
+
+            if (value == TableVerticalAlignmentValues.Bottom) {
+                return LegacyDocTableCellVerticalAlignment.Bottom;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support table cell vertical alignment value '{value}'.");
         }
 
         private static int GetGridColumnWidth(IReadOnlyList<int> gridColumnWidthsTwips, int columnIndex) {
@@ -455,6 +493,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case VerticalMerge:
                         break;
+                    case TableCellVerticalAlignment:
+                        ReadSupportedTableCellVerticalAlignment(cellProperties);
+                        break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table cell property: {property.LocalName}.");
                 }
@@ -499,11 +540,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableTableCell {
-            internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge) {
+            internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment) {
                 SourceCell = sourceCell;
                 WidthTwips = widthTwips;
                 HorizontalMerge = horizontalMerge;
                 VerticalMerge = verticalMerge;
+                VerticalAlignment = verticalAlignment;
             }
 
             internal TableCell? SourceCell { get; }
@@ -513,6 +555,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal LegacyDocTableCellHorizontalMerge HorizontalMerge { get; }
 
             internal LegacyDocTableCellVerticalMerge VerticalMerge { get; }
+
+            internal LegacyDocTableCellVerticalAlignment VerticalAlignment { get; }
         }
     }
 }
