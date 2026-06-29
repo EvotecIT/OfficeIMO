@@ -17,10 +17,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             string bodyText = BuildBodyText(document);
             byte[] wordDocumentStream = CreateWordDocumentStream(bodyText);
             byte[] tableStream = CreateTableStream(bodyText.Length);
-            var streams = new List<OfficeCompoundStream> {
+            IReadOnlyList<OfficeCompoundStream> propertyStreams = LegacyDocPropertySetWriter.CreateDocumentPropertyStreams(document);
+            var streams = new List<OfficeCompoundStream>(propertyStreams.Count + 2) {
                 new OfficeCompoundStream("WordDocument", wordDocumentStream),
                 new OfficeCompoundStream("1Table", tableStream)
             };
+            streams.AddRange(propertyStreams);
 
             return OfficeCompoundFileWriter.Write(streams);
         }

@@ -205,8 +205,9 @@ just to reserve names.
   `OfficeIMO.Tests` build, and the full focused `LegacyXls` test sweep.
 - [x] Promote the OLE property-set reader into the shared owner and consume it
   from XLS and DOC import paths.
-- [ ] Fold the existing encryption private compound helper and OLE property-set
-  writer into the shared owner when native DOC write needs that surface.
+- [x] Fold the reusable OLE property-set writer into the shared owner when
+  native DOC write needs that surface; encryption's private compound helper
+  remains separate until encryption needs the shared container surface.
 - [x] Add `WordDocument` load routing for `.doc` signature/extension detection
   before `WordprocessingDocument.Open(...)`, with `.docx` and encrypted OOXML
   staying on the existing paths.
@@ -237,7 +238,7 @@ just to reserve names.
   target file bytes are committed.
 - [x] Implement native writer first slice for simple documents and prove
   OfficeIMO can reload written `.doc` output through the legacy reader.
-- [ ] Expand native writer slices for formatting, tables, properties, and simple
+- [ ] Expand native writer slices for formatting, tables, and simple
   sections only after preflight blocks all unsupported content.
 - [ ] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.

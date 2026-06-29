@@ -1,6 +1,7 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
+using DocumentFormat.OpenXml.ExtendedProperties;
 using OpenMcdf;
 using Xunit;
 using Version = OpenMcdf.Version;
@@ -149,6 +150,58 @@ namespace OfficeIMO.Tests {
                     .Where(text => !string.IsNullOrEmpty(text))
                     .ToArray();
                 Assert.Equal(new[] { "Zażółć gęślą jaźń", "Second plain paragraph" }, paragraphs);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocPropertiesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            DateTime created = new DateTime(2026, 6, 29, 10, 0, 0, DateTimeKind.Utc);
+            DateTime modified = new DateTime(2026, 6, 29, 10, 30, 0, DateTimeKind.Utc);
+            DateTime reviewedAt = new DateTime(2026, 6, 29, 11, 0, 0, DateTimeKind.Utc);
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Metadata native DOC");
+                    document.BuiltinDocumentProperties.Title = "Native DOC Metadata Title";
+                    document.BuiltinDocumentProperties.Subject = "Native DOC metadata subject";
+                    document.BuiltinDocumentProperties.Creator = "OfficeIMO Native DOC";
+                    document.BuiltinDocumentProperties.Keywords = "doc, metadata, native";
+                    document.BuiltinDocumentProperties.Description = "Native DOC metadata comments";
+                    document.BuiltinDocumentProperties.Category = "Native Category";
+                    document.BuiltinDocumentProperties.Created = created;
+                    document.BuiltinDocumentProperties.Modified = modified;
+                    document.ApplicationProperties.Company = "EvotecIT";
+                    document.ApplicationProperties.Manager = new Manager { Text = "Native Manager" };
+                    document.CustomDocumentProperties["ReleaseStatus"] = new WordCustomProperty("Ready");
+                    document.CustomDocumentProperties["Reviewed"] = new WordCustomProperty(true);
+                    document.CustomDocumentProperties["Ticket"] = new WordCustomProperty(2004);
+                    document.CustomDocumentProperties["Score"] = new WordCustomProperty(98.5d);
+                    document.CustomDocumentProperties["ReviewedAt"] = new WordCustomProperty(reviewedAt);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Native DOC Metadata Title", reloaded.BuiltinDocumentProperties.Title);
+                Assert.Equal("Native DOC metadata subject", reloaded.BuiltinDocumentProperties.Subject);
+                Assert.Equal("OfficeIMO Native DOC", reloaded.BuiltinDocumentProperties.Creator);
+                Assert.Equal("doc, metadata, native", reloaded.BuiltinDocumentProperties.Keywords);
+                Assert.Equal("Native DOC metadata comments", reloaded.BuiltinDocumentProperties.Description);
+                Assert.Equal("Native Category", reloaded.BuiltinDocumentProperties.Category);
+                AssertSameInstant(created, reloaded.BuiltinDocumentProperties.Created);
+                AssertSameInstant(modified, reloaded.BuiltinDocumentProperties.Modified);
+                Assert.Equal("EvotecIT", reloaded.ApplicationProperties.Company);
+                Assert.Equal("Native Manager", reloaded.ApplicationProperties.Manager?.Text);
+                Assert.Equal("Ready", reloaded.CustomDocumentProperties["ReleaseStatus"].Text);
+                Assert.True(reloaded.CustomDocumentProperties["Reviewed"].Bool);
+                Assert.Equal(2004, reloaded.CustomDocumentProperties["Ticket"].NumberInteger);
+                Assert.Equal(98.5d, reloaded.CustomDocumentProperties["Score"].NumberDouble);
+                AssertSameInstant(reviewedAt, reloaded.CustomDocumentProperties["ReviewedAt"].Date);
             } finally {
                 DeleteIfExists(docPath);
             }
