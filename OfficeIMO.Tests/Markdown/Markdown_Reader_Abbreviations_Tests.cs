@@ -143,19 +143,49 @@ public class Markdown_Reader_Abbreviations_Tests {
         var first = list.Items[0];
         var second = list.Items[1];
         var abbreviation = Assert.IsType<AbbreviationInline>(Assert.Single(second.Content.Nodes));
-        var nativeList = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(MarkdownNativeDocument.Parse(markdown, options).Blocks));
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeList = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(native.Blocks));
         var nativeAbbreviation = Assert.Single(nativeList.Items[1].InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Abbreviation);
         var nativeTitle = Assert.Single(nativeAbbreviation.Metadata, metadata => metadata.Name == "title");
 
         Assert.Empty(first.Content.Nodes);
         Assert.Equal("HTML", definition.Label);
         Assert.Equal("Hyper Text", definition.Title);
+        Assert.True(definition.IsListItemDefinition);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), definition.LabelSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 21), definition.TitleSourceSpan);
         Assert.Equal("HTML", abbreviation.Text);
         Assert.Equal("Hyper Text", abbreviation.Title);
         Assert.Contains("<li></li><li><abbr title=\"Hyper Text\">HTML</abbr></li>", html, StringComparison.Ordinal);
         Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 21), nativeTitle.SourceSpan);
+        Assert.Equal("- *[HTML]: Hypertext\n- HTML", native.CreateReplaceEdit(nativeTitle, "Hypertext").Apply(native.SourceMarkdown));
+        Assert.Equal(markdown, result.Document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
+
+        var listSyntax = Assert.IsType<MarkdownSyntaxNode>(Assert.Single(result.FinalSyntaxTree.Children));
+        Assert.Equal(MarkdownSyntaxKind.UnorderedList, listSyntax.Kind);
+        var firstItemSyntax = listSyntax.Children[0];
+        var abbreviationDefinitionSyntax = Assert.Single(
+            firstItemSyntax.Children,
+            child => child.Kind == MarkdownSyntaxKind.AbbreviationDefinition);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 21), abbreviationDefinitionSyntax.SourceSpan);
+        Assert.Collection(abbreviationDefinitionSyntax.Children,
+            opening => {
+                Assert.Equal(MarkdownSyntaxKind.AbbreviationOpeningMarker, opening.Kind);
+                Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 4), opening.SourceSpan);
+            },
+            label => {
+                Assert.Equal(MarkdownSyntaxKind.AbbreviationLabel, label.Kind);
+                Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), label.SourceSpan);
+            },
+            separator => {
+                Assert.Equal(MarkdownSyntaxKind.AbbreviationSeparatorMarker, separator.Kind);
+                Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 10), separator.SourceSpan);
+            },
+            title => {
+                Assert.Equal(MarkdownSyntaxKind.AbbreviationTitle, title.Kind);
+                Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 21), title.SourceSpan);
+            });
+        Assert.Equal(MarkdownSyntaxKind.AbbreviationLabel, result.FindDeepestFinalNodeAtPosition(1, 5)?.Kind);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);

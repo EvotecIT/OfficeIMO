@@ -37,7 +37,7 @@ public static partial class MarkdownReader {
                 absoluteLineOffset: state.SourceLineOffset,
                 initialLineIndex: i,
                 initialStartColumn: firstStartColumn);
-            var first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state, firstSourceLines);
+            var first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state, i, firstSourceLines);
             first.Level = 0;
             SetListItemMarkerSourceSpans(first, lines[i], i, isTask, state);
             if (continuationIndentsByLevel != null) {
@@ -98,7 +98,7 @@ public static partial class MarkdownReader {
                     absoluteLineOffset: state.SourceLineOffset,
                     initialLineIndex: itemStart,
                     initialStartColumn: startColumn);
-                var li = CreateListItemFromLeadLines(itemLines, isTask2, done2, options, state, itemSourceLines);
+                var li = CreateListItemFromLeadLines(itemLines, isTask2, done2, options, state, itemStart, itemSourceLines);
                 li.Level = continuationIndentsByLevel != null
                     ? GetRelativeListItemLevel(continuationIndentsByLevel, lines[itemStart])
                     : lvlAbs - level0Abs;

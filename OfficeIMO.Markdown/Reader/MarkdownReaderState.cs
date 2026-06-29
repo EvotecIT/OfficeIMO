@@ -82,6 +82,9 @@ public sealed class MarkdownAbbreviationDefinition {
     /// <summary>Source span for the title token, when available.</summary>
     public MarkdownSourceSpan? TitleSourceSpan { get; }
 
+    /// <summary>Whether the definition was authored as leading content inside a list item.</summary>
+    public bool IsListItemDefinition { get; }
+
     /// <summary>Creates an abbreviation definition descriptor.</summary>
     public MarkdownAbbreviationDefinition(
         string label,
@@ -90,7 +93,8 @@ public sealed class MarkdownAbbreviationDefinition {
         MarkdownSourceSpan? labelSourceSpan = null,
         MarkdownSourceSpan? titleSourceSpan = null,
         MarkdownSourceSpan? openingMarkerSourceSpan = null,
-        MarkdownSourceSpan? separatorMarkerSourceSpan = null) {
+        MarkdownSourceSpan? separatorMarkerSourceSpan = null,
+        bool isListItemDefinition = false) {
         Label = label ?? string.Empty;
         Title = title ?? string.Empty;
         SourceSpan = sourceSpan;
@@ -98,6 +102,7 @@ public sealed class MarkdownAbbreviationDefinition {
         OpeningMarkerSourceSpan = openingMarkerSourceSpan;
         SeparatorMarkerSourceSpan = separatorMarkerSourceSpan;
         TitleSourceSpan = titleSourceSpan;
+        IsListItemDefinition = isListItemDefinition;
     }
 }
 

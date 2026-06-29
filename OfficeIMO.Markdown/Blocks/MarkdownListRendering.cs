@@ -18,7 +18,7 @@ internal static class MarkdownListRendering {
             string firstPrefix = baseIndent + marker;
             string contPrefix = baseIndent + new string(' ', marker.Length);
 
-            AppendItemMarkdown(sb, item.RenderMarkdown(), baseIndent, firstPrefix, contPrefix);
+            AppendItemMarkdown(sb, RenderItemMarkdown(item), baseIndent, firstPrefix, contPrefix);
             AppendChildrenMarkdown(sb, item, baseIndent, contPrefix);
         }
 
@@ -117,6 +117,37 @@ internal static class MarkdownListRendering {
                 sb.Append(contPrefix).AppendLine(line);
             }
         }
+    }
+
+    private static string RenderItemMarkdown(ListItem item) {
+        if (item == null) {
+            return string.Empty;
+        }
+
+        var content = item.RenderMarkdown();
+        if (item.SyntaxChildren.Count == 0) {
+            return content;
+        }
+
+        var definitions = new List<string>();
+        for (int i = 0; i < item.SyntaxChildren.Count; i++) {
+            var syntaxChild = item.SyntaxChildren[i];
+            if (syntaxChild.Kind != MarkdownSyntaxKind.AbbreviationDefinition
+                || string.IsNullOrWhiteSpace(syntaxChild.Literal)) {
+                continue;
+            }
+
+            definitions.Add(syntaxChild.Literal!.TrimEnd('\r', '\n'));
+        }
+
+        if (definitions.Count == 0) {
+            return content;
+        }
+
+        var prefix = string.Join("\n", definitions);
+        return string.IsNullOrEmpty(content)
+            ? prefix
+            : prefix + "\n" + content;
     }
 
     private static void AppendChildrenMarkdown(System.Text.StringBuilder sb, ListItem item, string baseIndent, string contPrefix) {

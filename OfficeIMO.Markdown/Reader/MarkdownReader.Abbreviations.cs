@@ -73,6 +73,7 @@ public static partial class MarkdownReader {
                 continue;
             }
 
+            var isListItemDefinition = false;
             if (!TryParseAbbreviationDefinition(
                     line,
                     idx,
@@ -82,8 +83,8 @@ public static partial class MarkdownReader {
                     out var labelSpan,
                     out var titleSpan,
                     out var openingMarkerSpan,
-                    out var separatorMarkerSpan)
-                && !TryParseListItemAbbreviationDefinition(
+                    out var separatorMarkerSpan)) {
+                if (!TryParseListItemAbbreviationDefinition(
                     line,
                     idx,
                     state,
@@ -93,7 +94,10 @@ public static partial class MarkdownReader {
                     out titleSpan,
                     out openingMarkerSpan,
                     out separatorMarkerSpan)) {
-                continue;
+                    continue;
+                }
+
+                isListItemDefinition = true;
             }
 
             var sourceSpan = CreateLineSpan(state, state.SourceLineOffset + idx + 1, state.SourceLineOffset + idx + 1);
@@ -104,7 +108,8 @@ public static partial class MarkdownReader {
                 labelSpan,
                 titleSpan,
                 openingMarkerSpan,
-                separatorMarkerSpan);
+                separatorMarkerSpan,
+                isListItemDefinition);
         }
     }
 

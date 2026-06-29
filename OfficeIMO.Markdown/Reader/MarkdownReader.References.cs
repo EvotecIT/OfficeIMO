@@ -171,16 +171,27 @@ public static partial class MarkdownReader {
             return false;
         }
 
+        return TryBuildAbbreviationDefinitionSyntaxNode(lines[index], index, 0, state, out node);
+    }
+
+    private static bool TryBuildAbbreviationDefinitionSyntaxNode(
+        string line,
+        int lineIndex,
+        int columnOffset,
+        MarkdownReaderState state,
+        out MarkdownSyntaxNode node) {
+        node = null!;
         if (!TryParseAbbreviationDefinition(
-            lines[index],
-            index,
+            line,
+            lineIndex,
             state,
             out var label,
             out var title,
             out var labelSpan,
             out var titleSpan,
             out var openingMarkerSpan,
-            out var separatorMarkerSpan)) {
+            out var separatorMarkerSpan,
+            columnOffset)) {
             return false;
         }
 
@@ -193,11 +204,17 @@ public static partial class MarkdownReader {
             children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.AbbreviationLabel, labelSpan, label));
         }
 
+        var absoluteLine = state.SourceLineOffset + lineIndex + 1;
+        var trimmedLength = (line ?? string.Empty).TrimEnd().Length;
+        var sourceSpan = trimmedLength > 0
+            ? CreateSpan(state, absoluteLine, columnOffset + 1, absoluteLine, columnOffset + trimmedLength)
+            : CreateLineSpan(state, absoluteLine, absoluteLine);
+
         children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.AbbreviationTitle, titleSpan, title));
         node = new MarkdownSyntaxNode(
             MarkdownSyntaxKind.AbbreviationDefinition,
-            CreateLineSpan(state, state.SourceLineOffset + index + 1, state.SourceLineOffset + index + 1),
-            lines[index],
+            sourceSpan,
+            line,
             children);
         return true;
     }

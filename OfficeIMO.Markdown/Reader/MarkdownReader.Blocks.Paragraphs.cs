@@ -160,7 +160,7 @@ public static partial class MarkdownReader {
 
     private static void AddListItemLeadSyntaxNodes(ListItem item, List<string> lines, int lineOffset, MarkdownReaderOptions options, MarkdownReaderState? state, List<MarkdownSourceLineSlice>? sourceLines = null) {
         if (item == null || lines == null || lines.Count == 0) return;
-        if (item.SyntaxChildren.Count > 0) return;
+        if (HasNonSyntaxOnlyListItemLeadSyntaxChildren(item.SyntaxChildren)) return;
         int absoluteLineOffset = (state?.SourceLineOffset ?? 0) + lineOffset;
 
         if (TryParseListItemLeadBlockSyntaxNodes(lines, lineOffset, options, state, sourceLines, out var leadBlockSyntax)) {
@@ -394,14 +394,24 @@ public static partial class MarkdownReader {
         return slices;
     }
 
-    private static ListItem CreateListItemFromLeadLines(List<string> lines, bool isTask, bool done, MarkdownReaderOptions options, MarkdownReaderState? state, List<MarkdownSourceLineSlice>? sourceLines = null) {
-        RemoveLeadingListItemAbbreviationDefinitions(lines, options, sourceLines);
+    private static ListItem CreateListItemFromLeadLines(List<string> lines, bool isTask, bool done, MarkdownReaderOptions options, MarkdownReaderState? state, int lineOffset, List<MarkdownSourceLineSlice>? sourceLines = null) {
+        var leadingAbbreviationSyntax = RemoveLeadingListItemAbbreviationDefinitions(lines, options, state, lineOffset, sourceLines);
+
+        ListItem AttachLeadingAbbreviationSyntax(ListItem item) {
+            if (leadingAbbreviationSyntax.Count == 0) {
+                return item;
+            }
+
+            item.SyntaxChildren.InsertRange(0, leadingAbbreviationSyntax);
+            return item;
+        }
+
         if (lines.Count == 0 || lines.TrueForAll(string.IsNullOrWhiteSpace)) {
-            return isTask ? ListItem.TaskInlines(new InlineSequence(), done) : new ListItem(new InlineSequence());
+            return AttachLeadingAbbreviationSyntax(isTask ? ListItem.TaskInlines(new InlineSequence(), done) : new ListItem(new InlineSequence()));
         }
 
         if (TryCreateListItemFromLeadBlocks(lines, isTask, done, options, state, sourceLines, out var blockLeadItem)) {
-            return blockLeadItem;
+            return AttachLeadingAbbreviationSyntax(blockLeadItem);
         }
 
         if (TryParseListItemLeadSetextBlocks(lines, options, state, out var leadBlocks)) {
@@ -409,7 +419,7 @@ public static partial class MarkdownReader {
             for (int i = 0; i < leadBlocks.Count; i++) {
                 headingItem.Children.Add(leadBlocks[i]);
             }
-            return headingItem;
+            return AttachLeadingAbbreviationSyntax(headingItem);
         }
 
         int firstBlank = lines.FindIndex(string.IsNullOrWhiteSpace);
@@ -421,7 +431,7 @@ public static partial class MarkdownReader {
             for (int i = 1; i < paragraphs.Count; i++) {
                 item.AdditionalParagraphs.Add(paragraphs[i]);
             }
-            return item;
+            return AttachLeadingAbbreviationSyntax(item);
         }
 
         var firstParagraph = sourceLines != null && sourceLines.Count >= firstBlank
@@ -429,10 +439,10 @@ public static partial class MarkdownReader {
             : ParseParagraphsFromLines(lines.GetRange(0, firstBlank), options, state)[0];
         var mixedItem = isTask ? ListItem.TaskInlines(firstParagraph, done) : new ListItem(firstParagraph);
 
-        if (firstBlank + 1 >= lines.Count) return mixedItem;
+        if (firstBlank + 1 >= lines.Count) return AttachLeadingAbbreviationSyntax(mixedItem);
 
         var trailingLines = lines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1);
-        if (trailingLines.TrueForAll(string.IsNullOrWhiteSpace)) return mixedItem;
+        if (trailingLines.TrueForAll(string.IsNullOrWhiteSpace)) return AttachLeadingAbbreviationSyntax(mixedItem);
 
         if (sourceLines != null && sourceLines.Count > firstBlank + 1) {
             var trailingSourceLines = sourceLines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1);
@@ -444,50 +454,106 @@ public static partial class MarkdownReader {
                     for (int i = 0; i < trailingParagraphs.Count; i++) {
                         mixedItem.AdditionalParagraphs.Add(trailingParagraphs[i]);
                     }
-                    return mixedItem;
+                    return AttachLeadingAbbreviationSyntax(mixedItem);
                 }
 
                 for (int i = 0; i < trailingBlocksFromSource.Count; i++) {
                     mixedItem.Children.Add(trailingBlocksFromSource[i]);
                 }
                 mixedItem.ForceLoose = true;
-                return mixedItem;
+                return AttachLeadingAbbreviationSyntax(mixedItem);
             }
         }
 
         var trailingBlocks = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState());
-        if (mixedItem.TryAbsorbTrailingParagraphBlocks(trailingBlocks)) return mixedItem;
+        if (mixedItem.TryAbsorbTrailingParagraphBlocks(trailingBlocks)) return AttachLeadingAbbreviationSyntax(mixedItem);
 
         for (int i = 0; i < trailingBlocks.Count; i++) {
             mixedItem.Children.Add(trailingBlocks[i]);
         }
         mixedItem.ForceLoose = true;
-        return mixedItem;
+        return AttachLeadingAbbreviationSyntax(mixedItem);
     }
 
-    private static void RemoveLeadingListItemAbbreviationDefinitions(
+    private static List<MarkdownSyntaxNode> RemoveLeadingListItemAbbreviationDefinitions(
         List<string> lines,
         MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        int lineOffset,
         List<MarkdownSourceLineSlice>? sourceLines) {
 
+        var syntaxNodes = new List<MarkdownSyntaxNode>();
+
         if (options?.Abbreviations != true || lines == null || lines.Count == 0) {
-            return;
+            return syntaxNodes;
         }
 
         int removeCount = 0;
         while (removeCount < lines.Count && IsAbbreviationDefinitionLine(lines[removeCount])) {
+            if (TryBuildListItemAbbreviationDefinitionSyntaxNode(
+                    lines[removeCount],
+                    removeCount,
+                    lineOffset,
+                    state,
+                    sourceLines,
+                    out var syntaxNode)) {
+                syntaxNodes.Add(syntaxNode);
+            }
+
             removeCount++;
         }
 
         if (removeCount == 0) {
-            return;
+            return syntaxNodes;
         }
 
         lines.RemoveRange(0, removeCount);
         if (sourceLines != null && sourceLines.Count >= removeCount) {
             sourceLines.RemoveRange(0, removeCount);
         }
+
+        return syntaxNodes;
     }
+
+    private static bool TryBuildListItemAbbreviationDefinitionSyntaxNode(
+        string line,
+        int relativeLineIndex,
+        int lineOffset,
+        MarkdownReaderState? state,
+        List<MarkdownSourceLineSlice>? sourceLines,
+        out MarkdownSyntaxNode node) {
+        node = null!;
+        var effectiveState = state ?? new MarkdownReaderState();
+        var sourceLine = sourceLines != null && relativeLineIndex >= 0 && relativeLineIndex < sourceLines.Count
+            ? sourceLines[relativeLineIndex]
+            : new MarkdownSourceLineSlice(line, (state?.SourceLineOffset ?? 0) + lineOffset + relativeLineIndex + 1, 1);
+        var localLineIndex = sourceLine.AbsoluteLine - effectiveState.SourceLineOffset - 1;
+        return TryBuildAbbreviationDefinitionSyntaxNode(
+            sourceLine.Text,
+            localLineIndex,
+            sourceLine.StartColumn - 1,
+            effectiveState,
+            out node);
+    }
+
+    private static bool HasNonSyntaxOnlyListItemLeadSyntaxChildren(List<MarkdownSyntaxNode> syntaxChildren) {
+        if (syntaxChildren == null || syntaxChildren.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < syntaxChildren.Count; i++) {
+            if (!IsListItemSyntaxOnlyDefinition(syntaxChildren[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsListItemSyntaxOnlyDefinition(MarkdownSyntaxNode node) =>
+        node != null
+        && (node.Kind == MarkdownSyntaxKind.ReferenceLinkDefinition
+            || node.Kind == MarkdownSyntaxKind.AbbreviationDefinition);
 
     private static bool TryCreateListItemFromLeadBlocks(
         List<string> lines,

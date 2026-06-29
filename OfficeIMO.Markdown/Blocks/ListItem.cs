@@ -290,7 +290,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
 
     private List<MarkdownSyntaxNode> BuildCanonicalSyntaxChildrenPreservingSyntaxOnlyNodes(IReadOnlyList<IMarkdownBlock> blockChildren) {
         var canonicalChildren = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, blockChildren).ToList();
-        if (canonicalChildren.Count == 0 || !HasSyntaxOnlyReferenceDefinitionChildren()) {
+        if (!HasSyntaxOnlyDefinitionChildren()) {
             return canonicalChildren;
         }
 
@@ -298,7 +298,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         var children = new List<MarkdownSyntaxNode>(canonicalChildren.Count + SyntaxChildren.Count);
         for (int i = 0; i < SyntaxChildren.Count; i++) {
             var syntaxChild = SyntaxChildren[i];
-            if (syntaxChild.Kind == MarkdownSyntaxKind.ReferenceLinkDefinition) {
+            if (IsSyntaxOnlyDefinitionChild(syntaxChild)) {
                 children.Add(MarkdownBlockSyntaxBuilder.CloneSyntaxNode(syntaxChild));
                 continue;
             }
@@ -319,15 +319,20 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         return children;
     }
 
-    private bool HasSyntaxOnlyReferenceDefinitionChildren() {
+    private bool HasSyntaxOnlyDefinitionChildren() {
         for (int i = 0; i < SyntaxChildren.Count; i++) {
-            if (SyntaxChildren[i].Kind == MarkdownSyntaxKind.ReferenceLinkDefinition) {
+            if (IsSyntaxOnlyDefinitionChild(SyntaxChildren[i])) {
                 return true;
             }
         }
 
         return false;
     }
+
+    private static bool IsSyntaxOnlyDefinitionChild(MarkdownSyntaxNode node) =>
+        node != null
+        && (node.Kind == MarkdownSyntaxKind.ReferenceLinkDefinition
+            || node.Kind == MarkdownSyntaxKind.AbbreviationDefinition);
 
     private static int FindCanonicalChildForCachedSyntax(
         IReadOnlyList<MarkdownSyntaxNode> canonicalChildren,
