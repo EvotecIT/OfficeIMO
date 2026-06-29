@@ -67,6 +67,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTableCellParagraphFormatting() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithFormattedTableCellParagraph();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            WordParagraph firstCellParagraph = table.Rows[0].Cells[0].Paragraphs[0];
+            WordParagraph secondCellParagraph = table.Rows[0].Cells[1].Paragraphs[0];
+            Assert.Equal("A1", firstCellParagraph.Text);
+            Assert.Equal(JustificationValues.Center, firstCellParagraph.ParagraphAlignment);
+            Assert.Equal(120, firstCellParagraph.LineSpacingAfter);
+            Assert.Equal(360, firstCellParagraph.IndentationBefore);
+            Assert.Equal("B1", secondCellParagraph.Text);
+            Assert.Null(secondCellParagraph.ParagraphAlignment);
+            Assert.Null(secondCellParagraph.LineSpacingAfter);
+            Assert.Null(secondCellParagraph.IndentationBefore);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTabsAsWordTabRuns() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDoc("Left\tRight");
 
@@ -988,6 +1009,22 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithFormattedTableCellParagraph() {
+                const string text = "A1\aB1\a\aA2\aB2\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithFormattedTableCellParagraph(text, textOffset, papxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithDocumentProperties(DateTime created, DateTime modified, params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
                 byte[] wordDocumentStream = CreateWordDocumentStream(text);
@@ -1206,6 +1243,40 @@ namespace OfficeIMO.Tests {
                     new[] { textOffset, firstCellEnd, end },
                     new Dictionary<int, byte[]> {
                         [0] = CreateSingleSprmChpx(0x0835, 1)
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
+            private static byte[] CreateUnicodeWordDocumentStreamWithFormattedTableCellParagraph(string text, int textOffset, int papxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int secondCellStart = textOffset + ("A1\a".Length * 2);
+                int end = textOffset + (text.Length * 2);
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, secondCellStart, end },
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphPropertiesPapx(
+                            CreateParagraphSprm(0x2461, 1),
+                            CreateParagraphSprm(0xA414, 0x78, 0x00),
+                            CreateParagraphSprm(0x840F, 0x68, 0x01))
                     });
 
                 if (stream.Length < fibLength) {
