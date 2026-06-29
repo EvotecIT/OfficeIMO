@@ -109,10 +109,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return;
             }
 
-            if (options.ReportUnsupportedFeatures) {
-                AddKnownUnsupportedFeatureDiagnostics(compoundFile, fib);
-            }
-
             LegacyDocOleDocumentPropertyReader.AddDocumentProperties(compoundFile, this, options);
 
             string tableStreamName = fib.UsesOneTableStream ? "1Table" : "0Table";
@@ -124,6 +120,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AddError("DOC-TABLE-STREAM-MISSING", $"The compound document does not contain the {tableStreamName} table stream.");
                     return;
                 }
+            }
+
+            if (options.ReportUnsupportedFeatures) {
+                AddKnownUnsupportedFeatureDiagnostics(compoundFile, tableStream, fib);
             }
 
             if (!LegacyDocPieceTable.TryRead(wordDocumentStream, tableStream, fib, out LegacyDocTextContent textContent, out string? textError)) {
@@ -160,7 +160,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges, Sections, options.ReportUnsupportedFeatures);
         }
 
-        private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile, LegacyDocFib fib) {
+        private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile, byte[] tableStream, LegacyDocFib fib) {
             AddUnsupportedFibFlagFeatures(fib);
 
             AddUnsupportedCompoundEntryIfPresent(
@@ -226,6 +226,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 "DOC-COMMENT-STORIES-PRESENT",
                 "The legacy DOC contains comment or annotation story text. Comments are preserved in the source file but are not projected into the OfficeIMO document.",
                 "Fib:CcpAtn");
+            AddUnsupportedRevisionTrackingFeatureIfPresent(tableStream, fib);
             AddUnsupportedStoryFeatureIfPresent(
                 fib.CcpTxbx,
                 LegacyDocUnsupportedFeatureKind.TextBox,
@@ -301,6 +302,32 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 "The legacy DOC contains a binary Data stream used by pictures, drawings, form fields, or other payloads. These payloads are preserved in the source file but are not projected into the OfficeIMO document.",
                 entry.Path,
                 "Compound:BinaryDataStream"));
+        }
+
+        private void AddUnsupportedRevisionTrackingFeatureIfPresent(byte[] tableStream, LegacyDocFib fib) {
+            if (fib.LcbDop < 8 || fib.FcDop < 0 || fib.FcDop > tableStream.Length - fib.LcbDop) {
+                return;
+            }
+
+            const uint revisionMarkingFlag = 0x00008000;
+            const uint lockRevisionFlag = 0x40000000;
+            uint dopSecondFlags = unchecked((uint)LegacyDocFib.ReadInt32(tableStream, fib.FcDop + 4));
+            bool hasRevisionMarking = (dopSecondFlags & revisionMarkingFlag) != 0;
+            bool hasLockedRevisionTracking = (dopSecondFlags & lockRevisionFlag) != 0;
+            if (!hasRevisionMarking && !hasLockedRevisionTracking) {
+                return;
+            }
+
+            string detailCode = hasRevisionMarking && hasLockedRevisionTracking
+                ? "DopBase:FRevMarking+FLockRev"
+                : hasRevisionMarking
+                    ? "DopBase:FRevMarking"
+                    : "DopBase:FLockRev";
+            AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
+                LegacyDocUnsupportedFeatureKind.RevisionTracking,
+                "DOC-REVISION-TRACKING-PRESENT",
+                "The legacy DOC has revision tracking state. Tracked revision metadata is preserved in the source file but is not projected into the OfficeIMO document.",
+                detailCode: detailCode));
         }
 
         private void AddUnsupportedStoryFeatureIfPresent(

@@ -64,6 +64,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         Comment,
 
         /// <summary>
+        /// Revision tracking state exists but is not projected yet.
+        /// </summary>
+        RevisionTracking,
+
+        /// <summary>
         /// Text box story text exists but is not projected yet.
         /// </summary>
         TextBox

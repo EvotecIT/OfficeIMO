@@ -325,12 +325,16 @@ just to reserve names.
     box stories from FIB story counts before those stories are projected.
   - [x] Keep body text projection clipped to the main `Fib:CcpText` story so
     diagnosed header/footer story text is not flattened into body paragraphs.
+  - [x] Report container-level VBA project storage before macros have a
+    projection or preservation story.
   - [x] Report container-level ActiveX controls and embedded package payloads
     before those features have a projection story.
   - [x] Report non-empty compound `Data` streams as binary payloads before
     pictures, drawings, form fields, or related payloads are projected.
   - [x] Report FIB fast-save/quick-save and picture-present flags before those
     preserve-only states have a projection or rewrite story.
+  - [x] Report DOC revision-tracking DOP flags before tracked revisions have a
+    projection or rewrite story.
 - [x] Add normal fixture folders under
   `OfficeIMO.Tests\Documents\LegacyDocCorpus` and
   keep `OfficeIMO.Tests\Documents\LegacyDocDiagnosticCorpus` for the first

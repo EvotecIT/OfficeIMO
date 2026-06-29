@@ -728,6 +728,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsUnsupportedRevisionTrackingDopFlags() {
+            const uint revisionMarkingAndLockFlags = 0x40008000;
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithRevisionTrackingDop(revisionMarkingAndLockFlags, "Tracked body");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.Equal("Tracked body", Assert.Single(result.Document.Paragraphs).Text);
+            LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures);
+            Assert.Equal(LegacyDocUnsupportedFeatureKind.RevisionTracking, feature.Kind);
+            Assert.Equal("DOC-REVISION-TRACKING-PRESENT", feature.Code);
+            Assert.Equal("DopBase:FRevMarking+FLockRev", feature.DetailCode);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.RevisionTracking]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-REVISION-TRACKING-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["RevisionTracking|DOC-REVISION-TRACKING-PRESENT|DopBase:FRevMarking+FLockRev"]);
+
+            string markdown = result.ImportReport.ToMarkdown();
+            Assert.Contains("| RevisionTracking | DOC-REVISION-TRACKING-PRESENT | DopBase:FRevMarking+FLockRev |  |", markdown);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsUnsupportedStoryCounts() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedStoryCounts("Body story");
 
@@ -1988,6 +2010,24 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithRevisionTrackingDop(uint dopSecondFlags, params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                const int dopOffset = 21;
+                const int dopLength = 8;
+                byte[] wordDocumentStream = CreateWordDocumentStream(text, fcDop: dopOffset, lcbDop: dopLength);
+                byte[] tableStream = CreateTableStream(text.Length);
+                Array.Resize(ref tableStream, dopOffset + dopLength);
+                WriteUInt32(tableStream, dopOffset + 4, dopSecondFlags);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithFibVersion(ushort nFib, params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
                 byte[] wordDocumentStream = CreateWordDocumentStream(text, nFib: nFib);
@@ -2419,6 +2459,8 @@ namespace OfficeIMO.Tests {
                 ushort fibFlags = 0x0200,
                 int fcPlcfSed = 0,
                 int lcbPlcfSed = 0,
+                int fcDop = 0,
+                int lcbDop = 0,
                 int? ccpTextOverride = null) {
                 const int fibLength = 0x1AA;
                 const int textOffset = 0x200;
@@ -2436,6 +2478,8 @@ namespace OfficeIMO.Tests {
                 WriteInt32(stream, 0x68, ccpHdrTxbx);
                 WriteInt32(stream, 0xCA, fcPlcfSed);
                 WriteInt32(stream, 0xCE, lcbPlcfSed);
+                WriteInt32(stream, 0x192, fcDop);
+                WriteInt32(stream, 0x196, lcbDop);
                 WriteInt32(stream, 0x1A2, 0);
                 WriteInt32(stream, 0x1A6, 21);
                 Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
