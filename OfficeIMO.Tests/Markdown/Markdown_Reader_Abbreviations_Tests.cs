@@ -109,6 +109,59 @@ public class Markdown_Reader_Abbreviations_Tests {
     }
 
     [Fact]
+    public void Abbreviations_Expand_Inside_Unresolved_Bracket_Text_Like_Markdig() {
+        const string markdown = "*[HTML]: Hyper Text\n\n[HTML]";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Abbreviations = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
+        var abbreviation = Assert.IsType<AbbreviationInline>(paragraph.Inlines.Nodes[1]);
+
+        Assert.IsType<TextRun>(paragraph.Inlines.Nodes[0]);
+        Assert.IsType<TextRun>(paragraph.Inlines.Nodes[2]);
+        Assert.Equal("HTML", abbreviation.Text);
+        Assert.Equal("Hyper Text", abbreviation.Title);
+        Assert.Equal(new MarkdownSourceSpan(3, 2, 3, 5), MarkdownInlineSourceSpans.Get(abbreviation));
+        Assert.Contains("[<abbr title=\"Hyper Text\">HTML</abbr>]", html, StringComparison.Ordinal);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void List_Item_Abbreviation_Definitions_Are_Consumed_And_Apply_Document_Wide() {
+        const string markdown = "- *[HTML]: Hyper Text\n- HTML";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Abbreviations = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+        var definition = Assert.Single(result.AbbreviationDefinitions);
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
+        var first = list.Items[0];
+        var second = list.Items[1];
+        var abbreviation = Assert.IsType<AbbreviationInline>(Assert.Single(second.Content.Nodes));
+        var nativeList = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(MarkdownNativeDocument.Parse(markdown, options).Blocks));
+        var nativeAbbreviation = Assert.Single(nativeList.Items[1].InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Abbreviation);
+        var nativeTitle = Assert.Single(nativeAbbreviation.Metadata, metadata => metadata.Name == "title");
+
+        Assert.Empty(first.Content.Nodes);
+        Assert.Equal("HTML", definition.Label);
+        Assert.Equal("Hyper Text", definition.Title);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), definition.LabelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 21), definition.TitleSourceSpan);
+        Assert.Equal("HTML", abbreviation.Text);
+        Assert.Equal("Hyper Text", abbreviation.Title);
+        Assert.Contains("<li></li><li><abbr title=\"Hyper Text\">HTML</abbr></li>", html, StringComparison.Ordinal);
+        Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 21), nativeTitle.SourceSpan);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void Abbreviation_Definitions_Are_Written_After_FrontMatter() {
         const string markdown = "---\ntitle: Doc\n---\n\n  *[HTML]:   Hyper Text Markup Language\n\nHTML";
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();

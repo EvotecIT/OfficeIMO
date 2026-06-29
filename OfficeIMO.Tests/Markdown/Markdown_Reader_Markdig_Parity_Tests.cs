@@ -288,6 +288,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "punctuation-label", "*[C++]: Language\nC++ C+++ C++-like" };
         yield return new object[] { "trailing-dash-boundary", "*[HTML]: Hyper Text Markup Language\nHTML- HTML-like" };
         yield return new object[] { "opening-punctuation-boundaries-stay-literal", "*[HTML]: Hyper Text Markup Language\n(HTML) 'HTML' \"HTML\" /HTML .HTML" };
+        yield return new object[] { "unresolved-bracket-text", "*[HTML]: Hyper Text Markup Language\n[HTML]" };
+        yield return new object[] { "list-item-definition", "- *[HTML]: Hyper Text Markup Language\n- HTML" };
         yield return new object[] { "empty-title", "*[HTML]:   \nHTML" };
         yield return new object[] { "emphasis-inline", "*[HTML]: Hyper Text Markup Language\n\n*HTML* and **HTML**" };
         yield return new object[] { "link-label-inline", "*[HTML]: Hyper Text Markup Language\n\n[HTML](https://example.com)" };

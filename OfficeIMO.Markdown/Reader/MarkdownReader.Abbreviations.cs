@@ -74,15 +74,25 @@ public static partial class MarkdownReader {
             }
 
             if (!TryParseAbbreviationDefinition(
-                line,
-                idx,
-                state,
-                out var label,
-                out var title,
-                out var labelSpan,
-                out var titleSpan,
-                out var openingMarkerSpan,
-                out var separatorMarkerSpan)) {
+                    line,
+                    idx,
+                    state,
+                    out var label,
+                    out var title,
+                    out var labelSpan,
+                    out var titleSpan,
+                    out var openingMarkerSpan,
+                    out var separatorMarkerSpan)
+                && !TryParseListItemAbbreviationDefinition(
+                    line,
+                    idx,
+                    state,
+                    out label,
+                    out title,
+                    out labelSpan,
+                    out titleSpan,
+                    out openingMarkerSpan,
+                    out separatorMarkerSpan)) {
                 continue;
             }
 
@@ -107,7 +117,8 @@ public static partial class MarkdownReader {
         out MarkdownSourceSpan? labelSpan,
         out MarkdownSourceSpan? titleSpan,
         out MarkdownSourceSpan? openingMarkerSpan,
-        out MarkdownSourceSpan? separatorMarkerSpan) {
+        out MarkdownSourceSpan? separatorMarkerSpan,
+        int columnOffset = 0) {
         label = string.Empty;
         title = string.Empty;
         labelSpan = null;
@@ -150,13 +161,62 @@ public static partial class MarkdownReader {
         }
 
         int absoluteLine = state?.SourceLineOffset + lineIndex + 1 ?? lineIndex + 1;
-        labelSpan = CreateSpan(state, absoluteLine, leading + 3, absoluteLine, leading + closingBracket);
+        labelSpan = CreateSpan(state, absoluteLine, columnOffset + leading + 3, absoluteLine, columnOffset + leading + closingBracket);
         titleSpan = title.Length > 0
-            ? CreateSpan(state, absoluteLine, leading + titleStart + 1, absoluteLine, leading + titleStart + title.Length)
+            ? CreateSpan(state, absoluteLine, columnOffset + leading + titleStart + 1, absoluteLine, columnOffset + leading + titleStart + title.Length)
             : null;
-        openingMarkerSpan = CreateSpan(state, absoluteLine, leading + 1, absoluteLine, leading + 2);
-        separatorMarkerSpan = CreateSpan(state, absoluteLine, leading + closingBracket + 1, absoluteLine, leading + closingBracket + 2);
+        openingMarkerSpan = CreateSpan(state, absoluteLine, columnOffset + leading + 1, absoluteLine, columnOffset + leading + 2);
+        separatorMarkerSpan = CreateSpan(state, absoluteLine, columnOffset + leading + closingBracket + 1, absoluteLine, columnOffset + leading + closingBracket + 2);
         return true;
+    }
+
+    private static bool TryParseListItemAbbreviationDefinition(
+        string line,
+        int lineIndex,
+        MarkdownReaderState? state,
+        out string label,
+        out string title,
+        out MarkdownSourceSpan? labelSpan,
+        out MarkdownSourceSpan? titleSpan,
+        out MarkdownSourceSpan? openingMarkerSpan,
+        out MarkdownSourceSpan? separatorMarkerSpan) {
+
+        label = string.Empty;
+        title = string.Empty;
+        labelSpan = null;
+        titleSpan = null;
+        openingMarkerSpan = null;
+        separatorMarkerSpan = null;
+
+        if (string.IsNullOrEmpty(line) || !TryGetRawListItemContentAfterMarker(line, out var content)) {
+            return false;
+        }
+
+        int contentStartIndex = line.Length - content.Length;
+        return TryParseAbbreviationDefinition(
+            content,
+            lineIndex,
+            state,
+            out label,
+            out title,
+            out labelSpan,
+            out titleSpan,
+            out openingMarkerSpan,
+            out separatorMarkerSpan,
+            contentStartIndex);
+    }
+
+    private static bool IsAbbreviationDefinitionLine(string line) {
+        return TryParseAbbreviationDefinition(
+            line,
+            0,
+            null,
+            out _,
+            out _,
+            out _,
+            out _,
+            out _,
+            out _);
     }
 
     private static bool TryConsumeAbbreviation(
@@ -185,6 +245,20 @@ public static partial class MarkdownReader {
 
             definition = candidate;
             return true;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsAbbreviationCandidate(string text, MarkdownReaderState? state) {
+        if (string.IsNullOrEmpty(text) || state == null || state.Abbreviations.Count == 0) {
+            return false;
+        }
+
+        for (int position = 0; position < text.Length; position++) {
+            if (TryConsumeAbbreviation(text, position, state, out _)) {
+                return true;
+            }
         }
 
         return false;

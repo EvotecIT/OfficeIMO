@@ -675,6 +675,12 @@ public static partial class MarkdownReader {
                             pos += consumedS; continue;
                         }
 
+                        if (options.Abbreviations && ContainsAbbreviationCandidate(lbl3, state)) {
+                            AddTextNode("[", pos, 1);
+                            pos++;
+                            continue;
+                        }
+
                         if (stack.Count > 1 || ContainsBackslashEscapableCharacter(lbl3)) {
                             AddTextNode("[", pos, 1);
                             pos++;

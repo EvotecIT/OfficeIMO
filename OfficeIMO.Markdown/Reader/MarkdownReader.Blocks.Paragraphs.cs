@@ -395,6 +395,11 @@ public static partial class MarkdownReader {
     }
 
     private static ListItem CreateListItemFromLeadLines(List<string> lines, bool isTask, bool done, MarkdownReaderOptions options, MarkdownReaderState? state, List<MarkdownSourceLineSlice>? sourceLines = null) {
+        RemoveLeadingListItemAbbreviationDefinitions(lines, options, sourceLines);
+        if (lines.Count == 0 || lines.TrueForAll(string.IsNullOrWhiteSpace)) {
+            return isTask ? ListItem.TaskInlines(new InlineSequence(), done) : new ListItem(new InlineSequence());
+        }
+
         if (TryCreateListItemFromLeadBlocks(lines, isTask, done, options, state, sourceLines, out var blockLeadItem)) {
             return blockLeadItem;
         }
@@ -458,6 +463,30 @@ public static partial class MarkdownReader {
         }
         mixedItem.ForceLoose = true;
         return mixedItem;
+    }
+
+    private static void RemoveLeadingListItemAbbreviationDefinitions(
+        List<string> lines,
+        MarkdownReaderOptions options,
+        List<MarkdownSourceLineSlice>? sourceLines) {
+
+        if (options?.Abbreviations != true || lines == null || lines.Count == 0) {
+            return;
+        }
+
+        int removeCount = 0;
+        while (removeCount < lines.Count && IsAbbreviationDefinitionLine(lines[removeCount])) {
+            removeCount++;
+        }
+
+        if (removeCount == 0) {
+            return;
+        }
+
+        lines.RemoveRange(0, removeCount);
+        if (sourceLines != null && sourceLines.Count >= removeCount) {
+            sourceLines.RemoveRange(0, removeCount);
+        }
     }
 
     private static bool TryCreateListItemFromLeadBlocks(
