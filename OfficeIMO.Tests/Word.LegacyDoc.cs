@@ -2138,6 +2138,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableDefaultCellMarginsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.StyleDetails!.MarginDefaultTopWidth = 120;
+                    table.StyleDetails.MarginDefaultLeftWidth = 180;
+                    table.StyleDetails.MarginDefaultBottomWidth = 160;
+                    table.StyleDetails.MarginDefaultRightWidth = 300;
+                    table.Rows[0].Cells[0].AddParagraph("Defaults", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("Override", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].MarginLeftWidth = 240;
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x34, 0xD6, 0x06),
+                    "Expected the native DOC paragraph property stream to contain sprmTCellPaddingDefault.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x32, 0xD6, 0x06),
+                    "Expected the native DOC paragraph property stream to contain sprmTCellPadding for the cell override.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("Defaults", row.Cells[0].Paragraphs[0].Text);
+                Assert.Equal((short)120, row.Cells[0].MarginTopWidth);
+                Assert.Equal((short)180, row.Cells[0].MarginLeftWidth);
+                Assert.Equal((short)160, row.Cells[0].MarginBottomWidth);
+                Assert.Equal((short)300, row.Cells[0].MarginRightWidth);
+                Assert.Equal("Override", row.Cells[1].Paragraphs[0].Text);
+                Assert.Equal((short)120, row.Cells[1].MarginTopWidth);
+                Assert.Equal((short)240, row.Cells[1].MarginLeftWidth);
+                Assert.Equal((short)160, row.Cells[1].MarginBottomWidth);
+                Assert.Equal((short)300, row.Cells[1].MarginRightWidth);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellShadingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

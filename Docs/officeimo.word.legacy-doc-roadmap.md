@@ -478,6 +478,9 @@ just to reserve names.
     `sprmTDefTable`/`TC80`, then reload them through the legacy reader.
   - [x] Write simple table cell margins with `sprmTCellPadding`, then reload
     them through the legacy reader.
+  - [x] Write table-level default cell margins with `sprmTCellPaddingDefault`,
+    then reload inherited defaults and per-cell overrides through the legacy
+    reader.
   - [x] Write simple palette-backed table cell shading with
     `sprmTDefTableShd80`, then reload it through the legacy reader while
     blocking non-palette fill colors before bytes are committed.

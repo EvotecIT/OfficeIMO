@@ -13,7 +13,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports simple tables only when at least one row is present.");
             }
 
-            LegacyDocTableAlignment? tableAlignment = ReadSupportedTableAlignment(table.GetFirstChild<TableProperties>());
+            TableProperties? tableProperties = table.GetFirstChild<TableProperties>();
+            LegacyDocTableAlignment? tableAlignment = ReadSupportedTableAlignment(tableProperties);
+            LegacyDocTableCellMargins? defaultCellMargins = ReadSupportedTableDefaultCellMargins(tableProperties);
             IReadOnlyList<int> gridColumnWidthsTwips = ReadSupportedTableGridWidths(table.GetFirstChild<TableGrid>());
             foreach (TableRow row in rows) {
                 LegacyDocWritableTableRowFormatting rowFormatting = ReadSupportedTableRowFormatting(row, out TableCell[] cells);
@@ -57,7 +59,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         tableCellFitTexts: cellFitTexts,
                         tableCellNoWraps: cellNoWraps,
                         tableCellMargins: cellMargins,
-                        tableCellShadings: cellShadings)));
+                        tableCellShadings: cellShadings,
+                        defaultTableCellMargins: defaultCellMargins)));
             }
 
             text.Append('\r');
@@ -95,6 +98,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case TableJustification tableJustification:
                         ReadSupportedTableAlignment(tableJustification);
+                        break;
+                    case TableCellMarginDefault tableCellMarginDefault:
+                        ReadSupportedTableDefaultCellMargins(tableCellMarginDefault);
                         break;
                     case TableLook:
                         break;
@@ -138,6 +144,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             throw new NotSupportedException($"Native DOC saving does not support table alignment value '{value}'.");
+        }
+
+        private static LegacyDocTableCellMargins? ReadSupportedTableDefaultCellMargins(TableProperties? tableProperties) {
+            TableCellMarginDefault? margins = tableProperties?.GetFirstChild<TableCellMarginDefault>();
+            return margins == null ? null : ReadSupportedTableDefaultCellMargins(margins);
+        }
+
+        private static LegacyDocTableCellMargins? ReadSupportedTableDefaultCellMargins(TableCellMarginDefault margins) {
+            LegacyDocTableCellMargins result = new LegacyDocTableCellMargins(
+                ReadSupportedTableCellMarginWidth(margins.TopMargin, "default top"),
+                ReadSupportedTableCellMarginWidth(margins.TableCellRightMargin, "default right"),
+                ReadSupportedTableCellMarginWidth(margins.BottomMargin, "default bottom"),
+                ReadSupportedTableCellMarginWidth(margins.TableCellLeftMargin, "default left"));
+            return result.HasAny ? result : null;
         }
 
         private static IReadOnlyList<int> ReadSupportedTableGridWidths(TableGrid? tableGrid) {
