@@ -605,8 +605,8 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        if (PreviousDefinitionLineStartsNestedListItem(definitionSourceLines) &&
-            CurrentLineInterruptsNestedDefinitionListItem(line)) {
+        if (PreviousDefinitionLineStartsNestedBlock(definitionSourceLines) &&
+            CurrentLineInterruptsNestedDefinitionBlock(line)) {
             return false;
         }
 
@@ -623,7 +623,7 @@ public static partial class MarkdownReader {
             IsParagraphInterruptingThematicBreakLine(previous);
     }
 
-    private static bool PreviousDefinitionLineStartsNestedListItem(List<MarkdownSourceLineSlice> definitionSourceLines) {
+    private static bool PreviousDefinitionLineStartsNestedBlock(List<MarkdownSourceLineSlice> definitionSourceLines) {
         if (definitionSourceLines == null || definitionSourceLines.Count == 0) {
             return false;
         }
@@ -634,14 +634,16 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            return TryGetUnorderedListMarkerInfo(previous, out _, out _, out _) ||
+            var trimmed = previous.TrimStart();
+            return trimmed.StartsWith(">", StringComparison.Ordinal) ||
+                TryGetUnorderedListMarkerInfo(previous, out _, out _, out _) ||
                 TryGetOrderedListMarkerInfo(previous, out _, out _, out _, out _);
         }
 
         return false;
     }
 
-    private static bool CurrentLineInterruptsNestedDefinitionListItem(string line) {
+    private static bool CurrentLineInterruptsNestedDefinitionBlock(string line) {
         if (string.IsNullOrWhiteSpace(line)) {
             return false;
         }
