@@ -24,8 +24,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmTJc = 0x548A;
         private const ushort SprmTDyaRowHeight = 0x9407;
         private const ushort SprmTDefTable = 0xD608;
+        private const ushort SprmTDefTableShd80 = 0xD609;
         private const ushort SprmTCellPadding = 0xD632;
         private const ushort SprmTCellPaddingDefault = 0xD634;
+        private const ushort Shd80Nil = 0xFFFF;
         private const int Tc80Length = 20;
         private const byte FbrcTop = 0x01;
         private const byte FbrcLeft = 0x02;
@@ -169,6 +171,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<bool>? tableCellFitTexts = null;
             IReadOnlyList<bool>? tableCellNoWraps = null;
             IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null;
+            IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings = null;
             LegacyDocTableCellMargins? defaultTableCellMargins = null;
             int? tableRowHeightTwips = null;
             bool tableRowHeightIsExact = false;
@@ -358,6 +361,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmTDefTableShd80) {
+                    if (!TryReadTableCellShadings(
+                        bytes,
+                        offset,
+                        end,
+                        out tableCellShadings,
+                        out int tableCellShadingOperandLength)) {
+                        break;
+                    }
+
+                    offset += 2 + tableCellShadingOperandLength;
+                    continue;
+                }
+
                 if (sprm == SprmTCellPadding || sprm == SprmTCellPaddingDefault) {
                     if (!TryReadTableCellPadding(
                         bytes,
@@ -409,6 +426,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableCellFitTexts,
                 tableCellNoWraps,
                 tableCellMargins,
+                tableCellShadings,
                 defaultTableCellMargins,
                 hasMergedTableCells);
         }
@@ -609,6 +627,49 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ? marginArray
                 : Array.Empty<LegacyDocTableCellMargins>();
             return true;
+        }
+
+        private static bool TryReadTableCellShadings(
+            byte[] bytes,
+            int sprmOffset,
+            int end,
+            out IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings,
+            out int operandLength) {
+            tableCellShadings = null;
+            operandLength = 0;
+            if (sprmOffset + 3 > end) {
+                return false;
+            }
+
+            int cb = bytes[sprmOffset + 2];
+            operandLength = 1 + cb;
+            if (cb % 2 != 0 || sprmOffset + 2 + operandLength > end) {
+                return false;
+            }
+
+            int cellCount = cb / 2;
+            var shadings = new LegacyDocTableCellShading[cellCount];
+            for (int index = 0; index < cellCount; index++) {
+                ushort shd80 = LegacyDocFib.ReadUInt16(bytes, sprmOffset + 3 + (index * 2));
+                shadings[index] = ReadTableCellShading(shd80);
+            }
+
+            tableCellShadings = shadings.Any(shading => shading.HasAny)
+                ? shadings
+                : Array.Empty<LegacyDocTableCellShading>();
+            return true;
+        }
+
+        private static LegacyDocTableCellShading ReadTableCellShading(ushort shd80) {
+            if (shd80 == 0 || shd80 == Shd80Nil) {
+                return default;
+            }
+
+            byte backgroundIco = (byte)((shd80 >> 5) & 0x1F);
+            string? fillColorHex = LegacyDocColorPalette.GetHexForIco(backgroundIco);
+            return string.IsNullOrEmpty(fillColorHex)
+                ? default
+                : new LegacyDocTableCellShading(fillColorHex);
         }
 
         private static LegacyDocTableCellMargins CreateTableCellMargins(byte sideMask, int widthTwips) {

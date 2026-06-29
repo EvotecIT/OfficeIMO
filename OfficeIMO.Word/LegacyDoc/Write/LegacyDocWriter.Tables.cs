@@ -29,6 +29,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 IReadOnlyList<bool> cellFitTexts = ReadSupportedTableCellFitTexts(writableCells);
                 IReadOnlyList<bool> cellNoWraps = ReadSupportedTableCellNoWraps(writableCells);
                 IReadOnlyList<LegacyDocTableCellMargins> cellMargins = ReadSupportedTableCellMargins(writableCells);
+                IReadOnlyList<LegacyDocTableCellShading> cellShadings = ReadSupportedTableCellShadings(writableCells);
                 foreach (LegacyDocWritableTableCell writableCell in writableCells) {
                     int cellStart = text.Length;
                     LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, writableCell.SourceCell)
@@ -55,7 +56,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         tableCellVerticalAlignments: cellVerticalAlignments,
                         tableCellFitTexts: cellFitTexts,
                         tableCellNoWraps: cellNoWraps,
-                        tableCellMargins: cellMargins)));
+                        tableCellMargins: cellMargins,
+                        tableCellShadings: cellShadings)));
             }
 
             text.Append('\r');
@@ -291,6 +293,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 bool fitText = ReadSupportedTableCellFitText(cellProperties);
                 bool noWrap = ReadSupportedTableCellNoWrap(cellProperties);
                 LegacyDocTableCellMargins margins = ReadSupportedTableCellMargins(cellProperties);
+                LegacyDocTableCellShading shading = ReadSupportedTableCellShading(cellProperties);
                 if (gridSpan > 1 && horizontalMerge == LegacyDocTableCellHorizontalMerge.Continue) {
                     throw new NotSupportedException("Native DOC saving supports simple horizontal table cell merges only. A continued horizontal merge cannot also define gridSpan.");
                 }
@@ -302,7 +305,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         : spanIndex == 0
                             ? LegacyDocTableCellHorizontalMerge.Restart
                             : LegacyDocTableCellHorizontalMerge.Continue;
-                    writableCells.Add(new LegacyDocWritableTableCell(spanIndex == 0 ? cell : null, width, merge, verticalMerge, verticalAlignment, fitText, noWrap, margins));
+                    writableCells.Add(new LegacyDocWritableTableCell(spanIndex == 0 ? cell : null, width, merge, verticalMerge, verticalAlignment, fitText, noWrap, margins, shading));
                 }
 
                 logicalColumnIndex += gridSpan;
@@ -396,6 +399,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return hasMargins ? margins : Array.Empty<LegacyDocTableCellMargins>();
+        }
+
+        private static IReadOnlyList<LegacyDocTableCellShading> ReadSupportedTableCellShadings(IReadOnlyList<LegacyDocWritableTableCell> cells) {
+            var shadings = new LegacyDocTableCellShading[cells.Count];
+            bool hasShading = false;
+            for (int index = 0; index < cells.Count; index++) {
+                shadings[index] = cells[index].Shading;
+                if (shadings[index].HasAny) {
+                    hasShading = true;
+                }
+            }
+
+            return hasShading ? shadings : Array.Empty<LegacyDocTableCellShading>();
         }
 
         private static LegacyDocTableCellHorizontalMerge ReadSupportedTableCellHorizontalMerge(TableCell cell) {
@@ -569,6 +585,30 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return width;
         }
 
+        private static LegacyDocTableCellShading ReadSupportedTableCellShading(TableCellProperties? cellProperties) {
+            Shading? shading = cellProperties?.GetFirstChild<Shading>();
+            if (shading == null) {
+                return default;
+            }
+
+            ShadingPatternValues? pattern = shading.Val?.Value;
+            if (pattern != null && pattern != ShadingPatternValues.Clear) {
+                throw new NotSupportedException("Native DOC saving supports table cell shading only for clear fill patterns.");
+            }
+
+            string? fillColorHex = shading.Fill?.Value;
+            if (string.IsNullOrWhiteSpace(fillColorHex)
+                || string.Equals(fillColorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
+                return default;
+            }
+
+            if (!LegacyDocColorPalette.TryGetIcoForHex(fillColorHex, out _)) {
+                throw new NotSupportedException("Native DOC saving supports table cell shading only for Word 97-2003 palette fill colors.");
+            }
+
+            return new LegacyDocTableCellShading(fillColorHex);
+        }
+
         private static int ReadSupportedGridSpan(TableCellProperties? cellProperties) {
             GridSpan? gridSpan = cellProperties?.GetFirstChild<GridSpan>();
             if (gridSpan == null) {
@@ -642,6 +682,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TableCellMargin:
                         ReadSupportedTableCellMargins(cellProperties);
                         break;
+                    case Shading:
+                        ReadSupportedTableCellShading(cellProperties);
+                        break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table cell property: {property.LocalName}.");
                 }
@@ -686,7 +729,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableTableCell {
-            internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, bool fitText, bool noWrap, LegacyDocTableCellMargins margins) {
+            internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, bool fitText, bool noWrap, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading) {
                 SourceCell = sourceCell;
                 WidthTwips = widthTwips;
                 HorizontalMerge = horizontalMerge;
@@ -695,6 +738,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 FitText = fitText;
                 NoWrap = noWrap;
                 Margins = margins;
+                Shading = shading;
             }
 
             internal TableCell? SourceCell { get; }
@@ -712,6 +756,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal bool NoWrap { get; }
 
             internal LegacyDocTableCellMargins Margins { get; }
+
+            internal LegacyDocTableCellShading Shading { get; }
         }
     }
 }

@@ -23,6 +23,30 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         Right
     }
 
+    internal readonly struct LegacyDocTableCellShading : IEquatable<LegacyDocTableCellShading> {
+        internal LegacyDocTableCellShading(string? fillColorHex) {
+            FillColorHex = string.IsNullOrWhiteSpace(fillColorHex)
+                ? null
+                : fillColorHex!.Replace("#", string.Empty).ToLowerInvariant();
+        }
+
+        internal string? FillColorHex { get; }
+
+        internal bool HasAny => !string.IsNullOrEmpty(FillColorHex);
+
+        public bool Equals(LegacyDocTableCellShading other) {
+            return string.Equals(FillColorHex, other.FillColorHex, StringComparison.Ordinal);
+        }
+
+        public override bool Equals(object? obj) {
+            return obj is LegacyDocTableCellShading other && Equals(other);
+        }
+
+        public override int GetHashCode() {
+            return FillColorHex == null ? 0 : FillColorHex.GetHashCode();
+        }
+    }
+
     internal readonly struct LegacyDocTableCellMargins : IEquatable<LegacyDocTableCellMargins> {
         internal LegacyDocTableCellMargins(int? topTwips, int? rightTwips, int? bottomTwips, int? leftTwips) {
             TopTwips = topTwips;
@@ -116,7 +140,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? cellVerticalAlignments = null,
             IReadOnlyList<bool>? cellFitTexts = null,
             IReadOnlyList<bool>? cellNoWraps = null,
-            IReadOnlyList<LegacyDocTableCellMargins>? cellMargins = null) {
+            IReadOnlyList<LegacyDocTableCellMargins>? cellMargins = null,
+            IReadOnlyList<LegacyDocTableCellShading>? cellShadings = null) {
             Cells = cells;
             CellWidthsTwips = cellWidthsTwips == null || cellWidthsTwips.Count == 0
                 ? Array.Empty<int>()
@@ -144,6 +169,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             CellMargins = cellMargins == null || cellMargins.Count == 0
                 ? Array.Empty<LegacyDocTableCellMargins>()
                 : cellMargins.ToArray();
+            CellShadings = cellShadings == null || cellShadings.Count == 0
+                ? Array.Empty<LegacyDocTableCellShading>()
+                : cellShadings.ToArray();
         }
 
         internal IReadOnlyList<LegacyDocTableCell> Cells { get; }
@@ -171,6 +199,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal IReadOnlyList<bool> CellNoWraps { get; }
 
         internal IReadOnlyList<LegacyDocTableCellMargins> CellMargins { get; }
+
+        internal IReadOnlyList<LegacyDocTableCellShading> CellShadings { get; }
     }
 
     internal sealed class LegacyDocTableCell {

@@ -22,7 +22,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmTJc = 0x548A;
         private const ushort SprmTDyaRowHeight = 0x9407;
         private const ushort SprmTDefTable = 0xD608;
+        private const ushort SprmTDefTableShd80 = 0xD609;
         private const ushort SprmTCellPadding = 0xD632;
+        private const ushort Shd80Nil = 0xFFFF;
         private const int Tc80Length = 20;
         private const byte FbrcTop = 0x01;
         private const byte FbrcLeft = 0x02;
@@ -137,6 +139,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (formatting.TableCellMargins.Count > 0) {
                 AddTableCellPaddingSprms(grpprl, formatting.TableCellMargins);
+            }
+
+            if (formatting.TableCellShadings.Count > 0) {
+                AddTableCellShadingSprm(grpprl, formatting.TableCellShadings);
             }
 
             if (formatting.TableRowHeightTwips != null) {
@@ -299,7 +305,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static void AddVariableSprm(List<byte> grpprl, ushort sprm, List<byte> operand) {
             if (operand.Count > byte.MaxValue) {
-                throw new NotSupportedException("Native DOC saving cannot write paragraph tab stops because the DOC tab-stop record is too large.");
+                throw new NotSupportedException("Native DOC saving cannot write a variable-size paragraph formatting record because the DOC record is too large.");
             }
 
             grpprl.Add((byte)(sprm & 0xFF));
@@ -340,6 +346,31 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 (byte)(widthTwips.Value >> 8)
             };
             AddVariableSprm(grpprl, SprmTCellPadding, operand);
+        }
+
+        private static void AddTableCellShadingSprm(List<byte> grpprl, IReadOnlyList<LegacyDocTableCellShading> shadings) {
+            if (shadings.Count * 2 > byte.MaxValue) {
+                throw new NotSupportedException("Native DOC saving cannot write table cell shading for more than 127 cells in one row.");
+            }
+
+            var operand = new List<byte>(shadings.Count * 2);
+            foreach (LegacyDocTableCellShading shading in shadings) {
+                if (!shading.HasAny) {
+                    operand.Add((byte)(Shd80Nil & 0xFF));
+                    operand.Add((byte)(Shd80Nil >> 8));
+                    continue;
+                }
+
+                if (!LegacyDocColorPalette.TryGetIcoForHex(shading.FillColorHex, out byte backgroundIco) || backgroundIco == 0) {
+                    throw new NotSupportedException("Native DOC saving supports table cell shading only for Word 97-2003 palette fill colors.");
+                }
+
+                ushort shd80 = (ushort)(backgroundIco << 5);
+                operand.Add((byte)(shd80 & 0xFF));
+                operand.Add((byte)(shd80 >> 8));
+            }
+
+            AddVariableSprm(grpprl, SprmTDefTableShd80, operand);
         }
 
         private static void AddTableDefinitionSprm(
@@ -474,7 +505,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null);
 
         internal LegacyDocWritableParagraphFormatting(
             byte? alignment,
@@ -503,7 +534,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments,
             IReadOnlyList<bool>? tableCellFitTexts,
             IReadOnlyList<bool>? tableCellNoWraps,
-            IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins) {
+            IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins,
+            IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -542,6 +574,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             TableCellMargins = tableCellMargins == null || tableCellMargins.Count == 0
                 ? Array.Empty<LegacyDocTableCellMargins>()
                 : tableCellMargins.ToArray();
+            TableCellShadings = tableCellShadings == null || tableCellShadings.Count == 0
+                ? Array.Empty<LegacyDocTableCellShading>()
+                : tableCellShadings.ToArray();
             TableRowHeightTwips = tableRowHeightTwips;
             TableRowHeightIsExact = tableRowHeightIsExact;
             TableRowCantSplit = tableRowCantSplit;
@@ -593,6 +628,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal IReadOnlyList<LegacyDocTableCellMargins> TableCellMargins { get; }
 
+        internal IReadOnlyList<LegacyDocTableCellShading> TableCellShadings { get; }
+
         internal int? TableRowHeightTwips { get; }
 
         internal bool TableRowHeightIsExact { get; }
@@ -625,6 +662,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || TableCellFitTexts.Count > 0
             || TableCellNoWraps.Count > 0
             || TableCellMargins.Count > 0
+            || TableCellShadings.Count > 0
             || TableRowHeightTwips != null
             || TableRowCantSplit != null
             || TableRowIsHeader != null
@@ -643,7 +681,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null,
             IReadOnlyList<bool>? tableCellFitTexts = null,
             IReadOnlyList<bool>? tableCellNoWraps = null,
-            IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null) {
+            IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null,
+            IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings = null) {
             return new LegacyDocWritableParagraphFormatting(
                 Alignment,
                 StyleIndex,
@@ -671,7 +710,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 tableCellVerticalAlignments,
                 tableCellFitTexts,
                 tableCellNoWraps,
-                tableCellMargins);
+                tableCellMargins,
+                tableCellShadings);
         }
 
         public bool Equals(LegacyDocWritableParagraphFormatting other) {
@@ -697,6 +737,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && TableCellBooleansEqual(TableCellFitTexts, other.TableCellFitTexts)
                 && TableCellBooleansEqual(TableCellNoWraps, other.TableCellNoWraps)
                 && TableCellMarginsEqual(TableCellMargins, other.TableCellMargins)
+                && TableCellShadingsEqual(TableCellShadings, other.TableCellShadings)
                 && TableRowHeightTwips == other.TableRowHeightTwips
                 && TableRowHeightIsExact == other.TableRowHeightIsExact
                 && TableRowCantSplit == other.TableRowCantSplit
@@ -751,6 +792,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             foreach (LegacyDocTableCellMargins margins in TableCellMargins) {
                 hash = (hash * 31) + margins.GetHashCode();
+            }
+
+            foreach (LegacyDocTableCellShading shading in TableCellShadings) {
+                hash = (hash * 31) + shading.GetHashCode();
             }
 
             foreach (LegacyDocTabStop tabStop in TabStops) {
@@ -835,6 +880,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static bool TableCellMarginsEqual(IReadOnlyList<LegacyDocTableCellMargins> first, IReadOnlyList<LegacyDocTableCellMargins> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (!first[index].Equals(second[index])) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellShadingsEqual(IReadOnlyList<LegacyDocTableCellShading> first, IReadOnlyList<LegacyDocTableCellShading> second) {
             if (first.Count != second.Count) {
                 return false;
             }

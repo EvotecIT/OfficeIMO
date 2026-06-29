@@ -218,6 +218,10 @@ namespace OfficeIMO.Word {
                     if (columnIndex < sourceRow.CellMargins.Count) {
                         ApplyLegacyDocTableCellMargins(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellMargins[columnIndex]);
                     }
+
+                    if (columnIndex < sourceRow.CellShadings.Count) {
+                        ApplyLegacyDocTableCellShading(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellShadings[columnIndex]);
+                    }
                 }
             }
         }
@@ -251,6 +255,12 @@ namespace OfficeIMO.Word {
 
             if (margins.LeftTwips != null) {
                 cell.MarginLeftWidth = checked((short)margins.LeftTwips.Value);
+            }
+        }
+
+        private static void ApplyLegacyDocTableCellShading(WordTableCell cell, LegacyDocTableCellShading shading) {
+            if (!string.IsNullOrEmpty(shading.FillColorHex)) {
+                cell.ShadingFillColorHex = shading.FillColorHex!;
             }
         }
 

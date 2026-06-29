@@ -206,6 +206,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTableCellShadingFromShd80Sprms() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithTableCellShading();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            WordTableRow row = Assert.Single(table.Rows);
+            Assert.Equal("ff0000", row.Cells[0].ShadingFillColorHex);
+            Assert.Equal("ffff00", row.Cells[1].ShadingFillColorHex);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsInvalidMergedTableCellsFromTableDefinition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithInvalidMergedTableCellDefinition();
 
@@ -2059,6 +2073,58 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellShadingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.Rows[0].Cells[0].AddParagraph("Red", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[0].ShadingFillColorHex = "ff0000";
+                    table.Rows[0].Cells[1].AddParagraph("Plain", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x09, 0xD6, 0x04, 0xC0, 0x00, 0xFF, 0xFF),
+                    "Expected the native DOC paragraph property stream to contain sprmTDefTableShd80.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("Red", row.Cells[0].Paragraphs[0].Text);
+                Assert.Equal("ff0000", row.Cells[0].ShadingFillColorHex);
+                Assert.Equal("Plain", row.Cells[1].Paragraphs[0].Text);
+                Assert.Equal(string.Empty, row.Cells[1].ShadingFillColorHex);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedTableCellShadingColorBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordTable table = document.AddTable(1, 1);
+                table.Rows[0].Cells[0].AddParagraph("Custom", removeExistingParagraphs: true);
+                table.Rows[0].Cells[0].ShadingFillColorHex = "336699";
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("palette fill colors", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedMultiParagraphTableCellsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -2659,6 +2725,27 @@ namespace OfficeIMO.Tests {
                         CreateTableCellPaddingSprm(0xD632, 1, 2, 0x02, 240),
                         CreateTableCellPaddingSprm(0xD632, 1, 2, 0x08, 300)
                     });
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithTableCellShading() {
+                const string text = "A1\aB1\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 1440 },
+                    extraRowSprms: new[] { CreateTableCellShadingSprm(CreateShd80(backgroundIco: 6), CreateShd80(backgroundIco: 7)) });
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();
@@ -3455,6 +3542,20 @@ namespace OfficeIMO.Tests {
                     (byte)(widthTwips & 0xFF),
                     (byte)(widthTwips >> 8)
                 };
+            }
+
+            private static byte[] CreateTableCellShadingSprm(params ushort[] shd80Values) {
+                var operand = new List<byte> { checked((byte)(shd80Values.Length * 2)) };
+                foreach (ushort shd80 in shd80Values) {
+                    operand.Add((byte)(shd80 & 0xFF));
+                    operand.Add((byte)(shd80 >> 8));
+                }
+
+                return CreateParagraphSprm(0xD609, operand.ToArray());
+            }
+
+            private static ushort CreateShd80(byte backgroundIco) {
+                return (ushort)(backgroundIco << 5);
             }
 
             private static byte[] CreateUnicodeWordDocumentStreamWithTwoExplicitTableRows(

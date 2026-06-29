@@ -28,6 +28,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<bool>? tableCellFitTexts = null,
             IReadOnlyList<bool>? tableCellNoWraps = null,
             IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null,
+            IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings = null,
             LegacyDocTableCellMargins? defaultTableCellMargins = null,
             bool hasMergedTableCells = false) {
             Alignment = alignment;
@@ -73,6 +74,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             TableCellMargins = tableCellMargins == null || tableCellMargins.Count == 0
                 ? Array.Empty<LegacyDocTableCellMargins>()
                 : tableCellMargins.ToArray();
+            TableCellShadings = tableCellShadings == null || tableCellShadings.Count == 0
+                ? Array.Empty<LegacyDocTableCellShading>()
+                : tableCellShadings.ToArray();
             DefaultTableCellMargins = defaultTableCellMargins.HasValue && defaultTableCellMargins.Value.HasAny
                 ? defaultTableCellMargins
                 : null;
@@ -133,6 +137,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<LegacyDocTableCellMargins> TableCellMargins { get; }
 
+        internal IReadOnlyList<LegacyDocTableCellShading> TableCellShadings { get; }
+
         internal LegacyDocTableCellMargins? DefaultTableCellMargins { get; }
 
         internal bool HasMergedTableCells { get; }
@@ -163,6 +169,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || TableCellFitTexts.Count > 0
             || TableCellNoWraps.Count > 0
             || TableCellMargins.Count > 0
+            || TableCellShadings.Count > 0
             || DefaultTableCellMargins != null
             || HasMergedTableCells;
 
@@ -196,6 +203,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && TableCellBooleansEqual(TableCellFitTexts, other.TableCellFitTexts)
                 && TableCellBooleansEqual(TableCellNoWraps, other.TableCellNoWraps)
                 && TableCellMarginsEqual(TableCellMargins, other.TableCellMargins)
+                && TableCellShadingsEqual(TableCellShadings, other.TableCellShadings)
                 && DefaultTableCellMargins.Equals(other.DefaultTableCellMargins)
                 && HasMergedTableCells == other.HasMergedTableCells;
         }
@@ -249,6 +257,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + DefaultTableCellMargins.GetHashCode();
             foreach (LegacyDocTableCellMargins margins in TableCellMargins) {
                 hash = (hash * 31) + margins.GetHashCode();
+            }
+
+            foreach (LegacyDocTableCellShading shading in TableCellShadings) {
+                hash = (hash * 31) + shading.GetHashCode();
             }
 
             foreach (LegacyDocTabStop tabStop in TabStops) {
@@ -354,7 +366,37 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : Array.Empty<LegacyDocTableCellMargins>();
         }
 
+        internal IReadOnlyList<LegacyDocTableCellShading> GetTableCellShadingsForCellCount(int cellCount) {
+            if (cellCount <= 0 || TableCellShadings.Count == 0) {
+                return Array.Empty<LegacyDocTableCellShading>();
+            }
+
+            int count = Math.Max(cellCount, TableCellShadings.Count);
+            var shadings = new LegacyDocTableCellShading[count];
+            for (int index = 0; index < TableCellShadings.Count; index++) {
+                shadings[index] = TableCellShadings[index];
+            }
+
+            return shadings.Any(shading => shading.HasAny)
+                ? shadings
+                : Array.Empty<LegacyDocTableCellShading>();
+        }
+
         private static bool TableCellMarginsEqual(IReadOnlyList<LegacyDocTableCellMargins> first, IReadOnlyList<LegacyDocTableCellMargins> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (!first[index].Equals(second[index])) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellShadingsEqual(IReadOnlyList<LegacyDocTableCellShading> first, IReadOnlyList<LegacyDocTableCellShading> second) {
             if (first.Count != second.Count) {
                 return false;
             }

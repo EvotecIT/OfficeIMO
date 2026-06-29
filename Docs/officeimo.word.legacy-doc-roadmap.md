@@ -326,6 +326,9 @@ just to reserve names.
   - [x] Project simple table cell margins from DOC `sprmTCellPadding` and
     `sprmTCellPaddingDefault` row definitions into normal OfficeIMO table cell
     margin properties, and preserve them through native DOC save/reload.
+  - [x] Project simple palette-backed table cell shading from DOC
+    `sprmTDefTableShd80`/`Shd80` row definitions into normal OfficeIMO table
+    cell fill colors, and preserve it through native DOC save/reload.
   - [ ] Add table formatting, merged cells, and nested tables as separate
     fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
@@ -466,6 +469,9 @@ just to reserve names.
     `sprmTDefTable`/`TC80`, then reload them through the legacy reader.
   - [x] Write simple table cell margins with `sprmTCellPadding`, then reload
     them through the legacy reader.
+  - [x] Write simple palette-backed table cell shading with
+    `sprmTDefTableShd80`, then reload it through the legacy reader while
+    blocking non-palette fill colors before bytes are committed.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.
