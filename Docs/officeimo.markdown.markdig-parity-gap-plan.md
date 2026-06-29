@@ -11,8 +11,8 @@ The important distinction: parity is not "more tests." Parity means the parser, 
 | Local Markdig comparison package | Markdig `1.3.2`, guarded across tests, benchmarks, and compatibility docs |
 | CommonMark corpus | 316 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
 | CommonMark full inventory | 652 of 652 official CommonMark `0.31.2` examples currently match; 0 are failing in `Docs/officeimo.markdown.commonmark-inventory.md` |
-| GFM corpus | 51 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
-| GFM tracked inventory | 51 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 47 upstream cmark-gfm fixtures, 4 OfficeIMO supplements, 51 passing, 0 failing |
+| GFM corpus | 52 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
+| GFM tracked inventory | 52 tracked GFM fixtures in `Docs/officeimo.markdown.gfm-inventory.md`: 48 upstream cmark-gfm fixtures, 4 OfficeIMO supplements, 52 passing, 0 failing |
 | Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 7 covered, 11 partial, 4 intentional, 11 gap |
 | Covered CommonMark sections | ATX headings, Setext headings, thematic breaks, indented code blocks, fenced code blocks, HTML blocks, block quotes, list items, lists, paragraphs, hard breaks, soft breaks, links, images, autolinks, raw HTML, backslash escapes, entity and numeric character references, link reference definitions, tabs |
 | Remaining CommonMark parser clusters | None in the official CommonMark `0.31.2` inventory |
@@ -35,7 +35,7 @@ Current truth:
 
 This is the loop-breaker board. Work one row at a time. A row is finished only when the reusable engine behavior, public contract, docs, and proof are all present. Adding tests alone is not parity unless the behavior already exists and the missing thing is measurement.
 
-- [ ] **Measurement gate: broaden GFM inventory.** Current GFM inventory is green but still intentionally small: 51 fixtures total, with 12 autolink, 3 strikethrough, 1 HTML tag-filter, 5 task-list, and 3 footnote fixtures. Add more upstream-compatible cmark-gfm coverage for enabled behavior before claiming GFM breadth.
+- [ ] **Measurement gate: broaden GFM inventory.** Current GFM inventory is green but still intentionally small: 52 fixtures total, with 12 autolink, 3 strikethrough, 2 HTML tag-filter, 5 task-list, and 3 footnote fixtures. Add more upstream-compatible cmark-gfm coverage for enabled behavior before claiming GFM breadth.
 - [ ] **Parser gate: close `UseAutoLinks`.** This is the current active engine row. Remaining work is extended `www`, email, scheme, punctuation/boundary, source/native, writer, table-cell, and GFM breadth. Promote only when Markdig-compatible and GFM-compatible profiles are both explicit; otherwise leave a named intentional delta.
 - [ ] **Parser gate: close `UseDefinitionLists`.** Existing behavior is real but still `Partial`. Finish marker-group, lazy-continuation, nested-block, loose-definition, source-map, writer, and reparse-stability edges before promotion.
 - [ ] **Parser gate: decide/close `UseAbbreviations`.** Existing behavior is real but still `Partial`. Decide whether Markdown writing should preserve abbreviation definitions, then finish Markdig edge breadth, source/native metadata, and writer behavior or document the writer limit.
@@ -84,9 +84,9 @@ This is the non-looping backlog. Parity slices are grouped by what they actually
 
 ### A. Engine And Parser Behavior
 
-- [ ] **GFM breadth is still thin.** The current GFM inventory is green, but only 51 tracked fixtures are imported. Missing work: broaden strikethrough delimiter edges, HTML tag filtering, extension-interaction fixtures, and any remaining autolink edge cases against upstream-compatible behavior.
+- [ ] **GFM breadth is still thin.** The current GFM inventory is green, but only 52 tracked fixtures are imported. Missing work: broaden strikethrough delimiter edges, HTML tag filtering, extension-interaction fixtures, and any remaining autolink edge cases against upstream-compatible behavior.
 - [ ] **Autolinks are still partial.** CommonMark angle autolinks are green, Markdig-style previous-character/domain-without-period/query-fragment/balanced-parenthesis punctuation, punctuation-before-closing-parenthesis preservation, lowercase `www.` prefix, lowercase bare scheme prefix options, and profile-selectable bare scheme prefixes exist. Bare `ftp://`, `tel:`, and `mailto:` scheme autolinks have Markdig/source/writer evidence; the GFM profile now has 12 autolink inventory fixtures covering cmark-gfm unmatched-parenthesis, query/entity suffix, less-than termination, email plus-placement/trailing-character, and Unicode-host percent-encoding behavior; default/Markdig-style HTML rendering can still use IDNA hostnames through `HtmlOptions.NormalizeUrlHostsToIdn`. `UseAutoLinks` remains partial because broader Markdig/GFM edge breadth and promotion-level source/writer coverage still need a final pass.
-- [ ] **Raw HTML and GFM tag filtering are still partial.** CommonMark raw HTML is green and cmark-gfm HTML output now has a first-class `HtmlOptions` profile, but broader GFM tag-filter corpus coverage, sanitizer/escape/strip/allow mode evidence, source/writer behavior, and URL policy still need to stay separated so parser parity is not confused with security policy.
+- [ ] **Raw HTML and GFM tag filtering are still partial.** CommonMark raw HTML is green and cmark-gfm HTML output now has a first-class `HtmlOptions` profile. The GFM inventory now includes focused tag-filter coverage for dangerous inline tags and case-insensitive raw block body filtering, but broader GFM tag-filter corpus coverage, sanitizer/escape/strip/allow mode evidence, source/writer behavior, and URL policy still need to stay separated so parser parity is not confused with security policy.
 - [ ] **Definition-list syntax breadth is partial.** OfficeIMO now parses the pinned Markdig colon-marker form, including multiple terms, multiple definitions, grouped AST/source/native/html proof, Markdig lazy paragraph and nested block continuation, loose-definition HTML, edge-continuation comparison, empty-marker first-continuation source mapping, grouped Markdown writing that preserves the marker form for reparsing, loose-definition writer preservation, and blank-separated marker-group writer preservation. Remaining source-map and writer edge breadth still need focused comparison before `UseDefinitionLists` can move to `Covered`.
 - [x] **Emphasis extras are covered.** Strikethrough, inserted text, mark/highlight, superscript, and subscript have first-class parser/source/native/render/write coverage, with GFM single-tilde strikethrough kept explicit through profile settings.
 
@@ -146,7 +146,7 @@ Use this as the non-looping execution board. Each item must either move engine b
 
 ### Next: Broaden GFM And Markdig Extension Coverage
 
-- [ ] **GFM fixture breadth:** expand beyond the current 51 tracked fixtures for strikethrough, tag filtering, extension interactions, and any remaining autolink edge cases.
+- [ ] **GFM fixture breadth:** expand beyond the current 52 tracked fixtures for strikethrough, tag filtering, extension interactions, and any remaining autolink edge cases.
 - [x] **Pipe tables:** moved from partial support to covered support by proving malformed delimiters, alignment, containers, source spans, renderer output, and writer behavior.
 - [x] **Task lists:** moved from partial support to covered support by proving nested markers, exact marker source spans, native snapshots/source edits, renderer output, and ordered/unordered writer behavior.
 - [x] **Footnotes:** moved from partial support to covered support by proving Markdig/GFM breadth, label/body source mapping, renderer output, backlink behavior, and writer behavior.
@@ -250,7 +250,8 @@ These are the actual parity gaps. The test work is listed only where it creates 
   - [ ] Likely deferred unless a consumer asks: `UseCitations`, `UseJiraLinks`, `UsePragmaLines`, `UseFooters`, `UseGlobalization`.
 - [ ] Finish GFM breadth that is not Markdig-specific.
   - [ ] Expand autolink fixtures against the GFM profile after the `UseAutoLinks` row stabilizes.
-  - [ ] Expand tag-filter fixtures for the GitHub HTML renderer profile.
+  - [x] Add focused official tag-filter fixture coverage for filtered inline tags and case-insensitive raw HTML block body filtering.
+  - [ ] Expand remaining tag-filter fixtures for the GitHub HTML renderer profile.
   - [ ] Expand strikethrough delimiter-edge fixtures, especially single-tilde GFM behavior around other emphasis.
 - [ ] Return to AST/source/lossless completion once the next parser-extension slice no longer changes node boundaries.
   - [ ] Canonicalize remaining duplicated node shapes for `ListItem`, `TableBlock`, `CalloutBlock`, and `DefinitionListBlock`.
@@ -339,7 +340,7 @@ Done means:
 
 - [x] Expand GFM tables beyond smoke fixtures, including malformed delimiters, container interactions, source spans, renderer output, and writer behavior.
 - [x] Expand GFM task-list coverage, including marker source spans, nested list behavior, native source edits, renderer output, and writer behavior.
-- [ ] Expand GFM autolinks and tag-filter coverage.
+- [ ] Expand GFM autolinks and remaining tag-filter coverage.
 - [x] Expand GFM footnote coverage, including source spans, nested block bodies, repeated backrefs, renderer output, and writer behavior.
 - [ ] Expand GFM strikethrough coverage.
 - [ ] Decide which remaining Markdig extensions are in scope: grid tables, emoji, math, diagrams, SmartyPants, citations, custom containers, generic attributes, media links, alerts, advanced links, and list/emphasis extras. Abbreviations are now an in-core partial row that still needs writer and edge-breadth closure.

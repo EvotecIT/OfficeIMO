@@ -739,6 +739,31 @@
     ]
   },
   {
+    "source": "github/cmark-gfm spec.txt tagfilter extension",
+    "section": "HTML tag filter",
+    "topLevelKinds": ["Paragraph", "HtmlRaw"],
+    "markdown": "<strong> <title> <style> <em>\n\n<blockquote>\n  <xmp> is disallowed.  <XMP> is also disallowed.\n</blockquote>\n",
+    "html": "<p><strong> &lt;title> &lt;style> <em></p>\n<blockquote>\n  &lt;xmp> is disallowed.  &lt;XMP> is also disallowed.\n</blockquote>\n",
+    "syntaxAssertions": [
+      {
+        "description": "filtered inline title tags stay source-addressable as raw HTML nodes",
+        "line": 1,
+        "column": 10,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineHtmlRaw"],
+        "expectedDeepestLiteral": "<title>",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "GFM tag filtering is case-insensitive inside raw HTML block bodies",
+        "line": 4,
+        "column": 23,
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawBody"],
+        "expectedDeepestKind": "HtmlRawBody",
+        "expectedNearestBlockKind": "HtmlRaw"
+      }
+    ]
+  },
+  {
     "source": "github/cmark-gfm test/extensions.txt",
     "section": "Task lists",
     "topLevelKinds": ["UnorderedList"],

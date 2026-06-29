@@ -14,10 +14,10 @@ Remove-Item Env:\OFFICEIMO_UPDATE_GFM_INVENTORY
 
 | Metric | Count |
 | --- | ---: |
-| Tracked fixtures | 51 |
-| Upstream cmark-gfm fixtures | 47 |
+| Tracked fixtures | 52 |
+| Upstream cmark-gfm fixtures | 48 |
 | OfficeIMO supplement fixtures | 4 |
-| Passing fixtures | 51 |
+| Passing fixtures | 52 |
 | Failing fixtures | 0 |
 | Intentional deviations | 0 |
 
@@ -28,7 +28,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_GFM_INVENTORY
 | Tables | 26 | 23 | 3 | 26 | 0 | 0 |
 | Strikethroughs | 3 | 3 | 0 | 3 | 0 | 0 |
 | Autolinks | 12 | 11 | 1 | 12 | 0 | 0 |
-| HTML tag filter | 1 | 1 | 0 | 1 | 0 | 0 |
+| HTML tag filter | 2 | 2 | 0 | 2 | 0 | 0 |
 | Task lists | 5 | 5 | 0 | 5 | 0 | 0 |
 | Footnotes | 3 | 3 | 0 | 3 | 0 | 0 |
 | Interop | 1 | 1 | 0 | 1 | 0 | 0 |
@@ -38,6 +38,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_GFM_INVENTORY
 | Source | Tracked | Passing | Failing |
 | --- | ---: | ---: | ---: |
 | github/cmark-gfm spec.txt autolinks extension | 7 | 7 | 0 |
+| github/cmark-gfm spec.txt tagfilter extension | 1 | 1 | 0 |
 | github/cmark-gfm test/extensions.txt | 33 | 33 | 0 |
 | github/cmark-gfm test/spec.txt tables extension | 7 | 7 | 0 |
 | officeimo/gfm-autolink-smoke | 1 | 1 | 0 |
