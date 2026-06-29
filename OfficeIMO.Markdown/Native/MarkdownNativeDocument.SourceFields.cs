@@ -349,6 +349,11 @@ public sealed partial class MarkdownNativeDocument {
             }
 
             for (var definitionOffset = 0; definitionOffset < group.Definitions.Count; definitionOffset++) {
+                var marker = FindDefinitionMarkerNode(group.SyntaxNode, definitionOffset);
+                if (marker?.SourceSpan is { } markerSpan) {
+                    yield return new MarkdownNativeBlockSourceField("definitionMarker", marker.Literal ?? ":", markerSpan, definitionList, definitionIndex);
+                }
+
                 var definition = group.Definitions[definitionOffset];
                 if (definition.SourceSpan.HasValue) {
                     yield return new MarkdownNativeBlockSourceField("definitionBody", definition.Markdown, definition.SourceSpan.Value, definitionList, definitionIndex);
@@ -357,5 +362,26 @@ public sealed partial class MarkdownNativeDocument {
                 definitionIndex++;
             }
         }
+    }
+
+    private static MarkdownSyntaxNode? FindDefinitionMarkerNode(MarkdownSyntaxNode? groupNode, int definitionIndex) {
+        if (groupNode == null || definitionIndex < 0 || groupNode.Children.Count == 0) {
+            return null;
+        }
+
+        var currentIndex = 0;
+        for (var i = 0; i < groupNode.Children.Count; i++) {
+            if (groupNode.Children[i].Kind != MarkdownSyntaxKind.DefinitionMarker) {
+                continue;
+            }
+
+            if (currentIndex == definitionIndex) {
+                return groupNode.Children[i];
+            }
+
+            currentIndex++;
+        }
+
+        return null;
     }
 }

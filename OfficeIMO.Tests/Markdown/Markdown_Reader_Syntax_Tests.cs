@@ -3423,7 +3423,7 @@ Other: Another
         Assert.Equal(1, firstGroup.SourceSpan!.Value.StartLine);
         Assert.Equal(1, firstGroup.SourceSpan!.Value.EndLine);
         Assert.Null(firstGroup.Literal);
-        Assert.Equal(2, firstGroup.Children.Count);
+        Assert.Equal(3, firstGroup.Children.Count);
 
         var firstTerm = firstGroup.Children[0];
         Assert.Equal(MarkdownSyntaxKind.DefinitionTerm, firstTerm.Kind);
@@ -3432,7 +3432,12 @@ Other: Another
         Assert.Equal(1, firstTerm.SourceSpan!.Value.EndLine);
         Assert.Equal("Term", firstTerm.Literal);
 
-        var firstValue = firstGroup.Children[1];
+        var firstMarker = firstGroup.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.DefinitionMarker, firstMarker.Kind);
+        Assert.Equal(":", firstMarker.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 5), firstMarker.SourceSpan);
+
+        var firstValue = firstGroup.Children[2];
         Assert.Equal(MarkdownSyntaxKind.DefinitionValue, firstValue.Kind);
         Assert.NotNull(firstValue.SourceSpan);
         Assert.Equal(1, firstValue.SourceSpan!.Value.StartLine);
@@ -3469,7 +3474,8 @@ Other: `code`
         var definitionList = Assert.Single(result.SyntaxTree.Children);
         var firstGroup = definitionList.Children[0];
         var firstTerm = firstGroup.Children[0];
-        var firstValue = firstGroup.Children[1];
+        var firstMarker = firstGroup.Children[1];
+        var firstValue = firstGroup.Children[2];
         var firstParagraph = Assert.Single(firstValue.Children);
 
         Assert.Equal(new[] { MarkdownSyntaxKind.InlineStrong }, firstTerm.Children.Select(node => node.Kind).ToArray());
@@ -3478,6 +3484,9 @@ Other: `code`
         Assert.Equal(1, firstTerm.Children[0].SourceSpan!.Value.StartColumn);
         Assert.Equal(8, firstTerm.Children[0].SourceSpan!.Value.EndColumn);
         Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, result.FindDeepestNodeAtPosition(1, 1)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.DefinitionMarker, firstMarker.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 9), firstMarker.SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.DefinitionMarker, result.FindDeepestNodeAtPosition(1, 9)!.Kind);
 
         Assert.Equal(new[] {
             MarkdownSyntaxKind.InlineText,
@@ -3511,7 +3520,7 @@ Other: second
 
         var finalDefinitionList = Assert.Single(result.FinalSyntaxTree.Children);
         var finalFirstGroup = finalDefinitionList.Children[0];
-        var finalValue = finalFirstGroup.Children[1];
+        var finalValue = finalFirstGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var finalParagraph = Assert.Single(finalValue.Children);
         var finalText = Assert.Single(finalParagraph.Children);
 
@@ -3544,7 +3553,7 @@ Term: Intro
 
         var definitionList = Assert.Single(result.SyntaxTree.Children);
         var group = Assert.Single(definitionList.Children);
-        var value = group.Children[1];
+        var value = group.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
 
         Assert.Equal(2, value.Children.Count);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, value.Children[0].Kind);
@@ -3606,14 +3615,16 @@ Term: Intro
         Assert.NotNull(providedChildren);
         var providedGroup = Assert.Single(providedChildren!);
         var ownedGroup = Assert.Single(ownedChildren);
+        var providedDefinition = providedGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var ownedDefinition = ownedGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
 
         Assert.Equal(MarkdownSyntaxKind.DefinitionGroup, providedGroup.Kind);
         Assert.Same(group, providedGroup.AssociatedObject);
-        Assert.Same(definition, providedGroup.Children[1].AssociatedObject);
+        Assert.Same(definition, providedDefinition.AssociatedObject);
         Assert.NotSame(providedGroup, ownedGroup);
         Assert.Equal(providedGroup.SourceSpan, ownedGroup.SourceSpan);
         Assert.Same(group, ownedGroup.AssociatedObject);
-        Assert.Same(definition, ownedGroup.Children[1].AssociatedObject);
+        Assert.Same(definition, ownedDefinition.AssociatedObject);
         Assert.Equal(
             ownedChildren.Select(child => child.Kind),
             finalDefinitionList.Children.Select(child => child.Kind));
@@ -3637,13 +3648,13 @@ Term: Intro
         var definition = Assert.Single(group.Definitions);
         var listBlock = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
         var providedGroup = Assert.Single(definitionList.SyntaxItems);
-        var providedDefinitionValue = providedGroup.Children[1];
+        var providedDefinitionValue = providedGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var originalListSyntax = Assert.Single(providedDefinitionValue.Children, child => child.Kind == MarkdownSyntaxKind.UnorderedList);
 
         definition.Blocks.RemoveAt(0);
 
         var ownedGroup = Assert.Single(((IOwnedSyntaxChildrenMarkdownBlock)definitionList).BuildOwnedSyntaxChildren());
-        var ownedDefinitionValue = ownedGroup.Children[1];
+        var ownedDefinitionValue = ownedGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var ownedChildren = ownedDefinitionValue.Children;
 
         Assert.NotSame(providedGroup, ownedGroup);

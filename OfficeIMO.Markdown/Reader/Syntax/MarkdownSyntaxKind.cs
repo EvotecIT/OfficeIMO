@@ -160,6 +160,8 @@ public enum MarkdownSyntaxKind {
     DefinitionItem,
     /// <summary>Definition list term node.</summary>
     DefinitionTerm,
+    /// <summary>Definition list marker token such as <c>:</c>.</summary>
+    DefinitionMarker,
     /// <summary>Definition list definition/content node.</summary>
     DefinitionValue,
     /// <summary>Footnote definition block.</summary>

@@ -539,24 +539,32 @@ Second: Other
         var definitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
 
         var terms = native.EnumerateBlockSourceFields("definitionTerm").ToArray();
+        var markers = native.EnumerateBlockSourceFields("definitionMarker").ToArray();
         var definitions = native.EnumerateBlockSourceFields("definitionBody").ToArray();
 
         Assert.Equal(new[] { "Term", "Second" }, terms.Select(field => field.Value).ToArray());
         Assert.Equal(new[] { 0, 1 }, terms.Select(field => field.Index).ToArray());
+        Assert.Equal(new[] { ":", ":" }, markers.Select(field => field.Value).ToArray());
+        Assert.Equal(new[] { 0, 1 }, markers.Select(field => field.Index).ToArray());
         Assert.Equal(new[] { "Intro\n\n- first", "Other" }, definitions.Select(field => field.Value!.Replace("\r\n", "\n")).ToArray());
         Assert.Equal(new[] { 0, 1 }, definitions.Select(field => field.Index).ToArray());
         Assert.All(terms, field => Assert.Same(definitionList, field.Block));
+        Assert.All(markers, field => Assert.Same(definitionList, field.Block));
         Assert.All(definitions, field => Assert.Same(definitionList, field.Block));
 
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 8), terms[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 9), markers[0].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 11, 3, 9), definitions[0].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 6), terms[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 7, 5, 7), markers[1].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(5, 9, 5, 13), definitions[1].SourceSpan);
 
         AssertEquivalentField(terms[0], native.FindBlockSourceFieldAtPosition(1, 3));
+        AssertEquivalentField(markers[0], native.FindBlockSourceFieldAtPosition(1, 9));
         AssertEquivalentField(definitions[0], native.FindBlockSourceFieldAtPosition(1, 11));
         AssertEquivalentField(definitions[0], native.FindBlockSourceFieldAtPosition(3, 5));
         AssertEquivalentField(terms[1], native.FindBlockSourceFieldAtPosition(5, 2));
+        AssertEquivalentField(markers[1], native.FindBlockSourceFieldAtPosition(5, 7));
         AssertEquivalentField(definitions[1], native.FindBlockSourceFieldAtPosition(5, 9));
         Assert.Null(native.FindBlockSourceFieldAtPosition(4, 1));
 
@@ -566,6 +574,11 @@ Second: Other
             field => {
                 Assert.Equal("definitionTerm", field.Name);
                 Assert.Equal("Term", field.Value);
+                Assert.Equal(0, field.Index);
+            },
+            field => {
+                Assert.Equal("definitionMarker", field.Name);
+                Assert.Equal(":", field.Value);
                 Assert.Equal(0, field.Index);
             },
             field => {
@@ -579,12 +592,18 @@ Second: Other
                 Assert.Equal(1, field.Index);
             },
             field => {
+                Assert.Equal("definitionMarker", field.Name);
+                Assert.Equal(":", field.Value);
+                Assert.Equal(1, field.Index);
+            },
+            field => {
                 Assert.Equal("definitionBody", field.Name);
                 Assert.Equal("Other", field.Value);
                 Assert.Equal(1, field.Index);
             });
 
         Assert.StartsWith("**Topic**: Intro", native.CreateReplaceEdit(terms[0], "**Topic**").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("Second=> Other", native.CreateReplaceEdit(markers[1], "=>").Apply(native.SourceMarkdown), StringComparison.Ordinal);
         Assert.Contains("Second: Updated", native.CreateReplaceEdit(definitions[1], "Updated").Apply(native.SourceMarkdown), StringComparison.Ordinal);
 
         static void AssertEquivalentField(MarkdownNativeBlockSourceField expected, MarkdownNativeBlockSourceField? actual) {

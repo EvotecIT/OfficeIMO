@@ -53,6 +53,12 @@ public static partial class MarkdownReader {
                     termStartIndex + 1,
                     lineNumber,
                     Math.Max(termStartIndex + 1, termEndExclusive));
+                var markerSpan = CreateSpan(
+                    state,
+                    lineNumber,
+                    idx + 1,
+                    lineNumber,
+                    idx + 1);
                 var definitionSpan = CreateSpan(
                     state,
                     lineNumber,
@@ -87,6 +93,10 @@ public static partial class MarkdownReader {
                     termSpan,
                     term,
                     associatedObject: termObject);
+                var markerNode = new MarkdownSyntaxNode(
+                    MarkdownSyntaxKind.DefinitionMarker,
+                    markerSpan,
+                    ":");
                 var valueNode = new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.DefinitionValue,
                     definitionSpan,
@@ -100,6 +110,7 @@ public static partial class MarkdownReader {
                         MarkdownBlockSyntaxBuilder.GetAggregateSpan(new[] { termNode, valueNode }),
                         children: new[] {
                             termNode,
+                            markerNode,
                             valueNode
                         },
                         associatedObject: group));
@@ -137,7 +148,7 @@ public static partial class MarkdownReader {
         while (cursor < lines.Length &&
                TryCollectMarkdigDefinitionTerms(lines, cursor, out markerIndex, out terms)) {
             var definitions = new List<DefinitionListDefinition>();
-            var definitionNodes = new List<MarkdownSyntaxNode>();
+            var definitionNodes = new List<(MarkdownSyntaxNode Marker, MarkdownSyntaxNode Definition)>();
             cursor = markerIndex;
 
             while (cursor < lines.Length &&
@@ -149,11 +160,12 @@ public static partial class MarkdownReader {
                     definitionStartIndex,
                     options,
                     state,
+                    out var markerNode,
                     out var definitionNode);
 
-                if (definition != null && definitionNode != null) {
+                if (definition != null && markerNode != null && definitionNode != null) {
                     definitions.Add(definition);
-                    definitionNodes.Add(definitionNode);
+                    definitionNodes.Add((markerNode, definitionNode));
                 }
 
                 bool skippedBlankBeforeNextDefinition = false;
@@ -194,7 +206,11 @@ public static partial class MarkdownReader {
                     associatedObject: termObject));
             }
 
-            groupChildren.AddRange(definitionNodes);
+            for (int definitionIndex = 0; definitionIndex < definitionNodes.Count; definitionIndex++) {
+                groupChildren.Add(definitionNodes[definitionIndex].Marker);
+                groupChildren.Add(definitionNodes[definitionIndex].Definition);
+            }
+
             dl.AddParsedGroup(
                 group,
                 new MarkdownSyntaxNode(
@@ -324,9 +340,20 @@ public static partial class MarkdownReader {
         int definitionStartIndex,
         MarkdownReaderOptions options,
         MarkdownReaderState state,
+        out MarkdownSyntaxNode? markerNode,
         out MarkdownSyntaxNode? definitionNode) {
         var line = lines[index] ?? string.Empty;
         int lineNumber = state.SourceLineOffset + index + 1;
+        var markerSpan = CreateSpan(
+            state,
+            lineNumber,
+            markerIndent + 1,
+            lineNumber,
+            markerIndent + 1);
+        markerNode = new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.DefinitionMarker,
+            markerSpan,
+            ":");
         int definitionEndExclusive = line.Length;
         while (definitionEndExclusive > definitionStartIndex && char.IsWhiteSpace(line[definitionEndExclusive - 1])) {
             definitionEndExclusive--;
@@ -352,6 +379,7 @@ public static partial class MarkdownReader {
         index = next;
 
         if (definitionSourceLines.Count == 0) {
+            markerNode = null;
             definitionNode = null;
             return null;
         }

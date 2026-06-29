@@ -123,14 +123,18 @@ Term 2
             new[] {
                 MarkdownSyntaxKind.DefinitionTerm,
                 MarkdownSyntaxKind.DefinitionTerm,
+                MarkdownSyntaxKind.DefinitionMarker,
                 MarkdownSyntaxKind.DefinitionValue,
+                MarkdownSyntaxKind.DefinitionMarker,
                 MarkdownSyntaxKind.DefinitionValue
             },
             syntaxGroup.Children.Select(child => child.Kind).ToArray());
         Assert.Same(group.TermItems[0], syntaxGroup.Children[0].AssociatedObject);
         Assert.Same(group.TermItems[1], syntaxGroup.Children[1].AssociatedObject);
-        Assert.Same(group.Definitions[0], syntaxGroup.Children[2].AssociatedObject);
-        Assert.Same(group.Definitions[1], syntaxGroup.Children[3].AssociatedObject);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 1), syntaxGroup.Children[2].SourceSpan);
+        Assert.Same(group.Definitions[0], syntaxGroup.Children[3].AssociatedObject);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 1), syntaxGroup.Children[4].SourceSpan);
+        Assert.Same(group.Definitions[1], syntaxGroup.Children[5].AssociatedObject);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
@@ -401,11 +405,13 @@ Term 2
         var ownedGroup = Assert.Single(((IOwnedSyntaxChildrenMarkdownBlock)definitionList).BuildOwnedSyntaxChildren());
         var syntaxTree = MarkdownReader.BuildSyntaxTree(result.Document);
         var rebuiltGroup = Assert.Single(Assert.Single(syntaxTree.Children).Children);
-        var definitionValue = rebuiltGroup.Children[1];
+        var definitionMarker = rebuiltGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionMarker);
+        var definitionValue = rebuiltGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraph = Assert.Single(definitionValue.Children);
 
         Assert.NotSame(providedGroup, ownedGroup);
         Assert.NotSame(providedGroup, rebuiltGroup);
+        Assert.Equal(":", definitionMarker.Literal);
         Assert.Equal("second", definitionValue.Literal);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
         Assert.Same(entry.DefinitionBlocks[0], paragraph.AssociatedObject);

@@ -424,6 +424,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
                 var definition = group.Definitions[definitionIndex] ?? new DefinitionListDefinition();
                 var definitionLiteral = definition.RenderMarkdown();
                 var cachedDefinition = FindCachedDefinitionValue(cachedGroup, group.TermItems.Count + definitionIndex, definition);
+                var cachedMarker = FindCachedDefinitionMarker(cachedGroup, definitionIndex, cachedDefinition);
                 var definitionChildren = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(
                     cachedDefinition?.Children,
                     definition.Blocks);
@@ -434,6 +435,10 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
                         MarkdownSyntaxKind.Paragraph,
                         fallbackInlines,
                         literal: definitionLiteral) };
+                }
+
+                if (cachedMarker != null) {
+                    groupChildren.Add(MarkdownBlockSyntaxBuilder.CloneSyntaxNode(cachedMarker));
                 }
 
                 groupChildren.Add(new MarkdownSyntaxNode(
@@ -512,6 +517,39 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         return null;
     }
 
+    private static MarkdownSyntaxNode? FindCachedDefinitionMarker(
+        MarkdownSyntaxNode? cachedGroup,
+        int definitionIndex,
+        MarkdownSyntaxNode? cachedDefinition) {
+        if (cachedGroup == null || definitionIndex < 0 || cachedGroup.Children.Count == 0) {
+            return null;
+        }
+
+        if (cachedDefinition != null) {
+            for (int i = 1; i < cachedGroup.Children.Count; i++) {
+                if (ReferenceEquals(cachedGroup.Children[i], cachedDefinition) &&
+                    cachedGroup.Children[i - 1].Kind == MarkdownSyntaxKind.DefinitionMarker) {
+                    return cachedGroup.Children[i - 1];
+                }
+            }
+        }
+
+        int markerIndex = 0;
+        for (int i = 0; i < cachedGroup.Children.Count; i++) {
+            if (cachedGroup.Children[i].Kind != MarkdownSyntaxKind.DefinitionMarker) {
+                continue;
+            }
+
+            if (markerIndex == definitionIndex) {
+                return cachedGroup.Children[i];
+            }
+
+            markerIndex++;
+        }
+
+        return null;
+    }
+
     private static bool IsSyntaxDefinitionValueForDefinition(MarkdownSyntaxNode? syntaxNode, DefinitionListDefinition definition) =>
         syntaxNode != null &&
         syntaxNode.Kind == MarkdownSyntaxKind.DefinitionValue &&
@@ -533,15 +571,21 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
                 return false;
             }
 
-            var expectedChildCount = group.TermItems.Count + group.Definitions.Count;
-            if (syntaxGroup.Children.Count != expectedChildCount) {
+            var termChildren = syntaxGroup.Children
+                .Where(static child => child.Kind == MarkdownSyntaxKind.DefinitionTerm)
+                .ToArray();
+            var definitionChildren = syntaxGroup.Children
+                .Where(static child => child.Kind == MarkdownSyntaxKind.DefinitionValue)
+                .ToArray();
+            if (termChildren.Length != group.TermItems.Count ||
+                definitionChildren.Length != group.Definitions.Count) {
                 return false;
             }
 
             for (int termIndex = 0; termIndex < group.TermItems.Count; termIndex++) {
                 var termObject = group.TermItems[termIndex] ?? new DefinitionListTerm();
                 var term = termObject.Inlines ?? new InlineSequence();
-                var syntaxTerm = syntaxGroup.Children[termIndex];
+                var syntaxTerm = termChildren[termIndex];
                 if (syntaxTerm.Kind != MarkdownSyntaxKind.DefinitionTerm
                     || !ReferenceEquals(syntaxTerm.AssociatedObject, termObject)
                     || !string.Equals(syntaxTerm.Literal ?? string.Empty, term.RenderMarkdown(), StringComparison.Ordinal)) {
@@ -551,7 +595,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
 
             for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
                 var definition = group.Definitions[definitionIndex] ?? new DefinitionListDefinition();
-                var syntaxDefinition = syntaxGroup.Children[group.TermItems.Count + definitionIndex];
+                var syntaxDefinition = definitionChildren[definitionIndex];
                 if (syntaxDefinition.Kind != MarkdownSyntaxKind.DefinitionValue
                     || !ReferenceEquals(syntaxDefinition.AssociatedObject, definition)
                     || !string.Equals(syntaxDefinition.Literal ?? string.Empty, definition.RenderMarkdown(), StringComparison.Ordinal)) {
