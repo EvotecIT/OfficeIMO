@@ -124,6 +124,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleShadingFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleShading();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(
+                result.Document.Paragraphs,
+                item => item.Text == "Styled Shading");
+            Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
+            Assert.Equal("LegacyDocCustomShadedBody", paragraph.StyleId);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == "LegacyDocCustomShadedBody");
+
+            StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(customStyle.GetFirstChild<StyleParagraphProperties>());
+            Shading shading = Assert.IsType<Shading>(paragraphProperties.GetFirstChild<Shading>());
+            Assert.Equal(ShadingPatternValues.Clear, shading.Val!.Value);
+            Assert.Equal("auto", shading.Color!.Value);
+            Assert.Equal("ff0000", shading.Fill!.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleFontFamilyFromStyleSheet() {
             byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleFontFamily();
 
@@ -221,6 +246,7 @@ namespace OfficeIMO.Tests {
             private const ushort SprmPJc = 0x2461;
             private const ushort SprmPDxaLeft = 0x840F;
             private const ushort SprmPDyaAfter = 0xA414;
+            private const ushort SprmPShd80 = 0x442D;
             private const ushort SprmPFWidowControl = 0x2431;
             private const ushort SprmCFBold = 0x0835;
             private const ushort SprmCFItalic = 0x0836;
@@ -287,6 +313,36 @@ namespace OfficeIMO.Tests {
                             CreateParagraphSprm(SprmPFKeepFollow, 1),
                             CreateParagraphSprm(SprmPFPageBreakBefore, 1),
                             CreateParagraphSprm(SprmPFWidowControl, 1)),
+                        characterUpx: null)
+                });
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(CustomStyleIndex)
+                    },
+                    styleSheet.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateDocWithCustomParagraphStyleShading() {
+                const string text = "Styled Shading\rBody\r";
+                ushort redBackground = CreateShd80(backgroundIco: 6);
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
+                    [CustomStyleIndex] = new LegacyDocStyleDefinition(
+                        "Custom Shaded Body",
+                        basedOnStyleIndex: 0,
+                        paragraphUpx: CreateStyleParagraphUpx(CreateParagraphSprm(
+                            SprmPShd80,
+                            (byte)(redBackground & 0xFF),
+                            (byte)(redBackground >> 8))),
                         characterUpx: null)
                 });
                 byte[] wordDocumentStream = CreateWordDocumentStream(
@@ -589,6 +645,10 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(bytes, 0, sprm);
                 Buffer.BlockCopy(operand, 0, bytes, 2, operand.Length);
                 return bytes;
+            }
+
+            private static ushort CreateShd80(byte backgroundIco) {
+                return (ushort)(backgroundIco << 5);
             }
 
             private static byte[] CreateStyleParagraphUpx(params byte[][] sprms) {

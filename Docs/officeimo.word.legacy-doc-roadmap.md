@@ -279,6 +279,9 @@ just to reserve names.
   - [x] Project simple palette-backed direct PAPX paragraph shading from DOC
     `sprmPShd80` into normal OfficeIMO paragraphs with synthetic legacy DOC
     fixture proof.
+  - [x] Project simple palette-backed stylesheet paragraph shading from DOC
+    `sprmPShd80` into custom DOCX style definitions with synthetic legacy DOC
+    fixture proof.
   - [x] Project direct PAPX paragraph tab-stop changes, including clear stops,
     into normal OfficeIMO paragraph `TabStops` with synthetic legacy DOC fixture
     proof.
