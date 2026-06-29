@@ -25,6 +25,45 @@ Parity is not "more tests." Tests are the measuring system. Parity means the reu
 - [ ] **AST/source/lossless parity is not closed.** Full trivia capture, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, broader source edits, and extension-node roundtrip still need work.
 - [ ] **Performance parity is not known.** Release-mode benchmark comparisons should run after parser/source/writer behavior stops moving.
 
+## Missing Work By Kind
+
+- [ ] **Engine work: finish real Markdown grammar gaps.**
+  - [ ] `UseGenericAttributes`: arbitrary block-family attachment, every Markdig-supported inline-family target, no-space bare-URL behavior, and writer/source preservation across those shapes.
+  - [ ] `UseCustomContainers`: colon-fenced container parsing, nested child-block source ownership, renderer/writer seams, and Markdig comparison fixtures.
+  - [ ] `UseGridTables`: grid-table parser, semantic table model, malformed fallback, source spans, HTML rendering, and Markdown writer behavior.
+  - [ ] `UseListExtras`: inventory Markdig list-extra syntax first, then decide whether it is core list behavior or an optional parser extension.
+  - [ ] `UseCjkFriendlyEmphasis`: Markdig-compatible delimiter option with CJK comparison and delimiter source-token proof.
+
+- [ ] **Engine-plus-proof work: promote partial rows that already mostly exist.**
+  - [ ] `UseDefinitionLists`: close remaining source-map and writer edge breadth for marker groups, lazy continuation, loose definitions, nested bodies, multiline bodies, and reparse stability.
+  - [ ] `UseAlertBlocks`: align callout/alert AST fields, source spans, renderer customization, writer output, and Markdig/GFM comparison behavior.
+  - [ ] `UseFigures`: separate HTML-import figure recovery from Markdown figure syntax, then prove parser, renderer, writer, and source behavior.
+  - [ ] `UseMathematics`: decide inline/block math delimiter ownership, then add AST/source/native/writer and renderer handoff contracts.
+  - [ ] `UseMediaLinks`: decide provider model and safe renderer policy for shortcut media links before adding parser behavior.
+
+- [ ] **AST/source architecture work: make the app editor-grade, not just renderer-grade.**
+  - [ ] Canonicalize duplicated semantic/syntax shapes for lists, tables, definition lists, callouts, footnotes, front matter, and extension nodes.
+  - [ ] Finish syntax association for semantic subobjects such as callout titles, list-item paragraph blocks, definition-list groups, and sequence-style inline wrappers.
+  - [ ] Capture lossless trivia: whitespace, blank lines, tabs, delimiters, raw slices, normalized text, and generated-node diagnostics.
+  - [ ] Complete delimiter-token coverage for emphasis extras, links/images, escapes/entities, breaks, HTML, footnotes, front matter, tables, and extension nodes.
+  - [ ] Establish one original-to-normalized mapping story for CRLF/LF/CR, tab expansion, nested containers, generated nodes, and normalized paragraph text.
+  - [ ] Broaden `MarkdownRoundtripWriter` beyond unchanged documents and explicit native edits, with precise fallback diagnostics.
+
+- [ ] **Renderer/writer/security work: keep policies explicit.**
+  - [ ] Finish source-aware extension seams for custom blocks, inlines, transforms, renderers, and writers without downstream string rescanning.
+  - [ ] Separate raw HTML grammar from security policy: CommonMark HTML, GFM tag filtering, allow/strip/escape/sanitize modes, URL policy, source metadata, and Markdown writing.
+  - [ ] Bound renderer/host rows (`UseDiagrams`, `UseFigures`, `UseMathematics`, `UseMediaLinks`, `UseReferralLinks`) before implementing them as parser features.
+
+- [ ] **Optional/deferred rows: do not let them masquerade as current parity blockers.**
+  - [ ] Optional extension candidates: `UseEmojiAndSmiley`, `UseJiraLinks`, `UseSmartyPants`.
+  - [ ] Deferred until real consumer need: `UseCitations`, `UseFooters`, `UseGlobalization`, `UsePragmaLines`.
+  - [ ] Intentional differences to keep documented, not implemented as Markdig clones: `UseAdvancedExtensions`, `UseBootstrap`, `UseSelfPipeline`.
+
+- [ ] **Proof-only work: useful after behavior exists.**
+  - [ ] Broaden GFM fixture breadth beyond the current 52 tracked fixtures.
+  - [ ] Refresh Markdig inventory rows after each engine slice.
+  - [ ] Run release-mode benchmarks only after correctness and source behavior settle.
+
 ## Non-Looping Execution Rules
 
 - [ ] Pick exactly one primary row before starting a slice: one Markdig extension family, GFM breadth, AST/source/lossless, renderer/writer seams, security/profile policy, or performance.
@@ -37,13 +76,13 @@ Parity is not "more tests." Tests are the measuring system. Parity means the reu
 ## P0 - Active Slice
 
 - [ ] **Finish `UseGenericAttributes`.**
-  Covered now: fenced code, headings, paragraphs, consumed paragraph separator whitespace, thematic-break-like attributed paragraphs, root/nested/blockquote list items, task-list interaction, pipe-table promotion, definition-list term projection, definition-list definition-value consumption, inline links/images/common emphasis/code spans, raw inline HTML consumption, footnote-definition paragraph attributes, and footnote-reference attribute consumption.
+  Covered now: fenced code, headings, paragraphs, consumed paragraph separator whitespace, thematic-break-like attributed paragraphs including dash/asterisk/underscore spellings, root/nested/blockquote list items, task-list interaction, pipe-table promotion, definition-list term projection, definition-list definition-value consumption, inline links/reference links/images/reference images/linked images/common emphasis/code spans/angle autolinks/superscript/subscript, raw inline HTML consumption, footnote-definition paragraph attributes, footnote-reference attribute consumption, and Markdig-compatible literal handling for strikethrough/highlight/inserted emphasis-extra attribute blocks.
   Missing before promotion:
   - [ ] Probe the remaining Markdig-supported block and inline shapes before writing code.
   - [ ] Implement only shapes Markdig actually consumes or projects as generic attributes.
   - [ ] Use shared attribute parser/writer helpers instead of per-block string rescans.
   - [ ] Project each newly supported shape through semantic AST, syntax AST, native source fields/metadata, HTML rendering, Markdown writing, and preserved-trivia source edits.
-  - [ ] Document unsupported or intentional differences instead of leaving silent gaps.
+  - [ ] Document unsupported or intentional differences instead of leaving silent gaps, including no-space bare-URL paragraph attributes.
 
 ## P1 - Markdig Extension Rows
 
@@ -114,4 +153,4 @@ Parity is not "more tests." Tests are the measuring system. Parity means the reu
 - [x] `UseTaskLists` moved to covered.
 - [x] `UseFootnotes` moved to covered.
 - [x] CommonMark `0.31.2` full inventory moved to green.
-- [x] `UseGenericAttributes` moved through fenced code, headings, paragraphs, common inline elements, pipe tables, blockquote behavior bounds, list items, task-list interaction, footnotes, paragraph separator whitespace, raw inline HTML/image edges, and definition-list interactions.
+- [x] `UseGenericAttributes` moved through fenced code, headings, paragraphs, common inline elements, reference links/images, angle autolinks, pipe tables, blockquote behavior bounds, list items, task-list interaction, footnotes, paragraph separator whitespace, raw inline HTML/image edges, emphasis-extra parity bounds, and definition-list interactions.

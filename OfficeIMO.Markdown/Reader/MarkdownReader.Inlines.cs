@@ -1111,12 +1111,6 @@ public static partial class MarkdownReader {
             or ItalicSequenceInline
             or BoldItalicInline
             or BoldItalicSequenceInline
-            or StrikethroughInline
-            or StrikethroughSequenceInline
-            or HighlightInline
-            or HighlightSequenceInline
-            or InsertedInline
-            or InsertedSequenceInline
             or SuperscriptInline
             or SuperscriptSequenceInline
             or SubscriptInline

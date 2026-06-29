@@ -95,6 +95,68 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Reference_Image_And_Autolink_GenericAttribute_Tokens() {
+        const string markdown = "[site][id]{#lnk .primary} ![alt][img]{#img .wide} <https://example.com>{#auto .wide}\n\n[id]: https://example.com\n[img]: img.png\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var links = result.FinalSyntaxTree.Descendants()
+            .Where(node => node.Kind == MarkdownSyntaxKind.InlineLink)
+            .ToArray();
+        var image = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.InlineImage);
+        var referenceLink = Assert.Single(links, node => node.Attributes.ElementId == "lnk");
+        var angleAutolink = Assert.Single(links, node => node.Attributes.ElementId == "auto");
+
+        AssertGenericAttributeToken(result, referenceLink, "{#lnk .primary}", new MarkdownSourceSpan(1, 11, 1, 25));
+        AssertGenericAttributeToken(result, image, "{#img .wide}", new MarkdownSourceSpan(1, 38, 1, 49));
+        AssertGenericAttributeToken(result, angleAutolink, "{#auto .wide}", new MarkdownSourceSpan(1, 72, 1, 84));
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[0]);
+        var nativeReferenceLink = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Link && inline.Text == "site");
+        var nativeImage = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Image);
+        var nativeAutolink = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Link && inline.Text == "https://example.com");
+
+        Assert.Equal("{#lnk .primary}", Assert.Single(nativeReferenceLink.Metadata, metadata => metadata.Name == "attributes").Value);
+        Assert.Equal("{#img .wide}", Assert.Single(nativeImage.Metadata, metadata => metadata.Name == "attributes").Value);
+        Assert.Equal("{#auto .wide}", Assert.Single(nativeAutolink.Metadata, metadata => metadata.Name == "attributes").Value);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Keeps_Strike_Highlight_And_Inserted_GenericAttributes_Literal() {
+        const string markdown = "~~gone~~{#s .strike} ==mark=={#m .mark} ++ins++{#i .insert}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        Assert.All(
+            result.FinalSyntaxTree.Descendants().Where(node =>
+                node.Kind == MarkdownSyntaxKind.InlineStrikethrough ||
+                node.Kind == MarkdownSyntaxKind.InlineHighlight ||
+                node.Kind == MarkdownSyntaxKind.InlineInserted),
+            node => Assert.True(node.Attributes.IsEmpty));
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        Assert.Empty(native.EnumerateInlineMetadata("attributes"));
+    }
+
+    [Fact]
     public void FootnoteReference_GenericAttributes_Are_Consumed_Without_Metadata() {
         const string markdown = "See note[^a]{#ref .wide}\n\n[^a]: Footnote\n";
         var options = new MarkdownReaderOptions {
@@ -229,5 +291,22 @@ public class Markdown_GenericAttributes_Syntax_Tests {
 
         Assert.Contains("Term {#label .tag}", roundtrip.Markdown, StringComparison.Ordinal);
         Assert.Contains(":   Definition {#def .wide}", roundtrip.Markdown, StringComparison.Ordinal);
+    }
+
+    private static void AssertGenericAttributeToken(
+        MarkdownParseResult result,
+        MarkdownSyntaxNode owner,
+        string expectedLiteral,
+        MarkdownSourceSpan expectedSpan) {
+        var attributes = Assert.Single(owner.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        Assert.Equal(expectedLiteral, attributes.Literal);
+        Assert.Equal(expectedSpan, attributes.SourceSpan);
+        if (owner.SourceSpan.HasValue) {
+            Assert.True(owner.SourceSpan.Value.Contains(attributes.SourceSpan!.Value));
+        }
+
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal(expectedLiteral, slice.Text);
     }
 }

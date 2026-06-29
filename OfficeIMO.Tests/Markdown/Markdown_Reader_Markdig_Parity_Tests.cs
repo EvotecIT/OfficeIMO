@@ -308,6 +308,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "paragraph-id-class-title", "Paragraph {#intro .wide title=\"Overview\"}" };
         yield return new object[] { "thematic-break-like-line-is-attributed-paragraph", "--- {#hr .wide}" };
         yield return new object[] { "asterisk-thematic-break-like-line-is-attributed-paragraph", "*** {#hr .wide}" };
+        yield return new object[] { "underscore-thematic-break-like-line-is-attributed-paragraph", "___ {#hr .wide}" };
         yield return new object[] { "blockquote-paragraph-attribute-stays-literal", "> quote {#q .lead}" };
         yield return new object[] { "blockquote-atx-heading-attribute-stays-literal", "> # Heading {#h .wide}" };
         yield return new object[] { "blockquote-setext-heading-attribute-stays-literal", "> Heading {#h .wide}\n> -------" };
@@ -323,6 +324,28 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "inline-image-id-class", "![alt](img.png){#img .wide}" };
         yield return new object[] { "linked-image-id-class", "[![alt](img.png)](https://example.com){#linked .wide}" };
         yield return new object[] { "inline-html-span-attribute-stays-literal", "<span>hi</span>{#span .wide}" };
+    }
+
+    public static IEnumerable<object[]> GenericAttributesReferenceExtensionCases() {
+        yield return new object[] { "full-reference-link", "[site][id]{#lnk .primary}\n\n[id]: https://example.com" };
+        yield return new object[] { "collapsed-reference-link", "[site][]{#lnk .primary}\n\n[site]: https://example.com" };
+        yield return new object[] { "shortcut-reference-link", "[site]{#lnk .primary}\n\n[site]: https://example.com" };
+        yield return new object[] { "full-reference-image", "![alt][img]{#img .wide}\n\n[img]: img.png" };
+        yield return new object[] { "collapsed-reference-image", "![img][]{#img .wide}\n\n[img]: img.png" };
+        yield return new object[] { "shortcut-reference-image", "![img]{#img .wide}\n\n[img]: img.png" };
+    }
+
+    public static IEnumerable<object[]> GenericAttributesAutoLinksExtensionCases() {
+        yield return new object[] { "angle-url-autolink", "<https://example.com>{#auto .wide}" };
+        yield return new object[] { "angle-email-autolink", "<user@example.com>{#mail .wide}" };
+    }
+
+    public static IEnumerable<object[]> GenericAttributesEmphasisExtrasExtensionCases() {
+        yield return new object[] { "strikethrough", "~~gone~~{#s .strike}" };
+        yield return new object[] { "highlight", "==mark=={#m .mark}" };
+        yield return new object[] { "inserted", "++ins++{#i .insert}" };
+        yield return new object[] { "superscript", "^sup^{#sup .high}" };
+        yield return new object[] { "subscript", "~sub~{#sub .low}" };
     }
 
     public static IEnumerable<object[]> GenericAttributesPipeTableExtensionCases() {
@@ -538,6 +561,92 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
         officeOptions.GenericAttributes = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(GenericAttributesReferenceExtensionCases))]
+    public void MarkdownReader_GenericAttributes_On_Reference_Links_And_Images_Match_Markdig_Extension(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseGenericAttributes(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.GenericAttributes = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(GenericAttributesAutoLinksExtensionCases))]
+    public void MarkdownReader_GenericAttributes_On_Autolinks_Match_Markdig_Extensions(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false,
+            PercentEncodeTildeInUrlAttributes = true
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseAutoLinks(builder);
+        Markdig.MarkdownExtensions.UseGenericAttributes(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        officeOptions.GenericAttributes = true;
+        officeOptions.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
+        officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
+        officeOptions.AutolinkKeepTrailingSemicolonPunctuation = true;
+        officeOptions.AutolinkRejectUnderscoreInWwwHost = true;
+        officeOptions.AutolinkRejectUnderscoreInUrlHost = true;
+        officeOptions.AutolinkRejectUserInfoAuthority = true;
+        officeOptions.AutolinkAllowClosingBracketInUrl = true;
+        officeOptions.AutolinkKeepTrailingQuotePunctuation = true;
+        officeOptions.AutolinkEmails = false;
+        officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
+        officeOptions.AutolinkBareMailtoMarkdigSemicolonHandling = true;
+        officeOptions.AutolinkValidPreviousCharacters = "_('";
+        officeOptions.AutolinkBareSchemePrefixes = new[] { "mailto:", "ftp://", "tel:" };
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(GenericAttributesEmphasisExtrasExtensionCases))]
+    public void MarkdownReader_GenericAttributes_On_EmphasisExtras_Match_Markdig_Extensions(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseEmphasisExtras(builder);
+        Markdig.MarkdownExtensions.UseGenericAttributes(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.GenericAttributes = true;
+        officeOptions.Subscript = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
