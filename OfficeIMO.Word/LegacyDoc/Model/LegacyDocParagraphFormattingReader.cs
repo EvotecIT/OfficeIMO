@@ -3,6 +3,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const int OleSectorSize = 512;
         private const int PapxFkpBxLength = 13;
         private const ushort SprmPIstd = 0x4600;
+        private const ushort SprmPFKeep = 0x2405;
+        private const ushort SprmPFKeepFollow = 0x2406;
+        private const ushort SprmPFPageBreakBefore = 0x2407;
         private const ushort SprmPJc = 0x2461;
         private const ushort SprmPJc80 = 0x2403;
         private const ushort SprmPDxaRight = 0x840E;
@@ -11,6 +14,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPDyaLine = 0x6412;
         private const ushort SprmPDyaBefore = 0xA413;
         private const ushort SprmPDyaAfter = 0xA414;
+        private const ushort SprmPFWidowControl = 0x2431;
 
         internal static IReadOnlyList<LegacyDocParagraphFormatRange> ReadParagraphFormatting(
             byte[] wordDocumentStream,
@@ -129,6 +133,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? leftIndentTwips = null;
             int? rightIndentTwips = null;
             int? firstLineIndentTwips = null;
+            bool? keepLinesTogether = null;
+            bool? keepWithNext = null;
+            bool? pageBreakBefore = null;
+            bool? avoidWidowAndOrphan = null;
             ushort? styleIndex = baseStyleIndex;
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
@@ -139,6 +147,31 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                     styleIndex = LegacyDocFib.ReadUInt16(bytes, offset + 2);
                     offset += 4;
+                    continue;
+                }
+
+                if (sprm == SprmPFKeep || sprm == SprmPFKeepFollow || sprm == SprmPFPageBreakBefore || sprm == SprmPFWidowControl) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    bool? value = ReadBoolOperand(bytes[offset + 2]);
+                    switch (sprm) {
+                        case SprmPFKeep:
+                            keepLinesTogether = value;
+                            break;
+                        case SprmPFKeepFollow:
+                            keepWithNext = value;
+                            break;
+                        case SprmPFPageBreakBefore:
+                            pageBreakBefore = value;
+                            break;
+                        case SprmPFWidowControl:
+                            avoidWidowAndOrphan = value;
+                            break;
+                    }
+
+                    offset += 3;
                     continue;
                 }
 
@@ -210,7 +243,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 lineSpacingTwips,
                 leftIndentTwips,
                 rightIndentTwips,
-                firstLineIndentTwips);
+                firstLineIndentTwips,
+                keepLinesTogether,
+                keepWithNext,
+                pageBreakBefore,
+                avoidWidowAndOrphan);
+        }
+
+        private static bool? ReadBoolOperand(byte value) {
+            return value == 0 ? null : true;
         }
 
         private static LegacyDocParagraphAlignment? MapAlignment(byte value) {

@@ -245,6 +245,22 @@ namespace OfficeIMO.Word {
                     paragraph.IndentationFirstLine = paragraphFormat.FirstLineIndentTwips;
                 }
             }
+
+            if (paragraphFormat.KeepLinesTogether == true) {
+                paragraph.KeepLinesTogether = true;
+            }
+
+            if (paragraphFormat.KeepWithNext == true) {
+                paragraph.KeepWithNext = true;
+            }
+
+            if (paragraphFormat.PageBreakBefore == true) {
+                paragraph.PageBreakBefore = true;
+            }
+
+            if (paragraphFormat.AvoidWidowAndOrphan == true) {
+                paragraph.AvoidWidowAndOrphan = true;
+            }
         }
 
         private static void ApplyLegacyDocParagraphStyle(WordParagraph paragraph, ushort styleIndex, LegacyDocStyleSheet styleSheet) {
@@ -380,6 +396,26 @@ namespace OfficeIMO.Word {
 
             if (indentation != null) {
                 properties.Append(indentation);
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.KeepLinesTogether == true) {
+                properties.Append(new KeepLines());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.KeepWithNext == true) {
+                properties.Append(new KeepNext());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.PageBreakBefore == true) {
+                properties.Append(new PageBreakBefore());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.AvoidWidowAndOrphan == true) {
+                properties.Append(new WidowControl());
                 hasProperties = true;
             }
 

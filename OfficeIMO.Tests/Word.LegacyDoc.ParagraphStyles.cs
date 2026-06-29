@@ -99,6 +99,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStylePaginationFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStylePaginationFlags();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(
+                result.Document.Paragraphs,
+                item => item.Text == "Styled Pagination");
+            Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
+            Assert.Equal("LegacyDocCustomPaginationBody", paragraph.StyleId);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == "LegacyDocCustomPaginationBody");
+
+            StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(customStyle.GetFirstChild<StyleParagraphProperties>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<KeepLines>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<KeepNext>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<PageBreakBefore>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<WidowControl>());
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleFontFamilyFromStyleSheet() {
             byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleFontFamily();
 
@@ -188,9 +213,13 @@ namespace OfficeIMO.Tests {
             private const int StyleSheetOffset = 64;
             private const int FontTableOffset = 512;
             private const ushort SprmPIstd = 0x4600;
+            private const ushort SprmPFKeep = 0x2405;
+            private const ushort SprmPFKeepFollow = 0x2406;
+            private const ushort SprmPFPageBreakBefore = 0x2407;
             private const ushort SprmPJc = 0x2461;
             private const ushort SprmPDxaLeft = 0x840F;
             private const ushort SprmPDyaAfter = 0xA414;
+            private const ushort SprmPFWidowControl = 0x2431;
             private const ushort SprmCFBold = 0x0835;
             private const ushort SprmCFItalic = 0x0836;
             private const ushort SprmCFStrike = 0x0837;
@@ -234,6 +263,36 @@ namespace OfficeIMO.Tests {
                     FontTableOffset,
                     fontTable.Length);
                 byte[] tableStream = CreateTableStream(text.Length, styleSheet, fontTable);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateDocWithCustomParagraphStylePaginationFlags() {
+                const string text = "Styled Pagination\rBody\r";
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
+                    [CustomStyleIndex] = new LegacyDocStyleDefinition(
+                        "Custom Pagination Body",
+                        basedOnStyleIndex: 0,
+                        paragraphUpx: CreateStyleParagraphUpx(
+                            CreateParagraphSprm(SprmPFKeep, 1),
+                            CreateParagraphSprm(SprmPFKeepFollow, 1),
+                            CreateParagraphSprm(SprmPFPageBreakBefore, 1),
+                            CreateParagraphSprm(SprmPFWidowControl, 1)),
+                        characterUpx: null)
+                });
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(CustomStyleIndex)
+                    },
+                    styleSheet.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet);
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {

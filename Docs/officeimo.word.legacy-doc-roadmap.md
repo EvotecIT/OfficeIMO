@@ -248,6 +248,10 @@ just to reserve names.
   - [x] Project direct CHPX superscript/subscript runs plus stylesheet-level
     superscript run formatting into normal OfficeIMO runs and custom DOCX style
     definitions with synthetic legacy DOC fixture proof.
+  - [x] Project direct PAPX paragraph pagination flags plus stylesheet-level
+    keep-lines, keep-next, page-break-before, and widow-control formatting into
+    normal OfficeIMO paragraphs and custom DOCX style definitions with
+    synthetic legacy DOC fixture proof.
   - [ ] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting beyond the first supported mapping set once each
     additional mapping has a fixture and observable OfficeIMO contract.
@@ -308,6 +312,9 @@ just to reserve names.
     the legacy reader.
   - [x] Write direct paragraph spacing and indentation PAPX records and reload
     them through the legacy reader.
+  - [x] Write direct paragraph pagination flags and reload keep-lines,
+    keep-next, page-break-before, and widow-control formatting through the
+    legacy reader.
   - [x] Write built-in paragraph style PAPX records and reload them through
     the legacy reader.
   - [x] Project imported tab characters and native-written tabs as real Word

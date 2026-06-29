@@ -8,7 +8,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? lineSpacingTwips = null,
             int? leftIndentTwips = null,
             int? rightIndentTwips = null,
-            int? firstLineIndentTwips = null) {
+            int? firstLineIndentTwips = null,
+            bool? keepLinesTogether = null,
+            bool? keepWithNext = null,
+            bool? pageBreakBefore = null,
+            bool? avoidWidowAndOrphan = null) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -17,6 +21,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LeftIndentTwips = leftIndentTwips;
             RightIndentTwips = rightIndentTwips;
             FirstLineIndentTwips = firstLineIndentTwips;
+            KeepLinesTogether = keepLinesTogether;
+            KeepWithNext = keepWithNext;
+            PageBreakBefore = pageBreakBefore;
+            AvoidWidowAndOrphan = avoidWidowAndOrphan;
         }
 
         internal LegacyDocParagraphAlignment? Alignment { get; }
@@ -35,6 +43,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal int? FirstLineIndentTwips { get; }
 
+        internal bool? KeepLinesTogether { get; }
+
+        internal bool? KeepWithNext { get; }
+
+        internal bool? PageBreakBefore { get; }
+
+        internal bool? AvoidWidowAndOrphan { get; }
+
         internal bool HasFormatting => Alignment != null
             || StyleIndex != null
             || SpacingBeforeTwips != null
@@ -42,7 +58,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || LineSpacingTwips != null
             || LeftIndentTwips != null
             || RightIndentTwips != null
-            || FirstLineIndentTwips != null;
+            || FirstLineIndentTwips != null
+            || KeepLinesTogether != null
+            || KeepWithNext != null
+            || PageBreakBefore != null
+            || AvoidWidowAndOrphan != null;
 
         internal static LegacyDocParagraphFormat Default { get; } = new LegacyDocParagraphFormat(null);
 
@@ -54,7 +74,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && LineSpacingTwips == other.LineSpacingTwips
                 && LeftIndentTwips == other.LeftIndentTwips
                 && RightIndentTwips == other.RightIndentTwips
-                && FirstLineIndentTwips == other.FirstLineIndentTwips;
+                && FirstLineIndentTwips == other.FirstLineIndentTwips
+                && KeepLinesTogether == other.KeepLinesTogether
+                && KeepWithNext == other.KeepWithNext
+                && PageBreakBefore == other.PageBreakBefore
+                && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan;
         }
 
         public override bool Equals(object? obj) {
@@ -71,6 +95,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + LeftIndentTwips.GetHashCode();
             hash = (hash * 31) + RightIndentTwips.GetHashCode();
             hash = (hash * 31) + FirstLineIndentTwips.GetHashCode();
+            hash = (hash * 31) + KeepLinesTogether.GetHashCode();
+            hash = (hash * 31) + KeepWithNext.GetHashCode();
+            hash = (hash * 31) + PageBreakBefore.GetHashCode();
+            hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
             return hash;
         }
     }

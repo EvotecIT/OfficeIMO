@@ -15,6 +15,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int? leftIndentTwips = null;
             int? rightIndentTwips = null;
             int? firstLineIndentTwips = null;
+            bool? keepLinesTogether = null;
+            bool? keepWithNext = null;
+            bool? pageBreakBefore = null;
+            bool? avoidWidowAndOrphan = null;
             ushort? styleIndex = null;
             foreach (OpenXmlElement property in paragraphProperties.ChildElements) {
                 switch (property) {
@@ -30,8 +34,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Indentation indentation:
                         ReadSupportedParagraphIndentation(indentation, out leftIndentTwips, out rightIndentTwips, out firstLineIndentTwips);
                         break;
+                    case KeepLines keepLines:
+                        keepLinesTogether = ReadOnOffValue(keepLines);
+                        break;
+                    case KeepNext keepNext:
+                        keepWithNext = ReadOnOffValue(keepNext);
+                        break;
+                    case PageBreakBefore pageBreakBeforeProperty:
+                        pageBreakBefore = ReadOnOffValue(pageBreakBeforeProperty);
+                        break;
+                    case WidowControl widowControl:
+                        avoidWidowAndOrphan = ReadOnOffValue(widowControl);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, alignment, spacing, and indentation. Unsupported paragraph property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, alignment, spacing, indentation, and pagination flags. Unsupported paragraph property: {property.LocalName}.");
                 }
             }
 
@@ -43,7 +59,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 lineSpacingTwips,
                 leftIndentTwips,
                 rightIndentTwips,
-                firstLineIndentTwips);
+                firstLineIndentTwips,
+                keepLinesTogether,
+                keepWithNext,
+                pageBreakBefore,
+                avoidWidowAndOrphan);
         }
 
         private static ushort? ReadSupportedParagraphStyleIndex(ParagraphStyleId paragraphStyleId) {
@@ -166,6 +186,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return result;
+        }
+
+        private static bool? ReadOnOffValue(OnOffType property) {
+            if (property.Val == null || property.Val.Value) {
+                return true;
+            }
+
+            return null;
         }
     }
 }

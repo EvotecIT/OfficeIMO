@@ -259,6 +259,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphPaginationFlags() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithParagraphPaginationFlags();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph[] paragraphs = result.Document.Paragraphs.ToArray();
+            Assert.Equal(2, paragraphs.Length);
+            Assert.Equal("plain", paragraphs[0].Text);
+            Assert.False(paragraphs[0].KeepLinesTogether);
+            Assert.False(paragraphs[0].KeepWithNext);
+            Assert.False(paragraphs[0].PageBreakBefore);
+            Assert.False(paragraphs[0].AvoidWidowAndOrphan);
+            Assert.Equal("pagination", paragraphs[1].Text);
+            Assert.True(paragraphs[1].KeepLinesTogether);
+            Assert.True(paragraphs[1].KeepWithNext);
+            Assert.True(paragraphs[1].PageBreakBefore);
+            Assert.True(paragraphs[1].AvoidWidowAndOrphan);
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_RoutesOleDocIntoProjectedWordDocument() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -898,6 +919,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphPaginationFlagsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("plain");
+                    WordParagraph formatted = document.AddParagraph("pagination");
+                    formatted.KeepLinesTogether = true;
+                    formatted.KeepWithNext = true;
+                    formatted.PageBreakBefore = true;
+                    formatted.AvoidWidowAndOrphan = true;
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
+                Assert.Equal(2, paragraphs.Length);
+                Assert.Equal("plain", paragraphs[0].Text);
+                Assert.False(paragraphs[0].KeepLinesTogether);
+                Assert.False(paragraphs[0].KeepWithNext);
+                Assert.False(paragraphs[0].PageBreakBefore);
+                Assert.False(paragraphs[0].AvoidWidowAndOrphan);
+                Assert.Equal("pagination", paragraphs[1].Text);
+                Assert.True(paragraphs[1].KeepLinesTogether);
+                Assert.True(paragraphs[1].KeepWithNext);
+                Assert.True(paragraphs[1].PageBreakBefore);
+                Assert.True(paragraphs[1].AvoidWidowAndOrphan);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocSimpleTableAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -1372,6 +1429,22 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithParagraphPaginationFlags() {
+                const string text = "plain\rpagination\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithParagraphPaginationFlags(text, textOffset, papxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateCompoundWithoutWordDocumentStream() {
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
@@ -1655,6 +1728,41 @@ namespace OfficeIMO.Tests {
                         [2] = CreateParagraphPropertiesPapx(
                             CreateParagraphSprm(0x840F, 0xD0, 0x02),
                             CreateParagraphSprm(0x8411, 0x98, 0xFE))
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
+            private static byte[] CreateUnicodeWordDocumentStreamWithParagraphPaginationFlags(string text, int textOffset, int papxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int formattedStart = textOffset + ("plain\r".Length * 2);
+                int end = formattedStart + ("pagination\r".Length * 2);
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, formattedStart, end },
+                    new Dictionary<int, byte[]> {
+                        [1] = CreateParagraphPropertiesPapx(
+                            CreateParagraphSprm(0x2405, 1),
+                            CreateParagraphSprm(0x2406, 1),
+                            CreateParagraphSprm(0x2407, 1),
+                            CreateParagraphSprm(0x2431, 1))
                     });
 
                 if (stream.Length < fibLength) {
