@@ -40,6 +40,28 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void Paragraph_GenericAttributes_Preserve_Consumed_Separator_Whitespace() {
+        const string markdown = "Alpha paragraph  {#intro .lead}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("  ", paragraph.GenericAttributeConsumedWhitespace);
+        Assert.Equal("Alpha paragraph  {#intro .lead}", ((IMarkdownBlock)paragraph).RenderMarkdown());
+        Assert.Equal(
+            "<p id=\"intro\" class=\"lead\">Alpha paragraph  </p>",
+            document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            }));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Inline_GenericAttribute_Tokens_Without_Duplicating_Native_Metadata() {
         const string markdown = "See [docs](old.md){#docs .primary} now\n";
         var options = new MarkdownReaderOptions {

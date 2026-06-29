@@ -558,6 +558,7 @@ Quarterly Revenue {#quarterly-overview .wide .accent title="Quarterly Revenue" p
             Assert.Equal(new[] { "intro" }, paragraph.Attributes.Classes);
             Assert.Equal("summary", paragraph.Attributes.GetAttribute("data-kind"));
             Assert.Equal("true", paragraph.Attributes.GetAttribute("pinned"));
+            Assert.Equal(" ", paragraph.GenericAttributeConsumedWhitespace);
 
             var syntax = Assert.Single(result.SyntaxTree.Children);
             Assert.Equal("lead", syntax.Attributes.ElementId);
@@ -569,7 +570,7 @@ Quarterly Revenue {#quarterly-overview .wide .accent title="Quarterly Revenue" p
                 CssDelivery = CssDelivery.None,
                 BodyClass = null
             });
-            Assert.Contains("<p id=\"lead\" class=\"intro\" data-kind=\"summary\" pinned=\"true\">Lead paragraph</p>", html, StringComparison.Ordinal);
+            Assert.Contains("<p id=\"lead\" class=\"intro\" data-kind=\"summary\" pinned=\"true\">Lead paragraph </p>", html, StringComparison.Ordinal);
 
             var written = result.Document.ToMarkdown().TrimEnd().Replace("\r\n", "\n");
             Assert.Equal("Lead paragraph {#lead .intro data-kind=\"summary\" pinned}", written);

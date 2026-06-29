@@ -305,6 +305,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     public static IEnumerable<object[]> GenericAttributesExtensionCases() {
         yield return new object[] { "atx-heading-id-class-title", "# Heading {#intro .wide title=\"Overview\"}" };
         yield return new object[] { "setext-heading-id-class-title", "Heading {#intro .wide title=\"Overview\"}\n=======" };
+        yield return new object[] { "paragraph-id-class-title", "Paragraph {#intro .wide title=\"Overview\"}" };
+        yield return new object[] { "thematic-break-like-line-is-attributed-paragraph", "--- {#hr .wide}" };
+        yield return new object[] { "asterisk-thematic-break-like-line-is-attributed-paragraph", "*** {#hr .wide}" };
         yield return new object[] { "blockquote-paragraph-attribute-stays-literal", "> quote {#q .lead}" };
         yield return new object[] { "blockquote-atx-heading-attribute-stays-literal", "> # Heading {#h .wide}" };
         yield return new object[] { "blockquote-setext-heading-attribute-stays-literal", "> Heading {#h .wide}\n> -------" };
@@ -317,6 +320,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "inline-emphasis-id-class", "*emphasis*{#em .marked}" };
         yield return new object[] { "inline-strong-id-class", "**strong**{#strong .marked}" };
         yield return new object[] { "inline-code-id-class", "`code`{#code .token}" };
+        yield return new object[] { "inline-image-id-class", "![alt](img.png){#img .wide}" };
+        yield return new object[] { "linked-image-id-class", "[![alt](img.png)](https://example.com){#linked .wide}" };
+        yield return new object[] { "inline-html-span-attribute-stays-literal", "<span>hi</span>{#span .wide}" };
     }
 
     public static IEnumerable<object[]> GenericAttributesPipeTableExtensionCases() {
@@ -613,11 +619,40 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     private static string NormalizeGenericAttributesHtmlForParity(string html) {
         var normalized = NormalizeHtmlForParity(html);
-        return Regex.Replace(
+        normalized = Regex.Replace(
             normalized,
             "(<h[1-6][^>]*>[^<]*?)\\s+</h",
             "$1</h",
             RegexOptions.CultureInvariant);
+        return NormalizeImageAttributeOrderForParity(normalized);
+    }
+
+    private static string NormalizeImageAttributeOrderForParity(string html) {
+        return Regex.Replace(
+            html,
+            "<img\\s+([^>]*?)\\s*/>",
+            match => {
+                var attributes = Regex.Matches(match.Groups[1].Value, "([A-Za-z_:][-A-Za-z0-9_:.]*)(?:=\"([^\"]*)\")?");
+                var ordered = attributes
+                    .Cast<Match>()
+                    .Select(static attr => new KeyValuePair<string, string?>(attr.Groups[1].Value, attr.Groups[2].Success ? attr.Groups[2].Value : null))
+                    .OrderBy(static attr => GetImageAttributeOrder(attr.Key))
+                    .ThenBy(static attr => attr.Key, StringComparer.OrdinalIgnoreCase)
+                    .Select(static attr => attr.Value == null ? attr.Key : attr.Key + "=\"" + attr.Value + "\"");
+                return "<img " + string.Join(" ", ordered) + " />";
+            },
+            RegexOptions.CultureInvariant);
+    }
+
+    private static int GetImageAttributeOrder(string attributeName) {
+        return attributeName.ToLowerInvariant() switch {
+            "src" => 0,
+            "id" => 1,
+            "class" => 2,
+            "alt" => 3,
+            "title" => 4,
+            _ => 100
+        };
     }
 
     private static string NormalizeTaskListHtmlForParity(string html) {

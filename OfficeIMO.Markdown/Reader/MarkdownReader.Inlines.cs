@@ -958,6 +958,24 @@ public static partial class MarkdownReader {
                 continue;
             }
 
+            if (IsGenericAttributeInlineDiscardTarget(current)
+                && TryConsumeGenericAttributesFromFollowingTextRuns(
+                    sequence.Nodes,
+                    i + 1,
+                    out var discardRemainingText,
+                    out _,
+                    out _,
+                    out _,
+                    out var discardConsumedTextRuns)) {
+                rewritten.Add(current);
+                if (!string.IsNullOrEmpty(discardRemainingText)) {
+                    rewritten.Add(new TextRun(discardRemainingText));
+                }
+
+                i += discardConsumedTextRuns;
+                continue;
+            }
+
             rewritten.Add(current);
         }
 
@@ -1103,5 +1121,9 @@ public static partial class MarkdownReader {
             or SuperscriptSequenceInline
             or SubscriptInline
             or SubscriptSequenceInline;
+
+    private static bool IsGenericAttributeInlineDiscardTarget(IMarkdownInline? inline) =>
+        inline is HtmlRawInline
+            or HtmlTagSequenceInline;
 
 }

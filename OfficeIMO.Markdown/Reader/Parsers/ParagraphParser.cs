@@ -116,6 +116,7 @@ public static partial class MarkdownReader {
             MarkdownAttributeSet paragraphAttributes = MarkdownAttributeSet.Empty;
             MarkdownSourceSpan? paragraphAttributeSpan = null;
             string? paragraphAttributeSourceText = null;
+            string paragraphAttributeConsumedWhitespace = string.Empty;
             if (ShouldParseBlockGenericAttributes(options, state) && paragraphLines.Count > 0) {
                 var lastLineIndex = paragraphLines.Count - 1;
                 if (MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
@@ -127,6 +128,12 @@ public static partial class MarkdownReader {
                     requireLeadingWhitespace: true)) {
                     var attributeLine = paragraphLines[lastLineIndex];
                     var absoluteAttributeLine = state.SourceLineOffset + i + lastLineIndex + 1;
+                    if (attributeStart >= lineWithoutAttributeBlock.Length) {
+                        paragraphAttributeConsumedWhitespace = attributeLine.Substring(
+                            lineWithoutAttributeBlock.Length,
+                            attributeStart - lineWithoutAttributeBlock.Length);
+                    }
+
                     paragraphAttributeSourceText = attributeLine.Substring(attributeStart, attributeEnd - attributeStart + 1);
                     paragraphAttributeSpan = CreateSpan(
                         state,
@@ -144,6 +151,7 @@ public static partial class MarkdownReader {
             var (text, sourceMap) = JoinParagraphLinesWithSourceMap(paragraphLines, state.SourceLineOffset + i, options, state);
             var paragraph = new ParagraphBlock(ParseInlines(text, options, state, sourceMap));
             paragraph.SetAttributes(paragraphAttributes);
+            paragraph.GenericAttributeConsumedWhitespace = paragraphAttributeConsumedWhitespace;
             MarkdownGenericAttributeSourceSpans.Set(paragraph, paragraphAttributeSourceText, paragraphAttributeSpan);
             doc.Add(paragraph);
             i = j; return true;
