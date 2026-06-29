@@ -24,6 +24,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null,
+            IReadOnlyList<bool>? tableCellFitTexts = null,
+            IReadOnlyList<bool>? tableCellNoWraps = null,
             bool hasMergedTableCells = false) {
             Alignment = alignment;
             StyleIndex = styleIndex;
@@ -58,6 +60,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             TableCellVerticalAlignments = tableCellVerticalAlignments == null || tableCellVerticalAlignments.Count == 0
                 ? Array.Empty<LegacyDocTableCellVerticalAlignment>()
                 : tableCellVerticalAlignments.ToArray();
+            TableCellFitTexts = tableCellFitTexts == null || tableCellFitTexts.Count == 0
+                ? Array.Empty<bool>()
+                : tableCellFitTexts.ToArray();
+            TableCellNoWraps = tableCellNoWraps == null || tableCellNoWraps.Count == 0
+                ? Array.Empty<bool>()
+                : tableCellNoWraps.ToArray();
             HasMergedTableCells = hasMergedTableCells;
         }
 
@@ -107,6 +115,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<LegacyDocTableCellVerticalAlignment> TableCellVerticalAlignments { get; }
 
+        internal IReadOnlyList<bool> TableCellFitTexts { get; }
+
+        internal IReadOnlyList<bool> TableCellNoWraps { get; }
+
         internal bool HasMergedTableCells { get; }
 
         internal bool HasFormatting => Alignment != null
@@ -131,6 +143,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || TableCellHorizontalMerges.Count > 0
             || TableCellVerticalMerges.Count > 0
             || TableCellVerticalAlignments.Count > 0
+            || TableCellFitTexts.Count > 0
+            || TableCellNoWraps.Count > 0
             || HasMergedTableCells;
 
         internal static LegacyDocParagraphFormat Default { get; } = new LegacyDocParagraphFormat(null);
@@ -159,6 +173,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && TableCellHorizontalMergesEqual(TableCellHorizontalMerges, other.TableCellHorizontalMerges)
                 && TableCellVerticalMergesEqual(TableCellVerticalMerges, other.TableCellVerticalMerges)
                 && TableCellVerticalAlignmentsEqual(TableCellVerticalAlignments, other.TableCellVerticalAlignments)
+                && TableCellBooleansEqual(TableCellFitTexts, other.TableCellFitTexts)
+                && TableCellBooleansEqual(TableCellNoWraps, other.TableCellNoWraps)
                 && HasMergedTableCells == other.HasMergedTableCells;
         }
 
@@ -197,6 +213,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             foreach (LegacyDocTableCellVerticalAlignment alignment in TableCellVerticalAlignments) {
                 hash = (hash * 31) + alignment.GetHashCode();
+            }
+
+            foreach (bool fitText in TableCellFitTexts) {
+                hash = (hash * 31) + fitText.GetHashCode();
+            }
+
+            foreach (bool noWrap in TableCellNoWraps) {
+                hash = (hash * 31) + noWrap.GetHashCode();
             }
 
             foreach (LegacyDocTabStop tabStop in TabStops) {
@@ -253,6 +277,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private static bool TableCellVerticalAlignmentsEqual(IReadOnlyList<LegacyDocTableCellVerticalAlignment> first, IReadOnlyList<LegacyDocTableCellVerticalAlignment> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (first[index] != second[index]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellBooleansEqual(IReadOnlyList<bool> first, IReadOnlyList<bool> second) {
             if (first.Count != second.Count) {
                 return false;
             }

@@ -158,6 +158,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTableCellTextLayoutFlagsFromTableDefinition() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithTableCellTextLayoutFlags();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            WordTableRow row = Assert.Single(table.Rows);
+            Assert.True(row.Cells[0].FitText);
+            Assert.True(row.Cells[0].WrapText);
+            Assert.False(row.Cells[1].FitText);
+            Assert.False(row.Cells[1].WrapText);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsInvalidMergedTableCellsFromTableDefinition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithInvalidMergedTableCellDefinition();
 
@@ -1901,6 +1917,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellTextLayoutFlagsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.Rows[0].Cells[0].AddParagraph("Fit", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[0].FitText = true;
+                    table.Rows[0].Cells[1].AddParagraph("No wrap", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].WrapText = false;
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x00, 0x10),
+                    "Expected the native DOC table cell descriptor to contain the fit-text flag.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x00, 0x20),
+                    "Expected the native DOC table cell descriptor to contain the no-wrap flag.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("Fit", row.Cells[0].Paragraphs[0].Text);
+                Assert.True(row.Cells[0].FitText);
+                Assert.True(row.Cells[0].WrapText);
+                Assert.Equal("No wrap", row.Cells[1].Paragraphs[0].Text);
+                Assert.False(row.Cells[1].FitText);
+                Assert.False(row.Cells[1].WrapText);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedMultiParagraphTableCellsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -2433,6 +2488,27 @@ namespace OfficeIMO.Tests {
                     papxFkpOffset,
                     new[] { 1440, 1440 },
                     new ushort[] { 0x0080, 0x0100 });
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithTableCellTextLayoutFlags() {
+                const string text = "A1\aB1\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 1440 },
+                    new ushort[] { 0x1000, 0x2000 });
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();

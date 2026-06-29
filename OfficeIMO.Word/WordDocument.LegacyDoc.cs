@@ -199,6 +199,14 @@ namespace OfficeIMO.Word {
                     if (columnIndex < sourceRow.CellVerticalAlignments.Count) {
                         ApplyLegacyDocTableCellVerticalAlignment(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellVerticalAlignments[columnIndex]);
                     }
+
+                    if (columnIndex < sourceRow.CellFitTexts.Count && sourceRow.CellFitTexts[columnIndex]) {
+                        table.Rows[rowIndex].Cells[columnIndex].FitText = true;
+                    }
+
+                    if (columnIndex < sourceRow.CellNoWraps.Count && sourceRow.CellNoWraps[columnIndex]) {
+                        table.Rows[rowIndex].Cells[columnIndex].WrapText = false;
+                    }
                 }
             }
         }

@@ -562,7 +562,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.TableRowIsHeader,
                         paragraphFormat.TableCellHorizontalMerges,
                         paragraphFormat.TableCellVerticalMerges,
-                        paragraphFormat.TableCellVerticalAlignments));
+                        paragraphFormat.TableCellVerticalAlignments,
+                        paragraphFormat.TableCellFitTexts,
+                        paragraphFormat.TableCellNoWraps));
                     currentTableRow.Clear();
                 }
 
@@ -587,7 +589,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.TableRowIsHeader,
                         paragraphFormat.TableCellHorizontalMerges,
                         paragraphFormat.TableCellVerticalMerges,
-                        paragraphFormat.TableCellVerticalAlignments));
+                        paragraphFormat.TableCellVerticalAlignments,
+                        paragraphFormat.TableCellFitTexts,
+                        paragraphFormat.TableCellNoWraps));
                     currentTableRow.Clear();
                 }
 

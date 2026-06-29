@@ -121,7 +121,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (formatting.TableCellWidthsTwips.Count > 0) {
-                AddTableDefinitionSprm(grpprl, formatting.TableCellWidthsTwips, formatting.TableCellHorizontalMerges, formatting.TableCellVerticalMerges, formatting.TableCellVerticalAlignments);
+                AddTableDefinitionSprm(grpprl, formatting.TableCellWidthsTwips, formatting.TableCellHorizontalMerges, formatting.TableCellVerticalMerges, formatting.TableCellVerticalAlignments, formatting.TableCellFitTexts, formatting.TableCellNoWraps);
             }
 
             if (formatting.TableRowHeightTwips != null) {
@@ -285,7 +285,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             IReadOnlyList<int> cellWidthsTwips,
             IReadOnlyList<LegacyDocTableCellHorizontalMerge> cellHorizontalMerges,
             IReadOnlyList<LegacyDocTableCellVerticalMerge> cellVerticalMerges,
-            IReadOnlyList<LegacyDocTableCellVerticalAlignment> cellVerticalAlignments) {
+            IReadOnlyList<LegacyDocTableCellVerticalAlignment> cellVerticalAlignments,
+            IReadOnlyList<bool> cellFitTexts,
+            IReadOnlyList<bool> cellNoWraps) {
             if (cellWidthsTwips.Count > byte.MaxValue) {
                 throw new NotSupportedException("Native DOC saving cannot write more than 255 table cells in one row.");
             }
@@ -304,7 +306,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             for (int index = 0; index < cellWidthsTwips.Count; index++) {
-                ushort flags = GetTableCellFormattingFlags(cellHorizontalMerges, cellVerticalMerges, cellVerticalAlignments, index);
+                ushort flags = GetTableCellFormattingFlags(cellHorizontalMerges, cellVerticalMerges, cellVerticalAlignments, cellFitTexts, cellNoWraps, index);
                 remainder.Add((byte)(flags & 0xFF));
                 remainder.Add((byte)(flags >> 8));
                 for (int byteIndex = 2; byteIndex < Tc80Length; byteIndex++) {
@@ -328,10 +330,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             IReadOnlyList<LegacyDocTableCellHorizontalMerge> cellHorizontalMerges,
             IReadOnlyList<LegacyDocTableCellVerticalMerge> cellVerticalMerges,
             IReadOnlyList<LegacyDocTableCellVerticalAlignment> cellVerticalAlignments,
+            IReadOnlyList<bool> cellFitTexts,
+            IReadOnlyList<bool> cellNoWraps,
             int index) {
             return (ushort)(GetTableCellHorizontalMergeFlags(cellHorizontalMerges, index)
                 | GetTableCellVerticalMergeFlags(cellVerticalMerges, index)
-                | GetTableCellVerticalAlignmentFlags(cellVerticalAlignments, index));
+                | GetTableCellVerticalAlignmentFlags(cellVerticalAlignments, index)
+                | GetTableCellFitTextFlags(cellFitTexts, index)
+                | GetTableCellNoWrapFlags(cellNoWraps, index));
         }
 
         private static ushort GetTableCellHorizontalMergeFlags(IReadOnlyList<LegacyDocTableCellHorizontalMerge> cellHorizontalMerges, int index) {
@@ -379,6 +385,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
+        private static ushort GetTableCellFitTextFlags(IReadOnlyList<bool> cellFitTexts, int index) {
+            return index < cellFitTexts.Count && cellFitTexts[index] ? (ushort)0x1000 : (ushort)0;
+        }
+
+        private static ushort GetTableCellNoWrapFlags(IReadOnlyList<bool> cellNoWraps, int index) {
+            return index < cellNoWraps.Count && cellNoWraps[index] ? (ushort)0x2000 : (ushort)0;
+        }
+
         private static void AddInt16(List<byte> bytes, int operand, string propertyName) {
             if (operand < short.MinValue || operand > short.MaxValue) {
                 throw new NotSupportedException($"Native DOC saving supports {propertyName} only within the Word 97-2003 signed twip range.");
@@ -398,7 +412,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null);
 
         internal LegacyDocWritableParagraphFormatting(
             byte? alignment,
@@ -423,7 +437,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? tableRowIsHeader,
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges,
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges,
-            IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments) {
+            IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments,
+            IReadOnlyList<bool>? tableCellFitTexts,
+            IReadOnlyList<bool>? tableCellNoWraps) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -453,6 +469,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             TableCellVerticalAlignments = tableCellVerticalAlignments == null || tableCellVerticalAlignments.Count == 0
                 ? Array.Empty<LegacyDocTableCellVerticalAlignment>()
                 : tableCellVerticalAlignments.ToArray();
+            TableCellFitTexts = tableCellFitTexts == null || tableCellFitTexts.Count == 0
+                ? Array.Empty<bool>()
+                : tableCellFitTexts.ToArray();
+            TableCellNoWraps = tableCellNoWraps == null || tableCellNoWraps.Count == 0
+                ? Array.Empty<bool>()
+                : tableCellNoWraps.ToArray();
             TableRowHeightTwips = tableRowHeightTwips;
             TableRowHeightIsExact = tableRowHeightIsExact;
             TableRowCantSplit = tableRowCantSplit;
@@ -497,6 +519,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal IReadOnlyList<LegacyDocTableCellVerticalAlignment> TableCellVerticalAlignments { get; }
 
+        internal IReadOnlyList<bool> TableCellFitTexts { get; }
+
+        internal IReadOnlyList<bool> TableCellNoWraps { get; }
+
         internal int? TableRowHeightTwips { get; }
 
         internal bool TableRowHeightIsExact { get; }
@@ -524,6 +550,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || TableCellHorizontalMerges.Count > 0
             || TableCellVerticalMerges.Count > 0
             || TableCellVerticalAlignments.Count > 0
+            || TableCellFitTexts.Count > 0
+            || TableCellNoWraps.Count > 0
             || TableRowHeightTwips != null
             || TableRowCantSplit != null
             || TableRowIsHeader != null;
@@ -537,7 +565,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? tableRowIsHeader = null,
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges = null,
-            IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null) {
+            IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null,
+            IReadOnlyList<bool>? tableCellFitTexts = null,
+            IReadOnlyList<bool>? tableCellNoWraps = null) {
             return new LegacyDocWritableParagraphFormatting(
                 Alignment,
                 StyleIndex,
@@ -561,7 +591,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 tableRowIsHeader,
                 tableCellHorizontalMerges,
                 tableCellVerticalMerges,
-                tableCellVerticalAlignments);
+                tableCellVerticalAlignments,
+                tableCellFitTexts,
+                tableCellNoWraps);
         }
 
         public bool Equals(LegacyDocWritableParagraphFormatting other) {
@@ -584,6 +616,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && TableCellHorizontalMergesEqual(TableCellHorizontalMerges, other.TableCellHorizontalMerges)
                 && TableCellVerticalMergesEqual(TableCellVerticalMerges, other.TableCellVerticalMerges)
                 && TableCellVerticalAlignmentsEqual(TableCellVerticalAlignments, other.TableCellVerticalAlignments)
+                && TableCellBooleansEqual(TableCellFitTexts, other.TableCellFitTexts)
+                && TableCellBooleansEqual(TableCellNoWraps, other.TableCellNoWraps)
                 && TableRowHeightTwips == other.TableRowHeightTwips
                 && TableRowHeightIsExact == other.TableRowHeightIsExact
                 && TableRowCantSplit == other.TableRowCantSplit
@@ -624,6 +658,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             foreach (LegacyDocTableCellVerticalAlignment alignment in TableCellVerticalAlignments) {
                 hash = (hash * 31) + alignment.GetHashCode();
+            }
+
+            foreach (bool fitText in TableCellFitTexts) {
+                hash = (hash * 31) + fitText.GetHashCode();
+            }
+
+            foreach (bool noWrap in TableCellNoWraps) {
+                hash = (hash * 31) + noWrap.GetHashCode();
             }
 
             foreach (LegacyDocTabStop tabStop in TabStops) {
@@ -680,6 +722,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static bool TableCellVerticalAlignmentsEqual(IReadOnlyList<LegacyDocTableCellVerticalAlignment> first, IReadOnlyList<LegacyDocTableCellVerticalAlignment> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (first[index] != second[index]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellBooleansEqual(IReadOnlyList<bool> first, IReadOnlyList<bool> second) {
             if (first.Count != second.Count) {
                 return false;
             }
