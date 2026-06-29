@@ -15,8 +15,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int? leftIndentTwips = null;
             int? rightIndentTwips = null;
             int? firstLineIndentTwips = null;
+            ushort? styleIndex = null;
             foreach (OpenXmlElement property in paragraphProperties.ChildElements) {
                 switch (property) {
+                    case ParagraphStyleId paragraphStyleId:
+                        styleIndex = ReadSupportedParagraphStyleIndex(paragraphStyleId);
+                        break;
                     case Justification justification:
                         alignment = ReadSupportedParagraphAlignment(justification);
                         break;
@@ -27,18 +31,67 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ReadSupportedParagraphIndentation(indentation, out leftIndentTwips, out rightIndentTwips, out firstLineIndentTwips);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only paragraph alignment, spacing, and indentation. Unsupported paragraph property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, alignment, spacing, and indentation. Unsupported paragraph property: {property.LocalName}.");
                 }
             }
 
             return new LegacyDocWritableParagraphFormatting(
                 alignment,
+                styleIndex,
                 spacingBeforeTwips,
                 spacingAfterTwips,
                 lineSpacingTwips,
                 leftIndentTwips,
                 rightIndentTwips,
                 firstLineIndentTwips);
+        }
+
+        private static ushort? ReadSupportedParagraphStyleIndex(ParagraphStyleId paragraphStyleId) {
+            string? styleId = paragraphStyleId.Val?.Value;
+            if (string.IsNullOrWhiteSpace(styleId) || string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
+                return null;
+            }
+
+            if (TryMapBuiltInParagraphStyleIndex(styleId!, out ushort styleIndex)) {
+                return styleIndex;
+            }
+
+            throw new NotSupportedException($"Native DOC saving currently supports only built-in Normal and Heading1 through Heading9 paragraph styles. Unsupported paragraph style: {styleId}.");
+        }
+
+        private static bool TryMapBuiltInParagraphStyleIndex(string styleId, out ushort styleIndex) {
+            switch (styleId.Trim().ToUpperInvariant()) {
+                case "HEADING1":
+                    styleIndex = 1;
+                    return true;
+                case "HEADING2":
+                    styleIndex = 2;
+                    return true;
+                case "HEADING3":
+                    styleIndex = 3;
+                    return true;
+                case "HEADING4":
+                    styleIndex = 4;
+                    return true;
+                case "HEADING5":
+                    styleIndex = 5;
+                    return true;
+                case "HEADING6":
+                    styleIndex = 6;
+                    return true;
+                case "HEADING7":
+                    styleIndex = 7;
+                    return true;
+                case "HEADING8":
+                    styleIndex = 8;
+                    return true;
+                case "HEADING9":
+                    styleIndex = 9;
+                    return true;
+                default:
+                    styleIndex = 0;
+                    return false;
+            }
         }
 
         private static byte? ReadSupportedParagraphAlignment(Justification justification) {

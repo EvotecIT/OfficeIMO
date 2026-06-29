@@ -36,6 +36,39 @@ namespace OfficeIMO.Tests {
             Assert.Null(convertedParagraphs[2].Style);
         }
 
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphStylesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Heading One").SetStyle(WordParagraphStyles.Heading1);
+                    document.AddParagraph("Heading Two").SetStyle(WordParagraphStyles.Heading2);
+                    document.AddParagraph("Body");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                WordParagraph[] paragraphs = reloaded.Paragraphs
+                    .Where(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text))
+                    .ToArray();
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(3, paragraphs.Length);
+                Assert.Equal("Heading One", paragraphs[0].Text);
+                Assert.Equal(WordParagraphStyles.Heading1, paragraphs[0].Style);
+                Assert.Equal("Heading Two", paragraphs[1].Text);
+                Assert.Equal(WordParagraphStyles.Heading2, paragraphs[1].Style);
+                Assert.Equal("Body", paragraphs[2].Text);
+                Assert.Null(paragraphs[2].Style);
+            } finally {
+                if (File.Exists(docPath)) {
+                    File.Delete(docPath);
+                }
+            }
+        }
+
         private static class LegacyDocParagraphStyleFixture {
             private const int FibLength = 0x1AA;
             private const int TextOffset = 0x200;

@@ -46,8 +46,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static byte[] CreatePapx(LegacyDocWritableParagraphFormatting formatting) {
             var grpprl = new List<byte>(6) {
-                0,
-                0
+                (byte)((formatting.StyleIndex ?? 0) & 0xFF),
+                (byte)((formatting.StyleIndex ?? 0) >> 8)
             };
 
             if (formatting.Alignment != null) {
@@ -127,10 +127,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null);
 
         internal LegacyDocWritableParagraphFormatting(
             byte? alignment,
+            ushort? styleIndex,
             int? spacingBeforeTwips,
             int? spacingAfterTwips,
             int? lineSpacingTwips,
@@ -138,6 +139,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int? rightIndentTwips,
             int? firstLineIndentTwips) {
             Alignment = alignment;
+            StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
             SpacingAfterTwips = spacingAfterTwips;
             LineSpacingTwips = lineSpacingTwips;
@@ -147,6 +149,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         internal byte? Alignment { get; }
+
+        internal ushort? StyleIndex { get; }
 
         internal int? SpacingBeforeTwips { get; }
 
@@ -161,6 +165,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         internal int? FirstLineIndentTwips { get; }
 
         internal bool HasFormatting => Alignment != null
+            || StyleIndex != null
             || SpacingBeforeTwips != null
             || SpacingAfterTwips != null
             || LineSpacingTwips != null
@@ -170,6 +175,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         public bool Equals(LegacyDocWritableParagraphFormatting other) {
             return Alignment == other.Alignment
+                && StyleIndex == other.StyleIndex
                 && SpacingBeforeTwips == other.SpacingBeforeTwips
                 && SpacingAfterTwips == other.SpacingAfterTwips
                 && LineSpacingTwips == other.LineSpacingTwips
@@ -185,6 +191,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         public override int GetHashCode() {
             int hash = 17;
             hash = (hash * 31) + Alignment.GetHashCode();
+            hash = (hash * 31) + StyleIndex.GetHashCode();
             hash = (hash * 31) + SpacingBeforeTwips.GetHashCode();
             hash = (hash * 31) + SpacingAfterTwips.GetHashCode();
             hash = (hash * 31) + LineSpacingTwips.GetHashCode();

@@ -261,6 +261,8 @@ just to reserve names.
     the legacy reader.
   - [x] Write direct paragraph spacing and indentation PAPX records and reload
     them through the legacy reader.
+  - [x] Write built-in paragraph style PAPX records and reload them through
+    the legacy reader.
   - [ ] Add table and simple section writing as separate preflight-backed
     slices.
 - [ ] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
