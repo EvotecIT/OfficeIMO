@@ -114,6 +114,33 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         ClosingMarkerText = new string('#', ClosingMarkerSourceEndColumn - ClosingMarkerSourceStartColumn + 1);
     }
 
+    internal void OffsetRelativeSourceInfoLines(int lineOffsetDelta) {
+        if (lineOffsetDelta <= 0) {
+            return;
+        }
+
+        if (HasLevelSourceInfo) {
+            LevelSourceLineOffset += lineOffsetDelta;
+        }
+
+        if (HasOpeningMarkerSourceInfo) {
+            OpeningMarkerSourceLineOffset += lineOffsetDelta;
+        }
+
+        if (HasSetextUnderlineMarkerSourceInfo) {
+            SetextUnderlineMarkerSourceLineOffset += lineOffsetDelta;
+        }
+
+        if (HasTextSourceInfo) {
+            TextSourceLineOffset += lineOffsetDelta;
+            TextSourceEndLineOffset += lineOffsetDelta;
+        }
+
+        if (HasClosingMarkerSourceInfo) {
+            ClosingMarkerSourceLineOffset += lineOffsetDelta;
+        }
+    }
+
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() => new string('#', Level) + " " + Inlines.RenderMarkdown() + MarkdownAttributeBlockRenderer.RenderTrailing(Attributes);
     /// <inheritdoc />
@@ -203,6 +230,14 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     }
 
     private MarkdownSourceSpan? GetLevelSourceSpan(MarkdownSourceSpan? span) {
+        if (OpeningMarkerSourceSpan.HasValue) {
+            return OpeningMarkerSourceSpan;
+        }
+
+        if (SetextUnderlineMarkerSourceSpan.HasValue) {
+            return SetextUnderlineMarkerSourceSpan;
+        }
+
         if (!span.HasValue || !span.Value.StartColumn.HasValue) {
             return null;
         }
@@ -225,6 +260,10 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     }
 
     private MarkdownSourceSpan? GetTextSourceSpan(MarkdownSourceSpan? span) {
+        if (Inlines.SourceSpan.HasValue) {
+            return Inlines.SourceSpan;
+        }
+
         if (!span.HasValue || !span.Value.StartColumn.HasValue) {
             return null;
         }

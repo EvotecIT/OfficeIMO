@@ -186,7 +186,7 @@ internal static class MarkdownBlockSyntaxBuilder {
 
         return new MarkdownSyntaxNode(
             node.Kind,
-            node.SourceSpan,
+            MarkdownGenericAttributeSyntaxNodes.GetContainingSpan(node.SourceSpan, children) ?? node.SourceSpan,
             node.Literal,
             children,
             node.AssociatedObject,

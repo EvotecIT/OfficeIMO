@@ -186,6 +186,7 @@ public static partial class MarkdownReader {
             PreScanAbbreviationDefinitions(lines, state, options);
             while (i < lines.Length) {
                 if (string.IsNullOrWhiteSpace(lines[i])) { i++; continue; }
+                if (TryConsumeStandaloneGenericAttributeBlock(lines, i, options, state)) { i++; continue; }
                 bool matched = false;
                 var parsers = pipeline.Parsers;
                 int previousBlockCount = doc.Blocks.Count;
@@ -194,6 +195,11 @@ public static partial class MarkdownReader {
                 for (int p = 0; p < parsers.Count; p++) {
                     if (parsers[p].TryParse(lines, ref i, options, doc, state)) {
                         matched = true;
+                        if (doc.Blocks.Count > previousBlockCount
+                            && TryApplyPendingGenericAttributeBlock(doc, previousBlockCount, startLine, state, out var pendingAttributeStartLine)) {
+                            startLine = Math.Min(startLine, pendingAttributeStartLine);
+                        }
+
                         if (syntaxNodes != null && doc.Blocks.Count > previousBlockCount) {
                             CaptureSyntaxNodes(doc, previousBlockCount, startLine, lineOffset + i, syntaxNodes, state);
                         } else if (syntaxNodes != null) {

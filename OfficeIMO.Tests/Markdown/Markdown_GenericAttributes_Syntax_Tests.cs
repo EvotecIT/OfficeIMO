@@ -62,6 +62,73 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void Standalone_GenericAttributes_Attach_To_Following_Heading_With_Source_Backup() {
+        const string markdown = "{#intro .wide}\n# Heading\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("intro", headingBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, headingBlock.Attributes.Classes);
+        Assert.Equal("# Heading {#intro .wide}", ((IMarkdownBlock)headingBlock).RenderMarkdown());
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var heading = Assert.Single(result.FinalSyntaxTree.Children);
+        var attributes = Assert.Single(heading.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        var headingText = Assert.Single(heading.Descendants(), node => node.Kind == MarkdownSyntaxKind.HeadingText);
+
+        Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 9), heading.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 9), headingText.SourceSpan);
+        Assert.Equal("{#intro .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 14), attributes.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#intro .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeHeading = Assert.IsType<MarkdownNativeHeadingBlock>(Assert.Single(native.Blocks));
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Equal("Heading", nativeHeading.Text);
+        Assert.Same(nativeHeading, field.Block);
+        Assert.Equal("{#intro .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 14), field.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(field, "{#docs .anchor}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("{#docs .anchor}\n# Heading\n", roundtrip.Markdown);
+    }
+
+    [Fact]
+    public void Standalone_GenericAttributes_Before_Unsupported_Block_Family_Remain_Literal() {
+        const string markdown = "{#list .wide}\n- item\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        Assert.Collection(
+            document.Blocks,
+            block => {
+                var paragraph = Assert.IsType<ParagraphBlock>(block);
+                Assert.Equal("list", paragraph.Attributes.ElementId);
+                Assert.Equal(new[] { "wide" }, paragraph.Attributes.Classes);
+            },
+            block => Assert.IsType<UnorderedListBlock>(block));
+    }
+
+    [Fact]
     public void BareUrl_Paragraph_GenericAttributes_Preserve_NoSpace_Source_And_Literal_Text() {
         const string markdown = "https://example.com{#auto .wide}\n";
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();

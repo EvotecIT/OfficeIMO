@@ -1,0 +1,142 @@
+namespace OfficeIMO.Markdown;
+
+public static partial class MarkdownReader {
+    private static bool TryConsumeStandaloneGenericAttributeBlock(
+        string[] lines,
+        int lineIndex,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
+        if (!ShouldParseBlockGenericAttributes(options, state)
+            || state.PendingGenericAttributeBlock != null
+            || lines == null
+            || lineIndex < 0
+            || lineIndex >= lines.Length
+            || !HasFollowingSupportedStandaloneAttributeTarget(lines, lineIndex, options)) {
+            return false;
+        }
+
+        var line = lines[lineIndex] ?? string.Empty;
+        var indentColumns = CountLeadingIndentColumns(line);
+        if (indentColumns > 3) {
+            return false;
+        }
+
+        var contentStart = CountLeadingSpaces(line);
+        var content = line.Substring(contentStart).TrimEnd();
+        if (!MarkdownGenericAttributeParser.TryConsumeLeadingAttributeBlock(
+                content,
+                out var remaining,
+                out var attributes,
+                out var consumedLength)
+            || !string.IsNullOrWhiteSpace(remaining)
+            || consumedLength != content.Length) {
+            return false;
+        }
+
+        var absoluteLine = state.SourceLineOffset + lineIndex + 1;
+        var sourceSpan = CreateSpan(
+            state,
+            absoluteLine,
+            contentStart + 1,
+            absoluteLine,
+            contentStart + consumedLength);
+
+        state.PendingGenericAttributeBlock = new MarkdownPendingGenericAttributeBlock(
+            attributes,
+            content.Substring(0, consumedLength),
+            sourceSpan);
+        return true;
+    }
+
+    private static bool TryApplyPendingGenericAttributeBlock(
+        MarkdownDoc document,
+        int firstNewBlockIndex,
+        int blockStartLine,
+        MarkdownReaderState state,
+        out int captureStartLine) {
+        captureStartLine = -1;
+        var pending = state.PendingGenericAttributeBlock;
+        if (pending == null
+            || document == null
+            || firstNewBlockIndex < 0
+            || firstNewBlockIndex >= document.Blocks.Count
+            || document.Blocks[firstNewBlockIndex] is not MarkdownObject target) {
+            return false;
+        }
+
+        if (target.Attributes.IsEmpty) {
+            if (target is HeadingBlock heading) {
+                heading.OffsetRelativeSourceInfoLines(Math.Max(0, blockStartLine + 1 - pending.SourceSpan.StartLine));
+            }
+
+            target.SetAttributes(pending.Attributes);
+            MarkdownGenericAttributeSourceSpans.Set(target, pending.SourceText, pending.SourceSpan);
+        }
+
+        captureStartLine = pending.SourceSpan.StartLine - 1;
+        state.PendingGenericAttributeBlock = null;
+        return true;
+    }
+
+    private static bool HasFollowingSupportedStandaloneAttributeTarget(
+        string[] lines,
+        int lineIndex,
+        MarkdownReaderOptions options) {
+        for (int i = lineIndex + 1; i < lines.Length; i++) {
+            if (string.IsNullOrWhiteSpace(lines[i])) {
+                continue;
+            }
+
+            if (IsAtxHeading(lines[i], out _, out _)) {
+                return true;
+            }
+
+            if (i + 1 < lines.Length
+                && !string.IsNullOrWhiteSpace(lines[i + 1])
+                && TryGetSetextHeadingUnderlineLevel(lines[i + 1], out _)) {
+                return true;
+            }
+
+            return options.Paragraphs
+                && !IsCodeFenceOpen(lines[i], out _, out _, out _)
+                && !StartsTable(lines, i, options)
+                && !IsParagraphInterruptingThematicBreakLine(lines[i])
+                && !IsParagraphInterruptingUnorderedListLine(lines[i])
+                && !IsOrderedListLine(lines[i], out _, out _)
+                && (!options.Callouts || !IsCalloutHeader(lines[i], out _, out _))
+                && !IsQuoteStarter(lines[i])
+                && !HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[i], options)
+                && !TryParseReferenceLinkDefinition(lines, i, options, out _, out _, out _, out _)
+                && !(options.Abbreviations && TryParseAbbreviationDefinition(lines[i], 0, null, out _, out _, out _, out _, out _, out _))
+                && !IsStandaloneAttributeFootnoteDefinitionTarget(lines[i], options)
+                && !(options.StandaloneImageBlocks && IsImageLine(lines[i]));
+        }
+
+        return false;
+    }
+
+    private static bool IsStandaloneAttributeFootnoteDefinitionTarget(string line, MarkdownReaderOptions options) {
+        if (options?.Footnotes != true || string.IsNullOrWhiteSpace(line)) {
+            return false;
+        }
+
+        var leading = 0;
+        while (leading < line.Length && line[leading] == ' ') {
+            leading++;
+        }
+
+        if (leading >= 4 || (leading < line.Length && line[leading] == '\t')) {
+            return false;
+        }
+
+        var trimmed = line.TrimStart();
+        if (trimmed.Length <= 4 || trimmed[0] != '[' || trimmed[1] != '^') {
+            return false;
+        }
+
+        var closing = trimmed.IndexOf(']');
+        return closing >= 2
+            && closing + 1 < trimmed.Length
+            && trimmed[closing + 1] == ':';
+    }
+}

@@ -118,5 +118,21 @@ public sealed class MarkdownReaderState {
     internal MarkdownSourceTextMap? SourceTextMap { get; set; }
     internal int ListMarkerIndentOffset { get; set; }
     internal bool SuppressBlockGenericAttributes { get; set; }
+    internal MarkdownPendingGenericAttributeBlock? PendingGenericAttributeBlock { get; set; }
     internal HashSet<int> LazyQuoteContinuationLines { get; } = new HashSet<int>();
+}
+
+internal sealed class MarkdownPendingGenericAttributeBlock {
+    internal MarkdownPendingGenericAttributeBlock(
+        MarkdownAttributeSet attributes,
+        string sourceText,
+        MarkdownSourceSpan sourceSpan) {
+        Attributes = attributes ?? MarkdownAttributeSet.Empty;
+        SourceText = sourceText ?? string.Empty;
+        SourceSpan = sourceSpan;
+    }
+
+    internal MarkdownAttributeSet Attributes { get; }
+    internal string SourceText { get; }
+    internal MarkdownSourceSpan SourceSpan { get; }
 }
