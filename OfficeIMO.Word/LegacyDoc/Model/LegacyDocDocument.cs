@@ -275,7 +275,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return;
                 }
 
-                currentTableRow.Add(new LegacyDocTableCell(string.Concat(currentRuns.Select(run => run.Text))));
+                currentTableRow.Add(new LegacyDocTableCell(currentRuns.ToArray()));
                 currentRuns.Clear();
                 hasCurrentRun = false;
                 justClosedCell = true;
@@ -284,7 +284,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             void FlushTable() {
                 FlushRun();
                 if (currentRuns.Count > 0) {
-                    currentTableRow.Add(new LegacyDocTableCell(string.Concat(currentRuns.Select(run => run.Text))));
+                    currentTableRow.Add(new LegacyDocTableCell(currentRuns.ToArray()));
                     currentRuns.Clear();
                 }
 

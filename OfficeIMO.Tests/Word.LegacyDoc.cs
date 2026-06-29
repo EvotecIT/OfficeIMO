@@ -50,6 +50,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsFormattedTableCellRuns() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithFormattedTableCell();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            WordParagraph firstCellRun = table.Rows[0].Cells[0].Paragraphs[0];
+            WordParagraph secondCellRun = table.Rows[0].Cells[1].Paragraphs[0];
+            Assert.Equal("A1", firstCellRun.Text);
+            Assert.True(firstCellRun.Bold);
+            Assert.Equal("B1", secondCellRun.Text);
+            Assert.False(secondCellRun.Bold);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDocumentPropertiesAndCustomProperties() {
             DateTime created = new DateTime(2026, 6, 29, 8, 0, 0, DateTimeKind.Utc);
             DateTime modified = new DateTime(2026, 6, 29, 9, 15, 0, DateTimeKind.Utc);
@@ -663,6 +680,22 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithFormattedTableCell() {
+                const string text = "A1\aB1\a\aA2\aB2\a\a\r";
+                const int textOffset = 0x200;
+                const int chpxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithFormattedTableCell(text, textOffset, chpxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithCharacterBinTable(text.Length, textOffset, chpxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithDocumentProperties(DateTime created, DateTime modified, params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
                 byte[] wordDocumentStream = CreateWordDocumentStream(text);
@@ -799,6 +832,37 @@ namespace OfficeIMO.Tests {
                 WriteInt32(stream, 0x1A2, 0);
                 WriteInt32(stream, 0x1A6, 21);
                 Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
+            private static byte[] CreateUnicodeWordDocumentStreamWithFormattedTableCell(string text, int textOffset, int chpxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(chpxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0xFA, 21);
+                WriteInt32(stream, 0xFE, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int firstCellEnd = textOffset + ("A1".Length * 2);
+                int end = textOffset + (text.Length * 2);
+                WriteChpxFkp(
+                    stream,
+                    chpxFkpOffset,
+                    new[] { textOffset, firstCellEnd, end },
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateSingleSprmChpx(0x0835, 1)
+                    });
+
                 if (stream.Length < fibLength) {
                     Array.Resize(ref stream, fibLength);
                 }

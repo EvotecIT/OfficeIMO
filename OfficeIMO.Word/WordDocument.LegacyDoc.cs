@@ -107,8 +107,24 @@ namespace OfficeIMO.Word {
             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                 LegacyDocTableRow sourceRow = tableBlock.Rows[rowIndex];
                 for (int columnIndex = 0; columnIndex < sourceRow.Cells.Count && columnIndex < columnCount; columnIndex++) {
-                    table.Rows[rowIndex].Cells[columnIndex].AddParagraph(sourceRow.Cells[columnIndex].Text, removeExistingParagraphs: true);
+                    AddLegacyDocTableCell(table.Rows[rowIndex].Cells[columnIndex], sourceRow.Cells[columnIndex]);
                 }
+            }
+        }
+
+        private static void AddLegacyDocTableCell(WordTableCell cell, LegacyDocTableCell sourceCell) {
+            if (sourceCell.Runs.Count == 0) {
+                cell.AddParagraph(string.Empty, removeExistingParagraphs: true);
+                return;
+            }
+
+            LegacyDocTextRun firstRun = sourceCell.Runs[0];
+            WordParagraph paragraph = cell.AddParagraph(firstRun.Text, removeExistingParagraphs: true);
+            ApplyLegacyDocRunFormatting(paragraph, firstRun);
+            for (int index = 1; index < sourceCell.Runs.Count; index++) {
+                LegacyDocTextRun legacyRun = sourceCell.Runs[index];
+                WordParagraph run = paragraph.AddText(legacyRun.Text);
+                ApplyLegacyDocRunFormatting(run, legacyRun);
             }
         }
 
@@ -120,6 +136,10 @@ namespace OfficeIMO.Word {
 
             WordParagraph paragraph = section.AddParagraph(string.Empty);
             ApplyLegacyDocParagraphFormatting(paragraph, paragraphFormat);
+            AddLegacyDocRuns(paragraph, paragraphRuns);
+        }
+
+        private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns) {
             foreach (LegacyDocTextRun legacyRun in paragraphRuns) {
                 WordParagraph run = paragraph.AddText(legacyRun.Text);
                 ApplyLegacyDocRunFormatting(run, legacyRun);

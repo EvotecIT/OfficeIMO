@@ -233,6 +233,7 @@ just to reserve names.
 - [ ] Add common table projection after paragraph/run projection is stable.
   - [x] Project simple DOC cell/row marker tables into `WordTable` instances
     with plain cell text.
+  - [x] Preserve direct run formatting inside projected simple table cells.
   - [ ] Add table formatting, merged cells, nested tables, and table writer
     support as separate fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
