@@ -397,6 +397,10 @@ public static partial class MarkdownReader {
             }
 
             while (i > start && IsTrailingAutolinkPunctuation(text[i - 1])) {
+                if (options.AutolinkKeepTrailingSemicolonPunctuation && text[i - 1] == ';') {
+                    break;
+                }
+
                 if (options.AutolinkKeepTrailingQuotePunctuation && IsAutolinkQuotePunctuation(text[i - 1])) {
                     break;
                 }
@@ -434,6 +438,10 @@ public static partial class MarkdownReader {
 
             char last = text[i - 1];
             if (!trimmedSingleDelimiter && IsTrailingAutolinkPunctuationOrUnderscore(last)) {
+                if (options.AutolinkKeepTrailingSemicolonPunctuation && last == ';') {
+                    break;
+                }
+
                 if (options.AutolinkKeepTrailingQuotePunctuation && IsAutolinkQuotePunctuation(last)) {
                     break;
                 }

@@ -193,6 +193,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "https-trailing-bang-before-close-paren", "Visit https://example.com/path!) now" };
         yield return new object[] { "https-trailing-question-before-close-paren", "Visit https://example.com/path?) now" };
         yield return new object[] { "www-trailing-period-before-close-paren", "Visit www.example.com/path.) now" };
+        yield return new object[] { "https-trailing-semicolon-links", "Visit https://example.com/path; now" };
+        yield return new object[] { "https-trailing-double-semicolon-links", "Visit https://example.com/path;; now" };
         yield return new object[] { "uppercase-www-prefix-stays-literal", "Visit WWW.example.com now" };
         yield return new object[] { "mixed-case-www-host", "Visit www.Example.com now" };
         yield return new object[] { "unicode-http-domain", "Visit https://пример.рф/path now" };
@@ -204,10 +206,12 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "http-url-paired-single-quotes-stays-literal", "Visit 'https://example.com/path' now" };
         yield return new object[] { "http-url-userinfo-stays-literal", "Visit https://user@example.com/path now" };
         yield return new object[] { "www-url-path-tilde", "Visit www.example.com/path~tilde now" };
+        yield return new object[] { "www-url-trailing-semicolon-links", "Visit www.example.com/path; now" };
         yield return new object[] { "www-url-userinfo-stays-literal", "Visit www.user@example.com/path now" };
         yield return new object[] { "unicode-www-domain", "Visit www.пример.рф/path now" };
         yield return new object[] { "unicode-ftp-domain", "Visit ftp://пример.рф/path now" };
         yield return new object[] { "ftp-url", "Visit ftp://example.com/file.txt now" };
+        yield return new object[] { "ftp-url-trailing-semicolon-links", "Visit ftp://example.com/file; now" };
         yield return new object[] { "ftp-url-userinfo-stays-literal", "Visit ftp://user@example.com/file now" };
         yield return new object[] { "ftp-url-query-ampersand", "Visit ftp://example.com/path?q=1&next=2 now" };
         yield return new object[] { "ftp-url-query-parens", "Visit ftp://example.com/search?q=(x) now" };
@@ -220,6 +224,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "http-url-after-underscore", "Visit _https://example.com now" };
         yield return new object[] { "ftp-localhost-stays-literal", "Visit ftp://localhost/file now" };
         yield return new object[] { "tel-url", "Call tel:+123456789 now" };
+        yield return new object[] { "tel-url-trailing-semicolon-links", "Call tel:+123-456; now" };
         yield return new object[] { "tel-url-trailing-dot", "Call tel:+123-456. now" };
         yield return new object[] { "tel-url-parentheses", "Call tel:(123)456 now" };
         yield return new object[] { "xmpp-url", "Chat xmpp:user@example.com now" };
@@ -331,6 +336,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         officeOptions.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
         officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
+        officeOptions.AutolinkKeepTrailingSemicolonPunctuation = true;
         officeOptions.AutolinkRejectUnderscoreInWwwHost = true;
         officeOptions.AutolinkRejectUserInfoAuthority = true;
         officeOptions.AutolinkAllowClosingBracketInUrl = true;
@@ -365,6 +371,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         officeOptions.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
         officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
+        officeOptions.AutolinkKeepTrailingSemicolonPunctuation = true;
         officeOptions.AutolinkRejectUnderscoreInWwwHost = true;
         officeOptions.AutolinkRejectUserInfoAuthority = true;
         officeOptions.AutolinkAllowClosingBracketInUrl = true;

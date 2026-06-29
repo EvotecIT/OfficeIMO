@@ -396,6 +396,40 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Markdig_Autolinks_Can_Keep_Trailing_Semicolons_With_Source_And_Writer_Proof() {
+        const string markdown = "Visit https://example.com/path;; now\n";
+
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
+        options.AutolinkKeepTrailingSemicolonPunctuation = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
+        var target = Assert.Single(link.Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
+        var semanticLink = Assert.Single(semanticParagraph.Inlines.Nodes.OfType<LinkInline>());
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeLink = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var nativeTarget = Assert.Single(nativeLink.Metadata, metadata => metadata.Name == "target");
+        var written = result.Document.ToMarkdown().Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<a href=\"https://example.com/path;;\">https://example.com/path;;</a>", html, StringComparison.Ordinal);
+        Assert.Equal("https://example.com/path;;", semanticLink.Text);
+        Assert.Equal("https://example.com/path;;", semanticLink.Url);
+        Assert.Equal("https://example.com/path;;", link.Literal);
+        Assert.Equal("https://example.com/path;;", target.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 32), target.SourceSpan);
+        Assert.Equal("https://example.com/path;;", nativeTarget.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 32), nativeTarget.SourceSpan);
+        Assert.Equal(markdown.Trim(), written);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void Gfm_Autolinks_Render_Unicode_Www_Domain_As_Idn_While_Preserving_Source_Literal() {
         const string markdown = "Visit www.пример.рф/path now\n";
 

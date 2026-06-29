@@ -257,6 +257,13 @@ public sealed class MarkdownReaderOptions {
     public bool AutolinkTrimSingleTrailingPunctuationOrUnderscore { get; set; } = false;
 
     /// <summary>
+    /// When <c>true</c>, bare URL autolinks keep trailing semicolons inside the consumed
+    /// URL target. Markdig <c>UseAutoLinks</c> keeps semicolons while still trimming
+    /// other single trailing punctuation such as periods and commas.
+    /// </summary>
+    public bool AutolinkKeepTrailingSemicolonPunctuation { get; set; } = false;
+
+    /// <summary>
     /// When <c>true</c>, bare <c>www.</c> autolinks require the prefix itself to be lowercase.
     /// The host portion after the prefix may still use mixed case.
     /// </summary>
