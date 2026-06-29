@@ -900,24 +900,45 @@ public static partial class MarkdownReader {
         int absoluteLineOffset,
         MarkdownReaderOptions options,
         MarkdownReaderState? state) {
-        var text = JoinParagraphLines(lines, options);
-        if (state?.SourceTextMap == null || string.IsNullOrEmpty(text)) {
-            return (text, null);
+        if (state?.SourceTextMap == null) {
+            var sourceText = JoinParagraphLines(lines, options);
+            return (sourceText, null);
         }
 
-        var points = new MarkdownSourcePoint?[text.Length];
-        var tokenSpans = new MarkdownSourceSpan?[text.Length];
-        var tokenLiterals = new string?[text.Length];
+        var textBuilder = new StringBuilder();
+        var pointList = new List<MarkdownSourcePoint?>();
+        var tokenSpanList = new List<MarkdownSourceSpan?>();
+        var tokenLiteralList = new List<string?>();
         var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(lines);
-        var cursor = 0;
-        var previousLineForJoin = absoluteLineOffset + 1;
+        ParagraphLineJoinInfo? previousJoinInfo = null;
+        var previousAbsoluteLine = absoluteLineOffset + 1;
         var previousJoinColumn = 1;
-        MarkdownSourceSpan? previousHardBreakMarkerSpan = null;
-        string? previousHardBreakMarker = null;
 
         for (var i = 0; i < lines.Count; i++) {
-            var raw = lines[i] ?? string.Empty;
             var absoluteLine = absoluteLineOffset + i + 1;
+            if (previousJoinInfo.HasValue) {
+                var softLazyQuoteBreak = IsLazyQuoteContinuationLine(state, absoluteLineOffset + i) &&
+                    !previousJoinInfo.Value.HardBreak;
+                textBuilder.Append(previousJoinInfo.Value.HardBreak || softLazyQuoteBreak ? '\n' : ' ');
+                pointList.Add(state.SourceTextMap.CreatePoint(previousAbsoluteLine, previousJoinColumn));
+                tokenSpanList.Add(previousJoinInfo.Value.HardBreak
+                    ? previousJoinInfo.Value.HardBreakMarkerSpan
+                    : softLazyQuoteBreak
+                        ? CreateSpan(
+                            state,
+                            previousAbsoluteLine,
+                            previousJoinColumn,
+                            previousAbsoluteLine,
+                            previousJoinColumn)
+                        : null);
+                tokenLiteralList.Add(previousJoinInfo.Value.HardBreak
+                    ? previousJoinInfo.Value.HardBreakMarker
+                    : softLazyQuoteBreak
+                        ? "\n"
+                        : null);
+            }
+
+            var raw = lines[i] ?? string.Empty;
             var joinInfo = GetParagraphLineJoinInfo(
                 raw,
                 absoluteLine,
@@ -926,31 +947,24 @@ public static partial class MarkdownReader {
                 state.SourceTextMap,
                 hasFollowingLine: i + 1 < lines.Count,
                 preserveLineEndingInsideInlineSpan: i < preservedInlineLineBreaks.Length && preservedInlineLineBreaks[i]);
-
-            if (i > 0 && cursor < points.Length) {
-                points[cursor] = state.SourceTextMap.CreatePoint(previousLineForJoin, previousJoinColumn);
-                tokenSpans[cursor] = previousHardBreakMarkerSpan;
-                tokenLiterals[cursor] = previousHardBreakMarker;
-                cursor++;
+            textBuilder.Append(joinInfo.Text);
+            for (var charIndex = 0; charIndex < joinInfo.Text.Length; charIndex++) {
+                pointList.Add(state.SourceTextMap.CreatePoint(absoluteLine, charIndex + 1));
+                tokenSpanList.Add(null);
+                tokenLiteralList.Add(null);
             }
 
-            for (var charIndex = 0; charIndex < joinInfo.Text.Length && cursor < points.Length; charIndex++) {
-                points[cursor++] = state.SourceTextMap.CreatePoint(absoluteLine, charIndex + 1);
-            }
-
-            previousLineForJoin = absoluteLine;
+            previousAbsoluteLine = absoluteLine;
             previousJoinColumn = Math.Max(1, joinInfo.Text.Length);
-            previousHardBreakMarkerSpan = joinInfo.HardBreak ? joinInfo.HardBreakMarkerSpan : null;
-            previousHardBreakMarker = joinInfo.HardBreak ? joinInfo.HardBreakMarker : null;
+            previousJoinInfo = joinInfo;
         }
 
-        if (cursor < points.Length) {
-            Array.Resize(ref points, cursor);
-            Array.Resize(ref tokenSpans, cursor);
-            Array.Resize(ref tokenLiterals, cursor);
+        var text = textBuilder.ToString();
+        if (string.IsNullOrEmpty(text)) {
+            return (text, null);
         }
 
-        return (text, new MarkdownInlineSourceMap(points, tokenSpans, tokenLiterals));
+        return (text, new MarkdownInlineSourceMap(pointList.ToArray(), tokenSpanList.ToArray(), tokenLiteralList.ToArray()));
     }
 
     private static (string Text, MarkdownInlineSourceMap? SourceMap) JoinParagraphSourceLinesWithSourceMap(
@@ -966,30 +980,44 @@ public static partial class MarkdownReader {
             plainLines.Add(lines[i].Text);
         }
 
-        var text = JoinParagraphLines(plainLines, options);
-        if (state?.SourceTextMap == null || string.IsNullOrEmpty(text)) {
-            return (text, null);
+        if (state?.SourceTextMap == null) {
+            var sourceText = JoinParagraphSourceLines(lines, options);
+            return (sourceText, null);
         }
 
-        var points = new MarkdownSourcePoint?[text.Length];
-        var tokenSpans = new MarkdownSourceSpan?[text.Length];
-        var tokenLiterals = new string?[text.Length];
+        var textBuilder = new StringBuilder();
+        var points = new List<MarkdownSourcePoint?>();
+        var tokenSpans = new List<MarkdownSourceSpan?>();
+        var tokenLiterals = new List<string?>();
         var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(plainLines);
-        var cursor = 0;
-        var previousLine = lines[0].AbsoluteLine;
-        var previousJoinColumn = lines[0].StartColumn;
-        MarkdownSourceSpan? previousHardBreakMarkerSpan = null;
-        string? previousHardBreakMarker = null;
+        MarkdownSourceLineSlice? previousLine = null;
+        ParagraphLineJoinInfo? previousJoinInfo = null;
 
         for (var i = 0; i < lines.Count; i++) {
-            if (i > 0 && cursor < points.Length) {
-                points[cursor] = state.SourceTextMap.CreatePoint(previousLine, previousJoinColumn);
-                tokenSpans[cursor] = previousHardBreakMarkerSpan;
-                tokenLiterals[cursor] = previousHardBreakMarker;
-                cursor++;
+            var slice = lines[i];
+            if (previousLine.HasValue && previousJoinInfo.HasValue) {
+                var softLazyQuoteBreak = IsLazyQuoteSoftBreak(previousLine.Value, slice) &&
+                    !previousJoinInfo.Value.HardBreak;
+                textBuilder.Append(previousJoinInfo.Value.HardBreak || softLazyQuoteBreak ? '\n' : ' ');
+                var previousJoinColumn = previousLine.Value.StartColumn + Math.Max(0, previousJoinInfo.Value.Text.Length - 1);
+                points.Add(state.SourceTextMap.CreatePoint(previousLine.Value.AbsoluteLine, previousJoinColumn));
+                tokenSpans.Add(previousJoinInfo.Value.HardBreak
+                    ? previousJoinInfo.Value.HardBreakMarkerSpan
+                    : softLazyQuoteBreak
+                        ? CreateSpan(
+                            state,
+                            previousLine.Value.AbsoluteLine,
+                            previousJoinColumn,
+                            previousLine.Value.AbsoluteLine,
+                            previousJoinColumn)
+                        : null);
+                tokenLiterals.Add(previousJoinInfo.Value.HardBreak
+                    ? previousJoinInfo.Value.HardBreakMarker
+                    : softLazyQuoteBreak
+                        ? "\n"
+                        : null);
             }
 
-            var slice = lines[i];
             var joinInfo = GetParagraphLineJoinInfo(
                 slice.Text,
                 slice.AbsoluteLine,
@@ -998,24 +1026,69 @@ public static partial class MarkdownReader {
                 state.SourceTextMap,
                 hasFollowingLine: i + 1 < lines.Count,
                 preserveLineEndingInsideInlineSpan: i < preservedInlineLineBreaks.Length && preservedInlineLineBreaks[i]);
-            for (var charIndex = 0; charIndex < joinInfo.Text.Length && cursor < points.Length; charIndex++) {
-                points[cursor++] = state.SourceTextMap.CreatePoint(slice.AbsoluteLine, slice.StartColumn + charIndex);
+            textBuilder.Append(joinInfo.Text);
+            for (var charIndex = 0; charIndex < joinInfo.Text.Length; charIndex++) {
+                points.Add(state.SourceTextMap.CreatePoint(slice.AbsoluteLine, slice.StartColumn + charIndex));
+                tokenSpans.Add(null);
+                tokenLiterals.Add(null);
             }
 
-            previousLine = slice.AbsoluteLine;
-            previousJoinColumn = slice.StartColumn + Math.Max(0, joinInfo.Text.Length - 1);
-            previousHardBreakMarkerSpan = joinInfo.HardBreak ? joinInfo.HardBreakMarkerSpan : null;
-            previousHardBreakMarker = joinInfo.HardBreak ? joinInfo.HardBreakMarker : null;
+            previousLine = slice;
+            previousJoinInfo = joinInfo;
         }
 
-        if (cursor < points.Length) {
-            Array.Resize(ref points, cursor);
-            Array.Resize(ref tokenSpans, cursor);
-            Array.Resize(ref tokenLiterals, cursor);
+        var text = textBuilder.ToString();
+        if (string.IsNullOrEmpty(text)) {
+            return (text, null);
         }
 
-        return (text, new MarkdownInlineSourceMap(points, tokenSpans, tokenLiterals));
+        return (text, new MarkdownInlineSourceMap(points.ToArray(), tokenSpans.ToArray(), tokenLiterals.ToArray()));
     }
+
+    private static string JoinParagraphSourceLines(List<MarkdownSourceLineSlice> lines, MarkdownReaderOptions options) {
+        if (lines == null || lines.Count == 0) {
+            return string.Empty;
+        }
+
+        var plainLines = new List<string>(lines.Count);
+        for (int i = 0; i < lines.Count; i++) {
+            plainLines.Add(lines[i].Text);
+        }
+
+        var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(plainLines);
+        var sb = new StringBuilder();
+        ParagraphLineJoinInfo? previousJoinInfo = null;
+        MarkdownSourceLineSlice? previousLine = null;
+        for (int i = 0; i < lines.Count; i++) {
+            var slice = lines[i];
+            if (previousLine.HasValue && previousJoinInfo.HasValue) {
+                sb.Append(previousJoinInfo.Value.HardBreak ||
+                          (IsLazyQuoteSoftBreak(previousLine.Value, slice) && !previousJoinInfo.Value.HardBreak)
+                    ? '\n'
+                    : ' ');
+            }
+
+            var joinInfo = GetParagraphLineJoinInfo(
+                slice.Text,
+                slice.AbsoluteLine,
+                slice.StartColumn,
+                options,
+                sourceTextMap: null,
+                hasFollowingLine: i + 1 < lines.Count,
+                preserveLineEndingInsideInlineSpan: i < preservedInlineLineBreaks.Length && preservedInlineLineBreaks[i]);
+            sb.Append(joinInfo.Text);
+            previousLine = slice;
+            previousJoinInfo = joinInfo;
+        }
+
+        return sb.ToString();
+    }
+
+    private static bool IsLazyQuoteSoftBreak(MarkdownSourceLineSlice previousLine, MarkdownSourceLineSlice currentLine) =>
+        previousLine.IsLazyQuoteContinuation || currentLine.IsLazyQuoteContinuation;
+
+    private static bool IsLazyQuoteContinuationLine(MarkdownReaderState? state, int zeroBasedLineIndex) =>
+        state?.LazyQuoteContinuationLines.Contains(zeroBasedLineIndex) == true;
 
     private static MarkdownInlineSourceMap? BuildInlineSourceMapForSingleLine(
         string text,

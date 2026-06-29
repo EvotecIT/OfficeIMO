@@ -1264,6 +1264,68 @@ text
     }
 
     [Fact]
+    public void DefinitionList_NestedBlockquoteLazyParagraph_Preserves_Markdig_SoftBreak() {
+        const string markdown = """
+Term
+:   First
+    > quote
+lazy
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        Assert.Equal(2, definition.Blocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
+        var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal("quote\nlazy", quoteParagraph.Inlines.RenderMarkdown());
+        Assert.IsType<SoftBreakInline>(quoteParagraph.Inlines.Nodes[1]);
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.Quote
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.InlineText,
+                MarkdownSyntaxKind.InlineSoftBreak,
+                MarkdownSyntaxKind.InlineText
+            },
+            quoteParagraphSyntax.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, 4), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 4, 4), quoteSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 7, 4, 4), quoteParagraphSyntax.SourceSpan);
+        Assert.Equal("Term\n:   First\n    > quote\n    > lazy", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        var nativeDefinitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var nativeDefinition = Assert.Single(Assert.Single(nativeDefinitionList.Groups).Definitions);
+        var nativeQuote = Assert.IsType<MarkdownNativeQuoteBlock>(nativeDefinition.Children[1]);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(nativeQuote.Children));
+        Assert.Equal("First\n\n> quote\n> lazy", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, 4), definitionBody.SourceSpan);
+        Assert.Contains(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.SoftBreak);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void DefinitionList_NestedBlockquoteBody_Merges_TableShapedLazyLinesIntoQuote_WhenTablesAreOff() {
         const string markdown = """
 Term
@@ -1293,7 +1355,7 @@ Term
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
-        Assert.Equal("quote \\| A \\| \\|---\\| \\| B \\|", quoteParagraph.Inlines.RenderMarkdown());
+        Assert.Equal("quote\n\\| A \\|\n\\|---\\|\n\\| B \\|", quoteParagraph.Inlines.RenderMarkdown());
         Assert.Equal(
             new[] {
                 MarkdownSyntaxKind.Paragraph,
@@ -1303,13 +1365,13 @@ Term
         Assert.Equal(new MarkdownSourceSpan(2, 5, 6, 5), definitionValue.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(3, 3, 6, 5), quoteSyntax.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(3, 7, 6, 5), quoteParagraphSyntax.SourceSpan);
-        Assert.Equal("Term\n:   First\n    > quote \\| A \\| \\|---\\| \\| B \\|", written);
+        Assert.Equal("Term\n:   First\n    > quote\n    > \\| A \\|\n    > \\|---\\|\n    > \\| B \\|", written);
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
 
         var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
-        Assert.Equal("First\n\n> quote \\| A \\| \\|---\\| \\| B \\|", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal("First\n\n> quote\n> \\| A \\|\n> \\|---\\|\n> \\| B \\|", definitionBody.Value!.Replace("\r\n", "\n"));
         Assert.Equal(new MarkdownSourceSpan(2, 5, 6, 5), definitionBody.SourceSpan);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }

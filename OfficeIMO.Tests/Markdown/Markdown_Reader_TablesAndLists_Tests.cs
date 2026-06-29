@@ -699,7 +699,7 @@ after
             Assert.Contains(list.Items[0].Children, b => b is UnorderedListBlock);
 
             var html = doc.ToHtmlFragment();
-            Assert.Contains("<blockquote><p>quote continuation</p></blockquote><ul><li>nested</li></ul>", html, StringComparison.Ordinal);
+            Assert.Contains("<blockquote><p>quote\ncontinuation</p></blockquote><ul><li>nested</li></ul>", html, StringComparison.Ordinal);
             Assert.DoesNotContain("<p>- nested</p>", html, StringComparison.Ordinal);
         }
 
@@ -716,7 +716,7 @@ after
             var quote = Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
 
             var html = doc.ToHtmlFragment();
-            Assert.Contains("<li>item<blockquote><p>quote continuation</p></blockquote></li>", html, StringComparison.Ordinal);
+            Assert.Contains("<li>item<blockquote><p>quote\ncontinuation</p></blockquote></li>", html, StringComparison.Ordinal);
             Assert.Single(quote.Children);
         }
 
@@ -734,7 +734,7 @@ after
             var quote = Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
 
             var html = doc.ToHtmlFragment();
-            Assert.Contains("<blockquote><p>quote continuation</p></blockquote>", html, StringComparison.Ordinal);
+            Assert.Contains("<blockquote><p>quote\ncontinuation</p></blockquote>", html, StringComparison.Ordinal);
             Assert.Single(quote.Children);
         }
 

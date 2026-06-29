@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Single(doc.Blocks);
             var paragraph = Assert.IsType<ParagraphBlock>(quote.Children[0]);
             var html = ((IMarkdownBlock)paragraph).RenderHtml();
-            Assert.Contains("Quote line 1 outside code", html, StringComparison.Ordinal);
+            Assert.Contains("Quote line 1\noutside code", html, StringComparison.Ordinal);
             Assert.DoesNotContain("Quote line 1  outside code", html, StringComparison.Ordinal);
         }
 
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Single(quote.Children);
             var paragraph = Assert.IsType<ParagraphBlock>(quote.Children[0]);
             var html = ((IMarkdownBlock)paragraph).RenderHtml();
-            Assert.Contains("Quote line 1 - nested", html, StringComparison.Ordinal);
+            Assert.Contains("Quote line 1\n- nested", html, StringComparison.Ordinal);
             Assert.DoesNotContain("<ul>", html, StringComparison.Ordinal);
         }
 
