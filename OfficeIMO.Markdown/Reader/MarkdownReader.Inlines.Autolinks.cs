@@ -297,6 +297,12 @@ public static partial class MarkdownReader {
         int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
         if (i <= start) return false;
 
+        if (options.AutolinkBareMailtoMarkdigSemicolonHandling) {
+            if (!TryApplyBareMailtoMarkdigSemicolonHandling(text, start, rawEnd, ref i)) {
+                return false;
+            }
+        }
+
         int addressEnd = i;
         for (int scan = start; scan < i; scan++) {
             char c = text[scan];
@@ -314,6 +320,42 @@ public static partial class MarkdownReader {
         end = i;
         email = text.Substring(start, i - start);
         return true;
+    }
+
+    private static bool TryApplyBareMailtoMarkdigSemicolonHandling(string text, int start, int rawEnd, ref int end) {
+        if (rawEnd <= end || !ContainsOnlySemicolons(text, end, rawEnd)) {
+            return true;
+        }
+
+        if (MailtoTargetHasPathQueryOrFragment(text, start, end)) {
+            end = rawEnd;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsOnlySemicolons(string text, int start, int end) {
+        if (start < 0 || end <= start || end > text.Length) return false;
+
+        for (int i = start; i < end; i++) {
+            if (text[i] != ';') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool MailtoTargetHasPathQueryOrFragment(string text, int start, int end) {
+        for (int i = start; i < end; i++) {
+            char c = text[i];
+            if (c == '/' || c == '?' || c == '#') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool StartsWithOrdinalIgnoreCase(string text, int start, string value) {

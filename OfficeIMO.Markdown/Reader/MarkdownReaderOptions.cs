@@ -305,6 +305,13 @@ public sealed class MarkdownReaderOptions {
     public bool AutolinkBareMailtoDisplayAddressOnly { get; set; } = false;
 
     /// <summary>
+    /// When <c>true</c>, bare <c>mailto:</c> autolinks use Markdig-style semicolon handling:
+    /// address-only tokens followed by a semicolon remain literal, while path, query, or
+    /// fragment targets keep trailing semicolons inside the link.
+    /// </summary>
+    public bool AutolinkBareMailtoMarkdigSemicolonHandling { get; set; } = false;
+
+    /// <summary>
     /// Optional previous-character allow-list for bare URL/email autolinks. When set, a bare
     /// autolink may start at the beginning of text, after whitespace, or after one of these
     /// characters. When <c>null</c>, OfficeIMO's legacy boundary heuristic is used.

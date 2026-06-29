@@ -226,8 +226,11 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "uppercase-ftp-stays-literal", "Visit FTP://example.com/file now" };
         yield return new object[] { "uppercase-tel-stays-literal", "Call TEL:+123-456 now" };
         yield return new object[] { "lowercase-mailto-links", "Contact mailto:user@example.com now" };
+        yield return new object[] { "lowercase-mailto-address-semicolon-stays-literal", "Contact mailto:user@example.com; now" };
         yield return new object[] { "lowercase-mailto-path-links", "Contact mailto:user@example.com/path now" };
+        yield return new object[] { "lowercase-mailto-path-semicolon-links", "Contact mailto:user@example.com/path; now" };
         yield return new object[] { "lowercase-mailto-path-query-links", "Contact mailto:user@example.com/path?q=1 now" };
+        yield return new object[] { "lowercase-mailto-query-semicolon-links", "Contact mailto:user@example.com?subject=Hi; now" };
         yield return new object[] { "lowercase-mailto-path-trailing-underscore", "Contact mailto:user@example.com/path__ now" };
         yield return new object[] { "uppercase-mailto-stays-literal", "Contact MAILTO:user@example.com now" };
         yield return new object[] { "plain-email-stays-literal", "Contact user@example.com now" };
@@ -334,6 +337,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         officeOptions.AutolinkKeepTrailingQuotePunctuation = true;
         officeOptions.AutolinkEmails = false;
         officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
+        officeOptions.AutolinkBareMailtoMarkdigSemicolonHandling = true;
         officeOptions.AutolinkValidPreviousCharacters = "_('";
         officeOptions.AutolinkBareSchemePrefixes = new[] { "mailto:", "ftp://", "tel:" };
 
@@ -367,6 +371,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         officeOptions.AutolinkKeepTrailingQuotePunctuation = true;
         officeOptions.AutolinkEmails = false;
         officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
+        officeOptions.AutolinkBareMailtoMarkdigSemicolonHandling = true;
         officeOptions.AutolinkValidPreviousCharacters = "_('";
         officeOptions.AutolinkBareSchemePrefixes = new[] { "mailto:", "ftp://", "tel:" };
 

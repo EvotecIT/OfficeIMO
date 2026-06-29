@@ -42,6 +42,7 @@ public static partial class MarkdownReader {
             AutolinkKeepTrailingQuotePunctuation = source.AutolinkKeepTrailingQuotePunctuation,
             AutolinkRequireLowercaseBareSchemePrefix = source.AutolinkRequireLowercaseBareSchemePrefix,
             AutolinkBareMailtoDisplayAddressOnly = source.AutolinkBareMailtoDisplayAddressOnly,
+            AutolinkBareMailtoMarkdigSemicolonHandling = source.AutolinkBareMailtoMarkdigSemicolonHandling,
             AutolinkValidPreviousCharacters = source.AutolinkValidPreviousCharacters,
             AutolinkBareSchemeUrls = source.AutolinkBareSchemeUrls,
             AutolinkBareSchemePrefixes = source.AutolinkBareSchemePrefixes == null
