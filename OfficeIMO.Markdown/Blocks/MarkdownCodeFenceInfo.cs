@@ -261,68 +261,28 @@ public sealed class MarkdownCodeFenceInfo {
             }
 
             if (!segment.IsAttributeBlock) {
-                ParseMetadataToken(segment.Value, parsedAttributes, parsedClasses, ref elementId);
+                MarkdownGenericAttributeParser.ParseToken(segment.Value, parsedAttributes, parsedClasses, ref elementId);
                 continue;
             }
 
-            foreach (var token in Tokenize(segment.Value)) {
-                ParseMetadataToken(token, parsedAttributes, parsedClasses, ref elementId);
+            MarkdownGenericAttributeParser.ParseTokens(segment.Value, out var blockElementId, out var blockClasses, out var blockAttributes);
+            if (string.IsNullOrWhiteSpace(elementId) && !string.IsNullOrWhiteSpace(blockElementId)) {
+                elementId = blockElementId;
+            }
+
+            for (int i = 0; i < blockClasses.Count; i++) {
+                AddClass(parsedClasses, blockClasses[i]);
+            }
+
+            foreach (var attribute in blockAttributes) {
+                if (!parsedAttributes.ContainsKey(attribute.Key)) {
+                    parsedAttributes[attribute.Key] = attribute.Value;
+                }
             }
         }
 
         classes = parsedClasses.Count == 0 ? EmptyClasses : parsedClasses.AsReadOnly();
         attributes = parsedAttributes;
-    }
-
-    private static IEnumerable<string> Tokenize(string value) {
-        var current = new StringBuilder();
-        char quote = '\0';
-
-        for (int i = 0; i < value.Length; i++) {
-            var ch = value[i];
-            if (quote == '\0') {
-                if (char.IsWhiteSpace(ch)) {
-                    if (current.Length > 0) {
-                        yield return current.ToString();
-                        current.Clear();
-                    }
-
-                    continue;
-                }
-
-                if (ch == '"' || ch == '\'') {
-                    quote = ch;
-                }
-
-                current.Append(ch);
-                continue;
-            }
-
-            current.Append(ch);
-            if (ch == quote && (i == 0 || value[i - 1] != '\\')) {
-                quote = '\0';
-            }
-        }
-
-        if (current.Length > 0) {
-            yield return current.ToString();
-        }
-    }
-
-    private static string? Unquote(string? value) {
-        if (string.IsNullOrEmpty(value)) {
-            return value;
-        }
-
-        if (value!.Length >= 2) {
-            var first = value[0];
-            var last = value[value.Length - 1];
-            if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
-                return value.Substring(1, value.Length - 2);
-            }
-        }
-
-        return value;
     }
 
     private static IEnumerable<FenceMetadataSegment> EnumerateMetadataSegments(string value) {
@@ -409,60 +369,6 @@ public sealed class MarkdownCodeFenceInfo {
         block = string.Empty;
         index = start;
         return false;
-    }
-
-    private static void ParseMetadataToken(
-        string token,
-        IDictionary<string, string?> attributes,
-        IList<string> classes,
-        ref string? elementId) {
-        var trimmed = token.Trim();
-        if (string.IsNullOrWhiteSpace(trimmed)) {
-            return;
-        }
-
-        if (trimmed[0] == '#' && trimmed.Length > 1) {
-            if (string.IsNullOrWhiteSpace(elementId)) {
-                elementId = trimmed.Substring(1);
-            }
-
-            return;
-        }
-
-        if (trimmed[0] == '.' && trimmed.Length > 1) {
-            AddClass(classes, trimmed.Substring(1));
-            return;
-        }
-
-        int equals = trimmed.IndexOf('=');
-        if (equals > 0) {
-            var key = trimmed.Substring(0, equals).Trim();
-            if (key.Length == 0 || attributes.ContainsKey(key)) {
-                return;
-            }
-
-            var rawValue = trimmed.Substring(equals + 1).Trim();
-            var value = Unquote(rawValue);
-            attributes[key] = value;
-
-            if (string.Equals(key, "id", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(elementId) && !string.IsNullOrWhiteSpace(value)) {
-                elementId = value;
-                return;
-            }
-
-            if (string.Equals(key, "class", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(value)) {
-                var classList = value!;
-                foreach (var className in classList.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
-                    AddClass(classes, className);
-                }
-            }
-
-            return;
-        }
-
-        if (!attributes.ContainsKey(trimmed)) {
-            attributes[trimmed] = "true";
-        }
     }
 
     private static void AddClass(IList<string> classes, string? className) {

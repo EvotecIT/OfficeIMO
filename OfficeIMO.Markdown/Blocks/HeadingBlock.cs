@@ -115,11 +115,11 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     }
 
     /// <inheritdoc />
-    string IMarkdownBlock.RenderMarkdown() => new string('#', Level) + " " + Inlines.RenderMarkdown();
+    string IMarkdownBlock.RenderMarkdown() => new string('#', Level) + " " + Inlines.RenderMarkdown() + MarkdownAttributeBlockRenderer.RenderTrailing(Attributes);
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
         var id = MarkdownSlug.Generate(Text, MarkdownHeadingIdentifierStyle.OfficeIMO);
-        return $"<h{Level} id=\"{id}\">{Inlines.RenderHtml()}</h{Level}>";
+        return $"<h{Level}{MarkdownHtmlAttributes.Render(Attributes, null, id)}>{Inlines.RenderHtml()}</h{Level}>";
     }
 
     string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
@@ -129,17 +129,16 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
 
         var sb = new System.Text.StringBuilder();
         sb.Append("<h").Append(Level);
-        if (!string.IsNullOrEmpty(id)) {
-            sb.Append(" id=\"").Append(HtmlTextEncoder.Encode(id, context.Options)).Append("\"");
-        }
+        var effectiveId = !string.IsNullOrWhiteSpace(Attributes.ElementId) ? Attributes.ElementId : id;
+        sb.Append(MarkdownHtmlAttributes.Render(Attributes, context.Options, id));
         sb.Append(">");
         sb.Append(Inlines.RenderHtml());
-        if (!string.IsNullOrEmpty(id) && (context.Options.IncludeAnchorLinks || context.Options.ShowAnchorIcons)) {
+        if (!string.IsNullOrEmpty(effectiveId) && (context.Options.IncludeAnchorLinks || context.Options.ShowAnchorIcons)) {
             var icon = HtmlTextEncoder.Encode(context.Options.AnchorIcon ?? "🔗", context.Options);
             sb.Append("<a class=\"heading-anchor\" href=\"#")
-              .Append(HtmlTextEncoder.Encode(id, context.Options))
+              .Append(HtmlTextEncoder.Encode(effectiveId, context.Options))
               .Append("\" data-anchor-id=\"")
-              .Append(HtmlTextEncoder.Encode(id, context.Options))
+              .Append(HtmlTextEncoder.Encode(effectiveId, context.Options))
               .Append("\" title=\"Copy link\" aria-label=\"Copy link\">")
               .Append(icon)
               .Append("</a>");

@@ -57,6 +57,7 @@ public static partial class MarkdownReader {
             SoftLineBreaksAsHardLineBreaks = source.SoftLineBreaksAsHardLineBreaks,
             InlineHtml = source.InlineHtml,
             Abbreviations = source.Abbreviations,
+            GenericAttributes = source.GenericAttributes,
             BaseUri = source.BaseUri,
             DisallowScriptUrls = source.DisallowScriptUrls,
             DisallowFileUrls = source.DisallowFileUrls,

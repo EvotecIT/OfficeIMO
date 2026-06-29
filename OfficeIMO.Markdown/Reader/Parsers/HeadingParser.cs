@@ -5,8 +5,20 @@ public static partial class MarkdownReader {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.Headings) return false;
             if (!TryGetAtxHeadingContentRange(lines[i], out int level, out int contentStart, out int contentEnd, out string text, out int closingMarkerStart, out int closingMarkerEnd)) return false;
+            int effectiveContentEnd = contentEnd;
+            MarkdownAttributeSet parsedAttributes = MarkdownAttributeSet.Empty;
+            if (options.GenericAttributes
+                && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(text, out var headingText, out parsedAttributes, out var attributeStart)) {
+                text = headingText;
+                effectiveContentEnd = contentStart + attributeStart;
+                while (effectiveContentEnd > contentStart && char.IsWhiteSpace(lines[i][effectiveContentEnd - 1])) {
+                    effectiveContentEnd--;
+                }
+            }
+
             var sourceMap = BuildInlineSourceMapForSingleLine(text, state.SourceLineOffset + i + 1, contentStart + 1, state);
             var heading = new HeadingBlock(level, ParseInlines(text, options, state, sourceMap));
+            heading.SetAttributes(parsedAttributes);
             var markerStartColumn = CountLeadingSpaces(lines[i]) + 1;
             var markerEndColumn = markerStartColumn + level - 1;
             var absoluteLineNumber = state.SourceLineOffset + i + 1;
@@ -16,8 +28,8 @@ public static partial class MarkdownReader {
                 markerStartColumn,
                 markerEndColumn,
                 CreateSpan(state, absoluteLineNumber, markerStartColumn, absoluteLineNumber, markerEndColumn));
-            if (contentEnd > contentStart) {
-                heading.SetTextSourceInfo(0, contentStart + 1, contentEnd);
+            if (effectiveContentEnd > contentStart) {
+                heading.SetTextSourceInfo(0, contentStart + 1, effectiveContentEnd);
             }
             if (closingMarkerStart >= 0 && closingMarkerEnd > closingMarkerStart) {
                 heading.SetClosingMarkerSourceInfo(

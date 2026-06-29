@@ -148,7 +148,6 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "fenced-code-open-indent-four-is-indented-code", "    ```csharp\n    var x = 1;\n    ```" };
         yield return new object[] { "fenced-code-close-indent-four-does-not-close", "```csharp\nvar x = 1;\n    ```\nafter" };
         yield return new object[] { "backtick-fence-info-string-cannot-contain-backtick", "``` c`sharp\nbody\n```" };
-        yield return new object[] { "fenced-code-brace-metadata-keeps-primary-language-html", "```chart {#summary .wide title=\"Quarterly Revenue\"}\nbody\n```" };
         yield return new object[] { "fenced-code-malformed-brace-metadata-keeps-primary-language-html", "```chart {#summary .wide title=\"Quarterly Revenue\"\nbody\n```" };
         yield return new object[] { "blockquote-lazy-after-unordered-list-item", "> - item\ncontinuation" };
         yield return new object[] { "blockquote-lazy-after-ordered-list-item", "> 1. item\ncontinuation" };
@@ -301,6 +300,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     public static IEnumerable<object[]> AbbreviationPipeTableExtensionCases() {
         yield return new object[] { "table-cell-inline", "*[HTML]: Hyper Text Markup Language\n\n| Term |\n| --- |\n| HTML |" };
+    }
+
+    public static IEnumerable<object[]> GenericAttributesExtensionCases() {
+        yield return new object[] { "atx-heading-id-class-title", "# Heading {#intro .wide title=\"Overview\"}" };
     }
 
     [Theory]
@@ -467,6 +470,29 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
         officeOptions.Abbreviations = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(GenericAttributesExtensionCases))]
+    public void MarkdownReader_GenericAttributes_On_Blocks_Match_Markdig_Extension(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseGenericAttributes(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.GenericAttributes = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)

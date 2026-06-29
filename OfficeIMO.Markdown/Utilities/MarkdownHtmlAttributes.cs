@@ -1,15 +1,18 @@
 namespace OfficeIMO.Markdown;
 
 internal static class MarkdownHtmlAttributes {
-    internal static string Render(MarkdownAttributeSet? attributes, HtmlOptions? options) {
-        if (attributes == null || attributes.IsEmpty) {
+    internal static string Render(MarkdownAttributeSet? attributes, HtmlOptions? options, string? fallbackElementId = null) {
+        if ((attributes == null || attributes.IsEmpty) && string.IsNullOrWhiteSpace(fallbackElementId)) {
             return string.Empty;
         }
 
         var builder = new StringBuilder();
-        AppendId(builder, attributes.ElementId, options);
-        AppendClasses(builder, attributes.Classes, options);
-        AppendAttributes(builder, attributes, options);
+        AppendId(builder, attributes?.ElementId ?? fallbackElementId, options);
+        if (attributes != null) {
+            AppendClasses(builder, attributes.Classes, options);
+            AppendAttributes(builder, attributes, options);
+        }
+
         return builder.ToString();
     }
 

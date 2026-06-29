@@ -60,6 +60,7 @@ public sealed class MarkdownReaderOptions {
             TocPlaceholders = false,
             Footnotes = false,
             Abbreviations = false,
+            GenericAttributes = false,
             StandaloneImageBlocks = false,
             StrictListIndentation = true,
             PreserveHtmlBlockBlankLineContent = false,
@@ -86,6 +87,7 @@ public sealed class MarkdownReaderOptions {
             TocPlaceholders = false,
             Footnotes = true,
             Abbreviations = false,
+            GenericAttributes = false,
             StandaloneImageBlocks = false,
             StrictListIndentation = true,
             PreserveHtmlBlockBlankLineContent = false,
@@ -120,6 +122,7 @@ public sealed class MarkdownReaderOptions {
             TocPlaceholders = false,
             Footnotes = false,
             Abbreviations = false,
+            GenericAttributes = false,
             StandaloneImageBlocks = false,
             StrictListIndentation = true,
             Subscript = false,
@@ -182,6 +185,12 @@ public sealed class MarkdownReaderOptions {
     /// Default: <c>false</c>; opt in when mirroring Markdig's <c>UseAbbreviations</c> extension.
     /// </summary>
     public bool Abbreviations { get; set; } = false;
+    /// <summary>
+    /// Enable Markdig-style generic trailing attribute blocks on supported Markdown elements,
+    /// for example <c># Heading {#id .wide key="value"}</c>.
+    /// Default: <c>false</c>; opt in when mirroring Markdig's <c>UseGenericAttributes</c> extension.
+    /// </summary>
+    public bool GenericAttributes { get; set; } = false;
     /// <summary>
     /// When <c>true</c>, GitHub Flavored Markdown-style single-tilde strikethrough (<c>~text~</c>) is enabled.
     /// Default: <c>false</c>.

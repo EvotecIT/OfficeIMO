@@ -9,9 +9,9 @@ public sealed class ParagraphBlock : MarkdownBlock, IMarkdownBlock, IParagraphMa
     /// <summary>Creates a paragraph block.</summary>
     public ParagraphBlock(InlineSequence inlines) { Inlines = inlines; }
     /// <inheritdoc />
-    string IMarkdownBlock.RenderMarkdown() => Inlines.RenderMarkdown();
+    string IMarkdownBlock.RenderMarkdown() => Inlines.RenderMarkdown() + MarkdownAttributeBlockRenderer.RenderTrailing(Attributes);
     /// <inheritdoc />
-    string IMarkdownBlock.RenderHtml() => $"<p>{Inlines.RenderHtml()}</p>";
+    string IMarkdownBlock.RenderHtml() => $"<p{MarkdownHtmlAttributes.Render(Attributes, null)}>{Inlines.RenderHtml()}</p>";
     InlineSequence IParagraphMarkdownBlock.ParagraphInlines => Inlines;
     string ITightListItemHtmlMarkdownBlock.RenderTightListItemHtml() => Inlines.RenderHtml();
     InlineSequence IInlineSyntaxMarkdownBlock.SyntaxInlines => Inlines;

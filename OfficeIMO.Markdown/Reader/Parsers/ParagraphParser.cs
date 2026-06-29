@@ -83,8 +83,25 @@ public static partial class MarkdownReader {
                 return true;
             }
 
+            MarkdownAttributeSet paragraphAttributes = MarkdownAttributeSet.Empty;
+            if (options.GenericAttributes && paragraphLines.Count > 0) {
+                var lastLineIndex = paragraphLines.Count - 1;
+                if (MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
+                    paragraphLines[lastLineIndex],
+                    out var lineWithoutAttributeBlock,
+                    out paragraphAttributes,
+                    out _)) {
+                    paragraphLines[lastLineIndex] = lineWithoutAttributeBlock;
+                    while (paragraphLines.Count > 0 && string.IsNullOrWhiteSpace(paragraphLines[paragraphLines.Count - 1])) {
+                        paragraphLines.RemoveAt(paragraphLines.Count - 1);
+                    }
+                }
+            }
+
             var (text, sourceMap) = JoinParagraphLinesWithSourceMap(paragraphLines, state.SourceLineOffset + i, options, state);
-            doc.Add(new ParagraphBlock(ParseInlines(text, options, state, sourceMap)));
+            var paragraph = new ParagraphBlock(ParseInlines(text, options, state, sourceMap));
+            paragraph.SetAttributes(paragraphAttributes);
+            doc.Add(paragraph);
             i = j; return true;
         }
 

@@ -460,6 +460,98 @@ _Caption_
         }
 
         [Fact]
+        public void GenericAttributes_Parse_AtxHeading_TrailingAttributeBlock_WhenEnabled() {
+            const string md = "# Quarterly Revenue {#quarterly-overview .wide .accent title=\"Quarterly Revenue\" pinned}";
+            var options = new MarkdownReaderOptions {
+                GenericAttributes = true
+            };
+
+            var result = MarkdownReader.ParseWithSyntaxTree(md, options);
+            var heading = Assert.IsType<HeadingBlock>(result.Document.Blocks[0]);
+
+            Assert.Equal("Quarterly Revenue", heading.Text);
+            Assert.Equal("quarterly-overview", heading.Attributes.ElementId);
+            Assert.Equal(new[] { "wide", "accent" }, heading.Attributes.Classes);
+            Assert.Equal("Quarterly Revenue", heading.Attributes.GetAttribute("title"));
+            Assert.Equal("true", heading.Attributes.GetAttribute("pinned"));
+
+            var syntax = Assert.Single(result.SyntaxTree.Children);
+            Assert.Equal("quarterly-overview", syntax.Attributes.ElementId);
+            Assert.Equal(new[] { "wide", "accent" }, syntax.Attributes.Classes);
+            Assert.Equal("true", syntax.Attributes.GetAttribute("pinned"));
+
+            var finalSyntax = Assert.Single(result.FinalSyntaxTree.Children);
+            Assert.Equal("quarterly-overview", finalSyntax.Attributes.ElementId);
+            Assert.Equal(new[] { "wide", "accent" }, finalSyntax.Attributes.Classes);
+
+            var html = result.Document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            });
+            Assert.Contains("<h1 id=\"quarterly-overview\" class=\"wide accent\" pinned=\"true\" title=\"Quarterly Revenue\">Quarterly Revenue</h1>", html, StringComparison.Ordinal);
+
+            var written = result.Document.ToMarkdown().TrimEnd().Replace("\r\n", "\n");
+            Assert.Equal("# Quarterly Revenue {#quarterly-overview .wide .accent pinned title=\"Quarterly Revenue\"}", written);
+
+            var reparsed = MarkdownReader.Parse(written, options);
+            var reparsedHeading = Assert.IsType<HeadingBlock>(reparsed.Blocks[0]);
+            Assert.Equal("quarterly-overview", reparsedHeading.Attributes.ElementId);
+            Assert.Equal(new[] { "wide", "accent" }, reparsedHeading.Attributes.Classes);
+            Assert.Equal("Quarterly Revenue", reparsedHeading.Attributes.GetAttribute("title"));
+        }
+
+        [Fact]
+        public void GenericAttributes_Parse_Paragraph_TrailingAttributeBlock_WhenEnabled() {
+            const string md = "Lead paragraph {#lead .intro data-kind=\"summary\" pinned}";
+            var options = new MarkdownReaderOptions {
+                GenericAttributes = true
+            };
+
+            var result = MarkdownReader.ParseWithSyntaxTree(md, options);
+            var paragraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[0]);
+
+            Assert.Equal("Lead paragraph", paragraph.Inlines.RenderMarkdown());
+            Assert.Equal("lead", paragraph.Attributes.ElementId);
+            Assert.Equal(new[] { "intro" }, paragraph.Attributes.Classes);
+            Assert.Equal("summary", paragraph.Attributes.GetAttribute("data-kind"));
+            Assert.Equal("true", paragraph.Attributes.GetAttribute("pinned"));
+
+            var syntax = Assert.Single(result.SyntaxTree.Children);
+            Assert.Equal("lead", syntax.Attributes.ElementId);
+            Assert.Equal(new[] { "intro" }, syntax.Attributes.Classes);
+            Assert.Equal("summary", syntax.Attributes.GetAttribute("data-kind"));
+
+            var html = result.Document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            });
+            Assert.Contains("<p id=\"lead\" class=\"intro\" data-kind=\"summary\" pinned=\"true\">Lead paragraph</p>", html, StringComparison.Ordinal);
+
+            var written = result.Document.ToMarkdown().TrimEnd().Replace("\r\n", "\n");
+            Assert.Equal("Lead paragraph {#lead .intro data-kind=\"summary\" pinned}", written);
+
+            var reparsed = MarkdownReader.Parse(written, options);
+            var reparsedParagraph = Assert.IsType<ParagraphBlock>(reparsed.Blocks[0]);
+            Assert.Equal("lead", reparsedParagraph.Attributes.ElementId);
+            Assert.Equal(new[] { "intro" }, reparsedParagraph.Attributes.Classes);
+            Assert.Equal("summary", reparsedParagraph.Attributes.GetAttribute("data-kind"));
+        }
+
+        [Fact]
+        public void GenericAttributes_Are_Not_Parsed_WhenOptionDisabled() {
+            const string md = "# Quarterly Revenue {#quarterly-overview .wide}";
+
+            var result = MarkdownReader.ParseWithSyntaxTree(md);
+            var heading = Assert.IsType<HeadingBlock>(result.Document.Blocks[0]);
+
+            Assert.Equal("Quarterly Revenue {#quarterly-overview .wide}", heading.Text);
+            Assert.True(heading.Attributes.IsEmpty);
+            Assert.True(Assert.Single(result.SyntaxTree.Children).Attributes.IsEmpty);
+        }
+
+        [Fact]
         public void Fenced_Code_Block_Metadata_Can_Read_Typed_Boolean_And_Integer_Attributes() {
             const string md = """
 ```chart title="Quarterly Revenue" pinned compact=false maxItems=12 limit=7
