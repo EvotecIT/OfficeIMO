@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word)](https://www.nuget.org/packages/OfficeIMO.Word)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Word?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word)
 
-`OfficeIMO.Word` is the main Word document package in the OfficeIMO family. It creates, edits, inspects, and saves `.docx` files without COM automation and without Microsoft Office installed.
+`OfficeIMO.Word` is the main Word document package in the OfficeIMO family. It creates, edits, inspects, and saves `.docx` files, and can import supported legacy `.doc` files, without COM automation and without Microsoft Office installed.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
@@ -37,6 +37,8 @@ document.Save();
 ## What it does
 
 - Creates, loads, edits, saves, and appends `.docx` documents.
+- Opens supported Word 97-2003 `.doc` files through the normal `WordDocument.Load(...)` path and projects them into the regular OfficeIMO Word model.
+- Writes native `.doc` files for the currently supported simple-document subset, with preflight checks that block unsupported content before saving.
 - Works with paragraphs, runs, styles, sections, headers, footers, page numbers, tables, images, hyperlinks, bookmarks, fields, footnotes, endnotes, content controls, charts, shapes, and document protection.
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
 - Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
@@ -133,6 +135,24 @@ document.FillContentControlValues(new Dictionary<string, object?> {
 Dictionary<string, object?> values = document.ExtractContentControlValues();
 document.ValidateContentControlValues(values).EnsureValid();
 ```
+
+### Legacy DOC files
+
+```csharp
+using OfficeIMO.Word;
+using OfficeIMO.Word.LegacyDoc;
+
+using WordDocument document = WordDocument.Load("legacy-input.doc");
+document.Save("converted-output.docx");
+
+using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport("legacy-input.doc");
+if (result.HasDocument) {
+    result.Document!.Save("converted-output.docx");
+    string report = result.ImportReport.ToMarkdown();
+}
+```
+
+Legacy `.doc` support is first-party and dependency-free at runtime. The current reader projects supported Word 97-2003 body paragraphs, common run and paragraph formatting, simple tables, and document properties into the normal `WordDocument` model. Native `.doc` saving is available for the supported simple subset: paragraphs, common run and paragraph formatting, tabs, line/page breaks, simple body tables, and scalar document properties. Unsupported features such as macros, embedded OLE objects, header/footer stories, footnotes, endnotes, comments, text boxes, images, complex table formatting, merged/nested tables, and multiple sections are diagnosed or blocked rather than silently flattened.
 
 ### Protection
 

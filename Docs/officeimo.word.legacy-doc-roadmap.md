@@ -284,7 +284,7 @@ just to reserve names.
     content, then reload them as `WordTable` instances through the legacy reader.
   - [ ] Add table formatting, merged/nested tables, and simple section writing
     as separate preflight-backed slices.
-- [ ] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
+- [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound
   lane, full `LegacyXls` sweeps, `OfficeIMO.Word` builds across supported target

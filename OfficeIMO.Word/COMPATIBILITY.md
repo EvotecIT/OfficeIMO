@@ -9,6 +9,7 @@ It is intentionally honest. "Partial" means usable, not "done".
 | Area | Status | Notes |
 | --- | --- | --- |
 | Document create/load/save | Supported | File, stream, byte-array, async, encrypted, macro-enabled, and read-only load/save paths are available. Recent regression coverage protects shared-read async loads, stream-save OpenOffice compatibility, comparer temporary-output ownership, and cloner source-stream disposal. |
+| Legacy binary DOC | Partial | Supported Word 97-2003 `.doc` files route through the normal `WordDocument.Load(...)` path and explicit `LoadLegacyDocWithReport(...)` diagnostics are available. The dependency-free importer projects body paragraphs/runs, common direct character and paragraph formatting, built-in paragraph styles, simple tables, and OLE document properties into the normal Word model. Native `.doc` saving is available for the supported simple subset: paragraphs, common run/paragraph formatting, tabs, line/page breaks, simple body tables, and scalar document properties. Unsupported or preserve-only features such as macros, embedded OLE objects, header/footer stories, footnotes, endnotes, comments, text boxes, images, complex table formatting, merged/nested tables, and multiple sections are reported or blocked before silent data loss. |
 | Paragraphs and runs | Supported | Paragraph creation, run formatting, fonts, colors, highlights, tabs, spacing, borders, shading, line breaks, lists, bookmarks, fields, hyperlinks, and fluent helpers are practical production surfaces. |
 | Tables | Supported | Table creation, built-in styles, merge/split, nested tables, widths, row heights, borders, shading, repeat headers, page-break behavior, and object-table helpers are supported. Image export now projects direct, base style-inherited, first-row, banded, and corner table-cell fills and borders, including row/column band sizes, band1/band2 selection, and first/last row/column corner precedence, through shared drawing primitives. Complex externally authored table mutation still needs broader corpus coverage. |
 | Sections, headers, footers, and page setup | Supported | Page size, orientation, margins, columns, section handling, headers/footers, odd/even/first variants, page numbers, watermarks, and background color are supported. Mixed imported-document scenarios remain a compatibility proof target. |
@@ -29,6 +30,7 @@ It is intentionally honest. "Partial" means usable, not "done".
 ## Current Strengths
 
 - ergonomic code-first `.docx` generation
+- first-party dependency-free import of supported legacy `.doc` files into the normal Word model
 - broad practical coverage for paragraphs, tables, sections, headers, footers, images, and content controls
 - managed Open XML automation without requiring Office installation
 - feature inspection for safer automation against unknown documents
@@ -50,7 +52,7 @@ Keep this section aligned with the generated proof-gallery example and the publi
 1. Build the full template/mail-merge engine: table-row regions, grouped table-row regions with separate group/detail templates, repeated block regions for paragraph/table content, nested repeated block regions with per-row child data, body/header/footer/table-cell/block content-control conditional blocks, template validation for fields, conditionals, and repeated regions, batch output, bound-content-control preflight, Custom XML-bound content-control fill/update, content-control form-map fill/extraction plus preflight validation across common SDTs including picture controls, repeating-section item text, and ambiguous tag/alias key mappings, and formatting-preserving simple/complex merge-field replacement now exist, while richer section regions, additional nested region shapes, broader SDT mapping scenarios, and deeper formatting-preservation coverage remain roadmap items.
 2. Expand review workflows: richer revision readback, comment reply/resolution metadata, structured diff output, and redline reports.
 3. Grow the real-world document corpus for feature inspection and preservation-sensitive round trips; current inspection now includes editable document variables/bibliography sources, partially editable externally linked image signals, plus preserve-only attached template, glossary/building-block, modern comment, web extension/task-pane, and ActiveX control package signals.
-4. Publish lifecycle and compatibility guidance for file, stream, memory, encrypted, macro-enabled, read-only, and unknown-document workflows.
+4. Publish lifecycle and compatibility guidance for file, stream, memory, encrypted, macro-enabled, legacy binary, read-only, and unknown-document workflows.
 5. Keep PDF/layout validation out of release promises until the PDF stack is ready for that responsibility.
 
 ## Suggested Release-Prep Checks
