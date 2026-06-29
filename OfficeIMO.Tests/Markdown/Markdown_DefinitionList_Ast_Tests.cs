@@ -1193,6 +1193,123 @@ text
     }
 
     [Fact]
+    public void DefinitionList_NestedBlockquoteBody_Merges_TableShapedLazyLinesIntoQuote_WhenTablesAreOff() {
+        const string markdown = """
+Term
+:   First
+    > quote
+| A |
+|---|
+| B |
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        Assert.Equal(2, definition.Blocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
+        var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal("quote \\| A \\| \\|---\\| \\| B \\|", quoteParagraph.Inlines.RenderMarkdown());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.Quote
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 6, 5), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 6, 5), quoteSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 7, 6, 5), quoteParagraphSyntax.SourceSpan);
+        Assert.Equal("Term\n:   First\n    > quote \\| A \\| \\|---\\| \\| B \\|", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        Assert.Equal("First\n\n> quote \\| A \\| \\|---\\| \\| B \\|", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 6, 5), definitionBody.SourceSpan);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_NestedBlockquoteBody_Merges_TableShapedLazyLinesIntoQuote_WhenTablesAreOn() {
+        const string markdown = """
+Term
+:   First
+    > quote
+| A |
+|---|
+| B |
+""";
+
+        var readerOptions = CreateMarkdigDefinitionListReaderOptions();
+        readerOptions.Tables = true;
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions);
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        Assert.Equal(2, definition.Blocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        Assert.Equal(2, quote.ChildBlocks.Count);
+        var quoteParagraph = Assert.IsType<ParagraphBlock>(quote.ChildBlocks[0]);
+        var table = Assert.IsType<TableBlock>(quote.ChildBlocks[1]);
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
+        var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
+        var tableSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Table);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, readerOptions);
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListAndPipeTablesPipeline());
+
+        Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal("quote", quoteParagraph.Inlines.RenderMarkdown());
+        Assert.Equal("A", Assert.Single(table.Headers));
+        Assert.Equal("B", Assert.Single(Assert.Single(table.Rows)));
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.Quote
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.QuoteMarker,
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.Table
+            },
+            quoteSyntax.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 6, 5), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 6, 5), quoteSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 11), quoteParagraphSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 6, 5), tableSyntax.SourceSpan);
+        Assert.Equal("Term\n:   First\n    > quote\n    > \n    > | A |\n    > | --- |\n    > | B |", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+        var native = MarkdownNativeDocument.Parse(markdown, readerOptions);
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        Assert.Equal("First\n\n> quote\n> \n> | A |\n> | --- |\n> | B |", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 6, 5), definitionBody.SourceSpan);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void DefinitionList_SetextContinuation_Writes_MarkerSyntax_ForMarkdigReparse() {
         const string markdown = """
 Term

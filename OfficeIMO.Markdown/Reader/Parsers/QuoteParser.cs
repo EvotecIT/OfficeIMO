@@ -72,7 +72,7 @@ public static partial class MarkdownReader {
                     // Only continue lazily when both sides look like paragraph content.
                     // A non-quoted list/item/code starter should end the blockquote instead of being swallowed into it.
                     if (inner.Count > 0) {
-                        if (LooksLikeParagraphLine(inner, inner.Count - 1, options)) {
+                        if (LooksLikeQuoteLazyContinuationPredecessor(inner, inner.Count - 1, options)) {
                             if (!TryNormalizeQuoteLazyContinuationLine(lines, j, options, out var normalizedLazyLine)) break;
 
                             inner.Add(normalizedLazyLine);
@@ -179,6 +179,17 @@ public static partial class MarkdownReader {
         return true;
     }
 
+    private static bool LooksLikeQuoteLazyContinuationPredecessor(IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options) {
+        if (LooksLikeParagraphLine(lines, index, options)) return true;
+        if (lines == null || index < 0 || index >= lines.Count) return false;
+
+        var line = lines[index] ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        if (CountLeadingSpaces(line) >= 4) return false;
+
+        return LooksLikeTableRow(line.TrimStart());
+    }
+
     private static bool TryNormalizeQuotedNestedQuoteContinuation(string? previousLine, string? currentLine, MarkdownReaderOptions options, out string normalized) {
         normalized = currentLine ?? string.Empty;
         if (string.IsNullOrWhiteSpace(previousLine) || string.IsNullOrWhiteSpace(currentLine)) return false;
@@ -207,7 +218,8 @@ public static partial class MarkdownReader {
 
         int leadingSpaces = CountLeadingSpaces(source);
         if (leadingSpaces == 0) {
-            return LooksLikeParagraphLine(lines, index, options);
+            return LooksLikeParagraphLine(lines, index, options) ||
+                LooksLikeTableRow(source.TrimStart());
         }
 
         if (leadingSpaces > 4) {

@@ -17,13 +17,44 @@ Parity is not "more tests." Tests are the measuring system. Parity means the reu
 | Markdig extension compatibility matrix | Generated control board in `Docs/officeimo.markdown.markdig-compatibility-matrix.md` splits every Markdig row into Decision, Engine parser, AST/source, Writer/render, Proof, and next-action lanes |
 | Remaining architecture gaps | broader GFM breadth, Markdig extension breadth, canonical AST ownership, full lossless trivia/source mapping, source-aware renderer/writer extension seams, security/profile separation, and release-mode benchmark evidence |
 
+## Plain Missing Parity Plan
+
+This is the short board to use before starting any new slice. If the work does not close one of these boxes, it is probably just churn.
+
+- [ ] **Finish the current engine promotion: `UseDefinitionLists`.**
+  - [ ] Close the remaining lazy-continuation and nested-body parser cases against Markdig.
+  - [ ] Finish exact AST/source/native spans for marker lines, continuation indentation, blank separators, generated paragraph wrappers, and normalized `definitionBody` values.
+  - [ ] Prove writer and reparse stability for every promoted shape.
+  - [ ] Promote the inventory row only when parser, AST/source, renderer, writer, native projection, docs, and generated inventory all agree.
+- [ ] **Finish the other high-value partial parser row: `UseGenericAttributes`.**
+  - [ ] Extend attributes from currently covered targets to the remaining Markdig-supported block families.
+  - [ ] Extend source-backed inline attributes across the remaining supported inline families.
+  - [ ] Keep writer behavior and source edits stable instead of only matching HTML once.
+- [ ] **Make explicit scope decisions before optional syntax work.**
+  - [ ] Decide whether `UseCustomContainers`, `UseGridTables`, `UseListExtras`, `UseCjkFriendlyEmphasis`, `UseSmartyPants`, `UseEmojiAndSmiley`, and `UseJiraLinks` are core parity, optional extensions, deferred, or intentional differences.
+  - [ ] Implement only rows that have a committed scope decision and promotion bar.
+- [ ] **Close renderer/host-policy rows as contracts, not parser accidents.**
+  - [ ] Bound `UseAlertBlocks`, `UseFigures`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, and `UseReferralLinks` by parser ownership, AST/source ownership, renderer policy, writer behavior, and security defaults.
+- [ ] **Close editor-grade AST/source parity.**
+  - [ ] Canonicalize duplicated semantic and syntax ownership for lists, tables, definition lists, callouts, footnotes, front matter, and extension nodes.
+  - [ ] Capture lossless trivia: whitespace, blank lines, tabs, delimiters, raw slices, normalized text, and generated-node diagnostics.
+  - [ ] Complete delimiter-token and source-field coverage for editor-addressable pieces.
+  - [ ] Establish one original-to-normalized mapping story for line endings, tabs, nested containers, transformed nodes, and normalized paragraph text.
+  - [ ] Broaden `MarkdownRoundtripWriter` beyond unchanged documents and explicit native edits.
+- [ ] **Separate security/profile behavior from grammar.**
+  - [ ] Keep CommonMark raw HTML parsing, GFM tag filtering, OfficeIMO allow/strip/escape/sanitize modes, URL policy, source metadata, and Markdown writing as separate contracts.
+- [ ] **Use tests as proof, not as the product.**
+  - [ ] Add tests only when they prove a parser, AST/source, native projection, renderer, writer, security, profile, or benchmark contract.
+  - [ ] Regenerate inventories and compatibility matrices after each promoted row.
+  - [ ] Run broader GFM and release-mode benchmark sweeps after correctness and source behavior stabilize.
+
 ## No-Loop Missing Parity Checklist
 
 Use this section to choose work. If a row below is not the active row, do not add nearby fixtures just because they are convenient.
 
 - [ ] **P0 - Finish the active `UseDefinitionLists` promotion.**
   - [ ] Engine: close the remaining lazy-continuation cases, especially paragraphs after blank lines, multiple lazy lines, lazy lines after nested blocks, and remaining interruption cases from list/table-shaped starts.
-  - [ ] Engine: close nested-body breadth for blockquotes, remaining fenced-code variants beyond the closed marker-line/empty-marker boundary cases, setext headings, setext-looking lines inside `<dd>`, and remaining list-tail variants beyond same-marker list merges and table-shaped lazy paragraph tails after nested body boundaries.
+  - [ ] Engine: close nested-body breadth for blockquotes beyond heading/thematic and table-shaped lazy continuation boundaries, remaining fenced-code variants beyond the closed marker-line/empty-marker boundary cases, setext headings, setext-looking lines inside `<dd>`, and remaining list-tail variants beyond same-marker list merges and table-shaped lazy paragraph tails after nested body boundaries.
   - [ ] AST/source: finish exact spans for marker lines, continuation indentation, blank separators, generated paragraph wrappers, and native `definitionBody` values.
   - [ ] Writer: prove every fixed shape writes Markdown that reparses to the same Markdig-compatible HTML and keeps source-backed edits valid.
   - [ ] Proof: only then move `UseDefinitionLists` from `Partial` to `Covered` in the generated inventory.
@@ -151,7 +182,7 @@ Parity is closed only when the boxes below are closed. A test can prove a box, b
 ## P0 - Active Slice
 
 - [ ] **Promote or explicitly bound `UseDefinitionLists`.**
-  Covered now: structured definition-list AST, Markdig-style colon-marker term grouping, multiple definitions in one group, marker syntax tokens, native source-backed marker fields/source edits, loose-definition writer preservation, blank-separated marker-group writer preservation, blank-separated pre-marker term boundary proof, table-shaped continuation profile proof with literal paragraphs when tables are off and nested tables when pipe tables are on, paragraph-plus-unindented-table-shaped lazy continuation proof when tables are off, tight nested-list writer preservation, same-type unordered and ordered lazy list-tail merging inside definition bodies, multi-line table-shaped lazy paragraph tails after nested list bodies, different unordered-marker split preservation through parsed marker Markdown writing, raw HTML block lazy-continuation body rendering and reparse proof for marker-line and empty-marker forms, closed fenced-code body lazy-continuation boundaries plus definition-body indentation normalization for marker-line and empty-marker forms, setext-continuation writer reparse proof, setext-following and thematic-break-following lazy-continuation boundary behavior, nested-list and nested-blockquote heading/thematic interruption boundaries, paragraph-plus-thematic-break writer reparse preservation, empty-marker first-continuation handling, empty-marker blank-separated body source/writer preservation, and multiline definition-body edits that keep continuation indentation valid for simple and marker forms.
+  Covered now: structured definition-list AST, Markdig-style colon-marker term grouping, multiple definitions in one group, marker syntax tokens, native source-backed marker fields/source edits, loose-definition writer preservation, blank-separated marker-group writer preservation, blank-separated pre-marker term boundary proof, table-shaped continuation profile proof with literal paragraphs when tables are off and nested tables when pipe tables are on, paragraph-plus-unindented-table-shaped lazy continuation proof when tables are off, tight nested-list writer preservation, same-type unordered and ordered lazy list-tail merging inside definition bodies, multi-line table-shaped lazy paragraph tails after nested list bodies, nested-blockquote table-shaped lazy continuation ownership with and without pipe tables, different unordered-marker split preservation through parsed marker Markdown writing, raw HTML block lazy-continuation body rendering and reparse proof for marker-line and empty-marker forms, closed fenced-code body lazy-continuation boundaries plus definition-body indentation normalization for marker-line and empty-marker forms, setext-continuation writer reparse proof, setext-following and thematic-break-following lazy-continuation boundary behavior, nested-list and nested-blockquote heading/thematic interruption boundaries, paragraph-plus-thematic-break writer reparse preservation, empty-marker first-continuation handling, empty-marker blank-separated body source/writer preservation, and multiline definition-body edits that keep continuation indentation valid for simple and marker forms.
   Missing before promotion:
   - [ ] Broaden lazy-continuation variants beyond the closed setext/thematic/table-shaped cases: paragraphs after blank lines, multiple lazy lines, remaining lazy lines after nested blocks, and remaining interruption by list/table-like starts, each with semantic AST, syntax AST, native source field, HTML, writer, and reparse checks.
   - [ ] Broaden nested-body cases for blockquote source breadth, remaining fenced-code variants beyond closed marker-line/empty-marker boundary cases, setext headings, setext-looking lines inside `<dd>`, and remaining list-tail variants after nested body boundaries.
@@ -207,7 +238,7 @@ Parity is closed only when the boxes below are closed. A test can prove a box, b
 ## Next Ordered Work
 
 - [ ] **1. Promote or bound `UseDefinitionLists`.**
-  Current probes closed empty-marker blank-separated body source/writer preservation, the blank-separated pre-marker term boundary, table-shaped continuation profile behavior, the setext-following lazy-continuation boundary, the thematic-break-following lazy-continuation boundary with writer reparse preservation, nested-list/nested-blockquote heading/thematic interruption boundaries, same-type lazy list-tail merging inside definition bodies, multi-line table-shaped lazy paragraph tails after nested list bodies, parsed unordered marker preservation needed to keep different-marker list tails split on reparse, raw HTML block lazy-continuation body rendering for marker-line and empty-marker forms, and closed fenced-code body lazy-continuation boundaries for marker-line and empty-marker forms. Next probes should target remaining lazy continuation variants plus nested/multiline body source spans.
+  Current probes closed empty-marker blank-separated body source/writer preservation, the blank-separated pre-marker term boundary, table-shaped continuation profile behavior, the setext-following lazy-continuation boundary, the thematic-break-following lazy-continuation boundary with writer reparse preservation, nested-list/nested-blockquote heading/thematic interruption boundaries, same-type lazy list-tail merging inside definition bodies, multi-line table-shaped lazy paragraph tails after nested list bodies, nested-blockquote table-shaped lazy continuation ownership with and without pipe tables, parsed unordered marker preservation needed to keep different-marker list tails split on reparse, raw HTML block lazy-continuation body rendering for marker-line and empty-marker forms, and closed fenced-code body lazy-continuation boundaries for marker-line and empty-marker forms. Next probes should target remaining lazy continuation variants plus nested/multiline body source spans.
 - [ ] **2. Continue `UseGenericAttributes`, but only after probing actual missing Markdig behavior.**
   The most recent probes closed standalone attributes before fenced code, the literal standalone-attribute-before-blockquote boundary, HTML blocks, dash setext/thematic forms, indented code, no-space paragraph attributes, and definition-list-looking text without `UseDefinitionLists`. Next probes should move beyond this standalone-target sweep into less-covered block families and remaining inline families.
 - [ ] **3. Decide `UseAlertBlocks` and `UseCjkFriendlyEmphasis`.**
@@ -238,3 +269,4 @@ Parity is closed only when the boxes below are closed. A test can prove a box, b
 - [x] `UseDefinitionLists` gained raw HTML block lazy-continuation body rendering and writer reparse proof for marker-line and empty-marker forms, including semantic raw HTML blocks, source spans, and native `definitionBody` fields.
 - [x] `UseDefinitionLists` gained closed fenced-code body lazy-continuation boundaries and definition-body indentation normalization for marker-line and empty-marker forms, so the following unindented paragraph closes the definition list like Markdig and code content/writer reparse stay Markdig-compatible.
 - [x] `UseDefinitionLists` gained multi-line table-shaped lazy paragraph tails after nested list bodies, including semantic AST ownership under the last list item, source spans, native `definitionBody` projection, Markdig-compatible HTML rendering, and Markdown writer reparse stability.
+- [x] `UseDefinitionLists` gained nested-blockquote table-shaped lazy continuation ownership: with pipe tables off the table-shaped text remains in the quote paragraph, and with pipe tables on it becomes a nested table inside the quote, both with source spans, native `definitionBody`, HTML, writer, and reparse proof.
