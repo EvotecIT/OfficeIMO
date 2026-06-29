@@ -240,25 +240,23 @@ References:
 
 ## What We Are Missing
 
-These are the actual parity gaps. The test work is listed only where it creates a missing scoreboard.
+These are the actual parity gaps. Engine work is listed first; tests and inventories are proof lanes, not the definition of parity.
 
-- [x] **CommonMark HTML block boundary parity.** HTML blocks, raw HTML, and the blockquote-contained raw HTML boundary case are green in the full inventory.
-- [x] **CommonMark entity decoder parity.** Entity and numeric character references are green in the full inventory after shared CommonMark decoding covered the remaining official named/numeric examples.
-- [x] **CommonMark hard-break and inline precedence parity.** Hard line breaks are green in the full inventory after preserving raw inline HTML line endings and final-line literal backslashes.
-- [x] **Markdig soft-line-as-hard-line option parity.** `UseSoftlineBreakAsHardlineBreak` is covered by an explicit reader option, renderer/writer behavior, nested paragraph propagation, and native metadata evidence.
-- [x] **Markdig auto-identifier parity.** `UseAutoIdentifiers` is covered by explicit HTML enablement, Markdig-compatible slug styles, duplicate handling, and GFM profile evidence.
-- [x] **CommonMark emphasis inventory parity.** The official CommonMark emphasis section is green in the full inventory; broader Markdig emphasis-extra, source-token, writer, and lossless claims still need their own evidence.
-- [x] **CommonMark container indentation parity.** The remaining 6 failures around tabs, blockquote/list continuation, indented-code boundaries, and source-map-safe column handling are closed in the official inventory.
-  - [x] Normalize indentation decisions around visual columns for root blocks, nested blocks, and list marker metadata.
-  - [x] Make blank-line continuation rules shared between root indented code and nested indented code.
-  - [x] Make blockquote parsing respect CommonMark precedence: indented code wins at four columns, quote marker stripping removes at most one following space, and a blank line between quoted paragraphs closes the current quote.
-  - [x] Promote #9, #111, #231, #242, #252, and #264 after the engine behavior was fixed and pinned with syntax-tree invariant coverage.
-- [ ] **GFM corpus expansion.** Continue extending the generated GFM inventory beyond the current tracked fixture corpus so autolink, strikethrough, tag-filter, and interop behavior are measured against broader upstream-compatible coverage.
-- [ ] **Markdig extension implementation breadth.** Move selected partial/gap rows from the generated Markdig extension inventory into real parser, AST/source, renderer, writer, fixture, or intentional-deviation work.
-- [ ] **AST/source/lossless completeness.** Finish canonical node cleanup, full trivia capture, delimiter-token capture, original-to-normalized mapping, generated-node diagnostics, and broader byte-preserving source edits.
-- [ ] **Renderer/writer extension parity.** Make parser, transform, renderer, and writer extension APIs source-slice aware where custom nodes need to render or roundtrip without string rescanning.
-- [ ] **Renderer/security profile parity.** Keep CommonMark/GFM HTML output spec-compatible while making OfficeIMO-specific raw HTML, sanitizing, escaping, URL policy, and GFM tag-filter behavior explicit and independently tested.
-- [ ] **Performance proof.** Capture release-mode benchmarks against Markdig for parse, parse-with-syntax, HTML render, Markdown write, source-edit roundtrip, transforms, allocations, and representative README/docs/chat corpora.
+- [x] **CommonMark parser correctness.** The official CommonMark `0.31.2` inventory is green, including HTML block boundaries, entities, hard breaks, emphasis, code spans, and container indentation.
+- [x] **Core scoreboards.** Checked-in inventories exist for CommonMark, tracked GFM fixtures, and reflected Markdig extension families.
+- [x] **Initial editor/source architecture.** Many canonical nodes expose syntax/source/native spans, source fields, and source-edit helpers.
+- [ ] **Finish the active `UseGenericAttributes` engine slice.** Covered generic attribute blocks are semantic/native/source-backed; finish the in-progress `GenericAttributeBlock` syntax-token projection, prove caret/native metadata behavior, update the generated Markdig inventory row, then commit and push that slice.
+- [ ] **Finish `UseGenericAttributes` breadth.** Extend parsing/writing/source preservation beyond the currently covered ATX headings, Setext headings, paragraphs, fenced code, and common no-space inline elements into the remaining block families and inline shapes that Markdig supports.
+- [ ] **Finish `UseDefinitionLists` breadth.** Marker syntax and native fields exist; finish source-map and writer edge cases for marker groups, lazy continuation, loose definitions, nested definitions, multiline body edits, and reparse stability.
+- [ ] **Decide `UseAlertBlocks`.** Choose whether Markdig alert rendering callbacks are an OfficeIMO engine/renderer contract or an intentional OfficeIMO callout difference, then implement or document that decision.
+- [ ] **Decide `UseCjkFriendlyEmphasis`.** Either add a real delimiter option with CJK comparison fixtures and source-token proof, or document it as deferred/intentional.
+- [ ] **Close GFM breadth gaps.** Expand autolink, tag-filter, and strikethrough delimiter-edge coverage only where it protects current GFM profile behavior or exposes a real parser/renderer gap.
+- [ ] **Canonicalize remaining AST shapes.** Clean up duplicated or uneven node ownership for `ListItem`, `TableBlock`, `CalloutBlock`, `DefinitionListBlock`, and any other mutable node shapes that block stable source/native APIs.
+- [ ] **Complete source/lossless infrastructure.** Add parser-owned trivia capture, delimiter-token coverage, generated-node diagnostics, original-to-normalized offset mapping, and broader byte-preserving `MarkdownRoundtripWriter` edits.
+- [ ] **Finish renderer/writer extension parity.** Make custom parser, transform, renderer, and writer APIs source-slice aware so extension nodes do not require downstream string rescanning.
+- [ ] **Make security/profile behavior explicit.** Independently prove raw HTML allow/strip/escape/sanitize, URL policy, and GFM tag-filter behavior so security policy is not mixed up with parser parity.
+- [ ] **Add performance proof last.** Capture release-mode comparisons against Markdig for parse, parse-with-syntax, HTML render, Markdown write, source-edit roundtrip, transforms, allocations, and representative README/docs/chat corpora after correctness stabilizes.
+- [ ] **Keep docs and package claims aligned.** README-level claims, compatibility docs, generated inventories, and package behavior must describe the same current truth before calling this Markdig-class parity.
 
 ## Immediate Work Order
 
