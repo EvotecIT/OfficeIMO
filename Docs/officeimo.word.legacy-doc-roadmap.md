@@ -287,6 +287,9 @@ just to reserve names.
   - [x] Preserve supported paragraph formatting inside simple native-written
     table cells and project fixture-backed table-cell paragraph formatting
     during legacy DOC reload.
+  - [x] Block multi-paragraph table cells before native `.doc` bytes are
+    committed until TAP-backed table parsing can disambiguate table-internal
+    paragraph marks from normal paragraphs before a table.
   - [x] Block non-default final section page setup before native `.doc` bytes are
     committed, so page size, orientation, margins, and other section properties
     are not silently dropped before section writing exists.
