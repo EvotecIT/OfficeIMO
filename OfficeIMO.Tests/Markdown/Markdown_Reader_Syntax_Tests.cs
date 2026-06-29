@@ -3520,10 +3520,13 @@ Other: second
 
         var finalDefinitionList = Assert.Single(result.FinalSyntaxTree.Children);
         var finalFirstGroup = finalDefinitionList.Children[0];
+        var finalMarker = finalFirstGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionMarker);
         var finalValue = finalFirstGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var finalParagraph = Assert.Single(finalValue.Children);
         var finalText = Assert.Single(finalParagraph.Children);
 
+        Assert.Equal(":", finalMarker.Literal);
+        Assert.Null(finalMarker.SourceSpan);
         Assert.Equal("rewritten", finalValue.Literal);
         Assert.Equal("rewritten", finalParagraph.Literal);
         Assert.Equal("rewritten", finalText.Literal);

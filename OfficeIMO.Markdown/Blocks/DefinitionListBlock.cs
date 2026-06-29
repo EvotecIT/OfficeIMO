@@ -437,9 +437,9 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
                         literal: definitionLiteral) };
                 }
 
-                if (cachedMarker != null) {
-                    groupChildren.Add(MarkdownBlockSyntaxBuilder.CloneSyntaxNode(cachedMarker));
-                }
+                groupChildren.Add(cachedMarker != null
+                    ? MarkdownBlockSyntaxBuilder.CloneSyntaxNode(cachedMarker)
+                    : CreateGeneratedDefinitionMarker());
 
                 groupChildren.Add(new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.DefinitionValue,
@@ -550,6 +550,11 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         return null;
     }
 
+    private static MarkdownSyntaxNode CreateGeneratedDefinitionMarker() =>
+        new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.DefinitionMarker,
+            literal: ":");
+
     private static bool IsSyntaxDefinitionValueForDefinition(MarkdownSyntaxNode? syntaxNode, DefinitionListDefinition definition) =>
         syntaxNode != null &&
         syntaxNode.Kind == MarkdownSyntaxKind.DefinitionValue &&
@@ -574,10 +579,14 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
             var termChildren = syntaxGroup.Children
                 .Where(static child => child.Kind == MarkdownSyntaxKind.DefinitionTerm)
                 .ToArray();
+            var markerChildren = syntaxGroup.Children
+                .Where(static child => child.Kind == MarkdownSyntaxKind.DefinitionMarker)
+                .ToArray();
             var definitionChildren = syntaxGroup.Children
                 .Where(static child => child.Kind == MarkdownSyntaxKind.DefinitionValue)
                 .ToArray();
             if (termChildren.Length != group.TermItems.Count ||
+                markerChildren.Length != group.Definitions.Count ||
                 definitionChildren.Length != group.Definitions.Count) {
                 return false;
             }

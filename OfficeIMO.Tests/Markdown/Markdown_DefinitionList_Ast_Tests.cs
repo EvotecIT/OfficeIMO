@@ -255,6 +255,44 @@ Term
     }
 
     [Fact]
+    public void DefinitionList_ProgrammaticGroupedSyntax_Emits_Generated_Marker_Tokens() {
+        var definitionList = new DefinitionListBlock();
+        definitionList.AddGroup(new DefinitionListGroup(
+            new[] {
+                new InlineSequence().Text("Term 1"),
+                new InlineSequence().Text("Term 2")
+            },
+            new[] {
+                new DefinitionListDefinition(new[] { new ParagraphBlock(new InlineSequence().Text("first")) }),
+                new DefinitionListDefinition(new[] { new ParagraphBlock(new InlineSequence().Text("second")) })
+            }));
+        var document = MarkdownDoc.Create().Add(definitionList);
+
+        var syntaxTree = MarkdownReader.BuildSyntaxTree(document);
+        var syntaxGroup = Assert.Single(Assert.Single(syntaxTree.Children).Children);
+        var markers = syntaxGroup.Children
+            .Where(child => child.Kind == MarkdownSyntaxKind.DefinitionMarker)
+            .ToArray();
+
+        Assert.Equal("Term 1\nTerm 2\n:   first\n:   second", NormalizeMarkdown(document.ToMarkdown()));
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.DefinitionTerm,
+                MarkdownSyntaxKind.DefinitionTerm,
+                MarkdownSyntaxKind.DefinitionMarker,
+                MarkdownSyntaxKind.DefinitionValue,
+                MarkdownSyntaxKind.DefinitionMarker,
+                MarkdownSyntaxKind.DefinitionValue
+            },
+            syntaxGroup.Children.Select(child => child.Kind).ToArray());
+        Assert.All(markers, marker => {
+            Assert.Equal(":", marker.Literal);
+            Assert.Null(marker.SourceSpan);
+        });
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(syntaxTree);
+    }
+
+    [Fact]
     public void DefinitionList_MarkdigMarkerSyntax_Writes_Marker_Syntax_For_Reparse() {
         const string markdown = """
 Term
