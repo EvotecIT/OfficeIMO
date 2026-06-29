@@ -14,6 +14,15 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
         Assert.Empty(report.MissingTrackedUseMethods);
         Assert.Empty(report.ObsoleteTrackedUseMethods);
         Assert.All(report.Rows, row => Assert.False(string.IsNullOrWhiteSpace(row.Route), row.MethodName + " route is missing."));
+        Assert.All(report.Rows, row => Assert.NotEqual(MarkdigExtensionScopeDecision.Unknown, row.ScopeDecision));
+        Assert.All(report.Rows.Where(static row => row.Status == MarkdigExtensionInventoryStatus.Gap), row =>
+            Assert.True(
+                row.ScopeDecision is MarkdigExtensionScopeDecision.OptionalExtension
+                    or MarkdigExtensionScopeDecision.RendererHostPolicy
+                    or MarkdigExtensionScopeDecision.Deferred
+                    or MarkdigExtensionScopeDecision.IntentionalDifference
+                    or MarkdigExtensionScopeDecision.CoreEngine,
+                row.MethodName + " gap row must have an explicit scope decision."));
         Assert.All(report.Rows, row => Assert.False(string.IsNullOrWhiteSpace(row.PromotionBar), row.MethodName + " promotion bar is missing."));
 
         if (string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_MARKDIG_INVENTORY"), "1", StringComparison.Ordinal)) {
@@ -37,6 +46,7 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
         Assert.Contains(rowText, parityGapPlan, StringComparison.Ordinal);
         Assert.Contains("Markdig extension inventory", parityGapPlan, StringComparison.Ordinal);
         Assert.Contains("Route", parityGapPlan, StringComparison.Ordinal);
+        Assert.Contains("Scope decision", parityGapPlan, StringComparison.Ordinal);
     }
 
     private static string GetRepositoryRoot() {

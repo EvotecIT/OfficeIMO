@@ -15,7 +15,7 @@ internal static class MarkdigExtensionInventoryMarkdownWriter {
         sb.AppendLine("- `Intentional`: the Markdig entry point is a bundle, helper, or renderer policy that OfficeIMO should model differently.");
         sb.AppendLine("- `Gap`: no meaningful OfficeIMO equivalent exists yet.");
         sb.AppendLine();
-        sb.AppendLine("Route values name the owning layer for future work, so missing behavior is fixed in the reusable engine, optional extension, renderer/host policy, or intentionally documented difference instead of drifting into ad hoc tests.");
+        sb.AppendLine("Route values name the owning layer for future work. Scope decisions collapse those routes into execution buckets, so missing behavior is fixed in the reusable engine, optional extension, renderer/host policy, deferred backlog, or intentionally documented difference instead of drifting into ad hoc tests.");
         sb.AppendLine();
         sb.AppendLine("Refresh command:");
         sb.AppendLine();
@@ -37,11 +37,11 @@ internal static class MarkdigExtensionInventoryMarkdownWriter {
         sb.AppendLine();
         sb.AppendLine("## Extension Families");
         sb.AppendLine();
-        sb.AppendLine("| Markdig entry point | Family | Status | Route | Promotion bar | OfficeIMO state | Next action |");
-        sb.AppendLine("| --- | --- | --- | --- | --- | --- | --- |");
+        sb.AppendLine("| Markdig entry point | Family | Status | Scope decision | Route | Promotion bar | OfficeIMO state | Next action |");
+        sb.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- |");
 
         foreach (var row in report.Rows) {
-            sb.AppendLine($"| `{row.MethodName}` | {EscapeTable(row.Family)} | `{row.Status}` | {EscapeTable(row.Route)} | {EscapeTable(row.PromotionBar)} | {EscapeTable(row.OfficeImoState)} | {EscapeTable(row.NextAction)} |");
+            sb.AppendLine($"| `{row.MethodName}` | {EscapeTable(row.Family)} | `{row.Status}` | {EscapeTable(row.ScopeDecision.ToDisplayText())} | {EscapeTable(row.Route)} | {EscapeTable(row.PromotionBar)} | {EscapeTable(row.OfficeImoState)} | {EscapeTable(row.NextAction)} |");
         }
 
         sb.AppendLine();
@@ -62,7 +62,7 @@ internal static class MarkdigExtensionInventoryMarkdownWriter {
         sb.AppendLine();
         sb.AppendLine("- Use this inventory to decide whether an upcoming slice is parser grammar, AST/source mapping, renderer/writer behavior, extension seam work, or an intentional profile difference.");
         sb.AppendLine("- Keep `Partial` rows honest: promote them to `Covered` only when parser, AST/source, renderer, writer, and fixture evidence all match the claimed scope.");
-        sb.AppendLine("- Use the `Route` and `Promotion bar` columns before implementation so every slice moves the right owner instead of creating another local workaround.");
+        sb.AppendLine("- Use the `Scope decision`, `Route`, and `Promotion bar` columns before implementation so every slice moves the right owner instead of creating another local workaround.");
         sb.AppendLine("- Add fixtures or engine work by row, not by nearby test names.");
 
         return sb.ToString().Replace("\r\n", "\n");

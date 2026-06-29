@@ -27,7 +27,7 @@ Current truth:
 - [x] CommonMark is closed for the official `0.31.2` inventory: 652 of 652 examples currently match.
 - [x] Core GFM features are real engine behavior now, not just fixtures: pipe tables, task lists, footnotes, strikethrough, auto identifiers, soft-line-as-hard-line, front matter, and current tracked GFM smoke fixtures are green.
 - [x] The comparison system exists: CommonMark inventory, GFM inventory, Markdig extension inventory, compatibility matrix, benchmarks, and this plan are checked in.
-- [ ] Markdig extension parity is not closed: 10 extension families are `Covered`, 9 are `Partial`, 3 are `Intentional`, and 11 are `Gap`.
+- [ ] Markdig extension parity is not closed: 10 extension families are `Covered`, 9 are `Partial`, 3 are `Intentional`, and 11 are `Gap`. The 11 `Gap` rows now have explicit scope decisions in the generated Markdig extension inventory, but their behavior is still not implemented unless they are deferred or intentional.
 - [ ] AST/source/lossless parity is not closed: full trivia, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, source edits, and source-aware extension paths are still partial.
 - [ ] Performance parity is not known: release-mode Markdig comparisons still need a stable pass after correctness and source behavior stop moving.
 
@@ -38,7 +38,7 @@ This is the source-of-truth backlog. Work one row at a time. A row is finished o
 - [ ] **A. Broaden GFM proof without pretending it is engine work.** Current tracked GFM fixtures are green but intentionally small. Expand upstream-compatible coverage for autolinks, strikethrough delimiter edges, tag filtering, tables, task lists, footnotes, and extension interactions. If a fixture exposes a mismatch, move that mismatch into the relevant engine row before promoting the fixture.
 - [ ] **B. Finish raw HTML and security as separate contracts.** Keep CommonMark raw HTML grammar, cmark-gfm tag filtering, OfficeIMO allow/strip/escape/sanitize modes, URL policy, source metadata, and Markdown writing separate so a security policy choice is not counted as parser parity.
 - [ ] **C. Close high-value partial extension families.** Finish `UseDefinitionLists`, `UseAlertBlocks`, `UseGenericAttributes`, `UsePreciseSourceLocation`, parser/render extensions, `UseCjkFriendlyEmphasis`, `UseDiagrams`, `UseFigures`, `UseMathematics`, and `UseMediaLinks` with an explicit owner and promotion bar.
-- [ ] **D. Classify every gap row before coding.** Decide whether `UseCustomContainers`, `UseGridTables`, `UseSmartyPants`, `UseCitations`, `UseEmojiAndSmiley`, `UseFooters`, `UseGlobalization`, `UseJiraLinks`, `UseListExtras`, `UsePragmaLines`, and `UseReferralLinks` belong in core, optional extension packages, renderer/host policy, deferred scope, or intentional out-of-scope docs.
+- [x] **D. Classify every gap row before coding.** The generated Markdig extension inventory now gives every reflected row a `Scope decision` derived from its owned route, so `Gap` rows are no longer vague backlog prose.
 - [ ] **E. Finish canonical AST cleanup.** Remove duplicated or adapter-heavy ownership around list items, tables, callouts, definition lists, front matter, and extension nodes so semantic AST, syntax tree, native snapshots, renderer contexts, writer contexts, and source edits share one model.
 - [ ] **F. Finish lossless/source architecture.** Complete whitespace, blank-line, tab, delimiter-token, raw-slice, original-to-normalized mapping, generated-node diagnostic, caret/source-edit, and source-preserving roundtrip fallback behavior before claiming editor-grade roundtrip.
 - [ ] **G. Finish renderer/writer extension parity.** Custom parser, transform, renderer, and writer APIs must carry source slices and token metadata so extension nodes render and write without downstream string rescanning.
@@ -49,7 +49,7 @@ This is the source-of-truth backlog. Work one row at a time. A row is finished o
 - [ ] **3. Engine and policy: split raw HTML, GFM tag filtering, and security policy.** Treat CommonMark raw HTML parsing, cmark-gfm tag filtering, OfficeIMO allow/strip/escape/sanitize modes, URL policy, source metadata, and Markdown writing as separate contracts so security behavior is not counted as parser parity.
 - [ ] **4. Engine plus proof: close `UseDefinitionLists`.** Existing behavior is real but still `Partial`. Parsed and generated/rebuilt definition marker tokens, native source-backed marker edits, tight nested-list writer preservation, and typed plus source-field multiline definition-body edits are now covered; finish remaining marker-group, lazy-continuation, loose-definition, source-map, writer, and reparse-stability edges before promotion.
 - [x] **5. Promote `UseAbbreviations`.** Abbreviation support is now covered: parse-owned Markdown writing preserves abbreviation definitions including empty-title and list-contained definitions, list-contained definitions keep source-token navigation and native title edits, and unresolved bracket text, nested link-label, blockquote, list, dash/opening-punctuation boundary, pipe-table-cell expansion, and Unicode visible-text output have Markdig comparison plus AST/native proof where applicable.
-- [ ] **6. Scope decision first: classify every `Gap` row before coding it.** Assign `UseCustomContainers`, `UseGridTables`, `UseSmartyPants`, `UseCitations`, `UseEmojiAndSmiley`, `UseFooters`, `UseGlobalization`, `UseJiraLinks`, `UseListExtras`, `UsePragmaLines`, and `UseReferralLinks` to core parser, optional extension, renderer/host policy, deferred, or intentional out-of-scope.
+- [x] **6. Scope decision first: classify every `Gap` row before coding it.** `UseCustomContainers`, `UseGridTables`, `UseSmartyPants`, `UseCitations`, `UseEmojiAndSmiley`, `UseFooters`, `UseGlobalization`, `UseJiraLinks`, `UseListExtras`, `UsePragmaLines`, and `UseReferralLinks` now resolve to explicit `Scope decision` buckets in `Docs/officeimo.markdown.markdig-extension-inventory.md`.
 - [ ] **7. Engine or intentional limit: finish high-value partial Markdig rows.** Work through `UseAlertBlocks`, `UseGenericAttributes`, `UsePreciseSourceLocation`, parser/render extensions, `UseCjkFriendlyEmphasis`, `UseDiagrams`, `UseFigures`, `UseMathematics`, and `UseMediaLinks` with an explicit owner and promotion bar.
 - [ ] **8. Engine architecture: finish canonical AST cleanup.** Remove duplicated or adapter-heavy ownership around list items, tables, callouts, definition lists, front matter, and extension nodes so semantic AST, syntax tree, native snapshots, renderer contexts, writer contexts, and source edits share one model.
 - [ ] **9. Engine architecture: finish lossless/source architecture.** Complete whitespace, blank-line, tab, delimiter-token, raw-slice, original-to-normalized mapping, generated-node diagnostic, caret/source-edit, and source-preserving roundtrip fallback behavior before claiming editor-grade roundtrip.
@@ -67,8 +67,8 @@ Use this queue when choosing the next slice. Do not start a test-only slice unle
 - [ ] **P1 - Split raw HTML and GFM tag-filter policy.** Type: engine/policy plus proof. Keep raw HTML grammar, GFM filtered tags, URL safety, sanitizing modes, source spans, and writer behavior as separate contracts.
 - [ ] **P2 - Decide `UseGenericAttributes` architecture.** Type: AST/source design before parser work. Attribute storage must exist on semantic and syntax nodes before arbitrary block/inline attribute parsing is added.
 - [ ] **P2 - Decide `UseAlertBlocks` scope.** Type: renderer contract decision. Decide whether Markdig alert callback parity is required or whether OfficeIMO callouts remain an intentional profile difference.
-- [ ] **P2 - Decide parser-extension gap rows.** Type: scope decision before implementation. Classify `UseCustomContainers`, `UseGridTables`, `UseListExtras`, `UseMathematics`, `UseEmojiAndSmiley`, and `UseSmartyPants` as core, optional extension, deferred, or intentional.
-- [ ] **P2 - Decide renderer/policy gap rows.** Type: scope decision before implementation. Classify `UseMediaLinks`, `UseReferralLinks`, `UseDiagrams`, `UseFigures`, citations, Jira links, pragma lines, footers, and globalization before adding syntax.
+- [x] **P2 - Decide parser-extension gap rows.** Type: scope decision before implementation. `UseCustomContainers`, `UseGridTables`, `UseListExtras`, `UseMathematics`, `UseEmojiAndSmiley`, and `UseSmartyPants` now have explicit scope buckets in the inventory; implementation and architecture proof remain separate rows.
+- [x] **P2 - Decide renderer/policy gap rows.** Type: scope decision before implementation. `UseMediaLinks`, `UseReferralLinks`, `UseDiagrams`, `UseFigures`, citations, Jira links, pragma lines, footers, and globalization now have explicit scope buckets in the inventory; implementation and architecture proof remain separate rows.
 - [ ] **P2 - Continue canonical AST cleanup.** Type: engine architecture. Focus on nodes still carrying compatibility adapters or duplicated representations.
 - [ ] **P2 - Continue lossless/source work.** Type: engine architecture. Finish trivia capture, delimiter-token coverage, source normalization mapping, generated-node diagnostics, and roundtrip fallback precision.
 - [ ] **P3 - Broaden GFM inventory.** Type: evidence-only unless mismatches are found. Expand upstream-compatible fixtures once the relevant parser row has stabilized.
@@ -97,11 +97,28 @@ The sections below preserve the evidence trail behind the checklist. Test-only w
 
 ### B. Markdig Extension Scope Decisions
 
-- [x] **Extension-family route matrix exists.** `Docs/officeimo.markdown.markdig-extension-inventory.md` now gives every reflected Markdig row a `Route` and `Promotion bar`, so future slices start from the owning layer and done criteria instead of re-deciding scope from scratch.
-- [ ] **Markdig extension-family coverage is far from closed.** The current inventory is 10 `Covered`, 9 `Partial`, 3 `Intentional`, and 11 `Gap`. Every non-covered row needs one decision: implement in core, implement as optional extension, route to renderer/host policy, or mark intentional out of scope.
+- [x] **Extension-family route matrix exists.** `Docs/officeimo.markdown.markdig-extension-inventory.md` now gives every reflected Markdig row a `Scope decision`, `Route`, and `Promotion bar`, so future slices start from the owning layer and done criteria instead of re-deciding scope from scratch.
+- [x] **Gap rows are classified before implementation.** Every current `Gap` row now lands in one of the execution buckets below: core engine, optional extension, renderer/host policy, deferred, or intentional difference.
+- [ ] **Markdig extension-family coverage is far from closed.** The current inventory is 10 `Covered`, 9 `Partial`, 3 `Intentional`, and 11 `Gap`. Scope is classified, but every non-covered in-scope row still needs implementation, source behavior, renderer/writer behavior, docs, and proof before promotion.
 - [ ] **High-priority partial rows need closure.** Work through `UseDefinitionLists`, `UseAlertBlocks`, `UseGenericAttributes`, `UsePreciseSourceLocation`, and parser/render extensions with parser, AST/source, renderer, writer, and fixture evidence.
-- [ ] **High-priority gap rows need scope decisions before implementation.** Decide whether `UseCustomContainers`, `UseGridTables`, `UseSmartyPants`, `UseCitations`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, `UseFigures`, `UseListExtras`, and similar rows belong in core, optional packages, renderer policy, or intentional differences.
+- [x] **High-priority gap rows need scope decisions before implementation.** `UseCustomContainers`, `UseGridTables`, `UseSmartyPants`, `UseCitations`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, `UseFigures`, `UseListExtras`, and similar rows now have generated scope-decision coverage; implementation and promotion remain open where status is `Partial` or `Gap`.
 - [x] **Abbreviation parity is covered.** `UseAbbreviations` has opt-in parser, semantic AST, syntax/native metadata, HTML rendering, source-edit, selected Markdig comparison evidence across nested inline/container/table-cell contexts, Markdig-compatible trailing-dash, unresolved-bracket-text, list-item-definition, opening-punctuation behavior, Unicode visible-text rendering, empty-title definition handling, AST/native propagation proof, parse-owned definition-preserving Markdown writing, and list-contained source-token/native edit/writer proof.
+
+#### Gap Row Scope Plan
+
+| Markdig row | Scope decision | Missing before parity |
+| --- | --- | --- |
+| `UseCustomContainers` | Core engine | Block parser extension contract, nested child source mapping, renderer/writer source slices, and Markdig fixtures. |
+| `UseGridTables` | Optional extension | Grid-table AST/source model, malformed-table fallback, HTML rendering, Markdown writing, and Markdig/Pandoc-style fixtures. |
+| `UseListExtras` | Optional extension | Exact Markdig list-extra syntax inventory, canonical list-item mapping, source spans, writer behavior, and fixtures. |
+| `UseEmojiAndSmiley` | Optional extension | Shortcode/smiley tables, opt-in transform contract, source metadata, writer rules, and normalization boundaries. |
+| `UseJiraLinks` | Optional extension | Configurable issue-key resolver, link source metadata, renderer policy, and writer preservation. |
+| `UseSmartyPants` | Optional extension | Smart punctuation transform, escaping rules, source/edit behavior, writer policy, and delimiter interaction proof. |
+| `UseReferralLinks` | Renderer/host policy | Opt-in link rendering policy, safe defaults, rel/referrer output fixtures, and writer-neutral behavior. |
+| `UseCitations` | Deferred | Real consumer requirement, citation AST contract, renderer/writer contract, and fixtures after core/GFM closure. |
+| `UseFooters` | Deferred | Document footer semantics requirement, footer block parser, semantic node, renderer/writer behavior, and fixtures. |
+| `UseGlobalization` | Deferred | Concrete culture-sensitive Markdown contract and fixtures. |
+| `UsePragmaLines` | Deferred | Concrete metadata workflow, source-preserving pragma parser, semantic contract, writer behavior, and fixtures. |
 
 ### C. AST, Source, And Lossless Architecture
 
@@ -250,10 +267,11 @@ These are the actual parity gaps. The test work is listed only where it creates 
   - [ ] `UseAlertBlocks`: decide whether Markdig alert rendering callbacks are an in-scope parser/renderer contract or an intentional OfficeIMO callout difference; implement only the chosen contract.
   - [ ] `UseCjkFriendlyEmphasis`: either add a real delimiter option with CJK comparison fixtures and source-token proof, or document it as a deferred/intentional difference.
   - [ ] `UseGenericAttributes`: design attribute storage on semantic and syntax nodes before adding arbitrary block/inline attribute parsing.
-- [ ] Make an explicit scope decision for every remaining `Gap` row before implementing one-off syntax.
-  - [ ] Likely parser-extension candidates: `UseGridTables`, `UseCustomContainers`, `UseListExtras`, `UseMathematics`, `UseEmojiAndSmiley`, `UseSmartyPants`.
-  - [ ] Likely renderer/policy candidates: `UseMediaLinks`, `UseReferralLinks`, `UseDiagrams`.
-  - [ ] Likely deferred unless a consumer asks: `UseCitations`, `UseJiraLinks`, `UsePragmaLines`, `UseFooters`, `UseGlobalization`.
+- [x] Make an explicit scope decision for every remaining `Gap` row before implementing one-off syntax.
+  - [x] Core engine: `UseCustomContainers`.
+  - [x] Optional extension: `UseGridTables`, `UseListExtras`, `UseEmojiAndSmiley`, `UseJiraLinks`, `UseSmartyPants`.
+  - [x] Renderer/host policy: `UseReferralLinks`.
+  - [x] Deferred unless a consumer asks: `UseCitations`, `UsePragmaLines`, `UseFooters`, `UseGlobalization`.
 - [ ] Finish GFM breadth that is not Markdig-specific.
   - [ ] Expand autolink fixtures against the GFM profile after the `UseAutoLinks` row stabilizes.
   - [x] Add focused official tag-filter fixture coverage for filtered inline tags and case-insensitive raw HTML block body filtering.

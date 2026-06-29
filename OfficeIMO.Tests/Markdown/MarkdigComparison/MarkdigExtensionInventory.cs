@@ -117,6 +117,28 @@ internal sealed class MarkdigExtensionInventoryReport {
         Rows.Count(row => row.Status == status);
 }
 
+internal enum MarkdigExtensionScopeDecision {
+    CoreEngine,
+    OptionalExtension,
+    RendererHostPolicy,
+    Deferred,
+    IntentionalDifference,
+    Unknown
+}
+
+internal static class MarkdigExtensionScopeDecisionExtensions {
+    public static string ToDisplayText(this MarkdigExtensionScopeDecision decision) =>
+        decision switch {
+            MarkdigExtensionScopeDecision.CoreEngine => "Core engine",
+            MarkdigExtensionScopeDecision.OptionalExtension => "Optional extension",
+            MarkdigExtensionScopeDecision.RendererHostPolicy => "Renderer/host policy",
+            MarkdigExtensionScopeDecision.Deferred => "Deferred",
+            MarkdigExtensionScopeDecision.IntentionalDifference => "Intentional difference",
+            MarkdigExtensionScopeDecision.Unknown => "Unknown",
+            _ => throw new ArgumentOutOfRangeException(nameof(decision), decision, null)
+        };
+}
+
 internal sealed class MarkdigExtensionInventoryRow {
     public MarkdigExtensionInventoryRow(string methodName, string family, string markdigScope, MarkdigExtensionInventoryStatus status, string route, string promotionBar, string officeImoState, string nextAction) {
         MethodName = methodName;
@@ -134,9 +156,34 @@ internal sealed class MarkdigExtensionInventoryRow {
     public string MarkdigScope { get; }
     public MarkdigExtensionInventoryStatus Status { get; }
     public string Route { get; }
+    public MarkdigExtensionScopeDecision ScopeDecision => ClassifyScopeDecision(Route);
     public string PromotionBar { get; }
     public string OfficeImoState { get; }
     public string NextAction { get; }
+
+    private static MarkdigExtensionScopeDecision ClassifyScopeDecision(string route) {
+        if (route.Contains("Intentional", StringComparison.OrdinalIgnoreCase)) {
+            return MarkdigExtensionScopeDecision.IntentionalDifference;
+        }
+
+        if (route.Contains("Deferred", StringComparison.OrdinalIgnoreCase)) {
+            return MarkdigExtensionScopeDecision.Deferred;
+        }
+
+        if (route.Contains("Renderer", StringComparison.OrdinalIgnoreCase)) {
+            return MarkdigExtensionScopeDecision.RendererHostPolicy;
+        }
+
+        if (route.Contains("Core", StringComparison.OrdinalIgnoreCase)) {
+            return MarkdigExtensionScopeDecision.CoreEngine;
+        }
+
+        if (route.Contains("Optional", StringComparison.OrdinalIgnoreCase)) {
+            return MarkdigExtensionScopeDecision.OptionalExtension;
+        }
+
+        return MarkdigExtensionScopeDecision.Unknown;
+    }
 }
 
 internal enum MarkdigExtensionInventoryStatus {
