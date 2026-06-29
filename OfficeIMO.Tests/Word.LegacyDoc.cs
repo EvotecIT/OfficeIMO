@@ -2381,6 +2381,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableBordersAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(2, 2);
+                    table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
+                    table.StyleDetails!.TableBorders = new TableBorders(
+                        new TopBorder { Val = BorderValues.Single, Color = "ff0000", Size = 4U, Space = 1U },
+                        new BottomBorder { Val = BorderValues.Dotted, Color = "000000", Size = 5U },
+                        new InsideHorizontalBorder { Val = BorderValues.Dashed, Color = "00ff00", Size = 6U },
+                        new InsideVerticalBorder { Val = BorderValues.Double, Color = "0000ff", Size = 8U });
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x04, 0x01, 0x06, 0x01),
+                    "Expected the native DOC table definition to contain a red single table top BRC80 border.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x06, 0x07, 0x04, 0x00),
+                    "Expected the native DOC table definition to contain a green dashed inside-horizontal BRC80 border.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x08, 0x03, 0x02, 0x00),
+                    "Expected the native DOC table definition to contain a blue double inside-vertical BRC80 border.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x05, 0x06, 0x01, 0x00),
+                    "Expected the native DOC table definition to contain a black dotted table bottom BRC80 border.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal(BorderValues.Single, reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
+                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].Borders.TopColorHex);
+                Assert.Equal(4U, reloadedTable.Rows[0].Cells[0].Borders.TopSize?.Value);
+                Assert.Equal(1U, reloadedTable.Rows[0].Cells[0].Borders.TopSpace?.Value);
+                Assert.Equal(BorderValues.Double, reloadedTable.Rows[0].Cells[0].Borders.RightStyle);
+                Assert.Equal("0000ff", reloadedTable.Rows[0].Cells[0].Borders.RightColorHex);
+                Assert.Equal(8U, reloadedTable.Rows[0].Cells[0].Borders.RightSize?.Value);
+                Assert.Equal(BorderValues.Dashed, reloadedTable.Rows[0].Cells[0].Borders.BottomStyle);
+                Assert.Equal("00ff00", reloadedTable.Rows[0].Cells[0].Borders.BottomColorHex);
+                Assert.Equal(6U, reloadedTable.Rows[0].Cells[0].Borders.BottomSize?.Value);
+                Assert.Equal(BorderValues.Dotted, reloadedTable.Rows[1].Cells[0].Borders.BottomStyle);
+                Assert.Equal("000000", reloadedTable.Rows[1].Cells[0].Borders.BottomColorHex);
+                Assert.Equal(5U, reloadedTable.Rows[1].Cells[0].Borders.BottomSize?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedTableCellShadingColorBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

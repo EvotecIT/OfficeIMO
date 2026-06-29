@@ -346,6 +346,9 @@ just to reserve names.
     `Brc80` values in `sprmTDefTable` row definitions into normal OfficeIMO
     table cell border properties, and preserve them through native DOC
     save/reload.
+  - [x] Preserve simple palette-backed table-level borders by expanding normal
+    `tblBorders` outer and inside edges into DOC `TC80` `Brc80` cell borders
+    during native DOC save/reload.
   - [ ] Add table formatting, merged cells, and nested tables as separate
     fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
@@ -504,6 +507,9 @@ just to reserve names.
     values in `sprmTDefTable`, then reload them through the legacy reader while
     blocking unsupported border styles and non-palette colors before bytes are
     committed.
+  - [x] Write simple table-level `tblBorders` by expanding outer and inside
+    table edges to per-cell `TC80` `Brc80` values, then reload them through the
+    legacy reader while keeping direct cell borders as explicit overrides.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.

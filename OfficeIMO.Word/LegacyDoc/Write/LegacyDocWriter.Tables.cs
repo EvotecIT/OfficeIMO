@@ -19,14 +19,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? tableAutofit = ReadSupportedTableAutofit(tableProperties);
             LegacyDocTableCellMargins? defaultCellMargins = ReadSupportedTableDefaultCellMargins(tableProperties);
             int? defaultCellSpacingTwips = ReadSupportedTableDefaultCellSpacing(tableProperties);
+            LegacyDocTableBorders tableBorders = ReadSupportedTableBorders(tableProperties);
             IReadOnlyList<int> gridColumnWidthsTwips = ReadSupportedTableGridWidths(table.GetFirstChild<TableGrid>());
-            foreach (TableRow row in rows) {
+            for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
+                TableRow row = rows[rowIndex];
                 LegacyDocWritableTableRowFormatting rowFormatting = ReadSupportedTableRowFormatting(row, out TableCell[] cells);
                 if (cells.Length == 0) {
                     throw new NotSupportedException("Native DOC saving supports simple tables only when every row contains at least one cell.");
                 }
 
-                IReadOnlyList<LegacyDocWritableTableCell> writableCells = ExpandSupportedTableCells(cells, gridColumnWidthsTwips);
+                IReadOnlyList<LegacyDocWritableTableCell> writableCells = ExpandSupportedTableCells(cells, gridColumnWidthsTwips, tableBorders, rowIndex, rows.Length);
                 IReadOnlyList<int> cellWidthsTwips = ReadSupportedTableCellWidths(writableCells);
                 IReadOnlyList<LegacyDocTableCellHorizontalMerge> cellHorizontalMerges = ReadSupportedTableCellHorizontalMerges(writableCells);
                 IReadOnlyList<LegacyDocTableCellVerticalMerge> cellVerticalMerges = ReadSupportedTableCellVerticalMerges(writableCells);
@@ -113,6 +115,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case TableCellSpacing tableCellSpacing:
                         ReadSupportedTableDefaultCellSpacing(tableCellSpacing);
+                        break;
+                    case TableBorders tableBorders:
+                        ReadSupportedTableBorders(tableBorders);
                         break;
                     case TableLook:
                         break;
@@ -387,7 +392,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             !string.Equals(value, "false", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(value, "off", StringComparison.OrdinalIgnoreCase);
 
-        private static IReadOnlyList<LegacyDocWritableTableCell> ExpandSupportedTableCells(IReadOnlyList<TableCell> cells, IReadOnlyList<int> gridColumnWidthsTwips) {
+        private static IReadOnlyList<LegacyDocWritableTableCell> ExpandSupportedTableCells(
+            IReadOnlyList<TableCell> cells,
+            IReadOnlyList<int> gridColumnWidthsTwips,
+            LegacyDocTableBorders tableBorders,
+            int rowIndex,
+            int rowCount) {
             var writableCells = new List<LegacyDocWritableTableCell>();
             int logicalColumnIndex = 0;
             foreach (TableCell cell in cells) {
@@ -418,7 +428,54 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 logicalColumnIndex += gridSpan;
             }
 
-            return writableCells;
+            return ApplySupportedTableBorders(writableCells, tableBorders, rowIndex, rowCount);
+        }
+
+        private static IReadOnlyList<LegacyDocWritableTableCell> ApplySupportedTableBorders(
+            IReadOnlyList<LegacyDocWritableTableCell> writableCells,
+            LegacyDocTableBorders tableBorders,
+            int rowIndex,
+            int rowCount) {
+            if (!tableBorders.HasAny || writableCells.Count == 0) {
+                return writableCells;
+            }
+
+            var borderedCells = new LegacyDocWritableTableCell[writableCells.Count];
+            for (int columnIndex = 0; columnIndex < writableCells.Count; columnIndex++) {
+                LegacyDocWritableTableCell cell = writableCells[columnIndex];
+                borderedCells[columnIndex] = cell.WithBorders(MergeSupportedTableBorders(
+                    cell.Borders,
+                    tableBorders,
+                    rowIndex,
+                    rowCount,
+                    columnIndex,
+                    writableCells.Count));
+            }
+
+            return borderedCells;
+        }
+
+        private static LegacyDocTableCellBorders MergeSupportedTableBorders(
+            LegacyDocTableCellBorders cellBorders,
+            LegacyDocTableBorders tableBorders,
+            int rowIndex,
+            int rowCount,
+            int columnIndex,
+            int columnCount) {
+            LegacyDocTableCellBorder top = cellBorders.Top.HasAny
+                ? cellBorders.Top
+                : rowIndex == 0 ? tableBorders.Top : tableBorders.InsideHorizontal;
+            LegacyDocTableCellBorder left = cellBorders.Left.HasAny
+                ? cellBorders.Left
+                : columnIndex == 0 ? tableBorders.Left : tableBorders.InsideVertical;
+            LegacyDocTableCellBorder bottom = cellBorders.Bottom.HasAny
+                ? cellBorders.Bottom
+                : rowIndex + 1 >= rowCount ? tableBorders.Bottom : tableBorders.InsideHorizontal;
+            LegacyDocTableCellBorder right = cellBorders.Right.HasAny
+                ? cellBorders.Right
+                : columnIndex + 1 >= columnCount ? tableBorders.Right : tableBorders.InsideVertical;
+
+            return new LegacyDocTableCellBorders(top, left, bottom, right);
         }
 
         private static IReadOnlyList<int> ReadSupportedTableCellWidths(IReadOnlyList<LegacyDocWritableTableCell> cells) {
@@ -742,6 +799,35 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ReadSupportedTableCellBorder(borders.RightBorder));
         }
 
+        private static LegacyDocTableBorders ReadSupportedTableBorders(TableProperties? tableProperties) {
+            TableBorders? borders = tableProperties?.GetFirstChild<TableBorders>();
+            return borders == null ? default : ReadSupportedTableBorders(borders);
+        }
+
+        private static LegacyDocTableBorders ReadSupportedTableBorders(TableBorders borders) {
+            foreach (OpenXmlElement child in borders.ChildElements) {
+                switch (child) {
+                    case TopBorder:
+                    case LeftBorder:
+                    case BottomBorder:
+                    case RightBorder:
+                    case InsideHorizontalBorder:
+                    case InsideVerticalBorder:
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports simple table borders only. Unsupported table border: {child.LocalName}.");
+                }
+            }
+
+            return new LegacyDocTableBorders(
+                ReadSupportedTableCellBorder(borders.TopBorder),
+                ReadSupportedTableCellBorder(borders.LeftBorder),
+                ReadSupportedTableCellBorder(borders.BottomBorder),
+                ReadSupportedTableCellBorder(borders.RightBorder),
+                ReadSupportedTableCellBorder(borders.InsideHorizontalBorder),
+                ReadSupportedTableCellBorder(borders.InsideVerticalBorder));
+        }
+
         private static LegacyDocTableCellBorder ReadSupportedTableCellBorder(BorderType? border) {
             if (border == null) {
                 return default;
@@ -913,6 +999,42 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal bool? RowIsHeader { get; }
         }
 
+        private readonly struct LegacyDocTableBorders {
+            internal LegacyDocTableBorders(
+                LegacyDocTableCellBorder top,
+                LegacyDocTableCellBorder left,
+                LegacyDocTableCellBorder bottom,
+                LegacyDocTableCellBorder right,
+                LegacyDocTableCellBorder insideHorizontal,
+                LegacyDocTableCellBorder insideVertical) {
+                Top = top;
+                Left = left;
+                Bottom = bottom;
+                Right = right;
+                InsideHorizontal = insideHorizontal;
+                InsideVertical = insideVertical;
+            }
+
+            internal LegacyDocTableCellBorder Top { get; }
+
+            internal LegacyDocTableCellBorder Left { get; }
+
+            internal LegacyDocTableCellBorder Bottom { get; }
+
+            internal LegacyDocTableCellBorder Right { get; }
+
+            internal LegacyDocTableCellBorder InsideHorizontal { get; }
+
+            internal LegacyDocTableCellBorder InsideVertical { get; }
+
+            internal bool HasAny => Top.HasAny
+                || Left.HasAny
+                || Bottom.HasAny
+                || Right.HasAny
+                || InsideHorizontal.HasAny
+                || InsideVertical.HasAny;
+        }
+
         private readonly struct LegacyDocWritableTableCell {
             internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, bool fitText, bool noWrap, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders) {
                 SourceCell = sourceCell;
@@ -946,6 +1068,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal LegacyDocTableCellShading Shading { get; }
 
             internal LegacyDocTableCellBorders Borders { get; }
+
+            internal LegacyDocWritableTableCell WithBorders(LegacyDocTableCellBorders borders) =>
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, FitText, NoWrap, Margins, Shading, borders);
         }
     }
 }
