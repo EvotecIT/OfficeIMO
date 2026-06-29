@@ -114,7 +114,9 @@ public static partial class MarkdownReader {
                 break;
             }
             // Recursively parse inner content as a separate document
-            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(innerSourceLines, options, state);
+            var quoteState = CloneState(state);
+            quoteState.SuppressBlockGenericAttributes = true;
+            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(innerSourceLines, options, quoteState);
             var qb = new QuoteBlock();
             foreach (var b in childBlocks) qb.Children.Add(b);
             qb.ReplaceMarkerSourceSpans(markerSourceSpans);

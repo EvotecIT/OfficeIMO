@@ -59,7 +59,7 @@ public static partial class MarkdownReader {
                 MarkdownAttributeSet headingAttributes = MarkdownAttributeSet.Empty;
                 MarkdownSourceSpan? headingAttributeSpan = null;
                 string? headingAttributeSourceText = null;
-                if (options.GenericAttributes && contentLines.Count > 0) {
+                if (ShouldParseBlockGenericAttributes(options, state) && contentLines.Count > 0) {
                     var lastContentLineIndex = contentLines.Count - 1;
                     if (MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
                         contentLines[lastContentLineIndex],
@@ -116,7 +116,7 @@ public static partial class MarkdownReader {
             MarkdownAttributeSet paragraphAttributes = MarkdownAttributeSet.Empty;
             MarkdownSourceSpan? paragraphAttributeSpan = null;
             string? paragraphAttributeSourceText = null;
-            if (options.GenericAttributes && paragraphLines.Count > 0) {
+            if (ShouldParseBlockGenericAttributes(options, state) && paragraphLines.Count > 0) {
                 var lastLineIndex = paragraphLines.Count - 1;
                 if (MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
                     paragraphLines[lastLineIndex],

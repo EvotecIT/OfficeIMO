@@ -165,6 +165,9 @@ public static partial class MarkdownReader {
         }
     }
 
+    private static bool ShouldParseBlockGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state) =>
+        options?.GenericAttributes == true && state?.SuppressBlockGenericAttributes != true;
+
     private static IReadOnlyList<MarkdownSyntaxNode>? GetDetailsBodySyntaxChildren(DetailsBlock detailsBlock, MarkdownSyntaxNode node) {
         if (node.Children.Count == 0) {
             return null;

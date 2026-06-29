@@ -24,7 +24,7 @@ public static partial class MarkdownReader {
             MarkdownAttributeSet parsedAttributes = MarkdownAttributeSet.Empty;
             MarkdownSourceSpan? attributeSpan = null;
             string? attributeSourceText = null;
-            if (options.GenericAttributes
+            if (ShouldParseBlockGenericAttributes(options, state)
                 && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(headingText, out var textWithoutAttributeBlock, out parsedAttributes, out var attributeStart, out var attributeEnd, requireLeadingWhitespace: true)) {
                 headingText = textWithoutAttributeBlock;
                 effectiveHeadingEnd = contentStart + attributeStart;

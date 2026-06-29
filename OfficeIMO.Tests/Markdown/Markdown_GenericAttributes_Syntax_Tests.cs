@@ -71,4 +71,37 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("{#docs .primary}", nativeAttributes.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 19, 1, 34), nativeAttributes.SourceSpan);
     }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Keeps_Blockquote_Block_GenericAttributes_Literal() {
+        const string markdown = "> quote {#q .lead}\n> # Heading {#h .wide}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        var html = result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Contains("quote {#q .lead}", html, StringComparison.Ordinal);
+        Assert.Contains("Heading {#h .wide}", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"q\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"h\"", html, StringComparison.Ordinal);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
+    }
 }
