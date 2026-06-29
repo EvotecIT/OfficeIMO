@@ -315,6 +315,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsUnsupportedStoryCounts() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedStoryCounts("Body story");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.Equal("Body story", Assert.Single(result.Document.Paragraphs).Text);
+            Assert.Equal(6, result.UnsupportedFeatures.Count);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.HeaderFooter]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.Footnote]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.Endnote]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.Comment]);
+            Assert.Equal(2, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.TextBox]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-HEADER-FOOTER-STORIES-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-FOOTNOTE-STORIES-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-ENDNOTE-STORIES-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-COMMENT-STORIES-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-TEXTBOX-STORIES-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-HEADER-TEXTBOX-STORIES-PRESENT"]);
+
+            string markdown = result.ImportReport.ToMarkdown();
+            Assert.Contains("| Unsupported features | 6 |", markdown);
+            Assert.Contains("| HeaderFooter | DOC-HEADER-FOOTER-STORIES-PRESENT | Fib:CcpHdd |  |", markdown);
+            Assert.Contains("| Footnote | DOC-FOOTNOTE-STORIES-PRESENT | Fib:CcpFtn |  |", markdown);
+            Assert.Contains("| Endnote | DOC-ENDNOTE-STORIES-PRESENT | Fib:CcpEdn |  |", markdown);
+            Assert.Contains("| Comment | DOC-COMMENT-STORIES-PRESENT | Fib:CcpAtn |  |", markdown);
+            Assert.Contains("| TextBox | DOC-TEXTBOX-STORIES-PRESENT | Fib:CcpTxbx |  |", markdown);
+            Assert.Contains("| TextBox | DOC-HEADER-TEXTBOX-STORIES-PRESENT | Fib:CcpHdrTxbx |  |", markdown);
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_ExposesUnsupportedCompoundFeaturesOnProjectedDocument() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Normal load with unsupported features");
 
@@ -730,6 +762,27 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithUnsupportedStoryCounts(params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    ccpFtn: 3,
+                    ccpHdd: 5,
+                    ccpAtn: 7,
+                    ccpEdn: 11,
+                    ccpTxbx: 13,
+                    ccpHdrTxbx: 17);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithDirectCharacterFormatting() {
                 const string text = "plain bold italic\r";
                 const int textOffset = 0x200;
@@ -820,7 +873,14 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            private static byte[] CreateWordDocumentStream(string text) {
+            private static byte[] CreateWordDocumentStream(
+                string text,
+                int ccpFtn = 0,
+                int ccpHdd = 0,
+                int ccpAtn = 0,
+                int ccpEdn = 0,
+                int ccpTxbx = 0,
+                int ccpHdrTxbx = 0) {
                 const int fibLength = 0x1AA;
                 const int textOffset = 0x200;
                 byte[] textBytes = EncodeWindows1252(text);
@@ -829,6 +889,12 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, 0x02, 0x00D9);
                 WriteUInt16(stream, 0x0A, 0x0200);
                 WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x50, ccpFtn);
+                WriteInt32(stream, 0x54, ccpHdd);
+                WriteInt32(stream, 0x5C, ccpAtn);
+                WriteInt32(stream, 0x60, ccpEdn);
+                WriteInt32(stream, 0x64, ccpTxbx);
+                WriteInt32(stream, 0x68, ccpHdrTxbx);
                 WriteInt32(stream, 0x1A2, 0);
                 WriteInt32(stream, 0x1A6, 21);
                 Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);

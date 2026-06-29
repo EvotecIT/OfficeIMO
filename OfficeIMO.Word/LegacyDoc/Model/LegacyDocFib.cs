@@ -4,6 +4,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort WordDocumentMagic = 0xA5EC;
         private const int FlagsOffset = 0x0A;
         private const int CcpTextOffset = 0x4C;
+        private const int CcpFtnOffset = 0x50;
+        private const int CcpHddOffset = 0x54;
+        private const int CcpAtnOffset = 0x5C;
+        private const int CcpEdnOffset = 0x60;
+        private const int CcpTxbxOffset = 0x64;
+        private const int CcpHdrTxbxOffset = 0x68;
         private const int FcPlcfBteChpxOffset = 0xFA;
         private const int LcbPlcfBteChpxOffset = 0xFE;
         private const int FcPlcfBtePapxOffset = 0x102;
@@ -20,6 +26,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool isEncrypted,
             bool usesOneTableStream,
             int ccpText,
+            int ccpFtn,
+            int ccpHdd,
+            int ccpAtn,
+            int ccpEdn,
+            int ccpTxbx,
+            int ccpHdrTxbx,
             int fcPlcfBteChpx,
             int lcbPlcfBteChpx,
             int fcPlcfBtePapx,
@@ -32,6 +44,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IsEncrypted = isEncrypted;
             UsesOneTableStream = usesOneTableStream;
             CcpText = ccpText;
+            CcpFtn = ccpFtn;
+            CcpHdd = ccpHdd;
+            CcpAtn = ccpAtn;
+            CcpEdn = ccpEdn;
+            CcpTxbx = ccpTxbx;
+            CcpHdrTxbx = ccpHdrTxbx;
             FcPlcfBteChpx = fcPlcfBteChpx;
             LcbPlcfBteChpx = lcbPlcfBteChpx;
             FcPlcfBtePapx = fcPlcfBtePapx;
@@ -49,6 +67,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal bool UsesOneTableStream { get; }
 
         internal int CcpText { get; }
+
+        internal int CcpFtn { get; }
+
+        internal int CcpHdd { get; }
+
+        internal int CcpAtn { get; }
+
+        internal int CcpEdn { get; }
+
+        internal int CcpTxbx { get; }
+
+        internal int CcpHdrTxbx { get; }
 
         internal int FcPlcfBteChpx { get; }
 
@@ -84,6 +114,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             ushort nFib = ReadUInt16(wordDocumentStream, 0x02);
             ushort flags = ReadUInt16(wordDocumentStream, FlagsOffset);
             int ccpText = ReadInt32(wordDocumentStream, CcpTextOffset);
+            int ccpFtn = ReadInt32(wordDocumentStream, CcpFtnOffset);
+            int ccpHdd = ReadInt32(wordDocumentStream, CcpHddOffset);
+            int ccpAtn = ReadInt32(wordDocumentStream, CcpAtnOffset);
+            int ccpEdn = ReadInt32(wordDocumentStream, CcpEdnOffset);
+            int ccpTxbx = ReadInt32(wordDocumentStream, CcpTxbxOffset);
+            int ccpHdrTxbx = ReadInt32(wordDocumentStream, CcpHdrTxbxOffset);
             int fcPlcfBteChpx = ReadInt32(wordDocumentStream, FcPlcfBteChpxOffset);
             int lcbPlcfBteChpx = ReadInt32(wordDocumentStream, LcbPlcfBteChpxOffset);
             int fcPlcfBtePapx = ReadInt32(wordDocumentStream, FcPlcfBtePapxOffset);
@@ -93,7 +129,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int fcClx = ReadInt32(wordDocumentStream, FcClxOffset);
             int lcbClx = ReadInt32(wordDocumentStream, LcbClxOffset);
 
-            if (ccpText < 0 || fcPlcfBteChpx < 0 || lcbPlcfBteChpx < 0 || fcPlcfBtePapx < 0 || lcbPlcfBtePapx < 0 || fcSttbfFfn < 0 || lcbSttbfFfn < 0 || fcClx < 0 || lcbClx < 0) {
+            if (ccpText < 0
+                || ccpFtn < 0
+                || ccpHdd < 0
+                || ccpAtn < 0
+                || ccpEdn < 0
+                || ccpTxbx < 0
+                || ccpHdrTxbx < 0
+                || fcPlcfBteChpx < 0
+                || lcbPlcfBteChpx < 0
+                || fcPlcfBtePapx < 0
+                || lcbPlcfBtePapx < 0
+                || fcSttbfFfn < 0
+                || lcbSttbfFfn < 0
+                || fcClx < 0
+                || lcbClx < 0) {
                 error = "The FIB contains negative text or piece-table offsets.";
                 return false;
             }
@@ -103,6 +153,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 (flags & EncryptedFlag) != 0,
                 (flags & OneTableStreamFlag) != 0,
                 ccpText,
+                ccpFtn,
+                ccpHdd,
+                ccpAtn,
+                ccpEdn,
+                ccpTxbx,
+                ccpHdrTxbx,
                 fcPlcfBteChpx,
                 lcbPlcfBteChpx,
                 fcPlcfBtePapx,

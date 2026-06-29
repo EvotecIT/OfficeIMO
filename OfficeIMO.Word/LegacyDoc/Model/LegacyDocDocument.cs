@@ -104,7 +104,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             if (options.ReportUnsupportedFeatures) {
-                AddKnownUnsupportedFeatureDiagnostics(compoundFile);
+                AddKnownUnsupportedFeatureDiagnostics(compoundFile, fib);
             }
 
             LegacyDocOleDocumentPropertyReader.AddDocumentProperties(compoundFile, this, options);
@@ -143,7 +143,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges);
         }
 
-        private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile) {
+        private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile, LegacyDocFib fib) {
             OfficeCompoundFileEntry? macroEntry = compoundFile.Entries.FirstOrDefault(entry => entry.Path.StartsWith("_VBA_PROJECT_CUR", StringComparison.OrdinalIgnoreCase)
                 || entry.Path.StartsWith("Macros", StringComparison.OrdinalIgnoreCase)
                 || entry.Path.IndexOf("VBA", StringComparison.OrdinalIgnoreCase) >= 0);
@@ -167,6 +167,56 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         oleObjectEntry.Path,
                         "Compound:OleObjectStorage"));
             }
+
+            AddUnsupportedStoryFeatureIfPresent(
+                fib.CcpHdd,
+                LegacyDocUnsupportedFeatureKind.HeaderFooter,
+                "DOC-HEADER-FOOTER-STORIES-PRESENT",
+                "The legacy DOC contains header or footer story text. Headers and footers are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Fib:CcpHdd");
+            AddUnsupportedStoryFeatureIfPresent(
+                fib.CcpFtn,
+                LegacyDocUnsupportedFeatureKind.Footnote,
+                "DOC-FOOTNOTE-STORIES-PRESENT",
+                "The legacy DOC contains footnote story text. Footnotes are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Fib:CcpFtn");
+            AddUnsupportedStoryFeatureIfPresent(
+                fib.CcpEdn,
+                LegacyDocUnsupportedFeatureKind.Endnote,
+                "DOC-ENDNOTE-STORIES-PRESENT",
+                "The legacy DOC contains endnote story text. Endnotes are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Fib:CcpEdn");
+            AddUnsupportedStoryFeatureIfPresent(
+                fib.CcpAtn,
+                LegacyDocUnsupportedFeatureKind.Comment,
+                "DOC-COMMENT-STORIES-PRESENT",
+                "The legacy DOC contains comment or annotation story text. Comments are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Fib:CcpAtn");
+            AddUnsupportedStoryFeatureIfPresent(
+                fib.CcpTxbx,
+                LegacyDocUnsupportedFeatureKind.TextBox,
+                "DOC-TEXTBOX-STORIES-PRESENT",
+                "The legacy DOC contains text box story text. Text boxes are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Fib:CcpTxbx");
+            AddUnsupportedStoryFeatureIfPresent(
+                fib.CcpHdrTxbx,
+                LegacyDocUnsupportedFeatureKind.TextBox,
+                "DOC-HEADER-TEXTBOX-STORIES-PRESENT",
+                "The legacy DOC contains header or footer text box story text. Header and footer text boxes are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Fib:CcpHdrTxbx");
+        }
+
+        private void AddUnsupportedStoryFeatureIfPresent(
+            int characterCount,
+            LegacyDocUnsupportedFeatureKind kind,
+            string code,
+            string description,
+            string detailCode) {
+            if (characterCount <= 0) {
+                return;
+            }
+
+            AddUnsupportedFeature(new LegacyDocUnsupportedFeature(kind, code, description, detailCode: detailCode));
         }
 
         private string BuildFormattedParagraphs(

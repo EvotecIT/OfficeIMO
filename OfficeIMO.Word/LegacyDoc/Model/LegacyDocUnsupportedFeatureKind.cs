@@ -11,6 +11,31 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// <summary>
         /// Embedded OLE object storage was discovered in the OLE compound container.
         /// </summary>
-        OleObject
+        OleObject,
+
+        /// <summary>
+        /// Header or footer story text exists but is not projected yet.
+        /// </summary>
+        HeaderFooter,
+
+        /// <summary>
+        /// Footnote story text exists but is not projected yet.
+        /// </summary>
+        Footnote,
+
+        /// <summary>
+        /// Endnote story text exists but is not projected yet.
+        /// </summary>
+        Endnote,
+
+        /// <summary>
+        /// Comment or annotation story text exists but is not projected yet.
+        /// </summary>
+        Comment,
+
+        /// <summary>
+        /// Text box story text exists but is not projected yet.
+        /// </summary>
+        TextBox
     }
 }

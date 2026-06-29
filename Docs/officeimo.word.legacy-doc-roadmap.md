@@ -240,6 +240,8 @@ just to reserve names.
   separate fixture-backed slices.
 - [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
   and loaded `WordDocument` state.
+  - [x] Report unsupported header/footer, footnote, endnote, comment, and text
+    box stories from FIB story counts before those stories are projected.
 - [x] Add normal fixture folders under
   `OfficeIMO.Tests\Documents\LegacyDocCorpus` and
   keep `OfficeIMO.Tests\Documents\LegacyDocDiagnosticCorpus` for the first
