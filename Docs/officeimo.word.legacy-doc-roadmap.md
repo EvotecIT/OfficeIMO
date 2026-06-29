@@ -371,6 +371,8 @@ just to reserve names.
   - [x] Block multi-paragraph table cells before native `.doc` bytes are
     committed until TAP-backed table parsing can disambiguate table-internal
     paragraph marks from normal paragraphs before a table.
+  - [x] Block nested table cells before native `.doc` bytes are committed until
+    nested table projection has TAP-backed read/write coverage.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.

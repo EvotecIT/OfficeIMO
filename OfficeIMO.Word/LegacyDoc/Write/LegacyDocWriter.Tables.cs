@@ -86,6 +86,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static LegacyDocWritableParagraphFormatting AppendTableCell(StringBuilder text, List<LegacyDocWritableRun> runs, TableCell cell) {
+            if (cell.Elements<Table>().Any()) {
+                throw new NotSupportedException("Native DOC saving supports simple tables only. Nested tables are not supported yet.");
+            }
+
             Paragraph? paragraph = null;
             foreach (OpenXmlElement child in cell.ChildElements) {
                 switch (child) {
