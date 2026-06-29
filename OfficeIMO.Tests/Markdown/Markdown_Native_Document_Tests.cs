@@ -620,17 +620,22 @@ Second: Other
     [InlineData("**Term**: Intro\n\n  - first\n", "**Term**: Updated\n  - second\n")]
     [InlineData("Term\n:   Intro\n    - first\n", "Term\n:   Updated\n    - second\n")]
     [InlineData("Term\n:   Intro\nlazy continuation\n", "Term\n:   Updated\n    - second\n")]
-    public void Definition_List_Definition_Source_Edit_Indents_Multiline_Body_For_Reparse(string markdown, string expected) {
+    public void Definition_List_Definition_Source_Edit_Indents_Multiline_Body_For_Reparse(
+        string markdown,
+        string expected) {
         var options = MarkdownReaderOptions.CreateCommonMarkProfile();
         options.DefinitionLists = true;
         var native = MarkdownNativeDocument.Parse(markdown, options);
         var definition = Assert.Single(native.EnumerateDefinitionListDefinitions());
+        var definitionField = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
 
         var edited = native.CreateReplaceEdit(definition, "Updated\n- second").Apply(native.SourceMarkdown);
+        var editedViaField = native.CreateReplaceEdit(definitionField, "Updated\n- second").Apply(native.SourceMarkdown);
         var reparsed = MarkdownNativeDocument.Parse(edited, options);
         var reparsedDefinition = Assert.Single(reparsed.EnumerateDefinitionListDefinitions());
 
         Assert.Equal(expected, edited);
+        Assert.Equal(expected, editedViaField);
         Assert.Equal("Updated\n\n- second", reparsedDefinition.Markdown.Replace("\r\n", "\n"));
         Assert.Collection(
             reparsedDefinition.Children,

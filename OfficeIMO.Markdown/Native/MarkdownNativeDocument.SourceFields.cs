@@ -40,7 +40,7 @@ public sealed partial class MarkdownNativeDocument {
             throw new ArgumentNullException(nameof(field));
         }
 
-        return CreateReplaceEdit(field.SourceSpan, replacementMarkdown);
+        return CreateReplaceEdit(field.SourceSpan, FormatBlockSourceFieldReplacement(field, replacementMarkdown));
     }
 
     internal static IEnumerable<MarkdownNativeBlockSourceField> EnumerateBlockSourceFields(MarkdownNativeBlock block) {

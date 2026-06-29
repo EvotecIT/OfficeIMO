@@ -1,6 +1,18 @@
 namespace OfficeIMO.Markdown;
 
 public sealed partial class MarkdownNativeDocument {
+    private string FormatBlockSourceFieldReplacement(
+        MarkdownNativeBlockSourceField field,
+        string replacementMarkdown) {
+        if (field != null &&
+            string.Equals(field.Name, "definitionBody", StringComparison.OrdinalIgnoreCase) &&
+            TryGetDefinitionListDefinition(field, out var definition)) {
+            return FormatDefinitionListDefinitionReplacement(definition, replacementMarkdown);
+        }
+
+        return replacementMarkdown ?? string.Empty;
+    }
+
     private string FormatDefinitionListDefinitionReplacement(
         MarkdownNativeDefinitionListDefinition definition,
         string replacementMarkdown) {
@@ -27,6 +39,32 @@ public sealed partial class MarkdownNativeDocument {
         }
 
         return string.Join("\n", lines);
+    }
+
+    private static bool TryGetDefinitionListDefinition(
+        MarkdownNativeBlockSourceField field,
+        out MarkdownNativeDefinitionListDefinition definition) {
+        definition = null!;
+        if (field == null ||
+            field.Index < 0 ||
+            field.Block is not MarkdownNativeDefinitionListBlock definitionList) {
+            return false;
+        }
+
+        var currentIndex = 0;
+        for (var groupIndex = 0; groupIndex < definitionList.Groups.Count; groupIndex++) {
+            var definitions = definitionList.Groups[groupIndex].Definitions;
+            for (var definitionIndex = 0; definitionIndex < definitions.Count; definitionIndex++) {
+                if (currentIndex == field.Index) {
+                    definition = definitions[definitionIndex];
+                    return true;
+                }
+
+                currentIndex++;
+            }
+        }
+
+        return false;
     }
 
     private string DetectDefinitionContinuationIndent(MarkdownSourceSpan bodySpan) {
