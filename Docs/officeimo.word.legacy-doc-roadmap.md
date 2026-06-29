@@ -237,6 +237,9 @@ just to reserve names.
     paragraph/run formatting into custom DOCX style definitions, including
     alignment, spacing, indentation, bold, size, and color, with both synthetic
     and Word COM-generated legacy `.doc` proof.
+  - [x] Resolve stylesheet-level font-family run formatting through the DOC font
+    table, including styles that carry character formatting after an empty
+    paragraph UPX, with synthetic fixture proof and opt-in Word COM validation.
   - [ ] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting beyond the first supported mapping set once each
     additional mapping has a fixture and observable OfficeIMO contract.

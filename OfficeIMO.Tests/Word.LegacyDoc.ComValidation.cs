@@ -107,6 +107,9 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(runProperties.GetFirstChild<Bold>());
             Assert.Equal("28", runProperties.GetFirstChild<FontSize>()?.Val?.Value);
             Assert.Equal("ff0000", runProperties.GetFirstChild<Color>()?.Val?.Value);
+            RunFonts runFonts = Assert.IsType<RunFonts>(runProperties.GetFirstChild<RunFonts>());
+            Assert.Equal("Courier New", runFonts.Ascii?.Value);
+            Assert.Equal("Courier New", runFonts.HighAnsi?.Value);
         }
 
         [Fact]
@@ -318,6 +321,7 @@ namespace OfficeIMO.Tests {
                     font = GetComProperty(customStyle!, "Font");
                     SetComProperty(font!, "Bold", 1);
                     SetComProperty(font!, "Color", WdColorRed);
+                    SetComProperty(font!, "Name", "Courier New");
                     SetComProperty(font!, "Size", 14);
                 } finally {
                     ReleaseComObject(font);

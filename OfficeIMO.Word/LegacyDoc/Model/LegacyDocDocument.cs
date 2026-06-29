@@ -132,7 +132,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-FONT-TABLE-INVALID", fontTableWarning);
             }
 
-            StyleSheet = LegacyDocStyleSheet.Read(tableStream, fib, out string? styleSheetWarning);
+            StyleSheet = LegacyDocStyleSheet.Read(tableStream, fib, fontFamilies, out string? styleSheetWarning);
             if (styleSheetWarning != null) {
                 AddWarning("DOC-STYLESHEET-INVALID", styleSheetWarning);
             }

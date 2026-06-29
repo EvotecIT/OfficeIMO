@@ -16,7 +16,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return _paragraphStyles.TryGetValue(styleIndex, out style!);
         }
 
-        internal static LegacyDocStyleSheet Read(byte[] tableStream, LegacyDocFib fib, out string? warning) {
+        internal static LegacyDocStyleSheet Read(byte[] tableStream, LegacyDocFib fib, IReadOnlyList<string> fontFamilies, out string? warning) {
             warning = null;
             if (fib.LcbStshf == 0) {
                 return Empty;
@@ -60,7 +60,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     break;
                 }
 
-                if (TryReadParagraphStyle(tableStream, offset, cbStd, cbStdBaseInFile, styleIndex, usedStyleIds, out LegacyDocParagraphStyle? style)) {
+                if (TryReadParagraphStyle(tableStream, offset, cbStd, cbStdBaseInFile, styleIndex, usedStyleIds, fontFamilies, out LegacyDocParagraphStyle? style)) {
                     styles[styleIndex] = style!;
                 }
 
@@ -80,6 +80,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int cbStdBaseInFile,
             ushort styleIndex,
             HashSet<string> usedStyleIds,
+            IReadOnlyList<string> fontFamilies,
             out LegacyDocParagraphStyle? style) {
             style = null;
             if (count < cbStdBaseInFile) {
@@ -110,6 +111,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 upxOffset,
                 end,
                 upxCount,
+                fontFamilies,
                 out LegacyDocParagraphFormat paragraphFormat,
                 out LegacyDocCharacterFormat characterFormat);
 
@@ -161,6 +163,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int offset,
             int end,
             int upxCount,
+            IReadOnlyList<string> fontFamilies,
             out LegacyDocParagraphFormat paragraphFormat,
             out LegacyDocCharacterFormat characterFormat) {
             paragraphFormat = LegacyDocParagraphFormat.Default;
@@ -169,14 +172,19 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             for (int upxIndex = 0; upxIndex < upxCount && offset + 2 <= end; upxIndex++) {
                 int count = LegacyDocFib.ReadUInt16(bytes, offset);
                 offset += 2;
-                if (count <= 0 || offset + count > end) {
+                if (offset + count > end) {
                     break;
+                }
+
+                if (count == 0) {
+                    offset += count;
+                    continue;
                 }
 
                 if (upxIndex == 0) {
                     paragraphFormat = ReadStyleParagraphFormat(bytes, offset, count);
                 } else if (upxIndex == 1) {
-                    characterFormat = LegacyDocCharacterFormattingReader.ReadGrpprl(bytes, offset, count, Array.Empty<string>());
+                    characterFormat = LegacyDocCharacterFormattingReader.ReadGrpprl(bytes, offset, count, fontFamilies);
                 }
 
                 offset += count;

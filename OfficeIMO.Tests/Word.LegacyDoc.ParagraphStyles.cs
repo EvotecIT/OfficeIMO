@@ -99,6 +99,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleFontFamilyFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleFontFamily();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(
+                result.Document.Paragraphs,
+                item => item.Text == "Styled Font Family");
+            Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
+            Assert.Equal("LegacyDocCustomFontBody", paragraph.StyleId);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == "LegacyDocCustomFontBody");
+            StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.GetFirstChild<StyleRunProperties>());
+            RunFonts runFonts = Assert.IsType<RunFonts>(runProperties.GetFirstChild<RunFonts>());
+            Assert.Equal("Courier New", runFonts.Ascii?.Value);
+            Assert.Equal("Courier New", runFonts.HighAnsi?.Value);
+            Assert.Equal("Courier New", runFonts.ComplexScript?.Value);
+            Assert.Equal("Courier New", runFonts.EastAsia?.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphStylesAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -137,6 +162,7 @@ namespace OfficeIMO.Tests {
             private const int PapxFkpOffset = 0x400;
             private const int OleSectorSize = 512;
             private const int StyleSheetOffset = 64;
+            private const int FontTableOffset = 512;
             private const ushort SprmPIstd = 0x4600;
             private const ushort SprmPJc = 0x2461;
             private const ushort SprmPDxaLeft = 0x840F;
@@ -144,12 +170,42 @@ namespace OfficeIMO.Tests {
             private const ushort SprmCFBold = 0x0835;
             private const ushort SprmCIco = 0x2A42;
             private const ushort SprmCHps = 0x4A43;
+            private const ushort SprmCRgFtc0 = 0x4A4F;
             private const ushort CustomStyleIndex = 10;
 
             internal static byte[] CreateDocWithHeadingStyles() {
                 const string text = "Heading One\rHeading Two\rBody\r";
                 byte[] wordDocumentStream = CreateWordDocumentStream(text);
                 byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateDocWithCustomParagraphStyleFontFamily() {
+                const string text = "Styled Font Family\rBody\r";
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
+                    [CustomStyleIndex] = new LegacyDocStyleDefinition(
+                        "Custom Font Body",
+                        basedOnStyleIndex: 0,
+                        paragraphUpx: null,
+                        characterUpx: CreateStyleCharacterUpx(CreateCharacterSprm(SprmCRgFtc0, 0, 0)))
+                });
+                byte[] fontTable = CreateFontTable("Courier New");
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(CustomStyleIndex)
+                    },
+                    styleSheet.Length,
+                    FontTableOffset,
+                    fontTable.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet, fontTable);
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
@@ -224,7 +280,12 @@ namespace OfficeIMO.Tests {
                     styleSheetLength: 0);
             }
 
-            private static byte[] CreateWordDocumentStream(string text, IReadOnlyDictionary<int, byte[]> papxByParagraphIndex, int styleSheetLength) {
+            private static byte[] CreateWordDocumentStream(
+                string text,
+                IReadOnlyDictionary<int, byte[]> papxByParagraphIndex,
+                int styleSheetLength,
+                int fontTableOffset = 0,
+                int fontTableLength = 0) {
                 byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
                 var stream = new byte[Math.Max(PapxFkpOffset + OleSectorSize, TextOffset + textBytes.Length)];
                 WriteUInt16(stream, 0x00, 0xA5EC);
@@ -238,6 +299,11 @@ namespace OfficeIMO.Tests {
 
                 WriteInt32(stream, 0x102, 21);
                 WriteInt32(stream, 0x106, 12);
+                if (fontTableLength > 0) {
+                    WriteInt32(stream, 0x112, fontTableOffset);
+                    WriteInt32(stream, 0x116, fontTableLength);
+                }
+
                 WriteInt32(stream, 0x1A2, 0);
                 WriteInt32(stream, 0x1A6, 21);
                 Buffer.BlockCopy(textBytes, 0, stream, TextOffset, textBytes.Length);
@@ -251,8 +317,10 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
-            private static byte[] CreateTableStream(int characterCount, byte[]? styleSheet = null) {
-                int length = styleSheet == null ? 33 : Math.Max(33, StyleSheetOffset + styleSheet.Length);
+            private static byte[] CreateTableStream(int characterCount, byte[]? styleSheet = null, byte[]? fontTable = null) {
+                int length = Math.Max(
+                    styleSheet == null ? 33 : StyleSheetOffset + styleSheet.Length,
+                    fontTable == null ? 33 : FontTableOffset + fontTable.Length);
                 var table = new byte[length];
                 table[0] = 0x02;
                 WriteInt32(table, 1, 16);
@@ -268,6 +336,10 @@ namespace OfficeIMO.Tests {
                 WriteInt32(table, papxPlcOffset + 8, PapxFkpOffset / OleSectorSize);
                 if (styleSheet != null) {
                     Buffer.BlockCopy(styleSheet, 0, table, StyleSheetOffset, styleSheet.Length);
+                }
+
+                if (fontTable != null) {
+                    Buffer.BlockCopy(fontTable, 0, table, FontTableOffset, fontTable.Length);
                 }
 
                 return table;
@@ -421,6 +493,28 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(bytes, 0, sprm);
                 Buffer.BlockCopy(operand, 0, bytes, 2, operand.Length);
                 return bytes;
+            }
+
+            private static byte[] CreateFontTable(params string[] fontFamilies) {
+                var bytes = new List<byte>();
+                WriteUInt16(bytes, checked((ushort)fontFamilies.Length));
+                WriteUInt16(bytes, 0);
+                foreach (string fontFamily in fontFamilies) {
+                    byte[] ffn = CreateFfn(fontFamily);
+                    bytes.Add(checked((byte)ffn.Length));
+                    bytes.AddRange(ffn);
+                }
+
+                return bytes.ToArray();
+            }
+
+            private static byte[] CreateFfn(string fontFamily) {
+                byte[] nameBytes = System.Text.Encoding.Unicode.GetBytes(fontFamily + '\0');
+                var ffn = new byte[39 + nameBytes.Length];
+                ffn[1] = 0x90;
+                ffn[2] = 0x01;
+                Buffer.BlockCopy(nameBytes, 0, ffn, 39, nameBytes.Length);
+                return ffn;
             }
 
             private static void WriteLengthPrefixedUpx(List<byte> bytes, byte[] upx) {
