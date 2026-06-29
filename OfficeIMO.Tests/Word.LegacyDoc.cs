@@ -47,6 +47,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ImportsWordComDocFixture() {
+            string docPath = GetFixtureDoc(Path.Combine("LegacyDocCorpus", "ComSimpleParagraphs.doc"));
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(docPath);
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.True(result.Document.WasLoadedFromLegacyDoc);
+            Assert.Equal(string.Empty, result.Document.FilePath);
+
+            string[] paragraphs = result.Document.Paragraphs
+                .Select(paragraph => paragraph.Text)
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToArray();
+
+            Assert.Contains("First COM paragraph", paragraphs);
+            Assert.Contains("Second COM paragraph", paragraphs);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsMissingWordDocumentStream() {
             byte[] docBytes = LegacyDocTestBuilder.CreateCompoundWithoutWordDocumentStream();
 
@@ -125,7 +145,7 @@ namespace OfficeIMO.Tests {
                 WriteInt32(table, 5, 0);
                 WriteInt32(table, 9, characterCount);
                 WriteUInt16(table, 13, 0);
-                WriteUInt32(table, 15, 0x40000000U | textOffset);
+                WriteUInt32(table, 15, 0x40000000U | ((uint)textOffset * 2U));
                 WriteUInt16(table, 19, 0);
                 return table;
             }

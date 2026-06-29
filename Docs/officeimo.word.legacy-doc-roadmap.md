@@ -212,7 +212,7 @@ just to reserve names.
   stream boundaries, with diagnostics for unsupported or unsafe streams.
 - [x] Project plain body text into normal `WordDocument` paragraphs/runs and
   prove save-to-`.docx` reload through normal OfficeIMO APIs.
-- [ ] Validate the first DOC reader against real Word COM/NPOI-generated corpus
+- [x] Validate the first DOC reader against real Word COM/NPOI-generated corpus
   fixtures, then keep expanding only where the fixture proves the contract.
 - [ ] Add formatting projection for run/paragraph styles only when each mapping
   has a fixture and observable OfficeIMO contract.
@@ -221,9 +221,10 @@ just to reserve names.
   separate fixture-backed slices.
 - [ ] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
   and loaded `WordDocument` state.
-- [ ] Add normal and diagnostic fixture folders under
+- [x] Add normal fixture folders under
   `OfficeIMO.Tests\Documents\LegacyDocCorpus` and
-  `OfficeIMO.Tests\Documents\LegacyDocDiagnosticCorpus`.
+  keep `OfficeIMO.Tests\Documents\LegacyDocDiagnosticCorpus` for the first
+  diagnostic corpus slice.
 - [ ] Add fixture-generation helpers for Word COM and optional NPOI generation in
   test/support tooling only; checked-in fixtures are the source of CI proof.
 - [ ] Add corpus report approval tests with short Markdown baselines.

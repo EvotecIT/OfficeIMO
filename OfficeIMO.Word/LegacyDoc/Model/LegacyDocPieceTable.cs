@@ -62,7 +62,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 int characterCount = cpEnd - cpStart;
                 uint fcCompressed = unchecked((uint)LegacyDocFib.ReadInt32(tableStream, pcdArrayOffset + (i * 8) + 2));
                 bool compressed = (fcCompressed & CompressedTextFlag) != 0;
-                int byteOffset = checked((int)(fcCompressed & FcMask));
+                uint fileCharacterPosition = fcCompressed & FcMask;
+                int byteOffset = compressed
+                    ? checked((int)(fileCharacterPosition / 2))
+                    : checked((int)fileCharacterPosition);
 
                 if (compressed) {
                     if (byteOffset + characterCount > wordDocumentStream.Length) {
