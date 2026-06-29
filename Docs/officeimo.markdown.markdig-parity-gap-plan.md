@@ -17,6 +17,48 @@ Parity is not "more tests." Tests are the measuring system. Parity means the reu
 | Markdig extension compatibility matrix | Generated control board in `Docs/officeimo.markdown.markdig-compatibility-matrix.md` splits every Markdig row into Decision, Engine parser, AST/source, Writer/render, Proof, and next-action lanes |
 | Remaining architecture gaps | broader GFM breadth, Markdig extension breadth, canonical AST ownership, full lossless trivia/source mapping, source-aware renderer/writer extension seams, security/profile separation, and release-mode benchmark evidence |
 
+## No-Loop Missing Parity Checklist
+
+Use this section to choose work. If a row below is not the active row, do not add nearby fixtures just because they are convenient.
+
+- [ ] **P0 - Finish the active `UseDefinitionLists` promotion.**
+  - [ ] Engine: close the remaining lazy-continuation cases, especially paragraphs after blank lines, multiple lazy lines, lazy lines after nested blocks, and remaining interruption cases from list/table-shaped starts.
+  - [ ] Engine: close nested-body breadth for blockquotes, fenced code, HTML, setext headings, setext-looking lines inside `<dd>`, and list tails after nested list bodies.
+  - [ ] AST/source: finish exact spans for marker lines, continuation indentation, blank separators, generated paragraph wrappers, and native `definitionBody` values.
+  - [ ] Writer: prove every fixed shape writes Markdown that reparses to the same Markdig-compatible HTML and keeps source-backed edits valid.
+  - [ ] Proof: only then move `UseDefinitionLists` from `Partial` to `Covered` in the generated inventory.
+
+- [ ] **P1 - Close the remaining high-value Markdig partial rows.**
+  - [ ] `UseGenericAttributes`: extend from the covered standalone/block/inline shapes to arbitrary supported block families and remaining inline families, with source tokens and writer behavior.
+  - [ ] `UseAlertBlocks`: decide whether Markdig alert callbacks become an OfficeIMO renderer contract or remain an intentional callout difference; then align AST/source/writer around that decision.
+  - [ ] `UseCjkFriendlyEmphasis`: add a real Markdig-compatible delimiter option with source-token proof, or document it as deferred/intentional.
+  - [ ] `UsePreciseSourceLocation`: keep partial until lossless trivia, original mapping, generated-node diagnostics, and broader source edits are complete.
+
+- [ ] **P2 - Decide the real gaps before implementing optional syntax.**
+  - [ ] `UseCustomContainers`: decide optional extension shape, then implement colon-fenced containers with child source ownership, renderer seams, and writer support.
+  - [ ] `UseGridTables`: decide whether grid tables belong in core or optional extension; if yes, add parser, semantic table model, malformed fallback, source spans, renderer, and writer.
+  - [ ] `UseListExtras`: inventory Markdig list-extra syntax first; do not start from tests until the syntax contract is known.
+  - [ ] Optional transforms: keep `UseEmojiAndSmiley`, `UseJiraLinks`, and `UseSmartyPants` out of the core path unless a product need makes them active.
+  - [ ] Deferred rows: keep `UseCitations`, `UseFooters`, `UseGlobalization`, and `UsePragmaLines` deferred until a real consumer needs them.
+
+- [ ] **P3 - Make the app editor-grade, not only renderer-compatible.**
+  - [ ] Canonicalize duplicated semantic/syntax ownership for lists, tables, definition lists, callouts, footnotes, front matter, and extension nodes.
+  - [ ] Associate syntax nodes with semantic subobjects such as callout titles, list item paragraphs, definition groups/definitions, and sequence-style inline wrappers.
+  - [ ] Capture lossless trivia for whitespace, blank lines, tabs, delimiters, raw slices, normalized text, and generated-node diagnostics.
+  - [ ] Complete delimiter-token coverage for emphasis extras, links/images, escapes/entities, breaks, HTML, footnotes, front matter, tables, and extension nodes.
+  - [ ] Establish one original-to-normalized mapping story for line endings, tab expansion, nested containers, generated nodes, and normalized paragraph text.
+  - [ ] Broaden `MarkdownRoundtripWriter` beyond unchanged documents and explicit native edits, with precise fallback diagnostics.
+
+- [ ] **P4 - Keep renderer, writer, and security policy explicit.**
+  - [ ] Build source-aware extension seams for custom blocks, inlines, transforms, renderers, and writers so downstream code does not rescan strings.
+  - [ ] Separate raw HTML grammar from security policy: CommonMark raw HTML, GFM tag filtering, allow/strip/escape/sanitize modes, URL policy, source metadata, and Markdown writing.
+  - [ ] Bound renderer/host rows such as `UseDiagrams`, `UseFigures`, `UseMathematics`, `UseMediaLinks`, and `UseReferralLinks` before parser work starts.
+
+- [ ] **P5 - Use tests as proof, not as the product.**
+  - [ ] Regenerate inventories and compatibility matrix after each promoted row.
+  - [ ] Broaden GFM fixtures only after the covered grammar/source behavior is stable.
+  - [ ] Run release-mode benchmarks after correctness, source mapping, and writer behavior stop moving.
+
 ## No-Loop Parity Exit Plan
 
 Parity is closed only when the boxes below are closed. A test can prove a box, but it cannot replace the implementation behind it.
