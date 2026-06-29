@@ -20,14 +20,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 foreach (TableCell cell in cells) {
                     int cellStart = text.Length;
-                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, cell);
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, cell)
+                        .WithTableMarkers(isTableTerminatingParagraph: false);
                     text.Append('\a');
-                    if (paragraphFormatting.HasFormatting) {
-                        paragraphFormats.Add(new LegacyDocWritableParagraph(cellStart, text.Length - cellStart, paragraphFormatting));
-                    }
+                    paragraphFormats.Add(new LegacyDocWritableParagraph(cellStart, text.Length - cellStart, paragraphFormatting));
                 }
 
+                int rowTerminatorStart = text.Length;
                 text.Append('\a');
+                paragraphFormats.Add(new LegacyDocWritableParagraph(
+                    rowTerminatorStart,
+                    1,
+                    LegacyDocWritableParagraphFormatting.Plain.WithTableMarkers(isTableTerminatingParagraph: true)));
             }
 
             text.Append('\r');

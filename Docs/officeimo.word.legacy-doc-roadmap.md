@@ -351,6 +351,9 @@ just to reserve names.
   - [x] Preserve supported paragraph formatting inside simple native-written
     table cells and project fixture-backed table-cell paragraph formatting
     during legacy DOC reload.
+  - [x] Write explicit PAPX table cell and end-row marker flags for native
+    simple tables, so saved DOC output carries table structure metadata instead
+    of relying only on marker-character fallback.
   - [x] Block multi-paragraph table cells before native `.doc` bytes are
     committed until TAP-backed table parsing can disambiguate table-internal
     paragraph marks from normal paragraphs before a table.

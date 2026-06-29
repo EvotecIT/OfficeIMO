@@ -63,7 +63,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 keepLinesTogether,
                 keepWithNext,
                 pageBreakBefore,
-                avoidWidowAndOrphan);
+                avoidWidowAndOrphan,
+                null,
+                null);
         }
 
         private static ushort? ReadSupportedParagraphStyleIndex(ParagraphStyleId paragraphStyleId) {

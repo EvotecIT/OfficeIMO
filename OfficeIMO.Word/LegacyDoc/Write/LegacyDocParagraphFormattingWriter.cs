@@ -4,6 +4,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPFKeep = 0x2405;
         private const ushort SprmPFKeepFollow = 0x2406;
         private const ushort SprmPFPageBreakBefore = 0x2407;
+        private const ushort SprmPFInTable = 0x2416;
+        private const ushort SprmPFTtp = 0x2417;
         private const ushort SprmPJc = 0x2461;
         private const ushort SprmPDxaRight = 0x840E;
         private const ushort SprmPDxaLeft = 0x840F;
@@ -72,6 +74,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (formatting.AvoidWidowAndOrphan == true) {
                 AddSingleByteSprm(grpprl, SprmPFWidowControl, 1);
+            }
+
+            if (formatting.IsInTable == true) {
+                AddSingleByteSprm(grpprl, SprmPFInTable, 1);
+            }
+
+            if (formatting.IsTableTerminatingParagraph == true) {
+                AddSingleByteSprm(grpprl, SprmPFTtp, 1);
             }
 
             if (formatting.LeftIndentTwips != null) {
@@ -147,7 +157,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null);
 
         internal LegacyDocWritableParagraphFormatting(
             byte? alignment,
@@ -161,7 +171,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? keepLinesTogether,
             bool? keepWithNext,
             bool? pageBreakBefore,
-            bool? avoidWidowAndOrphan) {
+            bool? avoidWidowAndOrphan,
+            bool? isInTable,
+            bool? isTableTerminatingParagraph) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -174,6 +186,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             KeepWithNext = keepWithNext;
             PageBreakBefore = pageBreakBefore;
             AvoidWidowAndOrphan = avoidWidowAndOrphan;
+            IsInTable = isInTable;
+            IsTableTerminatingParagraph = isTableTerminatingParagraph;
         }
 
         internal byte? Alignment { get; }
@@ -200,6 +214,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal bool? AvoidWidowAndOrphan { get; }
 
+        internal bool? IsInTable { get; }
+
+        internal bool? IsTableTerminatingParagraph { get; }
+
         internal bool HasFormatting => Alignment != null
             || StyleIndex != null
             || SpacingBeforeTwips != null
@@ -211,7 +229,27 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || KeepLinesTogether != null
             || KeepWithNext != null
             || PageBreakBefore != null
-            || AvoidWidowAndOrphan != null;
+            || AvoidWidowAndOrphan != null
+            || IsInTable != null
+            || IsTableTerminatingParagraph != null;
+
+        internal LegacyDocWritableParagraphFormatting WithTableMarkers(bool isTableTerminatingParagraph) {
+            return new LegacyDocWritableParagraphFormatting(
+                Alignment,
+                StyleIndex,
+                SpacingBeforeTwips,
+                SpacingAfterTwips,
+                LineSpacingTwips,
+                LeftIndentTwips,
+                RightIndentTwips,
+                FirstLineIndentTwips,
+                KeepLinesTogether,
+                KeepWithNext,
+                PageBreakBefore,
+                AvoidWidowAndOrphan,
+                true,
+                isTableTerminatingParagraph ? true : null);
+        }
 
         public bool Equals(LegacyDocWritableParagraphFormatting other) {
             return Alignment == other.Alignment
@@ -225,7 +263,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && KeepLinesTogether == other.KeepLinesTogether
                 && KeepWithNext == other.KeepWithNext
                 && PageBreakBefore == other.PageBreakBefore
-                && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan;
+                && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan
+                && IsInTable == other.IsInTable
+                && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph;
         }
 
         public override bool Equals(object? obj) {
@@ -246,6 +286,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + KeepWithNext.GetHashCode();
             hash = (hash * 31) + PageBreakBefore.GetHashCode();
             hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
+            hash = (hash * 31) + IsInTable.GetHashCode();
+            hash = (hash * 31) + IsTableTerminatingParagraph.GetHashCode();
             return hash;
         }
     }

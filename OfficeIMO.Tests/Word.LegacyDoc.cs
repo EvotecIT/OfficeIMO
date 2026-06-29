@@ -2,6 +2,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 using OfficeIMO.Word.LegacyDoc.Model;
+using OfficeIMO.Shared;
 using System.Text;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -1158,6 +1159,41 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Plain", plainCellParagraph.Text);
                 Assert.Null(plainCellParagraph.ParagraphAlignment);
                 Assert.Null(plainCellParagraph.LineSpacingAfter);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableMarkerParagraphFlags() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph(string.Empty, removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x16, 0x24, 0x01),
+                    "Expected the native DOC paragraph property stream to contain sprmPFInTable.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x17, 0x24, 0x01),
+                    "Expected the native DOC paragraph property stream to contain sprmPFTtp.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal(2, row.Cells.Count);
+                Assert.Equal("A1", row.Cells[0].Paragraphs[0].Text);
+                Assert.Equal(string.Empty, row.Cells[1].Paragraphs[0].Text);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -2644,6 +2680,32 @@ namespace OfficeIMO.Tests {
             if (File.Exists(path)) {
                 File.Delete(path);
             }
+        }
+
+        private static byte[] ReadCompoundStream(byte[] compoundBytes, string streamName) {
+            Assert.True(
+                OfficeCompoundFileReader.TryRead(compoundBytes, out OfficeCompoundFile? compoundFile, out string? error),
+                error);
+            Assert.True(compoundFile!.Streams.TryGetValue(streamName, out byte[]? stream), $"Compound stream '{streamName}' was not found.");
+            return stream!;
+        }
+
+        private static bool ContainsBytePattern(byte[] bytes, params byte[] pattern) {
+            for (int offset = 0; offset <= bytes.Length - pattern.Length; offset++) {
+                bool match = true;
+                for (int index = 0; index < pattern.Length; index++) {
+                    if (bytes[offset + index] != pattern[index]) {
+                        match = false;
+                        break;
+                    }
+                }
+
+                if (match) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static SectionMarkValues? GetParagraphSectionType(WordDocument document) {
