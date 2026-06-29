@@ -1,6 +1,7 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
+using OfficeIMO.Word.LegacyDoc.Model;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using OpenMcdf;
 using Xunit;
@@ -112,6 +113,45 @@ namespace OfficeIMO.Tests {
             LegacyDocImportDiagnostic diagnostic = Assert.Single(result.Diagnostics);
             Assert.Equal("DOC-WORDDOCUMENT-MISSING", diagnostic.Code);
             Assert.Equal(LegacyDocDiagnosticSeverity.Error, diagnostic.Severity);
+        }
+
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsUnsupportedCompoundFeatures() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Preserve-only body");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.Equal(2, result.UnsupportedFeatures.Count);
+            Assert.Equal(2, result.ImportReport.UnsupportedFeatureCount);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.VbaProject]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.OleObject]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-MACROS-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-OLE-OBJECTS-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["VbaProject|DOC-MACROS-PRESENT|Compound:VbaProjectStorage"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["OleObject|DOC-OLE-OBJECTS-PRESENT|Compound:OleObjectStorage"]);
+            Assert.Contains(result.UnsupportedFeatures, feature => feature.EntryPath == "_VBA_PROJECT_CUR");
+            Assert.Contains(result.UnsupportedFeatures, feature => feature.EntryPath == "ObjectPool");
+
+            string markdown = result.ImportReport.ToMarkdown();
+            Assert.Contains("| Unsupported features | 2 |", markdown);
+            Assert.Contains("| VbaProject | DOC-MACROS-PRESENT | Compound:VbaProjectStorage | _VBA_PROJECT_CUR |", markdown);
+            Assert.Contains("| OleObject | DOC-OLE-OBJECTS-PRESENT | Compound:OleObjectStorage | ObjectPool |", markdown);
+        }
+
+        [Fact]
+        public void LegacyDoc_NormalLoad_ExposesUnsupportedCompoundFeaturesOnProjectedDocument() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Normal load with unsupported features");
+
+            using WordDocument document = WordDocument.Load(new MemoryStream(docBytes));
+
+            Assert.True(document.WasLoadedFromLegacyDoc);
+            Assert.Equal(2, document.LegacyDocUnsupportedFeatures.Count);
+            Assert.Contains(document.LegacyDocUnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.VbaProject);
+            Assert.Contains(document.LegacyDocUnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.OleObject);
+            Assert.Contains(document.LegacyDocImportDiagnostics, diagnostic => diagnostic.Code == "DOC-MACROS-PRESENT");
+            Assert.Contains(document.LegacyDocImportDiagnostics, diagnostic => diagnostic.Code == "DOC-OLE-OBJECTS-PRESENT");
         }
 
         [Fact]
@@ -252,6 +292,22 @@ namespace OfficeIMO.Tests {
                     WriteStream(root, "1Table", tableStream);
                     WriteStream(root, "\u0005SummaryInformation", summaryInformation);
                     WriteStream(root, "\u0005DocumentSummaryInformation", documentSummaryInformation);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateSimpleDocWithUnsupportedFeatureStorage(params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                    root.CreateStorage("_VBA_PROJECT_CUR");
+                    root.CreateStorage("ObjectPool");
                 }
 
                 return package.ToArray();

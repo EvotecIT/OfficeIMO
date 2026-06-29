@@ -224,7 +224,7 @@ just to reserve names.
 - [ ] Add common table projection after paragraph/run projection is stable.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
   separate fixture-backed slices.
-- [ ] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
+- [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
   and loaded `WordDocument` state.
 - [x] Add normal fixture folders under
   `OfficeIMO.Tests\Documents\LegacyDocCorpus` and

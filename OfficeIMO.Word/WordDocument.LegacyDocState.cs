@@ -4,6 +4,7 @@ using OfficeIMO.Word.LegacyDoc.Model;
 namespace OfficeIMO.Word {
     public partial class WordDocument {
         private LegacyDocImportDiagnostic[] _legacyDocImportDiagnostics = Array.Empty<LegacyDocImportDiagnostic>();
+        private LegacyDocUnsupportedFeature[] _legacyDocUnsupportedFeatures = Array.Empty<LegacyDocUnsupportedFeature>();
         private string? _legacyDocSourcePath;
 
         /// <summary>
@@ -21,10 +22,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         public IReadOnlyList<LegacyDocImportDiagnostic> LegacyDocImportDiagnostics => _legacyDocImportDiagnostics;
 
+        /// <summary>
+        /// Gets unsupported or preserve-only features discovered while importing the legacy `.doc` document.
+        /// </summary>
+        public IReadOnlyList<LegacyDocUnsupportedFeature> LegacyDocUnsupportedFeatures => _legacyDocUnsupportedFeatures;
+
         internal void MarkLoadedFromLegacyDoc(string? sourcePath, LegacyDocDocument document) {
             WasLoadedFromLegacyDoc = true;
             _legacyDocSourcePath = sourcePath;
             _legacyDocImportDiagnostics = document.Diagnostics.ToArray();
+            _legacyDocUnsupportedFeatures = document.UnsupportedFeatures.ToArray();
             FilePath = string.Empty;
         }
     }

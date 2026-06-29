@@ -40,6 +40,11 @@ namespace OfficeIMO.Word.LegacyDoc {
         public IReadOnlyList<LegacyDocImportDiagnostic> Diagnostics => LegacyDocument.Diagnostics;
 
         /// <summary>
+        /// Gets unsupported or preserve-only features discovered while reading the legacy document.
+        /// </summary>
+        public IReadOnlyList<LegacyDocUnsupportedFeature> UnsupportedFeatures => LegacyDocument.UnsupportedFeatures;
+
+        /// <summary>
         /// Gets a compact import report for corpus baselines and preflight checks.
         /// </summary>
         public LegacyDocImportReport ImportReport => LegacyDocument.CreateImportReport();
