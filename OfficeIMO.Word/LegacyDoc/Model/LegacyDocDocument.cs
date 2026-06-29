@@ -188,6 +188,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 "The legacy DOC contains embedded package payload storage. Embedded packages are preserved in the source file but are not projected into the OfficeIMO document.",
                 "Compound:EmbeddedPackageStorage");
 
+            AddUnsupportedDataStreamFeatureIfPresent(compoundFile);
+
             AddUnsupportedStoryFeatureIfPresent(
                 fib.CcpHdd,
                 LegacyDocUnsupportedFeatureKind.HeaderFooter,
@@ -239,6 +241,30 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             AddUnsupportedFeature(new LegacyDocUnsupportedFeature(kind, code, description, entry.Path, detailCode));
+        }
+
+        private void AddUnsupportedDataStreamFeatureIfPresent(OfficeCompoundFile compoundFile) {
+            OfficeCompoundFileEntry? entry = compoundFile.Entries.FirstOrDefault(item =>
+                item.IsStream && string.Equals(item.Name, "Data", StringComparison.OrdinalIgnoreCase));
+            if (entry == null) {
+                return;
+            }
+
+            if (!compoundFile.Streams.TryGetValue(entry.Path, out byte[]? dataStream)
+                && !compoundFile.Streams.TryGetValue(entry.Name, out dataStream)) {
+                return;
+            }
+
+            if (dataStream.Length == 0) {
+                return;
+            }
+
+            AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
+                LegacyDocUnsupportedFeatureKind.BinaryData,
+                "DOC-BINARY-DATA-STREAM-PRESENT",
+                "The legacy DOC contains a binary Data stream used by pictures, drawings, form fields, or other payloads. These payloads are preserved in the source file but are not projected into the OfficeIMO document.",
+                entry.Path,
+                "Compound:BinaryDataStream"));
         }
 
         private void AddUnsupportedStoryFeatureIfPresent(

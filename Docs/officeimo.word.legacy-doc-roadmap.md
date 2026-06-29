@@ -257,6 +257,8 @@ just to reserve names.
     box stories from FIB story counts before those stories are projected.
   - [x] Report container-level ActiveX controls and embedded package payloads
     before those features have a projection story.
+  - [x] Report non-empty compound `Data` streams as binary payloads before
+    pictures, drawings, form fields, or related payloads are projected.
 - [x] Add normal fixture folders under
   `OfficeIMO.Tests\Documents\LegacyDocCorpus` and
   keep `OfficeIMO.Tests\Documents\LegacyDocDiagnosticCorpus` for the first
@@ -273,6 +275,9 @@ just to reserve names.
 - [x] Define the first native `.doc` writer preflight for paragraph-only output,
   including body element, document part, paragraph, and run blockers before any
   target file bytes are committed.
+  - [x] Block native `.doc` save for documents imported from legacy DOC when
+    the import reported unsupported or preserve-only features, before file or
+    stream bytes are committed.
 - [x] Implement native writer first slice for simple documents and prove
   OfficeIMO can reload written `.doc` output through the legacy reader.
 - [x] Introduce `WordSaveOptions` and `WordStreamSaveFormat` for explicit native

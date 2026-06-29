@@ -24,6 +24,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         EmbeddedPackage,
 
         /// <summary>
+        /// Binary payload stream was discovered in the OLE compound container.
+        /// </summary>
+        BinaryData,
+
+        /// <summary>
         /// Header or footer story text exists but is not projected yet.
         /// </summary>
         HeaderFooter,

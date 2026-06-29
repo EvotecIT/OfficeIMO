@@ -391,6 +391,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsUnsupportedBinaryDataStream() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithDataStream("Data body");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures);
+            Assert.Equal(LegacyDocUnsupportedFeatureKind.BinaryData, feature.Kind);
+            Assert.Equal("DOC-BINARY-DATA-STREAM-PRESENT", feature.Code);
+            Assert.Equal("Compound:BinaryDataStream", feature.DetailCode);
+            Assert.Equal("Data", feature.EntryPath);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.BinaryData]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-BINARY-DATA-STREAM-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["BinaryData|DOC-BINARY-DATA-STREAM-PRESENT|Compound:BinaryDataStream"]);
+
+            string markdown = result.ImportReport.ToMarkdown();
+            Assert.Contains("| BinaryData | DOC-BINARY-DATA-STREAM-PRESENT | Compound:BinaryDataStream | Data |", markdown);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsUnsupportedStoryCounts() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedStoryCounts("Body story");
 
@@ -983,6 +1004,38 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksNativeDocSaveWhenImportedLegacyDocHasUnsupportedFeaturesBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Load(new MemoryStream(LegacyDocTestBuilder.CreateSimpleDocWithDataStream("Blocked")));
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("imported from a legacy DOC", exception.Message);
+                Assert.Contains("DOC-BINARY-DATA-STREAM-PRESENT", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveStream_BlocksNativeDocSaveWhenImportedLegacyDocHasUnsupportedFeaturesBeforeWritingStream() {
+            using WordDocument document = WordDocument.Load(new MemoryStream(LegacyDocTestBuilder.CreateSimpleDocWithDataStream("Blocked")));
+            using var output = new MemoryStream(new byte[] { 1, 2, 3, 4 }, writable: true);
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                document.Save(output, new WordSaveOptions {
+                    StreamFormat = WordStreamSaveFormat.LegacyDoc
+                }));
+
+            Assert.Contains("imported from a legacy DOC", exception.Message);
+            Assert.Contains("DOC-BINARY-DATA-STREAM-PRESENT", exception.Message);
+            Assert.Equal(new byte[] { 1, 2, 3, 4 }, output.ToArray());
+        }
+
         private static class LegacyDocTestBuilder {
             internal static byte[] CreateSimpleDoc(params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
@@ -1092,6 +1145,21 @@ namespace OfficeIMO.Tests {
                     var packageStorage = objectPool.CreateStorage("OLEPackage");
                     using CfbStream nativePackage = packageStorage.CreateStream("\u0001Ole10Native");
                     nativePackage.Write(new byte[] { 1, 2, 3, 4 }, 0, 4);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateSimpleDocWithDataStream(params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                    WriteStream(root, "Data", new byte[] { 1, 2, 3, 4 });
                 }
 
                 return package.ToArray();

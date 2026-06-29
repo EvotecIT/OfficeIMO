@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Shared;
+using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
@@ -39,6 +40,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         internal static byte[] WriteDocument(WordDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
+            ThrowIfUnsupportedLegacyDocImportState(document);
+
             LegacyDocWritableBody body = BuildBody(document);
             byte[] wordDocumentStream = PadToRegularOleStream(CreateWordDocumentStream(body));
             byte[] tableStream = PadToRegularOleStream(CreateTableStream(body));
@@ -52,6 +55,25 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return OfficeCompoundFileWriter.Write(streams);
+        }
+
+        private static void ThrowIfUnsupportedLegacyDocImportState(WordDocument document) {
+            if (!document.WasLoadedFromLegacyDoc || document.LegacyDocUnsupportedFeatures.Count == 0) {
+                return;
+            }
+
+            string codes = string.Join(
+                ", ",
+                document.LegacyDocUnsupportedFeatures
+                    .Select(feature => feature.Code)
+                    .Where(code => !string.IsNullOrWhiteSpace(code))
+                    .Distinct(StringComparer.Ordinal)
+                    .Take(5));
+            string detail = string.IsNullOrWhiteSpace(codes)
+                ? "unsupported or preserve-only features"
+                : $"unsupported or preserve-only features ({codes})";
+
+            throw new NotSupportedException($"Native DOC saving is blocked because this document was imported from a legacy DOC with {detail}. Save as DOCX after reviewing LegacyDocUnsupportedFeatures, or remove and recreate the unsupported content before saving as DOC.");
         }
 
         private static byte[] PadToRegularOleStream(byte[] bytes) {
