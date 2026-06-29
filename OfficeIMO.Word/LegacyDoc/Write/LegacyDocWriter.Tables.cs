@@ -18,6 +18,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     throw new NotSupportedException("Native DOC saving supports simple tables only when every row contains at least one cell.");
                 }
 
+                IReadOnlyList<int> cellWidthsTwips = ReadSupportedTableCellWidths(cells);
                 foreach (TableCell cell in cells) {
                     int cellStart = text.Length;
                     LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, cell)
@@ -31,7 +32,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 paragraphFormats.Add(new LegacyDocWritableParagraph(
                     rowTerminatorStart,
                     1,
-                    LegacyDocWritableParagraphFormatting.Plain.WithTableMarkers(isTableTerminatingParagraph: true)));
+                    LegacyDocWritableParagraphFormatting.Plain.WithTableMarkers(isTableTerminatingParagraph: true, cellWidthsTwips)));
             }
 
             text.Append('\r');
@@ -85,6 +86,36 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
+        private static IReadOnlyList<int> ReadSupportedTableCellWidths(IReadOnlyList<TableCell> cells) {
+            var widths = new int[cells.Count];
+            for (int index = 0; index < cells.Count; index++) {
+                widths[index] = ReadSupportedTableCellWidth(cells[index].TableCellProperties);
+            }
+
+            return widths;
+        }
+
+        private static int ReadSupportedTableCellWidth(TableCellProperties? cellProperties) {
+            TableCellWidth? cellWidth = cellProperties?.GetFirstChild<TableCellWidth>();
+            if (cellWidth == null) {
+                return 2400;
+            }
+
+            if (cellWidth.Type?.Value != TableWidthUnitValues.Dxa) {
+                throw new NotSupportedException("Native DOC saving supports simple table cell widths only as explicit DXA twip values.");
+            }
+
+            string? widthText = cellWidth.Width?.Value;
+            if (string.IsNullOrWhiteSpace(widthText)
+                || !int.TryParse(widthText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int width)
+                || width <= 0
+                || width > short.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports simple table cell widths only within the Word 97-2003 signed twip range.");
+            }
+
+            return width;
+        }
+
         private static LegacyDocWritableParagraphFormatting AppendTableCell(StringBuilder text, List<LegacyDocWritableRun> runs, TableCell cell) {
             if (cell.Elements<Table>().Any()) {
                 throw new NotSupportedException("Native DOC saving supports simple tables only. Nested tables are not supported yet.");
@@ -119,9 +150,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             foreach (OpenXmlElement property in cellProperties.ChildElements) {
                 switch (property) {
                     case TableCellWidth cellWidth:
-                        if (cellWidth.Type?.Value != TableWidthUnitValues.Dxa || cellWidth.Width?.Value != "2400") {
-                            throw new NotSupportedException("Native DOC saving supports simple tables only with the default table cell width.");
-                        }
+                        ReadSupportedTableCellWidth(cellProperties);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table cell property: {property.LocalName}.");

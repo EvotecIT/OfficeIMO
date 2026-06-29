@@ -18,6 +18,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPDyaAfter = 0xA414;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
+        private const ushort SprmTDefTable = 0xD608;
+        private const int Tc80Length = 20;
 
         internal static IReadOnlyList<LegacyDocParagraphFormatRange> ReadParagraphFormatting(
             byte[] wordDocumentStream,
@@ -143,6 +145,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? isInTable = null;
             bool? isTableTerminatingParagraph = null;
             var tabStops = new List<LegacyDocTabStop>();
+            IReadOnlyList<int>? tableCellWidthsTwips = null;
             ushort? styleIndex = baseStyleIndex;
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
@@ -260,6 +263,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmTDefTable) {
+                    if (!TryReadTableDefinition(bytes, offset, end, out tableCellWidthsTwips, out int tableDefinitionOperandLength)) {
+                        break;
+                    }
+
+                    offset += 2 + tableDefinitionOperandLength;
+                    continue;
+                }
+
                 if (!TryGetSprmOperandLength(bytes, offset, end, out int operandLength)) {
                     break;
                 }
@@ -282,7 +294,48 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 avoidWidowAndOrphan,
                 isInTable,
                 isTableTerminatingParagraph,
-                tabStops);
+                tabStops,
+                tableCellWidthsTwips);
+        }
+
+        private static bool TryReadTableDefinition(byte[] bytes, int sprmOffset, int end, out IReadOnlyList<int>? tableCellWidthsTwips, out int operandLength) {
+            tableCellWidthsTwips = null;
+            operandLength = 0;
+            if (sprmOffset + 5 > end) {
+                return false;
+            }
+
+            ushort cb = LegacyDocFib.ReadUInt16(bytes, sprmOffset + 2);
+            operandLength = cb + 1;
+            int operandOffset = sprmOffset + 2;
+            int operandEnd = operandOffset + operandLength;
+            if (operandEnd > end || cb < 4) {
+                return false;
+            }
+
+            int columnCount = bytes[sprmOffset + 4];
+            if (columnCount <= 0) {
+                tableCellWidthsTwips = Array.Empty<int>();
+                return true;
+            }
+
+            int edgesOffset = sprmOffset + 5;
+            int tc80Offset = edgesOffset + ((columnCount + 1) * 2);
+            if (tc80Offset + (columnCount * Tc80Length) > operandEnd) {
+                return false;
+            }
+
+            var widths = new int[columnCount];
+            int previousEdge = ReadInt16(bytes, edgesOffset);
+            for (int index = 0; index < columnCount; index++) {
+                int nextEdge = ReadInt16(bytes, edgesOffset + ((index + 1) * 2));
+                int width = nextEdge - previousEdge;
+                widths[index] = width > 0 ? width : 0;
+                previousEdge = nextEdge;
+            }
+
+            tableCellWidthsTwips = widths.Where(width => width > 0).ToArray();
+            return true;
         }
 
         private static void ReadTabChanges(byte[] bytes, int offset, int end, List<LegacyDocTabStop> tabStops) {

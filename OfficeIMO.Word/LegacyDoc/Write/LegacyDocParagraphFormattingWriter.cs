@@ -17,6 +17,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPDyaAfter = 0xA414;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
+        private const ushort SprmTDefTable = 0xD608;
+        private const int Tc80Length = 20;
 
         internal static void WritePapxFkp(byte[] stream, int pageOffset, int textOffset, int oleSectorSize, IReadOnlyList<LegacyDocWritableParagraphSegment> segments, int bytesPerCharacter) {
             if (segments.Count == 0 || segments.Count > byte.MaxValue) {
@@ -113,6 +115,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (formatting.TabStops.Count > 0) {
                 AddTabStopsSprm(grpprl, formatting.TabStops);
+            }
+
+            if (formatting.TableCellWidthsTwips.Count > 0) {
+                AddTableDefinitionSprm(grpprl, formatting.TableCellWidthsTwips);
             }
 
             if (grpprl.Count % 2 != 0) {
@@ -250,6 +256,42 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             grpprl.AddRange(operand);
         }
 
+        private static void AddTableDefinitionSprm(List<byte> grpprl, IReadOnlyList<int> cellWidthsTwips) {
+            if (cellWidthsTwips.Count > byte.MaxValue) {
+                throw new NotSupportedException("Native DOC saving cannot write more than 255 table cells in one row.");
+            }
+
+            var remainder = new List<byte>(1 + ((cellWidthsTwips.Count + 1) * 2) + (cellWidthsTwips.Count * Tc80Length));
+            remainder.Add(checked((byte)cellWidthsTwips.Count));
+            AddInt16(remainder, 0, "table left edge");
+            int edge = 0;
+            foreach (int width in cellWidthsTwips) {
+                if (width <= 0) {
+                    throw new NotSupportedException("Native DOC saving supports table cell widths only as positive twip values.");
+                }
+
+                edge = checked(edge + width);
+                AddInt16(remainder, edge, "table cell edge");
+            }
+
+            for (int index = 0; index < cellWidthsTwips.Count; index++) {
+                for (int byteIndex = 0; byteIndex < Tc80Length; byteIndex++) {
+                    remainder.Add(0);
+                }
+            }
+
+            int cb = checked(remainder.Count + 1);
+            if (cb > ushort.MaxValue) {
+                throw new NotSupportedException("Native DOC saving cannot write table row definitions because the DOC table definition is too large.");
+            }
+
+            grpprl.Add((byte)(SprmTDefTable & 0xFF));
+            grpprl.Add((byte)(SprmTDefTable >> 8));
+            grpprl.Add((byte)(cb & 0xFF));
+            grpprl.Add((byte)(cb >> 8));
+            grpprl.AddRange(remainder);
+        }
+
         private static void AddInt16(List<byte> bytes, int operand, string propertyName) {
             if (operand < short.MinValue || operand > short.MaxValue) {
                 throw new NotSupportedException($"Native DOC saving supports {propertyName} only within the Word 97-2003 signed twip range.");
@@ -269,7 +311,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
 
         internal LegacyDocWritableParagraphFormatting(
             byte? alignment,
@@ -286,7 +328,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? avoidWidowAndOrphan,
             bool? isInTable,
             bool? isTableTerminatingParagraph,
-            IReadOnlyList<LegacyDocTabStop>? tabStops) {
+            IReadOnlyList<LegacyDocTabStop>? tabStops,
+            IReadOnlyList<int>? tableCellWidthsTwips) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -304,6 +347,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             TabStops = tabStops == null || tabStops.Count == 0
                 ? Array.Empty<LegacyDocTabStop>()
                 : tabStops.ToArray();
+            TableCellWidthsTwips = tableCellWidthsTwips == null || tableCellWidthsTwips.Count == 0
+                ? Array.Empty<int>()
+                : tableCellWidthsTwips.ToArray();
         }
 
         internal byte? Alignment { get; }
@@ -336,6 +382,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal IReadOnlyList<LegacyDocTabStop> TabStops { get; }
 
+        internal IReadOnlyList<int> TableCellWidthsTwips { get; }
+
         internal bool HasFormatting => Alignment != null
             || StyleIndex != null
             || SpacingBeforeTwips != null
@@ -350,9 +398,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || AvoidWidowAndOrphan != null
             || IsInTable != null
             || IsTableTerminatingParagraph != null
-            || TabStops.Count > 0;
+            || TabStops.Count > 0
+            || TableCellWidthsTwips.Count > 0;
 
-        internal LegacyDocWritableParagraphFormatting WithTableMarkers(bool isTableTerminatingParagraph) {
+        internal LegacyDocWritableParagraphFormatting WithTableMarkers(bool isTableTerminatingParagraph, IReadOnlyList<int>? tableCellWidthsTwips = null) {
             return new LegacyDocWritableParagraphFormatting(
                 Alignment,
                 StyleIndex,
@@ -368,7 +417,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AvoidWidowAndOrphan,
                 true,
                 isTableTerminatingParagraph ? true : null,
-                TabStops);
+                TabStops,
+                tableCellWidthsTwips);
         }
 
         public bool Equals(LegacyDocWritableParagraphFormatting other) {
@@ -386,7 +436,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan
                 && IsInTable == other.IsInTable
                 && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph
-                && TabStopsEqual(TabStops, other.TabStops);
+                && TabStopsEqual(TabStops, other.TabStops)
+                && TableCellWidthsEqual(TableCellWidthsTwips, other.TableCellWidthsTwips);
         }
 
         public override bool Equals(object? obj) {
@@ -413,7 +464,25 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 hash = (hash * 31) + tabStop.GetHashCode();
             }
 
+            foreach (int width in TableCellWidthsTwips) {
+                hash = (hash * 31) + width.GetHashCode();
+            }
+
             return hash;
+        }
+
+        private static bool TableCellWidthsEqual(IReadOnlyList<int> first, IReadOnlyList<int> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (first[index] != second[index]) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static bool TabStopsEqual(IReadOnlyList<LegacyDocTabStop> first, IReadOnlyList<LegacyDocTabStop> second) {

@@ -15,7 +15,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? avoidWidowAndOrphan = null,
             bool? isInTable = null,
             bool? isTableTerminatingParagraph = null,
-            IReadOnlyList<LegacyDocTabStop>? tabStops = null) {
+            IReadOnlyList<LegacyDocTabStop>? tabStops = null,
+            IReadOnlyList<int>? tableCellWidthsTwips = null) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -33,6 +34,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             TabStops = tabStops == null || tabStops.Count == 0
                 ? Array.Empty<LegacyDocTabStop>()
                 : tabStops.ToArray();
+            TableCellWidthsTwips = tableCellWidthsTwips == null || tableCellWidthsTwips.Count == 0
+                ? Array.Empty<int>()
+                : tableCellWidthsTwips.ToArray();
         }
 
         internal LegacyDocParagraphAlignment? Alignment { get; }
@@ -65,6 +69,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<LegacyDocTabStop> TabStops { get; }
 
+        internal IReadOnlyList<int> TableCellWidthsTwips { get; }
+
         internal bool HasFormatting => Alignment != null
             || StyleIndex != null
             || SpacingBeforeTwips != null
@@ -79,7 +85,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || AvoidWidowAndOrphan != null
             || IsInTable != null
             || IsTableTerminatingParagraph != null
-            || TabStops.Count > 0;
+            || TabStops.Count > 0
+            || TableCellWidthsTwips.Count > 0;
 
         internal static LegacyDocParagraphFormat Default { get; } = new LegacyDocParagraphFormat(null);
 
@@ -98,7 +105,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan
                 && IsInTable == other.IsInTable
                 && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph
-                && TabStopsEqual(TabStops, other.TabStops);
+                && TabStopsEqual(TabStops, other.TabStops)
+                && TableCellWidthsEqual(TableCellWidthsTwips, other.TableCellWidthsTwips);
         }
 
         public override bool Equals(object? obj) {
@@ -125,7 +133,25 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 hash = (hash * 31) + tabStop.GetHashCode();
             }
 
+            foreach (int width in TableCellWidthsTwips) {
+                hash = (hash * 31) + width.GetHashCode();
+            }
+
             return hash;
+        }
+
+        private static bool TableCellWidthsEqual(IReadOnlyList<int> first, IReadOnlyList<int> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (first[index] != second[index]) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static bool TabStopsEqual(IReadOnlyList<LegacyDocTabStop> first, IReadOnlyList<LegacyDocTabStop> second) {

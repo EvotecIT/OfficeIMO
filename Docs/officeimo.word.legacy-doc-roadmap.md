@@ -297,6 +297,8 @@ just to reserve names.
   - [x] Prefer explicit PAPX table cell and end-row markers when present,
     including trailing empty cells, while retaining the simple marker heuristic
     for existing minimal fixtures.
+  - [x] Project simple row-level table cell widths from DOC `sprmTDefTable`
+    row definitions into normal OfficeIMO table cell width properties.
   - [ ] Add table formatting, merged cells, and nested tables as separate
     fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
@@ -401,6 +403,8 @@ just to reserve names.
   - [x] Write explicit PAPX table cell and end-row marker flags for native
     simple tables, so saved DOC output carries table structure metadata instead
     of relying only on marker-character fallback.
+  - [x] Write simple row-level table cell width definitions with
+    `sprmTDefTable` and reload them through the legacy reader.
   - [x] Block multi-paragraph table cells before native `.doc` bytes are
     committed until TAP-backed table parsing can disambiguate table-internal
     paragraph marks from normal paragraphs before a table.

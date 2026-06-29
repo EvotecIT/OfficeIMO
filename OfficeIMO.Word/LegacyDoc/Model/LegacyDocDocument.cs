@@ -505,7 +505,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 if (currentTableRow.Count > 0) {
-                    tableRows.Add(new LegacyDocTableRow(currentTableRow.ToArray()));
+                    tableRows.Add(new LegacyDocTableRow(currentTableRow.ToArray(), paragraphFormat.TableCellWidthsTwips));
                     currentTableRow.Clear();
                 }
 
@@ -521,7 +521,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 if (currentTableRow.Count > 0) {
-                    tableRows.Add(new LegacyDocTableRow(currentTableRow.ToArray()));
+                    tableRows.Add(new LegacyDocTableRow(currentTableRow.ToArray(), paragraphFormat.TableCellWidthsTwips));
                     currentTableRow.Clear();
                 }
 

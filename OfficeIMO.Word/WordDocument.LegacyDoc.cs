@@ -182,6 +182,10 @@ namespace OfficeIMO.Word {
                 LegacyDocTableRow sourceRow = tableBlock.Rows[rowIndex];
                 for (int columnIndex = 0; columnIndex < sourceRow.Cells.Count && columnIndex < columnCount; columnIndex++) {
                     AddLegacyDocTableCell(table.Rows[rowIndex].Cells[columnIndex], sourceRow.Cells[columnIndex], styleSheet);
+                    if (columnIndex < sourceRow.CellWidthsTwips.Count) {
+                        table.Rows[rowIndex].Cells[columnIndex].WidthType = TableWidthUnitValues.Dxa;
+                        table.Rows[rowIndex].Cells[columnIndex].Width = sourceRow.CellWidthsTwips[columnIndex];
+                    }
                 }
             }
         }
