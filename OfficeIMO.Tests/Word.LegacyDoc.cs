@@ -562,6 +562,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphBoundarySectionBreaks() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithTwoSectionPageSetup();
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                Assert.Empty(result.UnsupportedFeatures);
+
+                WordDocument document = result.Document;
+                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.Equal(2, document.Sections.Count);
+                Assert.Equal("Portrait section", Assert.Single(document.Sections[0].Paragraphs).Text);
+                Assert.Equal("Landscape section", Assert.Single(document.Sections[1].Paragraphs).Text);
+                Assert.Equal(PageOrientationValues.Landscape, document.Sections[1].PageOrientation);
+                Assert.Equal((uint)15840, document.Sections[1].PageSettings.Width!.Value);
+                Assert.Equal((uint)12240, document.Sections[1].PageSettings.Height!.Value);
+                Assert.Equal(720, document.Sections[1].Margins.Top);
+                Assert.Equal((uint)720, document.Sections[1].Margins.Right!.Value);
+                Assert.Equal(720, document.Sections[1].Margins.Bottom);
+                Assert.Equal((uint)720, document.Sections[1].Margins.Left!.Value);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                Assert.Contains("single section", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_ExposesUnsupportedCompoundFeaturesOnProjectedDocument() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Normal load with unsupported features");
 
@@ -1423,6 +1455,50 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithTwoSectionPageSetup() {
+                const string firstParagraph = "Portrait section";
+                const string secondParagraph = "Landscape section";
+                string text = firstParagraph + "\r" + secondParagraph + "\r";
+                int firstSectionEnd = firstParagraph.Length + 1;
+                const int firstSepxOffset = 0x300;
+                const int secondSepxOffset = 0x340;
+
+                byte[] tableStream = CreateTableStream(text.Length);
+                int fcPlcfSed = tableStream.Length;
+                byte[] sectionDescriptorPlc = CreateTwoSectionDescriptorPlc(
+                    firstSectionEnd,
+                    text.Length,
+                    firstSepxOffset,
+                    secondSepxOffset);
+                Array.Resize(ref tableStream, tableStream.Length + sectionDescriptorPlc.Length);
+                Buffer.BlockCopy(sectionDescriptorPlc, 0, tableStream, fcPlcfSed, sectionDescriptorPlc.Length);
+
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    fcPlcfSed: fcPlcfSed,
+                    lcbPlcfSed: sectionDescriptorPlc.Length);
+                WriteBytesAt(ref wordDocumentStream, firstSepxOffset, CreateSectionSepx());
+                WriteBytesAt(
+                    ref wordDocumentStream,
+                    secondSepxOffset,
+                    CreateSectionSepx(
+                        orientation: 2,
+                        pageWidth: 15840,
+                        pageHeight: 12240,
+                        marginLeft: 720,
+                        marginRight: 720,
+                        marginTop: 720,
+                        marginBottom: 720));
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithDirectCharacterFormatting() {
                 const string text = "plain bold italic\r";
                 const int textOffset = 0x200;
@@ -1568,11 +1644,68 @@ namespace OfficeIMO.Tests {
             }
 
             private static byte[] CreateTwoSectionDescriptorPlc(int characterCount) {
+                return CreateTwoSectionDescriptorPlc(Math.Max(0, characterCount - 1), characterCount, 0, 0);
+            }
+
+            private static byte[] CreateTwoSectionDescriptorPlc(int firstSectionEnd, int characterCount, int firstSepxOffset, int secondSepxOffset) {
                 var plc = new byte[36];
                 WriteInt32(plc, 0, 0);
-                WriteInt32(plc, 4, Math.Max(0, characterCount - 1));
+                WriteInt32(plc, 4, firstSectionEnd);
                 WriteInt32(plc, 8, characterCount);
+                WriteInt32(plc, 14, firstSepxOffset);
+                WriteInt32(plc, 26, secondSepxOffset);
                 return plc;
+            }
+
+            private static byte[] CreateSectionSepx(
+                byte? orientation = null,
+                int? pageWidth = null,
+                int? pageHeight = null,
+                int? marginLeft = null,
+                int? marginRight = null,
+                int? marginTop = null,
+                int? marginBottom = null) {
+                var grpprl = new List<byte>();
+                if (orientation != null) {
+                    AddSingleByteSprm(grpprl, 0x301D, orientation.Value);
+                }
+
+                AddUInt16SprmIfPresent(grpprl, 0xB01F, pageWidth);
+                AddUInt16SprmIfPresent(grpprl, 0xB020, pageHeight);
+                AddUInt16SprmIfPresent(grpprl, 0xB021, marginLeft);
+                AddUInt16SprmIfPresent(grpprl, 0xB022, marginRight);
+                AddUInt16SprmIfPresent(grpprl, 0x9023, marginTop);
+                AddUInt16SprmIfPresent(grpprl, 0x9024, marginBottom);
+
+                var sepx = new byte[2 + grpprl.Count];
+                WriteUInt16(sepx, 0, (ushort)grpprl.Count);
+                grpprl.CopyTo(sepx, 2);
+                return sepx;
+            }
+
+            private static void AddSingleByteSprm(List<byte> grpprl, ushort sprm, byte operand) {
+                grpprl.Add((byte)(sprm & 0xFF));
+                grpprl.Add((byte)(sprm >> 8));
+                grpprl.Add(operand);
+            }
+
+            private static void AddUInt16SprmIfPresent(List<byte> grpprl, ushort sprm, int? operand) {
+                if (operand == null) {
+                    return;
+                }
+
+                grpprl.Add((byte)(sprm & 0xFF));
+                grpprl.Add((byte)(sprm >> 8));
+                grpprl.Add((byte)(operand.Value & 0xFF));
+                grpprl.Add((byte)(operand.Value >> 8));
+            }
+
+            private static void WriteBytesAt(ref byte[] bytes, int offset, byte[] value) {
+                if (bytes.Length < offset + value.Length) {
+                    Array.Resize(ref bytes, offset + value.Length);
+                }
+
+                Buffer.BlockCopy(value, 0, bytes, offset, value.Length);
             }
 
             private static byte[] CreateUnicodeWordDocumentStreamWithFormattedTableCell(string text, int textOffset, int chpxFkpOffset) {

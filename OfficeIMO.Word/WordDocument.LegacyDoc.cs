@@ -87,6 +87,9 @@ namespace OfficeIMO.Word {
                 foreach (LegacyDocBodyBlock block in legacyDocument.BodyBlocks) {
                     if (block is LegacyDocParagraphBlock paragraphBlock) {
                         AddLegacyDocParagraph(section, paragraphBlock.Runs, paragraphBlock.Format, legacyDocument.StyleSheet);
+                    } else if (block is LegacyDocSectionBreakBlock sectionBreakBlock) {
+                        section = document.AddSection(SectionMarkValues.NextPage);
+                        ApplyLegacyDocSectionFormatting(section, sectionBreakBlock.Format);
                     } else if (block is LegacyDocTableBlock tableBlock) {
                         AddLegacyDocTable(section, tableBlock, legacyDocument.StyleSheet);
                     }

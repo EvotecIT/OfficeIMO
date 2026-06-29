@@ -94,7 +94,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             for (int i = 0; i < count; i++) {
                 char character = DecodeWindows1252(bytes[offset + i]);
                 builder.Append(character);
-                characters.Add(new LegacyDocTextCharacter(character, offset + i));
+                characters.Add(new LegacyDocTextCharacter(character, offset + i, characters.Count));
             }
         }
 
@@ -103,7 +103,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 int byteOffset = offset + (i * 2);
                 char character = (char)(bytes[byteOffset] | (bytes[byteOffset + 1] << 8));
                 builder.Append(character);
-                characters.Add(new LegacyDocTextCharacter(character, byteOffset));
+                characters.Add(new LegacyDocTextCharacter(character, byteOffset, characters.Count));
             }
         }
 

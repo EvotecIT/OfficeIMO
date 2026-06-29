@@ -34,6 +34,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal LegacyDocSectionFormat SectionFormat { get; private set; } = LegacyDocSectionFormat.Default;
 
+        internal IReadOnlyList<LegacyDocSection> Sections { get; private set; } = Array.Empty<LegacyDocSection>();
+
         /// <summary>Gets diagnostics produced while reading the legacy document.</summary>
         public IReadOnlyList<LegacyDocImportDiagnostic> Diagnostics => _diagnostics;
 
@@ -139,7 +141,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-STYLESHEET-INVALID", styleSheetWarning);
             }
 
-            SectionFormat = LegacyDocSectionFormattingReader.ReadSectionFormatting(wordDocumentStream, tableStream, fib, out string? sectionFormattingWarning);
+            Sections = LegacyDocSectionFormattingReader.ReadSections(wordDocumentStream, tableStream, fib, out string? sectionFormattingWarning);
+            SectionFormat = Sections.Count == 0 ? LegacyDocSectionFormat.Default : Sections[0].Format;
             if (sectionFormattingWarning != null) {
                 AddWarning("DOC-SEPX-INVALID", sectionFormattingWarning);
             }
@@ -154,12 +157,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-PAPX-INVALID", paragraphFormattingWarning);
             }
 
-            Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges);
+            Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges, Sections, options.ReportUnsupportedFeatures);
         }
 
         private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile, LegacyDocFib fib) {
             AddUnsupportedFibFlagFeatures(fib);
-            AddUnsupportedSectionFeatures(fib);
 
             AddUnsupportedCompoundEntryIfPresent(
                 compoundFile,
@@ -277,32 +279,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
-        private void AddUnsupportedSectionFeatures(LegacyDocFib fib) {
-            if (!TryGetSectionDescriptorCount(fib, out int sectionCount) || sectionCount <= 1) {
-                return;
-            }
-
-            AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
-                LegacyDocUnsupportedFeatureKind.Section,
-                "DOC-MULTIPLE-SECTIONS-PRESENT",
-                $"The legacy DOC contains {sectionCount} section descriptor records. Only the first section page setup is projected into the OfficeIMO document.",
-                detailCode: "Fib:PlcfSed"));
-        }
-
-        private static bool TryGetSectionDescriptorCount(LegacyDocFib fib, out int sectionCount) {
-            sectionCount = 0;
-            if (fib.LcbPlcfSed == 0) {
-                return true;
-            }
-
-            if (fib.LcbPlcfSed < 20 || (fib.LcbPlcfSed - 4) % 16 != 0) {
-                return false;
-            }
-
-            sectionCount = (fib.LcbPlcfSed - 4) / 16;
-            return true;
-        }
-
         private void AddUnsupportedDataStreamFeatureIfPresent(OfficeCompoundFile compoundFile) {
             OfficeCompoundFileEntry? entry = compoundFile.Entries.FirstOrDefault(item =>
                 item.IsStream && string.Equals(item.Name, "Data", StringComparison.OrdinalIgnoreCase));
@@ -343,7 +319,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private string BuildFormattedParagraphs(
             IReadOnlyList<LegacyDocTextCharacter> characters,
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
-            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges) {
+            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
+            IReadOnlyList<LegacyDocSection> sections,
+            bool reportUnsupportedFeatures) {
             var bodyText = new System.Text.StringBuilder(characters.Count);
             var currentRuns = new List<LegacyDocTextRun>();
             var runText = new System.Text.StringBuilder();
@@ -353,10 +331,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool justClosedCell = false;
             var tableRows = new List<LegacyDocTableRow>();
             var currentTableRow = new List<LegacyDocTableCell>();
+            int nextSectionIndex = sections.Count > 1 ? 1 : sections.Count;
+            bool reportedUnprojectedSectionBoundary = false;
 
             foreach (LegacyDocTextCharacter textCharacter in characters) {
                 if (textCharacter.Character == '\a') {
                     AddCurrentTextAsTableCell(GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset));
+                    AddSectionBreaksAtBodyBoundary(textCharacter.CharacterPosition + 1);
                     continue;
                 }
 
@@ -374,6 +355,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     bodyText.Append('\r');
+                    AddSectionBreaksAtBodyBoundary(textCharacter.CharacterPosition + 1);
                     continue;
                 }
 
@@ -387,7 +369,46 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddCurrentTextAsParagraph(LegacyDocParagraphFormat.Default);
             }
 
+            ReportRemainingUnprojectedSectionBoundaries();
             return bodyText.ToString();
+
+            void AddSectionBreaksAtBodyBoundary(int characterPosition) {
+                while (nextSectionIndex < sections.Count && sections[nextSectionIndex].StartCharacter < characterPosition) {
+                    ReportUnprojectedSectionBoundary(sections[nextSectionIndex].StartCharacter);
+                    nextSectionIndex++;
+                }
+
+                while (nextSectionIndex < sections.Count && sections[nextSectionIndex].StartCharacter == characterPosition) {
+                    if (characterPosition < characters.Count) {
+                        _bodyBlocks.Add(new LegacyDocSectionBreakBlock(sections[nextSectionIndex].Format));
+                    }
+
+                    nextSectionIndex++;
+                }
+            }
+
+            void ReportRemainingUnprojectedSectionBoundaries() {
+                while (nextSectionIndex < sections.Count) {
+                    if (sections[nextSectionIndex].StartCharacter < characters.Count) {
+                        ReportUnprojectedSectionBoundary(sections[nextSectionIndex].StartCharacter);
+                    }
+
+                    nextSectionIndex++;
+                }
+            }
+
+            void ReportUnprojectedSectionBoundary(int characterPosition) {
+                if (!reportUnsupportedFeatures || reportedUnprojectedSectionBoundary) {
+                    return;
+                }
+
+                reportedUnprojectedSectionBoundary = true;
+                AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
+                    LegacyDocUnsupportedFeatureKind.Section,
+                    "DOC-MULTIPLE-SECTIONS-PRESENT",
+                    $"The legacy DOC contains a section boundary at character position {characterPosition} that does not align with a supported body-block boundary. That section is preserved in the source file but is not projected into the OfficeIMO document.",
+                    detailCode: "Fib:PlcfSed"));
+            }
 
             void AppendRunCharacter(char character, LegacyDocCharacterFormat format) {
                 if (!hasCurrentRun || !format.Equals(currentFormat)) {

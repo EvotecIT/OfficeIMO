@@ -15,9 +15,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmSDzaGutter = 0xB025;
 
         internal static LegacyDocSectionFormat ReadSectionFormatting(byte[] wordDocumentStream, byte[] tableStream, LegacyDocFib fib, out string? warning) {
+            IReadOnlyList<LegacyDocSection> sections = ReadSections(wordDocumentStream, tableStream, fib, out warning);
+            return sections.Count == 0
+                ? LegacyDocSectionFormat.Default
+                : sections[0].Format;
+        }
+
+        internal static IReadOnlyList<LegacyDocSection> ReadSections(byte[] wordDocumentStream, byte[] tableStream, LegacyDocFib fib, out string? warning) {
             warning = null;
             if (fib.LcbPlcfSed == 0) {
-                return LegacyDocSectionFormat.Default;
+                return new[] { new LegacyDocSection(0, Math.Max(0, fib.CcpText), LegacyDocSectionFormat.Default) };
             }
 
             if (fib.FcPlcfSed < 0
@@ -26,20 +33,43 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 || fib.LcbPlcfSed < 20
                 || (fib.LcbPlcfSed - 4) % 16 != 0) {
                 warning = "The FIB points outside the selected table stream for the section descriptor PLC.";
-                return LegacyDocSectionFormat.Default;
+                return new[] { new LegacyDocSection(0, Math.Max(0, fib.CcpText), LegacyDocSectionFormat.Default) };
             }
 
             int sectionCount = (fib.LcbPlcfSed - 4) / 16;
             if (sectionCount <= 0) {
-                return LegacyDocSectionFormat.Default;
+                return new[] { new LegacyDocSection(0, Math.Max(0, fib.CcpText), LegacyDocSectionFormat.Default) };
             }
 
-            int sedOffset = fib.FcPlcfSed + ((sectionCount + 1) * 4);
-            if (sedOffset + SedLength > fib.FcPlcfSed + fib.LcbPlcfSed) {
+            int sectionDescriptorOffset = fib.FcPlcfSed + ((sectionCount + 1) * 4);
+            if (sectionDescriptorOffset + (sectionCount * SedLength) > fib.FcPlcfSed + fib.LcbPlcfSed) {
                 warning = "The section descriptor PLC does not contain a complete section descriptor.";
-                return LegacyDocSectionFormat.Default;
+                return new[] { new LegacyDocSection(0, Math.Max(0, fib.CcpText), LegacyDocSectionFormat.Default) };
             }
 
+            var sections = new List<LegacyDocSection>(sectionCount);
+            for (int sectionIndex = 0; sectionIndex < sectionCount; sectionIndex++) {
+                int startCharacter = LegacyDocFib.ReadInt32(tableStream, fib.FcPlcfSed + (sectionIndex * 4));
+                int endCharacter = LegacyDocFib.ReadInt32(tableStream, fib.FcPlcfSed + ((sectionIndex + 1) * 4));
+                if (startCharacter < 0 || endCharacter < startCharacter) {
+                    warning = "The section descriptor PLC contains an invalid character range.";
+                    return new[] { new LegacyDocSection(0, Math.Max(0, fib.CcpText), LegacyDocSectionFormat.Default) };
+                }
+
+                int sedOffset = sectionDescriptorOffset + (sectionIndex * SedLength);
+                LegacyDocSectionFormat format = ReadSectionFormat(wordDocumentStream, tableStream, sedOffset, out string? sectionWarning);
+                if (sectionWarning != null) {
+                    warning = sectionWarning;
+                }
+
+                sections.Add(new LegacyDocSection(startCharacter, endCharacter, format));
+            }
+
+            return sections;
+        }
+
+        private static LegacyDocSectionFormat ReadSectionFormat(byte[] wordDocumentStream, byte[] tableStream, int sedOffset, out string? warning) {
+            warning = null;
             int fcSepx = LegacyDocFib.ReadInt32(tableStream, sedOffset + 2);
             if (fcSepx <= 0) {
                 return LegacyDocSectionFormat.Default;

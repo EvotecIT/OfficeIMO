@@ -272,8 +272,11 @@ just to reserve names.
   - [x] Report multiple section descriptor records as unsupported/preserve-only
     before multi-section projection exists, so native DOC re-save is blocked
     instead of flattening section boundaries.
-  - [ ] Add multi-section breaks, headers, footers, footnotes, and endnotes as
-    separate fixture-backed slices.
+  - [x] Project paragraph-boundary multi-section breaks with per-section page
+    setup from DOC `PlcfSed`/`Sepx` records, while keeping native multi-section
+    DOC writing blocked before bytes are committed.
+  - [ ] Add section breaks inside richer body shapes, headers, footers,
+    footnotes, and endnotes as separate fixture-backed slices.
 - [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
   and loaded `WordDocument` state.
   - [x] Report unsupported header/footer, footnote, endnote, comment, and text

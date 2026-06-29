@@ -15,6 +15,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal LegacyDocParagraphFormat Format { get; }
     }
 
+    internal sealed class LegacyDocSectionBreakBlock : LegacyDocBodyBlock {
+        internal LegacyDocSectionBreakBlock(LegacyDocSectionFormat format) {
+            Format = format;
+        }
+
+        internal LegacyDocSectionFormat Format { get; }
+    }
+
     internal sealed class LegacyDocTableBlock : LegacyDocBodyBlock {
         internal LegacyDocTableBlock(IReadOnlyList<LegacyDocTableRow> rows) {
             Rows = rows;
