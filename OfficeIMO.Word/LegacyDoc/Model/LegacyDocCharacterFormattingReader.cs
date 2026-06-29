@@ -5,6 +5,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmCFItalic = 0x0836;
         private const ushort SprmCFStrike = 0x0837;
         private const ushort SprmCFOutline = 0x0838;
+        private const ushort SprmCFShadow = 0x0839;
         private const ushort SprmCFSmallCaps = 0x083A;
         private const ushort SprmCFCaps = 0x083B;
         private const ushort SprmCHighlight = 0x2A0C;
@@ -113,6 +114,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool strike = false;
             bool doubleStrike = false;
             bool outline = false;
+            bool shadow = false;
             bool smallCaps = false;
             bool caps = false;
             LegacyDocVerticalPositionKind? verticalPosition = null;
@@ -124,7 +126,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
-                if (sprm == SprmCFBold || sprm == SprmCFItalic || sprm == SprmCFStrike || sprm == SprmCFOutline || sprm == SprmCFSmallCaps || sprm == SprmCFCaps || sprm == SprmCFDStrike) {
+                if (sprm == SprmCFBold || sprm == SprmCFItalic || sprm == SprmCFStrike || sprm == SprmCFOutline || sprm == SprmCFShadow || sprm == SprmCFSmallCaps || sprm == SprmCFCaps || sprm == SprmCFDStrike) {
                     if (offset + 3 > end) {
                         break;
                     }
@@ -138,6 +140,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         strike = enabled;
                     } else if (sprm == SprmCFOutline) {
                         outline = enabled;
+                    } else if (sprm == SprmCFShadow) {
+                        shadow = enabled;
                     } else if (sprm == SprmCFSmallCaps) {
                         smallCaps = enabled;
                     } else if (sprm == SprmCFDStrike) {
@@ -235,7 +239,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ? LegacyDocCapsKind.Caps
                 : smallCaps ? LegacyDocCapsKind.SmallCaps : null;
 
-            return new LegacyDocCharacterFormat(bold, italic, strike, doubleStrike, outline, capsKind, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocCharacterFormat(bold, italic, strike, doubleStrike, outline, shadow, capsKind, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
         }
 
         private static LegacyDocVerticalPositionKind? MapVerticalPosition(byte value) {
