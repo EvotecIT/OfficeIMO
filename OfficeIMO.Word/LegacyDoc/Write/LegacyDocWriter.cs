@@ -18,13 +18,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmCFBold = 0x0835;
         private const ushort SprmCFItalic = 0x0836;
         private const ushort SprmCFStrike = 0x0837;
-        private const ushort SprmCFSmallCaps = 0x0838;
-        private const ushort SprmCFCaps = 0x0839;
+        private const ushort SprmCFSmallCaps = 0x083A;
+        private const ushort SprmCFCaps = 0x083B;
         private const ushort SprmCHighlight = 0x2A0C;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCIss = 0x2A48;
         private const ushort SprmCHps = 0x4A43;
         private const ushort SprmCRgFtc0 = 0x4A4F;
+        private const ushort SprmCFDStrike = 0x2A53;
         private const ushort SprmCCv = 0x6870;
         private const ushort SprmPJc = 0x2461;
         private const ushort DefaultPcdFlags = 0x0310;
@@ -139,7 +140,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         finalSectionFormat = ReadSupportedSectionProperties(sectionProperties);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs and simple tables with bold, italic, strikethrough, superscript/subscript, underline, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs and simple tables with bold, italic, strikethrough, double-strikethrough, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");
                 }
             }
 
@@ -218,7 +219,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedRunText(text, runs, run);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs with bold, italic, strikethrough, superscript/subscript, underline, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs with bold, italic, strikethrough, double-strikethrough, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 

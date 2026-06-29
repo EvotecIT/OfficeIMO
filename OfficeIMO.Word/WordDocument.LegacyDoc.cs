@@ -523,6 +523,11 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
+            if (characterFormat.DoubleStrike) {
+                properties.Append(new DoubleStrike());
+                hasProperties = true;
+            }
+
             if (characterFormat.Caps == LegacyDocCapsKind.Caps) {
                 properties.Append(new Caps());
                 hasProperties = true;
@@ -610,6 +615,10 @@ namespace OfficeIMO.Word {
 
             if (legacyRun.Strike) {
                 run.SetStrike();
+            }
+
+            if (legacyRun.DoubleStrike) {
+                run.SetDoubleStrike();
             }
 
             if (legacyRun.Caps == LegacyDocCapsKind.Caps) {

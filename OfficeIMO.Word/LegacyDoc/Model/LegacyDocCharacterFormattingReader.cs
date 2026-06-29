@@ -4,14 +4,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmCFBold = 0x0835;
         private const ushort SprmCFItalic = 0x0836;
         private const ushort SprmCFStrike = 0x0837;
-        private const ushort SprmCFSmallCaps = 0x0838;
-        private const ushort SprmCFCaps = 0x0839;
+        private const ushort SprmCFSmallCaps = 0x083A;
+        private const ushort SprmCFCaps = 0x083B;
         private const ushort SprmCHighlight = 0x2A0C;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCIco = 0x2A42;
         private const ushort SprmCIss = 0x2A48;
         private const ushort SprmCHps = 0x4A43;
         private const ushort SprmCRgFtc0 = 0x4A4F;
+        private const ushort SprmCFDStrike = 0x2A53;
         private const ushort SprmCCv = 0x6870;
 
         internal static IReadOnlyList<LegacyDocCharacterFormatRange> ReadCharacterFormatting(
@@ -109,6 +110,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool bold = false;
             bool italic = false;
             bool strike = false;
+            bool doubleStrike = false;
             bool smallCaps = false;
             bool caps = false;
             LegacyDocVerticalPositionKind? verticalPosition = null;
@@ -120,7 +122,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
-                if (sprm == SprmCFBold || sprm == SprmCFItalic || sprm == SprmCFStrike || sprm == SprmCFSmallCaps || sprm == SprmCFCaps) {
+                if (sprm == SprmCFBold || sprm == SprmCFItalic || sprm == SprmCFStrike || sprm == SprmCFSmallCaps || sprm == SprmCFCaps || sprm == SprmCFDStrike) {
                     if (offset + 3 > end) {
                         break;
                     }
@@ -134,6 +136,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         strike = enabled;
                     } else if (sprm == SprmCFSmallCaps) {
                         smallCaps = enabled;
+                    } else if (sprm == SprmCFDStrike) {
+                        doubleStrike = enabled;
                     } else {
                         caps = enabled;
                     }
@@ -227,7 +231,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ? LegacyDocCapsKind.Caps
                 : smallCaps ? LegacyDocCapsKind.SmallCaps : null;
 
-            return new LegacyDocCharacterFormat(bold, italic, strike, capsKind, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocCharacterFormat(bold, italic, strike, doubleStrike, capsKind, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
         }
 
         private static LegacyDocVerticalPositionKind? MapVerticalPosition(byte value) {
