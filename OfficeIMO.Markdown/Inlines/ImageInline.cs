@@ -34,7 +34,7 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
             return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt);
         }
         var extra = ImageHtmlAttributes.BuildImageAttributes(o, Src);
-        return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(Src)}\" alt=\"{System.Net.WebUtility.HtmlEncode(PlainAlt)}\"{titleAttr}{extra} />";
+        return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(Src, o)}\" alt=\"{System.Net.WebUtility.HtmlEncode(PlainAlt)}\"{titleAttr}{extra} />";
     }
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();

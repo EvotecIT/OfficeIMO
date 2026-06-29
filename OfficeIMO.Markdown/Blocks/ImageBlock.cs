@@ -95,14 +95,14 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
             return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt) + captionBlocked;
         }
         var extra = ImageHtmlAttributes.BuildImageAttributes(o, Path);
-        string img = $"<img src=\"{HtmlAttributeUrlEncoder.Encode(GetRenderedFallbackImagePath(o))}\" alt=\"{alt}\"{title}{size}{extra} />";
+        string img = $"<img src=\"{HtmlAttributeUrlEncoder.Encode(GetRenderedFallbackImagePath(o), o)}\" alt=\"{alt}\"{title}{size}{extra} />";
         if (PictureSources.Count > 0) {
             img = BuildPictureHtml(o, img);
         }
         if (!string.IsNullOrWhiteSpace(LinkUrl) && UrlOriginPolicy.IsAllowedHttpLink(o, LinkUrl!)) {
             string linkExtra = BuildLinkHtmlAttributes(o, LinkUrl!, LinkTarget, LinkRel);
             string linkTitle = string.IsNullOrEmpty(LinkTitle) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(LinkTitle!)}\"";
-            img = $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl!)}\"{linkTitle}{linkExtra}>{img}</a>";
+            img = $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl!, o)}\"{linkTitle}{linkExtra}>{img}</a>";
         }
         string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(Caption!)}</div>";
         return img + caption;
@@ -127,7 +127,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
 
             string srcSet = NormalizeAttributeValue(source.SrcSet) ?? source.Path;
             sb.Append("<source srcset=\"")
-                .Append(HtmlAttributeUrlEncoder.EncodeSrcSet(srcSet))
+                .Append(HtmlAttributeUrlEncoder.EncodeSrcSet(srcSet, options))
                 .Append('"');
             AppendAttribute(sb, "media", NormalizeAttributeValue(source.Media));
             AppendAttribute(sb, "type", NormalizeAttributeValue(source.Type));

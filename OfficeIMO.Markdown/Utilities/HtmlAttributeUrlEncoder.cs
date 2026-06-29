@@ -2,22 +2,30 @@ namespace OfficeIMO.Markdown;
 
 internal static class HtmlAttributeUrlEncoder {
     internal static string Encode(string? url) {
+        return Encode(url, null);
+    }
+
+    internal static string Encode(string? url, HtmlOptions? options) {
         if (string.IsNullOrEmpty(url)) {
             return string.Empty;
         }
 
         var value = url!;
-        return System.Net.WebUtility.HtmlEncode(NormalizeUrl(value));
+        return System.Net.WebUtility.HtmlEncode(NormalizeUrl(value, options?.NormalizeUrlHostsToIdn != false));
     }
 
     internal static string EncodeSrcSet(string? srcSet) {
+        return EncodeSrcSet(srcSet, null);
+    }
+
+    internal static string EncodeSrcSet(string? srcSet, HtmlOptions? options) {
         if (string.IsNullOrWhiteSpace(srcSet)) {
             return string.Empty;
         }
 
         var encodedCandidates = new System.Collections.Generic.List<string>();
         foreach (SrcSetCandidate candidate in SrcSetParser.Parse(srcSet)) {
-            string encodedUrl = Encode(candidate.Url);
+            string encodedUrl = Encode(candidate.Url, options);
             string encodedDescriptors = System.Net.WebUtility.HtmlEncode(candidate.Descriptor);
             encodedCandidates.Add(encodedDescriptors.Length == 0 ? encodedUrl : encodedUrl + " " + encodedDescriptors);
         }
@@ -25,12 +33,12 @@ internal static class HtmlAttributeUrlEncoder {
         return string.Join(", ", encodedCandidates);
     }
 
-    private static string NormalizeUrl(string value) {
+    private static string NormalizeUrl(string value, bool normalizeHostsToIdn) {
         if (string.IsNullOrEmpty(value)) {
             return string.Empty;
         }
 
-        if (TryNormalizeAbsoluteUrlWithIdn(value, out var normalized)) {
+        if (normalizeHostsToIdn && TryNormalizeAbsoluteUrlWithIdn(value, out var normalized)) {
             return normalized;
         }
 

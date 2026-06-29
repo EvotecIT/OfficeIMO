@@ -631,6 +631,75 @@
     ]
   },
   {
+    "source": "github/cmark-gfm spec.txt autolinks extension",
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "Visit www.commonmark.org/help for more information.\n",
+    "html": "<p>Visit <a href=\"http://www.commonmark.org/help\">www.commonmark.org/help</a> for more information.</p>\n"
+  },
+  {
+    "source": "github/cmark-gfm spec.txt autolinks extension",
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph", "Paragraph", "Paragraph", "Paragraph"],
+    "markdown": "www.google.com/search?q=Markup+(business)\n\nwww.google.com/search?q=Markup+(business)))\n\n(www.google.com/search?q=Markup+(business))\n\n(www.google.com/search?q=Markup+(business)\n",
+    "html": "<p><a href=\"http://www.google.com/search?q=Markup+(business)\">www.google.com/search?q=Markup+(business)</a></p>\n<p><a href=\"http://www.google.com/search?q=Markup+(business)\">www.google.com/search?q=Markup+(business)</a>))</p>\n<p>(<a href=\"http://www.google.com/search?q=Markup+(business)\">www.google.com/search?q=Markup+(business)</a>)</p>\n<p>(<a href=\"http://www.google.com/search?q=Markup+(business)\">www.google.com/search?q=Markup+(business)</a></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "GFM autolinks trim only unmatched trailing closing parentheses",
+        "line": 3,
+        "column": 42,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "))",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm spec.txt autolinks extension",
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "www.google.com/search?q=(business))+ok\n",
+    "html": "<p><a href=\"http://www.google.com/search?q=(business))+ok\">www.google.com/search?q=(business))+ok</a></p>\n"
+  },
+  {
+    "source": "github/cmark-gfm spec.txt autolinks extension",
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "www.google.com/search?q=commonmark&hl=en\n\nwww.google.com/search?q=commonmark&hl;\n",
+    "html": "<p><a href=\"http://www.google.com/search?q=commonmark&amp;hl=en\">www.google.com/search?q=commonmark&amp;hl=en</a></p>\n<p><a href=\"http://www.google.com/search?q=commonmark\">www.google.com/search?q=commonmark</a>&amp;hl;</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "GFM autolinks trim entity-looking semicolon suffixes outside the link",
+        "line": 3,
+        "column": 36,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "&hl;",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm spec.txt autolinks extension",
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "www.commonmark.org/he<lp\n",
+    "html": "<p><a href=\"http://www.commonmark.org/he\">www.commonmark.org/he</a>&lt;lp</p>\n"
+  },
+  {
+    "source": "github/cmark-gfm spec.txt autolinks extension",
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "hello@mail+xyz.example isn't valid, but hello+xyz@mail.example is.\n",
+    "html": "<p>hello@mail+xyz.example isn't valid, but <a href=\"mailto:hello+xyz@mail.example\">hello+xyz@mail.example</a> is.</p>\n"
+  },
+  {
+    "source": "github/cmark-gfm spec.txt autolinks extension",
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph", "Paragraph", "Paragraph", "Paragraph"],
+    "markdown": "a.b-c_d@a.b\n\na.b-c_d@a.b.\n\na.b-c_d@a.b-\n\na.b-c_d@a.b_\n",
+    "html": "<p><a href=\"mailto:a.b-c_d@a.b\">a.b-c_d@a.b</a></p>\n<p><a href=\"mailto:a.b-c_d@a.b\">a.b-c_d@a.b</a>.</p>\n<p>a.b-c_d@a.b-</p>\n<p>a.b-c_d@a.b_</p>\n"
+  },
+  {
     "source": "github/cmark-gfm test/extensions.txt",
     "section": "HTML tag filter",
     "topLevelKinds": ["Paragraph", "HtmlRaw", "Paragraph", "HtmlRaw", "HtmlRaw", "Paragraph", "HtmlComment", "Paragraph", "HtmlComment", "HtmlComment", "HtmlComment", "HtmlComment"],

@@ -84,11 +84,13 @@ public static partial class MarkdownReader {
         // Require at least one '.' in domain and not at the ends.
         int dot = domain.IndexOf('.');
         if (dot <= 0 || dot == domain.Length - 1) return false;
+        if (!char.IsLetterOrDigit(domain[domain.Length - 1])) return false;
 
         // Basic character checks (no spaces/control already enforced by caller).
         for (int i = 0; i < s.Length; i++) {
             char c = s[i];
             if (c == '@') continue;
+            if (i > at && c == '+') return false;
             if (c == '.' || c == '-' || c == '_' || c == '+') continue;
             if (char.IsLetterOrDigit(c)) continue;
             return false;
@@ -104,7 +106,7 @@ public static partial class MarkdownReader {
         if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
         var rem = text.Substring(start);
         if (!(rem.StartsWith("http://") || rem.StartsWith("https://"))) return false;
-        int rawEnd = ConsumeLiteralUrl(text, start);
+        int rawEnd = ConsumeLiteralUrl(text, start, options);
         int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
         if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
         if (!options.AutolinkAllowQueryAndFragmentSpecialCharacters && ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
@@ -122,7 +124,7 @@ public static partial class MarkdownReader {
             if (!text.Substring(start).StartsWith("www.", StringComparison.Ordinal)) return false;
         } else if (!text.Substring(start).StartsWith("www.", StringComparison.OrdinalIgnoreCase)) return false;
 
-        int rawEnd = ConsumeLiteralUrl(text, start);
+        int rawEnd = ConsumeLiteralUrl(text, start, options);
         int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
         int scanEnd = rawEnd;
         if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
@@ -195,7 +197,7 @@ public static partial class MarkdownReader {
 
         if (IsBareSchemePrefixEnabled(options, "ftp://") &&
             StartsWithAutolinkScheme(text, start, "ftp://", options)) {
-            int rawEnd = ConsumeLiteralUrl(text, start);
+            int rawEnd = ConsumeLiteralUrl(text, start, options);
             int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
             if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
             if (!options.AutolinkAllowQueryAndFragmentSpecialCharacters && ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
@@ -211,7 +213,7 @@ public static partial class MarkdownReader {
         if (IsBareSchemePrefixEnabled(options, "tel:") &&
             StartsWithAutolinkScheme(text, start, "tel:", options)) {
             int valueStart = start + "tel:".Length;
-            int rawEnd = ConsumeLiteralUrl(text, start);
+            int rawEnd = ConsumeLiteralUrl(text, start, options);
             int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
             if (i <= valueStart) return false;
             end = i;
@@ -222,7 +224,7 @@ public static partial class MarkdownReader {
 
         if (IsBareSchemePrefixEnabled(options, "xmpp:") &&
             StartsWithAutolinkScheme(text, start, "xmpp:", options)) {
-            int rawEnd = ConsumeLiteralUrl(text, start);
+            int rawEnd = ConsumeLiteralUrl(text, start, options);
             int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
             if (i <= start + "xmpp:".Length) return false;
             end = i;
@@ -302,17 +304,77 @@ public static partial class MarkdownReader {
 
     private static int TrimTrailingAutolinkPunctuation(string text, int start, int rawEnd, MarkdownReaderOptions options) {
         int i = rawEnd;
-        while (i > start && IsTrailingAutolinkPunctuation(text[i - 1])) {
-            if (options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis
-                && rawEnd < text.Length
-                && text[rawEnd] == ')') {
-                break;
+        bool removedClosingParenthesis = false;
+        bool changed;
+        do {
+            changed = false;
+
+            int parenTrimmed = TrimUnmatchedTrailingClosingParentheses(text, start, i);
+            if (parenTrimmed != i) {
+                removedClosingParenthesis = true;
+                i = parenTrimmed;
+                changed = true;
             }
 
+            int entitySuffixStart = FindTrailingEntityLikeSuffixStart(text, start, i);
+            if (entitySuffixStart >= 0) {
+                i = entitySuffixStart;
+                changed = true;
+                continue;
+            }
+
+            while (i > start && IsTrailingAutolinkPunctuation(text[i - 1])) {
+                if (options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis && removedClosingParenthesis) {
+                    break;
+                }
+
+                i--;
+                changed = true;
+            }
+        } while (changed && i > start);
+
+        return i;
+    }
+
+    private static int TrimUnmatchedTrailingClosingParentheses(string text, int start, int end) {
+        int i = end;
+        while (i > start && text[i - 1] == ')' && HasMoreClosingThanOpeningParentheses(text, start, i)) {
             i--;
         }
 
         return i;
+    }
+
+    private static bool HasMoreClosingThanOpeningParentheses(string text, int start, int end) {
+        int balance = 0;
+        for (int i = start; i < end; i++) {
+            if (text[i] == '(') {
+                balance++;
+            } else if (text[i] == ')') {
+                balance--;
+            }
+        }
+
+        return balance < 0;
+    }
+
+    private static int FindTrailingEntityLikeSuffixStart(string text, int start, int end) {
+        if (end - start < 3 || text[end - 1] != ';') {
+            return -1;
+        }
+
+        int ampersand = text.LastIndexOf('&', end - 2, end - start - 1);
+        if (ampersand < start || ampersand + 1 >= end - 1) {
+            return -1;
+        }
+
+        for (int i = ampersand + 1; i < end - 1; i++) {
+            if (!char.IsLetterOrDigit(text[i])) {
+                return -1;
+            }
+        }
+
+        return ampersand;
     }
 
     private static bool IsTrailingAutolinkPunctuation(char c) {
@@ -344,7 +406,7 @@ public static partial class MarkdownReader {
             || previous == '-'
             || previous == '='
             || previous == '&'
-            || previous == '('
+            || (previous == '(' && options?.AutolinkAllowBalancedParenthesesWithTrailingPunctuation != true)
             || previous == '[';
     }
 
@@ -373,7 +435,7 @@ public static partial class MarkdownReader {
         return !TryParseReferenceLinkDefinition(new[] { line }, 0, new MarkdownReaderOptions(), out _, out _, out _, out _);
     }
 
-    private static int ConsumeLiteralUrl(string text, int start) {
+    private static int ConsumeLiteralUrl(string text, int start, MarkdownReaderOptions options) {
         int i = start;
         int parenDepth = 0;
         while (i < text.Length) {
@@ -386,8 +448,11 @@ public static partial class MarkdownReader {
                 continue;
             }
             if (c == ')') {
-                if (parenDepth == 0) break;
-                parenDepth--;
+                if (parenDepth == 0) {
+                    if (!options.AutolinkAllowBalancedParenthesesWithTrailingPunctuation) break;
+                } else {
+                    parenDepth--;
+                }
                 i++;
                 continue;
             }

@@ -39,7 +39,8 @@ public sealed class HtmlOptions {
             GitHubFootnoteHtml = true,
             GitHubHtmlTagFilter = true,
             HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.GitHub,
-            RawHtmlHandling = RawHtmlHandling.Allow
+            RawHtmlHandling = RawHtmlHandling.Allow,
+            NormalizeUrlHostsToIdn = false
         };
     }
 
@@ -126,6 +127,11 @@ public sealed class HtmlOptions {
     /// Default: <c>false</c>.
     /// </summary>
     public bool GitHubHtmlTagFilter { get; set; } = false;
+    /// <summary>
+    /// When <c>true</c>, non-ASCII authority host labels in rendered URL attributes are normalized to IDNA.
+    /// Disable this for cmark-gfm-style output, which percent-encodes those host characters instead.
+    /// </summary>
+    public bool NormalizeUrlHostsToIdn { get; set; } = true;
     /// <summary>
     /// Optional block render extensions that can override HTML emitted for specific block types.
     /// Later registrations win when block types overlap.
