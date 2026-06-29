@@ -95,6 +95,39 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void FootnoteReference_GenericAttributes_Are_Consumed_Without_Metadata() {
+        const string markdown = "See note[^a]{#ref .wide}\n\n[^a]: Footnote\n";
+        var options = new MarkdownReaderOptions {
+            Footnotes = true,
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[0]);
+        var footnote = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.FootnoteRef);
+
+        Assert.DoesNotContain(footnote.Metadata, metadata => metadata.Name == "attributes");
+        Assert.DoesNotContain(
+            "{#ref .wide}",
+            result.Document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                GitHubFootnoteHtml = true
+            }),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Keeps_Blockquote_Block_GenericAttributes_Literal() {
         const string markdown = "> quote {#q .lead}\n> # Heading {#h .wide}\n";
         var options = new MarkdownReaderOptions {

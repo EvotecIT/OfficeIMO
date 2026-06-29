@@ -1124,6 +1124,7 @@ public static partial class MarkdownReader {
 
     private static bool IsGenericAttributeInlineDiscardTarget(IMarkdownInline? inline) =>
         inline is HtmlRawInline
-            or HtmlTagSequenceInline;
+            or HtmlTagSequenceInline
+            or FootnoteRefInline;
 
 }

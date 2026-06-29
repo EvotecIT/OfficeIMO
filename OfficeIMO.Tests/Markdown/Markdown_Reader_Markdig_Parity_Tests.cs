@@ -342,6 +342,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "footnote-definition-paragraph-attribute", "[^a]: note {#fn .wide}\n\ntext[^a]" };
     }
 
+    public static IEnumerable<object[]> GenericAttributesFootnoteReferenceExtensionCases() {
+        yield return new object[] { "footnote-reference-attribute-is-consumed", "text[^a]{#ref .wide}\n\n[^a]: note" };
+    }
+
     [Theory]
     [MemberData(nameof(CoreParityCases))]
     public void MarkdownReader_Matches_Markdig_On_Curated_Cases(string _, string markdown) {
@@ -615,6 +619,35 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Assert.Contains("<p id=\"fn\" class=\"wide\">note ", normalizedMarkdig, StringComparison.Ordinal);
         Assert.Contains("<p id=\"fn\" class=\"wide\">note ", normalizedOffice, StringComparison.Ordinal);
         Assert.DoesNotContain("{#fn .wide}", normalizedOffice, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(GenericAttributesFootnoteReferenceExtensionCases))]
+    public void MarkdownReader_GenericAttributes_After_FootnoteReferences_Match_Markdig_Extensions(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false,
+            GitHubFootnoteHtml = true
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseFootnotes(builder);
+        Markdig.MarkdownExtensions.UseGenericAttributes(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        officeOptions.GenericAttributes = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        var normalizedOffice = NormalizeGenericAttributesHtmlForParity(office);
+        var normalizedMarkdig = NormalizeGenericAttributesHtmlForParity(markdig);
+
+        Assert.DoesNotContain("{#ref .wide}", normalizedMarkdig, StringComparison.Ordinal);
+        Assert.DoesNotContain("{#ref .wide}", normalizedOffice, StringComparison.Ordinal);
     }
 
     private static string NormalizeGenericAttributesHtmlForParity(string html) {

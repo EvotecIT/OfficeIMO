@@ -4,26 +4,30 @@ This is the working plan for getting `OfficeIMO.Markdown` to Markdig-class parit
 
 The important distinction: parity is not "more tests." Parity means the parser, AST, renderer, writer, extension model, source mapping, lossless behavior, and performance story all line up behind a documented contract. Tests and inventories are the proof gates for those contracts.
 
-## Operator Plan
+## Missing Parity Board
 
-This is the short checklist to use before starting the next slice. If a task cannot name one of these rows, it is probably scope drift.
+This is the checklist we should drive from. A slice is not complete because tests were added; it is complete when the reusable engine behavior, AST/source story, renderer/writer behavior, docs, and proof all line up for that row.
 
-- [x] **CommonMark parser correctness.** The official CommonMark `0.31.2` inventory is green: 652 of 652 examples match.
-- [x] **Core scoreboards.** CommonMark, tracked GFM, Markdig extension-family inventory, compatibility docs, and benchmark hooks exist.
-- [x] **Covered GFM/core features.** Pipe tables, task lists, footnotes, strikethrough/emphasis extras, auto identifiers, extended autolinks, soft-line-as-hard-line, YAML front matter, abbreviations, and current tracked GFM fixtures have engine behavior plus proof.
-- [ ] **Engine slice 1: continue `UseGenericAttributes` breadth.** List-item trailing attributes are now closed for root, nested, ordered, unordered, blockquote-contained, and task-list interaction cases; paragraph separator whitespace, thematic-break-like attributed paragraphs, footnote-definition paragraphs, inline images, linked images, and raw-inline-HTML consumption proof are also in place. Next probe the remaining block/container shapes and fix only supported shapes in parser, AST, syntax/native source fields, HTML render, Markdown writer, and reparse/source-edit proof.
-- [ ] **Engine slice 2: finish or explicitly bound `UseDefinitionLists`.** Close remaining source-map and writer edges for marker groups, lazy continuation, loose definitions, nested definitions, multiline body edits, and reparse stability.
-- [ ] **Decision slice 3: close `UseAlertBlocks` and `UseCjkFriendlyEmphasis`.** Decide whether each is an OfficeIMO compatibility contract, renderer/profile policy, deferred row, or intentional difference before adding more fixtures.
-- [ ] **Architecture slice 4: finish source/lossless parity.** Complete canonical node shapes, trivia capture, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, and broader source-preserving edits.
-- [ ] **Extension slice 5: implement only chosen optional Markdig rows.** Custom containers, grid tables, math, diagrams, figures, media links, emoji/smiley, Jira links, list extras, and SmartyPants need explicit ownership and promotion bars before implementation.
-- [ ] **Policy slice 6: separate parser parity from security/render policy.** Raw HTML, GFM tag filtering, sanitizing/escaping/stripping, URL policy, referral links, and theme/bootstrap behavior stay independent contracts.
-- [ ] **Proof-only slice 7: broaden fixtures and benchmarks after engine contracts stabilize.** Expand GFM fixture breadth and run release-mode Markdig benchmarks only after parser/source/writer behavior stops moving.
+- [x] **CommonMark parser correctness is closed.** The official CommonMark `0.31.2` inventory is green: 652 of 652 examples match.
+- [x] **The scoreboards exist.** CommonMark, tracked GFM, Markdig extension-family inventory, compatibility docs, and benchmark hooks are checked in.
+- [x] **Core GFM behavior is real engine behavior.** Pipe tables, task lists, footnotes, strikethrough/emphasis extras, auto identifiers, extended autolinks, soft-line-as-hard-line, YAML front matter, abbreviations, and the currently tracked GFM fixtures have parser/render/write/source proof.
+- [ ] **Close the active `UseGenericAttributes` engine slice.** Covered now: fenced code, headings, paragraphs, paragraph separator whitespace, thematic-break-like attributed paragraphs, list items, task-list interaction, pipe-table attribute promotion, inline/link/image/common emphasis attributes, raw inline HTML consumption, footnote-definition attributes, and footnote-reference attribute consumption. Missing: remaining Markdig-supported block/container/inline shapes, plus semantic AST, syntax AST, native/source fields, HTML rendering, Markdown writing, and preserved-trivia source-edit proof for each newly supported shape.
+- [ ] **Promote or explicitly bound `UseDefinitionLists`.** The parser and many writer/source edges exist. Missing: remaining marker-group, lazy-continuation, loose-definition, nested-definition, multiline-body, source-map, and reparse-stability edge breadth before this can move from `Partial` to `Covered`.
+- [ ] **Decide `UseAlertBlocks` and `UseCjkFriendlyEmphasis`.** These should not collect random fixtures. Missing: one explicit decision per row: core parser contract, renderer/profile policy, deferred row, or intentional difference; then implement only the chosen contract.
+- [ ] **Finish source/lossless architecture.** Missing: full trivia capture, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, broader source-preserving edits, and source-aware extension paths.
+- [ ] **Finish renderer/writer extension seams.** Missing: custom block/inline/transform/renderer/writer APIs that carry source slices and token metadata so extension nodes do not need downstream string rescanning.
+- [ ] **Separate security/profile policy from parser parity.** Missing: independent contracts for raw HTML allow/strip/escape/sanitize, GFM tag filtering, URL policy, referral links, and renderer theme/bootstrap behavior.
+- [ ] **Broaden GFM fixture breadth as proof, not as the main work.** Missing: broader upstream-compatible coverage for autolinks, strikethrough delimiter edges, tag filtering, tables, task lists, footnotes, and extension interactions; engine fixes only when mismatches reveal real behavior gaps.
+- [ ] **Handle optional Markdig rows only after scope is chosen.** Missing rows include custom containers, grid tables, math, diagrams, figures, media links, emoji/smiley, Jira links, list extras, SmartyPants, citations, footers, globalization, and pragma lines. Each needs an owner: core engine, optional extension, renderer/host policy, deferred, or intentional difference.
+- [ ] **Benchmark last.** Missing: release-mode comparisons against the pinned Markdig baseline for parse, parse-with-syntax, HTML render, Markdown write, transforms, source edits, allocations, and representative README/docs/chat corpora.
 
-Rule of thumb:
+Execution rule:
 
+- [ ] Pick one row above before starting work.
 - [ ] If behavior is missing, change the reusable engine first.
-- [ ] If behavior exists but is not proven, add focused comparison/source/writer proof.
-- [ ] If the row is optional, deferred, or policy-only, document that decision before writing parser code.
+- [ ] If behavior exists but is not proven, add focused Markdig/source/writer proof.
+- [ ] If the row is optional, deferred, or policy-only, document the scope decision before writing parser code.
+- [ ] Promote a row only when parser behavior, semantic/syntax/native/source behavior, renderer/writer behavior or explicit writer limits, inventory status, and compatibility docs all agree.
 
 ## Current Scoreboard
 
@@ -73,7 +77,7 @@ The short answer to "are we only doing tests?" is no:
 
 ### P1 - Engine Work We Are Missing Next
 
-- [ ] **Finish `UseGenericAttributes` breadth.** This is the active engine slice. Already covered: fenced code, ATX headings, Setext headings, paragraphs with Markdig-compatible consumed separator whitespace, thematic-break-like attributed paragraph lines, root/nested/blockquote/task-list list-item trailing attributes, footnote-definition body paragraphs, Markdig-style pipe-table cell attributes that promote to the owning table, linked-image and image inline attributes, raw-inline-HTML attribute-block consumption, and common no-space inline attributes. Missing before promotion:
+- [ ] **Finish `UseGenericAttributes` breadth.** This is the active engine slice. Already covered: fenced code, ATX headings, Setext headings, paragraphs with Markdig-compatible consumed separator whitespace, thematic-break-like attributed paragraph lines, root/nested/blockquote/task-list list-item trailing attributes, footnote-definition body paragraphs, footnote-reference attribute-block consumption, Markdig-style pipe-table cell attributes that promote to the owning table, linked-image and image inline attributes, raw-inline-HTML attribute-block consumption, and common no-space inline attributes. Missing before promotion:
   - [ ] Probe and close remaining block families: thematic breaks, table-edge forms, HTML blocks, footnotes, definition lists, callouts, standalone media/image shapes, and any list-extra forms Markdig treats differently from ordinary list items.
   - [ ] Implement only the shapes Markdig actually treats as generic attributes, using shared parser helpers instead of per-block string rescans.
   - [ ] Project every newly supported attribute through semantic AST, syntax AST, native fields/metadata, HTML rendering, Markdown writing, and preserved-trivia source edits.
@@ -130,6 +134,7 @@ The short answer to "are we only doing tests?" is no:
 - [x] **Moved `UseGenericAttributes` through list-item trailing blocks.** Root ordered/unordered, nested, and blockquote-contained list items now consume Markdig-style trailing attribute blocks, preserve Markdig's consumed separator whitespace in HTML without projecting attributes onto `<li>`, write normalized trailing attribute blocks, and expose semantic attributes through syntax/native/source-edit proof.
 - [x] **Proved `UseGenericAttributes` extension interactions for task lists and footnotes.** Markdig comparison coverage now protects task-list item attribute consumption when `UseTaskLists` is enabled and footnote-definition paragraph attribute projection when `UseFootnotes` is enabled, without promoting the still-partial arbitrary block-family row.
 - [x] **Moved `UseGenericAttributes` through paragraph separator and inline HTML/image edges.** Paragraph attribute blocks now preserve Markdig's consumed separator whitespace in HTML and Markdown writing, thematic-break-like attributed lines stay attributed paragraphs, inline and linked images have focused Markdig comparison coverage, and raw inline HTML consumes following attribute blocks without projecting them into rendered HTML.
+- [x] **Moved `UseGenericAttributes` through footnote reference edges.** Attribute blocks after inline footnote references are now consumed without rendering literal text or native `attributes` metadata, matching Markdig's reference behavior while keeping footnote definition paragraph attributes projected.
 
 ## Execution Rules
 
