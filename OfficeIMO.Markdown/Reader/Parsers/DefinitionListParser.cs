@@ -605,6 +605,11 @@ public static partial class MarkdownReader {
             return false;
         }
 
+        if (PreviousDefinitionLineStartsNestedListItem(definitionSourceLines) &&
+            CurrentLineInterruptsNestedDefinitionListItem(line)) {
+            return false;
+        }
+
         return true;
     }
 
@@ -616,6 +621,33 @@ public static partial class MarkdownReader {
         var previous = definitionSourceLines[definitionSourceLines.Count - 1].Text;
         return TryGetSetextHeadingUnderlineLevel(previous, out _) ||
             IsParagraphInterruptingThematicBreakLine(previous);
+    }
+
+    private static bool PreviousDefinitionLineStartsNestedListItem(List<MarkdownSourceLineSlice> definitionSourceLines) {
+        if (definitionSourceLines == null || definitionSourceLines.Count == 0) {
+            return false;
+        }
+
+        for (int i = definitionSourceLines.Count - 1; i >= 0; i--) {
+            var previous = definitionSourceLines[i].Text;
+            if (string.IsNullOrWhiteSpace(previous)) {
+                continue;
+            }
+
+            return TryGetUnorderedListMarkerInfo(previous, out _, out _, out _) ||
+                TryGetOrderedListMarkerInfo(previous, out _, out _, out _, out _);
+        }
+
+        return false;
+    }
+
+    private static bool CurrentLineInterruptsNestedDefinitionListItem(string line) {
+        if (string.IsNullOrWhiteSpace(line)) {
+            return false;
+        }
+
+        return IsAtxHeading(line, out _, out _) ||
+            IsParagraphInterruptingThematicBreakLine(line);
     }
 
     private static int GetFirstNonWhitespaceIndex(string line) {

@@ -662,6 +662,97 @@ Term
     }
 
     [Fact]
+    public void DefinitionList_NestedListBody_Stops_Before_UnindentedHeading() {
+        const string markdown = """
+Term
+:   First paragraph
+    - item
+# Heading
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        Assert.Equal(2, result.Document.Blocks.Count);
+        var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
+        var trailingHeading = Assert.IsType<HeadingBlock>(result.Document.Blocks[1]);
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        Assert.Equal(2, definition.Blocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var nestedList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal("item", Assert.Single(nestedList.Items).Content.RenderMarkdown());
+        Assert.Equal("Heading", trailingHeading.Text);
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.UnorderedList
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 10), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 9), result.SyntaxTree.Children[1].SourceSpan);
+        Assert.Contains("\n\n# Heading", written, StringComparison.Ordinal);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        Assert.Equal(2, native.Blocks.Count);
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        Assert.Equal("First paragraph\n\n- item", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 10), definitionBody.SourceSpan);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_NestedListBody_Stops_Before_UnindentedThematicBreak() {
+        const string markdown = """
+Term
+:   First paragraph
+    - item
+***
+text
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        Assert.Equal(3, result.Document.Blocks.Count);
+        var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
+        var trailingRule = Assert.IsType<HorizontalRuleBlock>(result.Document.Blocks[1]);
+        var trailingParagraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[2]);
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        Assert.Equal(2, definition.Blocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var nestedList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal("item", Assert.Single(nestedList.Items).Content.RenderMarkdown());
+        Assert.Equal("***", trailingRule.MarkerText);
+        Assert.Equal("text", trailingParagraph.Inlines.RenderMarkdown());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.UnorderedList
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 10), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 3), result.SyntaxTree.Children[1].SourceSpan);
+        Assert.Contains("\n\n---\n\ntext", written, StringComparison.Ordinal);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void DefinitionList_SetextContinuation_Writes_MarkerSyntax_ForMarkdigReparse() {
         const string markdown = """
 Term
