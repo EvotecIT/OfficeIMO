@@ -24,17 +24,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmTFCantSplit90 = 0x3466;
         private const ushort SprmTJc = 0x548A;
         private const ushort SprmTDyaRowHeight = 0x9407;
+        private const ushort SprmTFAutofit = 0x3615;
         private const ushort SprmTDefTable = 0xD608;
         private const ushort SprmTDefTableShd80 = 0xD609;
         private const ushort SprmTCellPadding = 0xD632;
         private const ushort SprmTCellSpacingDefault = 0xD633;
         private const ushort SprmTCellPaddingDefault = 0xD634;
+        private const ushort SprmTTableWidth = 0xF614;
         private const ushort Shd80Nil = 0xFFFF;
         private const int Tc80Length = 20;
         private const byte FbrcTop = 0x01;
         private const byte FbrcLeft = 0x02;
         private const byte FbrcBottom = 0x04;
         private const byte FbrcRight = 0x08;
+        private const byte FtsAuto = 0x01;
+        private const byte FtsPercent = 0x02;
         private const byte FtsDxa = 0x03;
         private const ushort TcgrfHorizontalMergeMask = 0x0003;
         private const ushort TcgrfVerticalMergeMask = 0x0060;
@@ -182,6 +186,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? tableRowCantSplit = null;
             bool? tableRowIsHeader = null;
             LegacyDocTableAlignment? tableAlignment = null;
+            LegacyDocTablePreferredWidth? tablePreferredWidth = null;
+            bool? tableAutofit = null;
             bool hasMergedTableCells = false;
             ushort? styleIndex = baseStyleIndex;
             while (offset + 2 <= end) {
@@ -258,6 +264,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmTFAutofit) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    tableAutofit = bytes[offset + 2] != 0;
+                    offset += 3;
+                    continue;
+                }
+
                 if (sprm == SprmTJc) {
                     if (offset + 4 > end) {
                         break;
@@ -265,6 +281,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                     tableAlignment = MapTableAlignment(LegacyDocFib.ReadUInt16(bytes, offset + 2));
                     offset += 4;
+                    continue;
+                }
+
+                if (sprm == SprmTTableWidth) {
+                    if (offset + 5 > end) {
+                        break;
+                    }
+
+                    tablePreferredWidth = ReadTablePreferredWidth(bytes[offset + 2], LegacyDocFib.ReadUInt16(bytes, offset + 3));
+                    offset += 5;
                     continue;
                 }
 
@@ -448,6 +474,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableRowCantSplit,
                 tableRowIsHeader,
                 tableAlignment,
+                tablePreferredWidth,
+                tableAutofit,
                 tableCellHorizontalMerges,
                 tableCellVerticalMerges,
                 tableCellVerticalAlignments,
@@ -860,6 +888,23 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return LegacyDocTableAlignment.Center;
                 case 2:
                     return LegacyDocTableAlignment.Right;
+                default:
+                    return null;
+            }
+        }
+
+        private static LegacyDocTablePreferredWidth? ReadTablePreferredWidth(byte ftsWidth, ushort width) {
+            switch (ftsWidth) {
+                case FtsAuto:
+                    return new LegacyDocTablePreferredWidth(LegacyDocTablePreferredWidthUnit.Auto, 0);
+                case FtsPercent:
+                    return width <= short.MaxValue
+                        ? new LegacyDocTablePreferredWidth(LegacyDocTablePreferredWidthUnit.Percent, width)
+                        : (LegacyDocTablePreferredWidth?)null;
+                case FtsDxa:
+                    return width <= short.MaxValue
+                        ? new LegacyDocTablePreferredWidth(LegacyDocTablePreferredWidthUnit.Dxa, width)
+                        : (LegacyDocTablePreferredWidth?)null;
                 default:
                     return null;
             }

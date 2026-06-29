@@ -15,6 +15,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             TableProperties? tableProperties = table.GetFirstChild<TableProperties>();
             LegacyDocTableAlignment? tableAlignment = ReadSupportedTableAlignment(tableProperties);
+            LegacyDocTablePreferredWidth? tablePreferredWidth = ReadSupportedTablePreferredWidth(tableProperties);
+            bool? tableAutofit = ReadSupportedTableAutofit(tableProperties);
             LegacyDocTableCellMargins? defaultCellMargins = ReadSupportedTableDefaultCellMargins(tableProperties);
             int? defaultCellSpacingTwips = ReadSupportedTableDefaultCellSpacing(tableProperties);
             IReadOnlyList<int> gridColumnWidthsTwips = ReadSupportedTableGridWidths(table.GetFirstChild<TableGrid>());
@@ -62,7 +64,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         tableCellMargins: cellMargins,
                         tableCellShadings: cellShadings,
                         defaultTableCellMargins: defaultCellMargins,
-                        defaultTableCellSpacingTwips: defaultCellSpacingTwips)));
+                        defaultTableCellSpacingTwips: defaultCellSpacingTwips,
+                        tablePreferredWidth: tablePreferredWidth,
+                        tableAutofit: tableAutofit)));
             }
 
             text.Append('\r');
@@ -94,12 +98,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
                         break;
                     case TableWidth tableWidth:
-                        if (tableWidth.Type?.Value != TableWidthUnitValues.Auto || tableWidth.Width?.Value != "0") {
-                            throw new NotSupportedException("Native DOC saving supports simple tables only with the default automatic table width.");
-                        }
+                        ReadSupportedTablePreferredWidth(tableWidth);
                         break;
                     case TableJustification tableJustification:
                         ReadSupportedTableAlignment(tableJustification);
+                        break;
+                    case TableLayout tableLayout:
+                        ReadSupportedTableAutofit(tableLayout);
                         break;
                     case TableCellMarginDefault tableCellMarginDefault:
                         ReadSupportedTableDefaultCellMargins(tableCellMarginDefault);
@@ -149,6 +154,60 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             throw new NotSupportedException($"Native DOC saving does not support table alignment value '{value}'.");
+        }
+
+        private static LegacyDocTablePreferredWidth? ReadSupportedTablePreferredWidth(TableProperties? tableProperties) {
+            TableWidth? tableWidth = tableProperties?.GetFirstChild<TableWidth>();
+            return tableWidth == null ? null : ReadSupportedTablePreferredWidth(tableWidth);
+        }
+
+        private static LegacyDocTablePreferredWidth? ReadSupportedTablePreferredWidth(TableWidth tableWidth) {
+            TableWidthUnitValues? type = tableWidth.Type?.Value;
+            string? widthText = tableWidth.Width?.Value;
+            if (type == null || type == TableWidthUnitValues.Auto) {
+                if (string.IsNullOrWhiteSpace(widthText) || widthText == "0") {
+                    return null;
+                }
+
+                throw new NotSupportedException("Native DOC saving supports automatic table widths only with width 0.");
+            }
+
+            if (type != TableWidthUnitValues.Dxa && type != TableWidthUnitValues.Pct) {
+                throw new NotSupportedException($"Native DOC saving does not support table width type '{type}'.");
+            }
+
+            if (!int.TryParse(widthText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int width)
+                || width <= 0
+                || width > short.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports table preferred width only as a positive Word 97-2003 signed width value.");
+            }
+
+            LegacyDocTablePreferredWidthUnit unit = type == TableWidthUnitValues.Dxa
+                ? LegacyDocTablePreferredWidthUnit.Dxa
+                : LegacyDocTablePreferredWidthUnit.Percent;
+            return new LegacyDocTablePreferredWidth(unit, width);
+        }
+
+        private static bool? ReadSupportedTableAutofit(TableProperties? tableProperties) {
+            TableLayout? tableLayout = tableProperties?.GetFirstChild<TableLayout>();
+            return tableLayout == null ? null : ReadSupportedTableAutofit(tableLayout);
+        }
+
+        private static bool? ReadSupportedTableAutofit(TableLayout tableLayout) {
+            TableLayoutValues? value = tableLayout.Type?.Value;
+            if (value == null) {
+                return null;
+            }
+
+            if (value == TableLayoutValues.Autofit) {
+                return true;
+            }
+
+            if (value == TableLayoutValues.Fixed) {
+                return false;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support table layout value '{value}'.");
         }
 
         private static LegacyDocTableCellMargins? ReadSupportedTableDefaultCellMargins(TableProperties? tableProperties) {

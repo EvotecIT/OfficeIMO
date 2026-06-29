@@ -125,6 +125,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTablePreferredWidthAndAutofitFromRowDefinition() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithTablePreferredWidthAndAutofit();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            Assert.Equal(TableWidthUnitValues.Dxa, table.WidthType);
+            Assert.Equal(4320, table.Width);
+            Assert.Equal(TableLayoutValues.Autofit, table.LayoutType);
+            Assert.Equal(WordTableLayoutType.AutoFitToContents, table.LayoutMode);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsHorizontalMergedTableCellsFromTableDefinition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithHorizontalMergedTableCells();
 
@@ -1965,6 +1980,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTablePreferredWidthAndLayoutAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.WidthType = TableWidthUnitValues.Pct;
+                    table.Width = 3750;
+                    table.LayoutType = TableLayoutValues.Fixed;
+                    table.Rows[0].Cells[0].AddParagraph("Wide", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("Table", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x14, 0xF6, 0x02, 0xA6, 0x0E),
+                    "Expected the native DOC paragraph property stream to contain sprmTTableWidth with a 75 percent table width.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x15, 0x36, 0x00),
+                    "Expected the native DOC paragraph property stream to contain sprmTFAutofit with fixed layout.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal(TableWidthUnitValues.Pct, reloadedTable.WidthType);
+                Assert.Equal(3750, reloadedTable.Width);
+                Assert.Equal(TableLayoutValues.Fixed, reloadedTable.LayoutType);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("Wide", row.Cells[0].Paragraphs[0].Text);
+                Assert.Equal("Table", row.Cells[1].Paragraphs[0].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocHorizontalMergedTableCellsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -2865,6 +2919,30 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithTablePreferredWidthAndAutofit() {
+                const string text = "A1\aB1\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 1440 },
+                    extraRowSprms: new[] {
+                        CreateTablePreferredWidthSprm(0x03, 4320),
+                        CreateParagraphSprm(0x3615, 1)
+                    });
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithTableCellMargins() {
                 const string text = "A1\aB1\a\a\r";
                 const int textOffset = 0x200;
@@ -3738,6 +3816,16 @@ namespace OfficeIMO.Tests {
 
             private static byte[] CreateTableCellSpacingSprm(ushort widthTwips) {
                 return CreateTableCellPaddingSprm(0xD633, 0, 1, 0x0F, widthTwips);
+            }
+
+            private static byte[] CreateTablePreferredWidthSprm(byte ftsWidth, ushort width) {
+                return new[] {
+                    (byte)0x14,
+                    (byte)0xF6,
+                    ftsWidth,
+                    (byte)(width & 0xFF),
+                    (byte)(width >> 8)
+                };
             }
 
             private static byte[] CreateTableCellShadingSprm(params ushort[] shd80Values) {

@@ -22,6 +22,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? tableRowCantSplit = null,
             bool? tableRowIsHeader = null,
             LegacyDocTableAlignment? tableAlignment = null,
+            LegacyDocTablePreferredWidth? tablePreferredWidth = null,
+            bool? tableAutofit = null,
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null,
@@ -58,6 +60,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             TableRowCantSplit = tableRowCantSplit;
             TableRowIsHeader = tableRowIsHeader;
             TableAlignment = tableAlignment;
+            TablePreferredWidth = tablePreferredWidth;
+            TableAutofit = tableAutofit;
             TableCellHorizontalMerges = tableCellHorizontalMerges == null || tableCellHorizontalMerges.Count == 0
                 ? Array.Empty<LegacyDocTableCellHorizontalMerge>()
                 : tableCellHorizontalMerges.ToArray();
@@ -133,6 +137,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal LegacyDocTableAlignment? TableAlignment { get; }
 
+        internal LegacyDocTablePreferredWidth? TablePreferredWidth { get; }
+
+        internal bool? TableAutofit { get; }
+
         internal IReadOnlyList<LegacyDocTableCellHorizontalMerge> TableCellHorizontalMerges { get; }
 
         internal IReadOnlyList<LegacyDocTableCellVerticalMerge> TableCellVerticalMerges { get; }
@@ -175,6 +183,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || TableRowCantSplit != null
             || TableRowIsHeader != null
             || TableAlignment != null
+            || TablePreferredWidth != null
+            || TableAutofit != null
             || TableCellHorizontalMerges.Count > 0
             || TableCellVerticalMerges.Count > 0
             || TableCellVerticalAlignments.Count > 0
@@ -211,6 +221,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && TableRowCantSplit == other.TableRowCantSplit
                 && TableRowIsHeader == other.TableRowIsHeader
                 && TableAlignment == other.TableAlignment
+                && TablePreferredWidth.Equals(other.TablePreferredWidth)
+                && TableAutofit == other.TableAutofit
                 && TableCellHorizontalMergesEqual(TableCellHorizontalMerges, other.TableCellHorizontalMerges)
                 && TableCellVerticalMergesEqual(TableCellVerticalMerges, other.TableCellVerticalMerges)
                 && TableCellVerticalAlignmentsEqual(TableCellVerticalAlignments, other.TableCellVerticalAlignments)
@@ -249,6 +261,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + TableRowCantSplit.GetHashCode();
             hash = (hash * 31) + TableRowIsHeader.GetHashCode();
             hash = (hash * 31) + TableAlignment.GetHashCode();
+            hash = (hash * 31) + TablePreferredWidth.GetHashCode();
+            hash = (hash * 31) + TableAutofit.GetHashCode();
             hash = (hash * 31) + DefaultTableCellSpacingTwips.GetHashCode();
             hash = (hash * 31) + HasMergedTableCells.GetHashCode();
             hash = (hash * 31) + ParagraphShading.GetHashCode();

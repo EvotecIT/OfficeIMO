@@ -22,17 +22,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmTFCantSplit90 = 0x3466;
         private const ushort SprmTJc = 0x548A;
         private const ushort SprmTDyaRowHeight = 0x9407;
+        private const ushort SprmTFAutofit = 0x3615;
         private const ushort SprmTDefTable = 0xD608;
         private const ushort SprmTDefTableShd80 = 0xD609;
         private const ushort SprmTCellPadding = 0xD632;
         private const ushort SprmTCellSpacingDefault = 0xD633;
         private const ushort SprmTCellPaddingDefault = 0xD634;
+        private const ushort SprmTTableWidth = 0xF614;
         private const ushort Shd80Nil = 0xFFFF;
         private const int Tc80Length = 20;
         private const byte FbrcTop = 0x01;
         private const byte FbrcLeft = 0x02;
         private const byte FbrcBottom = 0x04;
         private const byte FbrcRight = 0x08;
+        private const byte FtsPercent = 0x02;
         private const byte FtsDxa = 0x03;
 
         internal static void WritePapxFkp(byte[] stream, int pageOffset, int textOffset, int oleSectorSize, IReadOnlyList<LegacyDocWritableParagraphSegment> segments, int bytesPerCharacter) {
@@ -106,6 +109,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (formatting.TableAlignment != null) {
                 AddInt16Sprm(grpprl, SprmTJc, MapTableAlignment(formatting.TableAlignment.Value));
+            }
+
+            if (formatting.TablePreferredWidth != null) {
+                AddTablePreferredWidthSprm(grpprl, formatting.TablePreferredWidth.Value);
+            }
+
+            if (formatting.TableAutofit != null) {
+                AddSingleByteSprm(grpprl, SprmTFAutofit, formatting.TableAutofit.Value ? (byte)1 : (byte)0);
             }
 
             if (formatting.LeftIndentTwips != null) {
@@ -231,6 +242,31 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             int operand = isExact ? -rowHeightTwips : rowHeightTwips;
             AddInt16Sprm(grpprl, SprmTDyaRowHeight, operand);
+        }
+
+        private static void AddTablePreferredWidthSprm(List<byte> grpprl, LegacyDocTablePreferredWidth preferredWidth) {
+            byte ftsWidth;
+            switch (preferredWidth.Unit) {
+                case LegacyDocTablePreferredWidthUnit.Percent:
+                    ftsWidth = FtsPercent;
+                    break;
+                case LegacyDocTablePreferredWidthUnit.Dxa:
+                    ftsWidth = FtsDxa;
+                    break;
+                case LegacyDocTablePreferredWidthUnit.Auto:
+                    return;
+                default:
+                    throw new NotSupportedException($"Native DOC saving does not support table preferred width unit '{preferredWidth.Unit}'.");
+            }
+
+            if (preferredWidth.Value <= 0 || preferredWidth.Value > short.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports table preferred width only as a positive Word 97-2003 signed width value.");
+            }
+
+            grpprl.Add((byte)(SprmTTableWidth & 0xFF));
+            grpprl.Add((byte)(SprmTTableWidth >> 8));
+            grpprl.Add(ftsWidth);
+            AddInt16(grpprl, preferredWidth.Value, "table preferred width");
         }
 
         private static int MapTableAlignment(LegacyDocTableAlignment alignment) {
@@ -551,7 +587,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, null, null);
 
         internal LegacyDocWritableParagraphFormatting(
             byte? alignment,
@@ -575,6 +611,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? tableRowCantSplit,
             bool? tableRowIsHeader,
             LegacyDocTableAlignment? tableAlignment,
+            LegacyDocTablePreferredWidth? tablePreferredWidth,
+            bool? tableAutofit,
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges,
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges,
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments,
@@ -637,6 +675,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             TableRowCantSplit = tableRowCantSplit;
             TableRowIsHeader = tableRowIsHeader;
             TableAlignment = tableAlignment;
+            TablePreferredWidth = tablePreferredWidth;
+            TableAutofit = tableAutofit;
             ParagraphShading = paragraphShading.HasValue && paragraphShading.Value.HasAny
                 ? paragraphShading
                 : null;
@@ -702,6 +742,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal LegacyDocTableAlignment? TableAlignment { get; }
 
+        internal LegacyDocTablePreferredWidth? TablePreferredWidth { get; }
+
+        internal bool? TableAutofit { get; }
+
         internal LegacyDocParagraphShading? ParagraphShading { get; }
 
         internal bool HasFormatting => Alignment != null
@@ -733,6 +777,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || TableRowCantSplit != null
             || TableRowIsHeader != null
             || TableAlignment != null
+            || TablePreferredWidth != null
+            || TableAutofit != null
             || ParagraphShading != null;
 
         internal LegacyDocWritableParagraphFormatting WithTableMarkers(
@@ -743,6 +789,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? tableRowCantSplit = null,
             bool? tableRowIsHeader = null,
             LegacyDocTableAlignment? tableAlignment = null,
+            LegacyDocTablePreferredWidth? tablePreferredWidth = null,
+            bool? tableAutofit = null,
             IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges = null,
             IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null,
@@ -774,6 +822,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 tableRowCantSplit,
                 tableRowIsHeader,
                 tableAlignment,
+                tablePreferredWidth,
+                tableAutofit,
                 tableCellHorizontalMerges,
                 tableCellVerticalMerges,
                 tableCellVerticalAlignments,
@@ -817,6 +867,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && TableRowCantSplit == other.TableRowCantSplit
                 && TableRowIsHeader == other.TableRowIsHeader
                 && TableAlignment == other.TableAlignment
+                && TablePreferredWidth.Equals(other.TablePreferredWidth)
+                && TableAutofit == other.TableAutofit
                 && ParagraphShading.Equals(other.ParagraphShading);
         }
 
@@ -845,6 +897,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + TableRowCantSplit.GetHashCode();
             hash = (hash * 31) + TableRowIsHeader.GetHashCode();
             hash = (hash * 31) + TableAlignment.GetHashCode();
+            hash = (hash * 31) + TablePreferredWidth.GetHashCode();
+            hash = (hash * 31) + TableAutofit.GetHashCode();
             hash = (hash * 31) + ParagraphShading.GetHashCode();
             hash = (hash * 31) + DefaultTableCellMargins.GetHashCode();
             hash = (hash * 31) + DefaultTableCellSpacingTwips.GetHashCode();

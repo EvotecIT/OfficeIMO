@@ -185,6 +185,20 @@ namespace OfficeIMO.Word {
                 ApplyLegacyDocTableAlignment(table, tableAlignment.Value);
             }
 
+            LegacyDocTablePreferredWidth? tablePreferredWidth = tableBlock.Rows
+                .Select(row => row.TablePreferredWidth)
+                .FirstOrDefault(width => width.HasValue);
+            if (tablePreferredWidth != null) {
+                ApplyLegacyDocTablePreferredWidth(table, tablePreferredWidth.Value);
+            }
+
+            bool? tableAutofit = tableBlock.Rows
+                .Select(row => row.TableAutofit)
+                .FirstOrDefault(autofit => autofit.HasValue);
+            if (tableAutofit != null) {
+                table.LayoutType = tableAutofit.Value ? TableLayoutValues.Autofit : TableLayoutValues.Fixed;
+            }
+
             int? tableCellSpacingTwips = tableBlock.Rows
                 .Select(row => row.DefaultCellSpacingTwips)
                 .FirstOrDefault(spacing => spacing.HasValue);
@@ -230,6 +244,23 @@ namespace OfficeIMO.Word {
                         ApplyLegacyDocTableCellShading(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellShadings[columnIndex]);
                     }
                 }
+            }
+        }
+
+        private static void ApplyLegacyDocTablePreferredWidth(WordTable table, LegacyDocTablePreferredWidth preferredWidth) {
+            switch (preferredWidth.Unit) {
+                case LegacyDocTablePreferredWidthUnit.Auto:
+                    table.WidthType = TableWidthUnitValues.Auto;
+                    table.Width = 0;
+                    break;
+                case LegacyDocTablePreferredWidthUnit.Percent:
+                    table.WidthType = TableWidthUnitValues.Pct;
+                    table.Width = preferredWidth.Value;
+                    break;
+                case LegacyDocTablePreferredWidthUnit.Dxa:
+                    table.WidthType = TableWidthUnitValues.Dxa;
+                    table.Width = preferredWidth.Value;
+                    break;
             }
         }
 

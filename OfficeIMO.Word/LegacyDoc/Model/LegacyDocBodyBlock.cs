@@ -23,6 +23,38 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         Right
     }
 
+    internal enum LegacyDocTablePreferredWidthUnit {
+        Auto,
+        Percent,
+        Dxa
+    }
+
+    internal readonly struct LegacyDocTablePreferredWidth : IEquatable<LegacyDocTablePreferredWidth> {
+        internal LegacyDocTablePreferredWidth(LegacyDocTablePreferredWidthUnit unit, int value) {
+            Unit = unit;
+            Value = value;
+        }
+
+        internal LegacyDocTablePreferredWidthUnit Unit { get; }
+
+        internal int Value { get; }
+
+        public bool Equals(LegacyDocTablePreferredWidth other) {
+            return Unit == other.Unit && Value == other.Value;
+        }
+
+        public override bool Equals(object? obj) {
+            return obj is LegacyDocTablePreferredWidth other && Equals(other);
+        }
+
+        public override int GetHashCode() {
+            int hash = 17;
+            hash = (hash * 31) + Unit.GetHashCode();
+            hash = (hash * 31) + Value.GetHashCode();
+            return hash;
+        }
+    }
+
     internal readonly struct LegacyDocTableCellShading : IEquatable<LegacyDocTableCellShading> {
         internal LegacyDocTableCellShading(string? fillColorHex) {
             FillColorHex = string.IsNullOrWhiteSpace(fillColorHex)
@@ -142,7 +174,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<bool>? cellNoWraps = null,
             IReadOnlyList<LegacyDocTableCellMargins>? cellMargins = null,
             IReadOnlyList<LegacyDocTableCellShading>? cellShadings = null,
-            int? defaultCellSpacingTwips = null) {
+            int? defaultCellSpacingTwips = null,
+            LegacyDocTablePreferredWidth? tablePreferredWidth = null,
+            bool? tableAutofit = null) {
             Cells = cells;
             CellWidthsTwips = cellWidthsTwips == null || cellWidthsTwips.Count == 0
                 ? Array.Empty<int>()
@@ -176,6 +210,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             DefaultCellSpacingTwips = defaultCellSpacingTwips.HasValue && defaultCellSpacingTwips.Value >= 0 && defaultCellSpacingTwips.Value <= 31680
                 ? defaultCellSpacingTwips
                 : null;
+            TablePreferredWidth = tablePreferredWidth;
+            TableAutofit = tableAutofit;
         }
 
         internal IReadOnlyList<LegacyDocTableCell> Cells { get; }
@@ -207,6 +243,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal IReadOnlyList<LegacyDocTableCellShading> CellShadings { get; }
 
         internal int? DefaultCellSpacingTwips { get; }
+
+        internal LegacyDocTablePreferredWidth? TablePreferredWidth { get; }
+
+        internal bool? TableAutofit { get; }
     }
 
     internal sealed class LegacyDocTableCell {
