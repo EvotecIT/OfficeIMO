@@ -87,6 +87,12 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            Tabs? tabs = CreateLegacyDocTabs(paragraphFormat.TabStops);
+            if (tabs != null) {
+                RemoveStyleProperties<Tabs>(properties);
+                properties.Append(tabs);
+            }
+
             if (paragraphFormat.KeepLinesTogether == true) {
                 ReplaceStyleProperty(properties, new KeepLines());
             }

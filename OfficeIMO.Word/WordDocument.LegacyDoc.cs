@@ -333,6 +333,13 @@ namespace OfficeIMO.Word {
             if (paragraphFormat.AvoidWidowAndOrphan == true) {
                 paragraph.AvoidWidowAndOrphan = true;
             }
+
+            foreach (LegacyDocTabStop tabStop in paragraphFormat.TabStops) {
+                if (TryMapTabStopAlignment(tabStop.Alignment, out TabStopValues tabAlignment)
+                    && TryMapTabStopLeader(tabStop.Leader, out TabStopLeaderCharValues leader)) {
+                    paragraph.AddTabStop(tabStop.PositionTwips, tabAlignment, leader);
+                }
+            }
         }
 
         private static void ApplyLegacyDocParagraphStyle(WordParagraph paragraph, ushort styleIndex, LegacyDocStyleSheet styleSheet) {
@@ -478,6 +485,12 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
+            Tabs? tabs = CreateLegacyDocTabs(paragraphFormat.TabStops);
+            if (tabs != null) {
+                properties.Append(tabs);
+                hasProperties = true;
+            }
+
             if (paragraphFormat.KeepLinesTogether == true) {
                 properties.Append(new KeepLines());
                 hasProperties = true;
@@ -499,6 +512,26 @@ namespace OfficeIMO.Word {
             }
 
             return hasProperties ? properties : null;
+        }
+
+        private static Tabs? CreateLegacyDocTabs(IReadOnlyList<LegacyDocTabStop> tabStops) {
+            if (tabStops.Count == 0) {
+                return null;
+            }
+
+            var tabs = new Tabs();
+            foreach (LegacyDocTabStop tabStop in tabStops) {
+                if (TryMapTabStopAlignment(tabStop.Alignment, out TabStopValues alignment)
+                    && TryMapTabStopLeader(tabStop.Leader, out TabStopLeaderCharValues leader)) {
+                    tabs.Append(new TabStop {
+                        Val = alignment,
+                        Leader = leader,
+                        Position = tabStop.PositionTwips
+                    });
+                }
+            }
+
+            return tabs.HasChildren ? tabs : null;
         }
 
         private static StyleRunProperties? CreateLegacyDocStyleRunProperties(LegacyDocCharacterFormat characterFormat) {
@@ -808,6 +841,58 @@ namespace OfficeIMO.Word {
                     return true;
                 default:
                     value = default;
+                    return false;
+            }
+        }
+
+        private static bool TryMapTabStopAlignment(LegacyDocTabStopAlignment alignment, out TabStopValues value) {
+            switch (alignment) {
+                case LegacyDocTabStopAlignment.Left:
+                    value = TabStopValues.Left;
+                    return true;
+                case LegacyDocTabStopAlignment.Center:
+                    value = TabStopValues.Center;
+                    return true;
+                case LegacyDocTabStopAlignment.Right:
+                    value = TabStopValues.Right;
+                    return true;
+                case LegacyDocTabStopAlignment.Decimal:
+                    value = TabStopValues.Decimal;
+                    return true;
+                case LegacyDocTabStopAlignment.Bar:
+                    value = TabStopValues.Bar;
+                    return true;
+                case LegacyDocTabStopAlignment.Clear:
+                    value = TabStopValues.Clear;
+                    return true;
+                default:
+                    value = TabStopValues.Left;
+                    return false;
+            }
+        }
+
+        private static bool TryMapTabStopLeader(LegacyDocTabStopLeader leader, out TabStopLeaderCharValues value) {
+            switch (leader) {
+                case LegacyDocTabStopLeader.None:
+                    value = TabStopLeaderCharValues.None;
+                    return true;
+                case LegacyDocTabStopLeader.Dot:
+                    value = TabStopLeaderCharValues.Dot;
+                    return true;
+                case LegacyDocTabStopLeader.Hyphen:
+                    value = TabStopLeaderCharValues.Hyphen;
+                    return true;
+                case LegacyDocTabStopLeader.Underscore:
+                    value = TabStopLeaderCharValues.Underscore;
+                    return true;
+                case LegacyDocTabStopLeader.Heavy:
+                    value = TabStopLeaderCharValues.Heavy;
+                    return true;
+                case LegacyDocTabStopLeader.MiddleDot:
+                    value = TabStopLeaderCharValues.MiddleDot;
+                    return true;
+                default:
+                    value = TabStopLeaderCharValues.None;
                     return false;
             }
         }

@@ -17,6 +17,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPDyaBefore = 0xA413;
         private const ushort SprmPDyaAfter = 0xA414;
         private const ushort SprmPFWidowControl = 0x2431;
+        private const ushort SprmPChgTabsPapx = 0xC60D;
 
         internal static IReadOnlyList<LegacyDocParagraphFormatRange> ReadParagraphFormatting(
             byte[] wordDocumentStream,
@@ -141,6 +142,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? avoidWidowAndOrphan = null;
             bool? isInTable = null;
             bool? isTableTerminatingParagraph = null;
+            var tabStops = new List<LegacyDocTabStop>();
             ushort? styleIndex = baseStyleIndex;
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
@@ -243,6 +245,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmPChgTabsPapx) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    int tabOperandLength = bytes[offset + 2];
+                    if (offset + 3 + tabOperandLength > end) {
+                        break;
+                    }
+
+                    ReadTabChanges(bytes, offset + 3, offset + 3 + tabOperandLength, tabStops);
+                    offset += 3 + tabOperandLength;
+                    continue;
+                }
+
                 if (!TryGetSprmOperandLength(bytes, offset, end, out int operandLength)) {
                     break;
                 }
@@ -264,7 +281,93 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 pageBreakBefore,
                 avoidWidowAndOrphan,
                 isInTable,
-                isTableTerminatingParagraph);
+                isTableTerminatingParagraph,
+                tabStops);
+        }
+
+        private static void ReadTabChanges(byte[] bytes, int offset, int end, List<LegacyDocTabStop> tabStops) {
+            if (offset >= end) {
+                return;
+            }
+
+            int deletedCount = bytes[offset++];
+            if (offset + (deletedCount * 2) > end) {
+                return;
+            }
+
+            for (int index = 0; index < deletedCount; index++) {
+                tabStops.Add(new LegacyDocTabStop(ReadInt16(bytes, offset), LegacyDocTabStopAlignment.Clear, LegacyDocTabStopLeader.None));
+                offset += 2;
+            }
+
+            if (offset >= end) {
+                return;
+            }
+
+            int addedCount = bytes[offset++];
+            int addedPositionsOffset = offset;
+            int addedDescriptorsOffset = addedPositionsOffset + (addedCount * 2);
+            if (addedDescriptorsOffset + addedCount > end) {
+                return;
+            }
+
+            for (int index = 0; index < addedCount; index++) {
+                int position = ReadInt16(bytes, addedPositionsOffset + (index * 2));
+                byte descriptor = bytes[addedDescriptorsOffset + index];
+                if (TryMapTabAlignment((byte)(descriptor & 0x07), out LegacyDocTabStopAlignment alignment)
+                    && TryMapTabLeader((byte)((descriptor >> 3) & 0x07), out LegacyDocTabStopLeader leader)) {
+                    tabStops.Add(new LegacyDocTabStop(position, alignment, leader));
+                }
+            }
+        }
+
+        private static bool TryMapTabAlignment(byte value, out LegacyDocTabStopAlignment alignment) {
+            switch (value) {
+                case 0:
+                    alignment = LegacyDocTabStopAlignment.Left;
+                    return true;
+                case 1:
+                    alignment = LegacyDocTabStopAlignment.Center;
+                    return true;
+                case 2:
+                    alignment = LegacyDocTabStopAlignment.Right;
+                    return true;
+                case 3:
+                    alignment = LegacyDocTabStopAlignment.Decimal;
+                    return true;
+                case 4:
+                    alignment = LegacyDocTabStopAlignment.Bar;
+                    return true;
+                default:
+                    alignment = LegacyDocTabStopAlignment.Left;
+                    return false;
+            }
+        }
+
+        private static bool TryMapTabLeader(byte value, out LegacyDocTabStopLeader leader) {
+            switch (value) {
+                case 0:
+                    leader = LegacyDocTabStopLeader.None;
+                    return true;
+                case 1:
+                    leader = LegacyDocTabStopLeader.Dot;
+                    return true;
+                case 2:
+                    leader = LegacyDocTabStopLeader.Hyphen;
+                    return true;
+                case 3:
+                    leader = LegacyDocTabStopLeader.Underscore;
+                    return true;
+                case 4:
+                    leader = LegacyDocTabStopLeader.Heavy;
+                    return true;
+                case 5:
+                    leader = LegacyDocTabStopLeader.MiddleDot;
+                    return true;
+                default:
+                    leader = LegacyDocTabStopLeader.None;
+                    return false;
+            }
         }
 
         private static bool? ReadBoolOperand(byte value) {

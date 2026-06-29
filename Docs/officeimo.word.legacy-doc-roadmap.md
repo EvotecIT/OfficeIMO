@@ -261,6 +261,9 @@ just to reserve names.
     keep-lines, keep-next, page-break-before, and widow-control formatting into
     normal OfficeIMO paragraphs and custom DOCX style definitions with
     synthetic legacy DOC fixture proof.
+  - [x] Project direct PAPX paragraph tab-stop changes, including clear stops,
+    into normal OfficeIMO paragraph `TabStops` with synthetic legacy DOC fixture
+    proof.
   - [x] Merge supported DOC stylesheet paragraph/run formatting into built-in
     DOCX style definitions, starting with a Heading 1 fixture that proves
     alignment, spacing, bold, underline, highlight, color, and size projection.
@@ -358,6 +361,8 @@ just to reserve names.
     legacy reader.
   - [x] Write built-in paragraph style PAPX records and reload them through
     the legacy reader.
+  - [x] Write direct paragraph tab-stop PAPX records, including clear stops,
+    and reload them through the legacy reader.
   - [x] Project imported tab characters and native-written tabs as real Word
     tab runs after legacy DOC reload.
   - [x] Project imported line/page break characters and native-written

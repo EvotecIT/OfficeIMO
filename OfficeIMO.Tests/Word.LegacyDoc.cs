@@ -307,6 +307,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphTabStops() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithParagraphTabStops();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph[] paragraphs = result.Document.Paragraphs.ToArray();
+            Assert.Equal(3, paragraphs.Length);
+            Assert.Equal("plain", paragraphs[0].Text);
+            Assert.Empty(paragraphs[0].TabStops);
+            Assert.Equal("tabs", paragraphs[1].Text);
+            Assert.Equal(3, paragraphs[1].TabStops.Count);
+            Assert.Equal(1440, paragraphs[1].TabStops[0].Position);
+            Assert.Equal(TabStopValues.Left, paragraphs[1].TabStops[0].Alignment);
+            Assert.Equal(TabStopLeaderCharValues.None, paragraphs[1].TabStops[0].Leader);
+            Assert.Equal(2880, paragraphs[1].TabStops[1].Position);
+            Assert.Equal(TabStopValues.Decimal, paragraphs[1].TabStops[1].Alignment);
+            Assert.Equal(TabStopLeaderCharValues.Dot, paragraphs[1].TabStops[1].Leader);
+            Assert.Equal(4320, paragraphs[1].TabStops[2].Position);
+            Assert.Equal(TabStopValues.Right, paragraphs[1].TabStops[2].Alignment);
+            Assert.Equal(TabStopLeaderCharValues.Underscore, paragraphs[1].TabStops[2].Leader);
+            Assert.Equal("clear", paragraphs[2].Text);
+            Assert.Equal(2, paragraphs[2].TabStops.Count);
+            Assert.Equal(1440, paragraphs[2].TabStops[0].Position);
+            Assert.Equal(TabStopValues.Clear, paragraphs[2].TabStops[0].Alignment);
+            Assert.Equal(2160, paragraphs[2].TabStops[1].Position);
+            Assert.Equal(TabStopValues.Bar, paragraphs[2].TabStops[1].Alignment);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelCapsDoubleStrikeAndVerticalPosition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelCapsDoubleStrikeAndVerticalPosition();
 
@@ -1171,6 +1201,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphTabStopsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("plain");
+                    WordParagraph paragraph = document.AddParagraph("tabs");
+                    paragraph.AddTabStop(1440, TabStopValues.Left, TabStopLeaderCharValues.None);
+                    paragraph.AddTabStop(2880, TabStopValues.Decimal, TabStopLeaderCharValues.Dot);
+                    paragraph.AddTabStop(4320, TabStopValues.Right, TabStopLeaderCharValues.Underscore);
+                    WordParagraph clear = document.AddParagraph("clear");
+                    clear.AddTabStop(1440, TabStopValues.Clear, TabStopLeaderCharValues.None);
+                    clear.AddTabStop(2160, TabStopValues.Bar, TabStopLeaderCharValues.None);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
+                Assert.Equal(3, paragraphs.Length);
+                Assert.Equal("plain", paragraphs[0].Text);
+                Assert.Empty(paragraphs[0].TabStops);
+                Assert.Equal("tabs", paragraphs[1].Text);
+                Assert.Equal(3, paragraphs[1].TabStops.Count);
+                Assert.Equal(1440, paragraphs[1].TabStops[0].Position);
+                Assert.Equal(TabStopValues.Left, paragraphs[1].TabStops[0].Alignment);
+                Assert.Equal(TabStopLeaderCharValues.None, paragraphs[1].TabStops[0].Leader);
+                Assert.Equal(2880, paragraphs[1].TabStops[1].Position);
+                Assert.Equal(TabStopValues.Decimal, paragraphs[1].TabStops[1].Alignment);
+                Assert.Equal(TabStopLeaderCharValues.Dot, paragraphs[1].TabStops[1].Leader);
+                Assert.Equal(4320, paragraphs[1].TabStops[2].Position);
+                Assert.Equal(TabStopValues.Right, paragraphs[1].TabStops[2].Alignment);
+                Assert.Equal(TabStopLeaderCharValues.Underscore, paragraphs[1].TabStops[2].Leader);
+                Assert.Equal("clear", paragraphs[2].Text);
+                Assert.Equal(2, paragraphs[2].TabStops.Count);
+                Assert.Equal(1440, paragraphs[2].TabStops[0].Position);
+                Assert.Equal(TabStopValues.Clear, paragraphs[2].TabStops[0].Alignment);
+                Assert.Equal(2160, paragraphs[2].TabStops[1].Position);
+                Assert.Equal(TabStopValues.Bar, paragraphs[2].TabStops[1].Alignment);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphPaginationFlagsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -2005,6 +2082,22 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithParagraphTabStops() {
+                const string text = "plain\rtabs\rclear\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithParagraphTabStops(text, textOffset, papxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithStyleLevelCapsDoubleStrikeAndVerticalPosition() {
                 const string text = "caps style\rsmall style\rsuper style\rsub style\r";
                 const int textOffset = 0x200;
@@ -2562,6 +2655,45 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
+            private static byte[] CreateUnicodeWordDocumentStreamWithParagraphTabStops(string text, int textOffset, int papxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int tabsStart = textOffset + ("plain\r".Length * 2);
+                int clearStart = tabsStart + ("tabs\r".Length * 2);
+                int end = clearStart + ("clear\r".Length * 2);
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, tabsStart, clearStart, end },
+                    new Dictionary<int, byte[]> {
+                        [1] = CreateParagraphPropertiesPapx(CreateParagraphTabStopsSprm(
+                            Array.Empty<int>(),
+                            (1440, 0, 0),
+                            (2880, 3, 1),
+                            (4320, 2, 3))),
+                        [2] = CreateParagraphPropertiesPapx(CreateParagraphTabStopsSprm(
+                            new[] { 1440 },
+                            (2160, 4, 0)))
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
             private static byte[] CreateUnicodeWordDocumentStreamWithStyleLevelCapsDoubleStrikeAndVerticalPosition(string text, int textOffset, int papxFkpOffset, int styleSheetLength) {
                 const int fibLength = 0x1AA;
                 byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
@@ -2899,6 +3031,35 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(bytes, 0, sprm);
                 Buffer.BlockCopy(operand, 0, bytes, 2, operand.Length);
                 return bytes;
+            }
+
+            private static byte[] CreateParagraphTabStopsSprm(int[] clearPositions, params (int Position, byte Alignment, byte Leader)[] addedTabStops) {
+                var operand = new List<byte>();
+                operand.Add(checked((byte)clearPositions.Length));
+                foreach (int position in clearPositions) {
+                    AddInt16(operand, position);
+                }
+
+                operand.Add(checked((byte)addedTabStops.Length));
+                foreach ((int Position, byte Alignment, byte Leader) tabStop in addedTabStops) {
+                    AddInt16(operand, tabStop.Position);
+                }
+
+                foreach ((int Position, byte Alignment, byte Leader) tabStop in addedTabStops) {
+                    operand.Add((byte)(tabStop.Alignment | (tabStop.Leader << 3)));
+                }
+
+                if (operand.Count > byte.MaxValue) {
+                    throw new InvalidOperationException("Test tab-stop operand is too large.");
+                }
+
+                return CreateParagraphSprm(0xC60D, new[] { checked((byte)operand.Count) }.Concat(operand).ToArray());
+            }
+
+            private static void AddInt16(List<byte> bytes, int value) {
+                short signed = checked((short)value);
+                bytes.Add((byte)(signed & 0xFF));
+                bytes.Add((byte)(signed >> 8));
             }
 
             private static int AlignToEven(int value) {

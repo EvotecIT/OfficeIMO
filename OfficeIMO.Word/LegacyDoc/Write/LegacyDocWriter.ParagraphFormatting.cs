@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.LegacyDoc.Model;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
@@ -19,6 +20,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? keepWithNext = null;
             bool? pageBreakBefore = null;
             bool? avoidWidowAndOrphan = null;
+            IReadOnlyList<LegacyDocTabStop>? tabStops = null;
             ushort? styleIndex = null;
             foreach (OpenXmlElement property in paragraphProperties.ChildElements) {
                 switch (property) {
@@ -46,8 +48,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case WidowControl widowControl:
                         avoidWidowAndOrphan = ReadOnOffValue(widowControl);
                         break;
+                    case Tabs tabs:
+                        tabStops = ReadSupportedTabStops(tabs);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, alignment, spacing, indentation, and pagination flags. Unsupported paragraph property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, alignment, spacing, indentation, pagination flags, and tab stops. Unsupported paragraph property: {property.LocalName}.");
                 }
             }
 
@@ -65,7 +70,79 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 pageBreakBefore,
                 avoidWidowAndOrphan,
                 null,
-                null);
+                null,
+                tabStops);
+        }
+
+        private static IReadOnlyList<LegacyDocTabStop> ReadSupportedTabStops(Tabs tabs) {
+            var tabStops = new List<LegacyDocTabStop>();
+            foreach (TabStop tabStop in tabs.Elements<TabStop>()) {
+                if (tabStop.Position == null) {
+                    throw new NotSupportedException("Native DOC saving supports tab stops only when each tab stop has an explicit twip position.");
+                }
+
+                if (!TryReadSupportedTabAlignment(tabStop.Val?.Value ?? TabStopValues.Left, out LegacyDocTabStopAlignment alignment)) {
+                    throw new NotSupportedException($"Native DOC saving does not support tab stop alignment '{tabStop.Val?.Value}'.");
+                }
+
+                if (!TryReadSupportedTabLeader(tabStop.Leader?.Value ?? TabStopLeaderCharValues.None, out LegacyDocTabStopLeader leader)) {
+                    throw new NotSupportedException($"Native DOC saving does not support tab stop leader '{tabStop.Leader?.Value}'.");
+                }
+
+                tabStops.Add(new LegacyDocTabStop(tabStop.Position.Value, alignment, leader));
+            }
+
+            return tabStops;
+        }
+
+        private static bool TryReadSupportedTabAlignment(TabStopValues value, out LegacyDocTabStopAlignment alignment) {
+            if (value == TabStopValues.Left) {
+                alignment = LegacyDocTabStopAlignment.Left;
+                return true;
+            } else if (value == TabStopValues.Center) {
+                alignment = LegacyDocTabStopAlignment.Center;
+                return true;
+            } else if (value == TabStopValues.Right) {
+                alignment = LegacyDocTabStopAlignment.Right;
+                return true;
+            } else if (value == TabStopValues.Decimal) {
+                alignment = LegacyDocTabStopAlignment.Decimal;
+                return true;
+            } else if (value == TabStopValues.Bar) {
+                alignment = LegacyDocTabStopAlignment.Bar;
+                return true;
+            } else if (value == TabStopValues.Clear) {
+                alignment = LegacyDocTabStopAlignment.Clear;
+                return true;
+            }
+
+            alignment = LegacyDocTabStopAlignment.Left;
+            return false;
+        }
+
+        private static bool TryReadSupportedTabLeader(TabStopLeaderCharValues value, out LegacyDocTabStopLeader leader) {
+            if (value == TabStopLeaderCharValues.None) {
+                leader = LegacyDocTabStopLeader.None;
+                return true;
+            } else if (value == TabStopLeaderCharValues.Dot) {
+                leader = LegacyDocTabStopLeader.Dot;
+                return true;
+            } else if (value == TabStopLeaderCharValues.Hyphen) {
+                leader = LegacyDocTabStopLeader.Hyphen;
+                return true;
+            } else if (value == TabStopLeaderCharValues.Underscore) {
+                leader = LegacyDocTabStopLeader.Underscore;
+                return true;
+            } else if (value == TabStopLeaderCharValues.Heavy) {
+                leader = LegacyDocTabStopLeader.Heavy;
+                return true;
+            } else if (value == TabStopLeaderCharValues.MiddleDot) {
+                leader = LegacyDocTabStopLeader.MiddleDot;
+                return true;
+            }
+
+            leader = LegacyDocTabStopLeader.None;
+            return false;
         }
 
         private static ushort? ReadSupportedParagraphStyleIndex(ParagraphStyleId paragraphStyleId) {

@@ -1,4 +1,6 @@
 namespace OfficeIMO.Word.LegacyDoc.Write {
+    using OfficeIMO.Word.LegacyDoc.Model;
+
     internal static class LegacyDocParagraphFormattingWriter {
         private const int PapxFkpBxLength = 13;
         private const ushort SprmPFKeep = 0x2405;
@@ -14,6 +16,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPDyaBefore = 0xA413;
         private const ushort SprmPDyaAfter = 0xA414;
         private const ushort SprmPFWidowControl = 0x2431;
+        private const ushort SprmPChgTabsPapx = 0xC60D;
 
         internal static void WritePapxFkp(byte[] stream, int pageOffset, int textOffset, int oleSectorSize, IReadOnlyList<LegacyDocWritableParagraphSegment> segments, int bytesPerCharacter) {
             if (segments.Count == 0 || segments.Count > byte.MaxValue) {
@@ -108,6 +111,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddLineSpacingSprm(grpprl, formatting.LineSpacingTwips.Value);
             }
 
+            if (formatting.TabStops.Count > 0) {
+                AddTabStopsSprm(grpprl, formatting.TabStops);
+            }
+
             if (grpprl.Count % 2 != 0) {
                 grpprl.Add(0);
             }
@@ -148,6 +155,111 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             grpprl.Add(0);
         }
 
+        private static void AddTabStopsSprm(List<byte> grpprl, IReadOnlyList<LegacyDocTabStop> tabStops) {
+            var clearTabStops = tabStops
+                .Where(tabStop => tabStop.Alignment == LegacyDocTabStopAlignment.Clear)
+                .ToArray();
+            var addedTabStops = tabStops
+                .Where(tabStop => tabStop.Alignment != LegacyDocTabStopAlignment.Clear)
+                .ToArray();
+
+            if (clearTabStops.Length > byte.MaxValue || addedTabStops.Length > byte.MaxValue) {
+                throw new NotSupportedException("Native DOC saving cannot write more than 255 tab stops in one paragraph.");
+            }
+
+            var operand = new List<byte>(2 + (clearTabStops.Length * 2) + (addedTabStops.Length * 3));
+            operand.Add((byte)clearTabStops.Length);
+            foreach (LegacyDocTabStop tabStop in clearTabStops) {
+                AddInt16(operand, tabStop.PositionTwips, "tab stop clear position");
+            }
+
+            operand.Add((byte)addedTabStops.Length);
+            foreach (LegacyDocTabStop tabStop in addedTabStops) {
+                AddInt16(operand, tabStop.PositionTwips, "tab stop position");
+            }
+
+            foreach (LegacyDocTabStop tabStop in addedTabStops) {
+                if (!TryMapTabAlignment(tabStop.Alignment, out byte alignment)
+                    || !TryMapTabLeader(tabStop.Leader, out byte leader)) {
+                    throw new NotSupportedException("Native DOC saving encountered an unsupported tab stop alignment or leader.");
+                }
+
+                operand.Add((byte)(alignment | (leader << 3)));
+            }
+
+            AddVariableSprm(grpprl, SprmPChgTabsPapx, operand);
+        }
+
+        private static bool TryMapTabAlignment(LegacyDocTabStopAlignment alignment, out byte value) {
+            switch (alignment) {
+                case LegacyDocTabStopAlignment.Left:
+                    value = 0;
+                    return true;
+                case LegacyDocTabStopAlignment.Center:
+                    value = 1;
+                    return true;
+                case LegacyDocTabStopAlignment.Right:
+                    value = 2;
+                    return true;
+                case LegacyDocTabStopAlignment.Decimal:
+                    value = 3;
+                    return true;
+                case LegacyDocTabStopAlignment.Bar:
+                    value = 4;
+                    return true;
+                default:
+                    value = 0;
+                    return false;
+            }
+        }
+
+        private static bool TryMapTabLeader(LegacyDocTabStopLeader leader, out byte value) {
+            switch (leader) {
+                case LegacyDocTabStopLeader.None:
+                    value = 0;
+                    return true;
+                case LegacyDocTabStopLeader.Dot:
+                    value = 1;
+                    return true;
+                case LegacyDocTabStopLeader.Hyphen:
+                    value = 2;
+                    return true;
+                case LegacyDocTabStopLeader.Underscore:
+                    value = 3;
+                    return true;
+                case LegacyDocTabStopLeader.Heavy:
+                    value = 4;
+                    return true;
+                case LegacyDocTabStopLeader.MiddleDot:
+                    value = 5;
+                    return true;
+                default:
+                    value = 0;
+                    return false;
+            }
+        }
+
+        private static void AddVariableSprm(List<byte> grpprl, ushort sprm, List<byte> operand) {
+            if (operand.Count > byte.MaxValue) {
+                throw new NotSupportedException("Native DOC saving cannot write paragraph tab stops because the DOC tab-stop record is too large.");
+            }
+
+            grpprl.Add((byte)(sprm & 0xFF));
+            grpprl.Add((byte)(sprm >> 8));
+            grpprl.Add((byte)operand.Count);
+            grpprl.AddRange(operand);
+        }
+
+        private static void AddInt16(List<byte> bytes, int operand, string propertyName) {
+            if (operand < short.MinValue || operand > short.MaxValue) {
+                throw new NotSupportedException($"Native DOC saving supports {propertyName} only within the Word 97-2003 signed twip range.");
+            }
+
+            short value = checked((short)operand);
+            bytes.Add((byte)(value & 0xFF));
+            bytes.Add((byte)(value >> 8));
+        }
+
         private static void WriteInt32(byte[] bytes, int offset, int value) {
             bytes[offset] = (byte)value;
             bytes[offset + 1] = (byte)(value >> 8);
@@ -157,7 +269,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
 
         internal LegacyDocWritableParagraphFormatting(
             byte? alignment,
@@ -173,7 +285,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? pageBreakBefore,
             bool? avoidWidowAndOrphan,
             bool? isInTable,
-            bool? isTableTerminatingParagraph) {
+            bool? isTableTerminatingParagraph,
+            IReadOnlyList<LegacyDocTabStop>? tabStops) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -188,6 +301,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AvoidWidowAndOrphan = avoidWidowAndOrphan;
             IsInTable = isInTable;
             IsTableTerminatingParagraph = isTableTerminatingParagraph;
+            TabStops = tabStops == null || tabStops.Count == 0
+                ? Array.Empty<LegacyDocTabStop>()
+                : tabStops.ToArray();
         }
 
         internal byte? Alignment { get; }
@@ -218,6 +334,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal bool? IsTableTerminatingParagraph { get; }
 
+        internal IReadOnlyList<LegacyDocTabStop> TabStops { get; }
+
         internal bool HasFormatting => Alignment != null
             || StyleIndex != null
             || SpacingBeforeTwips != null
@@ -231,7 +349,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || PageBreakBefore != null
             || AvoidWidowAndOrphan != null
             || IsInTable != null
-            || IsTableTerminatingParagraph != null;
+            || IsTableTerminatingParagraph != null
+            || TabStops.Count > 0;
 
         internal LegacyDocWritableParagraphFormatting WithTableMarkers(bool isTableTerminatingParagraph) {
             return new LegacyDocWritableParagraphFormatting(
@@ -248,7 +367,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PageBreakBefore,
                 AvoidWidowAndOrphan,
                 true,
-                isTableTerminatingParagraph ? true : null);
+                isTableTerminatingParagraph ? true : null,
+                TabStops);
         }
 
         public bool Equals(LegacyDocWritableParagraphFormatting other) {
@@ -265,7 +385,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && PageBreakBefore == other.PageBreakBefore
                 && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan
                 && IsInTable == other.IsInTable
-                && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph;
+                && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph
+                && TabStopsEqual(TabStops, other.TabStops);
         }
 
         public override bool Equals(object? obj) {
@@ -288,7 +409,25 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
             hash = (hash * 31) + IsInTable.GetHashCode();
             hash = (hash * 31) + IsTableTerminatingParagraph.GetHashCode();
+            foreach (LegacyDocTabStop tabStop in TabStops) {
+                hash = (hash * 31) + tabStop.GetHashCode();
+            }
+
             return hash;
+        }
+
+        private static bool TabStopsEqual(IReadOnlyList<LegacyDocTabStop> first, IReadOnlyList<LegacyDocTabStop> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (!first[index].Equals(second[index])) {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 
