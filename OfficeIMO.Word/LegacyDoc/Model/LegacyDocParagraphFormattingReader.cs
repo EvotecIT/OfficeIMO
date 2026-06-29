@@ -18,6 +18,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPDyaAfter = 0xA414;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
+        private const ushort SprmTFCantSplit = 0x3403;
+        private const ushort SprmTTableHeader = 0x3404;
+        private const ushort SprmTFCantSplit90 = 0x3466;
         private const ushort SprmTDyaRowHeight = 0x9407;
         private const ushort SprmTDefTable = 0xD608;
         private const int Tc80Length = 20;
@@ -151,6 +154,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<int>? tableCellWidthsTwips = null;
             int? tableRowHeightTwips = null;
             bool tableRowHeightIsExact = false;
+            bool? tableRowCantSplit = null;
+            bool? tableRowIsHeader = null;
             bool hasMergedTableCells = false;
             ushort? styleIndex = baseStyleIndex;
             while (offset + 2 <= end) {
@@ -207,6 +212,22 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     alignment = MapAlignment(bytes[offset + 2]);
+                    offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmTFCantSplit || sprm == SprmTFCantSplit90 || sprm == SprmTTableHeader) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    bool? value = ReadBoolOperand(bytes[offset + 2]);
+                    if (sprm == SprmTTableHeader) {
+                        tableRowIsHeader = value;
+                    } else {
+                        tableRowCantSplit = value;
+                    }
+
                     offset += 3;
                     continue;
                 }
@@ -323,6 +344,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableCellWidthsTwips,
                 tableRowHeightTwips,
                 tableRowHeightIsExact,
+                tableRowCantSplit,
+                tableRowIsHeader,
                 hasMergedTableCells);
         }
 

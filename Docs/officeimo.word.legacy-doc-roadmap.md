@@ -305,6 +305,9 @@ just to reserve names.
   - [x] Project simple row-level table heights from DOC `sprmTDyaRowHeight`
     row definitions into normal OfficeIMO table row height properties,
     preserving exact versus at-least height rules in the Open XML row.
+  - [x] Project simple row-level repeat-header and no-split flags from DOC
+    `sprmTTableHeader` and `sprmTFCantSplit*` row definitions into normal
+    OfficeIMO table row properties.
   - [ ] Add table formatting, merged cells, and nested tables as separate
     fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
@@ -429,6 +432,9 @@ just to reserve names.
   - [x] Write simple table row heights with `sprmTDyaRowHeight`, reload them
     through the legacy reader, and block unsupported row-level table properties
     before native `.doc` bytes are committed.
+  - [x] Write simple table row repeat-header and no-split flags with
+    `sprmTTableHeader` and `sprmTFCantSplit90`, then reload them through the
+    legacy reader.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.

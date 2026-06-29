@@ -37,7 +37,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         isTableTerminatingParagraph: true,
                         cellWidthsTwips,
                         rowFormatting.RowHeightTwips,
-                        rowFormatting.RowHeightIsExact)));
+                        rowFormatting.RowHeightIsExact,
+                        rowFormatting.RowCantSplit,
+                        rowFormatting.RowIsHeader)));
             }
 
             text.Append('\r');
@@ -146,7 +148,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static LegacyDocWritableTableRowFormatting ReadSupportedTableRowProperties(TableRowProperties tableRowProperties) {
             int? rowHeightTwips = null;
             bool rowHeightIsExact = false;
+            bool? rowCantSplit = null;
+            bool? rowIsHeader = null;
             bool hasRowHeight = false;
+            bool hasCantSplit = false;
+            bool hasTableHeader = false;
             foreach (OpenXmlElement property in tableRowProperties.ChildElements) {
                 switch (property) {
                     case TableRowHeight rowHeight:
@@ -157,12 +163,28 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ReadSupportedTableRowHeight(rowHeight, out rowHeightTwips, out rowHeightIsExact);
                         hasRowHeight = true;
                         break;
+                    case CantSplit cantSplit:
+                        if (hasCantSplit) {
+                            throw new NotSupportedException("Native DOC saving supports simple tables only with one row no-split flag per row.");
+                        }
+
+                        rowCantSplit = ReadTableRowOnOff(cantSplit);
+                        hasCantSplit = true;
+                        break;
+                    case TableHeader tableHeader:
+                        if (hasTableHeader) {
+                            throw new NotSupportedException("Native DOC saving supports simple tables only with one row header flag per row.");
+                        }
+
+                        rowIsHeader = ReadTableRowOnOff(tableHeader);
+                        hasTableHeader = true;
+                        break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table row property: {property.LocalName}.");
                 }
             }
 
-            return new LegacyDocWritableTableRowFormatting(rowHeightTwips, rowHeightIsExact);
+            return new LegacyDocWritableTableRowFormatting(rowHeightTwips, rowHeightIsExact, rowCantSplit, rowIsHeader);
         }
 
         private static void ReadSupportedTableRowHeight(TableRowHeight rowHeight, out int? rowHeightTwips, out bool rowHeightIsExact) {
@@ -190,6 +212,27 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             rowHeightTwips = checked((int)rawValue.Value);
             rowHeightIsExact = heightRule == HeightRuleValues.Exact;
         }
+
+        private static bool? ReadTableRowOnOff(CantSplit cantSplit) {
+            if (cantSplit.Val == null) {
+                return true;
+            }
+
+            return ReadTableRowOnOffValue(cantSplit.Val.InnerText) ? true : null;
+        }
+
+        private static bool? ReadTableRowOnOff(TableHeader tableHeader) {
+            if (tableHeader.Val == null) {
+                return true;
+            }
+
+            return ReadTableRowOnOffValue(tableHeader.Val.InnerText) ? true : null;
+        }
+
+        private static bool ReadTableRowOnOffValue(string? value) =>
+            !string.Equals(value, "0", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(value, "false", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(value, "off", StringComparison.OrdinalIgnoreCase);
 
         private static IReadOnlyList<int> ReadSupportedTableCellWidths(IReadOnlyList<TableCell> cells, IReadOnlyList<int> gridColumnWidthsTwips) {
             var widths = new int[cells.Count];
@@ -286,16 +329,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableTableRowFormatting {
-            internal static readonly LegacyDocWritableTableRowFormatting Empty = new LegacyDocWritableTableRowFormatting(null, false);
+            internal static readonly LegacyDocWritableTableRowFormatting Empty = new LegacyDocWritableTableRowFormatting(null, false, null, null);
 
-            internal LegacyDocWritableTableRowFormatting(int? rowHeightTwips, bool rowHeightIsExact) {
+            internal LegacyDocWritableTableRowFormatting(int? rowHeightTwips, bool rowHeightIsExact, bool? rowCantSplit, bool? rowIsHeader) {
                 RowHeightTwips = rowHeightTwips;
                 RowHeightIsExact = rowHeightIsExact;
+                RowCantSplit = rowCantSplit;
+                RowIsHeader = rowIsHeader;
             }
 
             internal int? RowHeightTwips { get; }
 
             internal bool RowHeightIsExact { get; }
+
+            internal bool? RowCantSplit { get; }
+
+            internal bool? RowIsHeader { get; }
         }
     }
 }

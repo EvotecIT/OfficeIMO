@@ -192,22 +192,28 @@ namespace OfficeIMO.Word {
         }
 
         private static void ApplyLegacyDocTableRowFormatting(WordTableRow row, LegacyDocTableRow sourceRow) {
-            if (sourceRow.RowHeightTwips == null) {
-                return;
+            if (sourceRow.RowHeightTwips != null) {
+                row.AddTableRowProperties();
+                TableRowProperties rowProperties = row._tableRow.TableRowProperties!;
+                TableRowHeight? rowHeight = rowProperties.GetFirstChild<TableRowHeight>();
+                if (rowHeight == null) {
+                    rowHeight = new TableRowHeight();
+                    rowProperties.InsertAt(rowHeight, 0);
+                }
+
+                rowHeight.Val = (uint)sourceRow.RowHeightTwips.Value;
+                rowHeight.HeightType = sourceRow.RowHeightIsExact
+                    ? HeightRuleValues.Exact
+                    : HeightRuleValues.AtLeast;
             }
 
-            row.AddTableRowProperties();
-            TableRowProperties rowProperties = row._tableRow.TableRowProperties!;
-            TableRowHeight? rowHeight = rowProperties.GetFirstChild<TableRowHeight>();
-            if (rowHeight == null) {
-                rowHeight = new TableRowHeight();
-                rowProperties.InsertAt(rowHeight, 0);
+            if (sourceRow.RowCantSplit == true) {
+                row.AllowRowToBreakAcrossPages = false;
             }
 
-            rowHeight.Val = (uint)sourceRow.RowHeightTwips.Value;
-            rowHeight.HeightType = sourceRow.RowHeightIsExact
-                ? HeightRuleValues.Exact
-                : HeightRuleValues.AtLeast;
+            if (sourceRow.RowIsHeader == true) {
+                row.RepeatHeaderRowAtTheTopOfEachPage = true;
+            }
         }
 
         private static void AddLegacyDocTableCell(WordTableCell cell, LegacyDocTableCell sourceCell, LegacyDocStyleSheet styleSheet) {

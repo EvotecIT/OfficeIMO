@@ -99,6 +99,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTableRowHeaderAndNoSplitFlagsFromRowDefinition() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithTableRowFlags(rowCantSplit: true, rowIsHeader: true);
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            WordTableRow row = Assert.Single(table.Rows);
+            Assert.False(row.AllowRowToBreakAcrossPages);
+            Assert.True(row.RepeatHeaderRowAtTheTopOfEachPage);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsMergedTableCellsFromTableDefinition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithMergedTableCellDefinition();
 
@@ -1703,19 +1717,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedTableRowHeaderBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableRowHeaderAndNoSplitFlagsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                WordTable table = document.AddTable(1, 1);
-                table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
-                table.Rows[0].Cells[0].AddParagraph("Header", removeExistingParagraphs: true);
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 1);
+                    table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
+                    table.Rows[0].AllowRowToBreakAcrossPages = false;
+                    table.Rows[0].Cells[0].AddParagraph("Header", removeExistingParagraphs: true);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                    document.Save(docPath);
+                }
 
-                Assert.Contains("table row property", exception.Message.ToLowerInvariant());
-                Assert.False(File.Exists(docPath));
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x04, 0x34, 0x01),
+                    "Expected the native DOC paragraph property stream to contain sprmTTableHeader.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x66, 0x34, 0x01),
+                    "Expected the native DOC paragraph property stream to contain sprmTFCantSplit90.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("Header", row.Cells[0].Paragraphs[0].Text);
+                Assert.True(row.RepeatHeaderRowAtTheTopOfEachPage);
+                Assert.False(row.AllowRowToBreakAcrossPages);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -2164,6 +2194,30 @@ namespace OfficeIMO.Tests {
                     new[] { 1440, 2880 },
                     tableCellFormattingFlags: null,
                     rowHeightOperand: rowHeightOperand);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithTableRowFlags(bool rowCantSplit, bool rowIsHeader) {
+                const string text = "A1\aB1\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 2880 },
+                    tableCellFormattingFlags: null,
+                    rowHeightOperand: null,
+                    rowCantSplit: rowCantSplit,
+                    rowIsHeader: rowIsHeader);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();
@@ -2899,7 +2953,9 @@ namespace OfficeIMO.Tests {
                 int papxFkpOffset,
                 IReadOnlyList<int>? tableCellWidthsTwips = null,
                 IReadOnlyList<ushort>? tableCellFormattingFlags = null,
-                int? rowHeightOperand = null) {
+                int? rowHeightOperand = null,
+                bool rowCantSplit = false,
+                bool rowIsHeader = false) {
                 const int fibLength = 0x1AA;
                 byte[] textBytes = Encoding.Unicode.GetBytes(text);
                 var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
@@ -2929,6 +2985,14 @@ namespace OfficeIMO.Tests {
 
                 if (rowHeightOperand != null) {
                     rowSprms.Add(CreateTableRowHeightSprm(rowHeightOperand.Value));
+                }
+
+                if (rowCantSplit) {
+                    rowSprms.Add(CreateParagraphSprm(0x3466, 1));
+                }
+
+                if (rowIsHeader) {
+                    rowSprms.Add(CreateParagraphSprm(0x3404, 1));
                 }
 
                 byte[] tableRowPapx = CreateParagraphPropertiesPapx(rowSprms.ToArray());

@@ -557,7 +557,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         currentTableRow.ToArray(),
                         paragraphFormat.TableCellWidthsTwips,
                         paragraphFormat.TableRowHeightTwips,
-                        paragraphFormat.TableRowHeightIsExact));
+                        paragraphFormat.TableRowHeightIsExact,
+                        paragraphFormat.TableRowCantSplit,
+                        paragraphFormat.TableRowIsHeader));
                     currentTableRow.Clear();
                 }
 
@@ -577,7 +579,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         currentTableRow.ToArray(),
                         paragraphFormat.TableCellWidthsTwips,
                         paragraphFormat.TableRowHeightTwips,
-                        paragraphFormat.TableRowHeightIsExact));
+                        paragraphFormat.TableRowHeightIsExact,
+                        paragraphFormat.TableRowCantSplit,
+                        paragraphFormat.TableRowIsHeader));
                     currentTableRow.Clear();
                 }
 
