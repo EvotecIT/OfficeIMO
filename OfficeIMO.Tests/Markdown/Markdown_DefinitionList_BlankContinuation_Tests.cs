@@ -1,0 +1,114 @@
+using OfficeIMO.Markdown;
+using MarkdigMarkdown = Markdig.Markdown;
+using Xunit;
+
+namespace OfficeIMO.Tests.MarkdownSuite;
+
+public sealed class Markdown_DefinitionList_BlankContinuation_Tests {
+    [Fact]
+    public void DefinitionList_BlankSeparatedIndentedParagraph_StripsContainerIndent_AndPreservesLazyTail() {
+        const string markdown = """
+Term
+:   First paragraph
+
+    Second paragraph
+lazy continuation
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
+        var firstParagraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var secondParagraph = Assert.IsType<ParagraphBlock>(definition.Blocks[1]);
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var paragraphSyntax = definitionValue.Children.Where(child => child.Kind == MarkdownSyntaxKind.Paragraph).ToArray();
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First paragraph", firstParagraph.Inlines.RenderMarkdown());
+        Assert.Equal("Second paragraph\nlazy continuation", secondParagraph.Inlines.RenderMarkdown());
+        Assert.Equal(2, paragraphSyntax.Length);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 17), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 2, 19), paragraphSyntax[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 5, 5, 17), paragraphSyntax[1].SourceSpan);
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.InlineText,
+                MarkdownSyntaxKind.InlineSoftBreak,
+                MarkdownSyntaxKind.InlineText
+            },
+            paragraphSyntax[1].Children.Select(child => child.Kind).ToArray());
+        Assert.Equal("Term\n:   First paragraph\n\n    Second paragraph\n    lazy continuation", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        var nativeDefinitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var nativeDefinition = Assert.Single(Assert.Single(nativeDefinitionList.Groups).Definitions);
+        var nativeParagraphs = nativeDefinition.Children.OfType<MarkdownNativeParagraphBlock>().ToArray();
+
+        Assert.Equal("First paragraph\n\nSecond paragraph\nlazy continuation", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 17), definitionBody.SourceSpan);
+        Assert.Equal(new[] { "First paragraph", "Second paragraph\nlazy continuation" }, nativeParagraphs.Select(paragraph => paragraph.Text).ToArray());
+        Assert.Contains(nativeParagraphs[1].InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.SoftBreak);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    private static Markdig.MarkdownPipeline CreateMarkdigDefinitionListPipeline() {
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseDefinitionLists(builder);
+        return builder.Build();
+    }
+
+    private static MarkdownReaderOptions CreateMarkdigDefinitionListReaderOptions() {
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        options.DefinitionLists = true;
+        return options;
+    }
+
+    private static HtmlOptions CreateMarkdigDefinitionListHtmlOptions() => new() {
+        Style = HtmlStyle.Plain,
+        CssDelivery = CssDelivery.None,
+        BodyClass = null,
+        AutoHeadingIdentifiers = false
+    };
+
+    private static string NormalizeHtml(string html) {
+        if (string.IsNullOrWhiteSpace(html)) {
+            return string.Empty;
+        }
+
+        var compact = html
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .Replace("> <", "><")
+            .Trim();
+        var sb = new System.Text.StringBuilder(compact.Length);
+        bool lastWasWhitespace = false;
+        for (int i = 0; i < compact.Length; i++) {
+            char ch = compact[i];
+            if (char.IsWhiteSpace(ch)) {
+                lastWasWhitespace = true;
+                continue;
+            }
+
+            if (lastWasWhitespace && sb.Length > 0 && sb[sb.Length - 1] != '>') {
+                sb.Append(' ');
+            }
+
+            lastWasWhitespace = false;
+            sb.Append(ch);
+        }
+
+        return sb.ToString();
+    }
+
+    private static string NormalizeMarkdown(string markdown) {
+        return markdown.Replace("\r\n", "\n").TrimEnd();
+    }
+}

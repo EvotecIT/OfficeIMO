@@ -29,7 +29,7 @@ public sealed partial class MarkdownNativeDocument {
         var normalized = replacementMarkdown
             .Replace("\r\n", "\n")
             .Replace('\r', '\n');
-        var lineEnding = replacementMarkdown.Contains("\r\n", StringComparison.Ordinal)
+        var lineEnding = replacementMarkdown.IndexOf("\r\n", StringComparison.Ordinal) >= 0
             ? "\r\n"
             : "\n";
         var lines = normalized.Split('\n');

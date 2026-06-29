@@ -520,21 +520,30 @@ public static partial class MarkdownReader {
         bool useFirstContinuationIndent = firstContinuationIndent.HasValue;
         bool hasContent = definitionSourceLines.Any(static sourceLine => !string.IsNullOrWhiteSpace(sourceLine.Text));
         bool consumedLeadingBlankLine = false;
+        bool consumedBlankAfterContent = false;
         while (index < lines.Length) {
             var line = lines[index] ?? string.Empty;
             int effectiveContinuationIndent = useFirstContinuationIndent
                 ? firstContinuationIndent.GetValueOrDefault()
                 : continuationIndent;
+            if (allowLazyContinuation && consumedBlankAfterContent) {
+                effectiveContinuationIndent = Math.Max(effectiveContinuationIndent, continuationIndent + DefinitionContinuationIndentOffset);
+            }
+
             if (string.IsNullOrWhiteSpace(line)) {
                 int peek = index;
                 while (peek < lines.Length && string.IsNullOrWhiteSpace(lines[peek])) {
                     peek++;
                 }
 
-                if (peek >= lines.Length || CountLeadingIndentColumns(lines[peek] ?? string.Empty) < effectiveContinuationIndent) {
+                int followingContinuationIndent = allowLazyContinuation && hasContent
+                    ? Math.Max(effectiveContinuationIndent, continuationIndent + DefinitionContinuationIndentOffset)
+                    : effectiveContinuationIndent;
+                if (peek >= lines.Length || CountLeadingIndentColumns(lines[peek] ?? string.Empty) < followingContinuationIndent) {
                     return consumedLeadingBlankLine;
                 }
 
+                bool blankAfterContent = hasContent;
                 if (!hasContent) {
                     consumedLeadingBlankLine = true;
                 }
@@ -543,6 +552,8 @@ public static partial class MarkdownReader {
                     definitionSourceLines.Add(new MarkdownSourceLineSlice(string.Empty, absoluteLineOffset + index + 1, 1));
                     index++;
                 }
+
+                consumedBlankAfterContent = blankAfterContent;
                 continue;
             }
 
@@ -560,6 +571,7 @@ public static partial class MarkdownReader {
                 hasContent = true;
                 index++;
                 useFirstContinuationIndent = false;
+                consumedBlankAfterContent = false;
                 continue;
             }
 
@@ -574,6 +586,7 @@ public static partial class MarkdownReader {
 
             index++;
             useFirstContinuationIndent = false;
+            consumedBlankAfterContent = false;
         }
 
         return consumedLeadingBlankLine;
