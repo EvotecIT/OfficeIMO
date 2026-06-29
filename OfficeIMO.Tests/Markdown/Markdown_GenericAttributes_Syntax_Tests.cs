@@ -263,6 +263,48 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void PlainText_Paragraph_GenericAttributes_Preserve_NoSpace_Source_And_Target_Paragraph() {
+        const string markdown = "word{#plain .wide}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var paragraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("plain", paragraphBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, paragraphBlock.Attributes.Classes);
+        Assert.Equal("word{#plain .wide}", document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var paragraph = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.Paragraph);
+        var attributes = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        Assert.Equal("{#plain .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 18), attributes.SourceSpan);
+        Assert.True(paragraph.SourceSpan!.Value.Contains(attributes.SourceSpan!.Value));
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#plain .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var inline = Assert.Single(nativeParagraph.InlineRuns);
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Equal("word", nativeParagraph.Text);
+        Assert.Equal(MarkdownNativeInlineKind.Text, inline.Kind);
+        Assert.Equal("word", inline.Text);
+        Assert.Same(nativeParagraph, field.Block);
+        Assert.Equal("{#plain .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 18), field.SourceSpan);
+        Assert.Empty(native.EnumerateInlineMetadata("attributes"));
+    }
+
+    [Fact]
     public void AbbreviationEnding_Paragraph_GenericAttributes_Preserve_NoSpace_Source_And_Target_Paragraph() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\n\nHTML{#abbr .wide}\n";
         var options = new MarkdownReaderOptions {

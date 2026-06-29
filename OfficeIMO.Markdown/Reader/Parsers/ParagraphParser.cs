@@ -213,6 +213,11 @@ public static partial class MarkdownReader {
                 return true;
             }
 
+            if (IsNoSpacePlainTextParagraphAttribute(line, lineWithoutAttributeBlock, attributeStart)) {
+                suppressGenericAttributeSeparator = true;
+                return true;
+            }
+
             lineWithoutAttributeBlock = line;
             attributes = MarkdownAttributeSet.Empty;
             attributeStart = -1;
@@ -316,6 +321,53 @@ public static partial class MarkdownReader {
             }
 
             return false;
+        }
+
+        private static bool IsNoSpacePlainTextParagraphAttribute(
+            string line,
+            string lineWithoutAttributeBlock,
+            int attributeStart) {
+            if (string.IsNullOrEmpty(line)
+                || string.IsNullOrWhiteSpace(lineWithoutAttributeBlock)
+                || attributeStart <= 0
+                || attributeStart > line.Length
+                || char.IsWhiteSpace(line[attributeStart - 1])) {
+                return false;
+            }
+
+            var candidate = lineWithoutAttributeBlock.TrimEnd();
+            return candidate.Length > 0
+                && !EndsWithNoSpaceInlineGenericAttributeTarget(candidate);
+        }
+
+        private static bool EndsWithNoSpaceInlineGenericAttributeTarget(string candidate) {
+            var last = candidate[candidate.Length - 1];
+            if (last == ')'
+                || last == ']'
+                || last == '`'
+                || last == '*'
+                || last == '_'
+                || last == '>') {
+                return true;
+            }
+
+            return last switch {
+                '~' => EndsWithDelimitedRun(candidate, "~~") || HasEarlierDelimiter(candidate, "~", 1),
+                '^' => HasEarlierDelimiter(candidate, "^", 1),
+                '+' => EndsWithDelimitedRun(candidate, "++"),
+                '=' => EndsWithDelimitedRun(candidate, "=="),
+                _ => false
+            };
+        }
+
+        private static bool EndsWithDelimitedRun(string candidate, string delimiter) =>
+            candidate.EndsWith(delimiter, StringComparison.Ordinal)
+            && HasEarlierDelimiter(candidate, delimiter, delimiter.Length);
+
+        private static bool HasEarlierDelimiter(string candidate, string delimiter, int closingLength) {
+            var closingStart = candidate.Length - closingLength;
+            return closingStart > 0
+                && candidate.LastIndexOf(delimiter, closingStart - 1, StringComparison.Ordinal) >= 0;
         }
 
         private static MarkdownReaderOptions CloneOptionsWithoutInlineAutolinks(MarkdownReaderOptions source) {
