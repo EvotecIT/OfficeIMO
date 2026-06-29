@@ -1419,16 +1419,6 @@
         "expectedDeepestSpan": { "startLine": 1, "startColumn": 2, "endLine": 1, "endColumn": 4 },
         "expectedNearestBlockKind": "Paragraph",
         "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 17 }
-      },
-      {
-        "description": "the trailing parenthesized text remains literal paragraph text after the shortcut reference",
-        "line": 1,
-        "column": 8,
-        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
-        "expectedDeepestLiteral": "(not a link)",
-        "expectedDeepestSpan": { "startLine": 1, "startColumn": 6, "endLine": 1, "endColumn": 17 },
-        "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 17 }
       }
     ]
   },

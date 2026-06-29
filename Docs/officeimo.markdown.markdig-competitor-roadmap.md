@@ -21,7 +21,7 @@ Current scoreboard:
 - parity gap plan: `Docs/officeimo.markdown.markdig-parity-gap-plan.md`
 - lossless roundtrip design: `Docs/officeimo.markdown.lossless-roundtrip-design.md`
 - external parity baseline: Markdig `1.3.2`
-- standards smoke baseline: 316 CommonMark `0.31.2` fixtures, 51 cmark-gfm extension fixtures, and focused OfficeIMO supplements for upstream ignored-autolink crash and query/fragment autolink regressions
+- standards smoke baseline: 316 CommonMark `0.31.2` fixtures, 52 cmark-gfm extension fixtures, and focused OfficeIMO supplements for upstream ignored-autolink crash and query/fragment autolink regressions
 - package guardrail baseline: tests and benchmarks must keep the same Markdig package version
 
 ## Where We Are Strong

@@ -14,13 +14,15 @@ public sealed class MarkdownCodeFenceInfo {
         string additionalInfo,
         string? elementId,
         IReadOnlyList<string> classes,
-        IReadOnlyDictionary<string, string?> attributes) {
+        IReadOnlyDictionary<string, string?> attributes,
+        bool hasExplicitAttributes) {
         InfoString = infoString;
         Language = language;
         AdditionalInfo = additionalInfo;
         ElementId = elementId;
         _classes = classes;
         _attributes = attributes;
+        HasExplicitAttributes = hasExplicitAttributes;
     }
 
     /// <summary>
@@ -53,6 +55,12 @@ public sealed class MarkdownCodeFenceInfo {
     /// Recognizes <c>key=value</c>, <c>key="value with spaces"</c>, and standalone flags.
     /// </summary>
     public IReadOnlyDictionary<string, string?> Attributes => _attributes;
+
+    /// <summary>
+    /// True when the info string contains explicit attribute syntax such as <c>{...}</c>, <c>#id</c>, or <c>.class</c>.
+    /// Plain key/value fence options remain available through <see cref="Attributes"/> for host features but are not projected as generic HTML attributes by ordinary code blocks.
+    /// </summary>
+    public bool HasExplicitAttributes { get; }
 
     /// <summary>
     /// Common convenience title resolved from <c>title</c> or <c>caption</c> attributes when present.
@@ -190,7 +198,8 @@ public sealed class MarkdownCodeFenceInfo {
                 string.Empty,
                 null,
                 EmptyClasses,
-                new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase));
+                new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase),
+                hasExplicitAttributes: false);
         }
 
         int split = 0;
@@ -203,9 +212,9 @@ public sealed class MarkdownCodeFenceInfo {
             ? normalized.Substring(split).Trim()
             : string.Empty;
 
-        ParseMetadata(additionalInfo, out var elementId, out var classes, out var attributes);
+        ParseMetadata(additionalInfo, out var elementId, out var classes, out var attributes, out var hasExplicitAttributes);
 
-        return new MarkdownCodeFenceInfo(normalized, language, additionalInfo, elementId, classes, attributes);
+        return new MarkdownCodeFenceInfo(normalized, language, additionalInfo, elementId, classes, attributes, hasExplicitAttributes);
     }
 
     private static string DecodeInfoStringToken(string token) {
@@ -245,8 +254,10 @@ public sealed class MarkdownCodeFenceInfo {
         string additionalInfo,
         out string? elementId,
         out IReadOnlyList<string> classes,
-        out IReadOnlyDictionary<string, string?> attributes) {
+        out IReadOnlyDictionary<string, string?> attributes,
+        out bool hasExplicitAttributes) {
         elementId = null;
+        hasExplicitAttributes = false;
         var parsedAttributes = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         var parsedClasses = new List<string>();
         if (string.IsNullOrWhiteSpace(additionalInfo)) {
@@ -261,10 +272,12 @@ public sealed class MarkdownCodeFenceInfo {
             }
 
             if (!segment.IsAttributeBlock) {
+                hasExplicitAttributes |= IsExplicitAttributeToken(segment.Value);
                 MarkdownGenericAttributeParser.ParseToken(segment.Value, parsedAttributes, parsedClasses, ref elementId);
                 continue;
             }
 
+            hasExplicitAttributes = true;
             MarkdownGenericAttributeParser.ParseTokens(segment.Value, out var blockElementId, out var blockClasses, out var blockAttributes);
             if (string.IsNullOrWhiteSpace(elementId) && !string.IsNullOrWhiteSpace(blockElementId)) {
                 elementId = blockElementId;
@@ -284,6 +297,9 @@ public sealed class MarkdownCodeFenceInfo {
         classes = parsedClasses.Count == 0 ? EmptyClasses : parsedClasses.AsReadOnly();
         attributes = parsedAttributes;
     }
+
+    private static bool IsExplicitAttributeToken(string token) =>
+        !string.IsNullOrWhiteSpace(token) && (token[0] == '#' || token[0] == '.');
 
     private static IEnumerable<FenceMetadataSegment> EnumerateMetadataSegments(string value) {
         int index = 0;
