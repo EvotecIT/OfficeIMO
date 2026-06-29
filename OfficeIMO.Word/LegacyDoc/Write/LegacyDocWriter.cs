@@ -93,7 +93,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendTable(text, runs, table);
                         bodyContentCount++;
                         break;
-                    case SectionProperties:
+                    case SectionProperties sectionProperties:
+                        ThrowIfUnsupportedSectionProperties(sectionProperties);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports body paragraphs and simple tables with bold, italic, underline, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");

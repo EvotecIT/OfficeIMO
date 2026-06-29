@@ -873,6 +873,42 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionOrientationBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Landscape section");
+                document.PageOrientation = PageOrientationValues.Landscape;
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("section page setup", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionMarginsBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Narrow margins");
+                document.Sections[0].SetMargins(WordMargin.Narrow);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("section margins", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
         private static class LegacyDocTestBuilder {
             internal static byte[] CreateSimpleDoc(params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
