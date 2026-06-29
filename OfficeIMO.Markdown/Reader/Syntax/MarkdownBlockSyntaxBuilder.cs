@@ -7,14 +7,19 @@ internal static class MarkdownBlockSyntaxBuilder {
         var effectiveSpan = span ?? (block as MarkdownObject)?.SourceSpan;
 
         if (block is ISyntaxMarkdownBlockWithContext syntaxBlockWithContext) {
-            return syntaxBlockWithContext.BuildSyntaxNode(_context, effectiveSpan);
+            return ApplyBlockAttributes(block, syntaxBlockWithContext.BuildSyntaxNode(_context, effectiveSpan));
         }
 
         if (block is ISyntaxMarkdownBlock syntaxBlock) {
-            return syntaxBlock.BuildSyntaxNode(effectiveSpan);
+            return ApplyBlockAttributes(block, syntaxBlock.BuildSyntaxNode(effectiveSpan));
         }
 
-        return new MarkdownSyntaxNode(MarkdownSyntaxKind.Unknown, effectiveSpan, block.RenderMarkdown(), associatedObject: block);
+        return new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.Unknown,
+            effectiveSpan,
+            block.RenderMarkdown(),
+            associatedObject: block,
+            attributes: (block as MarkdownObject)?.Attributes);
     }
 
     internal static MarkdownSyntaxNode BuildInlineBlock(IInlineSyntaxMarkdownBlock inlineBlock, MarkdownSourceSpan? span = null) {
@@ -157,7 +162,33 @@ internal static class MarkdownBlockSyntaxBuilder {
             node.Literal,
             children,
             node.AssociatedObject,
-            node.CustomKind);
+            node.CustomKind,
+            node.Attributes);
+    }
+
+    private static MarkdownSyntaxNode ApplyBlockAttributes(IMarkdownBlock block, MarkdownSyntaxNode node) {
+        if (node == null) {
+            throw new InvalidOperationException("Markdown syntax block builders must return a syntax node.");
+        }
+
+        if (!node.Attributes.IsEmpty ||
+            block is not MarkdownObject markdownObject ||
+            markdownObject.Attributes.IsEmpty) {
+            return node;
+        }
+
+        var children = node.Children.Count == 0
+            ? Array.Empty<MarkdownSyntaxNode>()
+            : node.Children.Select(CloneSyntaxNode).ToArray();
+
+        return new MarkdownSyntaxNode(
+            node.Kind,
+            node.SourceSpan,
+            node.Literal,
+            children,
+            node.AssociatedObject,
+            node.CustomKind,
+            markdownObject.Attributes);
     }
 
     private static bool IsSyntaxChildCompatibleWithBlock(MarkdownSyntaxNode? syntaxNode, IMarkdownBlock block) {

@@ -10,7 +10,12 @@ public static partial class MarkdownReader {
         }
 
         if (node.Children.Count == 0) {
-            return new MarkdownSyntaxNode(node.Kind, node.SourceSpan, node.Literal, customKind: node.CustomKind);
+            return new MarkdownSyntaxNode(
+                node.Kind,
+                node.SourceSpan,
+                node.Literal,
+                customKind: node.CustomKind,
+                attributes: node.Attributes);
         }
 
         var children = new MarkdownSyntaxNode[node.Children.Count];
@@ -18,7 +23,13 @@ public static partial class MarkdownReader {
             children[i] = DetachOriginalSyntaxAssociations(node.Children[i]);
         }
 
-        return new MarkdownSyntaxNode(node.Kind, node.SourceSpan, node.Literal, children, customKind: node.CustomKind);
+        return new MarkdownSyntaxNode(
+            node.Kind,
+            node.SourceSpan,
+            node.Literal,
+            children,
+            customKind: node.CustomKind,
+            attributes: node.Attributes);
     }
 
     internal static MarkdownSyntaxNode BuildSyntaxTree(
@@ -167,7 +178,14 @@ public static partial class MarkdownReader {
             children = normalizedChildren;
         }
 
-        return new MarkdownSyntaxNode(node.Kind, node.SourceSpan, node.Literal, children, node.AssociatedObject, node.CustomKind);
+        return new MarkdownSyntaxNode(
+            node.Kind,
+            node.SourceSpan,
+            node.Literal,
+            children,
+            node.AssociatedObject,
+            node.CustomKind,
+            node.Attributes);
     }
 
     private static MarkdownSyntaxNode NormalizeFinalSyntaxTreeChild(MarkdownSourceSpan? parentSpan, MarkdownSyntaxNode child) {
@@ -193,6 +211,13 @@ public static partial class MarkdownReader {
                 : null;
         }
 
-        return new MarkdownSyntaxNode(child.Kind, normalizedSpan, child.Literal, children, child.AssociatedObject, child.CustomKind);
+        return new MarkdownSyntaxNode(
+            child.Kind,
+            normalizedSpan,
+            child.Literal,
+            children,
+            child.AssociatedObject,
+            child.CustomKind,
+            child.Attributes);
     }
 }

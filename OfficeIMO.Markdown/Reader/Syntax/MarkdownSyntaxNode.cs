@@ -16,6 +16,8 @@ public sealed class MarkdownSyntaxNode {
     public string? CustomKind { get; }
     /// <summary>Optional originating model object (document/block/inline) for AST-aware consumers.</summary>
     public object? AssociatedObject { get; }
+    /// <summary>Generic Markdown attributes associated with this syntax node.</summary>
+    public MarkdownAttributeSet Attributes { get; }
     /// <summary>Parent syntax node when this node belongs to a larger syntax tree.</summary>
     public MarkdownSyntaxNode? Parent { get; private set; }
     /// <summary>Child syntax nodes.</summary>
@@ -38,12 +40,14 @@ public sealed class MarkdownSyntaxNode {
         string? literal = null,
         IReadOnlyList<MarkdownSyntaxNode>? children = null,
         object? associatedObject = null,
-        string? customKind = null) {
+        string? customKind = null,
+        MarkdownAttributeSet? attributes = null) {
         Kind = kind;
         SourceSpan = sourceSpan;
         Literal = literal;
         CustomKind = customKind;
         AssociatedObject = associatedObject;
+        Attributes = attributes == null || attributes.IsEmpty ? MarkdownAttributeSet.Empty : attributes;
         Children = children ?? Array.Empty<MarkdownSyntaxNode>();
         for (int i = 0; i < Children.Count; i++) {
             Children[i]?.AttachToParent(this, i);

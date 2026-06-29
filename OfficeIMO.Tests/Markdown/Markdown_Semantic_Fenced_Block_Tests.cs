@@ -82,6 +82,30 @@ _Chart caption_
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Projects_SemanticFencedBlock_Metadata_To_GenericAttributes() {
+        var options = CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart);
+        var markdown = """
+```ix-chart {#chart .wide data-panel=main pinned}
+{"type":"bar"}
+```
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(result.Document.Blocks));
+        Assert.Equal("chart", block.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, block.Attributes.Classes);
+        Assert.Equal("main", block.Attributes.GetAttribute("data-panel"));
+        Assert.Equal("true", block.Attributes.GetAttribute("pinned"));
+
+        var syntaxBlock = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal("chart", syntaxBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, syntaxBlock.Attributes.Classes);
+        Assert.Equal("main", syntaxBlock.Attributes.GetAttribute("data-panel"));
+        Assert.Equal("true", syntaxBlock.Attributes.GetAttribute("pinned"));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Uses_Custom_Fenced_Block_Syntax_Node_For_External_Block_Extensions() {
         var options = new MarkdownReaderOptions();
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
@@ -89,7 +113,7 @@ _Chart caption_
             new[] { "ix-custom" },
             context => new CustomSyntaxFencedBlock(context.Language, context.Content)));
         var markdown = """
-```ix-custom
+```ix-custom {#custom-panel .wide pinned}
 hello
 ```
 """;
@@ -105,10 +129,16 @@ hello
             MarkdownSyntaxKind.Paragraph
         }, syntaxBlock.Children.Select(child => child.Kind).ToArray());
         Assert.Equal("hello", syntaxBlock.Children[1].Literal);
+        Assert.Equal("custom-panel", syntaxBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, syntaxBlock.Attributes.Classes);
+        Assert.Equal("true", syntaxBlock.Attributes.GetAttribute("pinned"));
 
         var block = Assert.IsType<CustomSyntaxFencedBlock>(Assert.Single(result.Document.Blocks));
         Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 3), block.SourceSpan);
         Assert.Same(block, syntaxBlock.AssociatedObject);
+        Assert.Equal("custom-panel", block.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, block.Attributes.Classes);
+        Assert.Equal("true", block.Attributes.GetAttribute("pinned"));
     }
 
     [Fact]
@@ -172,7 +202,7 @@ hello
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             "Semantic AST",
             new[] { language },
-            context => new SemanticFencedBlock(semanticKind, context.Language, context.Content, context.Caption)));
+            context => new SemanticFencedBlock(semanticKind, context.InfoString, context.Content, context.Caption)));
         return options;
     }
 

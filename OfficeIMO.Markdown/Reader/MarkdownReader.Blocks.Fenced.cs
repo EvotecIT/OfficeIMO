@@ -133,6 +133,13 @@ public static partial class MarkdownReader {
                 continue;
             }
 
+            if (block is MarkdownObject markdownObject && markdownObject.Attributes.IsEmpty) {
+                markdownObject.SetAttributes(MarkdownAttributeSet.Create(
+                    context.FenceInfo.ElementId,
+                    context.FenceInfo.Classes,
+                    context.FenceInfo.Attributes));
+            }
+
             if (!string.IsNullOrWhiteSpace(caption) && block is ICaptionable captionable && string.IsNullOrWhiteSpace(captionable.Caption)) {
                 captionable.Caption = caption;
             }

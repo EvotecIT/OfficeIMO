@@ -18,6 +18,7 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
         Content = NormalizeLineEndings(content);
         Caption = caption;
         IsFenced = isFenced;
+        SetAttributes(MarkdownAttributeSet.Create(FenceInfo.ElementId, FenceInfo.Classes, FenceInfo.Attributes));
     }
 
     /// <summary>Host-defined semantic contract for this block (for example <c>chart</c> or <c>mermaid</c>).</summary>
@@ -161,6 +162,7 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
             span,
             MarkdownBlockSyntaxBuilder.NormalizeSyntaxLiteralLineEndings(Content),
             nodes,
-            this);
+            this,
+            attributes: Attributes);
     }
 }

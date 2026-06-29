@@ -418,8 +418,8 @@ _Caption_
 ```
 """;
 
-            var doc = MarkdownReader.Parse(md);
-            var code = Assert.IsType<CodeBlock>(doc.Blocks[0]);
+            var result = MarkdownReader.ParseWithSyntaxTree(md);
+            var code = Assert.IsType<CodeBlock>(result.Document.Blocks[0]);
 
             Assert.Equal("chart", code.Language);
             Assert.Equal("{#quarterly-overview .wide .accent title=\"Quarterly Revenue\" pinned}", code.FenceInfo.AdditionalInfo);
@@ -432,6 +432,21 @@ _Caption_
             Assert.True(code.FenceInfo.TryGetAttribute("pinned", out var pinned));
             Assert.Equal("true", pinned);
             Assert.Equal("Quarterly Revenue", code.FenceInfo.Title);
+            Assert.Equal("quarterly-overview", code.Attributes.ElementId);
+            Assert.Equal(new[] { "wide", "accent" }, code.Attributes.Classes);
+            Assert.True(code.Attributes.TryGetAttribute("pinned", out var genericPinned));
+            Assert.Equal("true", genericPinned);
+            Assert.Equal("Quarterly Revenue", code.Attributes.GetAttribute("title"));
+
+            var syntax = Assert.Single(result.SyntaxTree.Children);
+            Assert.Equal("quarterly-overview", syntax.Attributes.ElementId);
+            Assert.Equal(new[] { "wide", "accent" }, syntax.Attributes.Classes);
+            Assert.Equal("Quarterly Revenue", syntax.Attributes.GetAttribute("title"));
+
+            var finalSyntax = Assert.Single(result.FinalSyntaxTree.Children);
+            Assert.Equal("quarterly-overview", finalSyntax.Attributes.ElementId);
+            Assert.Equal(new[] { "wide", "accent" }, finalSyntax.Attributes.Classes);
+            Assert.Equal("true", finalSyntax.Attributes.GetAttribute("pinned"));
             Assert.Equal(
                 md.TrimEnd().Replace("\r\n", "\n"),
                 ((IMarkdownBlock)code).RenderMarkdown().Replace("\r\n", "\n"));

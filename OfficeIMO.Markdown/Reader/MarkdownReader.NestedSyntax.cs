@@ -90,7 +90,14 @@ public static partial class MarkdownReader {
             children = remappedChildren;
         }
 
-        return new MarkdownSyntaxNode(node.Kind, span, node.Literal, children, node.AssociatedObject, node.CustomKind);
+        return new MarkdownSyntaxNode(
+            node.Kind,
+            span,
+            node.Literal,
+            children,
+            node.AssociatedObject,
+            node.CustomKind,
+            node.Attributes);
     }
 
     private static void SynchronizeOwnedSyntaxCaches(MarkdownSyntaxNode node) {

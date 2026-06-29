@@ -37,6 +37,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
         Language = FenceInfo.Language;
         Content = NormalizeLineEndings(content);
         IsFenced = isFenced;
+        SetAttributes(MarkdownAttributeSet.Create(FenceInfo.ElementId, FenceInfo.Classes, FenceInfo.Attributes));
     }
 
     internal void SetFenceSourceInfo(
@@ -139,6 +140,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
             span,
             MarkdownBlockSyntaxBuilder.NormalizeSyntaxLiteralLineEndings(Content),
             nodes,
-            this);
+            this,
+            attributes: Attributes);
     }
 }
