@@ -244,6 +244,9 @@ just to reserve names.
   checked-in fixtures are the source of CI proof.
 - [ ] Add optional NPOI fixture-generation tooling only if a feature slice needs
   deterministic `.doc` shapes that are awkward to produce through Word COM.
+- [x] Add an opt-in desktop Word COM validation lane that checks generated DOC
+  import, native DOC save, and checked-in corpus openability without running in
+  normal CI.
 - [x] Add corpus report approval tests with short Markdown baselines.
 - [x] Define the first native `.doc` writer preflight for paragraph-only output,
   including body element, document part, paragraph, and run blockers before any

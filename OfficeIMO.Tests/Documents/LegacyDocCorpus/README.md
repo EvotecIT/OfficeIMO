@@ -47,3 +47,24 @@ Use `-Scenario` to generate one focused fixture family at a time:
 
 The generator is test-support tooling only. It must not be referenced by
 `OfficeIMO.Word` or any production project.
+
+## Optional Desktop Word Validation
+
+When Microsoft Word is installed on Windows, run the opt-in COM lane to generate
+a real `.doc` document through Word, import it through OfficeIMO, save it back
+through the native `.doc` writer, and verify desktop Word opens both files:
+
+```powershell
+$env:OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION = '1'
+dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~LegacyDoc_ComGeneratedDocument_ImportsAndNativeSaveOpensInDesktopWordWhenRequested"
+Remove-Item Env:\OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION
+```
+
+The same switch also verifies checked-in legacy DOC corpus fixtures open through
+desktop Word:
+
+```powershell
+$env:OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION = '1'
+dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~LegacyDoc_CorpusFixtures_OpenInDesktopWordWhenRequested"
+Remove-Item Env:\OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION
+```

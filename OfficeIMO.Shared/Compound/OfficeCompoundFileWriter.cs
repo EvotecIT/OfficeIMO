@@ -15,6 +15,7 @@ namespace OfficeIMO.Shared {
         private const uint FreeSect = 0xffffffff;
         private const uint EndOfChain = 0xfffffffe;
         private const uint FatSect = 0xfffffffd;
+        private const uint NoStream = 0xffffffff;
 
         internal static byte[] Write(IReadOnlyList<OfficeCompoundStream> streams) {
             if (streams == null) throw new ArgumentNullException(nameof(streams));
@@ -136,7 +137,7 @@ namespace OfficeIMO.Shared {
         private static byte[] BuildDirectory(IReadOnlyList<PaddedStream> streams, int directorySectorCount, uint miniStreamStartSector, int miniStreamLength) {
             byte[] directory = new byte[checked(directorySectorCount * SectorSize)];
             DirectoryTreeLinks directoryLinks = DirectoryTreeLinks.Create(streams.Count);
-            WriteDirectoryEntry(directory, 0, "Root Entry", 5, EndOfChain, EndOfChain, directoryLinks.RootChild, miniStreamStartSector, unchecked((ulong)miniStreamLength));
+            WriteDirectoryEntry(directory, 0, "Root Entry", 5, NoStream, NoStream, directoryLinks.RootChild, miniStreamStartSector, unchecked((ulong)miniStreamLength));
 
             for (int i = 0; i < streams.Count; i++) {
                 PaddedStream stream = streams[i];
@@ -147,7 +148,7 @@ namespace OfficeIMO.Shared {
                     2,
                     directoryLinks.GetLeftSibling(i),
                     directoryLinks.GetRightSibling(i),
-                    EndOfChain,
+                    NoStream,
                     stream.StartSector,
                     unchecked((ulong)stream.OriginalLength));
             }
@@ -379,7 +380,7 @@ namespace OfficeIMO.Shared {
             }
 
             private static uint ToDirectoryEntryId(int streamIndex) {
-                return streamIndex < 0 ? EndOfChain : unchecked((uint)(streamIndex + 1));
+                return streamIndex < 0 ? NoStream : unchecked((uint)(streamIndex + 1));
             }
         }
 
@@ -387,6 +388,11 @@ namespace OfficeIMO.Shared {
             internal static DirectoryNameComparer Instance { get; } = new DirectoryNameComparer();
 
             public int Compare(string? left, string? right) {
+                int length = (left?.Length ?? 0).CompareTo(right?.Length ?? 0);
+                if (length != 0) {
+                    return length;
+                }
+
                 int ignoreCase = StringComparer.OrdinalIgnoreCase.Compare(left, right);
                 return ignoreCase != 0 ? ignoreCase : StringComparer.Ordinal.Compare(left, right);
             }

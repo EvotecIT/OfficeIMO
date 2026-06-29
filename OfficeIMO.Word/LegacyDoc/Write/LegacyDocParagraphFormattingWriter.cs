@@ -9,7 +9,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPDyaBefore = 0xA413;
         private const ushort SprmPDyaAfter = 0xA414;
 
-        internal static void WritePapxFkp(byte[] stream, int pageOffset, int textOffset, int oleSectorSize, IReadOnlyList<LegacyDocWritableParagraphSegment> segments) {
+        internal static void WritePapxFkp(byte[] stream, int pageOffset, int textOffset, int oleSectorSize, IReadOnlyList<LegacyDocWritableParagraphSegment> segments, int bytesPerCharacter) {
             if (segments.Count == 0 || segments.Count > byte.MaxValue) {
                 throw new NotSupportedException("Native DOC saving currently supports paragraph formatting only when it fits in one paragraph-format page.");
             }
@@ -23,7 +23,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             for (int index = 0; index < segments.Count; index++) {
                 LegacyDocWritableParagraphSegment segment = segments[index];
-                WriteInt32(stream, pageOffset + (index * 4), textOffset + (segment.StartCharacter * 2));
+                WriteInt32(stream, pageOffset + (index * 4), textOffset + (segment.StartCharacter * bytesPerCharacter));
                 if (!segment.Formatting.HasFormatting) {
                     continue;
                 }
@@ -40,7 +40,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             LegacyDocWritableParagraphSegment lastSegment = segments[segments.Count - 1];
-            WriteInt32(stream, pageOffset + (segments.Count * 4), textOffset + (lastSegment.EndCharacter * 2));
+            WriteInt32(stream, pageOffset + (segments.Count * 4), textOffset + (lastSegment.EndCharacter * bytesPerCharacter));
             stream[pageOffset + oleSectorSize - 1] = (byte)segments.Count;
         }
 
