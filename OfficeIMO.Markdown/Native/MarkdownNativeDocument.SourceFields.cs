@@ -408,6 +408,18 @@ public sealed partial class MarkdownNativeDocument {
                     yield return new MarkdownNativeBlockSourceField("definitionTerm", term.Text, term.SourceSpan.Value, definitionList, termIndex);
                 }
 
+                if (!term.TermObject.Attributes.IsEmpty) {
+                    var sourceSpan = MarkdownGenericAttributeSourceSpans.GetSourceSpan(term.TermObject);
+                    if (sourceSpan.HasValue) {
+                        yield return new MarkdownNativeBlockSourceField(
+                            "attributes",
+                            MarkdownGenericAttributeSourceSpans.GetSourceText(term.TermObject),
+                            sourceSpan.Value,
+                            definitionList,
+                            termIndex);
+                    }
+                }
+
                 termIndex++;
             }
 

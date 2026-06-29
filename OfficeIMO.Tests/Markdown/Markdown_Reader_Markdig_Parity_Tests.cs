@@ -346,6 +346,11 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "footnote-reference-attribute-is-consumed", "text[^a]{#ref .wide}\n\n[^a]: note" };
     }
 
+    public static IEnumerable<object[]> GenericAttributesDefinitionListExtensionCases() {
+        yield return new object[] { "definition-list-definition-paragraph-attribute", "Term\n:   Definition {#def .wide}" };
+        yield return new object[] { "definition-list-term-attribute", "Term {#term .wide}\n:   Definition" };
+    }
+
     [Theory]
     [MemberData(nameof(CoreParityCases))]
     public void MarkdownReader_Matches_Markdig_On_Curated_Cases(string _, string markdown) {
@@ -648,6 +653,31 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         Assert.DoesNotContain("{#ref .wide}", normalizedMarkdig, StringComparison.Ordinal);
         Assert.DoesNotContain("{#ref .wide}", normalizedOffice, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(GenericAttributesDefinitionListExtensionCases))]
+    public void MarkdownReader_GenericAttributes_In_DefinitionLists_Match_Markdig_Extensions(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseDefinitionLists(builder);
+        Markdig.MarkdownExtensions.UseGenericAttributes(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.DefinitionLists = true;
+        officeOptions.GenericAttributes = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
     }
 
     private static string NormalizeGenericAttributesHtmlForParity(string html) {

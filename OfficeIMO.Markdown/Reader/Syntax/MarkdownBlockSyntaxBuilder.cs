@@ -38,13 +38,16 @@ internal static class MarkdownBlockSyntaxBuilder {
         MarkdownSourceSpan? span = null,
         string? literal = null,
         object? associatedObject = null) {
-        var children = MarkdownInlineSyntaxBuilder.BuildChildren(inlines);
+        var markdownObject = associatedObject as MarkdownObject;
+        var inlineChildren = MarkdownInlineSyntaxBuilder.BuildChildren(inlines);
+        var children = MarkdownGenericAttributeSyntaxNodes.Append(inlineChildren, markdownObject);
         return new MarkdownSyntaxNode(
             kind,
-            span ?? GetAggregateSpan(children),
+            MarkdownGenericAttributeSyntaxNodes.GetContainingSpan(span, children) ?? GetAggregateSpan(children),
             literal ?? inlines?.RenderMarkdown(),
             children: children,
-            associatedObject: associatedObject ?? inlines);
+            associatedObject: associatedObject ?? inlines,
+            attributes: markdownObject?.Attributes);
     }
 
     internal static IReadOnlyList<MarkdownSyntaxNode> BuildChildSyntaxNodes(IEnumerable<IMarkdownBlock> children) {

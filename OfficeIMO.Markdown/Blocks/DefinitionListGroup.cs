@@ -50,6 +50,12 @@ public sealed class DefinitionListGroup : MarkdownObject {
         }
     }
 
+    internal void AddTerm(DefinitionListTerm? term) {
+        if (term != null) {
+            _terms.Add(term);
+        }
+    }
+
     internal void ReplaceTerm(int index, InlineSequence? term) {
         if (index < 0 || index >= _terms.Count) {
             return;

@@ -56,7 +56,7 @@ public sealed class DefinitionListDefinition : MarkdownObject {
         }
 
         if (_blocks.Count == 1 && _blocks[0] is ParagraphBlock paragraph && !ForceParagraphHtml) {
-            return paragraph.Inlines.RenderHtml();
+            return paragraph.Inlines.RenderHtml() + RenderConsumedGenericAttributeWhitespace(paragraph);
         }
 
         var sb = new StringBuilder();
@@ -65,5 +65,15 @@ public sealed class DefinitionListDefinition : MarkdownObject {
         }
 
         return sb.ToString();
+    }
+
+    private static string RenderConsumedGenericAttributeWhitespace(ParagraphBlock paragraph) {
+        if (paragraph == null ||
+            paragraph.Attributes.IsEmpty ||
+            string.IsNullOrEmpty(paragraph.GenericAttributeConsumedWhitespace)) {
+            return string.Empty;
+        }
+
+        return HtmlTextEncoder.Encode(paragraph.GenericAttributeConsumedWhitespace, HtmlRenderContext.Options);
     }
 }

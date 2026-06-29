@@ -135,9 +135,13 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         sb.Append("<dl>");
         for (int groupIndex = 0; groupIndex < _groups.Count; groupIndex++) {
             var group = _groups[groupIndex];
-            for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
-                sb.Append("<dt>");
-                sb.Append(group.Terms[termIndex].RenderHtml());
+            for (int termIndex = 0; termIndex < group.TermItems.Count; termIndex++) {
+                var term = group.TermItems[termIndex] ?? new DefinitionListTerm();
+                sb.Append("<dt");
+                sb.Append(MarkdownHtmlAttributes.Render(term.Attributes, null));
+                sb.Append(">");
+                sb.Append(term.Inlines.RenderHtml());
+                sb.Append(RenderTermGenericAttributeConsumedWhitespace(term));
                 sb.Append("</dt>");
             }
 
@@ -149,6 +153,16 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         }
         sb.Append("</dl>");
         return sb.ToString();
+    }
+
+    private static string RenderTermGenericAttributeConsumedWhitespace(DefinitionListTerm term) {
+        if (term == null ||
+            term.Attributes.IsEmpty ||
+            string.IsNullOrEmpty(term.GenericAttributeConsumedWhitespace)) {
+            return string.Empty;
+        }
+
+        return HtmlTextEncoder.Encode(term.GenericAttributeConsumedWhitespace, HtmlRenderContext.Options);
     }
 
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
@@ -419,7 +433,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
                     MarkdownSyntaxKind.DefinitionTerm,
                     term,
                     cachedTerm?.SourceSpan,
-                    literal: term.RenderMarkdown(),
+                    literal: termObject.Markdown,
                     associatedObject: termObject));
             }
 

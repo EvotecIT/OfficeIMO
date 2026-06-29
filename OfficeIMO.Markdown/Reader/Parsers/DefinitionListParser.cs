@@ -138,7 +138,7 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        if (!TryCollectMarkdigDefinitionTerms(lines, i, out var markerIndex, out var terms)) {
+        if (!TryCollectMarkdigDefinitionTerms(lines, i, options, state, out var markerIndex, out var terms)) {
             return false;
         }
 
@@ -146,7 +146,7 @@ public static partial class MarkdownReader {
         dl.SetParsingContext(options, state);
         int cursor = i;
         while (cursor < lines.Length &&
-               TryCollectMarkdigDefinitionTerms(lines, cursor, out markerIndex, out terms)) {
+               TryCollectMarkdigDefinitionTerms(lines, cursor, options, state, out markerIndex, out terms)) {
             var definitions = new List<DefinitionListDefinition>();
             var definitionNodes = new List<(MarkdownSyntaxNode Marker, MarkdownSyntaxNode Definition)>();
             cursor = markerIndex;
@@ -192,17 +192,23 @@ public static partial class MarkdownReader {
                 terms[termIndex].Bind(options, state);
             }
 
-            var group = new DefinitionListGroup(
-                terms.Select(static term => term.Inlines),
-                definitions);
+            var group = new DefinitionListGroup();
+            for (int termIndex = 0; termIndex < terms.Count; termIndex++) {
+                group.AddTerm(terms[termIndex].TermObject);
+            }
+
+            for (int definitionIndex = 0; definitionIndex < definitions.Count; definitionIndex++) {
+                group.AddDefinition(definitions[definitionIndex]);
+            }
+
             var groupChildren = new List<MarkdownSyntaxNode>(terms.Count + definitionNodes.Count);
             for (int termIndex = 0; termIndex < terms.Count; termIndex++) {
                 var termObject = group.TermItems[termIndex];
                 groupChildren.Add(MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
                     MarkdownSyntaxKind.DefinitionTerm,
-                    terms[termIndex].Inlines,
+                    termObject.Inlines,
                     terms[termIndex].Span,
-                    terms[termIndex].Literal,
+                    termObject.Markdown,
                     associatedObject: termObject));
             }
 
@@ -225,7 +231,7 @@ public static partial class MarkdownReader {
             }
 
             if (nextGroup < lines.Length &&
-                TryCollectMarkdigDefinitionTerms(lines, nextGroup, out _, out _)) {
+                TryCollectMarkdigDefinitionTerms(lines, nextGroup, options, state, out _, out _)) {
                 cursor = nextGroup;
                 continue;
             }
@@ -241,6 +247,8 @@ public static partial class MarkdownReader {
     private static bool TryCollectMarkdigDefinitionTerms(
         string[] lines,
         int startIndex,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
         out int markerIndex,
         out List<ParsedDefinitionTermLine> terms) {
         markerIndex = -1;
@@ -257,14 +265,18 @@ public static partial class MarkdownReader {
                 return false;
             }
 
-            terms.Add(CreateMarkdigDefinitionTerm(line, cursor));
+            terms.Add(CreateMarkdigDefinitionTerm(line, cursor, options, state));
             cursor++;
         }
 
         return false;
     }
 
-    private static ParsedDefinitionTermLine CreateMarkdigDefinitionTerm(string line, int zeroBasedLineIndex) {
+    private static ParsedDefinitionTermLine CreateMarkdigDefinitionTerm(
+        string line,
+        int zeroBasedLineIndex,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
         int termStartIndex = 0;
         while (termStartIndex < line.Length && char.IsWhiteSpace(line[termStartIndex])) {
             termStartIndex++;
@@ -275,13 +287,49 @@ public static partial class MarkdownReader {
             termEndExclusive--;
         }
 
+        var sourceLiteral = termEndExclusive > termStartIndex
+            ? line.Substring(termStartIndex, termEndExclusive - termStartIndex)
+            : string.Empty;
+        var literal = sourceLiteral;
+        MarkdownAttributeSet attributes = MarkdownAttributeSet.Empty;
+        MarkdownSourceSpan? attributeSpan = null;
+        string? attributeSourceText = null;
+        string consumedWhitespace = string.Empty;
+
+        if (ShouldParseBlockGenericAttributes(options, state)
+            && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
+                sourceLiteral,
+                out var literalWithoutAttributeBlock,
+                out attributes,
+                out var attributeStart,
+                out var attributeEnd,
+                requireLeadingWhitespace: true)) {
+            literal = literalWithoutAttributeBlock;
+            if (attributeStart >= literalWithoutAttributeBlock.Length) {
+                consumedWhitespace = sourceLiteral.Substring(
+                    literalWithoutAttributeBlock.Length,
+                    attributeStart - literalWithoutAttributeBlock.Length);
+            }
+
+            attributeSourceText = sourceLiteral.Substring(attributeStart, attributeEnd - attributeStart + 1);
+            var absoluteAttributeLine = state.SourceLineOffset + zeroBasedLineIndex + 1;
+            attributeSpan = CreateSpan(
+                state,
+                absoluteAttributeLine,
+                termStartIndex + attributeStart + 1,
+                absoluteAttributeLine,
+                termStartIndex + attributeEnd + 1);
+        }
+
         return new ParsedDefinitionTermLine(
             zeroBasedLineIndex,
             termStartIndex,
             termEndExclusive,
-            termEndExclusive > termStartIndex
-                ? line.Substring(termStartIndex, termEndExclusive - termStartIndex)
-                : string.Empty);
+            literal,
+            attributes,
+            attributeSourceText,
+            attributeSpan,
+            consumedWhitespace);
     }
 
     private static bool IsMarkdigDefinitionTermCandidate(string line) {
@@ -403,19 +451,36 @@ public static partial class MarkdownReader {
     }
 
     private sealed class ParsedDefinitionTermLine {
-        public ParsedDefinitionTermLine(int zeroBasedLineIndex, int startIndex, int endExclusive, string literal) {
+        public ParsedDefinitionTermLine(
+            int zeroBasedLineIndex,
+            int startIndex,
+            int endExclusive,
+            string literal,
+            MarkdownAttributeSet attributes,
+            string? attributeSourceText,
+            MarkdownSourceSpan? attributeSpan,
+            string consumedWhitespace) {
             ZeroBasedLineIndex = zeroBasedLineIndex;
             StartIndex = startIndex;
             EndExclusive = endExclusive;
             Literal = literal ?? string.Empty;
+            Attributes = attributes ?? MarkdownAttributeSet.Empty;
+            AttributeSourceText = attributeSourceText;
+            AttributeSpan = attributeSpan;
+            ConsumedWhitespace = consumedWhitespace ?? string.Empty;
         }
 
         public int ZeroBasedLineIndex { get; }
         public int StartIndex { get; }
         public int EndExclusive { get; }
         public string Literal { get; }
+        public MarkdownAttributeSet Attributes { get; }
+        public string? AttributeSourceText { get; }
+        public MarkdownSourceSpan? AttributeSpan { get; }
+        public string ConsumedWhitespace { get; }
         public InlineSequence Inlines { get; private set; } = new InlineSequence();
         public MarkdownSourceSpan Span { get; private set; }
+        public DefinitionListTerm TermObject { get; private set; } = new DefinitionListTerm();
 
         public void Bind(MarkdownReaderOptions options, MarkdownReaderState state) {
             int lineNumber = state.SourceLineOffset + ZeroBasedLineIndex + 1;
@@ -427,6 +492,11 @@ public static partial class MarkdownReader {
                 StartIndex + 1,
                 lineNumber,
                 Math.Max(StartIndex + 1, EndExclusive));
+            TermObject = new DefinitionListTerm(Inlines);
+            TermObject.SetAttributes(Attributes);
+            TermObject.GenericAttributeConsumedWhitespace = ConsumedWhitespace;
+            TermObject.SourceSpan = Span;
+            MarkdownGenericAttributeSourceSpans.Set(TermObject, AttributeSourceText, AttributeSpan);
         }
     }
 

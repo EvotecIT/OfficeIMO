@@ -5,6 +5,7 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class DefinitionListTerm : MarkdownObject {
     private InlineSequence _inlines;
+    internal string GenericAttributeConsumedWhitespace { get; set; } = string.Empty;
 
     /// <summary>Creates a definition-list term.</summary>
     public DefinitionListTerm(InlineSequence? inlines = null) {
@@ -18,7 +19,19 @@ public sealed class DefinitionListTerm : MarkdownObject {
     }
 
     /// <summary>Markdown representation of the term.</summary>
-    public string Markdown => Inlines.RenderMarkdown();
+    public string Markdown {
+        get {
+            var markdown = Inlines.RenderMarkdown();
+            if (Attributes.IsEmpty) {
+                return markdown;
+            }
+
+            var separator = string.IsNullOrEmpty(GenericAttributeConsumedWhitespace)
+                ? " "
+                : GenericAttributeConsumedWhitespace;
+            return markdown + separator + MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes);
+        }
+    }
 
     /// <summary>Plain-text representation of the term.</summary>
     public string Text => InlinePlainText.Extract(Inlines);

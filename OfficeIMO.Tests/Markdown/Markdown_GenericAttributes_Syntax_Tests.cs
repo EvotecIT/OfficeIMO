@@ -184,4 +184,50 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
         Assert.Equal("{#li .selected}", slice.Text);
     }
+
+    [Fact]
+    public void DefinitionListTerm_GenericAttributes_Are_SourceBacked() {
+        const string markdown = "Term {#term .wide}\n:   Definition {#def .wide}\n";
+        var options = new MarkdownReaderOptions {
+            DefinitionLists = true,
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var definitionTerm = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.DefinitionTerm);
+        var termAttributes = Assert.Single(definitionTerm.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        Assert.Equal("{#term .wide}", termAttributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 18), termAttributes.SourceSpan);
+        Assert.True(definitionTerm.SourceSpan!.Value.Contains(termAttributes.SourceSpan!.Value));
+        Assert.Equal(MarkdownSyntaxKind.GenericAttributeBlock, result.FindDeepestFinalNodeAtPosition(1, 10)!.Kind);
+
+        Assert.True(result.TryCreateOriginalSourceSlice(termAttributes, out var slice));
+        Assert.Equal("{#term .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var definitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var term = Assert.Single(group.Terms);
+
+        Assert.Equal("Term", term.Text);
+        Assert.Equal("Term {#term .wide}", term.Markdown);
+
+        var attributes = native.EnumerateBlockSourceFields("attributes").ToArray();
+        var nativeTermAttributes = Assert.Single(
+            attributes,
+            field => field.Block == definitionList && field.Index == 0 && field.Value == "{#term .wide}");
+
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 18), nativeTermAttributes.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(nativeTermAttributes, "{#label .tag}"));
+
+        Assert.Contains("Term {#label .tag}", roundtrip.Markdown, StringComparison.Ordinal);
+        Assert.Contains(":   Definition {#def .wide}", roundtrip.Markdown, StringComparison.Ordinal);
+    }
 }
