@@ -33,7 +33,13 @@ Current truth:
 
 ## Missing Parity Plan
 
-This is the non-looping backlog. Each row names the kind of work that is actually missing. A row can move to done only when the reusable engine behavior, public contract, docs, and proof are all present. Test-only work is valid only when the row says `Proof only` or the engine behavior already exists and lacks evidence.
+This is the non-looping backlog. A row can move to done only when reusable engine behavior, public contract, docs, and proof are all present. Test-only work is valid only when the row says `Proof only` or the engine behavior already exists and lacks evidence.
+
+The short answer to "are we only doing tests?" is no:
+
+- Engine work means parser, semantic AST, syntax AST, source/native projection, renderer, writer, or extension APIs change.
+- Proof work means Markdig comparison cases, generated inventories, snapshots, writer checks, renderer checks, and benchmarks prove the engine contract.
+- Parity needs both, but proof does not replace missing engine behavior.
 
 ### P0 - Current Source Of Truth
 
@@ -44,28 +50,33 @@ This is the non-looping backlog. Each row names the kind of work that is actuall
 - [ ] **AST/source/lossless parity is not closed.** Full trivia, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, source edits, and source-aware extension paths are still partial.
 - [ ] **Performance parity is not known.** Release-mode Markdig comparisons should run after parser/source/writer behavior stops moving.
 
-### P1 - Engine Work We Are Missing
+### P1 - Engine Work We Are Missing Next
 
-- [ ] **Finish `UseDefinitionLists`.** Engine plus proof. Remaining work is marker-group, lazy-continuation, loose-definition, source-map, writer, and reparse-stability breadth before promotion.
-- [ ] **Finish raw HTML, GFM tag filtering, and security policy as separate contracts.** Engine plus renderer policy. Keep CommonMark raw HTML grammar, cmark-gfm tag filtering, OfficeIMO allow/strip/escape/sanitize modes, URL policy, source metadata, and Markdown writing independently testable.
-- [ ] **Finish `UseGenericAttributes`.** Engine plus AST/source work. Generic attribute storage now exists on semantic and syntax nodes, fenced-code metadata is projected into it, default fenced-code HTML rendering emits those attributes, and opt-in generic attributes now parse/render/write for ATX headings, Setext headings, paragraphs, and common no-space inline attributes on links, images, emphasis, strong, code spans, strikethrough, highlight, inserted, superscript, and subscript nodes. Covered block and inline attribute blocks are source-backed through dedicated `GenericAttributeBlock` syntax tokens and native `attributes` fields/metadata with preserved-trivia source-edit proof. Still missing: broader arbitrary block-family attributes, remaining inline-family breadth, and full writer/source breadth across arbitrary shapes.
-- [ ] **Finish `UseAlertBlocks` scope and implementation.** Renderer contract decision first. Either align Markdig alert callbacks with OfficeIMO callouts or document the callback shape as an intentional difference.
+- [ ] **Finish `UseGenericAttributes` breadth.** This is the active engine slice. Already covered: fenced code, ATX headings, Setext headings, paragraphs, and common no-space inline attributes. Missing before promotion:
+  - [ ] Probe Markdig behavior for remaining block families: block quotes, list items/lists, thematic breaks, tables/table cells, HTML blocks, footnotes, definition lists, callouts, and standalone media/image shapes.
+  - [ ] Implement only the shapes Markdig actually treats as generic attributes, using shared parser helpers instead of per-block string rescans.
+  - [ ] Project every newly supported attribute through semantic AST, syntax AST, native fields/metadata, HTML rendering, Markdown writing, and preserved-trivia source edits.
+  - [ ] Keep unsupported or intentionally different shapes documented as profile differences, not silent gaps.
+- [ ] **Finish `UseDefinitionLists`.** Engine plus proof. Remaining work is source-map and writer edge breadth for marker groups, lazy continuation, loose definitions, nested definitions, multiline body edits, and reparse stability.
+- [ ] **Decide and close `UseAlertBlocks`.** Choose whether Markdig alert rendering callbacks become an OfficeIMO renderer contract or remain an intentional OfficeIMO callout difference, then implement or document the chosen path.
+- [ ] **Decide and close `UseCjkFriendlyEmphasis`.** Either add a real delimiter option with CJK comparison fixtures and source-token proof, or document it as deferred/intentional.
+- [ ] **Finish raw HTML, GFM tag filtering, and security policy as separate contracts.** Keep CommonMark raw HTML grammar, cmark-gfm tag filtering, OfficeIMO allow/strip/escape/sanitize modes, URL policy, source metadata, and Markdown writing independently testable.
+
+### P2 - AST, Source, And Lossless Work We Are Missing
+
 - [ ] **Finish `UsePreciseSourceLocation`.** Cross-cutting source architecture. Complete lossless trivia/original mapping, generated-node diagnostics, and source-edit coverage before claiming parity.
-- [ ] **Finish parser/render extension seams.** Engine API work. Custom block, inline, transform, renderer, and writer extension APIs need source slices and token metadata so extension nodes can render and roundtrip without downstream string rescanning.
-- [ ] **Finish high-value partial extension rows.** Decide and close `UseCjkFriendlyEmphasis`, `UseDiagrams`, `UseFigures`, `UseMathematics`, and `UseMediaLinks` with explicit parser/AST/source/renderer/writer promotion bars.
-
-### P2 - Architecture Work We Are Missing
-
 - [ ] **Canonicalize remaining AST shapes.** Remove duplicated or adapter-heavy ownership around `ListItem`, `TableBlock`, `CalloutBlock`, `DefinitionListBlock`, front matter, and extension nodes.
 - [ ] **Complete lossless trivia capture.** Capture whitespace, blank lines, tabs, delimiter trivia, raw slices, normalized text, and generated-node diagnostics in parser-owned data.
 - [ ] **Complete delimiter-token coverage.** Every editor-addressable spelling needs source tokens: emphasis extras, links/images, escapes/entities, hard/soft breaks, HTML tags, footnotes, front matter, tables, and extension inlines/blocks.
 - [ ] **Complete original-to-normalized mapping.** CRLF/LF/CR inputs, tab expansion, nested containers, transformed/generated nodes, and normalized paragraph text need one reliable mapping story with diagnostics when exact mapping is impossible.
 - [ ] **Expand roundtrip editing beyond unchanged documents.** `MarkdownRoundtripWriter` handles unchanged documents and explicit native edits; broader source-preserving edits, writer fallback diagnostics, and extension-node roundtrip remain open.
 
-### P3 - Optional Or Deferred Feature Rows
+### P3 - Extension And Optional Feature Work We Are Missing
 
+- [ ] **Finish parser/render extension seams.** Custom block, inline, transform, renderer, and writer extension APIs need source slices and token metadata so extension nodes can render and roundtrip without downstream string rescanning.
 - [ ] **Implement `UseCustomContainers` if kept in core.** Needs block parser contract, nested child source mapping, renderer/writer source slices, and Markdig fixtures.
-- [ ] **Implement optional extension rows only after core/source work is stable.** `UseGridTables`, `UseListExtras`, `UseEmojiAndSmiley`, `UseJiraLinks`, and `UseSmartyPants` need separate optional parser/transform contracts.
+- [ ] **Close high-value renderer/host rows only with explicit ownership.** `UseDiagrams`, `UseFigures`, `UseMathematics`, and `UseMediaLinks` need parser/AST/source/renderer/writer promotion bars before implementation.
+- [ ] **Keep optional transform rows optional.** `UseGridTables`, `UseListExtras`, `UseEmojiAndSmiley`, `UseJiraLinks`, and `UseSmartyPants` need separate optional parser/transform contracts.
 - [ ] **Keep deferred rows deferred until a consumer needs them.** `UseCitations`, `UseFooters`, `UseGlobalization`, and `UsePragmaLines` need real product requirements before implementation.
 - [ ] **Keep renderer-policy rows out of parser parity.** `UseReferralLinks` and similar rows should remain opt-in render policies with safe defaults.
 
@@ -74,6 +85,14 @@ This is the non-looping backlog. Each row names the kind of work that is actuall
 - [ ] **Broaden the GFM fixture inventory.** Proof only unless mismatches appear. Current tracked GFM inventory is green but small at 52 fixtures; broaden autolinks, strikethrough delimiter edges, tag filtering, tables, task lists, footnotes, and extension interactions.
 - [ ] **Refresh Markdig extension rows after each engine slice.** Proof and docs. Update status, scope decision, route, promotion bar, OfficeIMO state, and next action when behavior changes.
 - [ ] **Run release-mode benchmarks last.** Proof only. Compare parse, parse-with-syntax, HTML render, Markdown write, transforms, source edits, allocations, and representative README/docs/chat corpora against the pinned Markdig baseline.
+
+### Next Ordered Slices
+
+- [ ] **1. Finish the active `UseGenericAttributes` slice.** First probe Markdig's real supported shapes, then implement the missing reusable parser/source/writer behavior for the supported block/inline families.
+- [ ] **2. Promote or bound `UseDefinitionLists`.** Close the remaining source-map/writer edge cases or document precise writer/source limits.
+- [ ] **3. Decide `UseAlertBlocks` and `UseCjkFriendlyEmphasis`.** Make the scope decision explicit before adding more fixture cases.
+- [ ] **4. Return to source/lossless architecture.** Canonical node shapes, trivia, delimiter tokens, original mapping, and broader roundtrip edits are the next big parity body of work.
+- [ ] **5. Only then broaden optional extension families and benchmarks.** Optional Markdig rows and release-mode performance numbers should follow stable engine/source contracts.
 
 ### Done Recently
 
@@ -261,42 +280,25 @@ These are the actual parity gaps. Engine work is listed first; tests and invento
 
 ## Immediate Work Order
 
-- [x] Finish the remaining HTML block/container boundary case (#174), pin it as a smoke fixture, and refresh the inventory.
-- [x] Tackle the entity decoder as a reusable parser service and route the required decode contexts through it.
-- [x] Tackle hard breaks as a parser/source-map slice and clear the remaining raw-inline-HTML/final-backslash examples.
-- [x] Close the CommonMark emphasis failure cluster while keeping broader Markdig/source/lossless emphasis work explicit.
-- [x] Tackle container indentation as a separate source-map column-model slice.
-- [x] Refresh the CommonMark inventory and smoke fixture set once container indentation is green.
-- [x] Promote `UseSoftlineBreakAsHardlineBreak` only after parser option, renderer, writer, nested paragraph, and native metadata evidence landed.
-- [x] Promote `UseAutoIdentifiers` only after explicit renderer options, Markdig/GitHub slug-style evidence, duplicate handling, and GFM profile wiring landed.
-- [x] Promote `UseAutoLinks` after the Markdig AutoLinks and AutoLinks+PipeTables comparison lanes, source/native metadata, writer preservation, profile behavior, URL attribute encoding, and literal non-ASCII text policy evidence were aligned.
-- [ ] Stop broad fixture-chasing and work the remaining rows in this order.
-  - [x] `UseAbbreviations`: parse-owned Markdown writing preserves abbreviation definition syntax including empty-title and list-item-contained definitions, unresolved bracket text plus nested link-label, blockquote, list, boundary, pipe-table-cell expansion, and Unicode visible-text output has Markdig and AST/native proof, and list-contained source-token/native edit/writer breadth is covered.
-  - [x] `UseNonAsciiNoEscape`: renderer output paths now route text-bearing HTML text/attribute output through `HtmlOptions.EscapeNonAsciiText`, including inline text, link display text, code text, captions, simple quote text, abbreviation output, TOC labels/titles/anchors, heading helper text and generated attributes, page titles, body/head/asset metadata, footnote ids/backrefs, code/callout classes, link/image policy attributes, raw-HTML escape output, image-blocked placeholder text, portable fallback helper text, image/link title and alt attributes, picture-source descriptor attributes, sanitizer escape output, and custom HTML render-extension helper APIs.
-  - [ ] `UseDefinitionLists`: parsed and generated/rebuilt definition marker syntax, source-backed native fields, tight nested-list writer preservation, and typed plus source-field multiline definition-body edits are covered; finish remaining source-map and writer edge breadth for marker groups, lazy continuation, loose definitions, and reparse stability; promote only after nested source/native and writer evidence is complete.
-  - [ ] `UseAlertBlocks`: decide whether Markdig alert rendering callbacks are an in-scope parser/renderer contract or an intentional OfficeIMO callout difference; implement only the chosen contract.
-  - [ ] `UseCjkFriendlyEmphasis`: either add a real delimiter option with CJK comparison fixtures and source-token proof, or document it as a deferred/intentional difference.
-- [ ] `UseGenericAttributes`: generic attribute storage now exists on semantic and syntax nodes, with fenced-code metadata projected through ordinary and semantic fenced-block paths and rendered on default fenced HTML; opt-in attributes now parse/render/write for ATX headings, Setext headings, paragraphs, and common no-space inline elements, and covered block/inline attribute blocks are syntax-token/native/source-edit addressable. Finish broader block-family coverage, remaining inline-family breadth, and writer/source breadth before promotion.
-- [x] Make an explicit scope decision for every remaining `Gap` row before implementing one-off syntax.
-  - [x] Core engine: `UseCustomContainers`.
-  - [x] Optional extension: `UseGridTables`, `UseListExtras`, `UseEmojiAndSmiley`, `UseJiraLinks`, `UseSmartyPants`.
-  - [x] Renderer/host policy: `UseReferralLinks`.
-  - [x] Deferred unless a consumer asks: `UseCitations`, `UsePragmaLines`, `UseFooters`, `UseGlobalization`.
-- [ ] Finish GFM breadth that is not Markdig-specific.
-  - [ ] Expand autolink fixtures against the GFM profile after the `UseAutoLinks` row stabilizes.
-  - [x] Add focused official tag-filter fixture coverage for filtered inline tags and case-insensitive raw HTML block body filtering.
-  - [ ] Expand remaining tag-filter fixtures for the GitHub HTML renderer profile.
-  - [ ] Expand strikethrough delimiter-edge fixtures, especially single-tilde GFM behavior around other emphasis.
-- [ ] Return to AST/source/lossless completion once the next parser-extension slice no longer changes node boundaries.
-  - [ ] Canonicalize remaining duplicated node shapes for `ListItem`, `TableBlock`, `CalloutBlock`, and `DefinitionListBlock`.
-  - [ ] Implement parser-owned trivia capture for whitespace, blank lines, tabs, delimiter trivia, and generated-node diagnostics.
-  - [ ] Complete original-to-normalized offset mapping for all parser paths.
-  - [ ] Expand `MarkdownRoundtripWriter` from unchanged documents and explicit native edits toward general lossless edit writing.
-- [ ] Finish renderer/writer extension parity after AST/source contracts settle.
-  - [ ] Make custom parser, transform, renderer, and writer APIs source-slice aware for custom nodes.
-  - [ ] Keep raw HTML, sanitizing, escaping, URL policy, and GFM tag-filter profiles explicit and independently tested.
-- [ ] Run release-mode benchmarks only after correctness stabilizes enough for the numbers to mean something.
-  - [ ] Compare parse, parse-with-syntax, HTML render, Markdown write, source-edit roundtrip, transforms, allocations, and representative README/docs/chat corpora against the pinned Markdig baseline.
+- [ ] **Active slice: finish `UseGenericAttributes` breadth.**
+  - [ ] Probe Markdig output for remaining block and inline attribute shapes before changing code.
+  - [ ] Implement supported missing shapes in the shared parser/source/writer path.
+  - [ ] Add Markdig comparison, syntax/native/source-edit, HTML, Markdown writer, and reparse proof for each newly supported shape.
+  - [ ] Refresh the Markdig extension inventory and promote `UseGenericAttributes` only if arbitrary supported block/inline breadth is truly closed.
+- [ ] **Next slice: finish `UseDefinitionLists` breadth.**
+  - [ ] Close marker-group, lazy-continuation, loose-definition, nested-body, source-map, writer, and reparse edge cases.
+  - [ ] Promote only after source/native and writer evidence covers the remaining Markdig-compatible cases.
+- [ ] **Decision slice: alert and CJK behavior.**
+  - [ ] Decide whether Markdig alert rendering callbacks are in scope or an intentional OfficeIMO callout difference.
+  - [ ] Decide whether `UseCjkFriendlyEmphasis` gets a real delimiter option or is documented as deferred/intentional.
+- [ ] **Source/lossless slice: editor-grade parity.**
+  - [ ] Canonicalize duplicated node shapes for `ListItem`, `TableBlock`, `CalloutBlock`, and `DefinitionListBlock`.
+  - [ ] Implement parser-owned trivia capture, delimiter-token coverage, generated-node diagnostics, and original-to-normalized mapping.
+  - [ ] Expand `MarkdownRoundtripWriter` beyond unchanged documents and explicit native edits toward broader source-preserving edit writing.
+- [ ] **Proof-only slice: broaden scoreboards after engine contracts stabilize.**
+  - [ ] Expand GFM autolink, tag-filter, and strikethrough delimiter-edge fixture breadth.
+  - [ ] Refresh Markdig extension rows after each engine slice.
+  - [ ] Run release-mode benchmarks only after correctness/source/writer behavior stops moving.
 
 ## CommonMark Failure Clusters
 
