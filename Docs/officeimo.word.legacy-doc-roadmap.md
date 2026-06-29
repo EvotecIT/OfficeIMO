@@ -243,6 +243,12 @@ just to reserve names.
   OfficeIMO can reload written `.doc` output through the legacy reader.
 - [ ] Expand native writer slices for formatting, tables, and simple
   sections only after preflight blocks all unsupported content.
+  - [x] Write direct bold/italic CHPX runs and reload them through the legacy
+    reader.
+  - [ ] Extend native character writing to underline, font, size, and color
+    after matching reader fixtures exist.
+  - [ ] Add table and simple section writing as separate preflight-backed
+    slices.
 - [ ] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound

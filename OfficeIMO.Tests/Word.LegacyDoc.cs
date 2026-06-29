@@ -4,6 +4,7 @@ using OfficeIMO.Word.LegacyDoc.Diagnostics;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 using DocumentFormat.OpenXml.ExtendedProperties;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OpenMcdf;
 using Xunit;
 using Version = OpenMcdf.Version;
@@ -309,16 +310,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksFormattedRunsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBoldItalicRunsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph();
+                    paragraph.AddText("plain ");
+                    paragraph.AddText("bold ").SetBold();
+                    paragraph.AddText("italic").SetItalic();
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph[] runs = reloaded.Paragraphs.ToArray();
+                Assert.Equal(3, runs.Length);
+                Assert.Equal("plain ", runs[0].Text);
+                Assert.False(runs[0].Bold);
+                Assert.False(runs[0].Italic);
+                Assert.Equal("bold ", runs[1].Text);
+                Assert.True(runs[1].Bold);
+                Assert.False(runs[1].Italic);
+                Assert.Equal("italic", runs[2].Text);
+                Assert.False(runs[2].Bold);
+                Assert.True(runs[2].Italic);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedRunFormattingBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Formatted").SetBold();
+                document.AddParagraph("Formatted").SetUnderline(UnderlineValues.Single);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("Run properties", exception.Message);
+                Assert.Contains("bold and italic", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
