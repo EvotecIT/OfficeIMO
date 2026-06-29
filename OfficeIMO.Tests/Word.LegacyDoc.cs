@@ -314,7 +314,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 if (!File.Exists(baselinePath)) {
-                    missingBaselines.Add(Path.GetRelativePath(corpusDirectory, baselinePath));
+                    missingBaselines.Add(GetRelativePath(corpusDirectory, baselinePath));
                     continue;
                 }
 
@@ -1894,6 +1894,22 @@ namespace OfficeIMO.Tests {
 
         private static string NormalizeLegacyDocBaselineText(string text) {
             return text.Replace("\r\n", "\n").Replace('\r', '\n').TrimEnd() + "\n";
+        }
+
+        private static string GetRelativePath(string relativeTo, string path) {
+            Uri baseUri = new Uri(AppendDirectorySeparator(Path.GetFullPath(relativeTo)));
+            Uri pathUri = new Uri(Path.GetFullPath(path));
+            string relative = Uri.UnescapeDataString(baseUri.MakeRelativeUri(pathUri).ToString());
+            return relative.Replace('/', Path.DirectorySeparatorChar);
+        }
+
+        private static string AppendDirectorySeparator(string path) {
+            if (path.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                || path.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal)) {
+                return path;
+            }
+
+            return path + Path.DirectorySeparatorChar;
         }
 
         private static string GetWordTestsProjectRoot() {

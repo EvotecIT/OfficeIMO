@@ -37,6 +37,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyle();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph[] paragraphs = result.Document.Paragraphs
+                .Where(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text))
+                .ToArray();
+
+            Assert.Equal(2, paragraphs.Length);
+            Assert.Equal("Styled Custom", paragraphs[0].Text);
+            Assert.Equal(WordParagraphStyles.Custom, paragraphs[0].Style);
+            Assert.Equal("LegacyDocCustomBody", paragraphs[0].StyleId);
+            Assert.Equal("Body", paragraphs[1].Text);
+            Assert.Null(paragraphs[1].Style);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            WordParagraph convertedParagraph = converted.Paragraphs
+                .First(paragraph => paragraph.Text == "Styled Custom");
+            Assert.Equal(WordParagraphStyles.Custom, convertedParagraph.Style);
+            Assert.Equal("LegacyDocCustomBody", convertedParagraph.StyleId);
+
+            DocumentFormat.OpenXml.Wordprocessing.Style? customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .OfType<DocumentFormat.OpenXml.Wordprocessing.Style>()
+                .FirstOrDefault(style => style.StyleId?.Value == "LegacyDocCustomBody");
+            Assert.NotNull(customStyle);
+            Assert.Equal("Custom Body", customStyle!.StyleName?.Val?.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphStylesAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -74,7 +105,9 @@ namespace OfficeIMO.Tests {
             private const int TextOffset = 0x200;
             private const int PapxFkpOffset = 0x400;
             private const int OleSectorSize = 512;
+            private const int StyleSheetOffset = 64;
             private const ushort SprmPIstd = 0x4600;
+            private const ushort CustomStyleIndex = 10;
 
             internal static byte[] CreateDocWithHeadingStyles() {
                 const string text = "Heading One\rHeading Two\rBody\r";
@@ -90,29 +123,57 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateDocWithCustomParagraphStyle() {
+                const string text = "Styled Custom\rBody\r";
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, string> {
+                    [CustomStyleIndex] = "Custom Body"
+                });
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(CustomStyleIndex)
+                    },
+                    styleSheet.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             private static byte[] CreateWordDocumentStream(string text) {
+                return CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(1),
+                        [1] = CreateParagraphStyleSprmPapx(2)
+                    },
+                    styleSheetLength: 0);
+            }
+
+            private static byte[] CreateWordDocumentStream(string text, IReadOnlyDictionary<int, byte[]> papxByParagraphIndex, int styleSheetLength) {
                 byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
                 var stream = new byte[Math.Max(PapxFkpOffset + OleSectorSize, TextOffset + textBytes.Length)];
                 WriteUInt16(stream, 0x00, 0xA5EC);
                 WriteUInt16(stream, 0x02, 0x00D9);
                 WriteUInt16(stream, 0x0A, 0x0200);
                 WriteInt32(stream, 0x4C, text.Length);
+                if (styleSheetLength > 0) {
+                    WriteInt32(stream, 0xA2, StyleSheetOffset);
+                    WriteInt32(stream, 0xA6, styleSheetLength);
+                }
+
                 WriteInt32(stream, 0x102, 21);
                 WriteInt32(stream, 0x106, 12);
                 WriteInt32(stream, 0x1A2, 0);
                 WriteInt32(stream, 0x1A6, 21);
                 Buffer.BlockCopy(textBytes, 0, stream, TextOffset, textBytes.Length);
 
-                int headingTwoStart = TextOffset + ("Heading One\r".Length * 2);
-                int bodyStart = headingTwoStart + ("Heading Two\r".Length * 2);
-                int end = bodyStart + ("Body\r".Length * 2);
-                WritePapxFkp(
-                    stream,
-                    new[] { TextOffset, headingTwoStart, bodyStart, end },
-                    new Dictionary<int, byte[]> {
-                        [0] = CreateParagraphStylePapx(1),
-                        [1] = CreateParagraphStyleSprmPapx(2)
-                    });
+                WritePapxFkp(stream, CreateParagraphPositions(text), papxByParagraphIndex);
 
                 if (stream.Length < FibLength) {
                     Array.Resize(ref stream, FibLength);
@@ -121,8 +182,9 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
-            private static byte[] CreateTableStream(int characterCount) {
-                var table = new byte[33];
+            private static byte[] CreateTableStream(int characterCount, byte[]? styleSheet = null) {
+                int length = styleSheet == null ? 33 : Math.Max(33, StyleSheetOffset + styleSheet.Length);
+                var table = new byte[length];
                 table[0] = 0x02;
                 WriteInt32(table, 1, 16);
                 WriteInt32(table, 5, 0);
@@ -135,7 +197,65 @@ namespace OfficeIMO.Tests {
                 WriteInt32(table, papxPlcOffset, TextOffset);
                 WriteInt32(table, papxPlcOffset + 4, TextOffset + (characterCount * 2));
                 WriteInt32(table, papxPlcOffset + 8, PapxFkpOffset / OleSectorSize);
+                if (styleSheet != null) {
+                    Buffer.BlockCopy(styleSheet, 0, table, StyleSheetOffset, styleSheet.Length);
+                }
+
                 return table;
+            }
+
+            private static int[] CreateParagraphPositions(string text) {
+                var positions = new List<int> { TextOffset };
+                int characterOffset = 0;
+                foreach (char character in text) {
+                    characterOffset++;
+                    if (character == '\r') {
+                        positions.Add(TextOffset + (characterOffset * 2));
+                    }
+                }
+
+                return positions.ToArray();
+            }
+
+            private static byte[] CreateStyleSheet(IReadOnlyDictionary<ushort, string> styleNamesByIndex) {
+                ushort cstd = checked((ushort)(styleNamesByIndex.Keys.Max() + 1));
+                var bytes = new List<byte>();
+                WriteUInt16(bytes, 18);
+                WriteUInt16(bytes, cstd);
+                WriteUInt16(bytes, 10);
+                for (int i = 0; i < 7; i++) {
+                    WriteUInt16(bytes, 0);
+                }
+
+                for (ushort index = 0; index < cstd; index++) {
+                    if (!styleNamesByIndex.TryGetValue(index, out string? name)) {
+                        WriteUInt16(bytes, 0);
+                        continue;
+                    }
+
+                    byte[] std = CreateParagraphStyleDefinition(name);
+                    WriteUInt16(bytes, checked((ushort)std.Length));
+                    bytes.AddRange(std);
+                    if (bytes.Count % 2 != 0) {
+                        bytes.Add(0);
+                    }
+                }
+
+                return bytes.ToArray();
+            }
+
+            private static byte[] CreateParagraphStyleDefinition(string name) {
+                byte[] nameBytes = System.Text.Encoding.Unicode.GetBytes(name);
+                var bytes = new List<byte>();
+                WriteUInt16(bytes, 0x0FFE);
+                WriteUInt16(bytes, 0x0001);
+                WriteUInt16(bytes, 0);
+                WriteUInt16(bytes, 0);
+                WriteUInt16(bytes, 0);
+                WriteUInt16(bytes, checked((ushort)name.Length));
+                bytes.AddRange(nameBytes);
+                WriteUInt16(bytes, 0);
+                return bytes.ToArray();
             }
 
             private static void WritePapxFkp(byte[] stream, int[] fileParagraphPositions, IReadOnlyDictionary<int, byte[]> papxByParagraphIndex) {
@@ -209,6 +329,11 @@ namespace OfficeIMO.Tests {
             private static void WriteUInt16(byte[] bytes, int offset, ushort value) {
                 bytes[offset] = (byte)(value & 0xFF);
                 bytes[offset + 1] = (byte)(value >> 8);
+            }
+
+            private static void WriteUInt16(List<byte> bytes, int value) {
+                bytes.Add((byte)(value & 0xFF));
+                bytes.Add((byte)(value >> 8));
             }
 
             private static void WriteInt32(byte[] bytes, int offset, int value) {

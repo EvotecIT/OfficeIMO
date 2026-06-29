@@ -30,6 +30,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal LegacyDocDocumentProperties DocumentProperties { get; } = new();
 
+        internal LegacyDocStyleSheet StyleSheet { get; private set; } = LegacyDocStyleSheet.Empty;
+
         /// <summary>Gets diagnostics produced while reading the legacy document.</summary>
         public IReadOnlyList<LegacyDocImportDiagnostic> Diagnostics => _diagnostics;
 
@@ -128,6 +130,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<string> fontFamilies = LegacyDocFontTableReader.ReadFontFamilies(tableStream, fib, out string? fontTableWarning);
             if (fontTableWarning != null) {
                 AddWarning("DOC-FONT-TABLE-INVALID", fontTableWarning);
+            }
+
+            StyleSheet = LegacyDocStyleSheet.Read(tableStream, fib, out string? styleSheetWarning);
+            if (styleSheetWarning != null) {
+                AddWarning("DOC-STYLESHEET-INVALID", styleSheetWarning);
             }
 
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges = LegacyDocCharacterFormattingReader.ReadCharacterFormatting(wordDocumentStream, tableStream, fib, fontFamilies, out string? formattingWarning);

@@ -2,6 +2,7 @@ using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 using OfficeIMO.Word.LegacyDoc.Model;
 using DocumentFormat.OpenXml.ExtendedProperties;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -74,6 +75,7 @@ namespace OfficeIMO.Word {
 
             WordDocument document = CreateInternal(filePath: null, stream: null, DocumentFormat.OpenXml.WordprocessingDocumentType.Document, autoSave: false);
             ApplyLegacyDocProperties(document, legacyDocument.DocumentProperties);
+            AddLegacyDocParagraphStyleDefinitions(document, legacyDocument.StyleSheet);
             WordSection section = document.Sections.Count > 0
                 ? document.Sections[0]
                 : new WordSection(document, null!, null!);
@@ -83,9 +85,9 @@ namespace OfficeIMO.Word {
             } else {
                 foreach (LegacyDocBodyBlock block in legacyDocument.BodyBlocks) {
                     if (block is LegacyDocParagraphBlock paragraphBlock) {
-                        AddLegacyDocParagraph(section, paragraphBlock.Runs, paragraphBlock.Format);
+                        AddLegacyDocParagraph(section, paragraphBlock.Runs, paragraphBlock.Format, legacyDocument.StyleSheet);
                     } else if (block is LegacyDocTableBlock tableBlock) {
-                        AddLegacyDocTable(section, tableBlock);
+                        AddLegacyDocTable(section, tableBlock, legacyDocument.StyleSheet);
                     }
                 }
             }
@@ -94,7 +96,7 @@ namespace OfficeIMO.Word {
             return document;
         }
 
-        private static void AddLegacyDocTable(WordSection section, LegacyDocTableBlock tableBlock) {
+        private static void AddLegacyDocTable(WordSection section, LegacyDocTableBlock tableBlock, LegacyDocStyleSheet styleSheet) {
             int rowCount = tableBlock.Rows.Count;
             int columnCount = tableBlock.Rows.Count == 0
                 ? 0
@@ -107,15 +109,15 @@ namespace OfficeIMO.Word {
             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                 LegacyDocTableRow sourceRow = tableBlock.Rows[rowIndex];
                 for (int columnIndex = 0; columnIndex < sourceRow.Cells.Count && columnIndex < columnCount; columnIndex++) {
-                    AddLegacyDocTableCell(table.Rows[rowIndex].Cells[columnIndex], sourceRow.Cells[columnIndex]);
+                    AddLegacyDocTableCell(table.Rows[rowIndex].Cells[columnIndex], sourceRow.Cells[columnIndex], styleSheet);
                 }
             }
         }
 
-        private static void AddLegacyDocTableCell(WordTableCell cell, LegacyDocTableCell sourceCell) {
+        private static void AddLegacyDocTableCell(WordTableCell cell, LegacyDocTableCell sourceCell, LegacyDocStyleSheet styleSheet) {
             if (sourceCell.Runs.Count == 0) {
                 WordParagraph emptyParagraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: true);
-                ApplyLegacyDocParagraphFormatting(emptyParagraph, sourceCell.Format);
+                ApplyLegacyDocParagraphFormatting(emptyParagraph, sourceCell.Format, styleSheet);
                 return;
             }
 
@@ -129,21 +131,21 @@ namespace OfficeIMO.Word {
                 AddLegacyDocRunContent(paragraph, firstRun);
             }
 
-            ApplyLegacyDocParagraphFormatting(paragraph, sourceCell.Format);
+            ApplyLegacyDocParagraphFormatting(paragraph, sourceCell.Format, styleSheet);
 
             for (int index = 1; index < sourceCell.Runs.Count; index++) {
                 AddLegacyDocRunContent(paragraph, sourceCell.Runs[index]);
             }
         }
 
-        private static void AddLegacyDocParagraph(WordSection section, IReadOnlyList<LegacyDocTextRun> paragraphRuns, LegacyDocParagraphFormat paragraphFormat) {
+        private static void AddLegacyDocParagraph(WordSection section, IReadOnlyList<LegacyDocTextRun> paragraphRuns, LegacyDocParagraphFormat paragraphFormat, LegacyDocStyleSheet styleSheet) {
             if (paragraphRuns.Count == 0) {
-                ApplyLegacyDocParagraphFormatting(section.AddParagraph(), paragraphFormat);
+                ApplyLegacyDocParagraphFormatting(section.AddParagraph(), paragraphFormat, styleSheet);
                 return;
             }
 
             WordParagraph paragraph = section.AddParagraph(string.Empty);
-            ApplyLegacyDocParagraphFormatting(paragraph, paragraphFormat);
+            ApplyLegacyDocParagraphFormatting(paragraph, paragraphFormat, styleSheet);
             AddLegacyDocRuns(paragraph, paragraphRuns);
         }
 
@@ -207,9 +209,9 @@ namespace OfficeIMO.Word {
             ApplyLegacyDocRunFormatting(run, legacyRun);
         }
 
-        private static void ApplyLegacyDocParagraphFormatting(WordParagraph paragraph, LegacyDocParagraphFormat paragraphFormat) {
-            if (paragraphFormat.StyleIndex != null && TryMapBuiltInParagraphStyle(paragraphFormat.StyleIndex.Value, out WordParagraphStyles style)) {
-                paragraph.SetStyle(style);
+        private static void ApplyLegacyDocParagraphFormatting(WordParagraph paragraph, LegacyDocParagraphFormat paragraphFormat, LegacyDocStyleSheet styleSheet) {
+            if (paragraphFormat.StyleIndex != null) {
+                ApplyLegacyDocParagraphStyle(paragraph, paragraphFormat.StyleIndex.Value, styleSheet);
             }
 
             if (paragraphFormat.Alignment != null && TryMapParagraphAlignment(paragraphFormat.Alignment.Value, out JustificationValues alignment)) {
@@ -243,6 +245,55 @@ namespace OfficeIMO.Word {
                     paragraph.IndentationFirstLine = paragraphFormat.FirstLineIndentTwips;
                 }
             }
+        }
+
+        private static void ApplyLegacyDocParagraphStyle(WordParagraph paragraph, ushort styleIndex, LegacyDocStyleSheet styleSheet) {
+            if (styleSheet.TryGetParagraphStyle(styleIndex, out LegacyDocParagraphStyle legacyStyle)) {
+                if (legacyStyle.BuiltInStyle != null) {
+                    paragraph.SetStyle(legacyStyle.BuiltInStyle.Value);
+                    return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(legacyStyle.StyleId)) {
+                    paragraph.SetStyleId(legacyStyle.StyleId!);
+                    return;
+                }
+            }
+
+            if (TryMapBuiltInParagraphStyle(styleIndex, out WordParagraphStyles style)) {
+                paragraph.SetStyle(style);
+            }
+        }
+
+        private static void AddLegacyDocParagraphStyleDefinitions(WordDocument document, LegacyDocStyleSheet styleSheet) {
+            StyleDefinitionsPart? styleDefinitionsPart = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart;
+            if (styleDefinitionsPart == null) {
+                return;
+            }
+
+            Styles styles = styleDefinitionsPart.Styles ??= new Styles();
+            var existingStyleIds = new HashSet<string>(
+                styles.OfType<Style>()
+                    .Select(style => style.StyleId?.Value)
+                    .Where(styleId => !string.IsNullOrWhiteSpace(styleId))!,
+                StringComparer.OrdinalIgnoreCase);
+
+            foreach (LegacyDocParagraphStyle legacyStyle in styleSheet.ParagraphStyles) {
+                if (legacyStyle.BuiltInStyle != null || string.IsNullOrWhiteSpace(legacyStyle.StyleId)) {
+                    continue;
+                }
+
+                if (!existingStyleIds.Add(legacyStyle.StyleId!)) {
+                    continue;
+                }
+
+                var style = new Style { Type = StyleValues.Paragraph, StyleId = legacyStyle.StyleId, CustomStyle = true };
+                style.Append(new StyleName { Val = legacyStyle.Name });
+                style.Append(new BasedOn { Val = "Normal" });
+                styles.Append(style);
+            }
+
+            styles.Save();
         }
 
         private static bool TryMapBuiltInParagraphStyle(ushort styleIndex, out WordParagraphStyles style) {

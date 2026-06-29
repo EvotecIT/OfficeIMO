@@ -228,8 +228,12 @@ just to reserve names.
   - [x] Project direct PAPX paragraph spacing and indentation into OfficeIMO paragraphs.
   - [x] Project fixed built-in paragraph styles from PAPX base style indexes and
     `sprmPIstd` into OfficeIMO paragraph styles.
-  - [ ] Expand paragraph style projection to stylesheet-defined/custom styles
-    after STSH parsing exists.
+  - [x] Parse STSH paragraph style records and project stylesheet-defined
+    custom paragraph styles as deterministic DOCX paragraph style IDs with
+    local style definitions.
+  - [ ] Expand stylesheet projection to style inheritance and style-level
+    paragraph/run formatting once each mapping has a fixture and observable
+    OfficeIMO contract.
 - [ ] Add common table projection after paragraph/run projection is stable.
   - [x] Project simple DOC cell/row marker tables into `WordTable` instances
     with plain cell text.
