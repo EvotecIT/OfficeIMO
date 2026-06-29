@@ -64,7 +64,8 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            return HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[i], options);
+            return HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[i], options)
+                || IsStandaloneAttributeFootnoteDefinitionTarget(lines[i], options);
         }
 
         return false;

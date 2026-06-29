@@ -431,6 +431,44 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void Standalone_GenericAttributes_Before_Footnote_Definition_Are_Consumed_Without_Metadata() {
+        const string markdown = "{#fn .wide}\n[^a]: note\n\ntext[^a]\n";
+        var options = new MarkdownReaderOptions {
+            Footnotes = true,
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Children,
+            node => node.Kind == MarkdownSyntaxKind.Paragraph && string.Equals(node.Literal, "{#fn .wide}", StringComparison.Ordinal));
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        Assert.Single(native.Blocks.OfType<MarkdownNativeFootnoteDefinitionBlock>());
+        Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Empty(native.EnumerateInlineMetadata("attributes"));
+
+        var html = result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false,
+            GitHubFootnoteHtml = true
+        });
+        Assert.DoesNotContain("{#fn .wide}", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"fn\" class=\"wide\"", html, StringComparison.Ordinal);
+
+        Assert.Equal("[^a]: note\n\ntext[^a]", result.Document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Keeps_Blockquote_Block_GenericAttributes_Literal() {
         const string markdown = "> quote {#q .lead}\n> # Heading {#h .wide}\n";
         var options = new MarkdownReaderOptions {

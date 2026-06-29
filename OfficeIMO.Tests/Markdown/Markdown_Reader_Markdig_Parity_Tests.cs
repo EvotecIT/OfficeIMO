@@ -378,6 +378,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     public static IEnumerable<object[]> GenericAttributesFootnoteExtensionCases() {
         yield return new object[] { "footnote-definition-paragraph-attribute", "[^a]: note {#fn .wide}\n\ntext[^a]" };
+        yield return new object[] { "standalone-attribute-before-footnote-definition", "{#fn .wide}\n[^a]: note\n\ntext[^a]" };
     }
 
     public static IEnumerable<object[]> GenericAttributesFootnoteReferenceExtensionCases() {
@@ -747,7 +748,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     [Theory]
     [MemberData(nameof(GenericAttributesFootnoteExtensionCases))]
-    public void MarkdownReader_GenericAttributes_In_Footnotes_Match_Markdig_Extensions(string _, string markdown) {
+    public void MarkdownReader_GenericAttributes_In_Footnotes_Match_Markdig_Extensions(string caseName, string markdown) {
         var htmlOptions = new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
@@ -769,6 +770,15 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var normalizedOffice = NormalizeGenericAttributesHtmlForParity(office);
         var normalizedMarkdig = NormalizeGenericAttributesHtmlForParity(markdig);
+
+        if (string.Equals(caseName, "standalone-attribute-before-footnote-definition", StringComparison.Ordinal)) {
+            Assert.DoesNotContain("{#fn .wide}", normalizedMarkdig, StringComparison.Ordinal);
+            Assert.DoesNotContain("{#fn .wide}", normalizedOffice, StringComparison.Ordinal);
+            Assert.DoesNotContain("id=\"fn\" class=\"wide\"", normalizedMarkdig, StringComparison.Ordinal);
+            Assert.DoesNotContain("id=\"fn\" class=\"wide\"", normalizedOffice, StringComparison.Ordinal);
+            Assert.DoesNotContain("<p id=\"fn\" class=\"wide\"></p>", normalizedOffice, StringComparison.Ordinal);
+            return;
+        }
 
         Assert.Contains("<p id=\"fn\" class=\"wide\">note ", normalizedMarkdig, StringComparison.Ordinal);
         Assert.Contains("<p id=\"fn\" class=\"wide\">note ", normalizedOffice, StringComparison.Ordinal);
