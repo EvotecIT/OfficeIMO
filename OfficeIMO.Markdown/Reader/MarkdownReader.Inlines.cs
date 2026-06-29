@@ -6,6 +6,7 @@ namespace OfficeIMO.Markdown;
 public static partial class MarkdownReader {
     private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null, MarkdownInlineSourceMap? sourceMap = null) {
         var sequence = ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true, sourceMap);
+        ApplyGenericAttributesToInlineElements(sequence, options);
         NormalizeInlineSequenceInPlace(sequence, options.InputNormalization);
         ApplyInlineTransformExtensions(sequence, text, options);
         return sequence;
@@ -923,5 +924,108 @@ public static partial class MarkdownReader {
 
         return root;
     }
+
+    private static void ApplyGenericAttributesToInlineElements(InlineSequence? sequence, MarkdownReaderOptions options) {
+        if (sequence == null || options?.GenericAttributes != true || sequence.Nodes.Count == 0) {
+            return;
+        }
+
+        var rewritten = new List<IMarkdownInline>(sequence.Nodes.Count);
+        for (int i = 0; i < sequence.Nodes.Count; i++) {
+            var current = sequence.Nodes[i];
+            ApplyGenericAttributesToNestedInlines(current, options);
+
+            if (IsGenericAttributeInlineTarget(current)
+                && TryConsumeGenericAttributesFromFollowingTextRuns(
+                    sequence.Nodes,
+                    i + 1,
+                    out var remainingText,
+                    out var attributes,
+                    out var consumedTextRuns)) {
+                if (current is MarkdownObject markdownObject) {
+                    markdownObject.SetAttributes(attributes);
+                }
+
+                rewritten.Add(current);
+                if (!string.IsNullOrEmpty(remainingText)) {
+                    rewritten.Add(new TextRun(remainingText));
+                }
+
+                i += consumedTextRuns;
+                continue;
+            }
+
+            rewritten.Add(current);
+        }
+
+        sequence.ReplaceItems(rewritten);
+    }
+
+    private static bool TryConsumeGenericAttributesFromFollowingTextRuns(
+        IReadOnlyList<IMarkdownInline> nodes,
+        int startIndex,
+        out string remainingText,
+        out MarkdownAttributeSet attributes,
+        out int consumedTextRuns) {
+        remainingText = string.Empty;
+        attributes = MarkdownAttributeSet.Empty;
+        consumedTextRuns = 0;
+
+        if (nodes == null || startIndex < 0 || startIndex >= nodes.Count || nodes[startIndex] is not TextRun first || string.IsNullOrEmpty(first.Text) || first.Text[0] != '{') {
+            return false;
+        }
+
+        var combined = new StringBuilder(first.Text);
+        consumedTextRuns = 1;
+        for (int i = startIndex + 1; i < nodes.Count; i++) {
+            if (nodes[i] is not TextRun textRun) {
+                break;
+            }
+
+            combined.Append(textRun.Text);
+            consumedTextRuns++;
+        }
+
+        if (MarkdownGenericAttributeParser.TryConsumeLeadingAttributeBlock(
+            combined.ToString(),
+            out remainingText,
+            out attributes,
+            out _)) {
+            return true;
+        }
+
+        remainingText = string.Empty;
+        attributes = MarkdownAttributeSet.Empty;
+        consumedTextRuns = 0;
+        return false;
+    }
+
+    private static void ApplyGenericAttributesToNestedInlines(IMarkdownInline? inline, MarkdownReaderOptions options) {
+        if (inline is IInlineContainerMarkdownInline container && container.NestedInlines != null) {
+            ApplyGenericAttributesToInlineElements(container.NestedInlines, options);
+        }
+    }
+
+    private static bool IsGenericAttributeInlineTarget(IMarkdownInline? inline) =>
+        inline is LinkInline
+            or ImageInline
+            or ImageLinkInline
+            or CodeSpanInline
+            or BoldInline
+            or BoldSequenceInline
+            or ItalicInline
+            or ItalicSequenceInline
+            or BoldItalicInline
+            or BoldItalicSequenceInline
+            or StrikethroughInline
+            or StrikethroughSequenceInline
+            or HighlightInline
+            or HighlightSequenceInline
+            or InsertedInline
+            or InsertedSequenceInline
+            or SuperscriptInline
+            or SuperscriptSequenceInline
+            or SubscriptInline
+            or SubscriptSequenceInline;
 
 }

@@ -129,7 +129,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             return overridden;
         }
 
-        return GetRenderable(node).RenderMarkdown();
+        return MarkdownInlineAttributeRenderer.RenderMarkdown(node, GetRenderable(node).RenderMarkdown());
     }
 
     private static string? TryRenderInlineSyntaxMarkdownOverride(IMarkdownInline node, MarkdownInlineMarkdownRenderContext? context) {
@@ -199,10 +199,10 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
         }
 
         if (options != null && node is IContextualHtmlMarkdownInline contextualInline) {
-            return contextualInline.RenderHtml(options);
+            return MarkdownInlineAttributeRenderer.RenderHtml(node, contextualInline.RenderHtml(options), options);
         }
 
-        return GetRenderable(node).RenderHtml();
+        return MarkdownInlineAttributeRenderer.RenderHtml(node, GetRenderable(node).RenderHtml(), options);
     }
 
     private static string? TryRenderInlineSyntaxOverride(IMarkdownInline node, MarkdownInlineHtmlRenderContext? context) {

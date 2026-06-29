@@ -305,6 +305,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     public static IEnumerable<object[]> GenericAttributesExtensionCases() {
         yield return new object[] { "atx-heading-id-class-title", "# Heading {#intro .wide title=\"Overview\"}" };
         yield return new object[] { "setext-heading-id-class-title", "Heading {#intro .wide title=\"Overview\"}\n=======" };
+        yield return new object[] { "inline-link-id-class-title", "[site](https://example.com){#lnk .primary title=\"Site\"}" };
+        yield return new object[] { "inline-emphasis-id-class", "*emphasis*{#em .marked}" };
+        yield return new object[] { "inline-strong-id-class", "**strong**{#strong .marked}" };
+        yield return new object[] { "inline-code-id-class", "`code`{#code .token}" };
     }
 
     [Theory]

@@ -582,6 +582,65 @@ Quarterly Revenue {#quarterly-overview .wide .accent title="Quarterly Revenue" p
         }
 
         [Fact]
+        public void GenericAttributes_Parse_InlineElements_WhenEnabled() {
+            const string md = "[site](https://example.com){#lnk .primary title=\"Site\"} ![alt](image.png){#img .wide title=\"Image\"} *emphasis*{#em .marked} **strong**{#strong .marked} `code`{#code .token}";
+            var options = new MarkdownReaderOptions {
+                GenericAttributes = true
+            };
+
+            var result = MarkdownReader.ParseWithSyntaxTree(md, options);
+            var paragraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[0]);
+
+            AssertAttributes(Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>()).Attributes, "lnk", new[] { "primary" }, ("title", "Site"));
+            AssertAttributes(Assert.Single(paragraph.Inlines.Nodes.OfType<ImageInline>()).Attributes, "img", new[] { "wide" }, ("title", "Image"));
+            AssertAttributes(Assert.Single(paragraph.Inlines.Nodes.OfType<ItalicSequenceInline>()).Attributes, "em", new[] { "marked" });
+            AssertAttributes(Assert.Single(paragraph.Inlines.Nodes.OfType<BoldSequenceInline>()).Attributes, "strong", new[] { "marked" });
+            AssertAttributes(Assert.Single(paragraph.Inlines.Nodes.OfType<CodeSpanInline>()).Attributes, "code", new[] { "token" });
+            Assert.DoesNotContain(paragraph.Inlines.Nodes.OfType<TextRun>(), text => text.Text.Contains("{#", StringComparison.Ordinal));
+
+            var syntax = Assert.Single(result.SyntaxTree.Children);
+            AssertAttributes(Assert.Single(syntax.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink).Attributes, "lnk", new[] { "primary" }, ("title", "Site"));
+            AssertAttributes(Assert.Single(syntax.Children, node => node.Kind == MarkdownSyntaxKind.InlineImage).Attributes, "img", new[] { "wide" }, ("title", "Image"));
+            AssertAttributes(Assert.Single(syntax.Children, node => node.Kind == MarkdownSyntaxKind.InlineEmphasis).Attributes, "em", new[] { "marked" });
+            AssertAttributes(Assert.Single(syntax.Children, node => node.Kind == MarkdownSyntaxKind.InlineStrong).Attributes, "strong", new[] { "marked" });
+            AssertAttributes(Assert.Single(syntax.Children, node => node.Kind == MarkdownSyntaxKind.InlineCodeSpan).Attributes, "code", new[] { "token" });
+
+            var html = result.Document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            });
+            Assert.Equal("<p><a href=\"https://example.com\" id=\"lnk\" class=\"primary\" title=\"Site\">site</a> <img src=\"image.png\" alt=\"alt\" id=\"img\" class=\"wide\" title=\"Image\" /> <em id=\"em\" class=\"marked\">emphasis</em> <strong id=\"strong\" class=\"marked\">strong</strong> <code id=\"code\" class=\"token\">code</code></p>", html);
+
+            var written = result.Document.ToMarkdown().TrimEnd().Replace("\r\n", "\n");
+            Assert.Equal(md, written);
+
+            var reparsed = MarkdownReader.Parse(written, options);
+            var reparsedParagraph = Assert.IsType<ParagraphBlock>(reparsed.Blocks[0]);
+            Assert.Equal("lnk", Assert.Single(reparsedParagraph.Inlines.Nodes.OfType<LinkInline>()).Attributes.ElementId);
+            Assert.Equal("img", Assert.Single(reparsedParagraph.Inlines.Nodes.OfType<ImageInline>()).Attributes.ElementId);
+            Assert.Equal("em", Assert.Single(reparsedParagraph.Inlines.Nodes.OfType<ItalicSequenceInline>()).Attributes.ElementId);
+            Assert.Equal("strong", Assert.Single(reparsedParagraph.Inlines.Nodes.OfType<BoldSequenceInline>()).Attributes.ElementId);
+            Assert.Equal("code", Assert.Single(reparsedParagraph.Inlines.Nodes.OfType<CodeSpanInline>()).Attributes.ElementId);
+        }
+
+        [Fact]
+        public void GenericAttributes_SpacedAttributeBlock_AfterInlineElement_TargetsParagraph() {
+            const string md = "[site](https://example.com) {#lead .intro}";
+            var options = new MarkdownReaderOptions {
+                GenericAttributes = true
+            };
+
+            var result = MarkdownReader.ParseWithSyntaxTree(md, options);
+            var paragraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[0]);
+            var link = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
+
+            Assert.True(link.Attributes.IsEmpty);
+            AssertAttributes(paragraph.Attributes, "lead", new[] { "intro" });
+            Assert.Equal("[site](https://example.com)", paragraph.Inlines.RenderMarkdown());
+        }
+
+        [Fact]
         public void GenericAttributes_Are_Not_Parsed_WhenOptionDisabled() {
             const string md = "# Quarterly Revenue {#quarterly-overview .wide}";
 
@@ -591,6 +650,27 @@ Quarterly Revenue {#quarterly-overview .wide .accent title="Quarterly Revenue" p
             Assert.Equal("Quarterly Revenue {#quarterly-overview .wide}", heading.Text);
             Assert.True(heading.Attributes.IsEmpty);
             Assert.True(Assert.Single(result.SyntaxTree.Children).Attributes.IsEmpty);
+        }
+
+        [Fact]
+        public void GenericAttributes_InlineAttributes_Are_Not_Parsed_WhenOptionDisabled() {
+            const string md = "[site](https://example.com){#lnk .primary}";
+
+            var result = MarkdownReader.ParseWithSyntaxTree(md);
+            var paragraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[0]);
+            var link = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
+
+            Assert.True(link.Attributes.IsEmpty);
+            Assert.Contains(paragraph.Inlines.Nodes.OfType<TextRun>(), text => text.Text.Contains("{#lnk .primary}", StringComparison.Ordinal));
+            Assert.Equal(md, paragraph.Inlines.RenderMarkdown());
+        }
+
+        private static void AssertAttributes(MarkdownAttributeSet attributes, string elementId, IReadOnlyList<string> classes, params (string Key, string Value)[] expectedAttributes) {
+            Assert.Equal(elementId, attributes.ElementId);
+            Assert.Equal(classes, attributes.Classes);
+            foreach (var expected in expectedAttributes) {
+                Assert.Equal(expected.Value, attributes.GetAttribute(expected.Key));
+            }
         }
 
         [Fact]

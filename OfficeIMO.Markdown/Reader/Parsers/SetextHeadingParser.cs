@@ -23,7 +23,7 @@ public static partial class MarkdownReader {
             var effectiveHeadingEnd = contentStart + headingText.Length;
             MarkdownAttributeSet parsedAttributes = MarkdownAttributeSet.Empty;
             if (options.GenericAttributes
-                && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(headingText, out var textWithoutAttributeBlock, out parsedAttributes, out var attributeStart)) {
+                && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(headingText, out var textWithoutAttributeBlock, out parsedAttributes, out var attributeStart, requireLeadingWhitespace: true)) {
                 headingText = textWithoutAttributeBlock;
                 effectiveHeadingEnd = contentStart + attributeStart;
                 while (effectiveHeadingEnd > contentStart && char.IsWhiteSpace(line[effectiveHeadingEnd - 1])) {

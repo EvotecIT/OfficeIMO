@@ -2,12 +2,24 @@ namespace OfficeIMO.Markdown;
 
 internal static class MarkdownAttributeBlockRenderer {
     internal static string RenderTrailing(MarkdownAttributeSet? attributes) {
+        return Render(attributes, includeLeadingSpace: true);
+    }
+
+    internal static string RenderInlineTrailing(MarkdownAttributeSet? attributes) {
+        return Render(attributes, includeLeadingSpace: false);
+    }
+
+    private static string Render(MarkdownAttributeSet? attributes, bool includeLeadingSpace) {
         if (attributes == null || attributes.IsEmpty) {
             return string.Empty;
         }
 
         var builder = new StringBuilder();
-        builder.Append(" {");
+        if (includeLeadingSpace) {
+            builder.Append(' ');
+        }
+
+        builder.Append('{');
 
         var hasToken = false;
         if (!string.IsNullOrWhiteSpace(attributes.ElementId)) {

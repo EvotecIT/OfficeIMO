@@ -63,7 +63,8 @@ public static partial class MarkdownReader {
                         contentLines[lastContentLineIndex],
                         out var lineWithoutAttributeBlock,
                         out headingAttributes,
-                        out _)) {
+                        out _,
+                        requireLeadingWhitespace: true)) {
                         contentLines[lastContentLineIndex] = lineWithoutAttributeBlock;
                         while (contentLines.Count > 0 && string.IsNullOrWhiteSpace(contentLines[contentLines.Count - 1])) {
                             contentLines.RemoveAt(contentLines.Count - 1);
@@ -106,7 +107,8 @@ public static partial class MarkdownReader {
                     paragraphLines[lastLineIndex],
                     out var lineWithoutAttributeBlock,
                     out paragraphAttributes,
-                    out _)) {
+                    out _,
+                    requireLeadingWhitespace: true)) {
                     paragraphLines[lastLineIndex] = lineWithoutAttributeBlock;
                     while (paragraphLines.Count > 0 && string.IsNullOrWhiteSpace(paragraphLines[paragraphLines.Count - 1])) {
                         paragraphLines.RemoveAt(paragraphLines.Count - 1);

@@ -8,7 +8,7 @@ public static partial class MarkdownReader {
             int effectiveContentEnd = contentEnd;
             MarkdownAttributeSet parsedAttributes = MarkdownAttributeSet.Empty;
             if (options.GenericAttributes
-                && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(text, out var headingText, out parsedAttributes, out var attributeStart)) {
+                && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(text, out var headingText, out parsedAttributes, out var attributeStart, requireLeadingWhitespace: true)) {
                 text = headingText;
                 effectiveContentEnd = contentStart + attributeStart;
                 while (effectiveContentEnd > contentStart && char.IsWhiteSpace(lines[i][effectiveContentEnd - 1])) {

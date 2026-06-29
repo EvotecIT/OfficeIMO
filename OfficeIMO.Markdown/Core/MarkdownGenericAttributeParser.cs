@@ -7,7 +7,8 @@ internal static class MarkdownGenericAttributeParser {
         string? value,
         out string textWithoutAttributeBlock,
         out MarkdownAttributeSet attributes,
-        out int attributeStartIndex) {
+        out int attributeStartIndex,
+        bool requireLeadingWhitespace = false) {
         textWithoutAttributeBlock = value ?? string.Empty;
         attributes = MarkdownAttributeSet.Empty;
         attributeStartIndex = -1;
@@ -30,6 +31,10 @@ internal static class MarkdownGenericAttributeParser {
             return false;
         }
 
+        if (requireLeadingWhitespace && start > 0 && !char.IsWhiteSpace(value[start - 1])) {
+            return false;
+        }
+
         string block = value.Substring(start + 1, end - start - 1).Trim();
         if (!TryParseAttributeBlock(block, out attributes)) {
             return false;
@@ -37,6 +42,34 @@ internal static class MarkdownGenericAttributeParser {
 
         textWithoutAttributeBlock = value.Substring(0, start).TrimEnd();
         attributeStartIndex = start;
+        return true;
+    }
+
+    internal static bool TryConsumeLeadingAttributeBlock(
+        string? value,
+        out string textWithoutAttributeBlock,
+        out MarkdownAttributeSet attributes,
+        out int consumedLength) {
+        textWithoutAttributeBlock = value ?? string.Empty;
+        attributes = MarkdownAttributeSet.Empty;
+        consumedLength = 0;
+
+        if (string.IsNullOrWhiteSpace(value) || value![0] != '{') {
+            return false;
+        }
+
+        int end = FindMatchingClosingBrace(value, 0);
+        if (end <= 0) {
+            return false;
+        }
+
+        string block = value.Substring(1, end - 1).Trim();
+        if (!TryParseAttributeBlock(block, out attributes)) {
+            return false;
+        }
+
+        textWithoutAttributeBlock = value.Substring(end + 1);
+        consumedLength = end + 1;
         return true;
     }
 
@@ -139,6 +172,41 @@ internal static class MarkdownGenericAttributeParser {
                 }
 
                 if (ch == '{') {
+                    depth--;
+                    if (depth == 0) {
+                        return i;
+                    }
+                }
+
+                continue;
+            }
+
+            if (ch == quote && (i == 0 || value[i - 1] != '\\')) {
+                quote = '\0';
+            }
+        }
+
+        return -1;
+    }
+
+    private static int FindMatchingClosingBrace(string value, int openingBraceIndex) {
+        char quote = '\0';
+        int depth = 0;
+
+        for (int i = openingBraceIndex; i < value.Length; i++) {
+            char ch = value[i];
+            if (quote == '\0') {
+                if (ch == '"' || ch == '\'') {
+                    quote = ch;
+                    continue;
+                }
+
+                if (ch == '{') {
+                    depth++;
+                    continue;
+                }
+
+                if (ch == '}') {
                     depth--;
                     if (depth == 0) {
                         return i;
