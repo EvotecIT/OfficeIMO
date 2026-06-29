@@ -346,6 +346,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsUnsupportedActiveXAndEmbeddedPackageFeatures() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithActiveXAndEmbeddedPackageStorage("ActiveX body");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.Equal(3, result.UnsupportedFeatures.Count);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.OleObject]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.ActiveXControl]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.EmbeddedPackage]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-OLE-OBJECTS-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-ACTIVEX-CONTROLS-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-EMBEDDED-PACKAGES-PRESENT"]);
+            Assert.Contains(result.UnsupportedFeatures, feature => feature.EntryPath == "ActiveX");
+            Assert.Contains(result.UnsupportedFeatures, feature => feature.EntryPath == "ObjectPool");
+            Assert.Contains(result.UnsupportedFeatures, feature => feature.EntryPath == "\u0001Ole10Native");
+
+            string markdown = result.ImportReport.ToMarkdown();
+            Assert.Contains("| ActiveXControl | DOC-ACTIVEX-CONTROLS-PRESENT | Compound:ActiveXControlStorage | ActiveX |", markdown);
+            Assert.Contains("| EmbeddedPackage | DOC-EMBEDDED-PACKAGES-PRESENT | Compound:EmbeddedPackageStorage | \u0001Ole10Native |", markdown);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsUnsupportedStoryCounts() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedStoryCounts("Body story");
 
@@ -923,6 +947,25 @@ namespace OfficeIMO.Tests {
                     WriteStream(root, "1Table", tableStream);
                     root.CreateStorage("_VBA_PROJECT_CUR");
                     root.CreateStorage("ObjectPool");
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateSimpleDocWithActiveXAndEmbeddedPackageStorage(params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                    root.CreateStorage("ActiveX");
+                    var objectPool = root.CreateStorage("ObjectPool");
+                    var packageStorage = objectPool.CreateStorage("OLEPackage");
+                    using CfbStream nativePackage = packageStorage.CreateStream("\u0001Ole10Native");
+                    nativePackage.Write(new byte[] { 1, 2, 3, 4 }, 0, 4);
                 }
 
                 return package.ToArray();

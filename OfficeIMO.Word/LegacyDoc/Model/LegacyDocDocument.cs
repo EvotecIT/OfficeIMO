@@ -144,29 +144,42 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile, LegacyDocFib fib) {
-            OfficeCompoundFileEntry? macroEntry = compoundFile.Entries.FirstOrDefault(entry => entry.Path.StartsWith("_VBA_PROJECT_CUR", StringComparison.OrdinalIgnoreCase)
-                || entry.Path.StartsWith("Macros", StringComparison.OrdinalIgnoreCase)
-                || entry.Path.IndexOf("VBA", StringComparison.OrdinalIgnoreCase) >= 0);
-            if (macroEntry != null) {
-                AddUnsupportedFeature(
-                    new LegacyDocUnsupportedFeature(
-                        LegacyDocUnsupportedFeatureKind.VbaProject,
-                        "DOC-MACROS-PRESENT",
-                        "The legacy DOC contains VBA project storage. Macros are preserved in the source file but are not projected into the OfficeIMO document.",
-                        macroEntry.Path,
-                        "Compound:VbaProjectStorage"));
-            }
+            AddUnsupportedCompoundEntryIfPresent(
+                compoundFile,
+                entry => entry.Path.StartsWith("_VBA_PROJECT_CUR", StringComparison.OrdinalIgnoreCase)
+                    || entry.Path.StartsWith("Macros", StringComparison.OrdinalIgnoreCase)
+                    || entry.Path.IndexOf("VBA", StringComparison.OrdinalIgnoreCase) >= 0,
+                LegacyDocUnsupportedFeatureKind.VbaProject,
+                "DOC-MACROS-PRESENT",
+                "The legacy DOC contains VBA project storage. Macros are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Compound:VbaProjectStorage");
 
-            OfficeCompoundFileEntry? oleObjectEntry = compoundFile.Entries.FirstOrDefault(entry => entry.Path.IndexOf("ObjectPool", StringComparison.OrdinalIgnoreCase) >= 0);
-            if (oleObjectEntry != null) {
-                AddUnsupportedFeature(
-                    new LegacyDocUnsupportedFeature(
-                        LegacyDocUnsupportedFeatureKind.OleObject,
-                        "DOC-OLE-OBJECTS-PRESENT",
-                        "The legacy DOC contains embedded OLE object storage. Embedded objects are preserved in the source file but are not projected into the OfficeIMO document.",
-                        oleObjectEntry.Path,
-                        "Compound:OleObjectStorage"));
-            }
+            AddUnsupportedCompoundEntryIfPresent(
+                compoundFile,
+                entry => entry.Path.IndexOf("ObjectPool", StringComparison.OrdinalIgnoreCase) >= 0,
+                LegacyDocUnsupportedFeatureKind.OleObject,
+                "DOC-OLE-OBJECTS-PRESENT",
+                "The legacy DOC contains embedded OLE object storage. Embedded objects are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Compound:OleObjectStorage");
+
+            AddUnsupportedCompoundEntryIfPresent(
+                compoundFile,
+                entry => entry.Path.IndexOf("ActiveX", StringComparison.OrdinalIgnoreCase) >= 0
+                    || entry.Path.IndexOf("OCX", StringComparison.OrdinalIgnoreCase) >= 0,
+                LegacyDocUnsupportedFeatureKind.ActiveXControl,
+                "DOC-ACTIVEX-CONTROLS-PRESENT",
+                "The legacy DOC contains ActiveX control storage. ActiveX controls are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Compound:ActiveXControlStorage");
+
+            AddUnsupportedCompoundEntryIfPresent(
+                compoundFile,
+                entry => string.Equals(entry.Name.TrimStart('\u0001'), "Ole10Native", StringComparison.OrdinalIgnoreCase)
+                    || entry.Path.IndexOf("Ole10Native", StringComparison.OrdinalIgnoreCase) >= 0
+                    || entry.Path.IndexOf("Package", StringComparison.OrdinalIgnoreCase) >= 0,
+                LegacyDocUnsupportedFeatureKind.EmbeddedPackage,
+                "DOC-EMBEDDED-PACKAGES-PRESENT",
+                "The legacy DOC contains embedded package payload storage. Embedded packages are preserved in the source file but are not projected into the OfficeIMO document.",
+                "Compound:EmbeddedPackageStorage");
 
             AddUnsupportedStoryFeatureIfPresent(
                 fib.CcpHdd,
@@ -204,6 +217,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 "DOC-HEADER-TEXTBOX-STORIES-PRESENT",
                 "The legacy DOC contains header or footer text box story text. Header and footer text boxes are preserved in the source file but are not projected into the OfficeIMO document.",
                 "Fib:CcpHdrTxbx");
+        }
+
+        private void AddUnsupportedCompoundEntryIfPresent(
+            OfficeCompoundFile compoundFile,
+            Func<OfficeCompoundFileEntry, bool> predicate,
+            LegacyDocUnsupportedFeatureKind kind,
+            string code,
+            string description,
+            string detailCode) {
+            OfficeCompoundFileEntry? entry = compoundFile.Entries.FirstOrDefault(predicate);
+            if (entry == null) {
+                return;
+            }
+
+            AddUnsupportedFeature(new LegacyDocUnsupportedFeature(kind, code, description, entry.Path, detailCode));
         }
 
         private void AddUnsupportedStoryFeatureIfPresent(

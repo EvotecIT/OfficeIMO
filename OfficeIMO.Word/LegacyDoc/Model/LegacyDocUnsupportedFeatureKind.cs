@@ -14,6 +14,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         OleObject,
 
         /// <summary>
+        /// ActiveX control storage was discovered in the OLE compound container.
+        /// </summary>
+        ActiveXControl,
+
+        /// <summary>
+        /// Embedded package payload storage or streams were discovered in the OLE compound container.
+        /// </summary>
+        EmbeddedPackage,
+
+        /// <summary>
         /// Header or footer story text exists but is not projected yet.
         /// </summary>
         HeaderFooter,
