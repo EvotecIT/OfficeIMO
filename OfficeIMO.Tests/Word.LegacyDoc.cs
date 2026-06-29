@@ -1569,6 +1569,67 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableGridColumnWidthsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.GridColumnWidth = new List<int> { 1800, 3600 };
+                    foreach (WordTableCell cell in table.Rows[0].Cells) {
+                        cell.Width = null;
+                        cell.WidthType = null;
+                    }
+
+                    table.Rows[0].Cells[0].AddParagraph("Grid narrow", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("Grid wide", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x08, 0xD6),
+                    "Expected the native DOC paragraph property stream to contain sprmTDefTable.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("Grid narrow", row.Cells[0].Paragraphs[0].Text);
+                Assert.Equal(1800, row.Cells[0].Width);
+                Assert.Equal(TableWidthUnitValues.Dxa, row.Cells[0].WidthType);
+                Assert.Equal("Grid wide", row.Cells[1].Paragraphs[0].Text);
+                Assert.Equal(3600, row.Cells[1].Width);
+                Assert.Equal(TableWidthUnitValues.Dxa, row.Cells[1].WidthType);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedTableGridColumnWidthsBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordTable table = document.AddTable(1, 1);
+                table.GridColumnWidth = new List<int> { short.MaxValue + 1 };
+                table.Rows[0].Cells[0].Width = null;
+                table.Rows[0].Cells[0].WidthType = null;
+                table.Rows[0].Cells[0].AddParagraph("Too wide", removeExistingParagraphs: true);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("table grid column widths", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedMergedTablesBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

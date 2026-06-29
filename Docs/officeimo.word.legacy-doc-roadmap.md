@@ -411,6 +411,10 @@ just to reserve names.
     of relying only on marker-character fallback.
   - [x] Write simple row-level table cell width definitions with
     `sprmTDefTable` and reload them through the legacy reader.
+  - [x] Use explicit `tblGrid` column widths as the native `.doc` table row
+    definition fallback when cells do not carry direct `tcW` widths, and block
+    grid widths outside the Word 97-2003 signed twip range before bytes are
+    committed.
   - [x] Block multi-paragraph table cells before native `.doc` bytes are
     committed until TAP-backed table parsing can disambiguate table-internal
     paragraph marks from normal paragraphs before a table.

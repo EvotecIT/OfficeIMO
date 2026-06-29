@@ -12,13 +12,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports simple tables only when at least one row is present.");
             }
 
+            IReadOnlyList<int> gridColumnWidthsTwips = ReadSupportedTableGridWidths(table.GetFirstChild<TableGrid>());
             foreach (TableRow row in rows) {
                 TableCell[] cells = row.Elements<TableCell>().ToArray();
                 if (cells.Length == 0) {
                     throw new NotSupportedException("Native DOC saving supports simple tables only when every row contains at least one cell.");
                 }
 
-                IReadOnlyList<int> cellWidthsTwips = ReadSupportedTableCellWidths(cells);
+                IReadOnlyList<int> cellWidthsTwips = ReadSupportedTableCellWidths(cells, gridColumnWidthsTwips);
                 foreach (TableCell cell in cells) {
                     int cellStart = text.Length;
                     LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, cell)
@@ -86,19 +87,49 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static IReadOnlyList<int> ReadSupportedTableCellWidths(IReadOnlyList<TableCell> cells) {
-            var widths = new int[cells.Count];
-            for (int index = 0; index < cells.Count; index++) {
-                widths[index] = ReadSupportedTableCellWidth(cells[index].TableCellProperties);
+        private static IReadOnlyList<int> ReadSupportedTableGridWidths(TableGrid? tableGrid) {
+            if (tableGrid == null) {
+                return Array.Empty<int>();
+            }
+
+            GridColumn[] columns = tableGrid.Elements<GridColumn>().ToArray();
+            var widths = new int[columns.Length];
+            for (int index = 0; index < columns.Length; index++) {
+                string? widthText = columns[index].Width?.Value;
+                if (string.IsNullOrWhiteSpace(widthText)) {
+                    widths[index] = 0;
+                    continue;
+                }
+
+                if (!int.TryParse(widthText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int width)
+                    || width <= 0
+                    || width > short.MaxValue) {
+                    throw new NotSupportedException("Native DOC saving supports table grid column widths only as positive DXA twip values within the Word 97-2003 signed twip range.");
+                }
+
+                widths[index] = width;
             }
 
             return widths;
         }
 
-        private static int ReadSupportedTableCellWidth(TableCellProperties? cellProperties) {
+        private static IReadOnlyList<int> ReadSupportedTableCellWidths(IReadOnlyList<TableCell> cells, IReadOnlyList<int> gridColumnWidthsTwips) {
+            var widths = new int[cells.Count];
+            for (int index = 0; index < cells.Count; index++) {
+                widths[index] = ReadSupportedTableCellWidth(cells[index].TableCellProperties, GetGridColumnWidth(gridColumnWidthsTwips, index));
+            }
+
+            return widths;
+        }
+
+        private static int GetGridColumnWidth(IReadOnlyList<int> gridColumnWidthsTwips, int columnIndex) {
+            return columnIndex < gridColumnWidthsTwips.Count ? gridColumnWidthsTwips[columnIndex] : 0;
+        }
+
+        private static int ReadSupportedTableCellWidth(TableCellProperties? cellProperties, int gridColumnWidthTwips) {
             TableCellWidth? cellWidth = cellProperties?.GetFirstChild<TableCellWidth>();
             if (cellWidth == null) {
-                return 2400;
+                return gridColumnWidthTwips > 0 ? gridColumnWidthTwips : 2400;
             }
 
             if (cellWidth.Type?.Value != TableWidthUnitValues.Dxa) {
@@ -150,7 +181,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             foreach (OpenXmlElement property in cellProperties.ChildElements) {
                 switch (property) {
                     case TableCellWidth cellWidth:
-                        ReadSupportedTableCellWidth(cellProperties);
+                        ReadSupportedTableCellWidth(cellProperties, gridColumnWidthTwips: 0);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table cell property: {property.LocalName}.");
