@@ -33,6 +33,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSimpleTable() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithTable();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            Assert.Equal(2, table.Rows.Count);
+            Assert.Equal(2, table.Rows[0].Cells.Count);
+            Assert.Equal("A1", table.Rows[0].Cells[0].Paragraphs[0].Text);
+            Assert.Equal("B1", table.Rows[0].Cells[1].Paragraphs[0].Text);
+            Assert.Equal("A2", table.Rows[1].Cells[0].Paragraphs[0].Text);
+            Assert.Equal("B2", table.Rows[1].Cells[1].Paragraphs[0].Text);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDocumentPropertiesAndCustomProperties() {
             DateTime created = new DateTime(2026, 6, 29, 8, 0, 0, DateTimeKind.Utc);
             DateTime modified = new DateTime(2026, 6, 29, 9, 15, 0, DateTimeKind.Utc);
@@ -620,6 +637,20 @@ namespace OfficeIMO.Tests {
         private static class LegacyDocTestBuilder {
             internal static byte[] CreateSimpleDoc(params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateSimpleDocWithTable() {
+                const string text = "A1\aB1\a\aA2\aB2\a\a\r";
                 byte[] wordDocumentStream = CreateWordDocumentStream(text);
                 byte[] tableStream = CreateTableStream(text.Length);
 

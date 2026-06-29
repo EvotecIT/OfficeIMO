@@ -78,19 +78,38 @@ namespace OfficeIMO.Word {
                 ? document.Sections[0]
                 : new WordSection(document, null!, null!);
 
-            if (legacyDocument.ParagraphTextRuns.Count == 0) {
+            if (legacyDocument.BodyBlocks.Count == 0) {
                 section.AddParagraph();
             } else {
-                for (int index = 0; index < legacyDocument.ParagraphTextRuns.Count; index++) {
-                    LegacyDocParagraphFormat paragraphFormat = index < legacyDocument.ParagraphFormats.Count
-                        ? legacyDocument.ParagraphFormats[index]
-                        : LegacyDocParagraphFormat.Default;
-                    AddLegacyDocParagraph(section, legacyDocument.ParagraphTextRuns[index], paragraphFormat);
+                foreach (LegacyDocBodyBlock block in legacyDocument.BodyBlocks) {
+                    if (block is LegacyDocParagraphBlock paragraphBlock) {
+                        AddLegacyDocParagraph(section, paragraphBlock.Runs, paragraphBlock.Format);
+                    } else if (block is LegacyDocTableBlock tableBlock) {
+                        AddLegacyDocTable(section, tableBlock);
+                    }
                 }
             }
 
             document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument);
             return document;
+        }
+
+        private static void AddLegacyDocTable(WordSection section, LegacyDocTableBlock tableBlock) {
+            int rowCount = tableBlock.Rows.Count;
+            int columnCount = tableBlock.Rows.Count == 0
+                ? 0
+                : tableBlock.Rows.Max(row => row.Cells.Count);
+            if (rowCount == 0 || columnCount == 0) {
+                return;
+            }
+
+            WordTable table = section.AddTable(rowCount, columnCount, WordTableStyle.TableGrid);
+            for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+                LegacyDocTableRow sourceRow = tableBlock.Rows[rowIndex];
+                for (int columnIndex = 0; columnIndex < sourceRow.Cells.Count && columnIndex < columnCount; columnIndex++) {
+                    table.Rows[rowIndex].Cells[columnIndex].AddParagraph(sourceRow.Cells[columnIndex].Text, removeExistingParagraphs: true);
+                }
+            }
         }
 
         private static void AddLegacyDocParagraph(WordSection section, IReadOnlyList<LegacyDocTextRun> paragraphRuns, LegacyDocParagraphFormat paragraphFormat) {

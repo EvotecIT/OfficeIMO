@@ -231,6 +231,10 @@ just to reserve names.
   - [ ] Expand paragraph style projection to stylesheet-defined/custom styles
     after STSH parsing exists.
 - [ ] Add common table projection after paragraph/run projection is stable.
+  - [x] Project simple DOC cell/row marker tables into `WordTable` instances
+    with plain cell text.
+  - [ ] Add table formatting, merged cells, nested tables, and table writer
+    support as separate fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
   separate fixture-backed slices.
 - [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`

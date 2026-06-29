@@ -10,6 +10,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private readonly List<string> _paragraphs = new();
         private readonly List<IReadOnlyList<LegacyDocTextRun>> _paragraphTextRuns = new();
         private readonly List<LegacyDocParagraphFormat> _paragraphFormats = new();
+        private readonly List<LegacyDocBodyBlock> _bodyBlocks = new();
         private readonly List<LegacyDocUnsupportedFeature> _unsupportedFeatures = new();
 
         private LegacyDocDocument() {
@@ -24,6 +25,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal IReadOnlyList<IReadOnlyList<LegacyDocTextRun>> ParagraphTextRuns => _paragraphTextRuns;
 
         internal IReadOnlyList<LegacyDocParagraphFormat> ParagraphFormats => _paragraphFormats;
+
+        internal IReadOnlyList<LegacyDocBodyBlock> BodyBlocks => _bodyBlocks;
 
         internal LegacyDocDocumentProperties DocumentProperties { get; } = new();
 
@@ -138,9 +141,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges);
-            foreach (IReadOnlyList<LegacyDocTextRun> paragraphRuns in _paragraphTextRuns) {
-                _paragraphs.Add(string.Concat(paragraphRuns.Select(run => run.Text)));
-            }
         }
 
         private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile) {
@@ -178,8 +178,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var runText = new System.Text.StringBuilder();
             LegacyDocCharacterFormat currentFormat = LegacyDocCharacterFormat.Default;
             bool hasCurrentRun = false;
+            bool inTable = false;
+            bool justClosedCell = false;
+            var tableRows = new List<LegacyDocTableRow>();
+            var currentTableRow = new List<LegacyDocTableCell>();
 
             foreach (LegacyDocTextCharacter textCharacter in characters) {
+                if (textCharacter.Character == '\a') {
+                    AddCurrentTextAsTableCell();
+                    continue;
+                }
+
                 char? normalized = NormalizeBodyCharacter(textCharacter.Character);
                 if (normalized == null) {
                     continue;
@@ -187,32 +196,40 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, textCharacter.FileOffset);
                 if (normalized.Value == '\r') {
-                    FlushRun();
-                    _paragraphTextRuns.Add(currentRuns.ToArray());
-                    _paragraphFormats.Add(GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset));
-                    currentRuns.Clear();
-                    hasCurrentRun = false;
+                    if (inTable) {
+                        FlushTable();
+                    } else {
+                        AddCurrentTextAsParagraph(GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset));
+                    }
+
                     bodyText.Append('\r');
                     continue;
                 }
 
+                AppendRunCharacter(normalized.Value, format);
+                bodyText.Append(normalized.Value);
+            }
+
+            if (inTable) {
+                FlushTable();
+            } else if (currentRuns.Count > 0 || runText.Length > 0) {
+                AddCurrentTextAsParagraph(LegacyDocParagraphFormat.Default);
+            }
+
+            return bodyText.ToString();
+
+            void AppendRunCharacter(char character, LegacyDocCharacterFormat format) {
                 if (!hasCurrentRun || !format.Equals(currentFormat)) {
                     FlushRun();
                     currentFormat = format;
                     hasCurrentRun = true;
                 }
 
-                runText.Append(normalized.Value);
-                bodyText.Append(normalized.Value);
+                runText.Append(character);
+                if (inTable) {
+                    justClosedCell = false;
+                }
             }
-
-            FlushRun();
-            if (currentRuns.Count > 0) {
-                _paragraphTextRuns.Add(currentRuns.ToArray());
-                _paragraphFormats.Add(LegacyDocParagraphFormat.Default);
-            }
-
-            return bodyText.ToString();
 
             void FlushRun() {
                 if (runText.Length == 0) {
@@ -228,6 +245,62 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentFormat.ColorHex,
                     currentFormat.FontFamily));
                 runText.Clear();
+            }
+
+            void AddCurrentTextAsParagraph(LegacyDocParagraphFormat paragraphFormat) {
+                FlushRun();
+                IReadOnlyList<LegacyDocTextRun> runs = currentRuns.ToArray();
+                _paragraphTextRuns.Add(runs);
+                _paragraphFormats.Add(paragraphFormat);
+                _paragraphs.Add(string.Concat(runs.Select(run => run.Text)));
+                _bodyBlocks.Add(new LegacyDocParagraphBlock(runs, paragraphFormat));
+                currentRuns.Clear();
+                hasCurrentRun = false;
+            }
+
+            void AddCurrentTextAsTableCell() {
+                FlushRun();
+                if (!inTable) {
+                    inTable = true;
+                    justClosedCell = false;
+                }
+
+                if (currentRuns.Count == 0 && justClosedCell) {
+                    if (currentTableRow.Count > 0) {
+                        tableRows.Add(new LegacyDocTableRow(currentTableRow.ToArray()));
+                        currentTableRow.Clear();
+                    }
+
+                    justClosedCell = false;
+                    return;
+                }
+
+                currentTableRow.Add(new LegacyDocTableCell(string.Concat(currentRuns.Select(run => run.Text))));
+                currentRuns.Clear();
+                hasCurrentRun = false;
+                justClosedCell = true;
+            }
+
+            void FlushTable() {
+                FlushRun();
+                if (currentRuns.Count > 0) {
+                    currentTableRow.Add(new LegacyDocTableCell(string.Concat(currentRuns.Select(run => run.Text))));
+                    currentRuns.Clear();
+                }
+
+                if (currentTableRow.Count > 0) {
+                    tableRows.Add(new LegacyDocTableRow(currentTableRow.ToArray()));
+                    currentTableRow.Clear();
+                }
+
+                if (tableRows.Count > 0) {
+                    _bodyBlocks.Add(new LegacyDocTableBlock(tableRows.ToArray()));
+                    tableRows.Clear();
+                }
+
+                hasCurrentRun = false;
+                inTable = false;
+                justClosedCell = false;
             }
         }
 
