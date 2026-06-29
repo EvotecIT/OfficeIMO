@@ -123,6 +123,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphAlignment() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithParagraphAlignment();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph[] paragraphs = result.Document.Paragraphs.ToArray();
+            Assert.Equal(3, paragraphs.Length);
+            Assert.Equal("left", paragraphs[0].Text);
+            Assert.Null(paragraphs[0].ParagraphAlignment);
+            Assert.Equal("center", paragraphs[1].Text);
+            Assert.Equal(JustificationValues.Center, paragraphs[1].ParagraphAlignment);
+            Assert.Equal("right", paragraphs[2].Text);
+            Assert.Equal(JustificationValues.Right, paragraphs[2].ParagraphAlignment);
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_RoutesOleDocIntoProjectedWordDocument() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -439,6 +456,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphAlignmentAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("left");
+                    document.AddParagraph("center").ParagraphAlignment = JustificationValues.Center;
+                    document.AddParagraph("right").ParagraphAlignment = JustificationValues.Right;
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
+                Assert.Equal(3, paragraphs.Length);
+                Assert.Equal("left", paragraphs[0].Text);
+                Assert.Null(paragraphs[0].ParagraphAlignment);
+                Assert.Equal("center", paragraphs[1].Text);
+                Assert.Equal(JustificationValues.Center, paragraphs[1].ParagraphAlignment);
+                Assert.Equal("right", paragraphs[2].Text);
+                Assert.Equal(JustificationValues.Right, paragraphs[2].ParagraphAlignment);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedRunFormattingBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -543,6 +589,22 @@ namespace OfficeIMO.Tests {
                 byte[] fontTable = CreateFontTable("Courier New");
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithFontFamilyFormatting(text, textOffset, chpxFkpOffset, fontTable.Length);
                 byte[] tableStream = CreateUnicodeTableStreamWithCharacterBinTableAndFontTable(text.Length, textOffset, chpxFkpOffset / 512, fontTable);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithParagraphAlignment() {
+                const string text = "left\rcenter\rright\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithParagraphAlignment(text, textOffset, papxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
@@ -685,6 +747,39 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
+            private static byte[] CreateUnicodeWordDocumentStreamWithParagraphAlignment(string text, int textOffset, int papxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int centerStart = textOffset + ("left\r".Length * 2);
+                int rightStart = centerStart + ("center\r".Length * 2);
+                int end = rightStart + ("right\r".Length * 2);
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, centerStart, rightStart, end },
+                    new Dictionary<int, byte[]> {
+                        [1] = CreateParagraphAlignmentPapx(1),
+                        [2] = CreateParagraphAlignmentPapx(2)
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
             private static byte[] CreateTableStream(int characterCount) {
                 const int textOffset = 0x200;
                 var table = new byte[21];
@@ -695,6 +790,23 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(table, 13, 0);
                 WriteUInt32(table, 15, 0x40000000U | ((uint)textOffset * 2U));
                 WriteUInt16(table, 19, 0);
+                return table;
+            }
+
+            private static byte[] CreateUnicodeTableStreamWithParagraphBinTable(int characterCount, int textOffset, int papxFkpPageNumber) {
+                var table = new byte[33];
+                table[0] = 0x02;
+                WriteInt32(table, 1, 16);
+                WriteInt32(table, 5, 0);
+                WriteInt32(table, 9, characterCount);
+                WriteUInt16(table, 13, 0);
+                WriteUInt32(table, 15, unchecked((uint)textOffset));
+                WriteUInt16(table, 19, 0);
+
+                int papxPlcOffset = 21;
+                WriteInt32(table, papxPlcOffset, textOffset);
+                WriteInt32(table, papxPlcOffset + 4, textOffset + (characterCount * 2));
+                WriteInt32(table, papxPlcOffset + 8, papxFkpPageNumber);
                 return table;
             }
 
@@ -788,6 +900,29 @@ namespace OfficeIMO.Tests {
                 stream[fkpOffset + 511] = checked((byte)runCount);
             }
 
+            private static void WritePapxFkp(byte[] stream, int fkpOffset, int[] fileParagraphPositions, IReadOnlyDictionary<int, byte[]> papxByParagraphIndex) {
+                const int bxLength = 13;
+                int paragraphCount = fileParagraphPositions.Length - 1;
+                for (int i = 0; i < fileParagraphPositions.Length; i++) {
+                    WriteInt32(stream, fkpOffset + (i * 4), fileParagraphPositions[i]);
+                }
+
+                int rgbxOffset = fkpOffset + (fileParagraphPositions.Length * 4);
+                int papxOffset = 0x1E0;
+                for (int i = 0; i < paragraphCount; i++) {
+                    if (!papxByParagraphIndex.TryGetValue(i, out byte[]? papx)) {
+                        continue;
+                    }
+
+                    papxOffset = AlignToEven(papxOffset);
+                    stream[rgbxOffset + (i * bxLength)] = checked((byte)(papxOffset / 2));
+                    Buffer.BlockCopy(papx, 0, stream, fkpOffset + papxOffset, papx.Length);
+                    papxOffset += papx.Length;
+                }
+
+                stream[fkpOffset + 511] = checked((byte)paragraphCount);
+            }
+
             private static void WriteSingleToggleChpx(byte[] stream, int offset, ushort sprm) {
                 stream[offset] = 3;
                 WriteUInt16(stream, offset + 1, sprm);
@@ -800,6 +935,19 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(chpx, 1, sprm);
                 Buffer.BlockCopy(operand, 0, chpx, 3, operand.Length);
                 return chpx;
+            }
+
+            private static byte[] CreateParagraphAlignmentPapx(byte alignment) {
+                return new byte[] {
+                    0,
+                    3,
+                    0,
+                    0,
+                    0x61,
+                    0x24,
+                    alignment,
+                    0
+                };
             }
 
             private static int AlignToEven(int value) {

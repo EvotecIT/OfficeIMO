@@ -224,6 +224,7 @@ just to reserve names.
   - [x] Project direct CHPX bold/italic character runs into OfficeIMO runs.
   - [x] Project direct CHPX underline, size, and color runs into OfficeIMO runs.
   - [x] Extend character projection to font family through the DOC font table.
+  - [x] Project direct PAPX paragraph alignment into OfficeIMO paragraphs.
   - [ ] Add paragraph style/properties projection after character runs are stable.
 - [ ] Add common table projection after paragraph/run projection is stable.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
@@ -250,6 +251,8 @@ just to reserve names.
     through the legacy reader.
   - [x] Extend native character writing to font family through the DOC font
     table.
+  - [x] Write direct paragraph alignment PAPX records and reload them through
+    the legacy reader.
   - [ ] Add table and simple section writing as separate preflight-backed
     slices.
 - [ ] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests

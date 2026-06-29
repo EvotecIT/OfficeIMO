@@ -81,8 +81,11 @@ namespace OfficeIMO.Word {
             if (legacyDocument.ParagraphTextRuns.Count == 0) {
                 section.AddParagraph();
             } else {
-                foreach (IReadOnlyList<LegacyDocTextRun> paragraphRuns in legacyDocument.ParagraphTextRuns) {
-                    AddLegacyDocParagraph(section, paragraphRuns);
+                for (int index = 0; index < legacyDocument.ParagraphTextRuns.Count; index++) {
+                    LegacyDocParagraphFormat paragraphFormat = index < legacyDocument.ParagraphFormats.Count
+                        ? legacyDocument.ParagraphFormats[index]
+                        : LegacyDocParagraphFormat.Default;
+                    AddLegacyDocParagraph(section, legacyDocument.ParagraphTextRuns[index], paragraphFormat);
                 }
             }
 
@@ -90,16 +93,23 @@ namespace OfficeIMO.Word {
             return document;
         }
 
-        private static void AddLegacyDocParagraph(WordSection section, IReadOnlyList<LegacyDocTextRun> paragraphRuns) {
+        private static void AddLegacyDocParagraph(WordSection section, IReadOnlyList<LegacyDocTextRun> paragraphRuns, LegacyDocParagraphFormat paragraphFormat) {
             if (paragraphRuns.Count == 0) {
-                section.AddParagraph();
+                ApplyLegacyDocParagraphFormatting(section.AddParagraph(), paragraphFormat);
                 return;
             }
 
             WordParagraph paragraph = section.AddParagraph(string.Empty);
+            ApplyLegacyDocParagraphFormatting(paragraph, paragraphFormat);
             foreach (LegacyDocTextRun legacyRun in paragraphRuns) {
                 WordParagraph run = paragraph.AddText(legacyRun.Text);
                 ApplyLegacyDocRunFormatting(run, legacyRun);
+            }
+        }
+
+        private static void ApplyLegacyDocParagraphFormatting(WordParagraph paragraph, LegacyDocParagraphFormat paragraphFormat) {
+            if (paragraphFormat.Alignment != null && TryMapParagraphAlignment(paragraphFormat.Alignment.Value, out JustificationValues alignment)) {
+                paragraph.ParagraphAlignment = alignment;
             }
         }
 
@@ -185,6 +195,26 @@ namespace OfficeIMO.Word {
                     return true;
                 case LegacyDocUnderlineKind.DashLongHeavy:
                     value = UnderlineValues.DashLongHeavy;
+                    return true;
+                default:
+                    value = default;
+                    return false;
+            }
+        }
+
+        private static bool TryMapParagraphAlignment(LegacyDocParagraphAlignment alignment, out JustificationValues value) {
+            switch (alignment) {
+                case LegacyDocParagraphAlignment.Left:
+                    value = JustificationValues.Left;
+                    return true;
+                case LegacyDocParagraphAlignment.Center:
+                    value = JustificationValues.Center;
+                    return true;
+                case LegacyDocParagraphAlignment.Right:
+                    value = JustificationValues.Right;
+                    return true;
+                case LegacyDocParagraphAlignment.Justify:
+                    value = JustificationValues.Both;
                     return true;
                 default:
                     value = default;

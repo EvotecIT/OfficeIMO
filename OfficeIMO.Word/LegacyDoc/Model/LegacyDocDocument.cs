@@ -9,6 +9,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private readonly List<LegacyDocImportDiagnostic> _diagnostics = new();
         private readonly List<string> _paragraphs = new();
         private readonly List<IReadOnlyList<LegacyDocTextRun>> _paragraphTextRuns = new();
+        private readonly List<LegacyDocParagraphFormat> _paragraphFormats = new();
         private readonly List<LegacyDocUnsupportedFeature> _unsupportedFeatures = new();
 
         private LegacyDocDocument() {
@@ -21,6 +22,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         public IReadOnlyList<string> Paragraphs => _paragraphs;
 
         internal IReadOnlyList<IReadOnlyList<LegacyDocTextRun>> ParagraphTextRuns => _paragraphTextRuns;
+
+        internal IReadOnlyList<LegacyDocParagraphFormat> ParagraphFormats => _paragraphFormats;
 
         internal LegacyDocDocumentProperties DocumentProperties { get; } = new();
 
@@ -129,7 +132,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-CHPX-INVALID", formattingWarning);
             }
 
-            Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges);
+            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges = LegacyDocParagraphFormattingReader.ReadParagraphFormatting(wordDocumentStream, tableStream, fib, out string? paragraphFormattingWarning);
+            if (paragraphFormattingWarning != null) {
+                AddWarning("DOC-PAPX-INVALID", paragraphFormattingWarning);
+            }
+
+            Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges);
             foreach (IReadOnlyList<LegacyDocTextRun> paragraphRuns in _paragraphTextRuns) {
                 _paragraphs.Add(string.Concat(paragraphRuns.Select(run => run.Text)));
             }
@@ -161,7 +169,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
-        private string BuildFormattedParagraphs(IReadOnlyList<LegacyDocTextCharacter> characters, IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges) {
+        private string BuildFormattedParagraphs(
+            IReadOnlyList<LegacyDocTextCharacter> characters,
+            IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
+            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges) {
             var bodyText = new System.Text.StringBuilder(characters.Count);
             var currentRuns = new List<LegacyDocTextRun>();
             var runText = new System.Text.StringBuilder();
@@ -178,6 +189,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 if (normalized.Value == '\r') {
                     FlushRun();
                     _paragraphTextRuns.Add(currentRuns.ToArray());
+                    _paragraphFormats.Add(GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset));
                     currentRuns.Clear();
                     hasCurrentRun = false;
                     bodyText.Append('\r');
@@ -197,6 +209,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             FlushRun();
             if (currentRuns.Count > 0) {
                 _paragraphTextRuns.Add(currentRuns.ToArray());
+                _paragraphFormats.Add(LegacyDocParagraphFormat.Default);
             }
 
             return bodyText.ToString();
@@ -244,6 +257,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             return LegacyDocCharacterFormat.Default;
+        }
+
+        private static LegacyDocParagraphFormat GetParagraphFormatForFileOffset(IReadOnlyList<LegacyDocParagraphFormatRange> ranges, int fileOffset) {
+            for (int i = 0; i < ranges.Count; i++) {
+                if (ranges[i].Contains(fileOffset)) {
+                    return ranges[i].Format;
+                }
+            }
+
+            return LegacyDocParagraphFormat.Default;
         }
 
         internal void AddInfo(string code, string message) {

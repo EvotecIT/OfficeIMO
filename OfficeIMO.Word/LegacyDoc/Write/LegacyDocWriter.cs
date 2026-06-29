@@ -10,15 +10,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int OleSectorSize = 512;
         private const int ClxLength = 21;
         private const int ChpxPlcLength = 12;
+        private const int PapxPlcLength = 12;
         private const ushort SprmCFBold = 0x0835;
         private const ushort SprmCFItalic = 0x0836;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCHps = 0x4A43;
         private const ushort SprmCRgFtc0 = 0x4A4F;
         private const ushort SprmCCv = 0x6870;
+        private const ushort SprmPJc = 0x2461;
         private const ushort WordDocumentMagic = 0xA5EC;
         private const ushort Word97FibVersion = 0x00D9;
         private const ushort OneTableStreamFlag = 0x0200;
+        private const int FcPlcfBtePapxOffset = 0x102;
+        private const int LcbPlcfBtePapxOffset = 0x106;
         private const int FcSttbfFfnOffset = 0x112;
         private const int LcbSttbfFfnOffset = 0x116;
 
@@ -55,11 +59,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             var text = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
+            var paragraphFormats = new List<LegacyDocWritableParagraph>();
             int paragraphCount = 0;
             foreach (OpenXmlElement child in body.ChildElements) {
                 switch (child) {
                     case Paragraph paragraph:
-                        AppendParagraph(text, runs, paragraph);
+                        AppendParagraph(text, runs, paragraphFormats, paragraph);
                         paragraphCount++;
                         break;
                     case SectionProperties:
@@ -73,7 +78,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 text.Append('\r');
             }
 
-            return new LegacyDocWritableBody(text.ToString(), runs);
+            return new LegacyDocWritableBody(text.ToString(), runs, paragraphFormats);
         }
 
         private static void ThrowIfUnsupportedDocumentParts(WordDocument document, DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart) {
@@ -116,10 +121,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return endnotes != null && endnotes.Elements<Endnote>().Any(endnote => endnote.Type == null);
         }
 
-        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, Paragraph paragraph) {
-            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.HasChildren) {
-                throw new NotSupportedException("Native DOC saving currently supports unformatted paragraphs only. Paragraph properties are not supported yet.");
-            }
+        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, Paragraph paragraph) {
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties);
+            int paragraphStart = text.Length;
 
             foreach (OpenXmlElement child in paragraph.ChildElements) {
                 switch (child) {
@@ -134,6 +138,43 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             text.Append('\r');
+            if (paragraphFormatting.HasFormatting) {
+                paragraphFormats.Add(new LegacyDocWritableParagraph(paragraphStart, text.Length - paragraphStart, paragraphFormatting));
+            }
+        }
+
+        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormatting(ParagraphProperties? paragraphProperties) {
+            if (paragraphProperties == null || !paragraphProperties.HasChildren) {
+                return LegacyDocWritableParagraphFormatting.Plain;
+            }
+
+            byte? alignment = null;
+            foreach (OpenXmlElement property in paragraphProperties.ChildElements) {
+                switch (property) {
+                    case Justification justification:
+                        alignment = ReadSupportedParagraphAlignment(justification);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving currently supports only paragraph alignment. Unsupported paragraph property: {property.LocalName}.");
+                }
+            }
+
+            return new LegacyDocWritableParagraphFormatting(alignment);
+        }
+
+        private static byte? ReadSupportedParagraphAlignment(Justification justification) {
+            JustificationValues value = justification.Val?.Value ?? JustificationValues.Left;
+            if (value == JustificationValues.Left) {
+                return 0;
+            } else if (value == JustificationValues.Center) {
+                return 1;
+            } else if (value == JustificationValues.Right) {
+                return 2;
+            } else if (value == JustificationValues.Both) {
+                return 3;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support paragraph alignment '{value}'.");
         }
 
         private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run) {
@@ -337,9 +378,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int chpxFkpOffset = body.HasCharacterFormatting
                 ? AlignToSector(TextOffset + textBytes.Length)
                 : 0;
-            int streamLength = body.HasCharacterFormatting
-                ? chpxFkpOffset + OleSectorSize
-                : TextOffset + textBytes.Length;
+            int papxFkpOffset = body.HasParagraphFormatting
+                ? AlignToSector(body.HasCharacterFormatting ? chpxFkpOffset + OleSectorSize : TextOffset + textBytes.Length)
+                : 0;
+            int streamLength = body.HasParagraphFormatting
+                ? papxFkpOffset + OleSectorSize
+                : body.HasCharacterFormatting
+                    ? chpxFkpOffset + OleSectorSize
+                    : TextOffset + textBytes.Length;
             var stream = new byte[Math.Max(FibLength, streamLength)];
             WriteUInt16(stream, 0x00, WordDocumentMagic);
             WriteUInt16(stream, 0x02, Word97FibVersion);
@@ -347,6 +393,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteInt32(stream, 0x4C, body.Text.Length);
             WriteInt32(stream, 0xFA, body.HasCharacterFormatting ? ClxLength : 0);
             WriteInt32(stream, 0xFE, body.HasCharacterFormatting ? ChpxPlcLength : 0);
+            WriteInt32(stream, FcPlcfBtePapxOffset, body.HasParagraphFormatting ? body.PapxPlcOffsetInTableStream : 0);
+            WriteInt32(stream, LcbPlcfBtePapxOffset, body.HasParagraphFormatting ? PapxPlcLength : 0);
             WriteInt32(stream, FcSttbfFfnOffset, body.HasFontTable ? body.FontTableOffsetInTableStream : 0);
             WriteInt32(stream, LcbSttbfFfnOffset, fontTable.Length);
             WriteInt32(stream, 0x1A2, 0);
@@ -356,12 +404,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 WriteChpxFkp(stream, chpxFkpOffset, body.CreateFormattingSegments(), body.FontFamilyIndexes);
             }
 
+            if (body.HasParagraphFormatting) {
+                LegacyDocParagraphFormattingWriter.WritePapxFkp(stream, papxFkpOffset, TextOffset, OleSectorSize, body.CreateParagraphSegments());
+            }
+
             return stream;
         }
 
         private static byte[] CreateTableStream(LegacyDocWritableBody body) {
             byte[] fontTable = CreateFontTable(body.FontFamilies);
-            var table = new byte[ClxLength + (body.HasCharacterFormatting ? ChpxPlcLength : 0) + fontTable.Length];
+            var table = new byte[ClxLength + (body.HasCharacterFormatting ? ChpxPlcLength : 0) + (body.HasParagraphFormatting ? PapxPlcLength : 0) + fontTable.Length];
             table[0] = 0x02;
             WriteInt32(table, 1, 16);
             WriteInt32(table, 5, 0);
@@ -375,6 +427,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 WriteInt32(table, ClxLength, TextOffset);
                 WriteInt32(table, ClxLength + 4, TextOffset + (body.Text.Length * 2));
                 WriteInt32(table, ClxLength + 8, chpxFkpOffset / OleSectorSize);
+            }
+
+            if (body.HasParagraphFormatting) {
+                int chpxFkpOffset = body.HasCharacterFormatting
+                    ? AlignToSector(TextOffset + Encoding.Unicode.GetByteCount(body.Text))
+                    : 0;
+                int papxFkpOffset = AlignToSector(body.HasCharacterFormatting ? chpxFkpOffset + OleSectorSize : TextOffset + Encoding.Unicode.GetByteCount(body.Text));
+                WriteInt32(table, body.PapxPlcOffsetInTableStream, TextOffset);
+                WriteInt32(table, body.PapxPlcOffsetInTableStream + 4, TextOffset + (body.Text.Length * 2));
+                WriteInt32(table, body.PapxPlcOffsetInTableStream + 8, papxFkpOffset / OleSectorSize);
             }
 
             if (fontTable.Length > 0) {
@@ -543,9 +605,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableBody {
-            internal LegacyDocWritableBody(string text, IReadOnlyList<LegacyDocWritableRun> formattedRuns) {
+            internal LegacyDocWritableBody(string text, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs) {
                 Text = text;
                 FormattedRuns = formattedRuns;
+                FormattedParagraphs = formattedParagraphs;
                 FontFamilies = formattedRuns
                     .Select(run => run.Formatting.FontFamily)
                     .Where(fontFamily => !string.IsNullOrWhiteSpace(fontFamily))
@@ -561,15 +624,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal IReadOnlyList<LegacyDocWritableRun> FormattedRuns { get; }
 
+            internal IReadOnlyList<LegacyDocWritableParagraph> FormattedParagraphs { get; }
+
             internal IReadOnlyList<string> FontFamilies { get; }
 
             internal IReadOnlyDictionary<string, int> FontFamilyIndexes { get; }
 
             internal bool HasCharacterFormatting => FormattedRuns.Count > 0;
 
+            internal bool HasParagraphFormatting => FormattedParagraphs.Count > 0;
+
             internal bool HasFontTable => FontFamilies.Count > 0;
 
-            internal int FontTableOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0);
+            internal int PapxPlcOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0);
+
+            internal int FontTableOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0) + (HasParagraphFormatting ? PapxPlcLength : 0);
 
             internal IReadOnlyList<LegacyDocWritableSegment> CreateFormattingSegments() {
                 var segments = new List<LegacyDocWritableSegment>();
@@ -608,6 +677,45 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
 
                 segments.Add(new LegacyDocWritableSegment(startCharacter, length, formatting));
+            }
+
+            internal IReadOnlyList<LegacyDocWritableParagraphSegment> CreateParagraphSegments() {
+                var segments = new List<LegacyDocWritableParagraphSegment>();
+                int character = 0;
+                foreach (LegacyDocWritableParagraph paragraph in FormattedParagraphs.OrderBy(item => item.StartCharacter)) {
+                    if (paragraph.StartCharacter > character) {
+                        AddParagraphSegment(segments, character, paragraph.StartCharacter - character, LegacyDocWritableParagraphFormatting.Plain);
+                    }
+
+                    AddParagraphSegment(segments, paragraph.StartCharacter, paragraph.Length, paragraph.Formatting);
+                    character = paragraph.EndCharacter;
+                }
+
+                if (character < Text.Length) {
+                    AddParagraphSegment(segments, character, Text.Length - character, LegacyDocWritableParagraphFormatting.Plain);
+                }
+
+                return segments;
+            }
+
+            private static void AddParagraphSegment(
+                List<LegacyDocWritableParagraphSegment> segments,
+                int startCharacter,
+                int length,
+                LegacyDocWritableParagraphFormatting formatting) {
+                if (length <= 0) {
+                    return;
+                }
+
+                if (segments.Count > 0) {
+                    LegacyDocWritableParagraphSegment previous = segments[segments.Count - 1];
+                    if (previous.EndCharacter == startCharacter && previous.Formatting.Equals(formatting)) {
+                        segments[segments.Count - 1] = previous.Extend(length);
+                        return;
+                    }
+                }
+
+                segments.Add(new LegacyDocWritableParagraphSegment(startCharacter, length, formatting));
             }
         }
 
