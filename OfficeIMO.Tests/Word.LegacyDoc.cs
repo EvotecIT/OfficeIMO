@@ -585,9 +585,20 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(720, document.Sections[1].Margins.Bottom);
                 Assert.Equal((uint)720, document.Sections[1].Margins.Left!.Value);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
-                Assert.Contains("single section", exception.Message);
-                Assert.False(File.Exists(docPath));
+                document.Save(docPath);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(2, reloaded.Sections.Count);
+                Assert.Equal("Portrait section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
+                Assert.Equal("Landscape section", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
+                Assert.Equal(PageOrientationValues.Landscape, reloaded.Sections[1].PageOrientation);
+                Assert.Equal((uint)15840, reloaded.Sections[1].PageSettings.Width!.Value);
+                Assert.Equal((uint)12240, reloaded.Sections[1].PageSettings.Height!.Value);
+                Assert.Equal(720, reloaded.Sections[1].Margins.Top);
+                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Right!.Value);
+                Assert.Equal(720, reloaded.Sections[1].Margins.Bottom);
+                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Left!.Value);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -1201,6 +1212,40 @@ namespace OfficeIMO.Tests {
                 Assert.Equal((uint)540, reloaded.Margins.HeaderDistance.Value);
                 Assert.Equal((uint)900, reloaded.Margins.FooterDistance.Value);
                 Assert.Equal((uint)360, reloaded.Margins.Gutter.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocMultipleSectionsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Portrait section");
+                    WordSection secondSection = document.AddSection(SectionMarkValues.NextPage);
+                    secondSection.PageSettings.PageSize = WordPageSize.Letter;
+                    secondSection.PageOrientation = PageOrientationValues.Landscape;
+                    secondSection.SetMargins(WordMargin.Narrow);
+                    secondSection.AddParagraph("Landscape section");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(2, reloaded.Sections.Count);
+                Assert.Equal("Portrait section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
+                Assert.Equal("Landscape section", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
+                Assert.Equal(PageOrientationValues.Landscape, reloaded.Sections[1].PageOrientation);
+                Assert.Equal((uint)15840, reloaded.Sections[1].PageSettings.Width!.Value);
+                Assert.Equal((uint)12240, reloaded.Sections[1].PageSettings.Height!.Value);
+                Assert.Equal(720, reloaded.Sections[1].Margins.Top);
+                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Right!.Value);
+                Assert.Equal(720, reloaded.Sections[1].Margins.Bottom);
+                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Left!.Value);
             } finally {
                 DeleteIfExists(docPath);
             }

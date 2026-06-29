@@ -51,8 +51,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         footerDistance = ReadTwipValue(pageMargin.Footer, DefaultHeaderFooterMarginTwips, "section footer distance");
                         gutter = ReadTwipValue(pageMargin.Gutter, 0, "section gutter");
                         break;
+                    case SectionType sectionType:
+                        if (sectionType.Val != null && sectionType.Val.Value != SectionMarkValues.NextPage) {
+                            throw new NotSupportedException("Native DOC saving currently supports next-page section breaks only.");
+                        }
+
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports simple final section page setup only. Unsupported section property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports simple section page setup only. Unsupported section property: {property.LocalName}.");
                 }
             }
 
@@ -137,14 +143,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return sepx;
         }
 
-        private static void WritePlcfSed(byte[] table, int offset, int characterCount, int sepxOffset) {
+        private static void WritePlcfSed(byte[] table, int offset, IReadOnlyList<LegacyDocWritableSectionRecord> sectionRecords) {
             WriteInt32(table, offset, 0);
-            WriteInt32(table, offset + 4, characterCount);
-            WriteUInt16(table, offset + 8, 0);
-            WriteInt32(table, offset + 10, sepxOffset);
-            WriteUInt16(table, offset + 14, 0);
-            WriteUInt16(table, offset + 16, 0);
-            WriteUInt16(table, offset + 18, 0);
+            for (int index = 0; index < sectionRecords.Count; index++) {
+                WriteInt32(table, offset + ((index + 1) * 4), sectionRecords[index].EndCharacter);
+            }
+
+            int sedOffset = offset + ((sectionRecords.Count + 1) * 4);
+            for (int index = 0; index < sectionRecords.Count; index++) {
+                int recordOffset = sedOffset + (index * SedLength);
+                WriteUInt16(table, recordOffset, 0);
+                WriteInt32(table, recordOffset + 2, sectionRecords[index].SepxOffset);
+                WriteUInt16(table, recordOffset + 6, 0);
+                WriteUInt16(table, recordOffset + 8, 0);
+                WriteUInt16(table, recordOffset + 10, 0);
+            }
         }
 
         private static void AddUInt16Sprm(List<byte> grpprl, ushort sprm, int operand) {
