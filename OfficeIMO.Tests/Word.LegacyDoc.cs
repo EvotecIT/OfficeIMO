@@ -140,6 +140,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphSpacingAndIndentation() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithParagraphSpacingAndIndentation();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph[] paragraphs = result.Document.Paragraphs.ToArray();
+            Assert.Equal(3, paragraphs.Length);
+            Assert.Equal("plain", paragraphs[0].Text);
+            Assert.Null(paragraphs[0].LineSpacingBefore);
+            Assert.Null(paragraphs[0].IndentationBefore);
+            Assert.Equal("formatted", paragraphs[1].Text);
+            Assert.Equal(240, paragraphs[1].LineSpacingBefore);
+            Assert.Equal(120, paragraphs[1].LineSpacingAfter);
+            Assert.Equal(360, paragraphs[1].LineSpacing);
+            Assert.Equal(720, paragraphs[1].IndentationBefore);
+            Assert.Equal(360, paragraphs[1].IndentationAfter);
+            Assert.Equal(240, paragraphs[1].IndentationFirstLine);
+            Assert.Equal("hanging", paragraphs[2].Text);
+            Assert.Equal(720, paragraphs[2].IndentationBefore);
+            Assert.Equal(360, paragraphs[2].IndentationHanging);
+            Assert.Null(paragraphs[2].IndentationFirstLine);
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_RoutesOleDocIntoProjectedWordDocument() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -485,6 +510,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphSpacingAndIndentationAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("plain");
+                    WordParagraph formatted = document.AddParagraph("formatted");
+                    formatted.LineSpacingBefore = 240;
+                    formatted.LineSpacingAfter = 120;
+                    formatted.LineSpacing = 360;
+                    formatted.IndentationBefore = 720;
+                    formatted.IndentationAfter = 360;
+                    formatted.IndentationFirstLine = 240;
+                    WordParagraph hanging = document.AddParagraph("hanging");
+                    hanging.IndentationBefore = 720;
+                    hanging.IndentationHanging = 360;
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
+                Assert.Equal(3, paragraphs.Length);
+                Assert.Equal("plain", paragraphs[0].Text);
+                Assert.Null(paragraphs[0].LineSpacingBefore);
+                Assert.Null(paragraphs[0].IndentationBefore);
+                Assert.Equal("formatted", paragraphs[1].Text);
+                Assert.Equal(240, paragraphs[1].LineSpacingBefore);
+                Assert.Equal(120, paragraphs[1].LineSpacingAfter);
+                Assert.Equal(360, paragraphs[1].LineSpacing);
+                Assert.Equal(720, paragraphs[1].IndentationBefore);
+                Assert.Equal(360, paragraphs[1].IndentationAfter);
+                Assert.Equal(240, paragraphs[1].IndentationFirstLine);
+                Assert.Equal("hanging", paragraphs[2].Text);
+                Assert.Equal(720, paragraphs[2].IndentationBefore);
+                Assert.Equal(360, paragraphs[2].IndentationHanging);
+                Assert.Null(paragraphs[2].IndentationFirstLine);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedRunFormattingBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -604,6 +674,22 @@ namespace OfficeIMO.Tests {
                 const int textOffset = 0x200;
                 const int papxFkpOffset = 0x400;
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithParagraphAlignment(text, textOffset, papxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithParagraphSpacingAndIndentation() {
+                const string text = "plain\rformatted\rhanging\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithParagraphSpacingAndIndentation(text, textOffset, papxFkpOffset);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();
@@ -780,6 +866,47 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
+            private static byte[] CreateUnicodeWordDocumentStreamWithParagraphSpacingAndIndentation(string text, int textOffset, int papxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int formattedStart = textOffset + ("plain\r".Length * 2);
+                int hangingStart = formattedStart + ("formatted\r".Length * 2);
+                int end = hangingStart + ("hanging\r".Length * 2);
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, formattedStart, hangingStart, end },
+                    new Dictionary<int, byte[]> {
+                        [1] = CreateParagraphPropertiesPapx(
+                            CreateParagraphSprm(0xA413, 0xF0, 0x00),
+                            CreateParagraphSprm(0xA414, 0x78, 0x00),
+                            CreateParagraphSprm(0x6412, 0x68, 0x01, 0x00, 0x00),
+                            CreateParagraphSprm(0x840F, 0xD0, 0x02),
+                            CreateParagraphSprm(0x840E, 0x68, 0x01),
+                            CreateParagraphSprm(0x8411, 0xF0, 0x00)),
+                        [2] = CreateParagraphPropertiesPapx(
+                            CreateParagraphSprm(0x840F, 0xD0, 0x02),
+                            CreateParagraphSprm(0x8411, 0x98, 0xFE))
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
             private static byte[] CreateTableStream(int characterCount) {
                 const int textOffset = 0x200;
                 var table = new byte[21];
@@ -908,7 +1035,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 int rgbxOffset = fkpOffset + (fileParagraphPositions.Length * 4);
-                int papxOffset = 0x1E0;
+                int papxOffset = 0x180;
                 for (int i = 0; i < paragraphCount; i++) {
                     if (!papxByParagraphIndex.TryGetValue(i, out byte[]? papx)) {
                         continue;
@@ -938,16 +1065,35 @@ namespace OfficeIMO.Tests {
             }
 
             private static byte[] CreateParagraphAlignmentPapx(byte alignment) {
-                return new byte[] {
+                return CreateParagraphPropertiesPapx(CreateParagraphSprm(0x2461, alignment));
+            }
+
+            private static byte[] CreateParagraphPropertiesPapx(params byte[][] sprms) {
+                var grpprl = new List<byte> {
                     0,
-                    3,
-                    0,
-                    0,
-                    0x61,
-                    0x24,
-                    alignment,
                     0
                 };
+
+                foreach (byte[] sprm in sprms) {
+                    grpprl.AddRange(sprm);
+                }
+
+                if (grpprl.Count % 2 != 0) {
+                    grpprl.Add(0);
+                }
+
+                var papx = new byte[grpprl.Count + 2];
+                papx[0] = 0;
+                papx[1] = checked((byte)(grpprl.Count / 2));
+                grpprl.CopyTo(papx, 2);
+                return papx;
+            }
+
+            private static byte[] CreateParagraphSprm(ushort sprm, params byte[] operand) {
+                var bytes = new byte[2 + operand.Length];
+                WriteUInt16(bytes, 0, sprm);
+                Buffer.BlockCopy(operand, 0, bytes, 2, operand.Length);
+                return bytes;
             }
 
             private static int AlignToEven(int value) {

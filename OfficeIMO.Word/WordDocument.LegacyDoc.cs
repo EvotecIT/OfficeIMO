@@ -111,6 +111,34 @@ namespace OfficeIMO.Word {
             if (paragraphFormat.Alignment != null && TryMapParagraphAlignment(paragraphFormat.Alignment.Value, out JustificationValues alignment)) {
                 paragraph.ParagraphAlignment = alignment;
             }
+
+            if (paragraphFormat.SpacingBeforeTwips != null) {
+                paragraph.LineSpacingBefore = paragraphFormat.SpacingBeforeTwips;
+            }
+
+            if (paragraphFormat.SpacingAfterTwips != null) {
+                paragraph.LineSpacingAfter = paragraphFormat.SpacingAfterTwips;
+            }
+
+            if (paragraphFormat.LineSpacingTwips != null) {
+                paragraph.LineSpacing = paragraphFormat.LineSpacingTwips;
+            }
+
+            if (paragraphFormat.LeftIndentTwips != null) {
+                paragraph.IndentationBefore = paragraphFormat.LeftIndentTwips;
+            }
+
+            if (paragraphFormat.RightIndentTwips != null) {
+                paragraph.IndentationAfter = paragraphFormat.RightIndentTwips;
+            }
+
+            if (paragraphFormat.FirstLineIndentTwips != null) {
+                if (paragraphFormat.FirstLineIndentTwips.Value < 0) {
+                    paragraph.IndentationHanging = -paragraphFormat.FirstLineIndentTwips.Value;
+                } else {
+                    paragraph.IndentationFirstLine = paragraphFormat.FirstLineIndentTwips;
+                }
+            }
         }
 
         private static void ApplyLegacyDocRunFormatting(WordParagraph run, LegacyDocTextRun legacyRun) {

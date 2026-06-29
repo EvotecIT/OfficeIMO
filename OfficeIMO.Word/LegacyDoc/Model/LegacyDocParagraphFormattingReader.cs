@@ -4,6 +4,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const int PapxFkpBxLength = 13;
         private const ushort SprmPJc = 0x2461;
         private const ushort SprmPJc80 = 0x2403;
+        private const ushort SprmPDxaRight = 0x840E;
+        private const ushort SprmPDxaLeft = 0x840F;
+        private const ushort SprmPDxaLeft1 = 0x8411;
+        private const ushort SprmPDyaLine = 0x6412;
+        private const ushort SprmPDyaBefore = 0xA413;
+        private const ushort SprmPDyaAfter = 0xA414;
 
         internal static IReadOnlyList<LegacyDocParagraphFormatRange> ReadParagraphFormatting(
             byte[] wordDocumentStream,
@@ -115,6 +121,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private static LegacyDocParagraphFormat ReadGrpprl(byte[] bytes, int offset, int count) {
             int end = offset + count;
             LegacyDocParagraphAlignment? alignment = null;
+            int? spacingBeforeTwips = null;
+            int? spacingAfterTwips = null;
+            int? lineSpacingTwips = null;
+            int? leftIndentTwips = null;
+            int? rightIndentTwips = null;
+            int? firstLineIndentTwips = null;
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
                 if (sprm == SprmPJc || sprm == SprmPJc80) {
@@ -127,6 +139,49 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmPDxaLeft || sprm == SprmPDxaRight || sprm == SprmPDxaLeft1 || sprm == SprmPDyaBefore || sprm == SprmPDyaAfter) {
+                    if (offset + 4 > end) {
+                        break;
+                    }
+
+                    int value = ReadInt16(bytes, offset + 2);
+                    switch (sprm) {
+                        case SprmPDxaLeft:
+                            leftIndentTwips = value;
+                            break;
+                        case SprmPDxaRight:
+                            rightIndentTwips = value;
+                            break;
+                        case SprmPDxaLeft1:
+                            firstLineIndentTwips = value;
+                            break;
+                        case SprmPDyaBefore:
+                            spacingBeforeTwips = value;
+                            break;
+                        case SprmPDyaAfter:
+                            spacingAfterTwips = value;
+                            break;
+                    }
+
+                    offset += 4;
+                    continue;
+                }
+
+                if (sprm == SprmPDyaLine) {
+                    if (offset + 6 > end) {
+                        break;
+                    }
+
+                    int dyaLine = ReadInt16(bytes, offset + 2);
+                    int fMultLinespace = ReadInt16(bytes, offset + 4);
+                    if (fMultLinespace == 0 && dyaLine > 0) {
+                        lineSpacingTwips = dyaLine;
+                    }
+
+                    offset += 6;
+                    continue;
+                }
+
                 if (!TryGetSprmOperandLength(bytes, offset, end, out int operandLength)) {
                     break;
                 }
@@ -134,7 +189,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 offset += 2 + operandLength;
             }
 
-            return new LegacyDocParagraphFormat(alignment);
+            return new LegacyDocParagraphFormat(
+                alignment,
+                spacingBeforeTwips,
+                spacingAfterTwips,
+                lineSpacingTwips,
+                leftIndentTwips,
+                rightIndentTwips,
+                firstLineIndentTwips);
         }
 
         private static LegacyDocParagraphAlignment? MapAlignment(byte value) {
@@ -182,6 +244,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 default:
                     return false;
             }
+        }
+
+        private static short ReadInt16(byte[] bytes, int offset) {
+            return unchecked((short)LegacyDocFib.ReadUInt16(bytes, offset));
         }
     }
 }

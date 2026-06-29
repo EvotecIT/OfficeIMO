@@ -4,7 +4,7 @@ using OfficeIMO.Shared;
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
-    internal static class LegacyDocWriter {
+    internal static partial class LegacyDocWriter {
         private const int FibLength = 0x1AA;
         private const int TextOffset = 0x200;
         private const int OleSectorSize = 512;
@@ -141,40 +141,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (paragraphFormatting.HasFormatting) {
                 paragraphFormats.Add(new LegacyDocWritableParagraph(paragraphStart, text.Length - paragraphStart, paragraphFormatting));
             }
-        }
-
-        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormatting(ParagraphProperties? paragraphProperties) {
-            if (paragraphProperties == null || !paragraphProperties.HasChildren) {
-                return LegacyDocWritableParagraphFormatting.Plain;
-            }
-
-            byte? alignment = null;
-            foreach (OpenXmlElement property in paragraphProperties.ChildElements) {
-                switch (property) {
-                    case Justification justification:
-                        alignment = ReadSupportedParagraphAlignment(justification);
-                        break;
-                    default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only paragraph alignment. Unsupported paragraph property: {property.LocalName}.");
-                }
-            }
-
-            return new LegacyDocWritableParagraphFormatting(alignment);
-        }
-
-        private static byte? ReadSupportedParagraphAlignment(Justification justification) {
-            JustificationValues value = justification.Val?.Value ?? JustificationValues.Left;
-            if (value == JustificationValues.Left) {
-                return 0;
-            } else if (value == JustificationValues.Center) {
-                return 1;
-            } else if (value == JustificationValues.Right) {
-                return 2;
-            } else if (value == JustificationValues.Both) {
-                return 3;
-            }
-
-            throw new NotSupportedException($"Native DOC saving does not support paragraph alignment '{value}'.");
         }
 
         private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run) {

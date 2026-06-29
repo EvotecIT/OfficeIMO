@@ -1,0 +1,118 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Wordprocessing;
+
+namespace OfficeIMO.Word.LegacyDoc.Write {
+    internal static partial class LegacyDocWriter {
+        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormatting(ParagraphProperties? paragraphProperties) {
+            if (paragraphProperties == null || !paragraphProperties.HasChildren) {
+                return LegacyDocWritableParagraphFormatting.Plain;
+            }
+
+            byte? alignment = null;
+            int? spacingBeforeTwips = null;
+            int? spacingAfterTwips = null;
+            int? lineSpacingTwips = null;
+            int? leftIndentTwips = null;
+            int? rightIndentTwips = null;
+            int? firstLineIndentTwips = null;
+            foreach (OpenXmlElement property in paragraphProperties.ChildElements) {
+                switch (property) {
+                    case Justification justification:
+                        alignment = ReadSupportedParagraphAlignment(justification);
+                        break;
+                    case SpacingBetweenLines spacing:
+                        ReadSupportedParagraphSpacing(spacing, out spacingBeforeTwips, out spacingAfterTwips, out lineSpacingTwips);
+                        break;
+                    case Indentation indentation:
+                        ReadSupportedParagraphIndentation(indentation, out leftIndentTwips, out rightIndentTwips, out firstLineIndentTwips);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving currently supports only paragraph alignment, spacing, and indentation. Unsupported paragraph property: {property.LocalName}.");
+                }
+            }
+
+            return new LegacyDocWritableParagraphFormatting(
+                alignment,
+                spacingBeforeTwips,
+                spacingAfterTwips,
+                lineSpacingTwips,
+                leftIndentTwips,
+                rightIndentTwips,
+                firstLineIndentTwips);
+        }
+
+        private static byte? ReadSupportedParagraphAlignment(Justification justification) {
+            JustificationValues value = justification.Val?.Value ?? JustificationValues.Left;
+            if (value == JustificationValues.Left) {
+                return 0;
+            } else if (value == JustificationValues.Center) {
+                return 1;
+            } else if (value == JustificationValues.Right) {
+                return 2;
+            } else if (value == JustificationValues.Both) {
+                return 3;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support paragraph alignment '{value}'.");
+        }
+
+        private static void ReadSupportedParagraphSpacing(
+            SpacingBetweenLines spacing,
+            out int? spacingBeforeTwips,
+            out int? spacingAfterTwips,
+            out int? lineSpacingTwips) {
+            if ((spacing.BeforeAutoSpacing?.Value ?? false) || (spacing.AfterAutoSpacing?.Value ?? false)) {
+                throw new NotSupportedException("Native DOC saving currently supports paragraph spacing only as explicit twip values, not automatic spacing.");
+            }
+
+            if (spacing.BeforeLines != null || spacing.AfterLines != null) {
+                throw new NotSupportedException("Native DOC saving currently supports paragraph before/after spacing only as twip values, not line-count spacing.");
+            }
+
+            LineSpacingRuleValues? lineRule = spacing.LineRule?.Value;
+            if (lineRule == LineSpacingRuleValues.Auto) {
+                throw new NotSupportedException("Native DOC saving currently supports exact or at-least paragraph line spacing, not automatic multiplier spacing.");
+            }
+
+            spacingBeforeTwips = ReadOptionalInt32Twips(spacing.Before?.Value, "paragraph spacing before");
+            spacingAfterTwips = ReadOptionalInt32Twips(spacing.After?.Value, "paragraph spacing after");
+            lineSpacingTwips = ReadOptionalInt32Twips(spacing.Line?.Value, "paragraph line spacing");
+        }
+
+        private static void ReadSupportedParagraphIndentation(
+            Indentation indentation,
+            out int? leftIndentTwips,
+            out int? rightIndentTwips,
+            out int? firstLineIndentTwips) {
+            if (indentation.LeftChars != null || indentation.RightChars != null || indentation.FirstLineChars != null || indentation.HangingChars != null) {
+                throw new NotSupportedException("Native DOC saving currently supports paragraph indentation only as twip values, not character-based indentation.");
+            }
+
+            if (indentation.FirstLine != null && indentation.Hanging != null) {
+                throw new NotSupportedException("Native DOC saving cannot write a paragraph with both first-line and hanging indentation.");
+            }
+
+            leftIndentTwips = ReadOptionalInt32Twips(indentation.Left?.Value, "paragraph left indentation");
+            rightIndentTwips = ReadOptionalInt32Twips(indentation.Right?.Value, "paragraph right indentation");
+            int? firstLine = ReadOptionalInt32Twips(indentation.FirstLine?.Value, "paragraph first-line indentation");
+            int? hanging = ReadOptionalInt32Twips(indentation.Hanging?.Value, "paragraph hanging indentation");
+            firstLineIndentTwips = hanging != null ? -hanging.Value : firstLine;
+        }
+
+        private static int? ReadOptionalInt32Twips(string? value, string propertyName) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            if (!int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int result)) {
+                throw new NotSupportedException($"Native DOC saving supports {propertyName} only when it is stored as a numeric twip value.");
+            }
+
+            if (result < short.MinValue || result > short.MaxValue) {
+                throw new NotSupportedException($"Native DOC saving supports {propertyName} only within the Word 97-2003 signed twip range.");
+            }
+
+            return result;
+        }
+    }
+}

@@ -2,6 +2,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static class LegacyDocParagraphFormattingWriter {
         private const int PapxFkpBxLength = 13;
         private const ushort SprmPJc = 0x2461;
+        private const ushort SprmPDxaRight = 0x840E;
+        private const ushort SprmPDxaLeft = 0x840F;
+        private const ushort SprmPDxaLeft1 = 0x8411;
+        private const ushort SprmPDyaLine = 0x6412;
+        private const ushort SprmPDyaBefore = 0xA413;
+        private const ushort SprmPDyaAfter = 0xA414;
 
         internal static void WritePapxFkp(byte[] stream, int pageOffset, int textOffset, int oleSectorSize, IReadOnlyList<LegacyDocWritableParagraphSegment> segments) {
             if (segments.Count == 0 || segments.Count > byte.MaxValue) {
@@ -48,6 +54,30 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmPJc, formatting.Alignment.Value);
             }
 
+            if (formatting.LeftIndentTwips != null) {
+                AddInt16Sprm(grpprl, SprmPDxaLeft, formatting.LeftIndentTwips.Value);
+            }
+
+            if (formatting.RightIndentTwips != null) {
+                AddInt16Sprm(grpprl, SprmPDxaRight, formatting.RightIndentTwips.Value);
+            }
+
+            if (formatting.FirstLineIndentTwips != null) {
+                AddInt16Sprm(grpprl, SprmPDxaLeft1, formatting.FirstLineIndentTwips.Value);
+            }
+
+            if (formatting.SpacingBeforeTwips != null) {
+                AddInt16Sprm(grpprl, SprmPDyaBefore, formatting.SpacingBeforeTwips.Value);
+            }
+
+            if (formatting.SpacingAfterTwips != null) {
+                AddInt16Sprm(grpprl, SprmPDyaAfter, formatting.SpacingAfterTwips.Value);
+            }
+
+            if (formatting.LineSpacingTwips != null) {
+                AddLineSpacingSprm(grpprl, formatting.LineSpacingTwips.Value);
+            }
+
             if (grpprl.Count % 2 != 0) {
                 grpprl.Add(0);
             }
@@ -70,6 +100,24 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             grpprl.Add(operand);
         }
 
+        private static void AddInt16Sprm(List<byte> grpprl, ushort sprm, int operand) {
+            if (operand < short.MinValue || operand > short.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports paragraph spacing and indentation only within the Word 97-2003 signed twip range.");
+            }
+
+            short value = checked((short)operand);
+            grpprl.Add((byte)(sprm & 0xFF));
+            grpprl.Add((byte)(sprm >> 8));
+            grpprl.Add((byte)(value & 0xFF));
+            grpprl.Add((byte)(value >> 8));
+        }
+
+        private static void AddLineSpacingSprm(List<byte> grpprl, int lineSpacingTwips) {
+            AddInt16Sprm(grpprl, SprmPDyaLine, lineSpacingTwips);
+            grpprl.Add(0);
+            grpprl.Add(0);
+        }
+
         private static void WriteInt32(byte[] bytes, int offset, int value) {
             bytes[offset] = (byte)value;
             bytes[offset + 1] = (byte)(value >> 8);
@@ -79,18 +127,55 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null);
 
-        internal LegacyDocWritableParagraphFormatting(byte? alignment) {
+        internal LegacyDocWritableParagraphFormatting(
+            byte? alignment,
+            int? spacingBeforeTwips,
+            int? spacingAfterTwips,
+            int? lineSpacingTwips,
+            int? leftIndentTwips,
+            int? rightIndentTwips,
+            int? firstLineIndentTwips) {
             Alignment = alignment;
+            SpacingBeforeTwips = spacingBeforeTwips;
+            SpacingAfterTwips = spacingAfterTwips;
+            LineSpacingTwips = lineSpacingTwips;
+            LeftIndentTwips = leftIndentTwips;
+            RightIndentTwips = rightIndentTwips;
+            FirstLineIndentTwips = firstLineIndentTwips;
         }
 
         internal byte? Alignment { get; }
 
-        internal bool HasFormatting => Alignment != null;
+        internal int? SpacingBeforeTwips { get; }
+
+        internal int? SpacingAfterTwips { get; }
+
+        internal int? LineSpacingTwips { get; }
+
+        internal int? LeftIndentTwips { get; }
+
+        internal int? RightIndentTwips { get; }
+
+        internal int? FirstLineIndentTwips { get; }
+
+        internal bool HasFormatting => Alignment != null
+            || SpacingBeforeTwips != null
+            || SpacingAfterTwips != null
+            || LineSpacingTwips != null
+            || LeftIndentTwips != null
+            || RightIndentTwips != null
+            || FirstLineIndentTwips != null;
 
         public bool Equals(LegacyDocWritableParagraphFormatting other) {
-            return Alignment == other.Alignment;
+            return Alignment == other.Alignment
+                && SpacingBeforeTwips == other.SpacingBeforeTwips
+                && SpacingAfterTwips == other.SpacingAfterTwips
+                && LineSpacingTwips == other.LineSpacingTwips
+                && LeftIndentTwips == other.LeftIndentTwips
+                && RightIndentTwips == other.RightIndentTwips
+                && FirstLineIndentTwips == other.FirstLineIndentTwips;
         }
 
         public override bool Equals(object? obj) {
@@ -98,7 +183,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         public override int GetHashCode() {
-            return Alignment.GetHashCode();
+            int hash = 17;
+            hash = (hash * 31) + Alignment.GetHashCode();
+            hash = (hash * 31) + SpacingBeforeTwips.GetHashCode();
+            hash = (hash * 31) + SpacingAfterTwips.GetHashCode();
+            hash = (hash * 31) + LineSpacingTwips.GetHashCode();
+            hash = (hash * 31) + LeftIndentTwips.GetHashCode();
+            hash = (hash * 31) + RightIndentTwips.GetHashCode();
+            hash = (hash * 31) + FirstLineIndentTwips.GetHashCode();
+            return hash;
         }
     }
 
