@@ -582,6 +582,55 @@ Quarterly Revenue {#quarterly-overview .wide .accent title="Quarterly Revenue" p
         }
 
         [Fact]
+        public void GenericAttributes_Parse_PipeTable_CellAttributeBlock_As_TableAttributes_WhenEnabled() {
+            const string md = """
+| A {#tbl .wide title="Quarterly"} |
+|---|
+| B |
+""";
+            var options = new MarkdownReaderOptions {
+                GenericAttributes = true,
+                PreserveTrivia = true,
+                Tables = true
+            };
+
+            var result = MarkdownReader.ParseWithSyntaxTree(md, options);
+            var table = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
+
+            Assert.Equal("tbl", table.Attributes.ElementId);
+            Assert.Equal(new[] { "wide" }, table.Attributes.Classes);
+            Assert.Equal("Quarterly", table.Attributes.GetAttribute("title"));
+            Assert.Equal("A", Assert.Single(table.Headers));
+            Assert.Equal("A", Assert.Single(table.HeaderCells).Markdown);
+            Assert.Equal("B", Assert.Single(Assert.Single(table.Rows)));
+
+            var syntax = Assert.Single(result.FinalSyntaxTree.Children);
+            Assert.Equal(MarkdownSyntaxKind.Table, syntax.Kind);
+            Assert.Equal("tbl", syntax.Attributes.ElementId);
+            var attributes = Assert.Single(syntax.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+            Assert.Equal("{#tbl .wide title=\"Quarterly\"}", attributes.Literal);
+            Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+            Assert.Equal("{#tbl .wide title=\"Quarterly\"}", slice.Text);
+
+            var html = result.Document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            });
+            Assert.Contains("<table id=\"tbl\" class=\"wide\" title=\"Quarterly\">", html, StringComparison.Ordinal);
+            Assert.Contains("<th>A</th>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("{#tbl", html, StringComparison.Ordinal);
+
+            var written = result.Document.ToMarkdown().TrimEnd().Replace("\r\n", "\n");
+            Assert.Equal("| A {#tbl .wide title=\"Quarterly\"} |\n| --- |\n| B |", written);
+
+            var reparsed = MarkdownReader.Parse(written, options);
+            var reparsedTable = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
+            Assert.Equal("tbl", reparsedTable.Attributes.ElementId);
+            Assert.Equal("A", Assert.Single(reparsedTable.Headers));
+        }
+
+        [Fact]
         public void GenericAttributes_Parse_InlineElements_WhenEnabled() {
             const string md = "[site](https://example.com){#lnk .primary title=\"Site\"} ![alt](image.png){#img .wide title=\"Image\"} *emphasis*{#em .marked} **strong**{#strong .marked} `code`{#code .token}";
             var options = new MarkdownReaderOptions {

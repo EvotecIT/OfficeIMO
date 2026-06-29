@@ -52,8 +52,8 @@ The short answer to "are we only doing tests?" is no:
 
 ### P1 - Engine Work We Are Missing Next
 
-- [ ] **Finish `UseGenericAttributes` breadth.** This is the active engine slice. Already covered: fenced code, ATX headings, Setext headings, paragraphs, and common no-space inline attributes. Missing before promotion:
-  - [ ] Probe Markdig behavior for remaining block families: block quotes, list items/lists, thematic breaks, tables/table cells, HTML blocks, footnotes, definition lists, callouts, and standalone media/image shapes.
+- [ ] **Finish `UseGenericAttributes` breadth.** This is the active engine slice. Already covered: fenced code, ATX headings, Setext headings, paragraphs, Markdig-style pipe-table cell attributes that promote to the owning table, and common no-space inline attributes. Missing before promotion:
+  - [ ] Probe and close remaining block families: block quotes, list items/lists, thematic breaks, table-edge forms, HTML blocks, footnotes, definition lists, callouts, and standalone media/image shapes.
   - [ ] Implement only the shapes Markdig actually treats as generic attributes, using shared parser helpers instead of per-block string rescans.
   - [ ] Project every newly supported attribute through semantic AST, syntax AST, native fields/metadata, HTML rendering, Markdown writing, and preserved-trivia source edits.
   - [ ] Keep unsupported or intentionally different shapes documented as profile differences, not silent gaps.
@@ -104,6 +104,7 @@ The short answer to "are we only doing tests?" is no:
 - [x] **Moved `UseGenericAttributes` through common inline elements.** No-space generic attribute blocks now attach to links, images, emphasis, strong, code spans, strikethrough, highlight, inserted, superscript, and subscript nodes; the covered shapes flow through semantic AST, syntax AST, default HTML rendering, Markdown writing, Markdig comparison cases, and reparse proof.
 - [x] **Moved `UseGenericAttributes` through native source edits for covered shapes.** Covered generic attribute blocks are captured with original source text and source spans, projected as native block `attributes` source fields and inline `attributes` metadata, included in snapshots, and editable losslessly in preserved-trivia roundtrips.
 - [x] **Moved `UseGenericAttributes` through syntax-token coverage for covered shapes.** Covered block and inline attribute blocks now appear as source-addressable `GenericAttributeBlock` syntax tokens, caret/navigation can land on them, and native inline metadata remains single-projected from the token.
+- [x] **Moved `UseGenericAttributes` through Markdig-style pipe-table cells.** Trailing generic attribute blocks in header or body cells are consumed from the cell text, promoted to the owning `TableBlock`, rendered on `<table>`, written back into a stable reparsable table cell form, and exposed through syntax/native/source-edit proof.
 
 ## Execution Rules
 
@@ -266,7 +267,7 @@ These are the actual parity gaps. Engine work is listed first; tests and invento
 - [x] **Core scoreboards.** Checked-in inventories exist for CommonMark, tracked GFM fixtures, and reflected Markdig extension families.
 - [x] **Initial editor/source architecture.** Many canonical nodes expose syntax/source/native spans, source fields, and source-edit helpers.
 - [x] **Finish the active `UseGenericAttributes` engine slice.** Covered generic attribute blocks are semantic/native/source-backed and now project as `GenericAttributeBlock` syntax tokens with caret/navigation and native metadata proof.
-- [ ] **Finish `UseGenericAttributes` breadth.** Extend parsing/writing/source preservation beyond the currently covered ATX headings, Setext headings, paragraphs, fenced code, and common no-space inline elements into the remaining block families and inline shapes that Markdig supports.
+- [ ] **Finish `UseGenericAttributes` breadth.** Extend parsing/writing/source preservation beyond the currently covered ATX headings, Setext headings, paragraphs, fenced code, Markdig-style pipe-table cell attributes, and common no-space inline elements into the remaining block families and inline shapes that Markdig supports.
 - [ ] **Finish `UseDefinitionLists` breadth.** Marker syntax and native fields exist; finish source-map and writer edge cases for marker groups, lazy continuation, loose definitions, nested definitions, multiline body edits, and reparse stability.
 - [ ] **Decide `UseAlertBlocks`.** Choose whether Markdig alert rendering callbacks are an OfficeIMO engine/renderer contract or an intentional OfficeIMO callout difference, then implement or document that decision.
 - [ ] **Decide `UseCjkFriendlyEmphasis`.** Either add a real delimiter option with CJK comparison fixtures and source-token proof, or document it as deferred/intentional.

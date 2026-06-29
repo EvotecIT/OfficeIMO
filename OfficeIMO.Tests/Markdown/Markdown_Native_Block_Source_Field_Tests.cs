@@ -71,6 +71,45 @@ public class Markdown_Native_Block_Source_Field_Tests {
     }
 
     [Fact]
+    public void GenericAttributes_Table_SourceField_Is_Source_Addressable() {
+        const string markdown = "| A {#tbl .wide title=\"Quarterly\"} |\n|---|\n| B |\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true,
+            Tables = true
+        };
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var table = Assert.IsType<MarkdownNativeTableBlock>(Assert.Single(native.Blocks));
+        var sourceTable = Assert.IsType<TableBlock>(table.SourceBlock);
+
+        Assert.Equal("tbl", sourceTable.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, sourceTable.Attributes.Classes.ToArray());
+
+        var attributes = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Same(table, attributes.Block);
+        Assert.Equal("{#tbl .wide title=\"Quarterly\"}", attributes.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 34), attributes.SourceSpan);
+
+        var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 8));
+        Assert.Equal("attributes", found.Name);
+        Assert.Equal(attributes.SourceSpan, found.SourceSpan);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "attributes"
+            && field.Value == "{#tbl .wide title=\"Quarterly\"}"
+            && field.SourceSpan.StartColumn == 5
+            && field.SourceSpan.EndColumn == 34);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributes, "{#grid .compact}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("| A {#grid .compact} |\n|---|\n| B |\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void Paragraph_Text_SourceField_Uses_Paragraph_Source_Span() {
         const string markdown = "Old **body**\n";
 

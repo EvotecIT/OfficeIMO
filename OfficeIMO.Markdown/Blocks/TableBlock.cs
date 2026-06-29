@@ -157,6 +157,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
                 ? PrepareStructuredRowMarkdown(StructuredHeaders, Headers, columnCount)
                 : PrepareRowCells(Headers, columnCount);
             var escapedHeaders = headerMarkdown.Select(escapeCell).ToArray();
+            AppendTableAttributesToFirstCell(escapedHeaders);
             AppendRow(sb, escapedHeaders);
 
             var alignRow = new string[columnCount];
@@ -187,6 +188,9 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
                 ? PrepareStructuredRowMarkdown(StructuredRows[rowIndex], Rows[rowIndex], columnCount)
                 : PrepareRowCells(Rows[rowIndex], columnCount);
             var escapedRow = rowMarkdown.Select(escapeCell).ToArray();
+            if (rowIndex == 0) {
+                AppendTableAttributesToFirstCell(escapedRow);
+            }
             AppendRow(sbNoHeaders, escapedRow);
         }
         return sbNoHeaders.ToString().TrimEnd('\n');
@@ -195,7 +199,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
         StringBuilder sb = new StringBuilder();
-        sb.Append("<table>");
+        sb.Append("<table").Append(MarkdownHtmlAttributes.Render(Attributes, null)).Append(">");
         AppendColumnGroupHtml(sb, GetEffectiveColumnCount());
         var headerCells = HeaderCells;
         var rowCells = RowCells;
@@ -248,6 +252,14 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         }
         sb.Append("</table>");
         return sb.ToString();
+    }
+
+    private void AppendTableAttributesToFirstCell(IList<string> cells) {
+        if (Attributes.IsEmpty || cells == null || cells.Count == 0) {
+            return;
+        }
+
+        cells[0] = (cells[0] ?? string.Empty) + MarkdownAttributeBlockRenderer.RenderTrailing(Attributes);
     }
 
     private IReadOnlyList<TableCell>? GetCurrentStructuredHeaders() {

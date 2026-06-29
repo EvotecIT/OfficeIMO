@@ -311,6 +311,12 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "inline-code-id-class", "`code`{#code .token}" };
     }
 
+    public static IEnumerable<object[]> GenericAttributesPipeTableExtensionCases() {
+        yield return new object[] { "pipe-table-header-cell-attribute", "| A {#tbl .wide title=\"Overview\"} |\n|---|\n| B |" };
+        yield return new object[] { "pipe-table-second-header-cell-attribute", "| A | B {#tbl .wide} |\n|---|---|\n| C | D |" };
+        yield return new object[] { "pipe-table-body-cell-attribute", "| A |\n|---|\n| B {#tbl .wide} |" };
+    }
+
     [Theory]
     [MemberData(nameof(CoreParityCases))]
     public void MarkdownReader_Matches_Markdig_On_Curated_Cases(string _, string markdown) {
@@ -497,6 +503,31 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UseGenericAttributes(builder);
 
         var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.GenericAttributes = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(GenericAttributesPipeTableExtensionCases))]
+    public void MarkdownReader_GenericAttributes_In_PipeTables_Match_Markdig_Extensions(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UsePipeTables(builder);
+        Markdig.MarkdownExtensions.UseGenericAttributes(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.Tables = true;
         officeOptions.GenericAttributes = true;
 
         var office = MarkdownReader
