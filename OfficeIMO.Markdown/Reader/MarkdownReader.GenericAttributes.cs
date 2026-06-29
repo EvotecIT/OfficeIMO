@@ -10,8 +10,7 @@ public static partial class MarkdownReader {
             || state.PendingGenericAttributeBlock != null
             || lines == null
             || lineIndex < 0
-            || lineIndex >= lines.Length
-            || !HasFollowingSupportedStandaloneAttributeTarget(lines, lineIndex, options)) {
+            || lineIndex >= lines.Length) {
             return false;
         }
 
@@ -33,6 +32,14 @@ public static partial class MarkdownReader {
             return false;
         }
 
+        if (HasFollowingConsumedStandaloneAttributeTarget(lines, lineIndex, options)) {
+            return true;
+        }
+
+        if (!HasFollowingSupportedStandaloneAttributeTarget(lines, lineIndex, options)) {
+            return false;
+        }
+
         var absoluteLine = state.SourceLineOffset + lineIndex + 1;
         var sourceSpan = CreateSpan(
             state,
@@ -46,6 +53,21 @@ public static partial class MarkdownReader {
             content.Substring(0, consumedLength),
             sourceSpan);
         return true;
+    }
+
+    private static bool HasFollowingConsumedStandaloneAttributeTarget(
+        string[] lines,
+        int lineIndex,
+        MarkdownReaderOptions options) {
+        for (int i = lineIndex + 1; i < lines.Length; i++) {
+            if (string.IsNullOrWhiteSpace(lines[i])) {
+                continue;
+            }
+
+            return HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[i], options);
+        }
+
+        return false;
     }
 
     private static bool TryApplyPendingGenericAttributeBlock(
@@ -74,6 +96,18 @@ public static partial class MarkdownReader {
         }
 
         captureStartLine = pending.SourceSpan.StartLine - 1;
+        state.PendingGenericAttributeBlock = null;
+        return true;
+    }
+
+    private static bool TryTakePendingGenericAttributeBlock(
+        MarkdownReaderState state,
+        out MarkdownPendingGenericAttributeBlock pending) {
+        pending = state.PendingGenericAttributeBlock!;
+        if (pending == null) {
+            return false;
+        }
+
         state.PendingGenericAttributeBlock = null;
         return true;
     }
@@ -109,6 +143,17 @@ public static partial class MarkdownReader {
 
             if (options.OrderedLists
                 && IsOrderedListLine(lines[i], out _, out _)) {
+                return true;
+            }
+
+            if (options.Headings
+                && LooksLikeHr(lines[i])
+                && TryGetSetextHeadingUnderlineLevel(lines[i], out _)) {
+                return true;
+            }
+
+            if (options.IndentedCodeBlocks
+                && CountLeadingIndentColumns(lines[i]) >= 4) {
                 return true;
             }
 

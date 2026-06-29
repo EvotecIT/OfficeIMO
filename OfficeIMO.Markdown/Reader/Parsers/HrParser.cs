@@ -6,6 +6,33 @@ public static partial class MarkdownReader {
             // HR is independent of options; it's safe and tiny, but follow Paragraphs toggle for symmetry
             if (!options.Paragraphs) return false;
             if (!LooksLikeHr(lines[i])) return false;
+            if (TryTakePendingGenericAttributeBlock(state, out var pending)
+                && options.Headings
+                && TryGetSetextHeadingUnderlineLevel(lines[i], out var level)) {
+                var heading = new HeadingBlock(level, new InlineSequence());
+                heading.SetAttributes(pending.Attributes);
+                MarkdownGenericAttributeSourceSpans.Set(heading, pending.SourceText, pending.SourceSpan);
+
+                var underline = lines[i] ?? string.Empty;
+                var trimmedUnderline = underline.Trim();
+                var markerStartColumn = underline.IndexOf(trimmedUnderline, StringComparison.Ordinal) + 1;
+                var markerEndColumn = markerStartColumn + trimmedUnderline.Length - 1;
+                var absoluteMarkerLine = state.SourceLineOffset + i + 1;
+                heading.SetLevelSourceInfo(
+                    0,
+                    markerStartColumn,
+                    markerEndColumn);
+                heading.SetSetextUnderlineMarkerSourceInfo(
+                    0,
+                    markerStartColumn,
+                    markerEndColumn,
+                    trimmedUnderline,
+                    CreateSpan(state, absoluteMarkerLine, markerStartColumn, absoluteMarkerLine, markerEndColumn));
+                doc.Add(heading);
+                i++;
+                return true;
+            }
+
             var horizontalRule = new HorizontalRuleBlock();
             SetThematicBreakMarkerSource(horizontalRule, lines[i], state.SourceLineOffset + i + 1, state);
             doc.Add(horizontalRule);

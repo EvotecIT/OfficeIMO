@@ -461,6 +461,122 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void Standalone_GenericAttributes_Before_HtmlBlock_Are_Consumed_Without_Metadata() {
+        const string markdown = "{#html .wide}\n<div>raw</div>\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true,
+            HtmlBlocks = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        Assert.IsType<HtmlRawBlock>(Assert.Single(result.Document.Blocks));
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        Assert.Empty(MarkdownNativeDocument.Parse(markdown, options).EnumerateBlockSourceFields("attributes"));
+
+        var html = result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Equal("<div>raw</div>", html);
+    }
+
+    [Fact]
+    public void Standalone_GenericAttributes_Before_ThematicBreak_Create_Attributed_Empty_SetextHeading() {
+        const string markdown = "{#rule .wide}\n---\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(result.Document.Blocks));
+        Assert.Equal(2, headingBlock.Level);
+        Assert.Equal(string.Empty, headingBlock.Text);
+        Assert.Equal("rule", headingBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, headingBlock.Attributes.Classes);
+
+        var heading = Assert.Single(result.FinalSyntaxTree.Children);
+        var attributes = Assert.Single(heading.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        var underline = Assert.Single(heading.Children, node => node.Kind == MarkdownSyntaxKind.HeadingSetextUnderlineMarker);
+
+        Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
+        Assert.Equal("{#rule .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), attributes.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 3), underline.SourceSpan);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeHeading = Assert.IsType<MarkdownNativeHeadingBlock>(Assert.Single(native.Blocks));
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Equal(string.Empty, nativeHeading.Text);
+        Assert.Same(nativeHeading, field.Block);
+        Assert.Equal("{#rule .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), field.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(field, "{#line .thin}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("{#line .thin}\n---\n", roundtrip.Markdown);
+    }
+
+    [Fact]
+    public void Standalone_GenericAttributes_Before_IndentedCode_Create_Attributed_Paragraph() {
+        const string markdown = "{#code .wide}\n    var x = 1;\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true,
+            IndentedCodeBlocks = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var paragraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
+        Assert.Equal("var x = 1;", paragraphBlock.Inlines.RenderMarkdown());
+        Assert.Equal("code", paragraphBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, paragraphBlock.Attributes.Classes);
+
+        var paragraph = Assert.Single(result.FinalSyntaxTree.Children);
+        var attributes = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
+        Assert.Equal("{#code .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), attributes.SourceSpan);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Equal("var x = 1;", nativeParagraph.Text);
+        Assert.Same(nativeParagraph, field.Block);
+        Assert.Equal("{#code .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), field.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(field, "{#sample .snippet}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("{#sample .snippet}\n    var x = 1;\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_ListItem_GenericAttribute_Tokens() {
         const string markdown = "- item {#li .selected}\n";
         var options = new MarkdownReaderOptions {

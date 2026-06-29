@@ -44,6 +44,16 @@ public static partial class MarkdownReader {
 
             // Keep content as-is (minus the last newline we appended via AppendLine).
             string content = RemoveSingleTrailingLineEnding(sb.ToString());
+            if (TryTakePendingGenericAttributeBlock(state, out var pending)) {
+                var paragraphText = JoinParagraphLines(new List<string>(content.Split('\n')), options).Trim();
+                var paragraph = new ParagraphBlock(ParseInlines(paragraphText, options, state));
+                paragraph.SetAttributes(pending.Attributes);
+                MarkdownGenericAttributeSourceSpans.Set(paragraph, pending.SourceText, pending.SourceSpan);
+                doc.Add(paragraph);
+                i = j;
+                return true;
+            }
+
             doc.Add(new CodeBlock(string.Empty, content, isFenced: false));
             i = j;
             return true;
