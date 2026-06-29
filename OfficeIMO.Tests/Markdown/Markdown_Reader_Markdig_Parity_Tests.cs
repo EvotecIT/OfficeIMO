@@ -311,6 +311,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "underscore-thematic-break-like-line-is-attributed-paragraph", "___ {#hr .wide}" };
         yield return new object[] { "standalone-attribute-before-heading", "{#intro .wide}\n# Heading" };
         yield return new object[] { "standalone-attribute-before-paragraph", "{#intro .wide}\nParagraph" };
+        yield return new object[] { "standalone-attribute-before-fenced-code", "{#code .wide}\n```cs\nvar x = 1;\n```" };
         yield return new object[] { "standalone-attribute-before-unordered-list", "{#list .wide}\n- item" };
         yield return new object[] { "standalone-attribute-before-ordered-list", "{#list .wide}\n1. item" };
         yield return new object[] { "blockquote-paragraph-attribute-stays-literal", "> quote {#q .lead}" };

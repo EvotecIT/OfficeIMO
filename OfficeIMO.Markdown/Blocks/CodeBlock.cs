@@ -79,6 +79,10 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
         string fence = MarkdownFence.BuildSafeFence(Content);
 
         StringBuilder sb = new StringBuilder();
+        if (ShouldRenderStandaloneGenericAttributes()) {
+            sb.AppendLine(MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes));
+        }
+
         sb.AppendLine($"{fence}{InfoString}");
         sb.AppendLine(Content);
         sb.AppendLine(fence);
@@ -94,8 +98,11 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
             return overridden;
         }
 
-        string attrs = MarkdownHtmlAttributes.Render(Attributes, options);
-        string lang = string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{HtmlTextEncoder.Encode(Language, options)}\"";
+        bool renderGenericAttributesOnCode = ShouldRenderStandaloneGenericAttributes();
+        string attrs = renderGenericAttributesOnCode ? string.Empty : MarkdownHtmlAttributes.Render(Attributes, options);
+        string lang = renderGenericAttributesOnCode
+            ? RenderCodeAttributes(options)
+            : string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{HtmlTextEncoder.Encode(Language, options)}\"";
         string code = HtmlTextEncoder.Encode(Content, options);
         if (code.Length > 0) {
             // CommonMark-style HTML keeps the terminating line break inside <code>
@@ -106,10 +113,36 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
         return $"<pre{attrs}><code{lang}>{code}</code></pre>{caption}";
     }
 
+    private bool ShouldRenderStandaloneGenericAttributes() =>
+        !Attributes.IsEmpty && MarkdownGenericAttributeSourceSpans.GetSourceSpan(this).HasValue;
+
+    private string RenderCodeAttributes(HtmlOptions? options) {
+        if (Attributes.IsEmpty && string.IsNullOrEmpty(Language)) {
+            return string.Empty;
+        }
+
+        var classes = new List<string>();
+        if (!string.IsNullOrEmpty(Language)) {
+            classes.Add("language-" + Language);
+        }
+
+        for (int i = 0; i < Attributes.Classes.Count; i++) {
+            classes.Add(Attributes.Classes[i]);
+        }
+
+        var codeAttributes = MarkdownAttributeSet.Create(
+            Attributes.ElementId,
+            classes,
+            Attributes.Attributes);
+
+        return MarkdownHtmlAttributes.Render(codeAttributes, options);
+    }
+
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
         var nodes = new List<MarkdownSyntaxNode>();
-        OpeningFenceSourceSpan = MarkdownFencedBlockSourceSpans.GetOpeningFenceSpan(span, IsFenced, FenceIndentColumns, FenceLength);
-        ClosingFenceSourceSpan = MarkdownFencedBlockSourceSpans.GetClosingFenceSpan(span, IsFenced, Content, HasClosingFence, ClosingFenceIndentColumns, ClosingFenceLength);
+        var fenceSpan = GetFenceSourceSpan(span);
+        OpeningFenceSourceSpan = MarkdownFencedBlockSourceSpans.GetOpeningFenceSpan(fenceSpan, IsFenced, FenceIndentColumns, FenceLength);
+        ClosingFenceSourceSpan = MarkdownFencedBlockSourceSpans.GetClosingFenceSpan(fenceSpan, IsFenced, Content, HasClosingFence, ClosingFenceIndentColumns, ClosingFenceLength);
 
         if (OpeningFenceSourceSpan.HasValue) {
             nodes.Add(new MarkdownSyntaxNode(
@@ -118,7 +151,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
                 new string(FenceChar, FenceLength)));
         }
 
-        var infoSpan = MarkdownFencedBlockSourceSpans.GetInfoSpan(span, IsFenced, InfoString, FenceIndentColumns, FenceLength, FenceInfoPaddingColumns);
+        var infoSpan = MarkdownFencedBlockSourceSpans.GetInfoSpan(fenceSpan, IsFenced, InfoString, FenceIndentColumns, FenceLength, FenceInfoPaddingColumns);
         if (infoSpan.HasValue) {
             nodes.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.CodeFenceInfo,
@@ -128,7 +161,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
 
         nodes.Add(new MarkdownSyntaxNode(
             MarkdownSyntaxKind.CodeContent,
-            MarkdownFencedBlockSourceSpans.GetContentSpan(span, IsFenced, Content),
+            MarkdownFencedBlockSourceSpans.GetContentSpan(fenceSpan, IsFenced, Content),
             MarkdownBlockSyntaxBuilder.NormalizeSyntaxLiteralLineEndings(Content)));
 
         if (ClosingFenceSourceSpan.HasValue) {
@@ -145,5 +178,28 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
             nodes,
             this,
             attributes: Attributes);
+    }
+
+    private MarkdownSourceSpan? GetFenceSourceSpan(MarkdownSourceSpan? span) {
+        if (!span.HasValue) {
+            return span;
+        }
+
+        var attributeSpan = MarkdownGenericAttributeSourceSpans.GetSourceSpan(this);
+        if (!attributeSpan.HasValue) {
+            return span;
+        }
+
+        var value = span.Value;
+        var fenceStartLine = attributeSpan.Value.EndLine + 1;
+        if (fenceStartLine > value.EndLine) {
+            return span;
+        }
+
+        if (!value.EndColumn.HasValue) {
+            return new MarkdownSourceSpan(fenceStartLine, value.EndLine);
+        }
+
+        return new MarkdownSourceSpan(fenceStartLine, 1, value.EndLine, value.EndColumn.Value);
     }
 }

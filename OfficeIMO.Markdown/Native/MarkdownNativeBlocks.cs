@@ -78,10 +78,10 @@ public sealed class MarkdownNativeCodeBlock : MarkdownNativeBlock {
         FenceInfo = code.FenceInfo;
         Content = code.Content;
         Caption = code.Caption;
-        Attributes = code.FenceInfo.Attributes;
-        Classes = code.FenceInfo.Classes;
-        ElementId = code.FenceInfo.ElementId;
-        Title = code.FenceInfo.Title;
+        Attributes = code.Attributes.Attributes;
+        Classes = code.Attributes.Classes;
+        ElementId = code.Attributes.ElementId;
+        Title = code.Attributes.GetAttribute("title");
         OpeningFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceOpening) ?? code.OpeningFenceSourceSpan;
         InfoStringSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceInfo);
         ContentSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeContent);
