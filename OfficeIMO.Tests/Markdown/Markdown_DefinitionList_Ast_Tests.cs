@@ -882,6 +882,80 @@ lazy
     }
 
     [Fact]
+    public void DefinitionList_FencedCodeBody_StopsLazyContinuationAfterClosedFence_AndWriterReparses() {
+        const string markdown = """
+Term
+:   ~~~
+    code
+    ~~~
+lazy
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        Assert.Equal(2, result.Document.Blocks.Count);
+        var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
+        var trailingParagraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[1]);
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(definition.Blocks));
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("lazy", trailingParagraph.Inlines.RenderMarkdown());
+        Assert.Equal("code", codeBlock.Content);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, 7), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, 7), Assert.Single(definitionValue.Children).SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 4), result.SyntaxTree.Children[1].SourceSpan);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        Assert.Equal("```\ncode\n```", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, 7), definitionBody.SourceSpan);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_EmptyMarkerFencedCodeBody_StopsLazyContinuationAfterClosedFence_AndWriterReparses() {
+        const string markdown = "Term\n:   \n    ~~~\n    code\n    ~~~\nlazy\n";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        Assert.Equal(2, result.Document.Blocks.Count);
+        var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
+        var trailingParagraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[1]);
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(definition.Blocks));
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("lazy", trailingParagraph.Inlines.RenderMarkdown());
+        Assert.Equal("code", codeBlock.Content);
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 5, 7), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 5, 7), Assert.Single(definitionValue.Children).SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(6, 1, 6, 4), result.SyntaxTree.Children[1].SourceSpan);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        Assert.Equal("```\ncode\n```", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 5, 7), definitionBody.SourceSpan);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void DefinitionList_NestedListBody_Stops_Before_UnindentedHeading() {
         const string markdown = """
 Term

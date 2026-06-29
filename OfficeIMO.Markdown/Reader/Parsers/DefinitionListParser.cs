@@ -620,7 +620,38 @@ public static partial class MarkdownReader {
 
         var previous = definitionSourceLines[definitionSourceLines.Count - 1].Text;
         return TryGetSetextHeadingUnderlineLevel(previous, out _) ||
-            IsParagraphInterruptingThematicBreakLine(previous);
+            IsParagraphInterruptingThematicBreakLine(previous) ||
+            PreviousDefinitionLinesEndClosedFencedCodeBlock(definitionSourceLines);
+    }
+
+    private static bool PreviousDefinitionLinesEndClosedFencedCodeBlock(List<MarkdownSourceLineSlice> definitionSourceLines) {
+        bool inFence = false;
+        char fenceChar = '\0';
+        int fenceLength = 0;
+        bool previousNonBlankClosedFence = false;
+
+        for (int i = 0; i < definitionSourceLines.Count; i++) {
+            var line = definitionSourceLines[i].Text ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(line)) {
+                continue;
+            }
+
+            previousNonBlankClosedFence = false;
+            if (inFence) {
+                if (IsCodeFenceClose(line, fenceChar, fenceLength)) {
+                    inFence = false;
+                    previousNonBlankClosedFence = true;
+                }
+
+                continue;
+            }
+
+            if (IsCodeFenceOpen(line, out _, out fenceChar, out fenceLength)) {
+                inFence = true;
+            }
+        }
+
+        return previousNonBlankClosedFence && !inFence;
     }
 
     private static bool PreviousDefinitionLineStartsNestedBlock(List<MarkdownSourceLineSlice> definitionSourceLines) {
@@ -673,6 +704,8 @@ public static partial class MarkdownReader {
             return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());
         }
 
+        definitionSourceLines = NormalizeDefinitionFencedCodeSourceLines(definitionSourceLines);
+
         if (ShouldParseDefinitionBodyAsLiteralParagraph(definitionSourceLines, options)) {
             var literalParagraphs = ParseParagraphBlocksFromSourceLines(definitionSourceLines, options, state);
             var literalNodes = new List<MarkdownSyntaxNode>();
@@ -690,6 +723,54 @@ public static partial class MarkdownReader {
         var nodes = new List<MarkdownSyntaxNode>();
         AddParagraphSyntaxNodes(nodes, definitionSourceLines, options, state);
         return (paragraphs, nodes);
+    }
+
+    private static List<MarkdownSourceLineSlice> NormalizeDefinitionFencedCodeSourceLines(List<MarkdownSourceLineSlice> definitionSourceLines) {
+        var normalized = new List<MarkdownSourceLineSlice>(definitionSourceLines.Count);
+        bool inFence = false;
+        char fenceChar = '\0';
+        int fenceLength = 0;
+        int fenceColumn = 1;
+
+        for (int i = 0; i < definitionSourceLines.Count; i++) {
+            var sourceLine = definitionSourceLines[i];
+            if (!inFence) {
+                normalized.Add(sourceLine);
+                if (IsCodeFenceOpen(sourceLine.Text, out _, out fenceChar, out fenceLength)) {
+                    fenceColumn = sourceLine.StartColumn + CountLeadingIndentColumns(sourceLine.Text);
+                    inFence = true;
+                }
+
+                continue;
+            }
+
+            var alignedLine = AlignDefinitionFencedCodeSourceLine(sourceLine, fenceColumn);
+            normalized.Add(alignedLine);
+            if (IsCodeFenceClose(alignedLine.Text, fenceChar, fenceLength)) {
+                inFence = false;
+            }
+        }
+
+        return normalized;
+    }
+
+    private static MarkdownSourceLineSlice AlignDefinitionFencedCodeSourceLine(MarkdownSourceLineSlice sourceLine, int fenceColumn) {
+        if (string.IsNullOrEmpty(sourceLine.Text) || sourceLine.StartColumn >= fenceColumn) {
+            return sourceLine;
+        }
+
+        int columnsToStrip = fenceColumn - sourceLine.StartColumn;
+        if (CountLeadingIndentColumns(sourceLine.Text) < columnsToStrip) {
+            return sourceLine;
+        }
+
+        var stripped = StripLeadingIndentColumns(sourceLine.Text, columnsToStrip);
+        int relativeStartColumn = GetStartColumnAfterStrippingIndent(sourceLine.Text, columnsToStrip);
+        return new MarkdownSourceLineSlice(
+            stripped,
+            sourceLine.AbsoluteLine,
+            sourceLine.StartColumn + relativeStartColumn - 1,
+            sourceLine.IsLazyQuoteContinuation);
     }
 
     private static bool ShouldParseDefinitionBodyAsLiteralParagraph(
