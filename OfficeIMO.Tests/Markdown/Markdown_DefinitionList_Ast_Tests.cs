@@ -145,6 +145,45 @@ Term 2
     }
 
     [Fact]
+    public void DefinitionList_BlankSeparatedTerm_BeforeMarker_Starts_New_MarkdigGroup() {
+        const string markdown = """
+Term 1
+
+Term 2
+:   Definition
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        Assert.Equal(2, result.Document.Blocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[0]);
+        var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[1]);
+        var group = Assert.Single(definitionList.Groups);
+        var syntaxList = result.SyntaxTree.Children[1];
+        var syntaxGroup = Assert.Single(syntaxList.Children);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("Term 1", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal("Term 2", Assert.Single(group.TermItems).Markdown);
+        Assert.Equal("Definition", Assert.IsType<ParagraphBlock>(Assert.Single(Assert.Single(group.Definitions).Blocks)).Inlines.RenderMarkdown());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.DefinitionTerm,
+                MarkdownSyntaxKind.DefinitionMarker,
+                MarkdownSyntaxKind.DefinitionValue
+            },
+            syntaxGroup.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 6), Assert.Single(group.TermItems).SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 1), syntaxGroup.Children[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 5, 4, 14), syntaxGroup.Children[2].SourceSpan);
+        Assert.Equal(markdown, written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void DefinitionList_MarkdigLazyContinuation_Stays_In_Definition_Paragraph_Source() {
         const string markdown = """
 Term
@@ -280,6 +319,71 @@ Term
         Assert.Equal("code", definitionBody.Value);
         Assert.Equal(new MarkdownSourceSpan(4, 5, 4, 8), definitionBody.SourceSpan);
         Assert.Contains("    updated", native.CreateReplaceEdit(definitionBody, "updated").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_TableShapedContinuation_Stays_Literal_When_Tables_Are_Off() {
+        const string markdown = """
+Term
+:   | A |
+    |---|
+    | B |
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks));
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var paragraphSyntax = Assert.Single(definitionValue.Children);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("| A | |---| | B |", NormalizePlainText(InlinePlainText.Extract(paragraph.Inlines)));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, 9), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, 9), paragraphSyntax.SourceSpan);
+        Assert.Contains(@"\| A \|", written, StringComparison.Ordinal);
+        Assert.Contains(@"\|---\|", written, StringComparison.Ordinal);
+        Assert.Contains(@"\| B \|", written, StringComparison.Ordinal);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_TableShapedContinuation_Becomes_Nested_Table_When_Tables_Are_On() {
+        const string markdown = """
+Term
+:   | A |
+    |---|
+    | B |
+""";
+
+        var readerOptions = CreateMarkdigDefinitionListReaderOptions();
+        readerOptions.Tables = true;
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions);
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var table = Assert.IsType<TableBlock>(Assert.Single(definition.Blocks));
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var tableSyntax = Assert.Single(definitionValue.Children);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, readerOptions);
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListAndPipeTablesPipeline());
+
+        Assert.Equal("A", Assert.Single(table.Headers));
+        Assert.Equal("B", Assert.Single(Assert.Single(table.Rows)));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, 9), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, 9), tableSyntax.SourceSpan);
+        Assert.Equal("Term\n:   \n    | A |\n    | --- |\n    | B |", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
@@ -563,6 +667,13 @@ Term
         return builder.Build();
     }
 
+    private static Markdig.MarkdownPipeline CreateMarkdigDefinitionListAndPipeTablesPipeline() {
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseDefinitionLists(builder);
+        Markdig.MarkdownExtensions.UsePipeTables(builder);
+        return builder.Build();
+    }
+
     private static MarkdownReaderOptions CreateMarkdigDefinitionListReaderOptions() {
         var options = MarkdownReaderOptions.CreateCommonMarkProfile();
         options.DefinitionLists = true;
@@ -611,4 +722,12 @@ Term
             .Replace("\r\n", "\n")
             .Replace('\r', '\n')
             .TrimEnd('\n');
+
+    private static string NormalizePlainText(string text) {
+        if (string.IsNullOrWhiteSpace(text)) {
+            return string.Empty;
+        }
+
+        return string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    }
 }

@@ -624,6 +624,13 @@ public static partial class MarkdownReader {
             return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());
         }
 
+        if (ShouldParseDefinitionBodyAsLiteralParagraph(definitionSourceLines, options)) {
+            var literalParagraphs = ParseParagraphBlocksFromSourceLines(definitionSourceLines, options, state);
+            var literalNodes = new List<MarkdownSyntaxNode>();
+            AddParagraphSyntaxNodes(literalNodes, definitionSourceLines, options, state);
+            return (literalParagraphs, literalNodes);
+        }
+
         var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(definitionSourceLines, options, state);
         if (blocks.Count > 0) {
             return (blocks, syntaxChildren);
@@ -633,6 +640,17 @@ public static partial class MarkdownReader {
         var nodes = new List<MarkdownSyntaxNode>();
         AddParagraphSyntaxNodes(nodes, definitionSourceLines, options, state);
         return (paragraphs, nodes);
+    }
+
+    private static bool ShouldParseDefinitionBodyAsLiteralParagraph(
+        List<MarkdownSourceLineSlice> definitionSourceLines,
+        MarkdownReaderOptions options) {
+        if (options?.Tables == true || definitionSourceLines == null || definitionSourceLines.Count < 2) {
+            return false;
+        }
+
+        return LooksLikeTableRow(definitionSourceLines[0].Text)
+            && IsAlignmentRow(definitionSourceLines[1].Text);
     }
 
     private static int GetStartColumnAfterStrippingIndent(string line, int requiredColumns) {
