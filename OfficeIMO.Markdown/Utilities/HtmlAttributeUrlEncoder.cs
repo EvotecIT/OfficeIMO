@@ -173,6 +173,7 @@ internal static class HtmlAttributeUrlEncoder {
     private static bool ShouldPercentEncodeAsciiUrlCharacter(char value, bool percentEncodeTilde) =>
         value <= 0x20
         || (percentEncodeTilde && value == '~')
+        || value == '\''
         || value == '"'
         || value == '<'
         || value == '>'

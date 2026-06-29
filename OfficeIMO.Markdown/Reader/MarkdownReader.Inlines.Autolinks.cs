@@ -355,6 +355,10 @@ public static partial class MarkdownReader {
             }
 
             while (i > start && IsTrailingAutolinkPunctuation(text[i - 1])) {
+                if (options.AutolinkKeepTrailingQuotePunctuation && IsAutolinkQuotePunctuation(text[i - 1])) {
+                    break;
+                }
+
                 if (options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis && removedClosingParenthesis) {
                     break;
                 }
@@ -388,6 +392,10 @@ public static partial class MarkdownReader {
 
             char last = text[i - 1];
             if (!trimmedSingleDelimiter && IsTrailingAutolinkPunctuationOrUnderscore(last)) {
+                if (options.AutolinkKeepTrailingQuotePunctuation && IsAutolinkQuotePunctuation(last)) {
+                    break;
+                }
+
                 if (options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis
                     && removedClosingParenthesis
                     && IsTrailingAutolinkPunctuation(last)) {
@@ -459,6 +467,10 @@ public static partial class MarkdownReader {
 
     private static bool IsTrailingAutolinkPunctuationOrUnderscore(char c) {
         return c == '_' || IsTrailingAutolinkPunctuation(c);
+    }
+
+    private static bool IsAutolinkQuotePunctuation(char c) {
+        return c == '\'' || c == '"';
     }
 
     private static bool HasInvalidAutolinkLeftBoundary(string text, int start, MarkdownReaderOptions? options = null) {

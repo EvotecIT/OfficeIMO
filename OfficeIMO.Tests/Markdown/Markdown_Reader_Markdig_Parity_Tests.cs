@@ -199,6 +199,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "unicode-http-path", "Visit https://example.com/ścieżka?q=zażółć now" };
         yield return new object[] { "http-url-path-tilde", "Visit https://example.com/path~tilde now" };
         yield return new object[] { "http-url-closing-bracket", "Visit https://example.com/path] now" };
+        yield return new object[] { "http-url-trailing-single-quote", "Visit https://example.com/path' now" };
+        yield return new object[] { "http-url-trailing-double-quote", "Visit https://example.com/path\" now" };
+        yield return new object[] { "http-url-paired-single-quotes-stays-literal", "Visit 'https://example.com/path' now" };
         yield return new object[] { "http-url-userinfo-stays-literal", "Visit https://user@example.com/path now" };
         yield return new object[] { "www-url-path-tilde", "Visit www.example.com/path~tilde now" };
         yield return new object[] { "www-url-userinfo-stays-literal", "Visit www.user@example.com/path now" };
@@ -328,6 +331,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         officeOptions.AutolinkRejectUnderscoreInWwwHost = true;
         officeOptions.AutolinkRejectUserInfoAuthority = true;
         officeOptions.AutolinkAllowClosingBracketInUrl = true;
+        officeOptions.AutolinkKeepTrailingQuotePunctuation = true;
         officeOptions.AutolinkEmails = false;
         officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
         officeOptions.AutolinkValidPreviousCharacters = "_('";
@@ -360,6 +364,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         officeOptions.AutolinkRejectUnderscoreInWwwHost = true;
         officeOptions.AutolinkRejectUserInfoAuthority = true;
         officeOptions.AutolinkAllowClosingBracketInUrl = true;
+        officeOptions.AutolinkKeepTrailingQuotePunctuation = true;
         officeOptions.AutolinkEmails = false;
         officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
         officeOptions.AutolinkValidPreviousCharacters = "_('";

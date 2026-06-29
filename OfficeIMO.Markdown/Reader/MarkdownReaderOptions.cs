@@ -284,6 +284,13 @@ public sealed class MarkdownReaderOptions {
     public bool AutolinkAllowClosingBracketInUrl { get; set; } = false;
 
     /// <summary>
+    /// When <c>true</c>, bare URL autolinks keep trailing single or double quote characters
+    /// inside the consumed URL target. Markdig <c>UseAutoLinks</c> keeps these quote
+    /// characters when no matching opening quote prevents the autolink.
+    /// </summary>
+    public bool AutolinkKeepTrailingQuotePunctuation { get; set; } = false;
+
+    /// <summary>
     /// When <c>true</c>, bare scheme autolinks such as <c>mailto:</c>, <c>ftp://</c>, and
     /// <c>tel:</c> require the scheme prefix itself to be lowercase.
     /// </summary>
