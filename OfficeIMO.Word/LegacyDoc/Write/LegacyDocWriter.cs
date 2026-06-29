@@ -162,6 +162,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return;
             }
 
+            ThrowIfUnsupportedReviewMarkup(mainPart);
+
             if (mainPart.HeaderParts.Any() || mainPart.FooterParts.Any()) {
                 throw new NotSupportedException("Native DOC saving currently supports body paragraphs only. Headers and footers are not supported yet.");
             }
@@ -177,6 +179,40 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (mainPart.ChartParts.Any()) {
                 throw new NotSupportedException("Native DOC saving currently supports text only. Charts are not supported yet.");
             }
+        }
+
+        private static void ThrowIfUnsupportedReviewMarkup(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {
+            Settings? settings = mainPart.DocumentSettingsPart?.Settings;
+            if (settings?.GetFirstChild<TrackRevisions>() != null) {
+                throw new NotSupportedException("Native DOC saving currently does not support revision tracking settings. Disable tracking, accept or reject revisions, or save as DOCX before saving as DOC.");
+            }
+
+            Body? body = mainPart.Document?.Body;
+            if (body != null && HasTrackedRevisionMarkup(body)) {
+                throw new NotSupportedException("Native DOC saving currently does not support tracked revision markup. Accept or reject revisions, or save as DOCX before saving as DOC.");
+            }
+
+            if (HasComments(mainPart, body)) {
+                throw new NotSupportedException("Native DOC saving currently does not support comments. Remove comments, or save as DOCX before saving as DOC.");
+            }
+        }
+
+        private static bool HasTrackedRevisionMarkup(Body body) {
+            return body.Descendants<InsertedRun>().Any()
+                || body.Descendants<DeletedRun>().Any()
+                || body.Descendants<MoveFromRun>().Any()
+                || body.Descendants<MoveToRun>().Any();
+        }
+
+        private static bool HasComments(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart, Body? body) {
+            if (mainPart.WordprocessingCommentsPart?.Comments?.Elements<Comment>().Any() == true) {
+                return true;
+            }
+
+            return body != null
+                && (body.Descendants<CommentRangeStart>().Any()
+                    || body.Descendants<CommentRangeEnd>().Any()
+                    || body.Descendants<CommentReference>().Any());
         }
 
         private static bool HasUserFootnotes(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {

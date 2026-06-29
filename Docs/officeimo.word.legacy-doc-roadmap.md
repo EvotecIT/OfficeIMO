@@ -354,6 +354,8 @@ just to reserve names.
   - [x] Block native `.doc` save for documents imported from legacy DOC when
     the import reported unsupported or preserve-only features, before file or
     stream bytes are committed.
+  - [x] Block native `.doc` save for revision tracking settings, tracked
+    revision markup, and comments before file bytes are committed.
 - [x] Implement native writer first slice for simple documents and prove
   OfficeIMO can reload written `.doc` output through the legacy reader.
 - [x] Introduce `WordSaveOptions` and `WordStreamSaveFormat` for explicit native
