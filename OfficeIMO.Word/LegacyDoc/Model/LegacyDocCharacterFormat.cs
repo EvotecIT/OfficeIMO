@@ -4,6 +4,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool bold,
             bool italic,
             bool strike,
+            LegacyDocVerticalPositionKind? verticalPosition,
             LegacyDocUnderlineKind? underline,
             int? fontSizeHalfPoints,
             string? colorHex,
@@ -11,6 +12,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Bold = bold;
             Italic = italic;
             Strike = strike;
+            VerticalPosition = verticalPosition;
             Underline = underline;
             FontSizeHalfPoints = fontSizeHalfPoints;
             ColorHex = colorHex;
@@ -22,6 +24,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal bool Italic { get; }
 
         internal bool Strike { get; }
+
+        internal LegacyDocVerticalPositionKind? VerticalPosition { get; }
 
         internal LegacyDocUnderlineKind? Underline { get; }
 
@@ -35,17 +39,19 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Bold
             || Italic
             || Strike
+            || VerticalPosition != null
             || Underline != null
             || FontSizeHalfPoints != null
             || ColorHex != null
             || FontFamily != null;
 
-        internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, false, null, null, null, null);
+        internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, false, null, null, null, null, null);
 
         public bool Equals(LegacyDocCharacterFormat other) {
             return Bold == other.Bold
                 && Italic == other.Italic
                 && Strike == other.Strike
+                && VerticalPosition == other.VerticalPosition
                 && Underline == other.Underline
                 && FontSizeHalfPoints == other.FontSizeHalfPoints
                 && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase)
@@ -61,6 +67,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + Bold.GetHashCode();
             hash = (hash * 31) + Italic.GetHashCode();
             hash = (hash * 31) + Strike.GetHashCode();
+            hash = (hash * 31) + VerticalPosition.GetHashCode();
             hash = (hash * 31) + Underline.GetHashCode();
             hash = (hash * 31) + FontSizeHalfPoints.GetHashCode();
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);

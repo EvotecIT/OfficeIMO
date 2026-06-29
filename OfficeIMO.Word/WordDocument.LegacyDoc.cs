@@ -405,6 +405,11 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
+            if (characterFormat.VerticalPosition != null && TryMapVerticalPosition(characterFormat.VerticalPosition.Value, out VerticalPositionValues verticalPosition)) {
+                properties.Append(new VerticalTextAlignment { Val = verticalPosition });
+                hasProperties = true;
+            }
+
             if (characterFormat.Underline != null && TryMapUnderline(characterFormat.Underline.Value, out UnderlineValues underline)) {
                 properties.Append(new Underline { Val = underline });
                 hasProperties = true;
@@ -486,6 +491,10 @@ namespace OfficeIMO.Word {
                 run.SetStrike();
             }
 
+            if (legacyRun.VerticalPosition != null && TryMapVerticalPosition(legacyRun.VerticalPosition.Value, out VerticalPositionValues verticalPosition)) {
+                run.VerticalTextAlignment = verticalPosition;
+            }
+
             if (legacyRun.Underline != null && TryMapUnderline(legacyRun.Underline.Value, out UnderlineValues underline)) {
                 run.Underline = underline;
             }
@@ -559,6 +568,20 @@ namespace OfficeIMO.Word {
                     return true;
                 case LegacyDocUnderlineKind.DashLongHeavy:
                     value = UnderlineValues.DashLongHeavy;
+                    return true;
+                default:
+                    value = default;
+                    return false;
+            }
+        }
+
+        private static bool TryMapVerticalPosition(LegacyDocVerticalPositionKind position, out VerticalPositionValues value) {
+            switch (position) {
+                case LegacyDocVerticalPositionKind.Superscript:
+                    value = VerticalPositionValues.Superscript;
+                    return true;
+                case LegacyDocVerticalPositionKind.Subscript:
+                    value = VerticalPositionValues.Subscript;
                     return true;
                 default:
                     value = default;

@@ -49,6 +49,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool bold = false;
             bool italic = false;
             bool strike = false;
+            byte? verticalPosition = null;
             byte? underline = null;
             int? fontSizeHalfPoints = null;
             string? colorHex = null;
@@ -70,6 +71,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Strike strikeProperty:
                         strike = IsEnabled(strikeProperty);
                         break;
+                    case VerticalTextAlignment verticalTextAlignment:
+                        verticalPosition = ReadSupportedVerticalPosition(verticalTextAlignment);
+                        break;
                     case Underline underlineProperty:
                         underline = ReadSupportedUnderline(underlineProperty);
                         break;
@@ -83,11 +87,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         fontFamily = ReadSupportedRunFontFamily(runFonts);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, underline, font size, color, and font family run formatting. Unsupported run property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, superscript/subscript, underline, font size, color, and font family run formatting. Unsupported run property: {property.LocalName}.");
                 }
             }
 
-            return new LegacyDocWritableFormatting(bold, italic, strike, underline, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocWritableFormatting(bold, italic, strike, verticalPosition, underline, fontSizeHalfPoints, colorHex, fontFamily);
         }
 
         private static bool IsEnabled(OnOffType property) {
@@ -135,6 +139,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             throw new NotSupportedException($"Native DOC saving does not support underline style '{value}'.");
+        }
+
+        private static byte? ReadSupportedVerticalPosition(VerticalTextAlignment verticalTextAlignment) {
+            VerticalPositionValues? value = verticalTextAlignment.Val?.Value;
+            if (value == null) {
+                return null;
+            }
+
+            if (value == VerticalPositionValues.Baseline) {
+                return null;
+            } else if (value == VerticalPositionValues.Superscript) {
+                return 1;
+            } else if (value == VerticalPositionValues.Subscript) {
+                return 2;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support vertical text alignment '{value}'.");
         }
 
         private static int ReadFontSizeHalfPoints(FontSize fontSize) {
@@ -264,6 +285,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmCFStrike, 1);
             }
 
+            if (formatting.VerticalPosition != null) {
+                AddSingleByteSprm(grpprl, SprmCIss, formatting.VerticalPosition.Value);
+            }
+
             if (formatting.Underline != null) {
                 AddSingleByteSprm(grpprl, SprmCKul, formatting.Underline.Value);
             }
@@ -352,12 +377,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableFormatting : IEquatable<LegacyDocWritableFormatting> {
-            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, null, null, null, null);
+            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, null, null, null, null, null);
 
-            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, byte? underline, int? fontSizeHalfPoints, string? colorHex, string? fontFamily) {
+            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, byte? verticalPosition, byte? underline, int? fontSizeHalfPoints, string? colorHex, string? fontFamily) {
                 Bold = bold;
                 Italic = italic;
                 Strike = strike;
+                VerticalPosition = verticalPosition;
                 Underline = underline;
                 FontSizeHalfPoints = fontSizeHalfPoints;
                 ColorHex = colorHex;
@@ -370,6 +396,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool Strike { get; }
 
+            internal byte? VerticalPosition { get; }
+
             internal byte? Underline { get; }
 
             internal int? FontSizeHalfPoints { get; }
@@ -378,12 +406,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal string? FontFamily { get; }
 
-            internal bool HasFormatting => Bold || Italic || Strike || Underline != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
+            internal bool HasFormatting => Bold || Italic || Strike || VerticalPosition != null || Underline != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
 
             public bool Equals(LegacyDocWritableFormatting other) {
                 return Bold == other.Bold
                     && Italic == other.Italic
                     && Strike == other.Strike
+                    && VerticalPosition == other.VerticalPosition
                     && Underline == other.Underline
                     && FontSizeHalfPoints == other.FontSizeHalfPoints
                     && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase)
@@ -399,6 +428,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 hash = (hash * 31) + Bold.GetHashCode();
                 hash = (hash * 31) + Italic.GetHashCode();
                 hash = (hash * 31) + Strike.GetHashCode();
+                hash = (hash * 31) + VerticalPosition.GetHashCode();
                 hash = (hash * 31) + Underline.GetHashCode();
                 hash = (hash * 31) + FontSizeHalfPoints.GetHashCode();
                 hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);

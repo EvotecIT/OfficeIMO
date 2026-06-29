@@ -6,6 +6,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmCFStrike = 0x0837;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCIco = 0x2A42;
+        private const ushort SprmCIss = 0x2A48;
         private const ushort SprmCHps = 0x4A43;
         private const ushort SprmCRgFtc0 = 0x4A4F;
         private const ushort SprmCCv = 0x6870;
@@ -105,6 +106,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool bold = false;
             bool italic = false;
             bool strike = false;
+            LegacyDocVerticalPositionKind? verticalPosition = null;
             LegacyDocUnderlineKind? underline = null;
             int? fontSizeHalfPoints = null;
             string? colorHex = null;
@@ -136,6 +138,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     underline = MapUnderline(bytes[offset + 2]);
+                    offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmCIss) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    verticalPosition = MapVerticalPosition(bytes[offset + 2]);
                     offset += 3;
                     continue;
                 }
@@ -191,7 +203,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 offset += 2 + operandLength;
             }
 
-            return new LegacyDocCharacterFormat(bold, italic, strike, underline, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocCharacterFormat(bold, italic, strike, verticalPosition, underline, fontSizeHalfPoints, colorHex, fontFamily);
+        }
+
+        private static LegacyDocVerticalPositionKind? MapVerticalPosition(byte value) {
+            switch (value) {
+                case 1:
+                    return LegacyDocVerticalPositionKind.Superscript;
+                case 2:
+                    return LegacyDocVerticalPositionKind.Subscript;
+                default:
+                    return null;
+            }
         }
 
         private static LegacyDocUnderlineKind? MapUnderline(byte value) {

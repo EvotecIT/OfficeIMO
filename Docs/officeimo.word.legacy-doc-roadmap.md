@@ -245,6 +245,9 @@ just to reserve names.
   - [x] Project direct CHPX strikethrough runs plus stylesheet-level
     strikethrough run formatting into normal OfficeIMO runs and custom DOCX
     style definitions with synthetic legacy DOC fixture proof.
+  - [x] Project direct CHPX superscript/subscript runs plus stylesheet-level
+    superscript run formatting into normal OfficeIMO runs and custom DOCX style
+    definitions with synthetic legacy DOC fixture proof.
   - [ ] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting beyond the first supported mapping set once each
     additional mapping has a fixture and observable OfficeIMO contract.
@@ -297,6 +300,8 @@ just to reserve names.
     through the legacy reader.
   - [x] Write direct strikethrough CHPX runs and reload them through the legacy
     reader.
+  - [x] Write direct superscript/subscript CHPX runs and reload them through
+    the legacy reader.
   - [x] Extend native character writing to font family through the DOC font
     table.
   - [x] Write direct paragraph alignment PAPX records and reload them through
