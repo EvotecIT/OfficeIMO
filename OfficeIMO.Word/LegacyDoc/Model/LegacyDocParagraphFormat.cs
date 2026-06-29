@@ -31,6 +31,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<bool>? tableCellNoWraps = null,
             IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null,
             IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings = null,
+            IReadOnlyList<LegacyDocTableCellBorders>? tableCellBorders = null,
             LegacyDocTableCellMargins? defaultTableCellMargins = null,
             int? defaultTableCellSpacingTwips = null,
             bool hasMergedTableCells = false,
@@ -83,6 +84,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             TableCellShadings = tableCellShadings == null || tableCellShadings.Count == 0
                 ? Array.Empty<LegacyDocTableCellShading>()
                 : tableCellShadings.ToArray();
+            TableCellBorders = tableCellBorders == null || tableCellBorders.Count == 0
+                ? Array.Empty<LegacyDocTableCellBorders>()
+                : tableCellBorders.ToArray();
             DefaultTableCellMargins = defaultTableCellMargins.HasValue && defaultTableCellMargins.Value.HasAny
                 ? defaultTableCellMargins
                 : null;
@@ -155,6 +159,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<LegacyDocTableCellShading> TableCellShadings { get; }
 
+        internal IReadOnlyList<LegacyDocTableCellBorders> TableCellBorders { get; }
+
         internal LegacyDocTableCellMargins? DefaultTableCellMargins { get; }
 
         internal int? DefaultTableCellSpacingTwips { get; }
@@ -192,6 +198,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || TableCellNoWraps.Count > 0
             || TableCellMargins.Count > 0
             || TableCellShadings.Count > 0
+            || TableCellBorders.Count > 0
             || DefaultTableCellMargins != null
             || DefaultTableCellSpacingTwips != null
             || HasMergedTableCells
@@ -230,6 +237,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && TableCellBooleansEqual(TableCellNoWraps, other.TableCellNoWraps)
                 && TableCellMarginsEqual(TableCellMargins, other.TableCellMargins)
                 && TableCellShadingsEqual(TableCellShadings, other.TableCellShadings)
+                && TableCellBordersEqual(TableCellBorders, other.TableCellBorders)
                 && DefaultTableCellMargins.Equals(other.DefaultTableCellMargins)
                 && DefaultTableCellSpacingTwips == other.DefaultTableCellSpacingTwips
                 && HasMergedTableCells == other.HasMergedTableCells
@@ -293,6 +301,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             foreach (LegacyDocTableCellShading shading in TableCellShadings) {
                 hash = (hash * 31) + shading.GetHashCode();
+            }
+
+            foreach (LegacyDocTableCellBorders borders in TableCellBorders) {
+                hash = (hash * 31) + borders.GetHashCode();
             }
 
             foreach (LegacyDocTabStop tabStop in TabStops) {
@@ -414,6 +426,22 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : Array.Empty<LegacyDocTableCellShading>();
         }
 
+        internal IReadOnlyList<LegacyDocTableCellBorders> GetTableCellBordersForCellCount(int cellCount) {
+            if (cellCount <= 0 || TableCellBorders.Count == 0) {
+                return Array.Empty<LegacyDocTableCellBorders>();
+            }
+
+            int count = Math.Max(cellCount, TableCellBorders.Count);
+            var borders = new LegacyDocTableCellBorders[count];
+            for (int index = 0; index < TableCellBorders.Count; index++) {
+                borders[index] = TableCellBorders[index];
+            }
+
+            return borders.Any(border => border.HasAny)
+                ? borders
+                : Array.Empty<LegacyDocTableCellBorders>();
+        }
+
         private static bool TableCellMarginsEqual(IReadOnlyList<LegacyDocTableCellMargins> first, IReadOnlyList<LegacyDocTableCellMargins> second) {
             if (first.Count != second.Count) {
                 return false;
@@ -443,6 +471,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private static bool TabStopsEqual(IReadOnlyList<LegacyDocTabStop> first, IReadOnlyList<LegacyDocTabStop> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (!first[index].Equals(second[index])) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellBordersEqual(IReadOnlyList<LegacyDocTableCellBorders> first, IReadOnlyList<LegacyDocTableCellBorders> second) {
             if (first.Count != second.Count) {
                 return false;
             }

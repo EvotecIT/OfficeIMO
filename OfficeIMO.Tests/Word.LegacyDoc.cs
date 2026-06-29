@@ -247,6 +247,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTableCellBordersFromTableDefinition() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithTableCellBorders();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            WordTableRow row = Assert.Single(table.Rows);
+            Assert.Equal(BorderValues.Single, row.Cells[0].Borders.TopStyle);
+            Assert.Equal("ff0000", row.Cells[0].Borders.TopColorHex);
+            Assert.Equal(4U, row.Cells[0].Borders.TopSize?.Value);
+            Assert.Equal(2U, row.Cells[0].Borders.TopSpace?.Value);
+            Assert.Equal(BorderValues.Double, row.Cells[1].Borders.RightStyle);
+            Assert.Equal("0000ff", row.Cells[1].Borders.RightColorHex);
+            Assert.Equal(8U, row.Cells[1].Borders.RightSize?.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsInvalidMergedTableCellsFromTableDefinition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithInvalidMergedTableCellDefinition();
 
@@ -2315,6 +2334,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellBordersAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.Rows[0].Cells[0].AddParagraph("Border", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[0].Borders.TopStyle = BorderValues.Single;
+                    table.Rows[0].Cells[0].Borders.TopColorHex = "ff0000";
+                    table.Rows[0].Cells[0].Borders.TopSize = 4U;
+                    table.Rows[0].Cells[0].Borders.TopSpace = 2U;
+                    table.Rows[0].Cells[1].AddParagraph("Cell", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].Borders.RightStyle = BorderValues.Double;
+                    table.Rows[0].Cells[1].Borders.RightColorHex = "0000ff";
+                    table.Rows[0].Cells[1].Borders.RightSize = 8U;
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x04, 0x01, 0x06, 0x02),
+                    "Expected the native DOC table definition to contain a red single top BRC80 border.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x08, 0x03, 0x02, 0x00),
+                    "Expected the native DOC table definition to contain a blue double right BRC80 border.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("Border", row.Cells[0].Paragraphs[0].Text);
+                Assert.Equal(BorderValues.Single, row.Cells[0].Borders.TopStyle);
+                Assert.Equal("ff0000", row.Cells[0].Borders.TopColorHex);
+                Assert.Equal(4U, row.Cells[0].Borders.TopSize?.Value);
+                Assert.Equal(2U, row.Cells[0].Borders.TopSpace?.Value);
+                Assert.Equal("Cell", row.Cells[1].Paragraphs[0].Text);
+                Assert.Equal(BorderValues.Double, row.Cells[1].Borders.RightStyle);
+                Assert.Equal("0000ff", row.Cells[1].Borders.RightColorHex);
+                Assert.Equal(8U, row.Cells[1].Borders.RightSize?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedTableCellShadingColorBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -3000,6 +3066,32 @@ namespace OfficeIMO.Tests {
                     papxFkpOffset,
                     new[] { 1440, 1440 },
                     extraRowSprms: new[] { CreateTableCellShadingSprm(CreateShd80(backgroundIco: 6), CreateShd80(backgroundIco: 7)) });
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithTableCellBorders() {
+                const string text = "A1\aB1\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 1440 },
+                    tableCellBorderBytes: new[] {
+                        CreateTableCellBorderBytes(
+                            top: CreateBrc80(sizeEighthPoints: 4, borderType: 0x01, colorIndex: 6, spacePoints: 2)),
+                        CreateTableCellBorderBytes(
+                            right: CreateBrc80(sizeEighthPoints: 8, borderType: 0x03, colorIndex: 2, spacePoints: 0))
+                    });
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();
@@ -3734,6 +3826,7 @@ namespace OfficeIMO.Tests {
                 bool rowCantSplit = false,
                 bool rowIsHeader = false,
                 IReadOnlyList<byte[]>? tableCellPaddingSprms = null,
+                IReadOnlyList<byte[]>? tableCellBorderBytes = null,
                 IReadOnlyList<byte[]>? extraRowSprms = null) {
                 const int fibLength = 0x1AA;
                 byte[] textBytes = Encoding.Unicode.GetBytes(text);
@@ -3759,7 +3852,7 @@ namespace OfficeIMO.Tests {
                     CreateParagraphSprm(0x2417, 1)
                 };
                 if (tableCellWidthsTwips != null) {
-                    rowSprms.Add(CreateTableDefinitionSprm(tableCellWidthsTwips, tableCellFormattingFlags));
+                    rowSprms.Add(CreateTableDefinitionSprm(tableCellWidthsTwips, tableCellFormattingFlags, tableCellBorderBytes));
                 }
 
                 if (rowHeightOperand != null) {
@@ -4591,7 +4684,7 @@ namespace OfficeIMO.Tests {
                 return CreateParagraphSprm(0xC60D, new[] { checked((byte)operand.Count) }.Concat(operand).ToArray());
             }
 
-            private static byte[] CreateTableDefinitionSprm(IReadOnlyList<int> cellWidthsTwips, IReadOnlyList<ushort>? tableCellFormattingFlags = null) {
+            private static byte[] CreateTableDefinitionSprm(IReadOnlyList<int> cellWidthsTwips, IReadOnlyList<ushort>? tableCellFormattingFlags = null, IReadOnlyList<byte[]>? tableCellBorderBytes = null) {
                 var remainder = new List<byte>();
                 remainder.Add(checked((byte)cellWidthsTwips.Count));
                 AddInt16(remainder, 0);
@@ -4607,8 +4700,17 @@ namespace OfficeIMO.Tests {
                         : (ushort)0;
                     remainder.Add((byte)(flags & 0xFF));
                     remainder.Add((byte)(flags >> 8));
-                    for (int byteIndex = 2; byteIndex < 20; byteIndex++) {
-                        remainder.Add(0);
+                    AddInt16(remainder, 0);
+                    if (tableCellBorderBytes != null && index < tableCellBorderBytes.Count) {
+                        if (tableCellBorderBytes[index].Length != 16) {
+                            throw new InvalidOperationException("Test TC80 border bytes must contain four BRC80 values.");
+                        }
+
+                        remainder.AddRange(tableCellBorderBytes[index]);
+                    } else {
+                        for (int byteIndex = 4; byteIndex < 20; byteIndex++) {
+                            remainder.Add(0);
+                        }
                     }
                 }
 
@@ -4619,6 +4721,14 @@ namespace OfficeIMO.Tests {
                 };
                 operand.AddRange(remainder);
                 return CreateParagraphSprm(0xD608, operand.ToArray());
+            }
+
+            private static byte[] CreateTableCellBorderBytes(byte[]? top = null, byte[]? left = null, byte[]? bottom = null, byte[]? right = null) {
+                return (top ?? CreateBrc80()).Concat(left ?? CreateBrc80()).Concat(bottom ?? CreateBrc80()).Concat(right ?? CreateBrc80()).ToArray();
+            }
+
+            private static byte[] CreateBrc80(byte sizeEighthPoints = 0, byte borderType = 0, byte colorIndex = 0, byte spacePoints = 0) {
+                return new[] { sizeEighthPoints, borderType, colorIndex, spacePoints };
             }
 
             private static byte[] CreateTableRowHeightSprm(int rowHeightOperand) {

@@ -79,6 +79,98 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
     }
 
+    internal enum LegacyDocTableCellBorderStyle {
+        None,
+        Single,
+        Double,
+        Dotted,
+        Dashed
+    }
+
+    internal readonly struct LegacyDocTableCellBorder : IEquatable<LegacyDocTableCellBorder> {
+        internal LegacyDocTableCellBorder(LegacyDocTableCellBorderStyle style, string? colorHex, int sizeEighthPoints, int spacePoints) {
+            Style = style;
+            ColorHex = string.IsNullOrWhiteSpace(colorHex)
+                ? null
+                : colorHex!.Replace("#", string.Empty).ToLowerInvariant();
+            SizeEighthPoints = sizeEighthPoints;
+            SpacePoints = spacePoints;
+        }
+
+        internal LegacyDocTableCellBorderStyle Style { get; }
+
+        internal string? ColorHex { get; }
+
+        internal int SizeEighthPoints { get; }
+
+        internal int SpacePoints { get; }
+
+        internal bool HasAny => Style != LegacyDocTableCellBorderStyle.None;
+
+        public bool Equals(LegacyDocTableCellBorder other) {
+            return Style == other.Style
+                && string.Equals(ColorHex, other.ColorHex, StringComparison.Ordinal)
+                && SizeEighthPoints == other.SizeEighthPoints
+                && SpacePoints == other.SpacePoints;
+        }
+
+        public override bool Equals(object? obj) {
+            return obj is LegacyDocTableCellBorder other && Equals(other);
+        }
+
+        public override int GetHashCode() {
+            int hash = 17;
+            hash = (hash * 31) + Style.GetHashCode();
+            hash = (hash * 31) + (ColorHex == null ? 0 : ColorHex.GetHashCode());
+            hash = (hash * 31) + SizeEighthPoints.GetHashCode();
+            hash = (hash * 31) + SpacePoints.GetHashCode();
+            return hash;
+        }
+    }
+
+    internal readonly struct LegacyDocTableCellBorders : IEquatable<LegacyDocTableCellBorders> {
+        internal LegacyDocTableCellBorders(
+            LegacyDocTableCellBorder top,
+            LegacyDocTableCellBorder left,
+            LegacyDocTableCellBorder bottom,
+            LegacyDocTableCellBorder right) {
+            Top = top;
+            Left = left;
+            Bottom = bottom;
+            Right = right;
+        }
+
+        internal LegacyDocTableCellBorder Top { get; }
+
+        internal LegacyDocTableCellBorder Left { get; }
+
+        internal LegacyDocTableCellBorder Bottom { get; }
+
+        internal LegacyDocTableCellBorder Right { get; }
+
+        internal bool HasAny => Top.HasAny || Left.HasAny || Bottom.HasAny || Right.HasAny;
+
+        public bool Equals(LegacyDocTableCellBorders other) {
+            return Top.Equals(other.Top)
+                && Left.Equals(other.Left)
+                && Bottom.Equals(other.Bottom)
+                && Right.Equals(other.Right);
+        }
+
+        public override bool Equals(object? obj) {
+            return obj is LegacyDocTableCellBorders other && Equals(other);
+        }
+
+        public override int GetHashCode() {
+            int hash = 17;
+            hash = (hash * 31) + Top.GetHashCode();
+            hash = (hash * 31) + Left.GetHashCode();
+            hash = (hash * 31) + Bottom.GetHashCode();
+            hash = (hash * 31) + Right.GetHashCode();
+            return hash;
+        }
+    }
+
     internal readonly struct LegacyDocTableCellMargins : IEquatable<LegacyDocTableCellMargins> {
         internal LegacyDocTableCellMargins(int? topTwips, int? rightTwips, int? bottomTwips, int? leftTwips) {
             TopTwips = topTwips;
@@ -174,6 +266,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<bool>? cellNoWraps = null,
             IReadOnlyList<LegacyDocTableCellMargins>? cellMargins = null,
             IReadOnlyList<LegacyDocTableCellShading>? cellShadings = null,
+            IReadOnlyList<LegacyDocTableCellBorders>? cellBorders = null,
             int? defaultCellSpacingTwips = null,
             LegacyDocTablePreferredWidth? tablePreferredWidth = null,
             bool? tableAutofit = null) {
@@ -207,6 +300,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             CellShadings = cellShadings == null || cellShadings.Count == 0
                 ? Array.Empty<LegacyDocTableCellShading>()
                 : cellShadings.ToArray();
+            CellBorders = cellBorders == null || cellBorders.Count == 0
+                ? Array.Empty<LegacyDocTableCellBorders>()
+                : cellBorders.ToArray();
             DefaultCellSpacingTwips = defaultCellSpacingTwips.HasValue && defaultCellSpacingTwips.Value >= 0 && defaultCellSpacingTwips.Value <= 31680
                 ? defaultCellSpacingTwips
                 : null;
@@ -241,6 +337,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal IReadOnlyList<LegacyDocTableCellMargins> CellMargins { get; }
 
         internal IReadOnlyList<LegacyDocTableCellShading> CellShadings { get; }
+
+        internal IReadOnlyList<LegacyDocTableCellBorders> CellBorders { get; }
 
         internal int? DefaultCellSpacingTwips { get; }
 

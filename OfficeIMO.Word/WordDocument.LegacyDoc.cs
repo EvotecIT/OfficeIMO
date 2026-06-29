@@ -243,6 +243,10 @@ namespace OfficeIMO.Word {
                     if (columnIndex < sourceRow.CellShadings.Count) {
                         ApplyLegacyDocTableCellShading(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellShadings[columnIndex]);
                     }
+
+                    if (columnIndex < sourceRow.CellBorders.Count) {
+                        ApplyLegacyDocTableCellBorders(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellBorders[columnIndex]);
+                    }
                 }
             }
         }
@@ -299,6 +303,73 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocTableCellShading(WordTableCell cell, LegacyDocTableCellShading shading) {
             if (!string.IsNullOrEmpty(shading.FillColorHex)) {
                 cell.ShadingFillColorHex = shading.FillColorHex!;
+            }
+        }
+
+        private static void ApplyLegacyDocTableCellBorders(WordTableCell cell, LegacyDocTableCellBorders borders) {
+            ApplyLegacyDocTableCellBorder(
+                borders.Top,
+                style => cell.Borders.TopStyle = style,
+                color => cell.Borders.TopColorHex = color,
+                size => cell.Borders.TopSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
+                space => cell.Borders.TopSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+            ApplyLegacyDocTableCellBorder(
+                borders.Left,
+                style => cell.Borders.LeftStyle = style,
+                color => cell.Borders.LeftColorHex = color,
+                size => cell.Borders.LeftSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
+                space => cell.Borders.LeftSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+            ApplyLegacyDocTableCellBorder(
+                borders.Bottom,
+                style => cell.Borders.BottomStyle = style,
+                color => cell.Borders.BottomColorHex = color,
+                size => cell.Borders.BottomSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
+                space => cell.Borders.BottomSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+            ApplyLegacyDocTableCellBorder(
+                borders.Right,
+                style => cell.Borders.RightStyle = style,
+                color => cell.Borders.RightColorHex = color,
+                size => cell.Borders.RightSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
+                space => cell.Borders.RightSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+        }
+
+        private static void ApplyLegacyDocTableCellBorder(
+            LegacyDocTableCellBorder border,
+            Action<BorderValues> setStyle,
+            Action<string> setColor,
+            Action<int> setSize,
+            Action<int> setSpace) {
+            BorderValues? style = MapLegacyDocTableCellBorderStyle(border.Style);
+            if (style == null) {
+                return;
+            }
+
+            setStyle(style.Value);
+            if (!string.IsNullOrEmpty(border.ColorHex)) {
+                setColor(border.ColorHex!);
+            }
+
+            if (border.SizeEighthPoints > 0) {
+                setSize(border.SizeEighthPoints);
+            }
+
+            if (border.SpacePoints > 0) {
+                setSpace(border.SpacePoints);
+            }
+        }
+
+        private static BorderValues? MapLegacyDocTableCellBorderStyle(LegacyDocTableCellBorderStyle style) {
+            switch (style) {
+                case LegacyDocTableCellBorderStyle.Single:
+                    return BorderValues.Single;
+                case LegacyDocTableCellBorderStyle.Double:
+                    return BorderValues.Double;
+                case LegacyDocTableCellBorderStyle.Dotted:
+                    return BorderValues.Dotted;
+                case LegacyDocTableCellBorderStyle.Dashed:
+                    return BorderValues.Dashed;
+                default:
+                    return null;
             }
         }
 

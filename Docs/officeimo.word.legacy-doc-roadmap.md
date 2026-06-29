@@ -342,6 +342,10 @@ just to reserve names.
   - [x] Project simple palette-backed table cell shading from DOC
     `sprmTDefTableShd80`/`Shd80` row definitions into normal OfficeIMO table
     cell fill colors, and preserve it through native DOC save/reload.
+  - [x] Project simple palette-backed table cell borders from DOC `TC80`
+    `Brc80` values in `sprmTDefTable` row definitions into normal OfficeIMO
+    table cell border properties, and preserve them through native DOC
+    save/reload.
   - [ ] Add table formatting, merged cells, and nested tables as separate
     fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
@@ -496,6 +500,10 @@ just to reserve names.
   - [x] Write simple palette-backed table cell shading with
     `sprmTDefTableShd80`, then reload it through the legacy reader while
     blocking non-palette fill colors before bytes are committed.
+  - [x] Write simple palette-backed table cell borders with `TC80` `Brc80`
+    values in `sprmTDefTable`, then reload them through the legacy reader while
+    blocking unsupported border styles and non-palette colors before bytes are
+    committed.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.

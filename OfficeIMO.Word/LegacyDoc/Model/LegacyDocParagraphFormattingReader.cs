@@ -179,6 +179,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<bool>? tableCellNoWraps = null;
             IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null;
             IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings = null;
+            IReadOnlyList<LegacyDocTableCellBorders>? tableCellBorders = null;
             LegacyDocTableCellMargins? defaultTableCellMargins = null;
             int? defaultTableCellSpacingTwips = null;
             int? tableRowHeightTwips = null;
@@ -391,6 +392,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         out tableCellVerticalAlignments,
                         out tableCellFitTexts,
                         out tableCellNoWraps,
+                        out tableCellBorders,
                         out bool tableDefinitionHasUnsupportedMergedCells,
                         out int tableDefinitionOperandLength)) {
                         break;
@@ -483,6 +485,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableCellNoWraps,
                 tableCellMargins,
                 tableCellShadings,
+                tableCellBorders,
                 defaultTableCellMargins,
                 defaultTableCellSpacingTwips,
                 hasMergedTableCells,
@@ -511,6 +514,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             out IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments,
             out IReadOnlyList<bool>? tableCellFitTexts,
             out IReadOnlyList<bool>? tableCellNoWraps,
+            out IReadOnlyList<LegacyDocTableCellBorders>? tableCellBorders,
             out bool hasUnsupportedMergedTableCells,
             out int operandLength) {
             tableCellWidthsTwips = null;
@@ -519,6 +523,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             tableCellVerticalAlignments = null;
             tableCellFitTexts = null;
             tableCellNoWraps = null;
+            tableCellBorders = null;
             hasUnsupportedMergedTableCells = false;
             operandLength = 0;
             if (sprmOffset + 5 > end) {
@@ -541,6 +546,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableCellVerticalAlignments = Array.Empty<LegacyDocTableCellVerticalAlignment>();
                 tableCellFitTexts = Array.Empty<bool>();
                 tableCellNoWraps = Array.Empty<bool>();
+                tableCellBorders = Array.Empty<LegacyDocTableCellBorders>();
                 return true;
             }
 
@@ -556,6 +562,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var verticalAlignments = new LegacyDocTableCellVerticalAlignment[columnCount];
             var fitTexts = new bool[columnCount];
             var noWraps = new bool[columnCount];
+            var borders = new LegacyDocTableCellBorders[columnCount];
             int previousEdge = ReadInt16(bytes, edgesOffset);
             for (int index = 0; index < columnCount; index++) {
                 int nextEdge = ReadInt16(bytes, edgesOffset + ((index + 1) * 2));
@@ -615,6 +622,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 fitTexts[index] = (tcgrf & TcgrfFitTextMask) != 0;
                 noWraps[index] = (tcgrf & TcgrfNoWrapMask) != 0;
+                borders[index] = ReadTableCellBorders(bytes, tc80Offset + (index * Tc80Length));
             }
 
             tableCellWidthsTwips = widths.Where(width => width > 0).ToArray();
@@ -633,7 +641,58 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             tableCellNoWraps = noWraps.Any(noWrap => noWrap)
                 ? noWraps
                 : Array.Empty<bool>();
+            tableCellBorders = borders.Any(border => border.HasAny)
+                ? borders
+                : Array.Empty<LegacyDocTableCellBorders>();
             return true;
+        }
+
+        private static LegacyDocTableCellBorders ReadTableCellBorders(byte[] bytes, int tc80Offset) {
+            return new LegacyDocTableCellBorders(
+                ReadBrc80(bytes, tc80Offset + 4),
+                ReadBrc80(bytes, tc80Offset + 8),
+                ReadBrc80(bytes, tc80Offset + 12),
+                ReadBrc80(bytes, tc80Offset + 16));
+        }
+
+        private static LegacyDocTableCellBorder ReadBrc80(byte[] bytes, int offset) {
+            if (offset + 4 > bytes.Length) {
+                return default;
+            }
+
+            if (bytes[offset] == 0xFF
+                && bytes[offset + 1] == 0xFF
+                && bytes[offset + 2] == 0xFF
+                && bytes[offset + 3] == 0xFF) {
+                return default;
+            }
+
+            byte sizeEighthPoints = bytes[offset];
+            byte borderType = bytes[offset + 1];
+            byte colorIndex = bytes[offset + 2];
+            byte spacePoints = bytes[offset + 3];
+            LegacyDocTableCellBorderStyle style = MapBrc80BorderStyle(borderType);
+            if (style == LegacyDocTableCellBorderStyle.None) {
+                return default;
+            }
+
+            string? colorHex = LegacyDocColorPalette.GetHexForIco(colorIndex);
+            return new LegacyDocTableCellBorder(style, colorHex, sizeEighthPoints, spacePoints);
+        }
+
+        private static LegacyDocTableCellBorderStyle MapBrc80BorderStyle(byte borderType) {
+            switch (borderType) {
+                case 0x01:
+                    return LegacyDocTableCellBorderStyle.Single;
+                case 0x03:
+                    return LegacyDocTableCellBorderStyle.Double;
+                case 0x06:
+                    return LegacyDocTableCellBorderStyle.Dotted;
+                case 0x07:
+                    return LegacyDocTableCellBorderStyle.Dashed;
+                default:
+                    return LegacyDocTableCellBorderStyle.None;
+            }
         }
 
         private static bool TryReadTableCellPadding(
