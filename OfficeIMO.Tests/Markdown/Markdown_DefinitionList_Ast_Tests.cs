@@ -956,6 +956,59 @@ lazy
     }
 
     [Fact]
+    public void DefinitionList_NestedListBody_Merges_TableShapedLazyParagraphIntoLastItem() {
+        const string markdown = """
+Term
+:   First
+    - item
+| A |
+|---|
+| B |
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        Assert.Equal(2, definition.Blocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var nestedList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var item = Assert.Single(nestedList.Items);
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var listSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.UnorderedList);
+        var listItemSyntax = listSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.ListItem);
+        var itemParagraphSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal("item\n\\| A \\|\n\\|---\\|\n\\| B \\|", item.Content.RenderMarkdown().Replace("\r\n", "\n"));
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.UnorderedList
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 6, 5), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 6, 5), listSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 6, 5), listItemSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 7, 6, 5), itemParagraphSyntax.SourceSpan);
+        Assert.Equal("Term\n:   First\n    - item\n| A |\n|---|\n| B |", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        Assert.Equal("First\n\n- item\n  \\| A \\|\n  \\|---\\|\n  \\| B \\|", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 6, 5), definitionBody.SourceSpan);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void DefinitionList_NestedListBody_Stops_Before_UnindentedHeading() {
         const string markdown = """
 Term

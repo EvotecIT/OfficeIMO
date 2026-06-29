@@ -48,6 +48,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     /// <summary>Exact task marker token (<c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>) when parsed from markdown.</summary>
     public string? TaskMarkerText { get; internal set; }
     internal string GenericAttributeConsumedWhitespace { get; set; } = string.Empty;
+    internal bool DefinitionLazyParagraphTailContinuation { get; set; }
     /// <summary>Indentation level (0 = top-level). Used for nested lists.</summary>
     public int Level { get; set; }
     /// <summary>Forces paragraph-wrapped loose rendering even when only the first paragraph and child blocks exist.</summary>

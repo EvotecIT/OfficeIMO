@@ -406,16 +406,58 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
             .Replace("\r\n", "\n")
             .Replace('\r', '\n');
         var lines = rendered.Split('\n');
+        TryGetDefinitionLazyListTailStartLine(block, out var lazyListTailStartLine);
         for (int i = 0; i < lines.Length; i++) {
             if (i > 0) {
                 sb.Append('\n');
-                sb.Append(continuationIndent);
+                if (i < lazyListTailStartLine) {
+                    sb.Append(continuationIndent);
+                }
             } else if (!firstBlock) {
                 sb.Append(continuationIndent);
             }
 
-            sb.Append(lines[i]);
+            sb.Append(i >= lazyListTailStartLine
+                ? UnescapeDefinitionLazyListTailLine(lines[i].TrimStart(' '))
+                : lines[i]);
         }
+    }
+
+    private static string UnescapeDefinitionLazyListTailLine(string line) =>
+        string.IsNullOrEmpty(line)
+            ? string.Empty
+            : line.Replace("\\|", "|");
+
+    private static bool TryGetDefinitionLazyListTailStartLine(IMarkdownBlock? block, out int lineIndex) {
+        lineIndex = int.MaxValue;
+        if (block is not IMarkdownListBlock list || list.ListItems.Count == 0) {
+            return false;
+        }
+
+        var currentLine = 0;
+        for (int i = 0; i < list.ListItems.Count; i++) {
+            var item = list.ListItems[i];
+            if (item == null) {
+                currentLine++;
+                continue;
+            }
+
+            var itemMarkdown = item.RenderMarkdown()
+                .Replace("\r\n", "\n")
+                .Replace('\r', '\n');
+            var itemLineCount = Math.Max(1, itemMarkdown.Split('\n').Length);
+            if (item.DefinitionLazyParagraphTailContinuation &&
+                itemLineCount > 1 &&
+                item.AdditionalParagraphs.Count == 0 &&
+                item.Children.Count == 0) {
+                lineIndex = currentLine + 1;
+                return true;
+            }
+
+            currentLine += itemLineCount;
+        }
+
+        return false;
     }
 
     internal IReadOnlyList<MarkdownSyntaxNode> BuildSyntaxItems() {
