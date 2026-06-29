@@ -195,7 +195,9 @@ public sealed partial class TableBlock {
         clone.AutolinkAllowQueryAndFragmentSpecialCharacters = source.AutolinkAllowQueryAndFragmentSpecialCharacters;
         clone.AutolinkAllowBalancedParenthesesWithTrailingPunctuation = source.AutolinkAllowBalancedParenthesesWithTrailingPunctuation;
         clone.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = source.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis;
+        clone.AutolinkTrimSingleTrailingPunctuationOrUnderscore = source.AutolinkTrimSingleTrailingPunctuationOrUnderscore;
         clone.AutolinkRequireLowercaseWwwPrefix = source.AutolinkRequireLowercaseWwwPrefix;
+        clone.AutolinkRejectUnderscoreInWwwHost = source.AutolinkRejectUnderscoreInWwwHost;
         clone.AutolinkRequireLowercaseBareSchemePrefix = source.AutolinkRequireLowercaseBareSchemePrefix;
         clone.AutolinkBareMailtoDisplayAddressOnly = source.AutolinkBareMailtoDisplayAddressOnly;
         clone.AutolinkValidPreviousCharacters = source.AutolinkValidPreviousCharacters;

@@ -77,7 +77,9 @@ public class Markdown_Reader_Profile_Tests {
         Assert.True(options.AutolinkAllowQueryAndFragmentSpecialCharacters);
         Assert.True(options.AutolinkAllowBalancedParenthesesWithTrailingPunctuation);
         Assert.False(options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis);
+        Assert.False(options.AutolinkTrimSingleTrailingPunctuationOrUnderscore);
         Assert.True(options.AutolinkRequireLowercaseWwwPrefix);
+        Assert.False(options.AutolinkRejectUnderscoreInWwwHost);
         Assert.True(options.AutolinkRequireLowercaseBareSchemePrefix);
         Assert.False(options.AutolinkBareMailtoDisplayAddressOnly);
         Assert.Null(options.AutolinkValidPreviousCharacters);
@@ -115,7 +117,9 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(office.PreserveTrivia);
         Assert.False(office.AutolinkAllowBalancedParenthesesWithTrailingPunctuation);
         Assert.False(office.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis);
+        Assert.False(office.AutolinkTrimSingleTrailingPunctuationOrUnderscore);
         Assert.False(office.AutolinkRequireLowercaseWwwPrefix);
+        Assert.False(office.AutolinkRejectUnderscoreInWwwHost);
         Assert.False(office.AutolinkRequireLowercaseBareSchemePrefix);
         Assert.False(office.AutolinkBareMailtoDisplayAddressOnly);
         Assert.Equal(3, office.BlockParserExtensions.Count);

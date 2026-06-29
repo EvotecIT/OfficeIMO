@@ -250,10 +250,24 @@ public sealed class MarkdownReaderOptions {
     public bool AutolinkAllowTrailingPunctuationBeforeClosingParenthesis { get; set; } = false;
 
     /// <summary>
+    /// When <c>true</c>, bare URL autolinks trim at most one final punctuation character or
+    /// underscore from the parsed target. Markdig <c>UseAutoLinks</c> keeps earlier repeated
+    /// punctuation inside the link; OfficeIMO's legacy behavior trims the full trailing run.
+    /// </summary>
+    public bool AutolinkTrimSingleTrailingPunctuationOrUnderscore { get; set; } = false;
+
+    /// <summary>
     /// When <c>true</c>, bare <c>www.</c> autolinks require the prefix itself to be lowercase.
     /// The host portion after the prefix may still use mixed case.
     /// </summary>
     public bool AutolinkRequireLowercaseWwwPrefix { get; set; } = false;
+
+    /// <summary>
+    /// When <c>true</c>, bare <c>www.</c> autolinks reject host labels containing underscores.
+    /// This mirrors Markdig <c>UseAutoLinks</c> while leaving OfficeIMO's older permissive
+    /// behavior available for existing consumers.
+    /// </summary>
+    public bool AutolinkRejectUnderscoreInWwwHost { get; set; } = false;
 
     /// <summary>
     /// When <c>true</c>, bare scheme autolinks such as <c>mailto:</c>, <c>ftp://</c>, and

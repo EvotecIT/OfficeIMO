@@ -203,6 +203,12 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "ftp-url-query-ampersand", "Visit ftp://example.com/path?q=1&next=2 now" };
         yield return new object[] { "ftp-url-query-parens", "Visit ftp://example.com/search?q=(x) now" };
         yield return new object[] { "ftp-url-trailing-dot", "Visit ftp://example.com/file.txt. now" };
+        yield return new object[] { "http-url-trailing-double-dot", "Visit https://example.com/path.. now" };
+        yield return new object[] { "http-url-trailing-underscore", "Visit https://example.com/path_ now" };
+        yield return new object[] { "http-url-trailing-double-underscore", "Visit https://example.com/path__ now" };
+        yield return new object[] { "www-url-trailing-underscore", "Visit www.example.com_ now" };
+        yield return new object[] { "www-url-host-underscore-stays-literal", "Visit www.exa_mple.com now" };
+        yield return new object[] { "http-url-after-underscore", "Visit _https://example.com now" };
         yield return new object[] { "ftp-localhost-stays-literal", "Visit ftp://localhost/file now" };
         yield return new object[] { "tel-url", "Call tel:+123456789 now" };
         yield return new object[] { "tel-url-trailing-dot", "Call tel:+123-456. now" };
@@ -211,6 +217,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "uppercase-ftp-stays-literal", "Visit FTP://example.com/file now" };
         yield return new object[] { "uppercase-tel-stays-literal", "Call TEL:+123-456 now" };
         yield return new object[] { "lowercase-mailto-links", "Contact mailto:user@example.com now" };
+        yield return new object[] { "lowercase-mailto-path-links", "Contact mailto:user@example.com/path now" };
+        yield return new object[] { "lowercase-mailto-path-query-links", "Contact mailto:user@example.com/path?q=1 now" };
+        yield return new object[] { "lowercase-mailto-path-trailing-underscore", "Contact mailto:user@example.com/path__ now" };
         yield return new object[] { "uppercase-mailto-stays-literal", "Contact MAILTO:user@example.com now" };
         yield return new object[] { "plain-email-stays-literal", "Contact user@example.com now" };
     }
@@ -307,8 +316,11 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         officeOptions.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
+        officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
+        officeOptions.AutolinkRejectUnderscoreInWwwHost = true;
         officeOptions.AutolinkEmails = false;
         officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
+        officeOptions.AutolinkValidPreviousCharacters = "_('";
         officeOptions.AutolinkBareSchemePrefixes = new[] { "mailto:", "ftp://", "tel:" };
 
         var office = MarkdownReader
@@ -333,8 +345,11 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         officeOptions.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
+        officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
+        officeOptions.AutolinkRejectUnderscoreInWwwHost = true;
         officeOptions.AutolinkEmails = false;
         officeOptions.AutolinkBareMailtoDisplayAddressOnly = true;
+        officeOptions.AutolinkValidPreviousCharacters = "_('";
         officeOptions.AutolinkBareSchemePrefixes = new[] { "mailto:", "ftp://", "tel:" };
 
         var office = MarkdownReader

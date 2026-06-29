@@ -135,7 +135,7 @@ public static partial class MarkdownReader {
         var token = text.Substring(start, i - start);
         if (token.Length <= 4) return false;
         if (!options.AutolinkAllowDomainWithoutPeriod && token.IndexOf('.', 4) < 0) return false;
-        if (!IsGfmWwwHostAllowed(token, options.AutolinkAllowDomainWithoutPeriod)) return false;
+        if (!IsGfmWwwHostAllowed(token, options.AutolinkAllowDomainWithoutPeriod, options.AutolinkRejectUnderscoreInWwwHost)) return false;
 
         // Right boundary: avoid linking as part of an identifier-like token.
         if (scanEnd < text.Length && IsEmailChar(text[scanEnd])) return false;
@@ -144,7 +144,7 @@ public static partial class MarkdownReader {
         return end > start + 4;
     }
 
-    private static bool IsGfmWwwHostAllowed(string token, bool allowDomainWithoutPeriod) {
+    private static bool IsGfmWwwHostAllowed(string token, bool allowDomainWithoutPeriod, bool rejectUnderscoreInHost) {
         if (string.IsNullOrEmpty(token) || !token.StartsWith("www.", StringComparison.OrdinalIgnoreCase)) return false;
 
         int hostEnd = token.Length;
@@ -168,7 +168,11 @@ public static partial class MarkdownReader {
                 return false;
             }
 
-            if (i >= 2 && (label[0] == '_' || label.IndexOf('_') >= 0)) {
+            if (rejectUnderscoreInHost && label.IndexOf('_') >= 0) {
+                return false;
+            }
+
+            if (!rejectUnderscoreInHost && i >= 2 && (label[0] == '_' || label.IndexOf('_') >= 0)) {
                 return false;
             }
         }
@@ -186,7 +190,7 @@ public static partial class MarkdownReader {
         if (IsBareSchemePrefixEnabled(options, "mailto:") &&
             StartsWithAutolinkScheme(text, start, "mailto:", options)) {
             int emailStart = start + "mailto:".Length;
-            if (!TryConsumeBareMailtoAddress(text, emailStart, out int emailEnd, out string email)) return false;
+            if (!TryConsumeBareMailtoAddress(text, emailStart, options, out int emailEnd, out string email)) return false;
             end = emailEnd;
             label = options.AutolinkBareMailtoDisplayAddressOnly
                 ? email
@@ -260,32 +264,31 @@ public static partial class MarkdownReader {
         return StartsWithOrdinalIgnoreCase(text, start, scheme);
     }
 
-    private static bool TryConsumeBareMailtoAddress(string text, int start, out int end, out string email) {
+    private static bool TryConsumeBareMailtoAddress(string text, int start, MarkdownReaderOptions options, out int end, out string email) {
         end = start;
         email = string.Empty;
         if (start < 0 || start >= text.Length) return false;
 
-        int i = start;
-        bool sawAt = false;
-        while (i < text.Length) {
-            char c = text[i];
-            if (char.IsWhiteSpace(c)) break;
-            if (c == ')' || c == ']' || c == '<' || c == '/') break;
-            if (!IsEmailChar(c)) break;
-            if (c == '@') sawAt = true;
-            i++;
+        int rawEnd = ConsumeLiteralUrl(text, start, options);
+        int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
+        if (i <= start) return false;
+
+        int addressEnd = i;
+        for (int scan = start; scan < i; scan++) {
+            char c = text[scan];
+            if (c == '/' || c == '?' || c == '#') {
+                addressEnd = scan;
+                break;
+            }
         }
-        if (!sawAt) return false;
 
-        int j = i;
-        while (j > start && (text[j - 1] == '.' || text[j - 1] == ',' || text[j - 1] == ';' || text[j - 1] == ':')) j--;
-        if (j <= start) return false;
+        if (addressEnd <= start) return false;
 
-        string token = text.Substring(start, j - start);
-        if (!LooksLikeEmail(token)) return false;
+        string address = text.Substring(start, addressEnd - start);
+        if (!LooksLikeEmail(address)) return false;
 
-        end = j;
-        email = token;
+        end = i;
+        email = text.Substring(start, i - start);
         return true;
     }
 
@@ -303,6 +306,10 @@ public static partial class MarkdownReader {
     }
 
     private static int TrimTrailingAutolinkPunctuation(string text, int start, int rawEnd, MarkdownReaderOptions options) {
+        if (options.AutolinkTrimSingleTrailingPunctuationOrUnderscore) {
+            return TrimSingleTrailingAutolinkPunctuationOrUnderscore(text, start, rawEnd, options);
+        }
+
         int i = rawEnd;
         bool removedClosingParenthesis = false;
         bool changed;
@@ -332,6 +339,44 @@ public static partial class MarkdownReader {
                 changed = true;
             }
         } while (changed && i > start);
+
+        return i;
+    }
+
+    private static int TrimSingleTrailingAutolinkPunctuationOrUnderscore(string text, int start, int rawEnd, MarkdownReaderOptions options) {
+        int i = rawEnd;
+        bool removedClosingParenthesis = false;
+        bool trimmedSingleDelimiter = false;
+
+        while (i > start) {
+            int parenTrimmed = TrimUnmatchedTrailingClosingParentheses(text, start, i);
+            if (parenTrimmed != i) {
+                removedClosingParenthesis = true;
+                i = parenTrimmed;
+                continue;
+            }
+
+            int entitySuffixStart = FindTrailingEntityLikeSuffixStart(text, start, i);
+            if (entitySuffixStart >= 0) {
+                i = entitySuffixStart;
+                continue;
+            }
+
+            char last = text[i - 1];
+            if (!trimmedSingleDelimiter && IsTrailingAutolinkPunctuationOrUnderscore(last)) {
+                if (options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis
+                    && removedClosingParenthesis
+                    && IsTrailingAutolinkPunctuation(last)) {
+                    break;
+                }
+
+                i--;
+                trimmedSingleDelimiter = true;
+                continue;
+            }
+
+            break;
+        }
 
         return i;
     }
@@ -386,6 +431,10 @@ public static partial class MarkdownReader {
             || c == '?'
             || c == '\''
             || c == '"';
+    }
+
+    private static bool IsTrailingAutolinkPunctuationOrUnderscore(char c) {
+        return c == '_' || IsTrailingAutolinkPunctuation(c);
     }
 
     private static bool HasInvalidAutolinkLeftBoundary(string text, int start, MarkdownReaderOptions? options = null) {
