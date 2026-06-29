@@ -120,7 +120,8 @@ public static partial class MarkdownReader {
             bool suppressBareAutolinkParagraph = false;
             if (ShouldParseBlockGenericAttributes(options, state) && paragraphLines.Count > 0) {
                 var lastLineIndex = paragraphLines.Count - 1;
-                if (TryConsumeParagraphTrailingGenericAttributes(
+                if (!IsStandaloneGenericAttributeBeforeBlockquote(paragraphLines, lines, j)
+                    && TryConsumeParagraphTrailingGenericAttributes(
                     paragraphLines[lastLineIndex],
                     options,
                     out var lineWithoutAttributeBlock,
@@ -205,6 +206,46 @@ public static partial class MarkdownReader {
 
             suppressBareAutolinkParagraph = true;
             return true;
+        }
+
+        private static bool IsStandaloneGenericAttributeBeforeBlockquote(
+            IReadOnlyList<string> paragraphLines,
+            string[] lines,
+            int nextLineIndex) {
+            if (paragraphLines == null
+                || paragraphLines.Count != 1
+                || lines == null
+                || nextLineIndex < 0
+                || nextLineIndex >= lines.Length
+                || !IsStandaloneGenericAttributeOnlyLine(paragraphLines[0])) {
+                return false;
+            }
+
+            for (var index = nextLineIndex; index < lines.Length; index++) {
+                if (string.IsNullOrWhiteSpace(lines[index])) {
+                    continue;
+                }
+
+                return IsQuoteStarter(lines[index]);
+            }
+
+            return false;
+        }
+
+        private static bool IsStandaloneGenericAttributeOnlyLine(string? line) {
+            if (string.IsNullOrWhiteSpace(line)) {
+                return false;
+            }
+
+            var leading = CountLeadingSpaces(line!);
+            var content = line!.Substring(leading).TrimEnd();
+            return MarkdownGenericAttributeParser.TryConsumeLeadingAttributeBlock(
+                    content,
+                    out var remaining,
+                    out _,
+                    out var consumedLength)
+                && consumedLength == content.Length
+                && string.IsNullOrWhiteSpace(remaining);
         }
 
         private static bool IsNoSpaceBareAutolinkParagraphAttribute(

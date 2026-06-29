@@ -314,6 +314,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "standalone-attribute-before-fenced-code", "{#code .wide}\n```cs\nvar x = 1;\n```" };
         yield return new object[] { "standalone-attribute-before-unordered-list", "{#list .wide}\n- item" };
         yield return new object[] { "standalone-attribute-before-ordered-list", "{#list .wide}\n1. item" };
+        yield return new object[] { "standalone-attribute-before-blockquote-stays-literal", "{#q .wide}\n> quote" };
         yield return new object[] { "blockquote-paragraph-attribute-stays-literal", "> quote {#q .lead}" };
         yield return new object[] { "blockquote-atx-heading-attribute-stays-literal", "> # Heading {#h .wide}" };
         yield return new object[] { "blockquote-setext-heading-attribute-stays-literal", "> Heading {#h .wide}\n> -------" };

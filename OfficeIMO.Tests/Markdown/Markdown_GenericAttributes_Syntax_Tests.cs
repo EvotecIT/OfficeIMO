@@ -424,6 +424,43 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void Standalone_GenericAttributes_Before_Blockquote_Remain_Literal_Paragraph() {
+        const string markdown = "{#q .wide}\n> quote\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        Assert.Collection(
+            result.Document.Blocks,
+            block => {
+                var paragraph = Assert.IsType<ParagraphBlock>(block);
+                Assert.Equal("{#q .wide}", paragraph.Inlines.RenderMarkdown());
+                Assert.True(paragraph.Attributes.IsEmpty);
+            },
+            block => Assert.IsType<QuoteBlock>(block));
+
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        Assert.Empty(MarkdownNativeDocument.Parse(markdown, options).EnumerateBlockSourceFields("attributes"));
+
+        var html = result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Equal("<p>{#q .wide}</p><blockquote><p>quote</p></blockquote>", html);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_ListItem_GenericAttribute_Tokens() {
         const string markdown = "- item {#li .selected}\n";
         var options = new MarkdownReaderOptions {
