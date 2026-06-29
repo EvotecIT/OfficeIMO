@@ -108,6 +108,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsFontFamilyRunsThroughFontTable() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithFontFamilyFormatting();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph[] runs = result.Document.Paragraphs.ToArray();
+            Assert.Equal(2, runs.Length);
+            Assert.Equal("plain ", runs[0].Text);
+            Assert.Null(runs[0].FontFamily);
+            Assert.Equal("font", runs[1].Text);
+            Assert.Equal("Courier New", runs[1].FontFamily);
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_RoutesOleDocIntoProjectedWordDocument() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -397,16 +412,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocFontFamilyRunsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph();
+                    paragraph.AddText("plain ");
+                    paragraph.AddText("font").SetFontFamily("Courier New");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph[] runs = reloaded.Paragraphs.ToArray();
+                Assert.Equal(2, runs.Length);
+                Assert.Equal("plain ", runs[0].Text);
+                Assert.Null(runs[0].FontFamily);
+                Assert.Equal("font", runs[1].Text);
+                Assert.Equal("Courier New", runs[1].FontFamily);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedRunFormattingBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Formatted").SetFontFamily("Arial");
+                document.AddParagraph("Formatted").SetHighlight(HighlightColorValues.Yellow);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("font family", exception.Message);
+                Assert.Contains("highlight", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -484,6 +526,23 @@ namespace OfficeIMO.Tests {
                 const int chpxFkpOffset = 0x400;
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExtendedCharacterFormatting(text, textOffset, chpxFkpOffset);
                 byte[] tableStream = CreateUnicodeTableStreamWithCharacterBinTable(text.Length, textOffset, chpxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithFontFamilyFormatting() {
+                const string text = "plain font\r";
+                const int textOffset = 0x200;
+                const int chpxFkpOffset = 0x400;
+                byte[] fontTable = CreateFontTable("Courier New");
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithFontFamilyFormatting(text, textOffset, chpxFkpOffset, fontTable.Length);
+                byte[] tableStream = CreateUnicodeTableStreamWithCharacterBinTableAndFontTable(text.Length, textOffset, chpxFkpOffset / 512, fontTable);
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
@@ -592,6 +651,40 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
+            private static byte[] CreateUnicodeWordDocumentStreamWithFontFamilyFormatting(string text, int textOffset, int chpxFkpOffset, int fontTableLength) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(chpxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0xFA, 21);
+                WriteInt32(stream, 0xFE, 12);
+                WriteInt32(stream, 0x112, 33);
+                WriteInt32(stream, 0x116, fontTableLength);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int fontStart = textOffset + ("plain ".Length * 2);
+                int paragraphMarkStart = fontStart + ("font".Length * 2);
+                int end = paragraphMarkStart + 2;
+                WriteChpxFkp(
+                    stream,
+                    chpxFkpOffset,
+                    new[] { textOffset, fontStart, paragraphMarkStart, end },
+                    new Dictionary<int, byte[]> {
+                        [1] = CreateSingleSprmChpx(0x4A4F, 0, 0)
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
             private static byte[] CreateTableStream(int characterCount) {
                 const int textOffset = 0x200;
                 var table = new byte[21];
@@ -603,6 +696,35 @@ namespace OfficeIMO.Tests {
                 WriteUInt32(table, 15, 0x40000000U | ((uint)textOffset * 2U));
                 WriteUInt16(table, 19, 0);
                 return table;
+            }
+
+            private static byte[] CreateUnicodeTableStreamWithCharacterBinTableAndFontTable(int characterCount, int textOffset, int chpxFkpPageNumber, byte[] fontTable) {
+                byte[] table = CreateUnicodeTableStreamWithCharacterBinTable(characterCount, textOffset, chpxFkpPageNumber);
+                Array.Resize(ref table, table.Length + fontTable.Length);
+                Buffer.BlockCopy(fontTable, 0, table, 33, fontTable.Length);
+                return table;
+            }
+
+            private static byte[] CreateFontTable(params string[] fontFamilies) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, checked((ushort)fontFamilies.Length));
+                WriteUInt16(stream, 0);
+                foreach (string fontFamily in fontFamilies) {
+                    byte[] ffn = CreateFfn(fontFamily);
+                    stream.WriteByte(checked((byte)ffn.Length));
+                    stream.Write(ffn, 0, ffn.Length);
+                }
+
+                return stream.ToArray();
+            }
+
+            private static byte[] CreateFfn(string fontFamily) {
+                byte[] nameBytes = System.Text.Encoding.Unicode.GetBytes(fontFamily + '\0');
+                var ffn = new byte[39 + nameBytes.Length];
+                ffn[1] = 0x90;
+                ffn[2] = 0x01;
+                Buffer.BlockCopy(nameBytes, 0, ffn, 39, nameBytes.Length);
+                return ffn;
             }
 
             private static byte[] CreateUnicodeTableStreamWithCharacterBinTable(int characterCount, int textOffset, int chpxFkpPageNumber) {

@@ -14,10 +14,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmCFItalic = 0x0836;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCHps = 0x4A43;
+        private const ushort SprmCRgFtc0 = 0x4A4F;
         private const ushort SprmCCv = 0x6870;
         private const ushort WordDocumentMagic = 0xA5EC;
         private const ushort Word97FibVersion = 0x00D9;
         private const ushort OneTableStreamFlag = 0x0200;
+        private const int FcSttbfFfnOffset = 0x112;
+        private const int LcbSttbfFfnOffset = 0x116;
 
         internal static byte[] WriteDocument(WordDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
@@ -62,7 +65,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SectionProperties:
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs with bold, italic, underline, font size, and color text runs. Unsupported body element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs with bold, italic, underline, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");
                 }
             }
 
@@ -126,7 +129,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedRunText(text, runs, run);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs with bold, italic, underline, font size, and color formatting. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs with bold, italic, underline, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 
@@ -162,6 +165,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             byte? underline = null;
             int? fontSizeHalfPoints = null;
             string? colorHex = null;
+            string? fontFamily = null;
             foreach (OpenXmlElement property in runProperties.ChildElements) {
                 switch (property) {
                     case Bold boldProperty:
@@ -185,14 +189,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Color color:
                         colorHex = ReadSupportedColorHex(color);
                         break;
-                    case RunFonts:
-                        throw new NotSupportedException("Native DOC saving does not support font family yet. Font family requires a DOC font-table writer slice.");
+                    case RunFonts runFonts:
+                        fontFamily = ReadSupportedRunFontFamily(runFonts);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, underline, font size, and color run formatting. Unsupported run property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, underline, font size, color, and font family run formatting. Unsupported run property: {property.LocalName}.");
                 }
             }
 
-            return new LegacyDocWritableFormatting(bold, italic, underline, fontSizeHalfPoints, colorHex);
+            return new LegacyDocWritableFormatting(bold, italic, underline, fontSizeHalfPoints, colorHex, fontFamily);
         }
 
         private static bool IsEnabled(OnOffType property) {
@@ -266,6 +271,38 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return hex;
         }
 
+        private static string? ReadSupportedRunFontFamily(RunFonts runFonts) {
+            string? ascii = NormalizeFontFamily(runFonts.Ascii?.Value);
+            string? highAnsi = NormalizeFontFamily(runFonts.HighAnsi?.Value);
+            string? eastAsia = NormalizeFontFamily(runFonts.EastAsia?.Value);
+            string? complexScript = NormalizeFontFamily(runFonts.ComplexScript?.Value);
+
+            string? fontFamily = ascii ?? highAnsi;
+            if (fontFamily == null) {
+                if (eastAsia != null || complexScript != null) {
+                    throw new NotSupportedException("Native DOC saving currently supports font family only for ASCII/HighAnsi text runs.");
+                }
+
+                return null;
+            }
+
+            if ((highAnsi != null && !string.Equals(fontFamily, highAnsi, StringComparison.OrdinalIgnoreCase))
+                || (eastAsia != null && !string.Equals(fontFamily, eastAsia, StringComparison.OrdinalIgnoreCase))
+                || (complexScript != null && !string.Equals(fontFamily, complexScript, StringComparison.OrdinalIgnoreCase))) {
+                throw new NotSupportedException("Native DOC saving currently supports a single font family per text run. Multiple script-specific font families are not supported yet.");
+            }
+
+            return fontFamily;
+        }
+
+        private static string? NormalizeFontFamily(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            return value!.Trim();
+        }
+
         private static void AppendFormattedText(
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
@@ -296,6 +333,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static byte[] CreateWordDocumentStream(LegacyDocWritableBody body) {
             byte[] textBytes = Encoding.Unicode.GetBytes(body.Text);
+            byte[] fontTable = CreateFontTable(body.FontFamilies);
             int chpxFkpOffset = body.HasCharacterFormatting
                 ? AlignToSector(TextOffset + textBytes.Length)
                 : 0;
@@ -309,18 +347,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteInt32(stream, 0x4C, body.Text.Length);
             WriteInt32(stream, 0xFA, body.HasCharacterFormatting ? ClxLength : 0);
             WriteInt32(stream, 0xFE, body.HasCharacterFormatting ? ChpxPlcLength : 0);
+            WriteInt32(stream, FcSttbfFfnOffset, body.HasFontTable ? body.FontTableOffsetInTableStream : 0);
+            WriteInt32(stream, LcbSttbfFfnOffset, fontTable.Length);
             WriteInt32(stream, 0x1A2, 0);
             WriteInt32(stream, 0x1A6, ClxLength);
             Buffer.BlockCopy(textBytes, 0, stream, TextOffset, textBytes.Length);
             if (body.HasCharacterFormatting) {
-                WriteChpxFkp(stream, chpxFkpOffset, body.CreateFormattingSegments());
+                WriteChpxFkp(stream, chpxFkpOffset, body.CreateFormattingSegments(), body.FontFamilyIndexes);
             }
 
             return stream;
         }
 
         private static byte[] CreateTableStream(LegacyDocWritableBody body) {
-            var table = new byte[body.HasCharacterFormatting ? ClxLength + ChpxPlcLength : ClxLength];
+            byte[] fontTable = CreateFontTable(body.FontFamilies);
+            var table = new byte[ClxLength + (body.HasCharacterFormatting ? ChpxPlcLength : 0) + fontTable.Length];
             table[0] = 0x02;
             WriteInt32(table, 1, 16);
             WriteInt32(table, 5, 0);
@@ -336,10 +377,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 WriteInt32(table, ClxLength + 8, chpxFkpOffset / OleSectorSize);
             }
 
+            if (fontTable.Length > 0) {
+                Buffer.BlockCopy(fontTable, 0, table, body.FontTableOffsetInTableStream, fontTable.Length);
+            }
+
             return table;
         }
 
-        private static void WriteChpxFkp(byte[] stream, int pageOffset, IReadOnlyList<LegacyDocWritableSegment> segments) {
+        private static void WriteChpxFkp(byte[] stream, int pageOffset, IReadOnlyList<LegacyDocWritableSegment> segments, IReadOnlyDictionary<string, int> fontFamilyIndexes) {
             if (segments.Count == 0 || segments.Count > byte.MaxValue) {
                 throw new NotSupportedException("Native DOC saving currently supports run formatting only when it fits in one character-format page.");
             }
@@ -351,7 +396,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocWritableSegment segment = segments[index];
                 WriteInt32(stream, pageOffset + (index * 4), TextOffset + (segment.StartCharacter * 2));
                 if (segment.Formatting.HasFormatting) {
-                    byte[] chpx = CreateChpx(segment.Formatting);
+                    byte[] chpx = CreateChpx(segment.Formatting, fontFamilyIndexes);
                     chpxOffset = AlignToEven(chpxOffset);
                     if (chpxOffset + chpx.Length >= OleSectorSize - 1 || chpxOffset / 2 > byte.MaxValue) {
                         throw new NotSupportedException("Native DOC saving currently supports run formatting only when it fits in one character-format page.");
@@ -368,7 +413,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             stream[pageOffset + OleSectorSize - 1] = (byte)segments.Count;
         }
 
-        private static byte[] CreateChpx(LegacyDocWritableFormatting formatting) {
+        private static byte[] CreateChpx(LegacyDocWritableFormatting formatting, IReadOnlyDictionary<string, int> fontFamilyIndexes) {
             var grpprl = new List<byte>(18);
             if (formatting.Bold) {
                 AddSingleByteSprm(grpprl, SprmCFBold, 1);
@@ -390,10 +435,57 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddColorRefSprm(grpprl, formatting.ColorHex);
             }
 
+            if (formatting.FontFamily != null) {
+                if (!fontFamilyIndexes.TryGetValue(formatting.FontFamily, out int fontIndex)) {
+                    throw new InvalidOperationException("The DOC font table does not contain a formatted run font family.");
+                }
+
+                AddUInt16Sprm(grpprl, SprmCRgFtc0, checked((ushort)fontIndex));
+            }
+
             var chpx = new byte[grpprl.Count + 1];
             chpx[0] = (byte)grpprl.Count;
             grpprl.CopyTo(chpx, 1);
             return chpx;
+        }
+
+        private static byte[] CreateFontTable(IReadOnlyList<string> fontFamilies) {
+            if (fontFamilies.Count == 0) {
+                return Array.Empty<byte>();
+            }
+
+            if (fontFamilies.Count > ushort.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports only documents whose font table fits in a Word 97-2003 STTBF.");
+            }
+
+            using var stream = new MemoryStream();
+            WriteUInt16(stream, checked((ushort)fontFamilies.Count));
+            WriteUInt16(stream, 0);
+
+            foreach (string fontFamily in fontFamilies) {
+                byte[] ffn = CreateFfn(fontFamily);
+                if (ffn.Length > byte.MaxValue) {
+                    throw new NotSupportedException($"Native DOC saving cannot write font family '{fontFamily}' because its DOC font-table record is too long.");
+                }
+
+                stream.WriteByte(checked((byte)ffn.Length));
+                stream.Write(ffn, 0, ffn.Length);
+            }
+
+            return stream.ToArray();
+        }
+
+        private static byte[] CreateFfn(string fontFamily) {
+            if (string.IsNullOrWhiteSpace(fontFamily)) {
+                throw new NotSupportedException("Native DOC saving cannot write an empty font family name.");
+            }
+
+            byte[] nameBytes = Encoding.Unicode.GetBytes(fontFamily + '\0');
+            var ffn = new byte[39 + nameBytes.Length];
+            ffn[1] = 0x90;
+            ffn[2] = 0x01;
+            Buffer.BlockCopy(nameBytes, 0, ffn, 39, nameBytes.Length);
+            return ffn;
         }
 
         private static void AddSingleByteSprm(List<byte> grpprl, ushort sprm, byte operand) {
@@ -431,6 +523,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bytes[offset + 1] = (byte)(value >> 8);
         }
 
+        private static void WriteUInt16(Stream stream, ushort value) {
+            stream.WriteByte((byte)(value & 0xFF));
+            stream.WriteByte((byte)(value >> 8));
+        }
+
         private static void WriteInt32(byte[] bytes, int offset, int value) {
             bytes[offset] = (byte)value;
             bytes[offset + 1] = (byte)(value >> 8);
@@ -449,13 +546,30 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal LegacyDocWritableBody(string text, IReadOnlyList<LegacyDocWritableRun> formattedRuns) {
                 Text = text;
                 FormattedRuns = formattedRuns;
+                FontFamilies = formattedRuns
+                    .Select(run => run.Formatting.FontFamily)
+                    .Where(fontFamily => !string.IsNullOrWhiteSpace(fontFamily))
+                    .Select(fontFamily => fontFamily!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+                FontFamilyIndexes = FontFamilies
+                    .Select((fontFamily, index) => new { fontFamily, index })
+                    .ToDictionary(item => item.fontFamily, item => item.index, StringComparer.OrdinalIgnoreCase);
             }
 
             internal string Text { get; }
 
             internal IReadOnlyList<LegacyDocWritableRun> FormattedRuns { get; }
 
+            internal IReadOnlyList<string> FontFamilies { get; }
+
+            internal IReadOnlyDictionary<string, int> FontFamilyIndexes { get; }
+
             internal bool HasCharacterFormatting => FormattedRuns.Count > 0;
+
+            internal bool HasFontTable => FontFamilies.Count > 0;
+
+            internal int FontTableOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0);
 
             internal IReadOnlyList<LegacyDocWritableSegment> CreateFormattingSegments() {
                 var segments = new List<LegacyDocWritableSegment>();
@@ -498,14 +612,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableFormatting : IEquatable<LegacyDocWritableFormatting> {
-            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, null, null, null);
+            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, null, null, null, null);
 
-            internal LegacyDocWritableFormatting(bool bold, bool italic, byte? underline, int? fontSizeHalfPoints, string? colorHex) {
+            internal LegacyDocWritableFormatting(bool bold, bool italic, byte? underline, int? fontSizeHalfPoints, string? colorHex, string? fontFamily) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
                 FontSizeHalfPoints = fontSizeHalfPoints;
                 ColorHex = colorHex;
+                FontFamily = fontFamily;
             }
 
             internal bool Bold { get; }
@@ -518,14 +633,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal string? ColorHex { get; }
 
-            internal bool HasFormatting => Bold || Italic || Underline != null || FontSizeHalfPoints != null || ColorHex != null;
+            internal string? FontFamily { get; }
+
+            internal bool HasFormatting => Bold || Italic || Underline != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
 
             public bool Equals(LegacyDocWritableFormatting other) {
                 return Bold == other.Bold
                     && Italic == other.Italic
                     && Underline == other.Underline
                     && FontSizeHalfPoints == other.FontSizeHalfPoints
-                    && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase);
+                    && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase);
             }
 
             public override bool Equals(object? obj) {
@@ -539,6 +657,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 hash = (hash * 31) + Underline.GetHashCode();
                 hash = (hash * 31) + FontSizeHalfPoints.GetHashCode();
                 hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);
+                hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(FontFamily ?? string.Empty);
                 return hash;
             }
         }

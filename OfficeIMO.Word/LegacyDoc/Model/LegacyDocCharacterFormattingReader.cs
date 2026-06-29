@@ -6,12 +6,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCIco = 0x2A42;
         private const ushort SprmCHps = 0x4A43;
+        private const ushort SprmCRgFtc0 = 0x4A4F;
         private const ushort SprmCCv = 0x6870;
 
         internal static IReadOnlyList<LegacyDocCharacterFormatRange> ReadCharacterFormatting(
             byte[] wordDocumentStream,
             byte[] tableStream,
             LegacyDocFib fib,
+            IReadOnlyList<string> fontFamilies,
             out string? warning) {
             warning = null;
 
@@ -46,7 +48,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return ranges;
                 }
 
-                ReadChpxFkp(wordDocumentStream, pageOffset, ranges);
+                ReadChpxFkp(wordDocumentStream, pageOffset, ranges, fontFamilies);
             }
 
             return ranges
@@ -55,7 +57,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 .ToArray();
         }
 
-        private static void ReadChpxFkp(byte[] wordDocumentStream, int pageOffset, List<LegacyDocCharacterFormatRange> ranges) {
+        private static void ReadChpxFkp(byte[] wordDocumentStream, int pageOffset, List<LegacyDocCharacterFormatRange> ranges, IReadOnlyList<string> fontFamilies) {
             int crun = wordDocumentStream[pageOffset + OleSectorSize - 1];
             if (crun <= 0) {
                 return;
@@ -90,20 +92,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                LegacyDocCharacterFormat format = ReadGrpprl(wordDocumentStream, grpprlOffset, cbGrpprl);
+                LegacyDocCharacterFormat format = ReadGrpprl(wordDocumentStream, grpprlOffset, cbGrpprl, fontFamilies);
                 if (format.HasFormatting) {
                     ranges.Add(new LegacyDocCharacterFormatRange(fcStart, fcEnd, format));
                 }
             }
         }
 
-        private static LegacyDocCharacterFormat ReadGrpprl(byte[] bytes, int offset, int count) {
+        private static LegacyDocCharacterFormat ReadGrpprl(byte[] bytes, int offset, int count, IReadOnlyList<string> fontFamilies) {
             int end = offset + count;
             bool bold = false;
             bool italic = false;
             LegacyDocUnderlineKind? underline = null;
             int? fontSizeHalfPoints = null;
             string? colorHex = null;
+            string? fontFamily = null;
 
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
@@ -153,6 +156,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmCRgFtc0) {
+                    if (offset + 4 > end) {
+                        break;
+                    }
+
+                    int fontIndex = LegacyDocFib.ReadUInt16(bytes, offset + 2);
+                    if (fontIndex >= 0 && fontIndex < fontFamilies.Count && !string.IsNullOrWhiteSpace(fontFamilies[fontIndex])) {
+                        fontFamily = fontFamilies[fontIndex];
+                    }
+
+                    offset += 4;
+                    continue;
+                }
+
                 if (sprm == SprmCCv) {
                     if (offset + 6 > end) {
                         break;
@@ -170,7 +187,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 offset += 2 + operandLength;
             }
 
-            return new LegacyDocCharacterFormat(bold, italic, underline, fontSizeHalfPoints, colorHex);
+            return new LegacyDocCharacterFormat(bold, italic, underline, fontSizeHalfPoints, colorHex, fontFamily);
         }
 
         private static LegacyDocUnderlineKind? MapUnderline(byte value) {

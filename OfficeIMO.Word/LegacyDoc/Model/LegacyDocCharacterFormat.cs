@@ -5,12 +5,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool italic,
             LegacyDocUnderlineKind? underline,
             int? fontSizeHalfPoints,
-            string? colorHex) {
+            string? colorHex,
+            string? fontFamily) {
             Bold = bold;
             Italic = italic;
             Underline = underline;
             FontSizeHalfPoints = fontSizeHalfPoints;
             ColorHex = colorHex;
+            FontFamily = fontFamily;
         }
 
         internal bool Bold { get; }
@@ -23,21 +25,25 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal string? ColorHex { get; }
 
+        internal string? FontFamily { get; }
+
         internal bool HasFormatting =>
             Bold
             || Italic
             || Underline != null
             || FontSizeHalfPoints != null
-            || ColorHex != null;
+            || ColorHex != null
+            || FontFamily != null;
 
-        internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, null, null, null);
+        internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, null, null, null, null);
 
         public bool Equals(LegacyDocCharacterFormat other) {
             return Bold == other.Bold
                 && Italic == other.Italic
                 && Underline == other.Underline
                 && FontSizeHalfPoints == other.FontSizeHalfPoints
-                && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase);
+                && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase);
         }
 
         public override bool Equals(object? obj) {
@@ -51,6 +57,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + Underline.GetHashCode();
             hash = (hash * 31) + FontSizeHalfPoints.GetHashCode();
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);
+            hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(FontFamily ?? string.Empty);
             return hash;
         }
     }

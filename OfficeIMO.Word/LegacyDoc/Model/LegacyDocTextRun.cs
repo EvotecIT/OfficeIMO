@@ -6,13 +6,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool italic,
             LegacyDocUnderlineKind? underline,
             int? fontSizeHalfPoints,
-            string? colorHex) {
+            string? colorHex,
+            string? fontFamily) {
             Text = text;
             Bold = bold;
             Italic = italic;
             Underline = underline;
             FontSizeHalfPoints = fontSizeHalfPoints;
             ColorHex = colorHex;
+            FontFamily = fontFamily;
         }
 
         internal string Text { get; }
@@ -26,5 +28,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal int? FontSizeHalfPoints { get; }
 
         internal string? ColorHex { get; }
+
+        internal string? FontFamily { get; }
     }
 }

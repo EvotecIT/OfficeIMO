@@ -6,6 +6,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const int CcpTextOffset = 0x4C;
         private const int FcPlcfBteChpxOffset = 0xFA;
         private const int LcbPlcfBteChpxOffset = 0xFE;
+        private const int FcSttbfFfnOffset = 0x112;
+        private const int LcbSttbfFfnOffset = 0x116;
         private const int FcClxOffset = 0x1A2;
         private const int LcbClxOffset = 0x1A6;
         private const ushort EncryptedFlag = 0x0100;
@@ -18,6 +20,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int ccpText,
             int fcPlcfBteChpx,
             int lcbPlcfBteChpx,
+            int fcSttbfFfn,
+            int lcbSttbfFfn,
             int fcClx,
             int lcbClx) {
             NFib = nFib;
@@ -26,6 +30,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             CcpText = ccpText;
             FcPlcfBteChpx = fcPlcfBteChpx;
             LcbPlcfBteChpx = lcbPlcfBteChpx;
+            FcSttbfFfn = fcSttbfFfn;
+            LcbSttbfFfn = lcbSttbfFfn;
             FcClx = fcClx;
             LcbClx = lcbClx;
         }
@@ -41,6 +47,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal int FcPlcfBteChpx { get; }
 
         internal int LcbPlcfBteChpx { get; }
+
+        internal int FcSttbfFfn { get; }
+
+        internal int LcbSttbfFfn { get; }
 
         internal int FcClx { get; }
 
@@ -66,10 +76,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int ccpText = ReadInt32(wordDocumentStream, CcpTextOffset);
             int fcPlcfBteChpx = ReadInt32(wordDocumentStream, FcPlcfBteChpxOffset);
             int lcbPlcfBteChpx = ReadInt32(wordDocumentStream, LcbPlcfBteChpxOffset);
+            int fcSttbfFfn = ReadInt32(wordDocumentStream, FcSttbfFfnOffset);
+            int lcbSttbfFfn = ReadInt32(wordDocumentStream, LcbSttbfFfnOffset);
             int fcClx = ReadInt32(wordDocumentStream, FcClxOffset);
             int lcbClx = ReadInt32(wordDocumentStream, LcbClxOffset);
 
-            if (ccpText < 0 || fcPlcfBteChpx < 0 || lcbPlcfBteChpx < 0 || fcClx < 0 || lcbClx < 0) {
+            if (ccpText < 0 || fcPlcfBteChpx < 0 || lcbPlcfBteChpx < 0 || fcSttbfFfn < 0 || lcbSttbfFfn < 0 || fcClx < 0 || lcbClx < 0) {
                 error = "The FIB contains negative text or piece-table offsets.";
                 return false;
             }
@@ -81,6 +93,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ccpText,
                 fcPlcfBteChpx,
                 lcbPlcfBteChpx,
+                fcSttbfFfn,
+                lcbSttbfFfn,
                 fcClx,
                 lcbClx);
             return true;

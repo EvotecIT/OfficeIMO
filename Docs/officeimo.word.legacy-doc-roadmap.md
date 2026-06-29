@@ -223,7 +223,7 @@ just to reserve names.
   has a fixture and observable OfficeIMO contract.
   - [x] Project direct CHPX bold/italic character runs into OfficeIMO runs.
   - [x] Project direct CHPX underline, size, and color runs into OfficeIMO runs.
-  - [ ] Extend character projection to font family through the DOC font table.
+  - [x] Extend character projection to font family through the DOC font table.
   - [ ] Add paragraph style/properties projection after character runs are stable.
 - [ ] Add common table projection after paragraph/run projection is stable.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
@@ -248,7 +248,7 @@ just to reserve names.
     reader.
   - [x] Write direct underline, size, and color CHPX runs and reload them
     through the legacy reader.
-  - [ ] Extend native character writing to font family through the DOC font
+  - [x] Extend native character writing to font family through the DOC font
     table.
   - [ ] Add table and simple section writing as separate preflight-backed
     slices.

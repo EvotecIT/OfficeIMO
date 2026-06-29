@@ -127,6 +127,10 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(legacyRun.ColorHex)) {
                 run.ColorHex = legacyRun.ColorHex!;
             }
+
+            if (!string.IsNullOrEmpty(legacyRun.FontFamily)) {
+                run.SetFontFamily(legacyRun.FontFamily!);
+            }
         }
 
         private static bool TryMapUnderline(LegacyDocUnderlineKind underline, out UnderlineValues value) {

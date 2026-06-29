@@ -119,7 +119,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return;
             }
 
-            IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges = LegacyDocCharacterFormattingReader.ReadCharacterFormatting(wordDocumentStream, tableStream, fib, out string? formattingWarning);
+            IReadOnlyList<string> fontFamilies = LegacyDocFontTableReader.ReadFontFamilies(tableStream, fib, out string? fontTableWarning);
+            if (fontTableWarning != null) {
+                AddWarning("DOC-FONT-TABLE-INVALID", fontTableWarning);
+            }
+
+            IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges = LegacyDocCharacterFormattingReader.ReadCharacterFormatting(wordDocumentStream, tableStream, fib, fontFamilies, out string? formattingWarning);
             if (formattingWarning != null) {
                 AddWarning("DOC-CHPX-INVALID", formattingWarning);
             }
@@ -207,7 +212,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentFormat.Italic,
                     currentFormat.Underline,
                     currentFormat.FontSizeHalfPoints,
-                    currentFormat.ColorHex));
+                    currentFormat.ColorHex,
+                    currentFormat.FontFamily));
                 runText.Clear();
             }
         }
