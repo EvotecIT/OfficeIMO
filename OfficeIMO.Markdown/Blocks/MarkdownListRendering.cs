@@ -170,7 +170,10 @@ internal static class MarkdownListRendering {
             var childMd = MarkdownBlockRenderDispatcher.RenderMarkdown(child);
             if (string.IsNullOrWhiteSpace(childMd)) continue;
 
-            sb.Append(baseIndent).AppendLine();
+            var renderAsTightTableContinuation = ShouldRenderAsTightTableContinuation(item, child);
+            if (!renderAsTightTableContinuation) {
+                sb.Append(baseIndent).AppendLine();
+            }
 
             var lines = childMd.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
             for (int i = 0; i < lines.Length; i++) {
@@ -179,7 +182,16 @@ internal static class MarkdownListRendering {
                 else sb.Append(contPrefix).AppendLine(line);
             }
 
-            sb.Append(baseIndent).AppendLine();
+            if (!renderAsTightTableContinuation || c + 1 < item.Children.Count) {
+                sb.Append(baseIndent).AppendLine();
+            }
         }
     }
+
+    private static bool ShouldRenderAsTightTableContinuation(ListItem item, IMarkdownBlock child) =>
+        child is TableBlock &&
+        item != null &&
+        !item.RequiresLooseListRendering() &&
+        item.AdditionalParagraphs.Count == 0 &&
+        item.Content.Nodes.Count > 0;
 }

@@ -29,16 +29,19 @@ public sealed partial class MarkdownNativeDocument {
         var normalized = replacementMarkdown
             .Replace("\r\n", "\n")
             .Replace('\r', '\n');
+        var lineEnding = replacementMarkdown.Contains("\r\n", StringComparison.Ordinal)
+            ? "\r\n"
+            : "\n";
         var lines = normalized.Split('\n');
         for (var i = 1; i < lines.Length; i++) {
-            if (lines[i].Length == 0) {
+            if (lines[i].Length == 0 || char.IsWhiteSpace(lines[i][0])) {
                 continue;
             }
 
             lines[i] = continuationIndent + lines[i];
         }
 
-        return string.Join("\n", lines);
+        return string.Join(lineEnding, lines);
     }
 
     private static bool TryGetDefinitionListDefinition(

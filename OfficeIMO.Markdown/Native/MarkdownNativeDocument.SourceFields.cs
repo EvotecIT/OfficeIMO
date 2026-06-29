@@ -28,13 +28,27 @@ public sealed partial class MarkdownNativeDocument {
         MarkdownNativeBlockSourceField? bestMatch = null;
         foreach (var field in EnumerateBlockSourceFields()) {
             if (field.SourceSpan.ContainsPosition(lineNumber, columnNumber)) {
-                if (bestMatch == null || IsNarrowerSourceSpan(field.SourceSpan, bestMatch.SourceSpan)) {
+                if (bestMatch == null || IsBetterSourceFieldMatch(field, bestMatch)) {
                     bestMatch = field;
                 }
             }
         }
 
         return bestMatch;
+    }
+
+    private static bool IsBetterSourceFieldMatch(MarkdownNativeBlockSourceField candidate, MarkdownNativeBlockSourceField current) {
+        int candidatePriority = GetSourceFieldSelectionPriority(candidate);
+        int currentPriority = GetSourceFieldSelectionPriority(current);
+        if (candidatePriority != currentPriority) {
+            return candidatePriority > currentPriority;
+        }
+
+        return IsNarrowerSourceSpan(candidate.SourceSpan, current.SourceSpan);
+    }
+
+    private static int GetSourceFieldSelectionPriority(MarkdownNativeBlockSourceField field) {
+        return field.Name.EndsWith("Body", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
     }
 
     /// <summary>Creates a non-mutating source edit that replaces a native block source field.</summary>

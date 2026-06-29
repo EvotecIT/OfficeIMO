@@ -120,6 +120,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             var sbTight = new StringBuilder();
             sbTight.Append(checkbox).Append(Content.RenderHtml()).Append(attributeWhitespace);
             for (int i = 0; i < Children.Count; i++) {
+                AppendTightListItemChildSeparator(sbTight, Children[i]);
                 if (Children[i] is ITightListItemHtmlMarkdownBlock tightHtmlBlock) {
                     sbTight.Append(tightHtmlBlock.RenderTightListItemHtml());
                 } else {
@@ -147,6 +148,16 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(Children[i]));
         }
         return sb.ToString();
+    }
+
+    private static void AppendTightListItemChildSeparator(StringBuilder builder, IMarkdownBlock child) {
+        if (child is not TableBlock ||
+            builder.Length == 0 ||
+            char.IsWhiteSpace(builder[builder.Length - 1])) {
+            return;
+        }
+
+        builder.Append(' ');
     }
 
     private string RenderGenericAttributeConsumedWhitespace() {

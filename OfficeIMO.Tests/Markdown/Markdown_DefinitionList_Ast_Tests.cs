@@ -1080,6 +1080,81 @@ Term
     }
 
     [Fact]
+    public void DefinitionList_NestedListBody_Merges_TableShapedLazyTableIntoLastItem_WhenTablesAreOn() {
+        const string markdown = """
+Term
+:   First
+    - item
+| A |
+|---|
+| B |
+""";
+
+        var readerOptions = CreateMarkdigDefinitionListReaderOptions();
+        readerOptions.Tables = true;
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions);
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        Assert.Equal(2, definition.Blocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var nestedList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var item = Assert.Single(nestedList.Items);
+        var table = Assert.IsType<TableBlock>(Assert.Single(item.Children));
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var listSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.UnorderedList);
+        var listItemSyntax = listSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.ListItem);
+        var itemParagraphSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
+        var tableSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Table);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, readerOptions);
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListAndPipeTablesPipeline());
+
+        Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal("item", item.Content.RenderMarkdown());
+        Assert.Equal("A", Assert.Single(table.Headers));
+        Assert.Equal("B", Assert.Single(Assert.Single(table.Rows)));
+        Assert.DoesNotContain(definition.Blocks, block => block is TableBlock);
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.UnorderedList
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.ListMarker,
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.Table
+            },
+            listItemSyntax.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 6, 5), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 6, 5), listSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 6, 5), listItemSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 10), itemParagraphSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 6, 5), tableSyntax.SourceSpan);
+        Assert.Equal("Term\n:   First\n    - item\n      | A |\n      | --- |\n      | B |", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+        var native = MarkdownNativeDocument.Parse(markdown, readerOptions);
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        var nativeDefinitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var nativeDefinition = Assert.Single(Assert.Single(nativeDefinitionList.Groups).Definitions);
+        var nativeList = Assert.IsType<MarkdownNativeListBlock>(nativeDefinition.Children[1]);
+        var nativeItem = Assert.Single(nativeList.Items);
+        var nativeTable = Assert.IsType<MarkdownNativeTableBlock>(Assert.Single(nativeItem.Children, child => child.Kind == MarkdownNativeBlockKind.Table));
+        Assert.Equal("A", Assert.Single(nativeTable.HeaderCells).Text);
+        Assert.Equal("B", Assert.Single(Assert.Single(nativeTable.Rows)).Text);
+        Assert.Equal("First\n\n- item\n  | A |\n  | --- |\n  | B |", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 6, 5), definitionBody.SourceSpan);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void DefinitionList_NestedListBody_Stops_Before_UnindentedHeading() {
         const string markdown = """
 Term

@@ -49,6 +49,15 @@ public static partial class MarkdownReader {
             return true;
         }
 
+        if (currentBlock is IMarkdownListBlock currentListWithTable &&
+            nextBlock is TableBlock nextTable &&
+            nextSyntax.Kind == MarkdownSyntaxKind.Table &&
+            IsDefinitionLazyNestedBlockContinuationCandidate(currentSyntax, nextSyntax) &&
+            TryAbsorbDefinitionLazyBlockIntoLastListItem(currentListWithTable, nextTable)) {
+            combinedSyntax = CombineDefinitionLazyListNestedBlockSyntax(currentSyntax, nextSyntax, currentListWithTable);
+            return true;
+        }
+
         if (IsDefinitionLazyListContinuationCandidate(currentSyntax, nextSyntax) &&
             currentBlock is UnorderedListBlock currentUnordered &&
             nextBlock is UnorderedListBlock nextUnordered &&
@@ -105,6 +114,24 @@ public static partial class MarkdownReader {
             currentSpan.StartColumn.Value > nextSpan.StartColumn.Value;
     }
 
+    private static bool IsDefinitionLazyNestedBlockContinuationCandidate(MarkdownSyntaxNode currentSyntax, MarkdownSyntaxNode nextSyntax) {
+        if (currentSyntax == null ||
+            nextSyntax == null ||
+            (currentSyntax.Kind != MarkdownSyntaxKind.UnorderedList &&
+             currentSyntax.Kind != MarkdownSyntaxKind.OrderedList) ||
+            !currentSyntax.SourceSpan.HasValue ||
+            !nextSyntax.SourceSpan.HasValue) {
+            return false;
+        }
+
+        var currentSpan = currentSyntax.SourceSpan.Value;
+        var nextSpan = nextSyntax.SourceSpan.Value;
+        return currentSpan.EndLine + 1 == nextSpan.StartLine &&
+            currentSpan.StartColumn.HasValue &&
+            nextSpan.StartColumn.HasValue &&
+            currentSpan.StartColumn.Value > nextSpan.StartColumn.Value;
+    }
+
     private static bool TryAbsorbDefinitionLazyParagraphIntoLastListItem(
         IMarkdownListBlock listBlock,
         ParagraphBlock paragraph,
@@ -128,6 +155,18 @@ public static partial class MarkdownReader {
         item.DefinitionLazyParagraphTailContinuation = continuationNodes.Count == 1 &&
             continuationNodes[0] is TextRun textRun &&
             textRun.Text.IndexOf('\n') >= 0;
+        return true;
+    }
+
+    private static bool TryAbsorbDefinitionLazyBlockIntoLastListItem(
+        IMarkdownListBlock listBlock,
+        IMarkdownBlock block) {
+        if (listBlock == null || block == null || listBlock.ListItems.Count == 0) {
+            return false;
+        }
+
+        var item = listBlock.ListItems[listBlock.ListItems.Count - 1];
+        item.Children.Add(block);
         return true;
     }
 
@@ -238,6 +277,45 @@ public static partial class MarkdownReader {
             paragraphSyntax.AssociatedObject,
             paragraphSyntax.CustomKind,
             paragraphSyntax.Attributes);
+    }
+
+    private static MarkdownSyntaxNode CombineDefinitionLazyListNestedBlockSyntax(
+        MarkdownSyntaxNode currentSyntax,
+        MarkdownSyntaxNode nextSyntax,
+        IMarkdownBlock associatedBlock) {
+        var children = new List<MarkdownSyntaxNode>(currentSyntax.Children);
+        for (int i = children.Count - 1; i >= 0; i--) {
+            if (children[i].Kind != MarkdownSyntaxKind.ListItem) {
+                continue;
+            }
+
+            children[i] = CombineDefinitionLazyListItemNestedBlockSyntax(children[i], nextSyntax);
+            break;
+        }
+
+        return new MarkdownSyntaxNode(
+            currentSyntax.Kind,
+            CombineDefinitionLazyListSourceSpans(currentSyntax.SourceSpan, nextSyntax.SourceSpan),
+            currentSyntax.Literal,
+            children,
+            associatedBlock,
+            currentSyntax.CustomKind,
+            currentSyntax.Attributes);
+    }
+
+    private static MarkdownSyntaxNode CombineDefinitionLazyListItemNestedBlockSyntax(MarkdownSyntaxNode listItemSyntax, MarkdownSyntaxNode nextSyntax) {
+        var children = new List<MarkdownSyntaxNode>(listItemSyntax.Children.Count + 1);
+        children.AddRange(listItemSyntax.Children);
+        children.Add(nextSyntax);
+
+        return new MarkdownSyntaxNode(
+            listItemSyntax.Kind,
+            CombineDefinitionLazyListSourceSpans(listItemSyntax.SourceSpan, nextSyntax.SourceSpan),
+            listItemSyntax.Literal,
+            children,
+            listItemSyntax.AssociatedObject,
+            listItemSyntax.CustomKind,
+            listItemSyntax.Attributes);
     }
 
     private static MarkdownSyntaxNode CombineDefinitionLazyListSyntax(
