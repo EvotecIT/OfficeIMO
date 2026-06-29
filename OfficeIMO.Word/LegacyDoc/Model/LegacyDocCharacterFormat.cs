@@ -7,6 +7,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool doubleStrike,
             bool outline,
             bool shadow,
+            bool emboss,
             LegacyDocCapsKind? caps,
             LegacyDocVerticalPositionKind? verticalPosition,
             LegacyDocUnderlineKind? underline,
@@ -20,6 +21,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             DoubleStrike = doubleStrike;
             Outline = outline;
             Shadow = shadow;
+            Emboss = emboss;
             Caps = caps;
             VerticalPosition = verticalPosition;
             Underline = underline;
@@ -40,6 +42,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal bool Outline { get; }
 
         internal bool Shadow { get; }
+
+        internal bool Emboss { get; }
 
         internal LegacyDocCapsKind? Caps { get; }
 
@@ -62,6 +66,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || DoubleStrike
             || Outline
             || Shadow
+            || Emboss
             || Caps != null
             || VerticalPosition != null
             || Underline != null
@@ -70,7 +75,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || ColorHex != null
             || FontFamily != null;
 
-        internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, false, false, false, false, null, null, null, null, null, null, null);
+        internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, false, false, false, false, false, null, null, null, null, null, null, null);
 
         public bool Equals(LegacyDocCharacterFormat other) {
             return Bold == other.Bold
@@ -79,6 +84,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && DoubleStrike == other.DoubleStrike
                 && Outline == other.Outline
                 && Shadow == other.Shadow
+                && Emboss == other.Emboss
                 && Caps == other.Caps
                 && VerticalPosition == other.VerticalPosition
                 && Underline == other.Underline
@@ -100,6 +106,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + DoubleStrike.GetHashCode();
             hash = (hash * 31) + Outline.GetHashCode();
             hash = (hash * 31) + Shadow.GetHashCode();
+            hash = (hash * 31) + Emboss.GetHashCode();
             hash = (hash * 31) + Caps.GetHashCode();
             hash = (hash * 31) + VerticalPosition.GetHashCode();
             hash = (hash * 31) + Underline.GetHashCode();

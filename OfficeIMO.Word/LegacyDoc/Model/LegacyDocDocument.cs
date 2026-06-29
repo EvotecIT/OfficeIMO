@@ -446,6 +446,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentFormat.DoubleStrike,
                     currentFormat.Outline,
                     currentFormat.Shadow,
+                    currentFormat.Emboss,
                     currentFormat.Caps,
                     currentFormat.VerticalPosition,
                     currentFormat.Underline,
