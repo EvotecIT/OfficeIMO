@@ -155,6 +155,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddTableDefinitionSprm(
                     grpprl,
                     formatting.TableCellWidthsTwips,
+                    formatting.TableLeftIndentTwips,
                     formatting.TableCellHorizontalMerges,
                     formatting.TableCellVerticalMerges,
                     formatting.TableCellVerticalAlignments,
@@ -466,6 +467,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AddTableDefinitionSprm(
             List<byte> grpprl,
             IReadOnlyList<int> cellWidthsTwips,
+            int? tableLeftIndentTwips,
             IReadOnlyList<LegacyDocTableCellHorizontalMerge> cellHorizontalMerges,
             IReadOnlyList<LegacyDocTableCellVerticalMerge> cellVerticalMerges,
             IReadOnlyList<LegacyDocTableCellVerticalAlignment> cellVerticalAlignments,
@@ -478,8 +480,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             var remainder = new List<byte>(1 + ((cellWidthsTwips.Count + 1) * 2) + (cellWidthsTwips.Count * Tc80Length));
             remainder.Add(checked((byte)cellWidthsTwips.Count));
-            AddInt16(remainder, 0, "table left edge");
-            int edge = 0;
+            int edge = tableLeftIndentTwips ?? 0;
+            AddInt16(remainder, edge, "table left edge");
             foreach (int width in cellWidthsTwips) {
                 if (width <= 0) {
                     throw new NotSupportedException("Native DOC saving supports table cell widths only as positive twip values.");
@@ -649,7 +651,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
 
         internal LegacyDocWritableParagraphFormatting(
             byte? alignment,
@@ -668,6 +670,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? isTableTerminatingParagraph,
             IReadOnlyList<LegacyDocTabStop>? tabStops,
             IReadOnlyList<int>? tableCellWidthsTwips,
+            int? tableLeftIndentTwips,
             int? tableRowHeightTwips,
             bool tableRowHeightIsExact,
             bool? tableRowCantSplit,
@@ -706,6 +709,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             TableCellWidthsTwips = tableCellWidthsTwips == null || tableCellWidthsTwips.Count == 0
                 ? Array.Empty<int>()
                 : tableCellWidthsTwips.ToArray();
+            TableLeftIndentTwips = tableLeftIndentTwips.HasValue && tableLeftIndentTwips.Value > 0 && tableLeftIndentTwips.Value <= short.MaxValue
+                ? tableLeftIndentTwips
+                : null;
             TableCellHorizontalMerges = tableCellHorizontalMerges == null || tableCellHorizontalMerges.Count == 0
                 ? Array.Empty<LegacyDocTableCellHorizontalMerge>()
                 : tableCellHorizontalMerges.ToArray();
@@ -780,6 +786,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal IReadOnlyList<int> TableCellWidthsTwips { get; }
 
+        internal int? TableLeftIndentTwips { get; }
+
         internal IReadOnlyList<LegacyDocTableCellHorizontalMerge> TableCellHorizontalMerges { get; }
 
         internal IReadOnlyList<LegacyDocTableCellVerticalMerge> TableCellVerticalMerges { get; }
@@ -832,6 +840,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || IsTableTerminatingParagraph != null
             || TabStops.Count > 0
             || TableCellWidthsTwips.Count > 0
+            || TableLeftIndentTwips != null
             || TableCellHorizontalMerges.Count > 0
             || TableCellVerticalMerges.Count > 0
             || TableCellVerticalAlignments.Count > 0
@@ -853,6 +862,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         internal LegacyDocWritableParagraphFormatting WithTableMarkers(
             bool isTableTerminatingParagraph,
             IReadOnlyList<int>? tableCellWidthsTwips = null,
+            int? tableLeftIndentTwips = null,
             int? tableRowHeightTwips = null,
             bool tableRowHeightIsExact = false,
             bool? tableRowCantSplit = null,
@@ -887,6 +897,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 isTableTerminatingParagraph ? true : null,
                 TabStops,
                 tableCellWidthsTwips,
+                tableLeftIndentTwips,
                 tableRowHeightTwips,
                 tableRowHeightIsExact,
                 tableRowCantSplit,
@@ -924,6 +935,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph
                 && TabStopsEqual(TabStops, other.TabStops)
                 && TableCellWidthsEqual(TableCellWidthsTwips, other.TableCellWidthsTwips)
+                && TableLeftIndentTwips == other.TableLeftIndentTwips
                 && TableCellHorizontalMergesEqual(TableCellHorizontalMerges, other.TableCellHorizontalMerges)
                 && TableCellVerticalMergesEqual(TableCellVerticalMerges, other.TableCellVerticalMerges)
                 && TableCellVerticalAlignmentsEqual(TableCellVerticalAlignments, other.TableCellVerticalAlignments)
@@ -964,6 +976,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
             hash = (hash * 31) + IsInTable.GetHashCode();
             hash = (hash * 31) + IsTableTerminatingParagraph.GetHashCode();
+            hash = (hash * 31) + TableLeftIndentTwips.GetHashCode();
             hash = (hash * 31) + TableRowHeightTwips.GetHashCode();
             hash = (hash * 31) + TableRowHeightIsExact.GetHashCode();
             hash = (hash * 31) + TableRowCantSplit.GetHashCode();

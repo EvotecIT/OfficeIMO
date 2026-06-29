@@ -323,6 +323,9 @@ just to reserve names.
   - [x] Project simple table alignment from DOC `sprmTJc` row definitions into
     normal OfficeIMO table alignment, and preserve it through native DOC
     save/reload.
+  - [x] Project simple table indentation from the DOC `sprmTDefTable` first
+    row edge into normal OfficeIMO table indentation, and preserve it through
+    native DOC save/reload.
   - [x] Project simple table preferred width and autofit layout from DOC
     `sprmTTableWidth` and `sprmTFAutofit` row definitions into normal
     OfficeIMO table width/layout properties, and preserve them through native
@@ -481,6 +484,8 @@ just to reserve names.
     legacy reader.
   - [x] Write simple table alignment with `sprmTJc`, then reload it through
     the legacy reader.
+  - [x] Write simple table indentation by carrying `tblInd` into the
+    `sprmTDefTable` first row edge, then reload it through the legacy reader.
   - [x] Write simple table preferred width and autofit layout with
     `sprmTTableWidth` and `sprmTFAutofit`, then reload them through the legacy
     reader.

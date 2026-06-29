@@ -17,6 +17,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? isTableTerminatingParagraph = null,
             IReadOnlyList<LegacyDocTabStop>? tabStops = null,
             IReadOnlyList<int>? tableCellWidthsTwips = null,
+            int? tableLeftIndentTwips = null,
             int? tableRowHeightTwips = null,
             bool tableRowHeightIsExact = false,
             bool? tableRowCantSplit = null,
@@ -56,6 +57,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             TableCellWidthsTwips = tableCellWidthsTwips == null || tableCellWidthsTwips.Count == 0
                 ? Array.Empty<int>()
                 : tableCellWidthsTwips.ToArray();
+            TableLeftIndentTwips = tableLeftIndentTwips.HasValue && tableLeftIndentTwips.Value > 0 && tableLeftIndentTwips.Value <= short.MaxValue
+                ? tableLeftIndentTwips
+                : null;
             TableRowHeightTwips = tableRowHeightTwips;
             TableRowHeightIsExact = tableRowHeightIsExact;
             TableRowCantSplit = tableRowCantSplit;
@@ -131,6 +135,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<int> TableCellWidthsTwips { get; }
 
+        internal int? TableLeftIndentTwips { get; }
+
         internal int? TableRowHeightTwips { get; }
 
         internal bool TableRowHeightIsExact { get; }
@@ -185,6 +191,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || IsTableTerminatingParagraph != null
             || TabStops.Count > 0
             || TableCellWidthsTwips.Count > 0
+            || TableLeftIndentTwips != null
             || TableRowHeightTwips != null
             || TableRowCantSplit != null
             || TableRowIsHeader != null
@@ -223,6 +230,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph
                 && TabStopsEqual(TabStops, other.TabStops)
                 && TableCellWidthsEqual(TableCellWidthsTwips, other.TableCellWidthsTwips)
+                && TableLeftIndentTwips == other.TableLeftIndentTwips
                 && TableRowHeightTwips == other.TableRowHeightTwips
                 && TableRowHeightIsExact == other.TableRowHeightIsExact
                 && TableRowCantSplit == other.TableRowCantSplit
@@ -264,6 +272,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
             hash = (hash * 31) + IsInTable.GetHashCode();
             hash = (hash * 31) + IsTableTerminatingParagraph.GetHashCode();
+            hash = (hash * 31) + TableLeftIndentTwips.GetHashCode();
             hash = (hash * 31) + TableRowHeightTwips.GetHashCode();
             hash = (hash * 31) + TableRowHeightIsExact.GetHashCode();
             hash = (hash * 31) + TableRowCantSplit.GetHashCode();

@@ -556,6 +556,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     tableRows.Add(new LegacyDocTableRow(
                         currentTableRow.ToArray(),
                         paragraphFormat.TableCellWidthsTwips,
+                        paragraphFormat.TableLeftIndentTwips,
                         paragraphFormat.TableRowHeightTwips,
                         paragraphFormat.TableRowHeightIsExact,
                         paragraphFormat.TableRowCantSplit,
@@ -590,6 +591,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     tableRows.Add(new LegacyDocTableRow(
                         currentTableRow.ToArray(),
                         paragraphFormat.TableCellWidthsTwips,
+                        paragraphFormat.TableLeftIndentTwips,
                         paragraphFormat.TableRowHeightTwips,
                         paragraphFormat.TableRowHeightIsExact,
                         paragraphFormat.TableRowCantSplit,

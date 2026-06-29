@@ -15,6 +15,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             TableProperties? tableProperties = table.GetFirstChild<TableProperties>();
             LegacyDocTableAlignment? tableAlignment = ReadSupportedTableAlignment(tableProperties);
+            int? tableLeftIndentTwips = ReadSupportedTableIndentation(tableProperties);
             LegacyDocTablePreferredWidth? tablePreferredWidth = ReadSupportedTablePreferredWidth(tableProperties);
             bool? tableAutofit = ReadSupportedTableAutofit(tableProperties);
             LegacyDocTableCellMargins? defaultCellMargins = ReadSupportedTableDefaultCellMargins(tableProperties);
@@ -59,6 +60,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         tableRowCantSplit: rowFormatting.RowCantSplit,
                         tableRowIsHeader: rowFormatting.RowIsHeader,
                         tableAlignment: tableAlignment,
+                        tableLeftIndentTwips: tableLeftIndentTwips,
                         tableCellHorizontalMerges: cellHorizontalMerges,
                         tableCellVerticalMerges: cellVerticalMerges,
                         tableCellVerticalAlignments: cellVerticalAlignments,
@@ -106,6 +108,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case TableJustification tableJustification:
                         ReadSupportedTableAlignment(tableJustification);
+                        break;
+                    case TableIndentation tableIndentation:
+                        ReadSupportedTableIndentation(tableIndentation);
                         break;
                     case TableLayout tableLayout:
                         ReadSupportedTableAutofit(tableLayout);
@@ -161,6 +166,28 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             throw new NotSupportedException($"Native DOC saving does not support table alignment value '{value}'.");
+        }
+
+        private static int? ReadSupportedTableIndentation(TableProperties? tableProperties) {
+            TableIndentation? tableIndentation = tableProperties?.GetFirstChild<TableIndentation>();
+            return tableIndentation == null ? null : ReadSupportedTableIndentation(tableIndentation);
+        }
+
+        private static int? ReadSupportedTableIndentation(TableIndentation tableIndentation) {
+            if (tableIndentation.Type?.Value != TableWidthUnitValues.Dxa) {
+                throw new NotSupportedException("Native DOC saving supports table indentation only as DXA twip values.");
+            }
+
+            int? width = tableIndentation.Width?.Value;
+            if (width == null) {
+                return null;
+            }
+
+            if (width.Value < 0 || width.Value > short.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports table indentation only as nonnegative Word 97-2003 signed twip values.");
+            }
+
+            return width.Value == 0 ? null : width.Value;
         }
 
         private static LegacyDocTablePreferredWidth? ReadSupportedTablePreferredWidth(TableProperties? tableProperties) {

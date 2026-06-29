@@ -185,6 +185,13 @@ namespace OfficeIMO.Word {
                 ApplyLegacyDocTableAlignment(table, tableAlignment.Value);
             }
 
+            int? tableLeftIndentTwips = tableBlock.Rows
+                .Select(row => row.TableLeftIndentTwips)
+                .FirstOrDefault(indent => indent.HasValue);
+            if (tableLeftIndentTwips != null) {
+                ApplyLegacyDocTableIndentation(table, tableLeftIndentTwips.Value);
+            }
+
             LegacyDocTablePreferredWidth? tablePreferredWidth = tableBlock.Rows
                 .Select(row => row.TablePreferredWidth)
                 .FirstOrDefault(width => width.HasValue);
@@ -280,6 +287,14 @@ namespace OfficeIMO.Word {
                     table.Alignment = TableRowAlignmentValues.Right;
                     break;
             }
+        }
+
+        private static void ApplyLegacyDocTableIndentation(WordTable table, int leftIndentTwips) {
+            table.CheckTableProperties();
+            table._tableProperties!.TableIndentation = new TableIndentation {
+                Width = leftIndentTwips,
+                Type = TableWidthUnitValues.Dxa
+            };
         }
 
         private static void ApplyLegacyDocTableCellMargins(WordTableCell cell, LegacyDocTableCellMargins margins) {

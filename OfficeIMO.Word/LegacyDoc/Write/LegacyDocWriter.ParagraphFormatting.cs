@@ -78,6 +78,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 tabStops,
                 null,
                 null,
+                null,
                 false,
                 null,
                 null,

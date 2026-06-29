@@ -254,6 +254,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal LegacyDocTableRow(
             IReadOnlyList<LegacyDocTableCell> cells,
             IReadOnlyList<int>? cellWidthsTwips = null,
+            int? tableLeftIndentTwips = null,
             int? rowHeightTwips = null,
             bool rowHeightIsExact = false,
             bool? rowCantSplit = null,
@@ -274,6 +275,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             CellWidthsTwips = cellWidthsTwips == null || cellWidthsTwips.Count == 0
                 ? Array.Empty<int>()
                 : cellWidthsTwips.ToArray();
+            TableLeftIndentTwips = tableLeftIndentTwips.HasValue && tableLeftIndentTwips.Value > 0 && tableLeftIndentTwips.Value <= short.MaxValue
+                ? tableLeftIndentTwips
+                : null;
             RowHeightTwips = rowHeightTwips;
             RowHeightIsExact = rowHeightIsExact;
             RowCantSplit = rowCantSplit;
@@ -313,6 +317,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal IReadOnlyList<LegacyDocTableCell> Cells { get; }
 
         internal IReadOnlyList<int> CellWidthsTwips { get; }
+
+        internal int? TableLeftIndentTwips { get; }
 
         internal int? RowHeightTwips { get; }
 

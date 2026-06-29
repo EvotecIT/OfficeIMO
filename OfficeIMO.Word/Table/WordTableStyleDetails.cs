@@ -260,6 +260,51 @@ public partial class WordTableStyleDetails {
     }
 
     /// <summary>
+    /// Get or set the table indentation in twips.
+    /// </summary>
+    public short? TableIndentationWidth {
+        get {
+            int? widthValue = _tableProperties.TableIndentation?.Width?.Value;
+            return widthValue.HasValue && widthValue.Value >= short.MinValue && widthValue.Value <= short.MaxValue
+                ? checked((short)widthValue.Value)
+                : null;
+        }
+        set {
+            _table.CheckTableProperties();
+
+            if (value.HasValue) {
+                if (_tableProperties.TableIndentation == null) {
+                    _tableProperties.TableIndentation = new TableIndentation();
+                }
+
+                _tableProperties.TableIndentation.Width = value.Value;
+                _tableProperties.TableIndentation.Type = TableWidthUnitValues.Dxa;
+            } else if (_tableProperties.TableIndentation != null) {
+                _tableProperties.TableIndentation.Remove();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get or set the table indentation in centimeters.
+    /// </summary>
+    public double? TableIndentationCentimeters {
+        get {
+            if (TableIndentationWidth != null) {
+                return Helpers.ConvertTwipsToCentimeters(TableIndentationWidth.Value);
+            }
+            return null;
+        }
+        set {
+            if (value != null) {
+                TableIndentationWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
+            } else {
+                TableIndentationWidth = null;
+            }
+        }
+    }
+
+    /// <summary>
     /// Get or set the table borders
     /// </summary>
     public TableBorders? TableBorders {
