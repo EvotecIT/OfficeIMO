@@ -61,6 +61,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 int characterCount = cpEnd - cpStart;
+                int bodyCharacterCount = Math.Min(cpEnd, fib.CcpText) - cpStart;
+                if (bodyCharacterCount <= 0) {
+                    break;
+                }
+
                 uint fcCompressed = unchecked((uint)LegacyDocFib.ReadInt32(tableStream, pcdArrayOffset + (i * 8) + 2));
                 bool compressed = (fcCompressed & CompressedTextFlag) != 0;
                 uint fileCharacterPosition = fcCompressed & FcMask;
@@ -69,20 +74,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     : checked((int)fileCharacterPosition);
 
                 if (compressed) {
-                    if (byteOffset + characterCount > wordDocumentStream.Length) {
+                    if (byteOffset + bodyCharacterCount > wordDocumentStream.Length) {
                         error = "A compressed text piece points outside the WordDocument stream.";
                         return false;
                     }
 
-                    AppendWindows1252(builder, characters, wordDocumentStream, byteOffset, characterCount);
+                    AppendWindows1252(builder, characters, wordDocumentStream, byteOffset, bodyCharacterCount);
                 } else {
-                    int byteCount = checked(characterCount * 2);
+                    int byteCount = checked(bodyCharacterCount * 2);
                     if (byteOffset + byteCount > wordDocumentStream.Length) {
                         error = "A Unicode text piece points outside the WordDocument stream.";
                         return false;
                     }
 
-                    AppendUnicode(builder, characters, wordDocumentStream, byteOffset, characterCount);
+                    AppendUnicode(builder, characters, wordDocumentStream, byteOffset, bodyCharacterCount);
                 }
             }
 

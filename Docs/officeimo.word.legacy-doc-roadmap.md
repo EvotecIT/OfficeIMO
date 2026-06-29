@@ -295,6 +295,8 @@ just to reserve names.
   and loaded `WordDocument` state.
   - [x] Report unsupported header/footer, footnote, endnote, comment, and text
     box stories from FIB story counts before those stories are projected.
+  - [x] Keep body text projection clipped to the main `Fib:CcpText` story so
+    diagnosed header/footer story text is not flattened into body paragraphs.
   - [x] Report container-level ActiveX controls and embedded package payloads
     before those features have a projection story.
   - [x] Report non-empty compound `Data` streams as binary payloads before
