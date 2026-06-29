@@ -447,6 +447,45 @@ Term
     }
 
     [Fact]
+    public void DefinitionList_UnindentedTableShapedLazyContinuation_Stays_Literal_When_Tables_Are_Off() {
+        const string markdown = """
+Term
+:   First paragraph
+| A |
+|---|
+| B |
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks));
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var paragraphSyntax = Assert.Single(definitionValue.Children);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First paragraph | A | |---| | B |", NormalizePlainText(InlinePlainText.Extract(paragraph.Inlines)));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 5), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 5), paragraphSyntax.SourceSpan);
+        Assert.Contains(@"\| A \|", written, StringComparison.Ordinal);
+        Assert.Contains(@"\|---\|", written, StringComparison.Ordinal);
+        Assert.Contains(@"\| B \|", written, StringComparison.Ordinal);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        Assert.Equal(@"First paragraph \| A \| \|---\| \| B \|", definitionBody.Value);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 5), definitionBody.SourceSpan);
+        Assert.Contains(":   updated", native.CreateReplaceEdit(definitionBody, "updated").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void DefinitionList_TableShapedContinuation_Becomes_Nested_Table_When_Tables_Are_On() {
         const string markdown = """
 Term

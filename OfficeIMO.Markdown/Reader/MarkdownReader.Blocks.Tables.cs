@@ -29,7 +29,8 @@ public static partial class MarkdownReader {
     }
 
     private static bool StartsTable(string[] lines, int index, MarkdownReaderOptions options) =>
-        TryGetTableExtent(lines, index, out _, out _, allowHeaderlessTables: options?.AllowHeaderlessTables ?? true, options: options);
+        options?.Tables == true &&
+        TryGetTableExtent(lines, index, out _, out _, allowHeaderlessTables: options.AllowHeaderlessTables, options: options);
 
     private static bool TryGetTableExtent(
         string[] lines,

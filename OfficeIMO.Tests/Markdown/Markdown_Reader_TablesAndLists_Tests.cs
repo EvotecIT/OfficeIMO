@@ -5,6 +5,22 @@ using Xunit;
 namespace OfficeIMO.Tests.MarkdownSuite {
     public class Markdown_Reader_TablesAndLists_Tests {
         [Fact]
+        public void Table_Shaped_Paragraph_Stays_Literal_When_Tables_Are_Disabled() {
+            const string md = """
+First paragraph
+| A |
+|---|
+| B |
+""";
+            var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+
+            var doc = MarkdownReader.Parse(md, options);
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+
+            Assert.Equal("First paragraph \\| A \\| \\|---\\| \\| B \\|", paragraph.Inlines.RenderMarkdown());
+        }
+
+        [Fact]
         public void Table_Parsing_Does_Not_Split_Escaped_Pipes() {
             string md = """
 | Col1 | Col2 |
