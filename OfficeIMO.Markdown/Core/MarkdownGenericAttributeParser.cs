@@ -8,10 +8,12 @@ internal static class MarkdownGenericAttributeParser {
         out string textWithoutAttributeBlock,
         out MarkdownAttributeSet attributes,
         out int attributeStartIndex,
+        out int attributeEndIndex,
         bool requireLeadingWhitespace = false) {
         textWithoutAttributeBlock = value ?? string.Empty;
         attributes = MarkdownAttributeSet.Empty;
         attributeStartIndex = -1;
+        attributeEndIndex = -1;
 
         if (string.IsNullOrWhiteSpace(value)) {
             return false;
@@ -42,6 +44,7 @@ internal static class MarkdownGenericAttributeParser {
 
         textWithoutAttributeBlock = value.Substring(0, start).TrimEnd();
         attributeStartIndex = start;
+        attributeEndIndex = end;
         return true;
     }
 

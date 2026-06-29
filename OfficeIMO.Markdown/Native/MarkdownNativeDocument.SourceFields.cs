@@ -25,13 +25,16 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Finds the first source-backed block field whose span contains the supplied 1-based line and column.</summary>
     public MarkdownNativeBlockSourceField? FindBlockSourceFieldAtPosition(int lineNumber, int columnNumber) {
+        MarkdownNativeBlockSourceField? bestMatch = null;
         foreach (var field in EnumerateBlockSourceFields()) {
             if (field.SourceSpan.ContainsPosition(lineNumber, columnNumber)) {
-                return field;
+                if (bestMatch == null || IsNarrowerSourceSpan(field.SourceSpan, bestMatch.SourceSpan)) {
+                    bestMatch = field;
+                }
             }
         }
 
-        return null;
+        return bestMatch;
     }
 
     /// <summary>Creates a non-mutating source edit that replaces a native block source field.</summary>
@@ -164,6 +167,54 @@ public sealed partial class MarkdownNativeDocument {
 
                 break;
         }
+
+        foreach (var field in EnumerateGenericAttributeFields(block)) {
+            yield return field;
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateGenericAttributeFields(MarkdownNativeBlock block) {
+        if (block?.SourceBlock is not MarkdownObject markdownObject || markdownObject.Attributes.IsEmpty) {
+            yield break;
+        }
+
+        var sourceSpan = MarkdownGenericAttributeSourceSpans.GetSourceSpan(markdownObject);
+        if (!sourceSpan.HasValue) {
+            yield break;
+        }
+
+        yield return new MarkdownNativeBlockSourceField(
+            "attributes",
+            MarkdownGenericAttributeSourceSpans.GetSourceText(markdownObject),
+            sourceSpan.Value,
+            block);
+    }
+
+    private static bool IsNarrowerSourceSpan(MarkdownSourceSpan candidate, MarkdownSourceSpan current) {
+        if (current.Contains(candidate) && !candidate.Contains(current)) {
+            return true;
+        }
+
+        if (candidate.Contains(current) && !current.Contains(candidate)) {
+            return false;
+        }
+
+        var candidateLength = GetComparableSourceSpanLength(candidate);
+        var currentLength = GetComparableSourceSpanLength(current);
+        return candidateLength < currentLength;
+    }
+
+    private static int GetComparableSourceSpanLength(MarkdownSourceSpan span) {
+        if (span.StartOffset.HasValue && span.EndOffset.HasValue) {
+            return Math.Max(0, span.EndOffset.Value - span.StartOffset.Value);
+        }
+
+        if (span.StartColumn.HasValue && span.EndColumn.HasValue) {
+            var lineDistance = Math.Max(0, span.EndLine - span.StartLine);
+            return lineDistance * 100000 + Math.Max(0, span.EndColumn.Value - span.StartColumn.Value);
+        }
+
+        return Math.Max(0, span.EndLine - span.StartLine) * 100000;
     }
 
     private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateHtmlFields(MarkdownNativeHtmlBlock html) {

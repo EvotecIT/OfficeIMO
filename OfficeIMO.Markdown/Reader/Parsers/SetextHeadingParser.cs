@@ -22,18 +22,30 @@ public static partial class MarkdownReader {
             var contentStart = line.IndexOf(headingText, StringComparison.Ordinal);
             var effectiveHeadingEnd = contentStart + headingText.Length;
             MarkdownAttributeSet parsedAttributes = MarkdownAttributeSet.Empty;
+            MarkdownSourceSpan? attributeSpan = null;
+            string? attributeSourceText = null;
             if (options.GenericAttributes
-                && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(headingText, out var textWithoutAttributeBlock, out parsedAttributes, out var attributeStart, requireLeadingWhitespace: true)) {
+                && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(headingText, out var textWithoutAttributeBlock, out parsedAttributes, out var attributeStart, out var attributeEnd, requireLeadingWhitespace: true)) {
                 headingText = textWithoutAttributeBlock;
                 effectiveHeadingEnd = contentStart + attributeStart;
                 while (effectiveHeadingEnd > contentStart && char.IsWhiteSpace(line[effectiveHeadingEnd - 1])) {
                     effectiveHeadingEnd--;
                 }
+
+                var absoluteLineNumber = state.SourceLineOffset + i + 1;
+                attributeSourceText = line.Substring(contentStart + attributeStart, attributeEnd - attributeStart + 1);
+                attributeSpan = CreateSpan(
+                    state,
+                    absoluteLineNumber,
+                    contentStart + attributeStart + 1,
+                    absoluteLineNumber,
+                    contentStart + attributeEnd + 1);
             }
 
             var sourceMap = BuildInlineSourceMapForSingleLine(headingText, state.SourceLineOffset + i + 1, contentStart + 1, state);
             var heading = new HeadingBlock(level, ParseInlines(headingText, options, state, sourceMap));
             heading.SetAttributes(parsedAttributes);
+            MarkdownGenericAttributeSourceSpans.Set(heading, attributeSourceText, attributeSpan);
             var markerStartColumn = next.IndexOf(t, StringComparison.Ordinal) + 1;
             var markerEndColumn = markerStartColumn + t.Length - 1;
             var absoluteMarkerLine = state.SourceLineOffset + i + 2;

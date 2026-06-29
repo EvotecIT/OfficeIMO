@@ -5,6 +5,42 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class Markdown_Native_Inline_Metadata_Tests {
     [Fact]
+    public void GenericAttributes_Inline_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
+        const string markdown = "See [docs](old.md){#docs .primary} now\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var link = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Link);
+
+        Assert.Equal("docs", link.Text);
+        Assert.Equal("docs", link.SyntaxNode.Attributes.ElementId);
+        Assert.Equal(new[] { "primary" }, link.SyntaxNode.Attributes.Classes.ToArray());
+
+        var target = Assert.Single(link.Metadata, metadata => metadata.Name == "target");
+        var attributes = Assert.Single(link.Metadata, metadata => metadata.Name == "attributes");
+
+        Assert.Equal("old.md", target.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 17), target.SourceSpan);
+        Assert.Equal("{#docs .primary}", attributes.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 19, 1, 34), attributes.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributes, "{#docs .secondary}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("See [docs](old.md){#docs .secondary} now\n", roundtrip.Markdown);
+
+        var snapshotLink = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        Assert.Equal("{#docs .primary}", snapshotLink.Metadata["attributes"]);
+        Assert.Equal(19, snapshotLink.MetadataSourceSpans["attributes"]!.StartColumn);
+        Assert.Equal(34, snapshotLink.MetadataSourceSpans["attributes"]!.EndColumn);
+    }
+
+    [Fact]
     public void Subscript_Marker_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "Water H~2~O and ~nested *em*~\n";
 

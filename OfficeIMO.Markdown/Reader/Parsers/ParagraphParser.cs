@@ -57,14 +57,26 @@ public static partial class MarkdownReader {
                 && TryParseSetextHeadingParagraphLines(paragraphLines, options, out int level, out string headingText)) {
                 var contentLines = paragraphLines.GetRange(0, paragraphLines.Count - 1);
                 MarkdownAttributeSet headingAttributes = MarkdownAttributeSet.Empty;
+                MarkdownSourceSpan? headingAttributeSpan = null;
+                string? headingAttributeSourceText = null;
                 if (options.GenericAttributes && contentLines.Count > 0) {
                     var lastContentLineIndex = contentLines.Count - 1;
                     if (MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
                         contentLines[lastContentLineIndex],
                         out var lineWithoutAttributeBlock,
                         out headingAttributes,
-                        out _,
+                        out var attributeStart,
+                        out var attributeEnd,
                         requireLeadingWhitespace: true)) {
+                        var attributeLine = contentLines[lastContentLineIndex];
+                        var absoluteAttributeLine = state.SourceLineOffset + i + lastContentLineIndex + 1;
+                        headingAttributeSourceText = attributeLine.Substring(attributeStart, attributeEnd - attributeStart + 1);
+                        headingAttributeSpan = CreateSpan(
+                            state,
+                            absoluteAttributeLine,
+                            attributeStart + 1,
+                            absoluteAttributeLine,
+                            attributeEnd + 1);
                         contentLines[lastContentLineIndex] = lineWithoutAttributeBlock;
                         while (contentLines.Count > 0 && string.IsNullOrWhiteSpace(contentLines[contentLines.Count - 1])) {
                             contentLines.RemoveAt(contentLines.Count - 1);
@@ -75,6 +87,7 @@ public static partial class MarkdownReader {
                 var (headingInlineText, headingSourceMap) = JoinParagraphLinesWithSourceMap(contentLines, state.SourceLineOffset + i, options, state);
                 var heading = new HeadingBlock(level, ParseInlines(headingInlineText, options, state, headingSourceMap));
                 heading.SetAttributes(headingAttributes);
+                MarkdownGenericAttributeSourceSpans.Set(heading, headingAttributeSourceText, headingAttributeSpan);
                 var underline = paragraphLines[paragraphLines.Count - 1] ?? string.Empty;
                 var trimmedUnderline = underline.Trim();
                 var markerStartColumn = underline.IndexOf(trimmedUnderline, StringComparison.Ordinal) + 1;
@@ -101,14 +114,26 @@ public static partial class MarkdownReader {
             }
 
             MarkdownAttributeSet paragraphAttributes = MarkdownAttributeSet.Empty;
+            MarkdownSourceSpan? paragraphAttributeSpan = null;
+            string? paragraphAttributeSourceText = null;
             if (options.GenericAttributes && paragraphLines.Count > 0) {
                 var lastLineIndex = paragraphLines.Count - 1;
                 if (MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
                     paragraphLines[lastLineIndex],
                     out var lineWithoutAttributeBlock,
                     out paragraphAttributes,
-                    out _,
+                    out var attributeStart,
+                    out var attributeEnd,
                     requireLeadingWhitespace: true)) {
+                    var attributeLine = paragraphLines[lastLineIndex];
+                    var absoluteAttributeLine = state.SourceLineOffset + i + lastLineIndex + 1;
+                    paragraphAttributeSourceText = attributeLine.Substring(attributeStart, attributeEnd - attributeStart + 1);
+                    paragraphAttributeSpan = CreateSpan(
+                        state,
+                        absoluteAttributeLine,
+                        attributeStart + 1,
+                        absoluteAttributeLine,
+                        attributeEnd + 1);
                     paragraphLines[lastLineIndex] = lineWithoutAttributeBlock;
                     while (paragraphLines.Count > 0 && string.IsNullOrWhiteSpace(paragraphLines[paragraphLines.Count - 1])) {
                         paragraphLines.RemoveAt(paragraphLines.Count - 1);
@@ -119,6 +144,7 @@ public static partial class MarkdownReader {
             var (text, sourceMap) = JoinParagraphLinesWithSourceMap(paragraphLines, state.SourceLineOffset + i, options, state);
             var paragraph = new ParagraphBlock(ParseInlines(text, options, state, sourceMap));
             paragraph.SetAttributes(paragraphAttributes);
+            MarkdownGenericAttributeSourceSpans.Set(paragraph, paragraphAttributeSourceText, paragraphAttributeSpan);
             doc.Add(paragraph);
             i = j; return true;
         }

@@ -239,6 +239,7 @@ internal static class MarkdownNativeInlineProjection {
         AddDecodedEntityMetadata(node, metadata);
         AddHardBreakMarkerMetadata(node, metadata);
         AddAbbreviationMetadata(node, metadata);
+        AddGenericAttributeMetadata(node, metadata);
 
         if (metadata.Count == 0) {
             return Array.Empty<MarkdownNativeInlineMetadata>();
@@ -368,6 +369,23 @@ internal static class MarkdownNativeInlineProjection {
             abbreviation.Title,
             node,
             MarkdownInlineMetadataSourceSpans.GetAbbreviationTitleSpan(abbreviation)));
+    }
+
+    private static void AddGenericAttributeMetadata(MarkdownSyntaxNode node, List<MarkdownNativeInlineMetadata> metadata) {
+        if (node.AssociatedObject is not MarkdownObject markdownObject || markdownObject.Attributes.IsEmpty) {
+            return;
+        }
+
+        var sourceSpan = MarkdownGenericAttributeSourceSpans.GetSourceSpan(markdownObject);
+        if (!sourceSpan.HasValue) {
+            return;
+        }
+
+        metadata.Add(new MarkdownNativeInlineMetadata(
+            "attributes",
+            MarkdownGenericAttributeSourceSpans.GetSourceText(markdownObject) ?? string.Empty,
+            node,
+            sourceSpan));
     }
 
     private static void RemoveMetadata(List<MarkdownNativeInlineMetadata> metadata, string name) {

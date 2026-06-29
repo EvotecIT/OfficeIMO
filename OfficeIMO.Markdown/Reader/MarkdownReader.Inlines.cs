@@ -941,9 +941,12 @@ public static partial class MarkdownReader {
                     i + 1,
                     out var remainingText,
                     out var attributes,
+                    out var attributeSourceText,
+                    out var attributeSpan,
                     out var consumedTextRuns)) {
                 if (current is MarkdownObject markdownObject) {
                     markdownObject.SetAttributes(attributes);
+                    MarkdownGenericAttributeSourceSpans.Set(markdownObject, attributeSourceText, attributeSpan);
                 }
 
                 rewritten.Add(current);
@@ -966,9 +969,13 @@ public static partial class MarkdownReader {
         int startIndex,
         out string remainingText,
         out MarkdownAttributeSet attributes,
+        out string attributeSourceText,
+        out MarkdownSourceSpan? attributeSpan,
         out int consumedTextRuns) {
         remainingText = string.Empty;
         attributes = MarkdownAttributeSet.Empty;
+        attributeSourceText = string.Empty;
+        attributeSpan = null;
         consumedTextRuns = 0;
 
         if (nodes == null || startIndex < 0 || startIndex >= nodes.Count || nodes[startIndex] is not TextRun first || string.IsNullOrEmpty(first.Text) || first.Text[0] != '{') {
@@ -990,14 +997,83 @@ public static partial class MarkdownReader {
             combined.ToString(),
             out remainingText,
             out attributes,
-            out _)) {
+            out var consumedLength)) {
+            attributeSourceText = combined.ToString().Substring(0, consumedLength);
+            attributeSpan = ResolveGenericAttributeSpan(nodes, startIndex, consumedTextRuns, consumedLength);
             return true;
         }
 
         remainingText = string.Empty;
         attributes = MarkdownAttributeSet.Empty;
+        attributeSourceText = string.Empty;
+        attributeSpan = null;
         consumedTextRuns = 0;
         return false;
+    }
+
+    private static MarkdownSourceSpan? ResolveGenericAttributeSpan(
+        IReadOnlyList<IMarkdownInline> nodes,
+        int startIndex,
+        int consumedTextRuns,
+        int consumedLength) {
+        if (nodes == null || consumedTextRuns <= 0 || consumedLength <= 0) {
+            return null;
+        }
+
+        MarkdownSourceSpan? firstSpan = null;
+        MarkdownSourceSpan? lastSpan = null;
+        var remaining = consumedLength;
+        for (int i = 0; i < consumedTextRuns && startIndex + i < nodes.Count && remaining > 0; i++) {
+            if (nodes[startIndex + i] is not TextRun textRun || string.IsNullOrEmpty(textRun.Text)) {
+                break;
+            }
+
+            var textRunSpan = MarkdownInlineSourceSpans.Get(textRun);
+            if (!textRunSpan.HasValue) {
+                return null;
+            }
+
+            firstSpan ??= textRunSpan;
+            var consumedFromRun = Math.Min(remaining, textRun.Text.Length);
+            lastSpan = TrimSourceSpanToConsumedPrefix(textRunSpan.Value, consumedFromRun);
+            remaining -= consumedFromRun;
+        }
+
+        if (!firstSpan.HasValue || !lastSpan.HasValue || remaining > 0) {
+            return null;
+        }
+
+        return new MarkdownSourceSpan(
+            firstSpan.Value.StartLine,
+            firstSpan.Value.StartColumn ?? 1,
+            lastSpan.Value.EndLine,
+            lastSpan.Value.EndColumn ?? (lastSpan.Value.StartColumn ?? 1),
+            firstSpan.Value.StartOffset,
+            lastSpan.Value.EndOffset);
+    }
+
+    private static MarkdownSourceSpan TrimSourceSpanToConsumedPrefix(MarkdownSourceSpan span, int consumedLength) {
+        if (consumedLength <= 0) {
+            return span;
+        }
+
+        if (span.StartLine == span.EndLine && span.StartColumn.HasValue) {
+            var endColumn = span.StartColumn.Value + consumedLength - 1;
+            if (span.EndColumn.HasValue) {
+                endColumn = Math.Min(endColumn, span.EndColumn.Value);
+            }
+
+            var endOffset = span.StartOffset.HasValue ? span.StartOffset.Value + consumedLength - 1 : span.EndOffset;
+            return new MarkdownSourceSpan(
+                span.StartLine,
+                span.StartColumn.Value,
+                span.EndLine,
+                endColumn,
+                span.StartOffset,
+                endOffset);
+        }
+
+        return span;
     }
 
     private static void ApplyGenericAttributesToNestedInlines(IMarkdownInline? inline, MarkdownReaderOptions options) {

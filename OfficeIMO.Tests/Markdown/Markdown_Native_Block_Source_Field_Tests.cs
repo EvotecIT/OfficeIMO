@@ -7,6 +7,70 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class Markdown_Native_Block_Source_Field_Tests {
     [Fact]
+    public void GenericAttributes_Block_SourceField_Is_Source_Addressable() {
+        const string markdown = "Alpha paragraph {#intro .lead}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal("intro", paragraph.Paragraph.Attributes.ElementId);
+        Assert.Equal(new[] { "lead" }, paragraph.Paragraph.Attributes.Classes.ToArray());
+
+        var attributes = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Same(paragraph, attributes.Block);
+        Assert.Equal("{#intro .lead}", attributes.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 17, 1, 30), attributes.SourceSpan);
+
+        var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 20));
+        Assert.Equal("attributes", found.Name);
+        Assert.Equal(attributes.SourceSpan, found.SourceSpan);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "attributes"
+            && field.Value == "{#intro .lead}"
+            && field.SourceSpan.StartColumn == 17
+            && field.SourceSpan.EndColumn == 30);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributes, "{#summary .wide}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("Alpha paragraph {#summary .wide}\n", roundtrip.Markdown);
+    }
+
+    [Fact]
+    public void GenericAttributes_Heading_SourceField_Is_Source_Addressable() {
+        const string markdown = "# Heading {#title .hero}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var heading = Assert.IsType<MarkdownNativeHeadingBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal("title", heading.Heading.Attributes.ElementId);
+        Assert.Equal(new[] { "hero" }, heading.Heading.Attributes.Classes.ToArray());
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 9), heading.TextSourceSpan);
+
+        var attributes = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Same(heading, attributes.Block);
+        Assert.Equal("{#title .hero}", attributes.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 24), attributes.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributes, "{#docs .anchor}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("# Heading {#docs .anchor}\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void Paragraph_Text_SourceField_Uses_Paragraph_Source_Span() {
         const string markdown = "Old **body**\n";
 
