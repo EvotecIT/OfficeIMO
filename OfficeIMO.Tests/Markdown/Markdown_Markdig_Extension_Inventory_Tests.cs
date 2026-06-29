@@ -7,9 +7,11 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
     public void Markdig_ExtensionInventory_Report_Is_Current() {
         string repositoryRoot = GetRepositoryRoot();
         string reportPath = Path.Combine(repositoryRoot, "Docs", "officeimo.markdown.markdig-extension-inventory.md");
+        string matrixPath = Path.Combine(repositoryRoot, "Docs", "officeimo.markdown.markdig-compatibility-matrix.md");
 
         var report = MarkdigExtensionInventory.Build(repositoryRoot);
         string markdown = MarkdigExtensionInventoryMarkdownWriter.Write(report);
+        string matrix = MarkdigExtensionCompatibilityMatrixWriter.Write(report);
 
         Assert.Empty(report.MissingTrackedUseMethods);
         Assert.Empty(report.ObsoleteTrackedUseMethods);
@@ -27,10 +29,13 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
 
         if (string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_MARKDIG_INVENTORY"), "1", StringComparison.Ordinal)) {
             File.WriteAllText(reportPath, markdown);
+            File.WriteAllText(matrixPath, matrix);
         }
 
         Assert.True(File.Exists(reportPath), "Markdig extension inventory report is missing: " + reportPath);
         Assert.Equal(NormalizeLineEndings(File.ReadAllText(reportPath)), NormalizeLineEndings(markdown));
+        Assert.True(File.Exists(matrixPath), "Markdig extension compatibility matrix is missing: " + matrixPath);
+        Assert.Equal(NormalizeLineEndings(File.ReadAllText(matrixPath)), NormalizeLineEndings(matrix));
         AssertDocsTrackInventoryCounts(report, repositoryRoot);
     }
 
@@ -42,9 +47,17 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
         Assert.Contains(rowText, compatibilityMatrix, StringComparison.Ordinal);
         Assert.Contains(statusText, compatibilityMatrix, StringComparison.Ordinal);
 
+        string markdigCompatibilityMatrix = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo.markdown.markdig-compatibility-matrix.md"));
+        Assert.Contains(rowText, markdigCompatibilityMatrix, StringComparison.Ordinal);
+        Assert.Contains(statusText, markdigCompatibilityMatrix, StringComparison.Ordinal);
+        Assert.Contains("Engine parser", markdigCompatibilityMatrix, StringComparison.Ordinal);
+        Assert.Contains("AST/source", markdigCompatibilityMatrix, StringComparison.Ordinal);
+        Assert.Contains("Writer/render", markdigCompatibilityMatrix, StringComparison.Ordinal);
+
         string parityGapPlan = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo.markdown.markdig-parity-gap-plan.md"));
         Assert.Contains(rowText, parityGapPlan, StringComparison.Ordinal);
         Assert.Contains("Markdig extension inventory", parityGapPlan, StringComparison.Ordinal);
+        Assert.Contains("Markdig extension compatibility matrix", parityGapPlan, StringComparison.Ordinal);
         Assert.Contains("Route", parityGapPlan, StringComparison.Ordinal);
         Assert.Contains("Scope decision", parityGapPlan, StringComparison.Ordinal);
     }

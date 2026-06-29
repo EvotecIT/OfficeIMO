@@ -1,0 +1,142 @@
+namespace OfficeIMO.Tests.MarkdownSuite;
+
+internal static class MarkdigExtensionCompatibilityMatrixWriter {
+    public static string Write(MarkdigExtensionInventoryReport report) {
+        var sb = new StringBuilder();
+
+        sb.AppendLine("# OfficeIMO.Markdown Markdig Extension Compatibility Matrix");
+        sb.AppendLine();
+        sb.AppendLine($"This matrix turns the Markdig `{report.MarkdigVersion}` extension inventory into execution lanes. It is generated from `MarkdigExtensionInventory`, so the open work stays tied to reflected Markdig pipeline entry points instead of drifting into ad hoc fixture lists.");
+        sb.AppendLine();
+        sb.AppendLine("Use it as the control board for parity slices:");
+        sb.AppendLine();
+        sb.AppendLine("- If the `Engine parser` lane is open, improve `OfficeIMO.Markdown` behavior before adding more proof.");
+        sb.AppendLine("- If only `Proof` is open, the behavior already exists and needs focused Markdig/source/writer evidence.");
+        sb.AppendLine("- If `Decision` says optional, deferred, renderer policy, or intentional, make the scope call before implementing parser behavior.");
+        sb.AppendLine();
+        sb.AppendLine("## Summary");
+        sb.AppendLine();
+        sb.AppendLine($"Current inventory: {report.Total} Markdig extension-family rows; {report.Covered} covered, {report.Partial} partial, {report.Intentional} intentional, {report.Gap} gap.");
+        sb.AppendLine();
+        sb.AppendLine("| Metric | Count |");
+        sb.AppendLine("| --- | ---: |");
+        sb.AppendLine($"| Markdig extension-family rows | {report.Total} |");
+        sb.AppendLine($"| Covered | {report.Covered} |");
+        sb.AppendLine($"| Partial | {report.Partial} |");
+        sb.AppendLine($"| Intentional | {report.Intentional} |");
+        sb.AppendLine($"| Gap | {report.Gap} |");
+        sb.AppendLine();
+        sb.AppendLine("## Execution Matrix");
+        sb.AppendLine();
+        sb.AppendLine("| Markdig entry point | Status | Decision | Engine parser | AST/source | Writer/render | Proof | Next non-looping action |");
+        sb.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- |");
+
+        foreach (var row in report.Rows) {
+            MatrixCells cells = CreateCells(row);
+            sb.AppendLine($"| `{row.MethodName}` | `{row.Status}` | {EscapeTable(cells.Decision)} | {EscapeTable(cells.EngineParser)} | {EscapeTable(cells.AstSource)} | {EscapeTable(cells.WriterRender)} | {EscapeTable(cells.Proof)} | {EscapeTable(cells.NextAction)} |");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("## Work Checklist");
+        sb.AppendLine();
+        sb.AppendLine("- [ ] Pick one row and one open lane before implementation starts.");
+        sb.AppendLine("- [ ] If the row needs engine work, change parser/AST/source/writer/render behavior in the owning layer first.");
+        sb.AppendLine("- [ ] If the row only needs proof, add focused Markdig comparisons, source/native snapshots, writer checks, renderer checks, or generated inventory assertions.");
+        sb.AppendLine("- [ ] If the row is optional, deferred, renderer-owned, or intentional, record that scope decision before adding syntax.");
+        sb.AppendLine("- [ ] Promote a row to `Covered` only when the matrix lanes and the inventory promotion bar agree.");
+        sb.AppendLine();
+        sb.AppendLine("## Immediate Queue");
+        sb.AppendLine();
+        sb.AppendLine("- [ ] Continue `UseGenericAttributes` only after probing remaining Markdig-supported block and inline targets. Avoid another standalone-attribute sweep unless Markdig evidence requires it.");
+        sb.AppendLine("- [ ] Promote or explicitly bound `UseDefinitionLists` after closing remaining source-map and writer edge breadth.");
+        sb.AppendLine("- [ ] Decide `UseAlertBlocks` and `UseCjkFriendlyEmphasis` before adding more fixtures.");
+        sb.AppendLine("- [ ] Return to `UsePreciseSourceLocation` and the broader lossless AST/source model once the active extension rows stop moving.");
+
+        return sb.ToString().Replace("\r\n", "\n");
+    }
+
+    private static MatrixCells CreateCells(MarkdigExtensionInventoryRow row) {
+        if (row.Status == MarkdigExtensionInventoryStatus.Covered) {
+            return new MatrixCells(row.ScopeDecision.ToDisplayText(), "Covered", "Covered", "Covered", "Covered", row.NextAction);
+        }
+
+        if (row.Status == MarkdigExtensionInventoryStatus.Intentional) {
+            return new MatrixCells(row.ScopeDecision.ToDisplayText(), "Not planned", "Not planned", "Intentional difference", "Documented", row.NextAction);
+        }
+
+        switch (row.MethodName) {
+            case "UseAlertBlocks":
+                return new MatrixCells("Core plus renderer policy", "Partial", "Needs callout/alert source fields", "Needs renderer callback and writer contract", "Needs Markdig/GFM comparison proof", row.NextAction);
+            case "UseCjkFriendlyEmphasis":
+                return new MatrixCells("Core delimiter option", "Partial delimiter behavior", "Needs delimiter token proof", "Mostly shared with emphasis rendering", "Needs CJK comparison fixtures", row.NextAction);
+            case "UseCustomContainers":
+                return new MatrixCells("Optional/core block extension", "Missing colon-fence parser", "Missing child-block source mapping", "Missing renderer/writer seams", "Missing Markdig comparison fixtures", row.NextAction);
+            case "UseDefinitionLists":
+                return new MatrixCells("Core opt-in parser", "Partial", "Needs remaining source-map breadth", "Needs writer/reparse edge breadth", "Needs focused edge proof before promotion", row.NextAction);
+            case "UseDiagrams":
+                return new MatrixCells("Renderer/host policy", "Semantic fences exist", "Needs language/source mapping decision", "Needs renderer package ownership", "Needs renderer comparison fixtures", row.NextAction);
+            case "UseEmojiAndSmiley":
+                return new MatrixCells("Optional inline transform", "Missing shortcode/smiley transform", "Needs source metadata policy", "Needs writer literal/normalized policy", "Needs opt-in transform fixtures", row.NextAction);
+            case "UseFigures":
+                return new MatrixCells("Core image plus optional syntax", "Partial image/figure behavior", "Needs Markdown figure syntax source model", "Needs renderer/writer contract", "Needs syntax-vs-import proof", row.NextAction);
+            case "UseGenericAttributes":
+                return new MatrixCells("Core engine", "Partial target coverage", "Needs arbitrary-shape source propagation", "Needs broader writer/render propagation", "Needs remaining block/inline target proof", row.NextAction);
+            case "UseGridTables":
+                return new MatrixCells("Optional block parser", "Missing grid-table parser", "Missing table source model", "Missing HTML/Markdown writer behavior", "Missing malformed fallback fixtures", row.NextAction);
+            case "UseListExtras":
+                return new MatrixCells("Optional list parser", "Missing syntax inventory", "Needs canonical ListItem source model", "Needs writer policy after scope", "Needs Markdig syntax inventory first", row.NextAction);
+            case "UseMathematics":
+                return new MatrixCells("Optional parser plus renderer policy", "Missing delimiter parity", "Needs math node/source metadata", "Needs renderer handoff and writer policy", "Needs inline/block math fixtures", row.NextAction);
+            case "UseMediaLinks":
+                return new MatrixCells("Renderer policy plus optional parser", "Missing shortcut parser", "Needs source metadata for providers", "Needs safe renderer output policy", "Needs provider comparison fixtures", row.NextAction);
+            case "UsePreciseSourceLocation":
+                return new MatrixCells("Cross-cutting source architecture", "Partial parser spans", "Needs lossless trivia and mapping", "Needs roundtrip diagnostics", "Needs broader source-edit proof", row.NextAction);
+            case "UseReferralLinks":
+                return new MatrixCells("Renderer policy", "Not parser-owned", "Needs link metadata decision", "Missing opt-in rel policy", "Needs renderer-policy tests", row.NextAction);
+            case "UseSmartyPants":
+                return new MatrixCells("Optional inline transform", "Missing smart punctuation transform", "Needs source/edit behavior", "Needs writer/escaping policy", "Needs opt-in transform fixtures", row.NextAction);
+            case "UseCitations":
+            case "UseFooters":
+            case "UseGlobalization":
+            case "UsePragmaLines":
+                return new MatrixCells(row.ScopeDecision.ToDisplayText(), "Deferred", "Deferred", "Deferred", "Needs real consumer requirement", row.NextAction);
+            case "UseJiraLinks":
+                return new MatrixCells("Optional link extension", "Missing issue-key parser", "Needs source metadata", "Needs resolver/render policy", "Needs opt-in fixtures", row.NextAction);
+            default:
+                return CreateFallbackCells(row);
+        }
+    }
+
+    private static MatrixCells CreateFallbackCells(MarkdigExtensionInventoryRow row) {
+        string decision = row.ScopeDecision.ToDisplayText();
+
+        return row.ScopeDecision switch {
+            MarkdigExtensionScopeDecision.CoreEngine => new MatrixCells(decision, "Needed", "Needed", "Needed", "Needed", row.NextAction),
+            MarkdigExtensionScopeDecision.OptionalExtension => new MatrixCells(decision, "Optional/missing", "Needed if enabled", "Needed if enabled", "Needed if enabled", row.NextAction),
+            MarkdigExtensionScopeDecision.RendererHostPolicy => new MatrixCells(decision, "Not parser-owned until scoped", "Needs metadata decision", "Needed", "Needed", row.NextAction),
+            MarkdigExtensionScopeDecision.Deferred => new MatrixCells(decision, "Deferred", "Deferred", "Deferred", "Needs real consumer requirement", row.NextAction),
+            MarkdigExtensionScopeDecision.IntentionalDifference => new MatrixCells(decision, "Not planned", "Not planned", "Intentional difference", "Documented", row.NextAction),
+            _ => new MatrixCells(decision, "Unknown", "Unknown", "Unknown", "Unknown", row.NextAction)
+        };
+    }
+
+    private static string EscapeTable(string value) => value.Replace("|", "\\|");
+
+    private sealed class MatrixCells {
+        public MatrixCells(string decision, string engineParser, string astSource, string writerRender, string proof, string nextAction) {
+            Decision = decision;
+            EngineParser = engineParser;
+            AstSource = astSource;
+            WriterRender = writerRender;
+            Proof = proof;
+            NextAction = nextAction;
+        }
+
+        public string Decision { get; }
+        public string EngineParser { get; }
+        public string AstSource { get; }
+        public string WriterRender { get; }
+        public string Proof { get; }
+        public string NextAction { get; }
+    }
+}

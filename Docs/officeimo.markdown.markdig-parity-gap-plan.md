@@ -14,13 +14,14 @@ Parity is not "more tests." Tests are the measuring system. Parity means the reu
 | GFM corpus | 52 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
 | GFM inventory | 52 tracked GFM fixtures in the generated GFM inventory: 48 upstream cmark-gfm fixtures, 4 OfficeIMO supplements, 52 passing, 0 failing |
 | Markdig extension inventory | 33 Markdig extension-family rows in `Docs/officeimo.markdown.markdig-extension-inventory.md`: 10 covered, 9 partial, 3 intentional, 11 gap |
+| Markdig extension compatibility matrix | Generated control board in `Docs/officeimo.markdown.markdig-compatibility-matrix.md` splits every Markdig row into Decision, Engine parser, AST/source, Writer/render, Proof, and next-action lanes |
 | Remaining architecture gaps | broader GFM breadth, Markdig extension breadth, canonical AST ownership, full lossless trivia/source mapping, source-aware renderer/writer extension seams, security/profile separation, and release-mode benchmark evidence |
 
 ## What Is Missing
 
 - [x] **CommonMark parser correctness is closed.** The official CommonMark `0.31.2` inventory is green: 652 of 652 examples match and 0 are failing.
 - [x] **Core GFM behavior is real engine behavior.** Pipe tables, task lists, footnotes, strikethrough, auto identifiers, extended autolinks, soft-line-as-hard-line, YAML front matter, abbreviations, and tracked GFM fixtures have parser/render/write/source proof.
-- [x] **The scoreboards exist.** CommonMark inventory, generated GFM inventory, Markdig extension inventory, compatibility matrix, benchmark hooks, and this gap plan are checked in.
+- [x] **The scoreboards exist.** CommonMark inventory, generated GFM inventory, Markdig extension inventory, Markdig extension compatibility matrix, broad compatibility matrix, benchmark hooks, and this gap plan are checked in.
 - [ ] **Markdig extension parity is not closed.** The current inventory has 10 covered, 9 partial, 3 intentional, and 11 gap rows.
 - [ ] **AST/source/lossless parity is not closed.** Full trivia capture, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, broader source edits, and extension-node roundtrip still need work.
 - [ ] **Performance parity is not known.** Release-mode benchmark comparisons should run after parser/source/writer behavior stops moving.
