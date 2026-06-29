@@ -38,7 +38,7 @@ This is the loop-breaker board. Work one row at a time. A row is finished only w
 - [ ] **Measurement gate: broaden GFM inventory.** Current GFM inventory is green but still intentionally small: 52 fixtures total, with 12 autolink, 3 strikethrough, 2 HTML tag-filter, 5 task-list, and 3 footnote fixtures. Add more upstream-compatible cmark-gfm coverage for enabled behavior before claiming GFM breadth.
 - [ ] **Parser gate: close `UseAutoLinks`.** This is the current active engine row. Remaining work is extended `www`, email, scheme, punctuation/boundary, source/native, writer, table-cell, and GFM breadth. Promote only when Markdig-compatible and GFM-compatible profiles are both explicit; otherwise leave a named intentional delta.
 - [ ] **Parser gate: close `UseDefinitionLists`.** Existing behavior is real but still `Partial`. Finish marker-group, lazy-continuation, nested-block, loose-definition, source-map, writer, and reparse-stability edges before promotion.
-- [ ] **Parser gate: decide/close `UseAbbreviations`.** Existing behavior is real but still `Partial`. Decide whether Markdown writing should preserve abbreviation definitions, then finish Markdig edge breadth, source/native metadata, and writer behavior or document the writer limit.
+- [ ] **Parser gate: close `UseAbbreviations`.** Existing behavior is real but still `Partial`. Parse-owned Markdown writing now preserves abbreviation definitions; finish broader Markdig edge breadth and any remaining parser/source/writer deltas before promotion.
 - [ ] **AST gate: finish canonical node ownership.** Clean up duplicated or adapter-heavy ownership around list items, tables, callouts, definition lists, front matter, and extension nodes so semantic AST, syntax tree, native snapshots, renderer contexts, writer contexts, and source edits share one model.
 - [ ] **Source/lossless gate: finish trivia and source mapping.** Complete whitespace, blank-line, tab, delimiter-token, raw-slice, original-to-normalized mapping, generated-node diagnostic, and fallback-diagnostic behavior before claiming editor-grade roundtrip.
 - [ ] **Extension-scope gate: classify the remaining Markdig gaps.** There are still 11 `Gap` rows. Decide core parser, optional extension, renderer/host policy, deferred, or intentional out-of-scope for custom containers, grid tables, SmartyPants, citations, emoji/smiley, footers, globalization, Jira links, list extras, pragma lines, and referral links before implementing one-off syntax.
@@ -51,7 +51,8 @@ This is the loop-breaker board. Work one row at a time. A row is finished only w
 
 - [ ] Finish `UseAutoLinks` to a promotion decision, not just another fixture.
 - [x] Expand the GFM autolink inventory from 5 to 12 cases, including cmark-gfm-style unmatched parenthesis trimming, query/entity suffix trimming, less-than termination, email plus-domain rejection, trailing email dash/underscore rejection, and Unicode-host percent encoding.
-- [ ] After `UseAutoLinks`, choose exactly one next row: `UseDefinitionLists`, `UseAbbreviations`, or raw HTML/tag-filter/security. Do not start a new extension family until that choice is explicit.
+- [x] Close the `UseAbbreviations` writer decision by preserving parse-owned definitions through Markdown writing, including front-matter placement and reparse-stability proof.
+- [ ] Choose exactly one next row: finish `UseAutoLinks`, broaden `UseAbbreviations` edge cases to promotion, close `UseDefinitionLists`, or split raw HTML/tag-filter/security. Do not start a new extension family until that choice is explicit.
 
 ## Missing Parity Plan
 
@@ -96,7 +97,7 @@ This is the non-looping backlog. Parity slices are grouped by what they actually
 - [ ] **Markdig extension-family coverage is far from closed.** The current inventory is 7 `Covered`, 11 `Partial`, 4 `Intentional`, and 11 `Gap`. Every non-covered row needs one decision: implement in core, implement as optional extension, route to renderer/host policy, or mark intentional out of scope.
 - [ ] **High-priority partial rows need closure.** Work through `UseAutoLinks`, `UseDefinitionLists`, `UseAlertBlocks`, `UseGenericAttributes`, `UsePreciseSourceLocation`, and parser/render extensions with parser, AST/source, renderer, writer, and fixture evidence.
 - [ ] **High-priority gap rows need scope decisions before implementation.** Decide whether `UseCustomContainers`, `UseGridTables`, `UseSmartyPants`, `UseCitations`, `UseMathematics`, `UseMediaLinks`, `UseDiagrams`, `UseFigures`, `UseListExtras`, and similar rows belong in core, optional packages, renderer policy, or intentional differences.
-- [ ] **Abbreviation parity is partial, not closed.** `UseAbbreviations` now has opt-in parser, semantic AST, syntax/native metadata, HTML rendering, source-edit, and selected Markdig comparison evidence, but still needs broader edge cases and a decision on definition-preserving Markdown writer reconstruction before promotion.
+- [ ] **Abbreviation parity is partial, not closed.** `UseAbbreviations` now has opt-in parser, semantic AST, syntax/native metadata, HTML rendering, source-edit, selected Markdig comparison evidence, and parse-owned definition-preserving Markdown writing, but still needs broader Markdig edge cases before promotion.
 
 ### C. AST, Source, And Lossless Architecture
 
@@ -120,7 +121,7 @@ Use this order to avoid looping:
 - [ ] **2. If behavior is missing, improve the engine first.** Parser, AST, source mapping, renderer, writer, or extension APIs move before fixtures are promoted.
 - [ ] **3. If behavior exists but is unproven, add focused proof.** This is the test-only lane: Markdig comparison cases, inventory rows, native snapshots, writer checks, or renderer checks.
 - [ ] **4. Promote only when the whole row is covered.** A row moves to `Covered` only with parser behavior, semantic AST/source/native projection where applicable, HTML rendering, Markdown writing or explicit writer limits, fixture/inventory evidence, and profile documentation.
-- [ ] **5. Make scope decisions before large new features.** Grid tables, custom containers, math, diagrams, attributes, SmartyPants, citations, media links, and similar rows should not be half-added without deciding core versus optional extension versus renderer policy. Abbreviations already have an in-core partial implementation and should now be completed as a writer/edge-breadth slice.
+- [ ] **5. Make scope decisions before large new features.** Grid tables, custom containers, math, diagrams, attributes, SmartyPants, citations, media links, and similar rows should not be half-added without deciding core versus optional extension versus renderer policy. Abbreviations already have an in-core partial implementation and should now be completed as an edge-breadth slice.
 - [ ] **6. Benchmark last.** Do not optimize or claim performance parity until correctness, source mapping, and writer behavior are stable enough for the numbers to mean something.
 
 ## Parity Work Board
@@ -239,7 +240,7 @@ These are the actual parity gaps. The test work is listed only where it creates 
 - [x] Promote `UseAutoIdentifiers` only after explicit renderer options, Markdig/GitHub slug-style evidence, duplicate handling, and GFM profile wiring landed.
 - [ ] Stop broad fixture-chasing and work the remaining rows in this order.
   - [ ] `UseAutoLinks`: finish the remaining email, `www`, boundary, writer, source/native, and GFM evidence; promote only if the parser/render/write/source contracts are all covered, otherwise leave a named residual gap.
-  - [ ] `UseAbbreviations`: decide whether Markdown writing must preserve abbreviation definition syntax; then finish Markdig edge breadth, source/native metadata, and writer behavior or document the intentional limit.
+  - [ ] `UseAbbreviations`: parse-owned Markdown writing now preserves abbreviation definition syntax; finish broader Markdig edge breadth and any remaining parser/source/writer deltas before promotion.
   - [ ] `UseDefinitionLists`: finish remaining source-map and writer edge breadth for marker groups, lazy continuation, nested blocks, and reparse stability; promote only after nested source/native and writer evidence is complete.
   - [ ] `UseAlertBlocks`: decide whether Markdig alert rendering callbacks are an in-scope parser/renderer contract or an intentional OfficeIMO callout difference; implement only the chosen contract.
   - [ ] `UseCjkFriendlyEmphasis`: either add a real delimiter option with CJK comparison fixtures and source-token proof, or document it as a deferred/intentional difference.
@@ -343,7 +344,7 @@ Done means:
 - [ ] Expand GFM autolinks and remaining tag-filter coverage.
 - [x] Expand GFM footnote coverage, including source spans, nested block bodies, repeated backrefs, renderer output, and writer behavior.
 - [ ] Expand GFM strikethrough coverage.
-- [ ] Decide which remaining Markdig extensions are in scope: grid tables, emoji, math, diagrams, SmartyPants, citations, custom containers, generic attributes, media links, alerts, advanced links, and list/emphasis extras. Abbreviations are now an in-core partial row that still needs writer and edge-breadth closure.
+- [ ] Decide which remaining Markdig extensions are in scope: grid tables, emoji, math, diagrams, SmartyPants, citations, custom containers, generic attributes, media links, alerts, advanced links, and list/emphasis extras. Abbreviations are now an in-core partial row that still needs edge-breadth closure.
 - [ ] Route in-scope extension work to the right owner: core `OfficeIMO.Markdown`, renderer layer, or separate extension package.
 - [ ] Document out-of-scope Markdig extensions as intentional differences.
 

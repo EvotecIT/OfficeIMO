@@ -36,7 +36,37 @@ public class Markdown_Reader_Abbreviations_Tests {
         var abbreviation = Assert.IsType<AbbreviationInline>(Assert.Single(paragraph.Inlines.Nodes));
         Assert.Equal("HTML", abbreviation.Text);
         Assert.Equal("Hyper Text Markup Language", abbreviation.Title);
-        Assert.Equal("HTML", result.Document.ToMarkdown().TrimEnd('\r', '\n'));
+        Assert.Equal("*[HTML]: Hyper Text Markup Language\n\nHTML", NormalizeMarkdown(result.Document.ToMarkdown()));
+    }
+
+    [Fact]
+    public void Abbreviation_Definitions_Are_Written_For_Reparse_Stability() {
+        const string markdown = "*[HTML]: Hyper Text Markup Language\n\nHTML and HTML.";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Abbreviations = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var written = result.Document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n');
+
+        Assert.Equal("*[HTML]: Hyper Text Markup Language\n\nHTML and HTML.", written);
+
+        var reparsedHtml = MarkdownReader.Parse(written, options).ToHtmlFragment(CreatePlainHtmlOptions());
+        Assert.Contains(
+            "<abbr title=\"Hyper Text Markup Language\">HTML</abbr> and <abbr title=\"Hyper Text Markup Language\">HTML</abbr>",
+            reparsedHtml,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Abbreviation_Definitions_Are_Written_After_FrontMatter() {
+        const string markdown = "---\ntitle: Doc\n---\n\n  *[HTML]:   Hyper Text Markup Language\n\nHTML";
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.Abbreviations = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var written = result.Document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n');
+
+        Assert.Equal("---\ntitle: Doc\n---\n\n  *[HTML]:   Hyper Text Markup Language\n\nHTML", written);
     }
 
     [Fact]
@@ -117,4 +147,7 @@ public class Markdown_Reader_Abbreviations_Tests {
             CssDelivery = CssDelivery.None,
             BodyClass = null
         };
+
+    private static string NormalizeMarkdown(string markdown) =>
+        markdown.Replace("\r\n", "\n").Replace('\r', '\n').TrimEnd('\n');
 }

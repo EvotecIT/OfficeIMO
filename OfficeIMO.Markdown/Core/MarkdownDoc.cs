@@ -541,6 +541,11 @@ public class MarkdownDoc : MarkdownObject {
             sb.AppendLine(_frontMatter.RenderFrontMatter());
             sb.AppendLine();
         }
+
+        if (AppendParseOwnedAbbreviationDefinitions(sb, _parseResult) && blocks.Count > 0) {
+            sb.AppendLine();
+        }
+
         for (int i = 0; i < blocks.Count; i++) {
             string rendered = RenderMarkdownBlock(blocks[i], context);
             if (!string.IsNullOrEmpty(rendered)) sb.AppendLine(rendered);
@@ -734,6 +739,39 @@ public class MarkdownDoc : MarkdownObject {
 
     private static string RenderMarkdownBlock(IMarkdownBlock block, MarkdownWriteContext context) {
         return MarkdownBlockRenderDispatcher.RenderMarkdown(block, context);
+    }
+
+    private static bool AppendParseOwnedAbbreviationDefinitions(StringBuilder sb, MarkdownParseResult? parseResult) {
+        if (parseResult == null || parseResult.AbbreviationDefinitions.Count == 0) {
+            return false;
+        }
+
+        var wroteDefinition = false;
+        for (int i = 0; i < parseResult.AbbreviationDefinitions.Count; i++) {
+            var definition = parseResult.AbbreviationDefinitions[i];
+            if (definition == null
+                || string.IsNullOrWhiteSpace(definition.Label)
+                || string.IsNullOrWhiteSpace(definition.Title)) {
+                continue;
+            }
+
+            sb.AppendLine(RenderAbbreviationDefinition(parseResult, definition));
+            wroteDefinition = true;
+        }
+
+        return wroteDefinition;
+    }
+
+    private static string RenderAbbreviationDefinition(MarkdownParseResult parseResult, MarkdownAbbreviationDefinition definition) {
+        if (definition.SourceSpan.HasValue
+            && parseResult.TryCreateSourceSlice(definition.SourceSpan.Value, out var slice)) {
+            var sourceLine = slice.Text.TrimEnd('\r', '\n');
+            if (!string.IsNullOrWhiteSpace(sourceLine)) {
+                return sourceLine;
+            }
+        }
+
+        return "*[" + definition.Label + "]: " + definition.Title;
     }
 
     private static string NormalizeLineEndings(string value, string lineEnding) {
