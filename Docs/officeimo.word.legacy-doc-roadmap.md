@@ -1,0 +1,332 @@
+# OfficeIMO.Word Legacy DOC Read And Native Write Roadmap
+
+This roadmap tracks how to add dependency-free legacy `.doc` support to
+`OfficeIMO.Word` while following the same confidence model used by the legacy
+`.xls` work.
+
+## Goal
+
+Add first-party support for classic binary Word documents without introducing a
+new runtime dependency and without making callers learn a separate conversion
+API for normal use.
+
+The target user experience is intentionally quiet:
+
+- `WordDocument.Load("file.doc")` detects a legacy binary Word document and
+  projects supported content into a normal `WordDocument`.
+- `document.Save("file.docx")` saves the projected document through the normal
+  Open XML path.
+- `document.Save("file.doc")` eventually writes a native binary `.doc` file
+  when the document is within the supported native-write subset.
+- explicit `LoadLegacyDoc(...)` and `LoadLegacyDocWithReport(...)` methods exist
+  for callers that want diagnostics or format-aware control.
+- unsupported, preserve-only, encrypted, or unsafe legacy content is diagnosed
+  or blocked before silent data loss.
+
+## Settled Decisions
+
+- [x] Keep this dependency-free at runtime. No NPOI, Word automation, LibreOffice,
+  or other conversion engine in `OfficeIMO.Word`.
+- [x] Use `OfficeIMO.Shared` as linked source, not a new package. The shared
+  source files are already included by libraries such as Word and Excel, and the
+  compound-file owner should follow that pattern.
+- [x] Use Word COM and NPOI freely for fixture generation, comparison, and local
+  validation when useful. Generated `.doc` fixtures and compact reports should be
+  checked into the corpus; the generators themselves must not become production
+  dependencies.
+- [x] Avoid temporary compatibility paths, old/new API probes, or local
+  workarounds. If the correct shared owner is not ready, fix the owner first.
+- [x] Treat the roadmap as a working load/save ledger. It should show the next
+  actionable proof step, not a historical pile of completed experiments.
+- [x] PR #2002 is merged into `master`; start implementation from current
+  `origin/master` so DOC can build on the merged XLS pattern directly.
+
+## Pattern To Mirror From XLS
+
+The legacy `.xls` implementation provides the pattern to reuse:
+
+- keep the normal public API simple and route by file signature/extension.
+- keep legacy code under a clear format-specific folder instead of mixing parser
+  details into the main object model.
+- parse into a legacy model first, then project into the normal OfficeIMO model.
+- expose import diagnostics and unsupported feature lists on the loaded document.
+- provide a report-returning load method for callers that need the full import
+  story.
+- make native legacy saves opt-in through path/stream format routing, with
+  preflight blockers for unsupported content.
+- use corpus fixtures and checked-in Markdown reports to keep claims honest.
+
+## Ownership Decision
+
+DOC and XLS both need OLE compound file support. That should not become two
+independent format-specific implementations.
+
+Current repo state already has:
+
+- `OfficeIMO.Shared\OfficeEncryption.CompoundFile.cs`, a private compound-file
+  helper used by encryption.
+- `OfficeIMO.Excel\LegacyXls\Compound`, an Excel-owned compound reader/locator
+  for legacy workbook streams.
+
+Before adding DOC parsing, promote the reusable compound-file capability into a
+shared internal owner under `OfficeIMO.Shared`, then consume it from both
+`LegacyXls` and `LegacyDoc`. This should remain linked source, not an additional
+NuGet package or project that every OfficeIMO library must reference.
+
+The reusable layer owns only container mechanics: signatures, directories,
+FAT/mini-FAT streams, stream lookup, property-set streams, and writer basics.
+Word-specific `WordDocument` stream parsing belongs in `OfficeIMO.Word\LegacyDoc`.
+
+## Proposed Project Shape
+
+Add focused files instead of growing the main Word document partials:
+
+```text
+OfficeIMO.Shared/
+  Compound/
+    OfficeCompoundFile.cs
+    OfficeCompoundFileEntry.cs
+    OfficeCompoundFileReader.cs
+    OfficeCompoundFileWriter.cs
+    OfficeOlePropertySetReader.cs
+    OfficeOlePropertySetWriter.cs
+
+OfficeIMO.Word/
+  WordDocument.LoadRouting.cs
+  WordDocument.LegacyDoc.cs
+  WordDocument.LegacyDocState.cs
+  LegacyDoc/
+    LegacyDocImportOptions.cs
+    LegacyDocLoadResult.cs
+    LegacyDocImportReport.cs
+    Diagnostics/
+    Fib/
+    Model/
+    Projection/
+    Write/
+```
+
+PR #2002 has merged, so implementation should stay rebased on current
+`origin/master` and use the merged `LegacyXls` source as the reference point. Do
+not copy its compound code into Word permanently; extract the reusable owner
+first, then consume that owner from both `LegacyXls` and `LegacyDoc`.
+
+## Read Support Scope
+
+Start with Word 97-2003 binary `.doc` files that use the standard OLE compound
+container and a `WordDocument` stream. Treat older Word formats as explicit
+diagnostic blockers until fixtures prove they are worth supporting.
+
+The first readable slice should project:
+
+- body paragraphs and runs
+- plain text and common character formatting
+- paragraph alignment, spacing, indentation, and basic styles when reliable
+- sections and page setup where the binary structures are straightforward
+- tables in the common Word 97-2003 shape
+- headers, footers, footnotes, and endnotes after body text is stable
+- core/application/custom properties through the shared OLE property-set reader
+
+The first diagnostic slice should detect and report:
+
+- encrypted/password-to-open documents
+- macros/VBA project storage
+- embedded OLE objects and packages
+- ActiveX controls
+- tracked changes and comments when not projected
+- images, drawings, text boxes, charts, and equations until each has a supported
+  projection story
+- fast-save or damaged stream shapes that cannot be safely imported
+
+The first implementation should not claim "all `.doc` files". The honest claim
+should be closer to: supported `.doc` files can be loaded through normal
+`WordDocument.Load(...)`, projected into the normal OfficeIMO Word model, and
+saved as `.docx`, with diagnostics for unsupported legacy content.
+
+## Native Write Scope
+
+Native `.doc` writing should come after read/report support is useful. The first
+write target should be deliberately smaller than the read target:
+
+- normal document stream and table stream for simple documents
+- body paragraphs, runs, and common formatting
+- basic page setup and section breaks
+- simple tables after paragraph/run output is stable
+- core/application/custom properties
+
+Native write should block before saving when the current `WordDocument` contains
+features outside the supported binary writer subset. Use the existing
+`InspectFeatures()` model as the first preflight source, then add DOC-specific
+preflight details for binary-only limits.
+
+## Public API Shape
+
+Keep the normal API invisible for common use:
+
+```csharp
+using WordDocument document = WordDocument.Load("input.doc");
+document.Save("output.docx");
+```
+
+Add explicit diagnostics when callers want control:
+
+```csharp
+LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport("input.doc");
+if (result.Document != null) {
+    result.Document.Save("output.docx");
+}
+```
+
+Use a save option rather than a separate writer method for stream saves, matching
+the XLS direction:
+
+```csharp
+document.Save(stream, new WordSaveOptions {
+    StreamFormat = WordStreamSaveFormat.LegacyDoc
+});
+```
+
+The implementation can introduce `WordSaveOptions` and `WordStreamSaveFormat`
+only when native `.doc` stream writing is ready. Do not add public options early
+just to reserve names.
+
+## Implementation Slices
+
+- [x] Create a dedicated DOC worktree and roadmap branch.
+- [x] Confirm XLS PR #2002 is merged and refresh the DOC branch onto current
+  `origin/master`.
+- [x] Inventory merged `LegacyXls` compound/read/write code and current
+  `OfficeIMO.Shared` encryption compound helper; write down the exact extraction
+  boundaries before moving code.
+- [x] Shared compound-file extraction first slice: promote the XLS-owned OLE
+  compound read/write helpers into linked `OfficeIMO.Shared` source and keep XLS
+  behavior unchanged.
+- [x] Validate the XLS shared-compound slice with `OfficeIMO.Excel` build,
+  `OfficeIMO.Tests` build, and the full focused `LegacyXls` test sweep.
+- [ ] Fold the existing encryption private compound helper and OLE property-set
+  reader/writer into the shared owner when the DOC reader needs that surface.
+- [ ] Add `WordDocument` load routing for `.doc` signature/extension detection
+  before `WordprocessingDocument.Open(...)`, with `.docx` and encrypted OOXML
+  staying on the existing paths.
+- [ ] Build a minimal `LegacyDocDocument` model from the FIB and document/table
+  stream boundaries, with diagnostics for unsupported or unsafe streams.
+- [ ] Project plain body text into normal `WordDocument` paragraphs/runs and
+  prove save-to-`.docx` reload through normal OfficeIMO APIs.
+- [ ] Add formatting projection for run/paragraph styles only when each mapping
+  has a fixture and observable OfficeIMO contract.
+- [ ] Add common table projection after paragraph/run projection is stable.
+- [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
+  separate fixture-backed slices.
+- [ ] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
+  and loaded `WordDocument` state.
+- [ ] Add normal and diagnostic fixture folders under
+  `OfficeIMO.Tests\Documents\LegacyDocCorpus` and
+  `OfficeIMO.Tests\Documents\LegacyDocDiagnosticCorpus`.
+- [ ] Add fixture-generation helpers for Word COM and optional NPOI generation in
+  test/support tooling only; checked-in fixtures are the source of CI proof.
+- [ ] Add corpus report approval tests with short Markdown baselines.
+- [ ] Define native `.doc` writer preflight from `InspectFeatures()` plus
+  DOC-specific binary limits before any writer bytes are committed.
+- [ ] Implement native writer first slice for simple documents and prove
+  OfficeIMO can reload written `.doc` output through the legacy reader.
+- [ ] Expand native writer slices for formatting, tables, properties, and simple
+  sections only after preflight blocks all unsupported content.
+- [ ] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
+  prove the support statement.
+- [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound
+  lane, full `LegacyXls` sweeps, `OfficeIMO.Word` builds across supported target
+  frameworks, and `git diff --check`.
+
+## Roadmap Operating Rules
+
+- Keep exactly one or a small number of slices active at a time.
+- Before repeating an investigation, note what changed since the last pass and
+  what new evidence the rerun should produce.
+- When a slice lands, replace speculative wording with the current tested
+  contract and leave the next unchecked item visible.
+- Do not carry completed temporary notes forever. Collapse completed evidence
+  into the current-state text once it stops helping the next implementation pass.
+- If a slice uncovers a shared-owner bug, update the shared-owner item instead of
+  adding a Word-local workaround.
+
+## Fixture Generation Policy
+
+Generated fixtures are welcome; runtime dependencies are not.
+
+- Word COM may be used on Windows to generate real `.doc` samples, compare Word's
+  interpretation of generated files, or produce difficult layout/feature cases.
+- NPOI may be used in test-support tooling to generate targeted `.doc` fixtures
+  when that is faster or more deterministic than COM.
+- COM/NPOI generation should be repeatable from scripts or test utilities, but
+  CI should rely on checked-in fixture files and reports unless a specific
+  Windows-only validation lane is intentionally added.
+- Do not add NPOI to `OfficeIMO.Word` or to production projects for this feature.
+- Do not use generated fixtures to justify broad claims. Every fixture should map
+  to one support statement or one explicit unsupported boundary.
+
+## Quality Bar
+
+This feature should be built as if OfficeIMO is aiming to be the best Word
+automation library in its class:
+
+- no hidden converter dependency
+- no silent loss on legacy import or native save
+- no temporary shims waiting for another branch
+- no separate public API required for normal `.doc` loading
+- fixtures for every advertised capability
+- diagnostics for every known boundary
+- public docs that say what works, what is blocked, and what remains partial
+
+## Test Plan
+
+Use contract-focused tests rather than a giant incidental matrix:
+
+- routing tests for `.doc`, renamed `.doc`, `.docx`, encrypted OOXML, and invalid
+  binary input.
+- normal load tests for path, stream, async path, and converted `.docx` save/reload.
+- report tests proving unsupported features are visible before conversion.
+- corpus report approval tests with a short, reviewable Markdown report per
+  fixture.
+- native writer tests that write `.doc`, reload through the legacy reader, and
+  compare the projected OfficeIMO document contract.
+- preflight tests proving unsupported content blocks native `.doc` save before
+  bytes are committed.
+
+Run at least:
+
+```powershell
+dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --configuration Release --filter "FullyQualifiedName~LegacyDoc|FullyQualifiedName~Word.Save|FullyQualifiedName~Word.Load"
+dotnet build OfficeIMO.Word\OfficeIMO.Word.csproj --configuration Release
+```
+
+When the shared compound layer changes, also run the legacy XLS tests because the
+container owner is shared:
+
+```powershell
+dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --configuration Release --filter FullyQualifiedName~LegacyXls
+```
+
+## Remaining Design Choices
+
+- Introduce `WordSaveOptions` and `WordStreamSaveFormat` only when native `.doc`
+  stream writing is implemented. Do not add public options early as placeholders.
+- Use `AllowLossyLegacyDocSave` only if native writer work reaches a real
+  preserve-only import state where an explicit caller override is safer than a
+  blanket block.
+- Decide whether COM-generated, NPOI-generated, or external corpus fixtures form
+  the first baseline per feature slice. The answer can vary by slice as long as
+  each fixture is checked in and explained.
+
+## Current Worktree
+
+This plan was started in the dedicated worktree:
+
+```text
+C:\Support\GitHub\_worktrees\OfficeIMO-legacy-doc-support
+```
+
+Branch:
+
+```text
+codex/legacy-doc-support-plan
+```

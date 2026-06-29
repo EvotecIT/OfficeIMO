@@ -1,6 +1,9 @@
-namespace OfficeIMO.Excel.LegacyXls.Compound {
-    internal sealed class LegacyCompoundFileEntry {
-        internal LegacyCompoundFileEntry(string name, string path, byte objectType, long size) {
+namespace OfficeIMO.Shared {
+    /// <summary>
+    /// Directory entry decoded from an OLE compound document.
+    /// </summary>
+    internal sealed class OfficeCompoundFileEntry {
+        internal OfficeCompoundFileEntry(string name, string path, byte objectType, long size) {
             Name = name;
             Path = path;
             ObjectType = objectType;

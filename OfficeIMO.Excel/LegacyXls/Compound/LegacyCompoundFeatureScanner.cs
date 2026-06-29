@@ -1,5 +1,6 @@
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Shared;
 
 namespace OfficeIMO.Excel.LegacyXls.Compound {
     internal static class LegacyCompoundFeatureScanner {
@@ -8,7 +9,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
         private const string DigitalSignatureCode = "XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED";
 
         internal static void AddPreserveOnlyFeatures(
-            LegacyCompoundFile compoundFile,
+            OfficeCompoundFile compoundFile,
             LegacyXlsWorkbook workbook,
             LegacyXlsImportOptions options) {
             if (TryGetVbaProjectEntries(
@@ -93,14 +94,14 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
         }
 
         private static bool TryGetVbaProjectEntries(
-            LegacyCompoundFile compoundFile,
+            OfficeCompoundFile compoundFile,
             out IReadOnlyList<string> entries,
             out IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryRole> entryRoles,
             out IReadOnlyDictionary<string, long> entrySizes,
             out IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryObjectType> entryObjectTypes,
             out IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryContentKind> entryContentKinds,
             out string description) {
-            LegacyCompoundFileEntry[] matchingCompoundEntries = compoundFile.Entries
+            OfficeCompoundFileEntry[] matchingCompoundEntries = compoundFile.Entries
                 .Where(IsVbaProjectEntry)
                 .ToArray();
             Dictionary<string, LegacyXlsCompoundFeatureEntryRole> matchingEntries = matchingCompoundEntries
@@ -135,14 +136,14 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
         }
 
         private static bool TryGetOleObjectEntries(
-            LegacyCompoundFile compoundFile,
+            OfficeCompoundFile compoundFile,
             out IReadOnlyList<string> entries,
             out IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryRole> entryRoles,
             out IReadOnlyDictionary<string, long> entrySizes,
             out IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryObjectType> entryObjectTypes,
             out IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryContentKind> entryContentKinds,
             out string description) {
-            LegacyCompoundFileEntry[] matchingCompoundEntries = compoundFile.Entries
+            OfficeCompoundFileEntry[] matchingCompoundEntries = compoundFile.Entries
                 .Where(IsOleObjectEntry)
                 .ToArray();
             Dictionary<string, LegacyXlsCompoundFeatureEntryRole> matchingEntries = matchingCompoundEntries
@@ -177,14 +178,14 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
         }
 
         private static bool TryGetDigitalSignatureEntries(
-            LegacyCompoundFile compoundFile,
+            OfficeCompoundFile compoundFile,
             out IReadOnlyList<string> entries,
             out IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryRole> entryRoles,
             out IReadOnlyDictionary<string, long> entrySizes,
             out IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryObjectType> entryObjectTypes,
             out IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryContentKind> entryContentKinds,
             out string description) {
-            LegacyCompoundFileEntry[] matchingCompoundEntries = compoundFile.Entries
+            OfficeCompoundFileEntry[] matchingCompoundEntries = compoundFile.Entries
                 .Where(IsDigitalSignatureEntry)
                 .ToArray();
             Dictionary<string, LegacyXlsCompoundFeatureEntryRole> matchingEntries = matchingCompoundEntries
@@ -218,28 +219,28 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
             return true;
         }
 
-        private static IReadOnlyDictionary<string, long> BuildEntrySizes(IEnumerable<LegacyCompoundFileEntry> entries) {
+        private static IReadOnlyDictionary<string, long> BuildEntrySizes(IEnumerable<OfficeCompoundFileEntry> entries) {
             return entries
                 .GroupBy(GetEntryKey, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.First().Size, StringComparer.OrdinalIgnoreCase);
         }
 
-        private static IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryObjectType> BuildEntryObjectTypes(IEnumerable<LegacyCompoundFileEntry> entries) {
+        private static IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryObjectType> BuildEntryObjectTypes(IEnumerable<OfficeCompoundFileEntry> entries) {
             return entries
                 .GroupBy(GetEntryKey, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => ToModelObjectType(group.First().ObjectType), StringComparer.OrdinalIgnoreCase);
         }
 
         private static IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryContentKind> BuildEntryContentKinds(
-            LegacyCompoundFile compoundFile,
-            IEnumerable<LegacyCompoundFileEntry> entries,
+            OfficeCompoundFile compoundFile,
+            IEnumerable<OfficeCompoundFileEntry> entries,
             IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryRole> entryRoles) {
             return entries
                 .GroupBy(GetEntryKey, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(
                     group => group.Key,
                     group => {
-                        LegacyCompoundFileEntry entry = group.First();
+                        OfficeCompoundFileEntry entry = group.First();
                         LegacyXlsCompoundFeatureEntryRole role = entryRoles.TryGetValue(group.Key, out LegacyXlsCompoundFeatureEntryRole value)
                             ? value
                             : LegacyXlsCompoundFeatureEntryRole.Unknown;
@@ -248,7 +249,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                     StringComparer.OrdinalIgnoreCase);
         }
 
-        private static string GetEntryKey(LegacyCompoundFileEntry entry) {
+        private static string GetEntryKey(OfficeCompoundFileEntry entry) {
             return string.IsNullOrWhiteSpace(entry.Path) ? entry.Name : entry.Path;
         }
 
@@ -262,8 +263,8 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
         }
 
         private static LegacyXlsCompoundFeatureEntryContentKind ClassifyEntryContentKind(
-            LegacyCompoundFile compoundFile,
-            LegacyCompoundFileEntry entry,
+            OfficeCompoundFile compoundFile,
+            OfficeCompoundFileEntry entry,
             LegacyXlsCompoundFeatureEntryRole role) {
             if (entry.IsStorage) {
                 return LegacyXlsCompoundFeatureEntryContentKind.Storage;
@@ -301,7 +302,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
             return LegacyXlsCompoundFeatureEntryContentKind.BinaryStream;
         }
 
-        private static bool TryGetStreamBytes(LegacyCompoundFile compoundFile, LegacyCompoundFileEntry entry, out byte[] bytes) {
+        private static bool TryGetStreamBytes(OfficeCompoundFile compoundFile, OfficeCompoundFileEntry entry, out byte[] bytes) {
             if (compoundFile.Streams.TryGetValue(entry.Path, out byte[]? streamBytes) && streamBytes != null) {
                 bytes = streamBytes;
                 return true;
@@ -322,7 +323,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
             return false;
         }
 
-        private static bool IsVbaProjectEntry(LegacyCompoundFileEntry entry) {
+        private static bool IsVbaProjectEntry(OfficeCompoundFileEntry entry) {
             if (entry.Name.Equals("_VBA_PROJECT_CUR", StringComparison.OrdinalIgnoreCase)
                 || entry.Name.Equals("_VBA_PROJECT", StringComparison.OrdinalIgnoreCase)) {
                 return true;
@@ -334,7 +335,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                 || entry.Path.EndsWith("/VBA", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static LegacyXlsCompoundFeatureEntryRole ClassifyVbaProjectEntry(LegacyCompoundFileEntry entry) {
+        private static LegacyXlsCompoundFeatureEntryRole ClassifyVbaProjectEntry(OfficeCompoundFileEntry entry) {
             if (entry.Name.Equals("_VBA_PROJECT_CUR", StringComparison.OrdinalIgnoreCase)) {
                 return LegacyXlsCompoundFeatureEntryRole.VbaProjectStorage;
             }
@@ -360,7 +361,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
             return LegacyXlsCompoundFeatureEntryRole.Unknown;
         }
 
-        private static bool IsOleObjectEntry(LegacyCompoundFileEntry entry) {
+        private static bool IsOleObjectEntry(OfficeCompoundFileEntry entry) {
             return entry.Name.Equals("ObjectPool", StringComparison.OrdinalIgnoreCase)
                 || entry.Name.Equals("Ole", StringComparison.OrdinalIgnoreCase)
                 || entry.Name.Equals("\u0001Ole", StringComparison.OrdinalIgnoreCase)
@@ -370,7 +371,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                 || entry.Path.IndexOf("/Ole10Native", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private static LegacyXlsCompoundFeatureEntryRole ClassifyOleObjectEntry(LegacyCompoundFileEntry entry) {
+        private static LegacyXlsCompoundFeatureEntryRole ClassifyOleObjectEntry(OfficeCompoundFileEntry entry) {
             if (entry.Name.Equals("ObjectPool", StringComparison.OrdinalIgnoreCase)
                 || entry.Path.EndsWith("/ObjectPool", StringComparison.OrdinalIgnoreCase)) {
                 return LegacyXlsCompoundFeatureEntryRole.OleObjectPoolStorage;
@@ -393,14 +394,14 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
             return LegacyXlsCompoundFeatureEntryRole.Unknown;
         }
 
-        private static bool IsDigitalSignatureEntry(LegacyCompoundFileEntry entry) {
+        private static bool IsDigitalSignatureEntry(OfficeCompoundFileEntry entry) {
             return entry.Name.Equals("_signatures", StringComparison.OrdinalIgnoreCase)
                 || entry.Name.Equals("_xmlsignatures", StringComparison.OrdinalIgnoreCase)
                 || entry.Path.IndexOf("/_xmlsignatures/", StringComparison.OrdinalIgnoreCase) >= 0
                 || entry.Path.EndsWith("/_xmlsignatures", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static LegacyXlsCompoundFeatureEntryRole ClassifyDigitalSignatureEntry(LegacyCompoundFileEntry entry) {
+        private static LegacyXlsCompoundFeatureEntryRole ClassifyDigitalSignatureEntry(OfficeCompoundFileEntry entry) {
             if (entry.Name.Equals("_signatures", StringComparison.OrdinalIgnoreCase)) {
                 return entry.IsStorage
                     ? LegacyXlsCompoundFeatureEntryRole.DigitalSignatureStorage

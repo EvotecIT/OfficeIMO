@@ -1,7 +1,14 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 
-namespace OfficeIMO.Excel.LegacyXls.Write {
-    internal static class LegacyXlsCompoundFileWriter {
+namespace OfficeIMO.Shared {
+    /// <summary>
+    /// Writes simple OLE compound document containers used by legacy Office binary formats.
+    /// </summary>
+    internal static class OfficeCompoundFileWriter {
         private const int SectorSize = 512;
         private const int MiniSectorSize = 64;
         private const int MiniStreamCutoffSize = 4096;
@@ -9,18 +16,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private const uint EndOfChain = 0xfffffffe;
         private const uint FatSect = 0xfffffffd;
 
-        internal static byte[] Write(byte[] workbookStream) {
-            return Write(workbookStream, Array.Empty<LegacyXlsCompoundStream>());
-        }
-
-        internal static byte[] Write(byte[] workbookStream, IReadOnlyList<LegacyXlsCompoundStream> additionalStreams) {
-            if (workbookStream == null) throw new ArgumentNullException(nameof(workbookStream));
-            if (additionalStreams == null) throw new ArgumentNullException(nameof(additionalStreams));
-
-            var streams = new List<LegacyXlsCompoundStream>(additionalStreams.Count + 1) {
-                new LegacyXlsCompoundStream("Workbook", workbookStream)
-            };
-            streams.AddRange(additionalStreams);
+        internal static byte[] Write(IReadOnlyList<OfficeCompoundStream> streams) {
+            if (streams == null) throw new ArgumentNullException(nameof(streams));
+            if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
 
             PaddedStream[] paddedStreams = streams
                 .Select(PadStream)
@@ -262,7 +260,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteUInt32(fat, checked(sector * 4), value);
         }
 
-        private static PaddedStream PadStream(LegacyXlsCompoundStream stream) {
+        private static PaddedStream PadStream(OfficeCompoundStream stream) {
             if (string.IsNullOrEmpty(stream.Name)) {
                 throw new ArgumentException("Compound stream name is required.", nameof(stream));
             }
@@ -395,8 +393,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
     }
 
-    internal readonly struct LegacyXlsCompoundStream {
-        internal LegacyXlsCompoundStream(string name, byte[] bytes) {
+    /// <summary>
+    /// Named stream payload to write into an OLE compound document.
+    /// </summary>
+    internal readonly struct OfficeCompoundStream {
+        internal OfficeCompoundStream(string name, byte[] bytes) {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
         }

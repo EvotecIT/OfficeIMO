@@ -1,5 +1,6 @@
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Shared;
 using System.Globalization;
 using System.Text;
 
@@ -11,7 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
         private const uint CodePagePropertyId = 1;
         private const string UnsupportedCustomPropertyCode = "XLS-OLE-CUSTOM-DOCUMENT-PROPERTY-UNSUPPORTED";
 
-        internal static void AddDocumentProperties(LegacyCompoundFile compoundFile, LegacyXlsWorkbook workbook, LegacyXlsImportOptions options) {
+        internal static void AddDocumentProperties(OfficeCompoundFile compoundFile, LegacyXlsWorkbook workbook, LegacyXlsImportOptions options) {
             if (compoundFile == null) throw new ArgumentNullException(nameof(compoundFile));
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
             if (options == null) throw new ArgumentNullException(nameof(options));

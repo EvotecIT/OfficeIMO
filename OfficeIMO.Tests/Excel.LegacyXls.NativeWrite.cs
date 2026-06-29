@@ -18,6 +18,7 @@ using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Compound;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.LegacyXls.Write;
+using OfficeIMO.Shared;
 using System.Globalization;
 using System.Threading.Tasks;
 using Xunit;
@@ -87,8 +88,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(result.Workbook.Worksheets.Count > 0);
 
                 Assert.True(
-                    LegacyCompoundFileReader.TryRead(fileBytes, out LegacyCompoundFile? compoundFile, out var diagnostics),
-                    string.Join(Environment.NewLine, diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
+                    OfficeCompoundFileReader.TryRead(fileBytes, out OfficeCompoundFile? compoundFile, out string? error),
+                    error);
                 Assert.True(compoundFile!.Streams.TryGetValue("Workbook", out byte[]? workbookStream));
                 Assert.Equal(
                     checked((ulong)GetBiffContentLength(workbookStream!, expectedEndOfFileRecords: result.Workbook.Worksheets.Count + 1)),
@@ -4092,8 +4093,8 @@ namespace OfficeIMO.Tests {
         private static IReadOnlyList<byte[]> GetBiffRecordPayloads(string xlsPath, ushort recordType) {
             byte[] fileBytes = File.ReadAllBytes(xlsPath);
             Assert.True(
-                LegacyCompoundFileReader.TryRead(fileBytes, out LegacyCompoundFile? compoundFile, out var diagnostics),
-                string.Join(Environment.NewLine, diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
+                OfficeCompoundFileReader.TryRead(fileBytes, out OfficeCompoundFile? compoundFile, out string? error),
+                error);
             Assert.True(compoundFile!.Streams.TryGetValue("Workbook", out byte[]? workbookStream));
 
             var payloads = new List<byte[]>();
@@ -4121,8 +4122,8 @@ namespace OfficeIMO.Tests {
         private static void AssertBiffRecordOccursBefore(string xlsPath, ushort beforeRecordType, ushort afterRecordType) {
             byte[] fileBytes = File.ReadAllBytes(xlsPath);
             Assert.True(
-                LegacyCompoundFileReader.TryRead(fileBytes, out LegacyCompoundFile? compoundFile, out var diagnostics),
-                string.Join(Environment.NewLine, diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
+                OfficeCompoundFileReader.TryRead(fileBytes, out OfficeCompoundFile? compoundFile, out string? error),
+                error);
             Assert.True(compoundFile!.Streams.TryGetValue("Workbook", out byte[]? workbookStream));
 
             int beforeOffset = -1;

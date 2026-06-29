@@ -7,6 +7,7 @@ using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Compound;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Shared;
 using System.Globalization;
 using Xunit;
 
@@ -99,13 +100,11 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_Load_ReportsCorruptCompoundSectorChainsAsDiagnostics() {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateCompoundHeaderWithInvalidSectorChain();
 
-            bool result = LegacyCompoundFileReader.TryRead(compound, out LegacyCompoundFile? compoundFile, out List<LegacyXlsImportDiagnostic> diagnostics);
+            bool result = OfficeCompoundFileReader.TryRead(compound, out OfficeCompoundFile? compoundFile, out string? error);
 
             Assert.False(result);
             Assert.Null(compoundFile);
-            LegacyXlsImportDiagnostic diagnostic = Assert.Single(diagnostics);
-            Assert.Equal("XLS-COMPOUND-CORRUPT", diagnostic.Code);
-            Assert.Equal(LegacyXlsDiagnosticSeverity.Error, diagnostic.Severity);
+            Assert.Contains("could not be read", error);
         }
 
         [Fact]

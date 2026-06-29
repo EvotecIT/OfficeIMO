@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using OfficeIMO.Shared;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static class LegacyOlePropertySetWriter {
@@ -10,18 +11,18 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private static readonly Guid DocumentSummaryInformationFormatId = new Guid("D5CDD502-2E9C-101B-9397-08002B2CF9AE");
         private static readonly Guid UserDefinedPropertiesFormatId = new Guid("D5CDD505-2E9C-101B-9397-08002B2CF9AE");
 
-        internal static IReadOnlyList<LegacyXlsCompoundStream> CreateDocumentPropertyStreams(ExcelDocument document) {
+        internal static IReadOnlyList<OfficeCompoundStream> CreateDocumentPropertyStreams(ExcelDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
-            var streams = new List<LegacyXlsCompoundStream>(2);
+            var streams = new List<OfficeCompoundStream>(2);
             byte[]? summaryInformation = CreateSummaryInformation(document);
             if (summaryInformation != null) {
-                streams.Add(new LegacyXlsCompoundStream(SummaryInformationStreamName, summaryInformation));
+                streams.Add(new OfficeCompoundStream(SummaryInformationStreamName, summaryInformation));
             }
 
             byte[]? documentSummaryInformation = CreateDocumentSummaryInformation(document);
             if (documentSummaryInformation != null) {
-                streams.Add(new LegacyXlsCompoundStream(DocumentSummaryInformationStreamName, documentSummaryInformation));
+                streams.Add(new OfficeCompoundStream(DocumentSummaryInformationStreamName, documentSummaryInformation));
             }
 
             return streams;

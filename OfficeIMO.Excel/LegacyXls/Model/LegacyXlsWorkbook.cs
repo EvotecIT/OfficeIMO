@@ -2,6 +2,7 @@ using OfficeIMO.Excel.LegacyXls.Compound;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Projection;
+using OfficeIMO.Shared;
 
 namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
@@ -627,9 +628,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
             options ??= new LegacyXlsImportOptions();
-            if (!LegacyCompoundFileReader.TryRead(bytes, out LegacyCompoundFile? compoundFile, out var compoundDiagnostics)) {
+            if (!OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compoundFile, out string? compoundError)) {
                 var workbook = new LegacyXlsWorkbook();
-                workbook.MutableDiagnostics.AddRange(compoundDiagnostics);
+                if (!string.IsNullOrWhiteSpace(compoundError)) {
+                    workbook.MutableDiagnostics.Add(CreateCompoundDiagnostic(compoundError!));
+                }
+
                 if (workbook.MutableDiagnostics.Count == 0) {
                     workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Error,
@@ -663,6 +667,27 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyOleDocumentPropertyReader.AddDocumentProperties(compoundFile, parsedWorkbook, options);
             LegacyCompoundFeatureScanner.AddPreserveOnlyFeatures(compoundFile, parsedWorkbook, options);
             return parsedWorkbook;
+        }
+
+        private static LegacyXlsImportDiagnostic CreateCompoundDiagnostic(string message) {
+            if (message.IndexOf("signature", StringComparison.OrdinalIgnoreCase) >= 0) {
+                return new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Error,
+                    "XLS-COMPOUND-SIGNATURE",
+                    message);
+            }
+
+            if (message.IndexOf("sector sizes", StringComparison.OrdinalIgnoreCase) >= 0) {
+                return new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Error,
+                    "XLS-COMPOUND-SECTOR-SIZE",
+                    message);
+            }
+
+            return new LegacyXlsImportDiagnostic(
+                LegacyXlsDiagnosticSeverity.Error,
+                "XLS-COMPOUND-CORRUPT",
+                message);
         }
 
         /// <summary>
