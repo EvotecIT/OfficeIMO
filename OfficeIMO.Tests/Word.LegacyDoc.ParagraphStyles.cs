@@ -1,5 +1,6 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OpenMcdf;
 using Xunit;
 using Version = OpenMcdf.Version;
@@ -68,6 +69,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleFormattingFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleFormatting();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(
+                result.Document.Paragraphs,
+                item => item.Text == "Styled Custom Formatting");
+            Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
+            Assert.Equal("LegacyDocCustomFormattedBody", paragraph.StyleId);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == "LegacyDocCustomFormattedBody");
+
+            Assert.Equal("Custom Formatted Body", customStyle.StyleName?.Val?.Value);
+            Assert.Equal("Heading1", customStyle.BasedOn?.Val?.Value);
+            StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(customStyle.GetFirstChild<StyleParagraphProperties>());
+            Assert.Equal(JustificationValues.Center, paragraphProperties.GetFirstChild<Justification>()?.Val?.Value);
+            Assert.Equal("240", paragraphProperties.GetFirstChild<SpacingBetweenLines>()?.After?.Value);
+            Assert.Equal("720", paragraphProperties.GetFirstChild<Indentation>()?.Left?.Value);
+            StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.GetFirstChild<StyleRunProperties>());
+            Assert.NotNull(runProperties.GetFirstChild<Bold>());
+            Assert.Equal("28", runProperties.GetFirstChild<FontSize>()?.Val?.Value);
+            Assert.Equal("ff0000", runProperties.GetFirstChild<Color>()?.Val?.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphStylesAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -107,6 +138,12 @@ namespace OfficeIMO.Tests {
             private const int OleSectorSize = 512;
             private const int StyleSheetOffset = 64;
             private const ushort SprmPIstd = 0x4600;
+            private const ushort SprmPJc = 0x2461;
+            private const ushort SprmPDxaLeft = 0x840F;
+            private const ushort SprmPDyaAfter = 0xA414;
+            private const ushort SprmCFBold = 0x0835;
+            private const ushort SprmCIco = 0x2A42;
+            private const ushort SprmCHps = 0x4A43;
             private const ushort CustomStyleIndex = 10;
 
             internal static byte[] CreateDocWithHeadingStyles() {
@@ -127,6 +164,38 @@ namespace OfficeIMO.Tests {
                 const string text = "Styled Custom\rBody\r";
                 byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, string> {
                     [CustomStyleIndex] = "Custom Body"
+                });
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(CustomStyleIndex)
+                    },
+                    styleSheet.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateDocWithCustomParagraphStyleFormatting() {
+                const string text = "Styled Custom Formatting\rBody\r";
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
+                    [CustomStyleIndex] = new LegacyDocStyleDefinition(
+                        "Custom Formatted Body",
+                        basedOnStyleIndex: 1,
+                        paragraphUpx: CreateStyleParagraphUpx(
+                            CreateParagraphSprm(SprmPJc, 1),
+                            CreateParagraphSprm(SprmPDyaAfter, 0xF0, 0x00),
+                            CreateParagraphSprm(SprmPDxaLeft, 0xD0, 0x02)),
+                        characterUpx: CreateStyleCharacterUpx(
+                            CreateCharacterSprm(SprmCFBold, 1),
+                            CreateCharacterSprm(SprmCHps, 28, 0),
+                            CreateCharacterSprm(SprmCIco, 6)))
                 });
                 byte[] wordDocumentStream = CreateWordDocumentStream(
                     text,
@@ -218,7 +287,13 @@ namespace OfficeIMO.Tests {
             }
 
             private static byte[] CreateStyleSheet(IReadOnlyDictionary<ushort, string> styleNamesByIndex) {
-                ushort cstd = checked((ushort)(styleNamesByIndex.Keys.Max() + 1));
+                return CreateStyleSheet(styleNamesByIndex.ToDictionary(
+                    pair => pair.Key,
+                    pair => new LegacyDocStyleDefinition(pair.Value, basedOnStyleIndex: 0, paragraphUpx: null, characterUpx: null)));
+            }
+
+            private static byte[] CreateStyleSheet(IReadOnlyDictionary<ushort, LegacyDocStyleDefinition> stylesByIndex) {
+                ushort cstd = checked((ushort)(stylesByIndex.Keys.Max() + 1));
                 var bytes = new List<byte>();
                 WriteUInt16(bytes, 18);
                 WriteUInt16(bytes, cstd);
@@ -228,12 +303,12 @@ namespace OfficeIMO.Tests {
                 }
 
                 for (ushort index = 0; index < cstd; index++) {
-                    if (!styleNamesByIndex.TryGetValue(index, out string? name)) {
+                    if (!stylesByIndex.TryGetValue(index, out LegacyDocStyleDefinition? definition)) {
                         WriteUInt16(bytes, 0);
                         continue;
                     }
 
-                    byte[] std = CreateParagraphStyleDefinition(name);
+                    byte[] std = CreateParagraphStyleDefinition(definition);
                     WriteUInt16(bytes, checked((ushort)std.Length));
                     bytes.AddRange(std);
                     if (bytes.Count % 2 != 0) {
@@ -244,17 +319,23 @@ namespace OfficeIMO.Tests {
                 return bytes.ToArray();
             }
 
-            private static byte[] CreateParagraphStyleDefinition(string name) {
-                byte[] nameBytes = System.Text.Encoding.Unicode.GetBytes(name);
+            private static byte[] CreateParagraphStyleDefinition(LegacyDocStyleDefinition definition) {
+                byte[] nameBytes = System.Text.Encoding.Unicode.GetBytes(definition.Name);
                 var bytes = new List<byte>();
                 WriteUInt16(bytes, 0x0FFE);
-                WriteUInt16(bytes, 0x0001);
+                WriteUInt16(bytes, 0x0001 | (definition.BasedOnStyleIndex << 4));
+                int upxCount = (definition.ParagraphUpx == null && definition.CharacterUpx == null) ? 0 : 2;
+                WriteUInt16(bytes, upxCount);
                 WriteUInt16(bytes, 0);
                 WriteUInt16(bytes, 0);
-                WriteUInt16(bytes, 0);
-                WriteUInt16(bytes, checked((ushort)name.Length));
+                WriteUInt16(bytes, checked((ushort)definition.Name.Length));
                 bytes.AddRange(nameBytes);
                 WriteUInt16(bytes, 0);
+                if (definition.ParagraphUpx != null || definition.CharacterUpx != null) {
+                    WriteLengthPrefixedUpx(bytes, definition.ParagraphUpx ?? Array.Empty<byte>());
+                    WriteLengthPrefixedUpx(bytes, definition.CharacterUpx ?? Array.Empty<byte>());
+                }
+
                 return bytes.ToArray();
             }
 
@@ -317,6 +398,39 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            private static byte[] CreateStyleParagraphUpx(params byte[][] sprms) {
+                var bytes = new List<byte>();
+                foreach (byte[] sprm in sprms) {
+                    bytes.AddRange(sprm);
+                }
+
+                return bytes.ToArray();
+            }
+
+            private static byte[] CreateStyleCharacterUpx(params byte[][] sprms) {
+                var bytes = new List<byte>();
+                foreach (byte[] sprm in sprms) {
+                    bytes.AddRange(sprm);
+                }
+
+                return bytes.ToArray();
+            }
+
+            private static byte[] CreateCharacterSprm(ushort sprm, params byte[] operand) {
+                var bytes = new byte[2 + operand.Length];
+                WriteUInt16(bytes, 0, sprm);
+                Buffer.BlockCopy(operand, 0, bytes, 2, operand.Length);
+                return bytes;
+            }
+
+            private static void WriteLengthPrefixedUpx(List<byte> bytes, byte[] upx) {
+                WriteUInt16(bytes, checked((ushort)upx.Length));
+                bytes.AddRange(upx);
+                if (bytes.Count % 2 != 0) {
+                    bytes.Add(0);
+                }
+            }
+
             private static void WriteStream(RootStorage root, string name, byte[] bytes) {
                 using CfbStream stream = root.CreateStream(name);
                 stream.Write(bytes, 0, bytes.Length);
@@ -348,6 +462,23 @@ namespace OfficeIMO.Tests {
                 bytes[offset + 1] = (byte)(value >> 8);
                 bytes[offset + 2] = (byte)(value >> 16);
                 bytes[offset + 3] = (byte)(value >> 24);
+            }
+
+            private sealed class LegacyDocStyleDefinition {
+                internal LegacyDocStyleDefinition(string name, ushort basedOnStyleIndex, byte[]? paragraphUpx, byte[]? characterUpx) {
+                    Name = name;
+                    BasedOnStyleIndex = basedOnStyleIndex;
+                    ParagraphUpx = paragraphUpx;
+                    CharacterUpx = characterUpx;
+                }
+
+                internal string Name { get; }
+
+                internal ushort BasedOnStyleIndex { get; }
+
+                internal byte[]? ParagraphUpx { get; }
+
+                internal byte[]? CharacterUpx { get; }
             }
         }
     }

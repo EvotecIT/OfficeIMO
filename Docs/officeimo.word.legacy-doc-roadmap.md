@@ -233,9 +233,13 @@ just to reserve names.
     local style definitions.
   - [x] Validate stylesheet-defined custom paragraph style projection against a
     Word COM-generated legacy `.doc` in the opt-in desktop validation lane.
+  - [x] Project stylesheet base-style inheritance plus common style-level
+    paragraph/run formatting into custom DOCX style definitions, including
+    alignment, spacing, indentation, bold, size, and color, with both synthetic
+    and Word COM-generated legacy `.doc` proof.
   - [ ] Expand stylesheet projection to style inheritance and style-level
-    paragraph/run formatting once each mapping has a fixture and observable
-    OfficeIMO contract.
+    paragraph/run formatting beyond the first supported mapping set once each
+    additional mapping has a fixture and observable OfficeIMO contract.
 - [ ] Add common table projection after paragraph/run projection is stable.
   - [x] Project simple DOC cell/row marker tables into `WordTable` instances
     with plain cell text.

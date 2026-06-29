@@ -88,30 +88,43 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             ushort first = LegacyDocFib.ReadUInt16(bytes, offset);
             ushort second = LegacyDocFib.ReadUInt16(bytes, offset + 2);
+            ushort third = count >= 6 ? LegacyDocFib.ReadUInt16(bytes, offset + 4) : (ushort)0;
             ushort sti = (ushort)(first & 0x0FFF);
             ushort stk = (ushort)(second & 0x000F);
             if (stk != 1) {
                 return false;
             }
 
+            ushort baseStyleIndex = (ushort)(second >> 4);
+            ushort? basedOnStyleIndex = baseStyleIndex == 0x0FFF ? null : baseStyleIndex;
+            int upxCount = third & 0x000F;
             int nameOffset = offset + cbStdBaseInFile;
             int end = offset + count;
-            string? name = ReadXstz(bytes, nameOffset, end);
+            string? name = ReadXstz(bytes, nameOffset, end, out int upxOffset);
             if (string.IsNullOrWhiteSpace(name)) {
                 return false;
             }
 
+            ReadParagraphStyleFormatting(
+                bytes,
+                upxOffset,
+                end,
+                upxCount,
+                out LegacyDocParagraphFormat paragraphFormat,
+                out LegacyDocCharacterFormat characterFormat);
+
             if (TryMapBuiltInParagraphStyle(sti, name!, out WordParagraphStyles builtInStyle)) {
-                style = LegacyDocParagraphStyle.ForBuiltIn(styleIndex, name!, builtInStyle);
+                style = LegacyDocParagraphStyle.ForBuiltIn(styleIndex, name!, builtInStyle, basedOnStyleIndex, paragraphFormat, characterFormat);
                 return true;
             }
 
             string styleId = CreateCustomStyleId(name!, styleIndex, usedStyleIds);
-            style = LegacyDocParagraphStyle.ForCustom(styleIndex, name!, styleId);
+            style = LegacyDocParagraphStyle.ForCustom(styleIndex, name!, styleId, basedOnStyleIndex, paragraphFormat, characterFormat);
             return true;
         }
 
-        private static string? ReadXstz(byte[] bytes, int offset, int end) {
+        private static string? ReadXstz(byte[] bytes, int offset, int end, out int nextOffset) {
+            nextOffset = offset;
             if (offset + 2 <= end) {
                 int charCount = LegacyDocFib.ReadUInt16(bytes, offset);
                 int byteCount = charCount * 2;
@@ -121,6 +134,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     && terminatorOffset + 2 <= end
                     && bytes[terminatorOffset] == 0
                     && bytes[terminatorOffset + 1] == 0) {
+                    nextOffset = terminatorOffset + 2;
                     return Encoding.Unicode.GetString(bytes, textOffset, byteCount);
                 }
             }
@@ -134,11 +148,67 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     && terminatorOffset + 2 <= end
                     && bytes[terminatorOffset] == 0
                     && bytes[terminatorOffset + 1] == 0) {
+                    nextOffset = terminatorOffset + 2;
                     return Encoding.Unicode.GetString(bytes, textOffset, byteCount);
                 }
             }
 
             return null;
+        }
+
+        private static void ReadParagraphStyleFormatting(
+            byte[] bytes,
+            int offset,
+            int end,
+            int upxCount,
+            out LegacyDocParagraphFormat paragraphFormat,
+            out LegacyDocCharacterFormat characterFormat) {
+            paragraphFormat = LegacyDocParagraphFormat.Default;
+            characterFormat = LegacyDocCharacterFormat.Default;
+
+            for (int upxIndex = 0; upxIndex < upxCount && offset + 2 <= end; upxIndex++) {
+                int count = LegacyDocFib.ReadUInt16(bytes, offset);
+                offset += 2;
+                if (count <= 0 || offset + count > end) {
+                    break;
+                }
+
+                if (upxIndex == 0) {
+                    paragraphFormat = ReadStyleParagraphFormat(bytes, offset, count);
+                } else if (upxIndex == 1) {
+                    characterFormat = LegacyDocCharacterFormattingReader.ReadGrpprl(bytes, offset, count, Array.Empty<string>());
+                }
+
+                offset += count;
+                if ((offset & 1) != 0) {
+                    offset++;
+                }
+            }
+        }
+
+        private static LegacyDocParagraphFormat ReadStyleParagraphFormat(byte[] bytes, int offset, int count) {
+            if (count <= 0) {
+                return LegacyDocParagraphFormat.Default;
+            }
+
+            int grpprlOffset = offset;
+            int grpprlLength = count;
+            if (count >= 2 && bytes[offset] == 0 && bytes[offset + 1] > 0) {
+                int encodedLength = bytes[offset + 1] * 2;
+                if (encodedLength > 0 && encodedLength <= count - 2) {
+                    grpprlOffset = offset + 2;
+                    grpprlLength = encodedLength;
+                    if (grpprlLength >= 2) {
+                        grpprlOffset += 2;
+                        grpprlLength -= 2;
+                    }
+                }
+            } else if (count >= 2 && LegacyDocFib.ReadUInt16(bytes, offset) < 0x1000) {
+                grpprlOffset += 2;
+                grpprlLength -= 2;
+            }
+
+            return LegacyDocParagraphFormattingReader.ReadGrpprl(bytes, grpprlOffset, grpprlLength);
         }
 
         private static bool TryMapBuiltInParagraphStyle(ushort sti, string name, out WordParagraphStyles style) {
@@ -245,11 +315,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     }
 
     internal sealed class LegacyDocParagraphStyle {
-        private LegacyDocParagraphStyle(ushort index, string name, string? styleId, WordParagraphStyles? builtInStyle) {
+        private LegacyDocParagraphStyle(
+            ushort index,
+            string name,
+            string? styleId,
+            WordParagraphStyles? builtInStyle,
+            ushort? basedOnStyleIndex,
+            LegacyDocParagraphFormat paragraphFormat,
+            LegacyDocCharacterFormat characterFormat) {
             Index = index;
             Name = name;
             StyleId = styleId;
             BuiltInStyle = builtInStyle;
+            BasedOnStyleIndex = basedOnStyleIndex;
+            ParagraphFormat = paragraphFormat;
+            CharacterFormat = characterFormat;
         }
 
         internal ushort Index { get; }
@@ -260,12 +340,30 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal WordParagraphStyles? BuiltInStyle { get; }
 
-        internal static LegacyDocParagraphStyle ForBuiltIn(ushort index, string name, WordParagraphStyles style) {
-            return new LegacyDocParagraphStyle(index, name, null, style);
+        internal ushort? BasedOnStyleIndex { get; }
+
+        internal LegacyDocParagraphFormat ParagraphFormat { get; }
+
+        internal LegacyDocCharacterFormat CharacterFormat { get; }
+
+        internal static LegacyDocParagraphStyle ForBuiltIn(
+            ushort index,
+            string name,
+            WordParagraphStyles style,
+            ushort? basedOnStyleIndex,
+            LegacyDocParagraphFormat paragraphFormat,
+            LegacyDocCharacterFormat characterFormat) {
+            return new LegacyDocParagraphStyle(index, name, null, style, basedOnStyleIndex, paragraphFormat, characterFormat);
         }
 
-        internal static LegacyDocParagraphStyle ForCustom(ushort index, string name, string styleId) {
-            return new LegacyDocParagraphStyle(index, name, styleId, null);
+        internal static LegacyDocParagraphStyle ForCustom(
+            ushort index,
+            string name,
+            string styleId,
+            ushort? basedOnStyleIndex,
+            LegacyDocParagraphFormat paragraphFormat,
+            LegacyDocCharacterFormat characterFormat) {
+            return new LegacyDocParagraphStyle(index, name, styleId, null, basedOnStyleIndex, paragraphFormat, characterFormat);
         }
     }
 }

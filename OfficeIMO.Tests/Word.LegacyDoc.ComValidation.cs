@@ -97,6 +97,16 @@ namespace OfficeIMO.Tests {
             Assert.Contains(
                 converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.OfType<Style>(),
                 style => style.StyleId?.Value == "LegacyDocOfficeIMOCustomBody" && style.StyleName?.Val?.Value == "OfficeIMO Custom Body");
+            Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.OfType<Style>()
+                .First(style => style.StyleId?.Value == "LegacyDocOfficeIMOCustomBody");
+            Assert.Equal("Heading1", customStyle.BasedOn?.Val?.Value);
+            StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(customStyle.GetFirstChild<StyleParagraphProperties>());
+            Assert.Equal(JustificationValues.Center, paragraphProperties.GetFirstChild<Justification>()?.Val?.Value);
+            Assert.Equal("240", paragraphProperties.GetFirstChild<SpacingBetweenLines>()?.After?.Value);
+            StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.GetFirstChild<StyleRunProperties>());
+            Assert.NotNull(runProperties.GetFirstChild<Bold>());
+            Assert.Equal("28", runProperties.GetFirstChild<FontSize>()?.Val?.Value);
+            Assert.Equal("ff0000", runProperties.GetFirstChild<Color>()?.Val?.Value);
         }
 
         [Fact]
@@ -298,6 +308,21 @@ namespace OfficeIMO.Tests {
                 selection = GetComProperty(word, "Selection");
                 styles = GetComProperty(document!, "Styles");
                 customStyle = InvokeCom(styles!, "Add", "OfficeIMO Custom Body", WdStyleTypeParagraph);
+                SetComProperty(customStyle!, "BaseStyle", WdStyleHeading1);
+                object? paragraphFormat = null;
+                object? font = null;
+                try {
+                    paragraphFormat = GetComProperty(customStyle!, "ParagraphFormat");
+                    SetComProperty(paragraphFormat!, "Alignment", WdAlignParagraphCenter);
+                    SetComProperty(paragraphFormat!, "SpaceAfter", 12);
+                    font = GetComProperty(customStyle!, "Font");
+                    SetComProperty(font!, "Bold", 1);
+                    SetComProperty(font!, "Color", WdColorRed);
+                    SetComProperty(font!, "Size", 14);
+                } finally {
+                    ReleaseComObject(font);
+                    ReleaseComObject(paragraphFormat);
+                }
 
                 AddWordComParagraph(selection!, "Custom style Word COM paragraph", selectionItem => {
                     SetComProperty(selectionItem, "Style", "OfficeIMO Custom Body");

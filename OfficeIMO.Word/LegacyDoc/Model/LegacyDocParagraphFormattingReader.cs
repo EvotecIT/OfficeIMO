@@ -120,7 +120,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return ReadGrpprl(bytes, grpprlOffset + 2, grpprlLength - 2, styleIndex == 0 ? null : styleIndex);
         }
 
-        private static LegacyDocParagraphFormat ReadGrpprl(byte[] bytes, int offset, int count, ushort? baseStyleIndex) {
+        internal static LegacyDocParagraphFormat ReadGrpprl(byte[] bytes, int offset, int count, ushort? baseStyleIndex = null) {
             int end = offset + count;
             LegacyDocParagraphAlignment? alignment = null;
             int? spacingBeforeTwips = null;

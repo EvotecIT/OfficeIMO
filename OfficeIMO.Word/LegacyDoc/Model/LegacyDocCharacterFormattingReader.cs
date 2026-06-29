@@ -99,7 +99,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
-        private static LegacyDocCharacterFormat ReadGrpprl(byte[] bytes, int offset, int count, IReadOnlyList<string> fontFamilies) {
+        internal static LegacyDocCharacterFormat ReadGrpprl(byte[] bytes, int offset, int count, IReadOnlyList<string> fontFamilies) {
             int end = offset + count;
             bool bold = false;
             bool italic = false;

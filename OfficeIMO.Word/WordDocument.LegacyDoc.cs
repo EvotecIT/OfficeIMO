@@ -289,11 +289,145 @@ namespace OfficeIMO.Word {
 
                 var style = new Style { Type = StyleValues.Paragraph, StyleId = legacyStyle.StyleId, CustomStyle = true };
                 style.Append(new StyleName { Val = legacyStyle.Name });
-                style.Append(new BasedOn { Val = "Normal" });
+                style.Append(new BasedOn { Val = ResolveLegacyDocBasedOnStyleId(legacyStyle, styleSheet) });
+                StyleParagraphProperties? styleParagraphProperties = CreateLegacyDocStyleParagraphProperties(legacyStyle.ParagraphFormat);
+                if (styleParagraphProperties != null) {
+                    style.Append(styleParagraphProperties);
+                }
+
+                StyleRunProperties? styleRunProperties = CreateLegacyDocStyleRunProperties(legacyStyle.CharacterFormat);
+                if (styleRunProperties != null) {
+                    style.Append(styleRunProperties);
+                }
+
                 styles.Append(style);
             }
 
             styles.Save();
+        }
+
+        private static string ResolveLegacyDocBasedOnStyleId(LegacyDocParagraphStyle legacyStyle, LegacyDocStyleSheet styleSheet) {
+            if (legacyStyle.BasedOnStyleIndex != null
+                && legacyStyle.BasedOnStyleIndex.Value != legacyStyle.Index
+                && styleSheet.TryGetParagraphStyle(legacyStyle.BasedOnStyleIndex.Value, out LegacyDocParagraphStyle basedOnStyle)) {
+                if (basedOnStyle.BuiltInStyle != null) {
+                    return basedOnStyle.BuiltInStyle.Value.ToStringStyle();
+                }
+
+                if (!string.IsNullOrWhiteSpace(basedOnStyle.StyleId)) {
+                    return basedOnStyle.StyleId!;
+                }
+            }
+
+            if (legacyStyle.BasedOnStyleIndex != null
+                && TryMapBuiltInParagraphStyle(legacyStyle.BasedOnStyleIndex.Value, out WordParagraphStyles builtInStyle)) {
+                return builtInStyle.ToStringStyle();
+            }
+
+            return WordParagraphStyles.Normal.ToStringStyle();
+        }
+
+        private static StyleParagraphProperties? CreateLegacyDocStyleParagraphProperties(LegacyDocParagraphFormat paragraphFormat) {
+            var properties = new StyleParagraphProperties();
+            bool hasProperties = false;
+
+            if (paragraphFormat.Alignment != null && TryMapParagraphAlignment(paragraphFormat.Alignment.Value, out JustificationValues alignment)) {
+                properties.Append(new Justification { Val = alignment });
+                hasProperties = true;
+            }
+
+            SpacingBetweenLines? spacing = null;
+            if (paragraphFormat.SpacingBeforeTwips != null) {
+                spacing ??= new SpacingBetweenLines();
+                spacing.Before = paragraphFormat.SpacingBeforeTwips.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            if (paragraphFormat.SpacingAfterTwips != null) {
+                spacing ??= new SpacingBetweenLines();
+                spacing.After = paragraphFormat.SpacingAfterTwips.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            if (paragraphFormat.LineSpacingTwips != null) {
+                spacing ??= new SpacingBetweenLines();
+                spacing.Line = paragraphFormat.LineSpacingTwips.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                spacing.LineRule = LineSpacingRuleValues.AtLeast;
+            }
+
+            if (spacing != null) {
+                properties.Append(spacing);
+                hasProperties = true;
+            }
+
+            Indentation? indentation = null;
+            if (paragraphFormat.LeftIndentTwips != null) {
+                indentation ??= new Indentation();
+                indentation.Left = paragraphFormat.LeftIndentTwips.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            if (paragraphFormat.RightIndentTwips != null) {
+                indentation ??= new Indentation();
+                indentation.Right = paragraphFormat.RightIndentTwips.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            if (paragraphFormat.FirstLineIndentTwips != null) {
+                indentation ??= new Indentation();
+                if (paragraphFormat.FirstLineIndentTwips.Value < 0) {
+                    indentation.Hanging = (-paragraphFormat.FirstLineIndentTwips.Value).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                } else {
+                    indentation.FirstLine = paragraphFormat.FirstLineIndentTwips.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+            }
+
+            if (indentation != null) {
+                properties.Append(indentation);
+                hasProperties = true;
+            }
+
+            return hasProperties ? properties : null;
+        }
+
+        private static StyleRunProperties? CreateLegacyDocStyleRunProperties(LegacyDocCharacterFormat characterFormat) {
+            var properties = new StyleRunProperties();
+            bool hasProperties = false;
+
+            if (characterFormat.Bold) {
+                properties.Append(new Bold());
+                hasProperties = true;
+            }
+
+            if (characterFormat.Italic) {
+                properties.Append(new Italic());
+                hasProperties = true;
+            }
+
+            if (characterFormat.Underline != null && TryMapUnderline(characterFormat.Underline.Value, out UnderlineValues underline)) {
+                properties.Append(new Underline { Val = underline });
+                hasProperties = true;
+            }
+
+            if (characterFormat.FontSizeHalfPoints != null) {
+                string fontSize = characterFormat.FontSizeHalfPoints.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                properties.Append(new FontSize { Val = fontSize });
+                properties.Append(new FontSizeComplexScript { Val = fontSize });
+                hasProperties = true;
+            }
+
+            if (!string.IsNullOrEmpty(characterFormat.ColorHex)) {
+                properties.Append(new Color { Val = characterFormat.ColorHex! });
+                hasProperties = true;
+            }
+
+            if (!string.IsNullOrEmpty(characterFormat.FontFamily)) {
+                properties.Append(new RunFonts {
+                    Ascii = characterFormat.FontFamily,
+                    HighAnsi = characterFormat.FontFamily,
+                    ComplexScript = characterFormat.FontFamily,
+                    EastAsia = characterFormat.FontFamily
+                });
+                hasProperties = true;
+            }
+
+            return hasProperties ? properties : null;
         }
 
         private static bool TryMapBuiltInParagraphStyle(ushort styleIndex, out WordParagraphStyles style) {
