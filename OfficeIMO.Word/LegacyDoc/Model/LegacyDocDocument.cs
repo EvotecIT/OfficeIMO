@@ -151,6 +151,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile, LegacyDocFib fib) {
+            AddUnsupportedFibFlagFeatures(fib);
+
             AddUnsupportedCompoundEntryIfPresent(
                 compoundFile,
                 entry => entry.Path.StartsWith("_VBA_PROJECT_CUR", StringComparison.OrdinalIgnoreCase)
@@ -241,6 +243,30 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             AddUnsupportedFeature(new LegacyDocUnsupportedFeature(kind, code, description, entry.Path, detailCode));
+        }
+
+        private void AddUnsupportedFibFlagFeatures(LegacyDocFib fib) {
+            if (fib.IsFastSaved || fib.QuickSaveCount > 0) {
+                string detailCode = fib.IsFastSaved
+                    ? "Fib:FComplex"
+                    : "Fib:CQuickSaves";
+                string description = fib.IsFastSaved
+                    ? "The legacy DOC is marked as fast-saved or complex. Fast-save deltas are preserved in the source file but are not projected into the OfficeIMO document."
+                    : $"The legacy DOC reports {fib.QuickSaveCount} quick-save revision(s). Quick-save history is preserved in the source file but is not projected into the OfficeIMO document.";
+                AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
+                    LegacyDocUnsupportedFeatureKind.FastSave,
+                    "DOC-FAST-SAVE-PRESENT",
+                    description,
+                    detailCode: detailCode));
+            }
+
+            if (fib.HasPictures) {
+                AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
+                    LegacyDocUnsupportedFeatureKind.Picture,
+                    "DOC-PICTURES-PRESENT",
+                    "The legacy DOC FIB indicates picture payloads. Pictures are preserved in the source file but are not projected into the OfficeIMO document.",
+                    detailCode: "Fib:FHasPic"));
+            }
         }
 
         private void AddUnsupportedDataStreamFeatureIfPresent(OfficeCompoundFile compoundFile) {

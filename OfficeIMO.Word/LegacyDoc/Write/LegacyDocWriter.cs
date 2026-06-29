@@ -30,7 +30,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort FibRgLw97DwordCount = 0x0016;
         private const ushort FibRgFcLcb97Size = 0x00B7;
         private const ushort OneTableStreamFlag = 0x0200;
-        private const ushort QuickSaveCountMask = 0x00F0;
         private const ushort ExtendedCharacterFlag = 0x1000;
         private const int FcPlcfBtePapxOffset = 0x102;
         private const int LcbPlcfBtePapxOffset = 0x106;
@@ -208,7 +207,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteUInt16(stream, 0x00, WordDocumentMagic);
             WriteUInt16(stream, 0x02, Word97FibVersion);
             WriteUInt16(stream, 0x06, DefaultLanguageId);
-            WriteUInt16(stream, 0x0A, QuickSaveCountMask | OneTableStreamFlag | ExtendedCharacterFlag);
+            WriteUInt16(stream, 0x0A, OneTableStreamFlag | ExtendedCharacterFlag);
             WriteUInt16(stream, 0x0C, Word97FibBackVersion);
             WriteInt32(stream, 0x18, TextOffset);
             WriteInt32(stream, 0x1C, TextOffset + textBytes.Length);

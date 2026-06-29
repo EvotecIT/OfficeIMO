@@ -20,12 +20,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const int LcbSttbfFfnOffset = 0x116;
         private const int FcClxOffset = 0x1A2;
         private const int LcbClxOffset = 0x1A6;
+        private const ushort FastSavedFlag = 0x0004;
+        private const ushort HasPicturesFlag = 0x0008;
+        private const ushort QuickSaveCountMask = 0x00F0;
         private const ushort EncryptedFlag = 0x0100;
         private const ushort OneTableStreamFlag = 0x0200;
 
         private LegacyDocFib(
             ushort nFib,
             bool isEncrypted,
+            bool isFastSaved,
+            bool hasPictures,
+            int quickSaveCount,
             bool usesOneTableStream,
             int ccpText,
             int ccpFtn,
@@ -46,6 +52,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int lcbClx) {
             NFib = nFib;
             IsEncrypted = isEncrypted;
+            IsFastSaved = isFastSaved;
+            HasPictures = hasPictures;
+            QuickSaveCount = quickSaveCount;
             UsesOneTableStream = usesOneTableStream;
             CcpText = ccpText;
             CcpFtn = ccpFtn;
@@ -69,6 +78,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal ushort NFib { get; }
 
         internal bool IsEncrypted { get; }
+
+        internal bool IsFastSaved { get; }
+
+        internal bool HasPictures { get; }
+
+        internal int QuickSaveCount { get; }
 
         internal bool UsesOneTableStream { get; }
 
@@ -165,6 +180,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             fib = new LegacyDocFib(
                 nFib,
                 (flags & EncryptedFlag) != 0,
+                (flags & FastSavedFlag) != 0,
+                (flags & HasPicturesFlag) != 0,
+                (flags & QuickSaveCountMask) >> 4,
                 (flags & OneTableStreamFlag) != 0,
                 ccpText,
                 ccpFtn,

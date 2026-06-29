@@ -29,6 +29,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         BinaryData,
 
         /// <summary>
+        /// Fast-save or quick-save state was discovered in the FIB.
+        /// </summary>
+        FastSave,
+
+        /// <summary>
+        /// Picture payloads were indicated by the FIB.
+        /// </summary>
+        Picture,
+
+        /// <summary>
         /// Header or footer story text exists but is not projected yet.
         /// </summary>
         HeaderFooter,

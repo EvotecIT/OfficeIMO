@@ -412,6 +412,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsUnsupportedFastSaveAndPictureFibFlags() {
+            const ushort flags = 0x0200 | 0x0004 | 0x0008;
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFibFlags(flags, "Fast-saved body");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.Equal(2, result.UnsupportedFeatures.Count);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.FastSave]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.Picture]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-FAST-SAVE-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-PICTURES-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["FastSave|DOC-FAST-SAVE-PRESENT|Fib:FComplex"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["Picture|DOC-PICTURES-PRESENT|Fib:FHasPic"]);
+
+            string markdown = result.ImportReport.ToMarkdown();
+            Assert.Contains("| FastSave | DOC-FAST-SAVE-PRESENT | Fib:FComplex |  |", markdown);
+            Assert.Contains("| Picture | DOC-PICTURES-PRESENT | Fib:FHasPic |  |", markdown);
+        }
+
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsUnsupportedQuickSaveCountFibFlag() {
+            const ushort flags = 0x0200 | 0x0030;
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFibFlags(flags, "Quick-saved body");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures);
+            Assert.Equal(LegacyDocUnsupportedFeatureKind.FastSave, feature.Kind);
+            Assert.Equal("DOC-FAST-SAVE-PRESENT", feature.Code);
+            Assert.Equal("Fib:CQuickSaves", feature.DetailCode);
+            Assert.Contains("3 quick-save revision", feature.Description);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["FastSave|DOC-FAST-SAVE-PRESENT|Fib:CQuickSaves"]);
+
+            string markdown = result.ImportReport.ToMarkdown();
+            Assert.Contains("| FastSave | DOC-FAST-SAVE-PRESENT | Fib:CQuickSaves |  |", markdown);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsUnsupportedStoryCounts() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedStoryCounts("Body story");
 
@@ -488,6 +529,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
                 Assert.Equal(string.Empty, reloaded.FilePath);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 string[] paragraphs = reloaded.Paragraphs
                     .Select(paragraph => paragraph.Text)
                     .Where(text => !string.IsNullOrEmpty(text))
@@ -1165,6 +1207,20 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithFibFlags(ushort fibFlags, params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text, fibFlags: fibFlags);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithUnsupportedStoryCounts(params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
                 byte[] wordDocumentStream = CreateWordDocumentStream(
@@ -1283,14 +1339,15 @@ namespace OfficeIMO.Tests {
                 int ccpAtn = 0,
                 int ccpEdn = 0,
                 int ccpTxbx = 0,
-                int ccpHdrTxbx = 0) {
+                int ccpHdrTxbx = 0,
+                ushort fibFlags = 0x0200) {
                 const int fibLength = 0x1AA;
                 const int textOffset = 0x200;
                 byte[] textBytes = EncodeWindows1252(text);
                 var stream = new byte[textOffset + textBytes.Length];
                 WriteUInt16(stream, 0x00, 0xA5EC);
                 WriteUInt16(stream, 0x02, 0x00D9);
-                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteUInt16(stream, 0x0A, fibFlags);
                 WriteInt32(stream, 0x4C, text.Length);
                 WriteInt32(stream, 0x50, ccpFtn);
                 WriteInt32(stream, 0x54, ccpHdd);

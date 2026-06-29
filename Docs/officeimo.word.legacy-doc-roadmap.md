@@ -259,6 +259,8 @@ just to reserve names.
     before those features have a projection story.
   - [x] Report non-empty compound `Data` streams as binary payloads before
     pictures, drawings, form fields, or related payloads are projected.
+  - [x] Report FIB fast-save/quick-save and picture-present flags before those
+    preserve-only states have a projection or rewrite story.
 - [x] Add normal fixture folders under
   `OfficeIMO.Tests\Documents\LegacyDocCorpus` and
   keep `OfficeIMO.Tests\Documents\LegacyDocDiagnosticCorpus` for the first
@@ -300,6 +302,9 @@ just to reserve names.
     tab runs after legacy DOC reload.
   - [x] Project imported line/page break characters and native-written
     text-wrapping/page breaks as real Word break runs after legacy DOC reload.
+  - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
+    and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
+    flag diagnostics.
   - [x] Write simple body tables with one paragraph per cell and supported run
     content, then reload them as `WordTable` instances through the legacy reader.
   - [x] Preserve supported paragraph formatting inside simple native-written
