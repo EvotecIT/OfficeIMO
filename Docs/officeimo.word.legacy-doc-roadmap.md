@@ -342,8 +342,9 @@ just to reserve names.
   - [x] Block multi-paragraph table cells before native `.doc` bytes are
     committed until TAP-backed table parsing can disambiguate table-internal
     paragraph marks from normal paragraphs before a table.
-  - [x] Write simple final-section page size, orientation, and margins, then
-    reload them through the legacy reader.
+  - [x] Write simple final-section page size, orientation, margins,
+    header/footer distance, and gutter, then reload them through the legacy
+    reader.
   - [x] Keep blocking unsupported final-section properties before native `.doc`
     bytes are committed so unimplemented section features are not silently
     dropped.

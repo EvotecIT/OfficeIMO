@@ -1119,6 +1119,9 @@ namespace OfficeIMO.Tests {
                     document.PageSettings.PageSize = WordPageSize.Letter;
                     document.PageOrientation = PageOrientationValues.Landscape;
                     document.Sections[0].SetMargins(WordMargin.Narrow);
+                    document.Margins.HeaderDistance = (DocumentFormat.OpenXml.UInt32Value)540U;
+                    document.Margins.FooterDistance = (DocumentFormat.OpenXml.UInt32Value)900U;
+                    document.Margins.Gutter = (DocumentFormat.OpenXml.UInt32Value)360U;
 
                     document.Save(docPath);
                 }
@@ -1134,6 +1137,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal((uint)720, reloaded.Margins.Right.Value);
                 Assert.Equal(720, reloaded.Margins.Bottom);
                 Assert.Equal((uint)720, reloaded.Margins.Left.Value);
+                Assert.Equal((uint)540, reloaded.Margins.HeaderDistance.Value);
+                Assert.Equal((uint)900, reloaded.Margins.FooterDistance.Value);
+                Assert.Equal((uint)360, reloaded.Margins.Gutter.Value);
             } finally {
                 DeleteIfExists(docPath);
             }
