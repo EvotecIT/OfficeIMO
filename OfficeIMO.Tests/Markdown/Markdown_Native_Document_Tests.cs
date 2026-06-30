@@ -638,6 +638,36 @@ Second: Other
         }
     }
 
+    [Fact]
+    public void Source_Slice_Helpers_Expose_Original_Definition_Body_Text_For_Native_Field() {
+        const string markdown = "Term\r\n:   First\r\n\r\n    - item\r\nlazy continuation\r\n";
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        options.DefinitionLists = true;
+        options.PreserveTrivia = true;
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+
+        Assert.Equal("First\n\n- item\n  lazy continuation", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 17), definitionBody.SourceSpan);
+
+        Assert.True(native.TryCreateSourceSlice(definitionBody, out var normalizedSlice));
+        Assert.Equal(MarkdownSourceTextKind.Normalized, normalizedSlice.TextKind);
+        Assert.Equal("First\n\n    - item\nlazy continuation", normalizedSlice.Text);
+
+        Assert.True(native.TryCreateOriginalSourceSlice(definitionBody, out var originalSlice));
+        Assert.Equal(MarkdownSourceTextKind.Original, originalSlice.TextKind);
+        Assert.Equal("First\r\n\r\n    - item\r\nlazy continuation", originalSlice.Text);
+
+        var noTriviaOptions = MarkdownReaderOptions.CreateCommonMarkProfile();
+        noTriviaOptions.DefinitionLists = true;
+        var noTriviaNative = MarkdownNativeDocument.Parse(markdown, noTriviaOptions);
+        var noTriviaDefinitionBody = Assert.Single(noTriviaNative.EnumerateBlockSourceFields("definitionBody"));
+
+        Assert.True(noTriviaNative.TryCreateSourceSlice(noTriviaDefinitionBody, out _));
+        Assert.False(noTriviaNative.TryCreateOriginalSourceSlice(noTriviaDefinitionBody, out _));
+    }
+
     [Theory]
     [InlineData("**Term**: Intro\n\n  - first\n", "**Term**: Updated\n  - second\n")]
     [InlineData("Term\n:   Intro\n    - first\n", "Term\n:   Updated\n    - second\n")]

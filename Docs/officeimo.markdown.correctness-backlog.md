@@ -355,6 +355,7 @@ Current coverage:
 - source-edit roundtrip coverage now includes replacing nested emphasis inline content in preserved original markdown while retaining surrounding formatting markers and CRLF trivia
 - syntax-backed parse results can materialize normalized source slices for span-backed nodes
 - `MarkdownReaderOptions.PreserveTrivia` retains raw reader input as parse-result metadata while keeping existing source spans tied to normalized markdown, and line-ending-equivalent original input, including CRLF and standalone CR, can now materialize original source slices through line/column coordinates
+- native block source fields can now materialize normalized or original source slices directly through `MarkdownNativeDocument`, keeping semantic field values such as definition-list bodies normalized while still exposing the author's exact source text when trivia was preserved
 - multiline setext heading text and underline token edits can be applied back to preserved original CRLF input through `MarkdownNativeDocument` while preserving surrounding trivia
 - `MarkdownRoundtripWriter.WriteUnchanged` returns the captured original markdown byte-for-byte for unchanged parse results and reports diagnostics when it falls back to generated markdown
 - `MarkdownRoundtripWriter.WriteWithSourceEdit` and `WriteWithSourceEdits` apply explicit native source edits to preserved original markdown when each edit can be remapped safely, and fall back to normalized markdown with diagnostics when they cannot
