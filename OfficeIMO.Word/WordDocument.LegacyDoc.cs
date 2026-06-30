@@ -825,13 +825,24 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            ReplaceLegacyDocNoteParagraphRuns(noteParagraphs[0], footnote.ParagraphRuns[0], keepNoteReferenceMark: true, LegacyDocNoteProjection.Empty);
+            ReplaceLegacyDocNoteParagraphRuns(
+                noteParagraphs[0],
+                footnote.ParagraphRuns[0],
+                keepNoteReferenceMark: true,
+                LegacyDocNoteProjection.Empty,
+                LegacyDocBookmarkProjection.Create(footnote.ParagraphRuns[0].Bookmarks, footnote.ParagraphRuns[0].StartCharacter, footnote.ParagraphRuns[0].EndCharacter));
             ApplyLegacyDocParagraphFormatting(noteParagraphs[0], footnote.ParagraphRuns[0].Format, styleSheet);
             WordParagraph lastParagraph = noteParagraphs[0];
             for (int index = 1; index < footnote.ParagraphRuns.Count; index++) {
-                lastParagraph = lastParagraph.AddParagraph(footnote.ParagraphRuns[index].Text);
-                ReplaceLegacyDocNoteParagraphRuns(lastParagraph, footnote.ParagraphRuns[index], keepNoteReferenceMark: false, LegacyDocNoteProjection.Empty);
-                ApplyLegacyDocParagraphFormatting(lastParagraph, footnote.ParagraphRuns[index].Format, styleSheet);
+                LegacyDocNoteParagraph sourceParagraph = footnote.ParagraphRuns[index];
+                lastParagraph = lastParagraph.AddParagraph(sourceParagraph.Bookmarks.Count == 0 ? sourceParagraph.Text : string.Empty);
+                ReplaceLegacyDocNoteParagraphRuns(
+                    lastParagraph,
+                    sourceParagraph,
+                    keepNoteReferenceMark: false,
+                    LegacyDocNoteProjection.Empty,
+                    LegacyDocBookmarkProjection.Create(sourceParagraph.Bookmarks, sourceParagraph.StartCharacter, sourceParagraph.EndCharacter));
+                ApplyLegacyDocParagraphFormatting(lastParagraph, sourceParagraph.Format, styleSheet);
             }
         }
 
@@ -846,17 +857,32 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            ReplaceLegacyDocNoteParagraphRuns(noteParagraphs[0], endnote.ParagraphRuns[0], keepNoteReferenceMark: true, LegacyDocNoteProjection.Empty);
+            ReplaceLegacyDocNoteParagraphRuns(
+                noteParagraphs[0],
+                endnote.ParagraphRuns[0],
+                keepNoteReferenceMark: true,
+                LegacyDocNoteProjection.Empty,
+                LegacyDocBookmarkProjection.Create(endnote.ParagraphRuns[0].Bookmarks, endnote.ParagraphRuns[0].StartCharacter, endnote.ParagraphRuns[0].EndCharacter));
             ApplyLegacyDocParagraphFormatting(noteParagraphs[0], endnote.ParagraphRuns[0].Format, styleSheet);
             WordParagraph lastParagraph = noteParagraphs[0];
             for (int index = 1; index < endnote.ParagraphRuns.Count; index++) {
-                lastParagraph = lastParagraph.AddParagraph(endnote.ParagraphRuns[index].Text);
-                ReplaceLegacyDocNoteParagraphRuns(lastParagraph, endnote.ParagraphRuns[index], keepNoteReferenceMark: false, LegacyDocNoteProjection.Empty);
-                ApplyLegacyDocParagraphFormatting(lastParagraph, endnote.ParagraphRuns[index].Format, styleSheet);
+                LegacyDocNoteParagraph sourceParagraph = endnote.ParagraphRuns[index];
+                lastParagraph = lastParagraph.AddParagraph(sourceParagraph.Bookmarks.Count == 0 ? sourceParagraph.Text : string.Empty);
+                ReplaceLegacyDocNoteParagraphRuns(
+                    lastParagraph,
+                    sourceParagraph,
+                    keepNoteReferenceMark: false,
+                    LegacyDocNoteProjection.Empty,
+                    LegacyDocBookmarkProjection.Create(sourceParagraph.Bookmarks, sourceParagraph.StartCharacter, sourceParagraph.EndCharacter));
+                ApplyLegacyDocParagraphFormatting(lastParagraph, sourceParagraph.Format, styleSheet);
             }
         }
 
         private static void ReplaceLegacyDocNoteParagraphRuns(WordParagraph target, LegacyDocNoteParagraph source, bool keepNoteReferenceMark, LegacyDocNoteProjection notes) {
+            ReplaceLegacyDocNoteParagraphRuns(target, source, keepNoteReferenceMark, notes, LegacyDocBookmarkProjection.Empty);
+        }
+
+        private static void ReplaceLegacyDocNoteParagraphRuns(WordParagraph target, LegacyDocNoteParagraph source, bool keepNoteReferenceMark, LegacyDocNoteProjection notes, LegacyDocBookmarkProjection bookmarks) {
             foreach (Run run in target._paragraph.Elements<Run>().ToArray()) {
                 if (keepNoteReferenceMark && ContainsLegacyDocNoteReferenceMark(run)) {
                     continue;
@@ -865,7 +891,9 @@ namespace OfficeIMO.Word {
                 run.Remove();
             }
 
-            AddLegacyDocRuns(new WordParagraph(target._document, target._paragraph, newRun: false), source.Runs, notes);
+            WordParagraph paragraph = new WordParagraph(target._document, target._paragraph, newRun: false);
+            AddLegacyDocRuns(paragraph, source.Runs, notes, bookmarks);
+            bookmarks.EmitRemaining(paragraph._paragraph);
         }
 
         private static void ReplaceLegacyDocParagraphRuns(WordParagraph target, IReadOnlyList<LegacyDocTextRun> sourceRuns, LegacyDocNoteProjection notes) {

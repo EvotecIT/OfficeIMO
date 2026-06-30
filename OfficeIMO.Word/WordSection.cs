@@ -303,7 +303,27 @@ namespace OfficeIMO.Word {
                 AddBookmarksFromHeaderFooter(Footer.First, list);
                 AddBookmarksFromHeaderFooter(Footer.Even, list);
 
+                foreach (var footnote in FootNotes) {
+                    AddBookmarksFromParagraphs(footnote.Paragraphs, list);
+                }
+
+                foreach (var endnote in EndNotes) {
+                    AddBookmarksFromParagraphs(endnote.Paragraphs, list);
+                }
+
                 return list;
+            }
+        }
+
+        private static void AddBookmarksFromParagraphs(IEnumerable<WordParagraph>? paragraphs, List<WordBookmark> list) {
+            if (paragraphs == null) {
+                return;
+            }
+
+            foreach (var paragraph in paragraphs.Where(p => p.IsBookmark)) {
+                if (paragraph.Bookmark != null) {
+                    list.Add(paragraph.Bookmark);
+                }
             }
         }
 
@@ -312,11 +332,7 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            foreach (var paragraph in headerFooter.Paragraphs.Where(p => p.IsBookmark)) {
-                if (paragraph.Bookmark != null) {
-                    list.Add(paragraph.Bookmark);
-                }
-            }
+            AddBookmarksFromParagraphs(headerFooter.Paragraphs, list);
 
             foreach (var table in headerFooter.Tables) {
                 AddBookmarksFromTable(table, list);

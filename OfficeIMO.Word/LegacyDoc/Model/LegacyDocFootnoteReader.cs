@@ -38,6 +38,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocFib fib,
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
+            LegacyDocBookmarkProjectionTracker bookmarkProjection,
             out string? warning) {
             warning = null;
             if (fib.CcpFtn == 0) {
@@ -73,7 +74,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     footnoteBaseCharacterPosition + startCharacter,
                     footnoteBaseCharacterPosition + endCharacter,
                     formattingRanges,
-                    paragraphFormattingRanges);
+                    paragraphFormattingRanges,
+                    bookmarkProjection);
                 if (paragraphs.Count == 0) {
                     continue;
                 }
@@ -90,6 +92,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocFib fib,
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
+            LegacyDocBookmarkProjectionTracker bookmarkProjection,
             out string? warning) {
             warning = null;
             if (fib.CcpEdn == 0) {
@@ -125,7 +128,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     endnoteBaseCharacterPosition + startCharacter,
                     endnoteBaseCharacterPosition + endCharacter,
                     formattingRanges,
-                    paragraphFormattingRanges);
+                    paragraphFormattingRanges,
+                    bookmarkProjection);
                 if (paragraphs.Count == 0) {
                     continue;
                 }
@@ -243,7 +247,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int startCharacter,
             int endCharacter,
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
-            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges) {
+            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
+            LegacyDocBookmarkProjectionTracker bookmarkProjection) {
             if (endCharacter <= startCharacter) {
                 return Array.Empty<LegacyDocNoteParagraph>();
             }
@@ -258,6 +263,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool isFirstParagraph = true;
             bool atParagraphStart = true;
             bool skipOptionalReferenceSpace = false;
+            int currentParagraphStartCharacter = startCharacter;
 
             LegacyDocTextCharacter[] storyCharacters = characters
                 .Where(character => character.CharacterPosition >= startCharacter && character.CharacterPosition < endCharacter)
@@ -303,10 +309,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 atParagraphStart = false;
                 if (normalized == '\r') {
-                    AddCurrentParagraph(GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset));
+                    AddCurrentParagraph(GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset), character.CharacterPosition);
                     isFirstParagraph = false;
                     atParagraphStart = true;
                     skipOptionalReferenceSpace = false;
+                    currentParagraphStartCharacter = character.CharacterPosition + 1;
                     continue;
                 }
 
@@ -321,7 +328,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     default);
             }
 
-            AddCurrentParagraph(LegacyDocParagraphFormat.Default);
+            AddCurrentParagraph(LegacyDocParagraphFormat.Default, endCharacter);
             return paragraphs;
 
             void AppendRunCharacter(char value, LegacyDocCharacterFormat format, int characterPosition, LegacyDocHyperlinkTarget hyperlinkTarget) {
@@ -338,10 +345,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 runCharacterPositions.Add(characterPosition);
             }
 
-            void AddCurrentParagraph(LegacyDocParagraphFormat format) {
+            void AddCurrentParagraph(LegacyDocParagraphFormat format, int paragraphEndCharacter) {
                 FlushRun();
                 if (currentRuns.Count > 0) {
-                    paragraphs.Add(new LegacyDocNoteParagraph(currentRuns.ToArray(), format));
+                    paragraphs.Add(new LegacyDocNoteParagraph(
+                        currentRuns.ToArray(),
+                        format,
+                        currentParagraphStartCharacter,
+                        paragraphEndCharacter,
+                        bookmarkProjection.ExtractProjectedParagraphBookmarks(currentParagraphStartCharacter, paragraphEndCharacter)));
                     currentRuns.Clear();
                 }
 

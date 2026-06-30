@@ -51,6 +51,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var builder = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
+            var bookmarks = new LegacyDocWritableBookmarksBuilder();
             builder.Append(LegacyDocFootnoteReader.FootnoteReferenceCharacter);
             builder.Append(' ');
             bool hasBodyText = false;
@@ -59,7 +60,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Paragraph paragraph:
                         int paragraphStart = isFirstParagraph ? 0 : builder.Length;
-                        LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleFootnoteParagraph(paragraph, id, runs, builder.Length, isFirstParagraph, relationshipOwner, out string paragraphText);
+                        LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleFootnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, out string paragraphText);
                         if (!string.IsNullOrEmpty(paragraphText)) {
                             hasBodyText = true;
                         }
@@ -82,10 +83,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             builder.Append('\r');
-            return new LegacyDocWritableNoteStory(builder.ToString(), runs, formattedParagraphs);
+            return new LegacyDocWritableNoteStory(builder.ToString(), runs, formattedParagraphs, bookmarks.Create());
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSimpleFootnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, int storyStart, bool isFirstParagraph, FootnotesPart relationshipOwner, out string paragraphText) {
+        private static LegacyDocWritableParagraphFormatting ReadSimpleFootnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, FootnotesPart relationshipOwner, out string paragraphText) {
             var builder = new StringBuilder();
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph.ParagraphProperties, id, "footnote", FootnoteParagraphStyleIndexes);
             if (isFirstParagraph && paragraphFormatting.HasFormatting && paragraphFormatting.StyleIndex == null) {
@@ -102,8 +103,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Hyperlink hyperlink:
                         AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "footnote", storyStart);
                         break;
+                    case BookmarkStart bookmarkStart:
+                        bookmarks.AddStart(bookmarkStart, storyStart + builder.Length);
+                        break;
+                    case BookmarkEnd bookmarkEnd:
+                        bookmarks.AddEnd(bookmarkEnd, storyStart + builder.Length);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only with text runs and simple hyperlinks. Unsupported footnote paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only with text runs, bookmarks, and simple hyperlinks. Unsupported footnote paragraph element: {child.LocalName}.");
                 }
             }
 
@@ -288,6 +295,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 var text = new StringBuilder();
                 var runs = new List<LegacyDocWritableRun>();
                 var paragraphs = new List<LegacyDocWritableParagraph>();
+                var bookmarks = new LegacyDocWritableBookmarksBuilder();
                 var textPositions = new List<int>(_references.Count + 2);
                 var markerPositions = new List<int>(_references.Count);
                 for (int index = 0; index < _references.Count; index++) {
@@ -303,6 +311,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         paragraphs.Add(new LegacyDocWritableParagraph(text.Length + paragraph.StartCharacter, paragraph.Length, paragraph.Formatting));
                     }
 
+                    bookmarks.AddRange(story.Bookmarks, text.Length);
                     text.Append(story.Text);
                 }
 
@@ -314,7 +323,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     CreateFootnoteTextPlc(textPositions),
                     markerPositions,
                     runs,
-                    paragraphs);
+                    paragraphs,
+                    bookmarks.Create());
             }
 
             private static byte[] CreateFootnoteReferencePlc(IReadOnlyList<LegacyDocWritableFootnoteReference> references, int terminalCharacterPosition) {
@@ -353,15 +363,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableFootnoteStories {
-            internal static readonly LegacyDocWritableFootnoteStories Empty = new LegacyDocWritableFootnoteStories(string.Empty, Array.Empty<byte>(), Array.Empty<byte>(), Array.Empty<int>(), Array.Empty<LegacyDocWritableRun>(), Array.Empty<LegacyDocWritableParagraph>());
+            internal static readonly LegacyDocWritableFootnoteStories Empty = new LegacyDocWritableFootnoteStories(string.Empty, Array.Empty<byte>(), Array.Empty<byte>(), Array.Empty<int>(), Array.Empty<LegacyDocWritableRun>(), Array.Empty<LegacyDocWritableParagraph>(), LegacyDocWritableBookmarks.Empty);
 
-            internal LegacyDocWritableFootnoteStories(string text, byte[] plcffndRef, byte[] plcffndTxt, IReadOnlyList<int> markerPositions, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs) {
+            internal LegacyDocWritableFootnoteStories(string text, byte[] plcffndRef, byte[] plcffndTxt, IReadOnlyList<int> markerPositions, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs, LegacyDocWritableBookmarks bookmarks) {
                 Text = text;
                 PlcffndRef = plcffndRef;
                 PlcffndTxt = plcffndTxt;
                 MarkerPositions = markerPositions;
                 FormattedRuns = formattedRuns;
                 FormattedParagraphs = formattedParagraphs;
+                Bookmarks = bookmarks;
             }
 
             internal string Text { get; }
@@ -375,13 +386,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal IReadOnlyList<LegacyDocWritableRun> FormattedRuns { get; }
 
             internal IReadOnlyList<LegacyDocWritableParagraph> FormattedParagraphs { get; }
+
+            internal LegacyDocWritableBookmarks Bookmarks { get; }
         }
 
         private readonly struct LegacyDocWritableNoteStory {
-            internal LegacyDocWritableNoteStory(string text, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs) {
+            internal LegacyDocWritableNoteStory(string text, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs, LegacyDocWritableBookmarks bookmarks) {
                 Text = text;
                 FormattedRuns = formattedRuns;
                 FormattedParagraphs = formattedParagraphs;
+                Bookmarks = bookmarks;
             }
 
             internal string Text { get; }
@@ -389,6 +403,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal IReadOnlyList<LegacyDocWritableRun> FormattedRuns { get; }
 
             internal IReadOnlyList<LegacyDocWritableParagraph> FormattedParagraphs { get; }
+
+            internal LegacyDocWritableBookmarks Bookmarks { get; }
         }
 
         private static void AppendFormattedNoteText(

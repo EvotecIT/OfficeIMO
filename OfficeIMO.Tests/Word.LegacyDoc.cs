@@ -1271,6 +1271,23 @@ namespace OfficeIMO.Tests {
             return string.Concat(hyperlink.Descendants<Text>().Select(text => text.Text));
         }
 
+        private static void AssertNoteBookmarkContent(WordParagraph paragraph, string bookmarkName, string expectedText) {
+            OpenXmlElement[] content = paragraph._paragraph.ChildElements
+                .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
+                .ToArray();
+            Assert.Equal(3, content.Length);
+            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(content[0]);
+            Assert.Equal(bookmarkName, bookmarkStart.Name?.Value);
+            Assert.Equal(expectedText, Assert.IsType<Text>(Assert.IsType<Run>(content[1]).FirstChild).Text);
+            BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(content[2]);
+            Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+        }
+
+        private static bool ContainsNoteReferenceMark(OpenXmlElement element) {
+            return element.Descendants<FootnoteReferenceMark>().Any()
+                || element.Descendants<EndnoteReferenceMark>().Any();
+        }
+
         private static void AssertFormattedHeaderFooterRuns(IReadOnlyList<WordParagraph> paragraphs) {
             WordParagraph[] runs = paragraphs.Where(paragraph => paragraph.Text.Length > 0).ToArray();
             Assert.Equal(3, runs.Length);
@@ -2241,6 +2258,56 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("mailto:endnote@example.org", endnoteLink.Uri?.ToString());
                 Break endnoteBreak = Assert.Single(endnoteLink._hyperlink.Descendants<Break>());
                 Assert.Null(endnoteBreak.Type);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocNoteBookmarkRangesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Body with bookmarked notes");
+
+                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
+                    footnoteBody._paragraph.RemoveAllChildren<Run>();
+                    footnoteBody._paragraph.Append(
+                        new BookmarkStart { Id = "71", Name = "FootnoteBookmark" },
+                        new Run(new Text("FootnoteMarked") { Space = SpaceProcessingModeValues.Preserve }),
+                        new BookmarkEnd { Id = "71" });
+
+                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
+                    endnoteBody._paragraph.RemoveAllChildren<Run>();
+                    endnoteBody._paragraph.Append(
+                        new BookmarkStart { Id = "72", Name = "EndnoteBookmark" },
+                        new Run(new Text("EndnoteMarked") { Space = SpaceProcessingModeValues.Preserve }),
+                        new BookmarkEnd { Id = "72" });
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "FootnoteBookmark");
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "EndnoteBookmark");
+
+                WordParagraph reloadedFootnoteParagraph = Assert.Single(
+                    Assert.Single(reloaded.FootNotes).Paragraphs!,
+                    paragraph => paragraph.Bookmark?.Name == "FootnoteBookmark");
+                Assert.Equal("FootnoteMarked", reloadedFootnoteParagraph._paragraph.InnerText);
+                AssertNoteBookmarkContent(reloadedFootnoteParagraph, "FootnoteBookmark", "FootnoteMarked");
+
+                WordParagraph reloadedEndnoteParagraph = Assert.Single(
+                    Assert.Single(reloaded.EndNotes).Paragraphs!,
+                    paragraph => paragraph.Bookmark?.Name == "EndnoteBookmark");
+                Assert.Equal("EndnoteMarked", reloadedEndnoteParagraph._paragraph.InnerText);
+                AssertNoteBookmarkContent(reloadedEndnoteParagraph, "EndnoteBookmark", "EndnoteMarked");
             } finally {
                 DeleteIfExists(docPath);
             }

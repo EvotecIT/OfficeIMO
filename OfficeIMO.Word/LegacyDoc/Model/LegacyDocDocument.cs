@@ -183,12 +183,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             AddUnsupportedParagraphFormattingFeaturesIfPresent(paragraphFormattingRanges, options.ReportUnsupportedFeatures);
 
             Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges, Sections, bookmarkProjection, options.ReportUnsupportedFeatures);
-            Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, out string? footnoteWarning);
+            Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, out string? footnoteWarning);
             if (footnoteWarning != null) {
                 AddWarning("DOC-FOOTNOTE-PLC-INVALID", footnoteWarning);
             }
 
-            Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, out string? endnoteWarning);
+            Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, out string? endnoteWarning);
             if (endnoteWarning != null) {
                 AddWarning("DOC-ENDNOTE-PLC-INVALID", endnoteWarning);
             }
@@ -486,7 +486,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
                 LegacyDocUnsupportedFeatureKind.Bookmark,
                 "DOC-BOOKMARK-RANGE-PRESENT",
-                $"The legacy DOC contains bookmark '{bookmark.Name}' at character range {bookmark.StartCharacter}-{bookmark.EndCharacter} outside the currently supported body, table-cell, and header/footer paragraph bookmark projection. The bookmark is preserved in the source file but is not projected into the OfficeIMO document.",
+                $"The legacy DOC contains bookmark '{bookmark.Name}' at character range {bookmark.StartCharacter}-{bookmark.EndCharacter} outside the currently supported body, table-cell, header/footer, footnote, and endnote paragraph bookmark projection. The bookmark is preserved in the source file but is not projected into the OfficeIMO document.",
                 detailCode: "Fib:PlcfBkf"));
         }
 

@@ -197,8 +197,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableHeaderFooterStories headerFooterStories = BuildHeaderFooterStories(document, mainPart!, hasNoteReferences, styleSheet.StyleIndexes);
             int terminalCharacterPadding = hasNoteReferences ? 1 : 0;
             LegacyDocWritableFootnoteStories footnoteStories = footnotes.CreateStories(text.Length, headerFooterStories.Text.Length, terminalCharacterPadding);
+            bookmarks.AddRange(footnoteStories.Bookmarks, text.Length);
             bookmarks.AddRange(headerFooterStories.Bookmarks, text.Length + footnoteStories.Text.Length);
             LegacyDocWritableEndnoteStories endnoteStories = endnotes.CreateStories(text.Length, footnoteStories.Text.Length, headerFooterStories.Text.Length, terminalCharacterPadding);
+            bookmarks.AddRange(endnoteStories.Bookmarks, text.Length + footnoteStories.Text.Length + headerFooterStories.Text.Length);
             return new LegacyDocWritableBody(text.ToString(), runs, paragraphFormats, bookmarks.Create(), sections, styleSheet, footnoteStories, endnoteStories, headerFooterStories, HasEvenAndOddHeaders(mainPart!), ReadDocumentEndnotePosition(sections));
         }
 

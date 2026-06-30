@@ -39,6 +39,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var builder = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
+            var bookmarks = new LegacyDocWritableBookmarksBuilder();
             builder.Append(LegacyDocFootnoteReader.FootnoteReferenceCharacter);
             builder.Append(' ');
             bool hasBodyText = false;
@@ -47,7 +48,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Paragraph paragraph:
                         int paragraphStart = isFirstParagraph ? 0 : builder.Length;
-                        LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleEndnoteParagraph(paragraph, id, runs, builder.Length, isFirstParagraph, relationshipOwner, out string paragraphText);
+                        LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleEndnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, out string paragraphText);
                         if (!string.IsNullOrEmpty(paragraphText)) {
                             hasBodyText = true;
                         }
@@ -70,10 +71,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             builder.Append('\r');
-            return new LegacyDocWritableNoteStory(builder.ToString(), runs, formattedParagraphs);
+            return new LegacyDocWritableNoteStory(builder.ToString(), runs, formattedParagraphs, bookmarks.Create());
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSimpleEndnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, int storyStart, bool isFirstParagraph, EndnotesPart relationshipOwner, out string paragraphText) {
+        private static LegacyDocWritableParagraphFormatting ReadSimpleEndnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, EndnotesPart relationshipOwner, out string paragraphText) {
             var builder = new StringBuilder();
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph.ParagraphProperties, id, "endnote", EndnoteParagraphStyleIndexes);
             if (isFirstParagraph && paragraphFormatting.HasFormatting && paragraphFormatting.StyleIndex == null) {
@@ -90,8 +91,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Hyperlink hyperlink:
                         AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "endnote", storyStart);
                         break;
+                    case BookmarkStart bookmarkStart:
+                        bookmarks.AddStart(bookmarkStart, storyStart + builder.Length);
+                        break;
+                    case BookmarkEnd bookmarkEnd:
+                        bookmarks.AddEnd(bookmarkEnd, storyStart + builder.Length);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs only with text runs and simple hyperlinks. Unsupported endnote paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs only with text runs, bookmarks, and simple hyperlinks. Unsupported endnote paragraph element: {child.LocalName}.");
                 }
             }
 
@@ -193,6 +200,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 var text = new StringBuilder();
                 var runs = new List<LegacyDocWritableRun>();
                 var paragraphs = new List<LegacyDocWritableParagraph>();
+                var bookmarks = new LegacyDocWritableBookmarksBuilder();
                 var textPositions = new List<int>(_references.Count + 2);
                 var markerPositions = new List<int>(_references.Count);
                 for (int index = 0; index < _references.Count; index++) {
@@ -208,6 +216,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         paragraphs.Add(new LegacyDocWritableParagraph(text.Length + paragraph.StartCharacter, paragraph.Length, paragraph.Formatting));
                     }
 
+                    bookmarks.AddRange(story.Bookmarks, text.Length);
                     text.Append(story.Text);
                 }
 
@@ -219,7 +228,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     CreateEndnoteTextPlc(textPositions),
                     markerPositions,
                     runs,
-                    paragraphs);
+                    paragraphs,
+                    bookmarks.Create());
             }
 
             private static byte[] CreateEndnoteReferencePlc(IReadOnlyList<LegacyDocWritableEndnoteReference> references, int terminalCharacterPosition) {
@@ -258,15 +268,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableEndnoteStories {
-            internal static readonly LegacyDocWritableEndnoteStories Empty = new LegacyDocWritableEndnoteStories(string.Empty, Array.Empty<byte>(), Array.Empty<byte>(), Array.Empty<int>(), Array.Empty<LegacyDocWritableRun>(), Array.Empty<LegacyDocWritableParagraph>());
+            internal static readonly LegacyDocWritableEndnoteStories Empty = new LegacyDocWritableEndnoteStories(string.Empty, Array.Empty<byte>(), Array.Empty<byte>(), Array.Empty<int>(), Array.Empty<LegacyDocWritableRun>(), Array.Empty<LegacyDocWritableParagraph>(), LegacyDocWritableBookmarks.Empty);
 
-            internal LegacyDocWritableEndnoteStories(string text, byte[] plcfendRef, byte[] plcfendTxt, IReadOnlyList<int> markerPositions, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs) {
+            internal LegacyDocWritableEndnoteStories(string text, byte[] plcfendRef, byte[] plcfendTxt, IReadOnlyList<int> markerPositions, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs, LegacyDocWritableBookmarks bookmarks) {
                 Text = text;
                 PlcfendRef = plcfendRef;
                 PlcfendTxt = plcfendTxt;
                 MarkerPositions = markerPositions;
                 FormattedRuns = formattedRuns;
                 FormattedParagraphs = formattedParagraphs;
+                Bookmarks = bookmarks;
             }
 
             internal string Text { get; }
@@ -280,6 +291,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal IReadOnlyList<LegacyDocWritableRun> FormattedRuns { get; }
 
             internal IReadOnlyList<LegacyDocWritableParagraph> FormattedParagraphs { get; }
+
+            internal LegacyDocWritableBookmarks Bookmarks { get; }
         }
     }
 }
