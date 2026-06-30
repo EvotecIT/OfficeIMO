@@ -477,6 +477,9 @@ just to reserve names.
     flag diagnostics.
   - [x] Write simple body tables with one paragraph per cell and supported run
     content, then reload them as `WordTable` instances through the legacy reader.
+  - [x] Treat no-op built-in table styles such as `TableNormal`/`NormalTable`
+    as native-writable while continuing to block visual table styles until
+    their formatting can be projected.
   - [x] Preserve supported paragraph formatting inside simple native-written
     table cells and project fixture-backed table-cell paragraph formatting
     during legacy DOC reload.

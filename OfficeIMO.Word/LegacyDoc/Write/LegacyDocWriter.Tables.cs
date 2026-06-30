@@ -103,8 +103,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             foreach (OpenXmlElement property in tableProperties.ChildElements) {
                 switch (property) {
                     case TableStyle tableStyle:
-                        if (!string.Equals(tableStyle.Val?.Value, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
-                            throw new NotSupportedException("Native DOC saving supports simple tables only with the TableGrid table style.");
+                        if (!IsSupportedNativeDocTableStyle(tableStyle.Val?.Value)) {
+                            throw new NotSupportedException("Native DOC saving supports simple tables only with no-op table styles or the TableGrid table style.");
                         }
                         break;
                     case TableWidth tableWidth:
@@ -134,6 +134,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table property: {property.LocalName}.");
                 }
             }
+        }
+
+        private static bool IsSupportedNativeDocTableStyle(string? styleId) {
+            if (string.IsNullOrWhiteSpace(styleId)) {
+                return true;
+            }
+
+            string value = styleId!.Trim();
+            return string.Equals(value, "TableGrid", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(value, "TableNormal", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(value, "NormalTable", StringComparison.OrdinalIgnoreCase);
         }
 
         private static void ThrowIfUnsupportedTableGrid(TableGrid tableGrid) {
