@@ -44,6 +44,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Diagnostics: expose reason-aware original-source slice failures and include the mapping reason in source-edit roundtrip fallback diagnostics.
   - [x] Engine: expose native inline and inline-metadata source-slice APIs so editor hosts can address inline content, link targets, titles, and similar metadata without rescanning raw markdown.
   - [x] Engine: align native source-slice APIs with source-edit targets for blocks, list item content, table cells, definition-list groups/terms/bodies, reference definitions, and reference-definition fields.
+  - [x] Engine: expose paragraph-level native projections and source slices for list-item paragraphs so editor hosts can address individual loose-list paragraphs instead of treating the whole item content as one span.
   - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated nodes, and normalized text.
   - [ ] Engine: define one original-to-normalized mapping story for CRLF/LF/CR, tabs, nested containers, transforms, generated nodes, and normalized paragraph text.
   - [ ] Engine: broaden source-edit support beyond the current native field and explicit-edit coverage.
@@ -192,6 +193,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [x] Return exact original-source slice failure reasons for parse/native callers and include those reasons in roundtrip source-edit fallback diagnostics.
 - [x] Expose native inline and inline-metadata source-slice APIs for normalized/original text so link targets, titles, formatting content, and similar inline source-backed values do not require raw-string rescans.
 - [x] Expose source-slice APIs for native source-edit targets so blocks, list item content, table cells, definition-list objects, reference definitions, and reference-definition fields can be inspected before source edits are applied.
+- [x] Expose native list-item paragraph projections, snapshots, inline runs, and source-slice APIs so loose-list paragraph edits can target a stable paragraph object instead of rescanning list item content.
 
 ## P4 - Keep Renderer, Writer, Extension, And Security Policy Explicit
 

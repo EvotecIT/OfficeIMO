@@ -77,6 +77,18 @@ public sealed partial class MarkdownNativeDocument {
     }
 
     /// <summary>
+    /// Creates a source slice over the normalized markdown text that backs a paragraph owned by a native list item.
+    /// </summary>
+    public bool TryCreateSourceSlice(MarkdownNativeListItemParagraph paragraph, out MarkdownSourceSlice slice) {
+        if (paragraph == null) {
+            slice = default;
+            return false;
+        }
+
+        return TryCreateSourceSlice(paragraph.SourceSpan, out slice);
+    }
+
+    /// <summary>
     /// Creates a source slice over the normalized markdown text that backs a reference-style link definition.
     /// </summary>
     public bool TryCreateSourceSlice(MarkdownReferenceLinkDefinition referenceDefinition, out MarkdownSourceSlice slice) {
@@ -289,6 +301,29 @@ public sealed partial class MarkdownNativeDocument {
         }
 
         return TryCreateOriginalSourceSlice(listItem.ContentSourceSpan, out slice, out failureReason);
+    }
+
+    /// <summary>
+    /// Creates a source slice over the original reader input that backs a paragraph owned by a native list item when trivia was preserved.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(MarkdownNativeListItemParagraph paragraph, out MarkdownSourceSlice slice) {
+        return TryCreateOriginalSourceSlice(paragraph, out slice, out _);
+    }
+
+    /// <summary>
+    /// Creates a source slice over the original reader input that backs a paragraph owned by a native list item when trivia was preserved.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(
+        MarkdownNativeListItemParagraph paragraph,
+        out MarkdownSourceSlice slice,
+        out MarkdownOriginalSourceSliceFailureReason failureReason) {
+        if (paragraph == null) {
+            slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable;
+            return false;
+        }
+
+        return TryCreateOriginalSourceSlice(paragraph.SourceSpan, out slice, out failureReason);
     }
 
     /// <summary>

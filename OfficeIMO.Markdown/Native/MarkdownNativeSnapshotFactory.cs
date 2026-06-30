@@ -263,7 +263,25 @@ internal static class MarkdownNativeSnapshotFactory {
                 ToSpanSnapshot(items[i].TaskMarkerSourceSpan),
                 items[i].TaskMarkerText,
                 FromInlines(items[i].InlineRuns),
+                FromListItemParagraphs(items[i].Paragraphs),
                 FromBlocks(items[i].Children)));
+        }
+
+        return snapshots;
+    }
+
+    private static IReadOnlyList<MarkdownNativeListItemParagraphSnapshot> FromListItemParagraphs(IReadOnlyList<MarkdownNativeListItemParagraph> paragraphs) {
+        if (paragraphs == null || paragraphs.Count == 0) {
+            return Array.Empty<MarkdownNativeListItemParagraphSnapshot>();
+        }
+
+        var snapshots = new List<MarkdownNativeListItemParagraphSnapshot>(paragraphs.Count);
+        for (var i = 0; i < paragraphs.Count; i++) {
+            snapshots.Add(new MarkdownNativeListItemParagraphSnapshot(
+                paragraphs[i].Index,
+                paragraphs[i].Text,
+                ToSpanSnapshot(paragraphs[i].SourceSpan),
+                FromInlines(paragraphs[i].InlineRuns)));
         }
 
         return snapshots;

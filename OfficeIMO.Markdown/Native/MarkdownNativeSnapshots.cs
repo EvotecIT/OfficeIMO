@@ -381,6 +381,7 @@ public sealed class MarkdownNativeListItemSnapshot {
         MarkdownNativeSourceSpanSnapshot? taskMarkerSourceSpan,
         string? taskMarkerText,
         IReadOnlyList<MarkdownNativeInlineSnapshot> inlines,
+        IReadOnlyList<MarkdownNativeListItemParagraphSnapshot> paragraphs,
         IReadOnlyList<MarkdownNativeBlockSnapshot> children) {
         Id = id ?? string.Empty;
         Text = text ?? string.Empty;
@@ -393,6 +394,7 @@ public sealed class MarkdownNativeListItemSnapshot {
         TaskMarkerSourceSpan = taskMarkerSourceSpan;
         TaskMarkerText = taskMarkerText;
         Inlines = inlines ?? Array.Empty<MarkdownNativeInlineSnapshot>();
+        Paragraphs = paragraphs ?? Array.Empty<MarkdownNativeListItemParagraphSnapshot>();
         Children = children ?? Array.Empty<MarkdownNativeBlockSnapshot>();
     }
 
@@ -429,8 +431,39 @@ public sealed class MarkdownNativeListItemSnapshot {
     /// <summary>Lead inline snapshots.</summary>
     public IReadOnlyList<MarkdownNativeInlineSnapshot> Inlines { get; }
 
+    /// <summary>Paragraph-level snapshots owned by this list item.</summary>
+    public IReadOnlyList<MarkdownNativeListItemParagraphSnapshot> Paragraphs { get; }
+
     /// <summary>Nested child block snapshots.</summary>
     public IReadOnlyList<MarkdownNativeBlockSnapshot> Children { get; }
+}
+
+/// <summary>
+/// UI-safe snapshot of one paragraph owned by a native list item.
+/// </summary>
+public sealed class MarkdownNativeListItemParagraphSnapshot {
+    internal MarkdownNativeListItemParagraphSnapshot(
+        int index,
+        string text,
+        MarkdownNativeSourceSpanSnapshot? sourceSpan,
+        IReadOnlyList<MarkdownNativeInlineSnapshot> inlines) {
+        Index = index;
+        Text = text ?? string.Empty;
+        SourceSpan = sourceSpan;
+        Inlines = inlines ?? Array.Empty<MarkdownNativeInlineSnapshot>();
+    }
+
+    /// <summary>Zero-based paragraph index within the list item.</summary>
+    public int Index { get; }
+
+    /// <summary>Plain-text paragraph content.</summary>
+    public string Text { get; }
+
+    /// <summary>Source span snapshot when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>Inline snapshots for this paragraph.</summary>
+    public IReadOnlyList<MarkdownNativeInlineSnapshot> Inlines { get; }
 }
 
 /// <summary>

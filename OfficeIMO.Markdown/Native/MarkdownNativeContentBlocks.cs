@@ -108,6 +108,7 @@ public sealed class MarkdownNativeListItem {
         Text = InlinePlainText.Extract(item.Content);
         Inlines = item.Content;
         InlineRuns = MarkdownNativeInlineProjection.FromListItemLeadContent(syntaxNode, item);
+        Paragraphs = CreateParagraphs(item, syntaxNode);
         AdditionalParagraphs = item.AdditionalParagraphs;
         IsTask = item.IsTask;
         Checked = item.Checked;
@@ -143,6 +144,9 @@ public sealed class MarkdownNativeListItem {
     /// <summary>AST-backed native inline projection for the lead content.</summary>
     public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }
 
+    /// <summary>Paragraph-level native projections owned by this list item.</summary>
+    public IReadOnlyList<MarkdownNativeListItemParagraph> Paragraphs { get; }
+
     /// <summary>Additional paragraph inline nodes owned by this list item.</summary>
     public IReadOnlyList<InlineSequence> AdditionalParagraphs { get; }
 
@@ -170,6 +174,39 @@ public sealed class MarkdownNativeListItem {
     /// <summary>Indentation level from the source list item.</summary>
     public int Level { get; }
 
+    private static IReadOnlyList<MarkdownNativeListItemParagraph> CreateParagraphs(ListItem item, MarkdownSyntaxNode syntaxNode) {
+        var paragraphBlocks = item.ParagraphBlocks;
+        if (paragraphBlocks.Count == 0) {
+            return Array.Empty<MarkdownNativeListItemParagraph>();
+        }
+
+        var paragraphs = new List<MarkdownNativeListItemParagraph>(paragraphBlocks.Count);
+        for (var i = 0; i < paragraphBlocks.Count; i++) {
+            paragraphs.Add(new MarkdownNativeListItemParagraph(
+                paragraphBlocks[i],
+                FindParagraphSyntaxNode(syntaxNode, paragraphBlocks[i]),
+                i));
+        }
+
+        return paragraphs;
+    }
+
+    private static MarkdownSyntaxNode? FindParagraphSyntaxNode(MarkdownSyntaxNode syntaxNode, ParagraphBlock paragraph) {
+        if (syntaxNode == null || paragraph == null) {
+            return null;
+        }
+
+        for (var i = 0; i < syntaxNode.Children.Count; i++) {
+            var child = syntaxNode.Children[i];
+            if (child.Kind == MarkdownSyntaxKind.Paragraph &&
+                ReferenceEquals(child.AssociatedObject, paragraph)) {
+                return child;
+            }
+        }
+
+        return null;
+    }
+
     private static MarkdownSourceSpan? GetContentSourceSpan(MarkdownSyntaxNode syntaxNode) {
         var children = new List<MarkdownSyntaxNode>();
         for (var i = 0; i < syntaxNode.Children.Count; i++) {
@@ -183,6 +220,44 @@ public sealed class MarkdownNativeListItem {
 
         return MarkdownBlockSyntaxBuilder.GetAggregateSpan(children);
     }
+}
+
+/// <summary>
+/// Native projection for one paragraph owned by a list item.
+/// </summary>
+public sealed class MarkdownNativeListItemParagraph {
+    internal MarkdownNativeListItemParagraph(ParagraphBlock paragraph, MarkdownSyntaxNode? syntaxNode, int index) {
+        Paragraph = paragraph ?? throw new ArgumentNullException(nameof(paragraph));
+        SyntaxNode = syntaxNode;
+        Index = index;
+        SourceSpan = syntaxNode?.SourceSpan ?? paragraph.SourceSpan;
+        Text = InlinePlainText.Extract(paragraph.Inlines);
+        Inlines = paragraph.Inlines;
+        InlineRuns = syntaxNode == null
+            ? Array.Empty<MarkdownNativeInline>()
+            : MarkdownNativeInlineProjection.FromInlineContainer(syntaxNode);
+    }
+
+    /// <summary>Zero-based paragraph index within the list item.</summary>
+    public int Index { get; }
+
+    /// <summary>Source paragraph block.</summary>
+    public ParagraphBlock Paragraph { get; }
+
+    /// <summary>Syntax node that produced this list-item paragraph when available.</summary>
+    public MarkdownSyntaxNode? SyntaxNode { get; }
+
+    /// <summary>Paragraph source span in the normalized markdown text when available.</summary>
+    public MarkdownSourceSpan? SourceSpan { get; }
+
+    /// <summary>Plain-text paragraph content.</summary>
+    public string Text { get; }
+
+    /// <summary>Structured inline nodes owned by this paragraph.</summary>
+    public InlineSequence Inlines { get; }
+
+    /// <summary>AST-backed native inline projection for this paragraph.</summary>
+    public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }
 }
 
 internal static class MarkdownNativeListItemId {

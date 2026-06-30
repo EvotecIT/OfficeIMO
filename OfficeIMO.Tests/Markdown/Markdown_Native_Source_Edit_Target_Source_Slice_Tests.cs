@@ -24,6 +24,37 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     }
 
     [Fact]
+    public void NativeListItem_Paragraph_SourceSlices_Address_Individual_Paragraphs() {
+        var native = MarkdownNativeDocument.Parse("""
+- alpha **one**
+
+  beta [two](https://example.com)
+""");
+        var item = Assert.Single(native.EnumerateListItems());
+
+        var paragraphs = item.Paragraphs.ToArray();
+
+        Assert.Equal(2, paragraphs.Length);
+        Assert.Equal("alpha one", paragraphs[0].Text);
+        Assert.Equal("beta two", paragraphs[1].Text);
+        Assert.True(native.TryCreateSourceSlice(paragraphs[0], out var firstSlice));
+        Assert.True(native.TryCreateSourceSlice(paragraphs[1], out var secondSlice));
+        Assert.Equal("alpha **one**", firstSlice.Text);
+        Assert.Equal("beta [two](https://example.com)", secondSlice.Text);
+        Assert.Contains(paragraphs[0].InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "one");
+        Assert.Contains(paragraphs[1].InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Link && inline.Text == "two");
+
+        var snapshotParagraphs = Assert.Single(native.ToSnapshot().Blocks).Items[0].Paragraphs;
+        Assert.Equal(2, snapshotParagraphs.Count);
+        Assert.Equal("alpha one", snapshotParagraphs[0].Text);
+        Assert.Equal("beta two", snapshotParagraphs[1].Text);
+        Assert.NotNull(snapshotParagraphs[0].SourceSpan);
+        Assert.NotNull(snapshotParagraphs[1].SourceSpan);
+        Assert.Contains(snapshotParagraphs[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "one");
+        Assert.Contains(snapshotParagraphs[1].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Link && inline.Text == "two");
+    }
+
+    [Fact]
     public void NativeTableCell_SourceSlice_Matches_ReplaceEdit_Target() {
         var native = MarkdownNativeDocument.Parse("""
 | Name | Value |
