@@ -51,7 +51,7 @@ Current active row: `UseDefinitionLists`.
   - [ ] List-tail variants after nested body boundaries.
 - [ ] Finish definition-list source mapping.
   - [ ] Marker lines.
-  - [ ] Continuation indentation.
+  - [x] Continuation indentation stripped from definition body lines now surfaces as native `definitionContinuationIndent` source fields with precise caret lookup.
   - [x] Blank separators now surface as native `definitionBlankLine` source fields with precise caret lookup while broad `definitionBody` spans remain available.
   - [ ] Generated paragraph wrappers.
   - [ ] Normalized native `definitionBody` values versus original source spans.

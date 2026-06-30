@@ -49,6 +49,7 @@ lazy continuation
         var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
         var blankLine = Assert.Single(native.EnumerateBlockSourceFields("definitionBlankLine"));
+        var continuationIndent = Assert.Single(native.EnumerateBlockSourceFields("definitionContinuationIndent"));
         var nativeDefinitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
         var nativeDefinition = Assert.Single(Assert.Single(nativeDefinitionList.Groups).Definitions);
         var nativeParagraphs = nativeDefinition.Children.OfType<MarkdownNativeParagraphBlock>().ToArray();
@@ -64,6 +65,15 @@ lazy continuation
         Assert.Equal(blankLine.Name, foundBlankLine!.Name);
         Assert.Equal(blankLine.SourceSpan, foundBlankLine.SourceSpan);
         Assert.Equal(new[] { new MarkdownSourceSpan(3, 1, 3, 1) }, nativeDefinition.BlankLineSourceSpans);
+        Assert.Null(continuationIndent.Value);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 4), continuationIndent.SourceSpan);
+        Assert.Same(nativeDefinitionList, continuationIndent.Block);
+        Assert.Equal(0, continuationIndent.Index);
+        var foundContinuationIndent = native.FindBlockSourceFieldAtPosition(4, 1);
+        Assert.NotNull(foundContinuationIndent);
+        Assert.Equal(continuationIndent.Name, foundContinuationIndent!.Name);
+        Assert.Equal(continuationIndent.SourceSpan, foundContinuationIndent.SourceSpan);
+        Assert.Equal(new[] { new MarkdownSourceSpan(4, 1, 4, 4) }, nativeDefinition.ContinuationIndentSourceSpans);
         Assert.Equal(new[] { "First paragraph", "Second paragraph\nlazy continuation" }, nativeParagraphs.Select(paragraph => paragraph.Text).ToArray());
         Assert.Contains(nativeParagraphs[1].InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.SoftBreak);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -116,6 +126,7 @@ lazy continuation
         var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
         var blankLine = Assert.Single(native.EnumerateBlockSourceFields("definitionBlankLine"));
+        var continuationIndent = Assert.Single(native.EnumerateBlockSourceFields("definitionContinuationIndent"));
         var nativeDefinitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
         var nativeDefinition = Assert.Single(Assert.Single(nativeDefinitionList.Groups).Definitions);
         var nativeList = Assert.IsType<MarkdownNativeListBlock>(nativeDefinition.Children[1]);
@@ -130,6 +141,12 @@ lazy continuation
         Assert.Equal(blankLine.Name, foundBlankLine!.Name);
         Assert.Equal(blankLine.SourceSpan, foundBlankLine.SourceSpan);
         Assert.Equal(new[] { new MarkdownSourceSpan(3, 1, 3, 1) }, nativeDefinition.BlankLineSourceSpans);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 4), continuationIndent.SourceSpan);
+        var foundContinuationIndent = native.FindBlockSourceFieldAtPosition(4, 1);
+        Assert.NotNull(foundContinuationIndent);
+        Assert.Equal(continuationIndent.Name, foundContinuationIndent!.Name);
+        Assert.Equal(continuationIndent.SourceSpan, foundContinuationIndent.SourceSpan);
+        Assert.Equal(new[] { new MarkdownSourceSpan(4, 1, 4, 4) }, nativeDefinition.ContinuationIndentSourceSpans);
         Assert.Equal("item\nlazy continuation", nativeParagraph.Text.Replace("\r\n", "\n"));
         Assert.Contains(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.SoftBreak);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);

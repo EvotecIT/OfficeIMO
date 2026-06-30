@@ -48,7 +48,8 @@ public sealed partial class MarkdownNativeDocument {
     }
 
     private static int GetSourceFieldSelectionPriority(MarkdownNativeBlockSourceField field) {
-        if (string.Equals(field.Name, "definitionBlankLine", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(field.Name, "definitionBlankLine", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(field.Name, "definitionContinuationIndent", StringComparison.OrdinalIgnoreCase)) {
             return 2;
         }
 
@@ -452,17 +453,44 @@ public sealed partial class MarkdownNativeDocument {
                     yield return new MarkdownNativeBlockSourceField("definitionBody", definition.Markdown, definition.SourceSpan.Value, definitionList, definitionIndex);
                 }
 
-                for (var blankIndex = 0; blankIndex < definition.BlankLineSourceSpans.Count; blankIndex++) {
-                    yield return new MarkdownNativeBlockSourceField(
-                        "definitionBlankLine",
-                        string.Empty,
-                        definition.BlankLineSourceSpans[blankIndex],
-                        definitionList,
-                        definitionIndex);
+                foreach (var field in EnumerateDefinitionListDefinitionSubfields(definition, definitionList, definitionIndex)) {
+                    yield return field;
                 }
 
                 definitionIndex++;
             }
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateDefinitionListDefinitionSubfields(
+        MarkdownNativeDefinitionListDefinition definition,
+        MarkdownNativeDefinitionListBlock definitionList,
+        int definitionIndex) {
+        var fields = new List<MarkdownNativeBlockSourceField>();
+        for (var blankIndex = 0; blankIndex < definition.BlankLineSourceSpans.Count; blankIndex++) {
+            fields.Add(new MarkdownNativeBlockSourceField(
+                        "definitionBlankLine",
+                        string.Empty,
+                        definition.BlankLineSourceSpans[blankIndex],
+                        definitionList,
+                        definitionIndex));
+        }
+
+        for (var indentIndex = 0; indentIndex < definition.ContinuationIndentSourceSpans.Count; indentIndex++) {
+            fields.Add(new MarkdownNativeBlockSourceField(
+                "definitionContinuationIndent",
+                null,
+                definition.ContinuationIndentSourceSpans[indentIndex],
+                definitionList,
+                definitionIndex));
+        }
+
+        foreach (var field in fields
+            .OrderBy(field => field.SourceSpan.StartLine)
+            .ThenBy(field => field.SourceSpan.StartColumn)
+            .ThenBy(field => field.SourceSpan.EndLine)
+            .ThenBy(field => field.SourceSpan.EndColumn)) {
+            yield return field;
         }
     }
 

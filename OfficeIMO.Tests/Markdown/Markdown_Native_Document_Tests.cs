@@ -542,6 +542,7 @@ Second: Other
         var markers = native.EnumerateBlockSourceFields("definitionMarker").ToArray();
         var definitions = native.EnumerateBlockSourceFields("definitionBody").ToArray();
         var blankLines = native.EnumerateBlockSourceFields("definitionBlankLine").ToArray();
+        var continuationIndents = native.EnumerateBlockSourceFields("definitionContinuationIndent").ToArray();
 
         Assert.Equal(new[] { "Term", "Second" }, terms.Select(field => field.Value).ToArray());
         Assert.Equal(new[] { 0, 1 }, terms.Select(field => field.Index).ToArray());
@@ -551,15 +552,19 @@ Second: Other
         Assert.Equal(new[] { 0, 1 }, definitions.Select(field => field.Index).ToArray());
         Assert.Equal(new[] { string.Empty }, blankLines.Select(field => field.Value).ToArray());
         Assert.Equal(new[] { 0 }, blankLines.Select(field => field.Index).ToArray());
+        Assert.Equal(new string?[] { null }, continuationIndents.Select(field => field.Value).ToArray());
+        Assert.Equal(new[] { 0 }, continuationIndents.Select(field => field.Index).ToArray());
         Assert.All(terms, field => Assert.Same(definitionList, field.Block));
         Assert.All(markers, field => Assert.Same(definitionList, field.Block));
         Assert.All(definitions, field => Assert.Same(definitionList, field.Block));
         Assert.All(blankLines, field => Assert.Same(definitionList, field.Block));
+        Assert.All(continuationIndents, field => Assert.Same(definitionList, field.Block));
 
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 8), terms[0].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 9), markers[0].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 11, 3, 9), definitions[0].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 1), blankLines[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 2), continuationIndents[0].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 6), terms[1].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(5, 7, 5, 7), markers[1].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(5, 9, 5, 13), definitions[1].SourceSpan);
@@ -568,6 +573,7 @@ Second: Other
         AssertEquivalentField(markers[0], native.FindBlockSourceFieldAtPosition(1, 9));
         AssertEquivalentField(definitions[0], native.FindBlockSourceFieldAtPosition(1, 11));
         AssertEquivalentField(blankLines[0], native.FindBlockSourceFieldAtPosition(2, 1));
+        AssertEquivalentField(continuationIndents[0], native.FindBlockSourceFieldAtPosition(3, 1));
         AssertEquivalentField(definitions[0], native.FindBlockSourceFieldAtPosition(3, 5));
         AssertEquivalentField(terms[1], native.FindBlockSourceFieldAtPosition(5, 2));
         AssertEquivalentField(markers[1], native.FindBlockSourceFieldAtPosition(5, 7));
@@ -595,6 +601,11 @@ Second: Other
             field => {
                 Assert.Equal("definitionBlankLine", field.Name);
                 Assert.Equal(string.Empty, field.Value);
+                Assert.Equal(0, field.Index);
+            },
+            field => {
+                Assert.Equal("definitionContinuationIndent", field.Name);
+                Assert.Null(field.Value);
                 Assert.Equal(0, field.Index);
             },
             field => {

@@ -68,6 +68,7 @@ public static partial class MarkdownReader {
                 var definitionSourceLines = new List<MarkdownSourceLineSlice> {
                     new MarkdownSourceLineSlice(def, lineNumber, definitionStartIndex + 1)
                 };
+                var continuationIndentSourceSpans = new List<MarkdownSourceSpan>();
                 int next = j + 1;
                 ConsumeDefinitionContinuationLines(
                     lines,
@@ -76,6 +77,8 @@ public static partial class MarkdownReader {
                     null,
                     state.SourceLineOffset,
                     definitionSourceLines,
+                    continuationIndentSourceSpans,
+                    state,
                     allowLazyContinuation: false);
                 var (definitionBlocks, definitionSyntaxChildren) = ParseDefinitionBody(definitionSourceLines, options, state);
                 if (definitionSyntaxChildren.Count > 0) {
@@ -84,6 +87,7 @@ public static partial class MarkdownReader {
 
                 var definitionObject = new DefinitionListDefinition(definitionBlocks);
                 definitionObject.ReplaceBlankLineSourceSpans(GetDefinitionBlankLineSourceSpans(definitionSourceLines, state));
+                definitionObject.ReplaceContinuationIndentSourceSpans(continuationIndentSourceSpans);
                 var group = new DefinitionListGroup(
                     new[] { termInlines },
                     new[] { definitionObject });
@@ -417,6 +421,7 @@ public static partial class MarkdownReader {
         }
 
         int next = index + 1;
+        var continuationIndentSourceSpans = new List<MarkdownSourceSpan>();
         var consumedLeadingBlankLine = ConsumeDefinitionContinuationLines(
             lines,
             ref next,
@@ -424,6 +429,8 @@ public static partial class MarkdownReader {
             string.IsNullOrEmpty(definitionLiteral) ? markerIndent + 4 : null,
             state.SourceLineOffset,
             definitionSourceLines,
+            continuationIndentSourceSpans,
+            state,
             allowLazyContinuation: true);
         index = next;
 
@@ -443,6 +450,7 @@ public static partial class MarkdownReader {
                 Math.Max(definitionStartIndex + 1, definitionEndExclusive));
         var definition = new DefinitionListDefinition(definitionBlocks);
         definition.ReplaceBlankLineSourceSpans(GetDefinitionBlankLineSourceSpans(definitionSourceLines, state));
+        definition.ReplaceContinuationIndentSourceSpans(continuationIndentSourceSpans);
         if (consumedLeadingBlankLine) {
             definition.ForceParagraphHtml = true;
             definition.HasLeadingBlankLineBeforeBody = true;
@@ -514,6 +522,8 @@ public static partial class MarkdownReader {
         int? firstContinuationIndent,
         int absoluteLineOffset,
         List<MarkdownSourceLineSlice> definitionSourceLines,
+        List<MarkdownSourceSpan> continuationIndentSourceSpans,
+        MarkdownReaderState state,
         bool allowLazyContinuation) {
         if (lines == null || definitionSourceLines == null) {
             return false;
@@ -578,11 +588,21 @@ public static partial class MarkdownReader {
                 continue;
             }
 
+            int startColumn = GetStartColumnAfterStrippingIndent(line, effectiveContinuationIndent);
+            if (startColumn > 1) {
+                continuationIndentSourceSpans?.Add(CreateSpan(
+                    state,
+                    absoluteLineOffset + index + 1,
+                    1,
+                    absoluteLineOffset + index + 1,
+                    startColumn - 1));
+            }
+
             var stripped = StripLeadingIndentColumns(line, effectiveContinuationIndent);
             definitionSourceLines.Add(new MarkdownSourceLineSlice(
                 stripped,
                 absoluteLineOffset + index + 1,
-                GetStartColumnAfterStrippingIndent(line, effectiveContinuationIndent)));
+                startColumn));
             if (!string.IsNullOrWhiteSpace(stripped)) {
                 hasContent = true;
             }

@@ -8,11 +8,14 @@ namespace OfficeIMO.Markdown;
 public sealed class DefinitionListDefinition : MarkdownObject {
     private readonly List<IMarkdownBlock> _blocks = new List<IMarkdownBlock>();
     private readonly List<MarkdownSourceSpan> _blankLineSourceSpans = new List<MarkdownSourceSpan>();
+    private readonly List<MarkdownSourceSpan> _continuationIndentSourceSpans = new List<MarkdownSourceSpan>();
 
     /// <summary>Structured markdown blocks that belong to this definition body.</summary>
     public List<IMarkdownBlock> Blocks => _blocks;
     /// <summary>Source spans for blank separator lines that belong to this definition body.</summary>
     public IReadOnlyList<MarkdownSourceSpan> BlankLineSourceSpans => _blankLineSourceSpans;
+    /// <summary>Source spans for indentation stripped from definition continuation lines.</summary>
+    public IReadOnlyList<MarkdownSourceSpan> ContinuationIndentSourceSpans => _continuationIndentSourceSpans;
     internal bool ForceParagraphHtml { get; set; }
     internal bool HasLeadingBlankLineBeforeBody { get; set; }
 
@@ -82,6 +85,15 @@ public sealed class DefinitionListDefinition : MarkdownObject {
         }
 
         _blankLineSourceSpans.AddRange(spans);
+    }
+
+    internal void ReplaceContinuationIndentSourceSpans(IEnumerable<MarkdownSourceSpan>? spans) {
+        _continuationIndentSourceSpans.Clear();
+        if (spans == null) {
+            return;
+        }
+
+        _continuationIndentSourceSpans.AddRange(spans);
     }
 
     private static bool EndsWithLineBreak(string value) =>
