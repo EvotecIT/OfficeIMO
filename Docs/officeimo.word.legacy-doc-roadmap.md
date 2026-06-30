@@ -666,6 +666,10 @@ just to reserve names.
     corner, and banded effects into native DOC cell shading and `TC80` border
     values, while keeping direct and conditional cell formatting as stronger
     overrides.
+  - [x] Write supported conditional table-style cell layout properties
+    (vertical alignment, text direction, fit-text, no-wrap, hide-mark, and
+    margins) by flattening conditional `tcPr` layout into native DOC `TC80` and
+    padding values, while keeping direct cell formatting as the override.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.

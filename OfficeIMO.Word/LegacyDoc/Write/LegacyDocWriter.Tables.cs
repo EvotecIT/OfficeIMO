@@ -729,8 +729,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocTableCellVerticalAlignment ReadSupportedTableCellVerticalAlignment(TableCellProperties? cellProperties) {
             TableCellVerticalAlignment? verticalAlignment = cellProperties?.GetFirstChild<TableCellVerticalAlignment>();
+            return ReadSupportedTableCellVerticalAlignment(verticalAlignment) ?? LegacyDocTableCellVerticalAlignment.Top;
+        }
+
+        private static LegacyDocTableCellVerticalAlignment? ReadSupportedTableCellVerticalAlignment(TableCellVerticalAlignment? verticalAlignment) {
             if (verticalAlignment == null) {
-                return LegacyDocTableCellVerticalAlignment.Top;
+                return null;
             }
 
             TableVerticalAlignmentValues? value = verticalAlignment.Val?.Value;
@@ -751,8 +755,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocTableCellTextDirection ReadSupportedTableCellTextDirection(TableCellProperties? cellProperties) {
             TextDirection? textDirection = cellProperties?.GetFirstChild<TextDirection>();
+            return ReadSupportedTableCellTextDirection(textDirection) ?? LegacyDocTableCellTextDirection.LeftToRightTopToBottom;
+        }
+
+        private static LegacyDocTableCellTextDirection? ReadSupportedTableCellTextDirection(TextDirection? textDirection) {
             if (textDirection == null) {
-                return LegacyDocTableCellTextDirection.LeftToRightTopToBottom;
+                return null;
             }
 
             TextDirectionValues? value = textDirection.Val?.Value;
@@ -781,21 +789,37 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static bool ReadSupportedTableCellFitText(TableCellProperties? cellProperties) {
             TableCellFitText? fitText = cellProperties?.GetFirstChild<TableCellFitText>();
-            return fitText != null && ReadTableCellOnOffValue(fitText);
+            return ReadSupportedTableCellFitText(fitText) == true;
+        }
+
+        private static bool? ReadSupportedTableCellFitText(TableCellFitText? fitText) {
+            return fitText == null ? null : ReadTableCellOnOffValue(fitText);
         }
 
         private static bool ReadSupportedTableCellNoWrap(TableCellProperties? cellProperties) {
             NoWrap? noWrap = cellProperties?.GetFirstChild<NoWrap>();
-            return noWrap != null && ReadTableCellOnOffValue(noWrap);
+            return ReadSupportedTableCellNoWrap(noWrap) == true;
+        }
+
+        private static bool? ReadSupportedTableCellNoWrap(NoWrap? noWrap) {
+            return noWrap == null ? null : ReadTableCellOnOffValue(noWrap);
         }
 
         private static bool ReadSupportedTableCellHideMark(TableCellProperties? cellProperties) {
             HideMark? hideMark = cellProperties?.GetFirstChild<HideMark>();
-            return hideMark != null && ReadTableCellOnOffValue(hideMark);
+            return ReadSupportedTableCellHideMark(hideMark) == true;
+        }
+
+        private static bool? ReadSupportedTableCellHideMark(HideMark? hideMark) {
+            return hideMark == null ? null : ReadTableCellOnOffValue(hideMark);
         }
 
         private static LegacyDocTableCellMargins ReadSupportedTableCellMargins(TableCellProperties? cellProperties) {
             TableCellMargin? margins = cellProperties?.GetFirstChild<TableCellMargin>();
+            return ReadSupportedTableCellMargins(margins);
+        }
+
+        private static LegacyDocTableCellMargins ReadSupportedTableCellMargins(TableCellMargin? margins) {
             if (margins == null) {
                 return default;
             }
@@ -1252,6 +1276,24 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal LegacyDocWritableTableCell WithShading(LegacyDocTableCellShading shading) =>
                 new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, HideMark, Margins, shading, Borders);
+
+            internal LegacyDocWritableTableCell WithVerticalAlignment(LegacyDocTableCellVerticalAlignment verticalAlignment) =>
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, verticalAlignment, TextDirection, FitText, NoWrap, HideMark, Margins, Shading, Borders);
+
+            internal LegacyDocWritableTableCell WithTextDirection(LegacyDocTableCellTextDirection textDirection) =>
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, textDirection, FitText, NoWrap, HideMark, Margins, Shading, Borders);
+
+            internal LegacyDocWritableTableCell WithFitText(bool fitText) =>
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, fitText, NoWrap, HideMark, Margins, Shading, Borders);
+
+            internal LegacyDocWritableTableCell WithNoWrap(bool noWrap) =>
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, noWrap, HideMark, Margins, Shading, Borders);
+
+            internal LegacyDocWritableTableCell WithHideMark(bool hideMark) =>
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, hideMark, Margins, Shading, Borders);
+
+            internal LegacyDocWritableTableCell WithMargins(LegacyDocTableCellMargins margins) =>
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, HideMark, margins, Shading, Borders);
         }
     }
 }

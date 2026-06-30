@@ -4578,6 +4578,76 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocConditionalTableStyleCellLayoutAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocFirstRowCellLayoutTable";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC First Row Cell Layout Table" });
+                    style.Append(new BasedOn { Val = "TableNormal" });
+
+                    var firstRowCellProperties = new TableStyleConditionalFormattingTableCellProperties(
+                        new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Bottom },
+                        new TextDirection { Val = TextDirectionValues.TopToBottomRightToLeft },
+                        new TableCellFitText(),
+                        new NoWrap(),
+                        new HideMark(),
+                        new TableCellMargin(
+                            new TopMargin { Width = "120", Type = TableWidthUnitValues.Dxa },
+                            new LeftMargin { Width = "180", Type = TableWidthUnitValues.Dxa }));
+                    style.Append(new TableStyleProperties(firstRowCellProperties) { Type = TableStyleOverrideValues.FirstRow });
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                    WordTable table = document.AddTable(2, 2, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    table._tableProperties.TableLook = new TableLook { FirstRow = true, LastRow = false, FirstColumn = false, LastColumn = false, NoHorizontalBand = true, NoVerticalBand = true };
+                    table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].VerticalAlignment = TableVerticalAlignmentValues.Center;
+                    table.Rows[0].Cells[1].MarginLeftWidth = 360;
+                    table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableCell firstStyledCell = reloadedTable.Rows[0].Cells[0];
+                Assert.Equal("A1", firstStyledCell.Paragraphs[0].Text);
+                Assert.Equal(TableVerticalAlignmentValues.Bottom, firstStyledCell.VerticalAlignment);
+                Assert.Equal(TextDirectionValues.TopToBottomRightToLeft, firstStyledCell.TextDirection);
+                Assert.True(firstStyledCell.FitText);
+                Assert.False(firstStyledCell.WrapText);
+                Assert.True(firstStyledCell.HideMark);
+                Assert.Equal((short)120, firstStyledCell.MarginTopWidth);
+                Assert.Equal((short)180, firstStyledCell.MarginLeftWidth);
+
+                WordTableCell directOverrideCell = reloadedTable.Rows[0].Cells[1];
+                Assert.Equal("B1", directOverrideCell.Paragraphs[0].Text);
+                Assert.Equal(TableVerticalAlignmentValues.Center, directOverrideCell.VerticalAlignment);
+                Assert.Equal((short)120, directOverrideCell.MarginTopWidth);
+                Assert.Equal((short)360, directOverrideCell.MarginLeftWidth);
+
+                WordTableCell untouchedCell = reloadedTable.Rows[1].Cells[0];
+                Assert.Equal("A2", untouchedCell.Paragraphs[0].Text);
+                Assert.Null(untouchedCell.VerticalAlignment);
+                Assert.Null(untouchedCell.TextDirection);
+                Assert.False(untouchedCell.FitText);
+                Assert.True(untouchedCell.WrapText);
+                Assert.False(untouchedCell.HideMark);
+                Assert.Null(untouchedCell.MarginTopWidth);
+                Assert.Null(untouchedCell.MarginLeftWidth);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedVisualTableStyleBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

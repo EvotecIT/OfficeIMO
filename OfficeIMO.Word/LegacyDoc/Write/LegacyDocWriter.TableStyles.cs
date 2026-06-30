@@ -229,6 +229,24 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void ThrowIfUnsupportedTableStyleConditionalCellProperties(string styleId, TableStyleConditionalFormattingTableCellProperties cellProperties) {
             foreach (OpenXmlElement child in cellProperties.ChildElements) {
                 switch (child) {
+                    case TableCellVerticalAlignment verticalAlignment:
+                        ReadSupportedTableCellVerticalAlignment(verticalAlignment);
+                        break;
+                    case TextDirection textDirection:
+                        ReadSupportedTableCellTextDirection(textDirection);
+                        break;
+                    case TableCellFitText fitText:
+                        ReadSupportedTableCellFitText(fitText);
+                        break;
+                    case NoWrap noWrap:
+                        ReadSupportedTableCellNoWrap(noWrap);
+                        break;
+                    case HideMark hideMark:
+                        ReadSupportedTableCellHideMark(hideMark);
+                        break;
+                    case TableCellMargin margins:
+                        ReadSupportedTableCellMargins(margins);
+                        break;
                     case Shading shading:
                         ReadSupportedTableCellShading(shading, "conditional table style shading");
                         break;
