@@ -59,6 +59,46 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
     }
 
     [Fact]
+    public void NativeDocument_OriginalSourceSlice_Returns_Generated_Node_Reason_For_Generated_Inline() {
+        var native = MarkdownNativeDocument.Parse("text\n", new MarkdownReaderOptions {
+            PreserveTrivia = true
+        });
+        var syntaxNode = new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.InlineText,
+            new MarkdownSourceSpan(1, 1, 1, 4),
+            literal: "text",
+            isGenerated: true);
+        var inline = new MarkdownNativeInline(
+            MarkdownNativeInlineKind.Text,
+            syntaxNode,
+            Array.Empty<MarkdownNativeInline>(),
+            Array.Empty<MarkdownNativeInlineMetadata>());
+
+        var created = native.TryCreateOriginalSourceSlice(inline, out _, out var failureReason);
+
+        Assert.False(created);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, failureReason);
+    }
+
+    [Fact]
+    public void NativeDocument_OriginalSourceSlice_Returns_Generated_Node_Reason_For_Generated_Inline_Metadata() {
+        var native = MarkdownNativeDocument.Parse("[x](https://example.com)\n", new MarkdownReaderOptions {
+            PreserveTrivia = true
+        });
+        var syntaxNode = new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.InlineLinkTarget,
+            new MarkdownSourceSpan(1, 5, 1, 23),
+            literal: "https://example.com",
+            isGenerated: true);
+        var metadata = new MarkdownNativeInlineMetadata("target", "https://example.com", syntaxNode);
+
+        var created = native.TryCreateOriginalSourceSlice(metadata, out _, out var failureReason);
+
+        Assert.False(created);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, failureReason);
+    }
+
+    [Fact]
     public void Roundtrip_SourceEdit_Fallback_Diagnostic_Includes_Original_Mapping_Reason() {
         var options = new MarkdownReaderOptions {
             PreserveTrivia = true,

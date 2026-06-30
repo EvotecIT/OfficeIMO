@@ -307,6 +307,10 @@ public sealed partial class MarkdownNativeDocument {
             return false;
         }
 
+        if (inline.SyntaxNode.IsGenerated) {
+            return ParseResult.TryCreateOriginalSourceSlice(inline.SyntaxNode, out slice, out failureReason);
+        }
+
         return TryCreateOriginalSourceSlice(inline.SourceSpan.Value, out slice, out failureReason);
     }
 
@@ -328,6 +332,10 @@ public sealed partial class MarkdownNativeDocument {
             slice = default;
             failureReason = MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable;
             return false;
+        }
+
+        if (metadata.SyntaxNode.IsGenerated) {
+            return ParseResult.TryCreateOriginalSourceSlice(metadata.SyntaxNode, out slice, out failureReason);
         }
 
         return TryCreateOriginalSourceSlice(metadata.SourceSpan.Value, out slice, out failureReason);
