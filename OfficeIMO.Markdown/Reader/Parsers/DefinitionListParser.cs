@@ -721,7 +721,8 @@ public static partial class MarkdownReader {
         }
 
         return IsAtxHeading(line, out _, out _) ||
-            LooksLikeHr(line);
+            LooksLikeHr(line) ||
+            line.TrimStart().StartsWith(">", StringComparison.Ordinal);
     }
 
     private static int GetFirstNonWhitespaceIndex(string line) {
