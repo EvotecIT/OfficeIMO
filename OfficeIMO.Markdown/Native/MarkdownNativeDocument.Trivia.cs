@@ -1,6 +1,26 @@
 namespace OfficeIMO.Markdown;
 
 public sealed partial class MarkdownNativeDocument {
+    /// <summary>Enumerates document-level source trivia of the requested kind in source order.</summary>
+    public IEnumerable<MarkdownNativeSourceTrivia> EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind kind) {
+        for (var i = 0; i < SourceTrivia.Count; i++) {
+            if (SourceTrivia[i].Kind == kind) {
+                yield return SourceTrivia[i];
+            }
+        }
+    }
+
+    /// <summary>Finds the first document-level source trivia whose span contains the supplied 1-based line and column.</summary>
+    public MarkdownNativeSourceTrivia? FindSourceTriviaAtPosition(int lineNumber, int columnNumber) {
+        for (var i = 0; i < SourceTrivia.Count; i++) {
+            if (SourceTrivia[i].SourceSpan.ContainsPosition(lineNumber, columnNumber)) {
+                return SourceTrivia[i];
+            }
+        }
+
+        return null;
+    }
+
     private static IReadOnlyList<MarkdownNativeSourceTrivia> CreateSourceTrivia(string? sourceMarkdown) {
         sourceMarkdown ??= string.Empty;
         if (sourceMarkdown.Length == 0) {
@@ -18,20 +38,32 @@ public sealed partial class MarkdownNativeDocument {
 
             var lineLength = lineBreakOffset - lineStartOffset;
             if (IsBlankLine(sourceMarkdown, lineStartOffset, lineLength)) {
-                var lineText = lineLength == 0
-                    ? string.Empty
-                    : sourceMarkdown.Substring(lineStartOffset, lineLength);
-                var endOffsetInclusive = lineLength == 0
-                    ? lineStartOffset - 1
-                    : lineBreakOffset - 1;
-                var sourceSpan = new MarkdownSourceSpan(
+                trivia.Add(CreateTrivia(
+                    MarkdownNativeSourceTriviaKind.BlankLine,
+                    sourceMarkdown,
                     lineNumber,
-                    1,
-                    lineNumber,
-                    Math.Max(1, lineLength),
                     lineStartOffset,
-                    endOffsetInclusive);
-                trivia.Add(new MarkdownNativeSourceTrivia(MarkdownNativeSourceTriviaKind.BlankLine, lineText, sourceSpan));
+                    lineLength));
+            } else {
+                var leadingLength = CountLeadingHorizontalWhitespace(sourceMarkdown, lineStartOffset, lineLength);
+                if (leadingLength > 0) {
+                    trivia.Add(CreateTrivia(
+                        MarkdownNativeSourceTriviaKind.LeadingWhitespace,
+                        sourceMarkdown,
+                        lineNumber,
+                        lineStartOffset,
+                        leadingLength));
+                }
+
+                var trailingLength = CountTrailingHorizontalWhitespace(sourceMarkdown, lineStartOffset, lineLength);
+                if (trailingLength > 0) {
+                    trivia.Add(CreateTrivia(
+                        MarkdownNativeSourceTriviaKind.TrailingWhitespace,
+                        sourceMarkdown,
+                        lineNumber,
+                        lineBreakOffset - trailingLength,
+                        trailingLength));
+                }
             }
 
             if (lineBreakOffset >= sourceMarkdown.Length) {
@@ -46,6 +78,33 @@ public sealed partial class MarkdownNativeDocument {
         return trivia.Count == 0 ? Array.Empty<MarkdownNativeSourceTrivia>() : trivia;
     }
 
+    private static MarkdownNativeSourceTrivia CreateTrivia(
+        MarkdownNativeSourceTriviaKind kind,
+        string sourceMarkdown,
+        int lineNumber,
+        int startOffset,
+        int length) {
+        var text = length == 0
+            ? string.Empty
+            : sourceMarkdown.Substring(startOffset, length);
+        var endOffsetInclusive = length == 0
+            ? startOffset - 1
+            : startOffset + length - 1;
+        var startColumn = GetColumnNumber(sourceMarkdown, startOffset);
+        var endColumn = length == 0
+            ? startColumn
+            : startColumn + length - 1;
+        var sourceSpan = new MarkdownSourceSpan(
+            lineNumber,
+            startColumn,
+            lineNumber,
+            endColumn,
+            startOffset,
+            endOffsetInclusive);
+
+        return new MarkdownNativeSourceTrivia(kind, text, sourceSpan);
+    }
+
     private static bool IsBlankLine(string sourceMarkdown, int lineStartOffset, int lineLength) {
         for (var i = 0; i < lineLength; i++) {
             if (!char.IsWhiteSpace(sourceMarkdown[lineStartOffset + i])) {
@@ -54,6 +113,39 @@ public sealed partial class MarkdownNativeDocument {
         }
 
         return true;
+    }
+
+    private static int CountLeadingHorizontalWhitespace(string sourceMarkdown, int lineStartOffset, int lineLength) {
+        var count = 0;
+        while (count < lineLength && IsHorizontalWhitespace(sourceMarkdown[lineStartOffset + count])) {
+            count++;
+        }
+
+        return count;
+    }
+
+    private static int CountTrailingHorizontalWhitespace(string sourceMarkdown, int lineStartOffset, int lineLength) {
+        var count = 0;
+        while (count < lineLength && IsHorizontalWhitespace(sourceMarkdown[lineStartOffset + lineLength - count - 1])) {
+            count++;
+        }
+
+        return count;
+    }
+
+    private static bool IsHorizontalWhitespace(char value) => value == ' ' || value == '\t';
+
+    private static int GetColumnNumber(string sourceMarkdown, int offset) {
+        var column = 1;
+        for (var i = offset - 1; i >= 0; i--) {
+            if (IsLineBreakStart(sourceMarkdown, i, out _)) {
+                break;
+            }
+
+            column++;
+        }
+
+        return column;
     }
 
     private static bool IsLineBreakStart(string sourceMarkdown, int offset, out int length) {

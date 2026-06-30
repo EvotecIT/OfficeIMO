@@ -5,7 +5,11 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public enum MarkdownNativeSourceTriviaKind {
     /// <summary>A blank source line, including whitespace-only lines.</summary>
-    BlankLine
+    BlankLine,
+    /// <summary>Leading spaces or tabs before nonblank line content.</summary>
+    LeadingWhitespace,
+    /// <summary>Trailing spaces or tabs after nonblank line content.</summary>
+    TrailingWhitespace
 }
 
 /// <summary>

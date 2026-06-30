@@ -55,37 +55,54 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     }
 
     [Fact]
-    public void NativeDocument_SourceTrivia_SourceSlices_Address_Blank_Lines() {
+    public void NativeDocument_SourceTrivia_SourceSlices_Address_Blank_And_Horizontal_Whitespace() {
         var native = MarkdownNativeDocument.Parse(
-            "# Title\r\n\r\n   \r\nParagraph",
+            "# Title  \r\n\tIndented text\t \r\n   \r\nParagraph",
             new MarkdownReaderOptions { PreserveTrivia = true });
 
         var trivia = native.SourceTrivia.ToArray();
+        var trailingTrivia = native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.TrailingWhitespace).ToArray();
+        var leadingTrivia = Assert.Single(native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.LeadingWhitespace));
+        var blankLineTrivia = Assert.Single(native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.BlankLine));
 
-        Assert.Equal(2, trivia.Length);
-        Assert.All(trivia, item => Assert.Equal(MarkdownNativeSourceTriviaKind.BlankLine, item.Kind));
-        Assert.Equal(2, trivia[0].LineNumber);
-        Assert.Equal(3, trivia[1].LineNumber);
-        Assert.Equal(string.Empty, trivia[0].Text);
-        Assert.Equal("   ", trivia[1].Text);
-        Assert.True(native.TryCreateSourceSlice(trivia[0], out var emptyBlankLineSlice));
-        Assert.True(native.TryCreateSourceSlice(trivia[1], out var whitespaceBlankLineSlice));
-        Assert.Equal(string.Empty, emptyBlankLineSlice.Text);
-        Assert.Equal("   ", whitespaceBlankLineSlice.Text);
-        Assert.True(native.TryCreateOriginalSourceSlice(trivia[0], out var originalEmptyBlankLineSlice, out var emptyReason));
-        Assert.True(native.TryCreateOriginalSourceSlice(trivia[1], out var originalWhitespaceBlankLineSlice, out var whitespaceReason));
-        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, emptyReason);
-        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, whitespaceReason);
-        Assert.Equal(string.Empty, originalEmptyBlankLineSlice.Text);
-        Assert.Equal("   ", originalWhitespaceBlankLineSlice.Text);
+        Assert.Equal(4, trivia.Length);
+        Assert.Equal(new[] {
+            MarkdownNativeSourceTriviaKind.TrailingWhitespace,
+            MarkdownNativeSourceTriviaKind.LeadingWhitespace,
+            MarkdownNativeSourceTriviaKind.TrailingWhitespace,
+            MarkdownNativeSourceTriviaKind.BlankLine
+        }, trivia.Select(item => item.Kind).ToArray());
+        Assert.Equal(2, trailingTrivia.Length);
+        Assert.Equal("  ", trailingTrivia[0].Text);
+        Assert.Equal("\t", leadingTrivia.Text);
+        Assert.Equal("\t ", trailingTrivia[1].Text);
+        Assert.Equal("   ", blankLineTrivia.Text);
+        Assert.Same(leadingTrivia, native.FindSourceTriviaAtPosition(2, 1));
+        Assert.Same(trailingTrivia[1], native.FindSourceTriviaAtPosition(2, trailingTrivia[1].SourceSpan.StartColumn!.Value));
+        Assert.Same(blankLineTrivia, native.FindSourceTriviaAtPosition(3, 1));
+        Assert.True(native.TryCreateSourceSlice(trailingTrivia[0], out var titleTrailingSlice));
+        Assert.True(native.TryCreateSourceSlice(leadingTrivia, out var leadingSlice));
+        Assert.True(native.TryCreateSourceSlice(trailingTrivia[1], out var indentedTrailingSlice));
+        Assert.True(native.TryCreateSourceSlice(blankLineTrivia, out var blankLineSlice));
+        Assert.Equal("  ", titleTrailingSlice.Text);
+        Assert.Equal("\t", leadingSlice.Text);
+        Assert.Equal("\t ", indentedTrailingSlice.Text);
+        Assert.Equal("   ", blankLineSlice.Text);
+        Assert.True(native.TryCreateOriginalSourceSlice(leadingTrivia, out var originalLeadingSlice, out var leadingReason));
+        Assert.True(native.TryCreateOriginalSourceSlice(trailingTrivia[1], out var originalTrailingSlice, out var trailingReason));
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, leadingReason);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, trailingReason);
+        Assert.Equal("\t", originalLeadingSlice.Text);
+        Assert.Equal("\t ", originalTrailingSlice.Text);
 
         var snapshotTrivia = native.ToSnapshot().SourceTrivia;
-        Assert.Equal(2, snapshotTrivia.Count);
-        Assert.Equal(MarkdownNativeSourceTriviaKind.BlankLine, snapshotTrivia[0].Kind);
-        Assert.Equal(string.Empty, snapshotTrivia[0].Text);
-        Assert.Equal(2, snapshotTrivia[0].SourceSpan.StartLine);
-        Assert.Equal("   ", snapshotTrivia[1].Text);
-        Assert.Equal(3, snapshotTrivia[1].SourceSpan.StartLine);
+        Assert.Equal(4, snapshotTrivia.Count);
+        Assert.Equal(MarkdownNativeSourceTriviaKind.TrailingWhitespace, snapshotTrivia[0].Kind);
+        Assert.Equal("  ", snapshotTrivia[0].Text);
+        Assert.Equal(MarkdownNativeSourceTriviaKind.LeadingWhitespace, snapshotTrivia[1].Kind);
+        Assert.Equal("\t", snapshotTrivia[1].Text);
+        Assert.Equal(MarkdownNativeSourceTriviaKind.BlankLine, snapshotTrivia[3].Kind);
+        Assert.Equal("   ", snapshotTrivia[3].Text);
     }
 
     [Fact]
