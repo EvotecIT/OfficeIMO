@@ -24,6 +24,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPShd80 = 0x442D;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
+        private const ushort SprmPIlvl = 0x260A;
+        private const ushort SprmPIlfo = 0x460B;
         private const ushort SprmTFCantSplit = 0x3403;
         private const ushort SprmTTableHeader = 0x3404;
         private const ushort SprmTFCantSplit90 = 0x3466;
@@ -174,6 +176,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? keepWithNext = null;
             bool? pageBreakBefore = null;
             bool? avoidWidowAndOrphan = null;
+            ushort? numberingListIndex = null;
+            byte? numberingLevel = null;
             LegacyDocParagraphShading? paragraphShading = null;
             LegacyDocParagraphBorder paragraphTopBorder = default;
             LegacyDocParagraphBorder paragraphLeftBorder = default;
@@ -261,6 +265,34 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                     alignment = MapAlignment(bytes[offset + 2]);
                     offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmPIlvl) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    byte level = bytes[offset + 2];
+                    if (level <= 8) {
+                        numberingLevel = level;
+                    }
+
+                    offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmPIlfo) {
+                    if (offset + 4 > end) {
+                        break;
+                    }
+
+                    ushort ilfo = LegacyDocFib.ReadUInt16(bytes, offset + 2);
+                    if (ilfo > 0) {
+                        numberingListIndex = ilfo;
+                    }
+
+                    offset += 4;
                     continue;
                 }
 
@@ -517,6 +549,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 keepWithNext,
                 pageBreakBefore,
                 avoidWidowAndOrphan,
+                numberingListIndex,
+                numberingLevel,
                 isInTable,
                 isTableTerminatingParagraph,
                 tabStops,

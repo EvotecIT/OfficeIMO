@@ -23,6 +23,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPShd80 = 0x442D;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
+        private const ushort SprmPIlvl = 0x260A;
+        private const ushort SprmPIlfo = 0x460B;
         private const ushort SprmTTableHeader = 0x3404;
         private const ushort SprmTFCantSplit90 = 0x3466;
         private const ushort SprmTJc = 0x548A;
@@ -108,6 +110,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (formatting.AvoidWidowAndOrphan == true) {
                 AddSingleByteSprm(grpprl, SprmPFWidowControl, 1);
+            }
+
+            if (formatting.NumberingLevel != null) {
+                AddSingleByteSprm(grpprl, SprmPIlvl, formatting.NumberingLevel.Value);
+            }
+
+            if (formatting.NumberingListIndex != null) {
+                AddUInt16Sprm(grpprl, SprmPIlfo, formatting.NumberingListIndex.Value);
             }
 
             if (formatting.IsInTable == true) {
@@ -252,6 +262,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             grpprl.Add((byte)(sprm >> 8));
             grpprl.Add((byte)(value & 0xFF));
             grpprl.Add((byte)(value >> 8));
+        }
+
+        private static void AddUInt16Sprm(List<byte> grpprl, ushort sprm, ushort operand) {
+            grpprl.Add((byte)(sprm & 0xFF));
+            grpprl.Add((byte)(sprm >> 8));
+            grpprl.Add((byte)(operand & 0xFF));
+            grpprl.Add((byte)(operand >> 8));
         }
 
         private static void AddLineSpacingSprm(List<byte> grpprl, int lineSpacingTwips) {
@@ -765,7 +782,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
 
         internal LegacyDocWritableParagraphFormatting(
             byte? alignment,
@@ -780,6 +797,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? keepWithNext,
             bool? pageBreakBefore,
             bool? avoidWidowAndOrphan,
+            ushort? numberingListIndex,
+            byte? numberingLevel,
             bool? isInTable,
             bool? isTableTerminatingParagraph,
             IReadOnlyList<LegacyDocTabStop>? tabStops,
@@ -818,6 +837,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             KeepWithNext = keepWithNext;
             PageBreakBefore = pageBreakBefore;
             AvoidWidowAndOrphan = avoidWidowAndOrphan;
+            NumberingListIndex = numberingListIndex.HasValue && numberingListIndex.Value > 0
+                ? numberingListIndex
+                : null;
+            NumberingLevel = numberingLevel.HasValue && numberingLevel.Value <= 8
+                ? numberingLevel
+                : null;
             IsInTable = isInTable;
             IsTableTerminatingParagraph = isTableTerminatingParagraph;
             TabStops = tabStops == null || tabStops.Count == 0
@@ -904,6 +929,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal bool? AvoidWidowAndOrphan { get; }
 
+        internal ushort? NumberingListIndex { get; }
+
+        internal byte? NumberingLevel { get; }
+
         internal bool? IsInTable { get; }
 
         internal bool? IsTableTerminatingParagraph { get; }
@@ -968,6 +997,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || KeepWithNext != null
             || PageBreakBefore != null
             || AvoidWidowAndOrphan != null
+            || NumberingListIndex != null
+            || NumberingLevel != null
             || IsInTable != null
             || IsTableTerminatingParagraph != null
             || TabStops.Count > 0
@@ -1008,6 +1039,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 KeepWithNext,
                 PageBreakBefore,
                 AvoidWidowAndOrphan,
+                NumberingListIndex,
+                NumberingLevel,
                 IsInTable,
                 IsTableTerminatingParagraph,
                 TabStops,
@@ -1054,6 +1087,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 KeepWithNext ?? inherited.KeepWithNext,
                 PageBreakBefore ?? inherited.PageBreakBefore,
                 AvoidWidowAndOrphan ?? inherited.AvoidWidowAndOrphan,
+                NumberingListIndex ?? inherited.NumberingListIndex,
+                NumberingLevel ?? inherited.NumberingLevel,
                 IsInTable ?? inherited.IsInTable,
                 IsTableTerminatingParagraph ?? inherited.IsTableTerminatingParagraph,
                 TabStops.Count > 0 ? TabStops : inherited.TabStops,
@@ -1118,6 +1153,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 KeepWithNext,
                 PageBreakBefore,
                 AvoidWidowAndOrphan,
+                NumberingListIndex,
+                NumberingLevel,
                 true,
                 isTableTerminatingParagraph ? true : null,
                 TabStops,
@@ -1159,6 +1196,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && KeepWithNext == other.KeepWithNext
                 && PageBreakBefore == other.PageBreakBefore
                 && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan
+                && NumberingListIndex == other.NumberingListIndex
+                && NumberingLevel == other.NumberingLevel
                 && IsInTable == other.IsInTable
                 && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph
                 && TabStopsEqual(TabStops, other.TabStops)
@@ -1205,6 +1244,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + KeepWithNext.GetHashCode();
             hash = (hash * 31) + PageBreakBefore.GetHashCode();
             hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
+            hash = (hash * 31) + NumberingListIndex.GetHashCode();
+            hash = (hash * 31) + NumberingLevel.GetHashCode();
             hash = (hash * 31) + IsInTable.GetHashCode();
             hash = (hash * 31) + IsTableTerminatingParagraph.GetHashCode();
             hash = (hash * 31) + TableLeftIndentTwips.GetHashCode();

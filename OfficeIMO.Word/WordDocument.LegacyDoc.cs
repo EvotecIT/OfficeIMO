@@ -1163,6 +1163,10 @@ namespace OfficeIMO.Word {
                 ApplyLegacyDocParagraphStyle(paragraph, paragraphFormat.StyleIndex.Value, styleSheet);
             }
 
+            if (paragraphFormat.NumberingListIndex != null) {
+                ApplyLegacyDocParagraphNumbering(paragraph, paragraphFormat.NumberingListIndex.Value, paragraphFormat.NumberingLevel ?? 0);
+            }
+
             if (paragraphFormat.Alignment != null && TryMapParagraphAlignment(paragraphFormat.Alignment.Value, out JustificationValues alignment)) {
                 paragraph.ParagraphAlignment = alignment;
             }
@@ -1224,6 +1228,96 @@ namespace OfficeIMO.Word {
                     && TryMapTabStopLeader(tabStop.Leader, out TabStopLeaderCharValues leader)) {
                     paragraph.AddTabStop(tabStop.PositionTwips, tabAlignment, leader);
                 }
+            }
+        }
+
+        private static void ApplyLegacyDocParagraphNumbering(WordParagraph paragraph, ushort listIndex, byte level) {
+            EnsureLegacyDocNumberingDefinition(paragraph._document, listIndex);
+
+            if (paragraph._paragraph.ParagraphProperties == null) {
+                paragraph._paragraph.ParagraphProperties = new ParagraphProperties();
+            }
+
+            ParagraphProperties paragraphProperties = paragraph._paragraph.ParagraphProperties!;
+            NumberingProperties? numberingProperties = paragraphProperties.GetFirstChild<NumberingProperties>();
+            if (numberingProperties == null) {
+                numberingProperties = new NumberingProperties();
+                paragraphProperties.Append(numberingProperties);
+            }
+
+            numberingProperties.RemoveAllChildren<NumberingLevelReference>();
+            numberingProperties.RemoveAllChildren<NumberingId>();
+            numberingProperties.Append(
+                new NumberingLevelReference { Val = level },
+                new NumberingId { Val = listIndex });
+        }
+
+        private static void EnsureLegacyDocNumberingDefinition(WordDocument document, int numberId) {
+            MainDocumentPart mainPart = document.MainDocumentPartRoot;
+            NumberingDefinitionsPart numberingPart = mainPart.NumberingDefinitionsPart ?? mainPart.AddNewPart<NumberingDefinitionsPart>();
+            Numbering numbering = numberingPart.Numbering ??= new Numbering();
+
+            if (numbering.Elements<NumberingInstance>().Any(instance => instance.NumberID?.Value == numberId)) {
+                return;
+            }
+
+            int abstractId = GetNextLegacyDocAbstractNumberingId(numbering);
+            numbering.Append(CreateLegacyDocDecimalAbstractNumbering(abstractId));
+            numbering.Append(new NumberingInstance(new AbstractNumId { Val = abstractId }) { NumberID = numberId });
+        }
+
+        private static int GetNextLegacyDocAbstractNumberingId(Numbering numbering) {
+            int nextId = 0;
+            foreach (AbstractNum abstractNum in numbering.Elements<AbstractNum>()) {
+                if (abstractNum.AbstractNumberId?.Value != null) {
+                    nextId = Math.Max(nextId, abstractNum.AbstractNumberId.Value + 1);
+                }
+            }
+
+            return nextId;
+        }
+
+        private static AbstractNum CreateLegacyDocDecimalAbstractNumbering(int abstractId) {
+            var abstractNum = new AbstractNum {
+                AbstractNumberId = abstractId
+            };
+            abstractNum.Append(new MultiLevelType { Val = MultiLevelValues.HybridMultilevel });
+
+            for (int level = 0; level <= 8; level++) {
+                abstractNum.Append(CreateLegacyDocDecimalNumberingLevel(level));
+            }
+
+            return abstractNum;
+        }
+
+        private static Level CreateLegacyDocDecimalNumberingLevel(int level) {
+            var paragraphProperties = new PreviousParagraphProperties();
+            paragraphProperties.Append(new Indentation {
+                Left = ((level + 1) * 720).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                Hanging = "360"
+            });
+
+            var numberingLevel = new Level {
+                LevelIndex = level,
+                Tentative = level > 0
+            };
+            numberingLevel.Append(
+                new StartNumberingValue { Val = 1 },
+                new NumberingFormat { Val = MapLegacyDocFallbackNumberingFormat(level) },
+                new LevelText { Val = "%" + (level + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + "." },
+                new LevelJustification { Val = LevelJustificationValues.Left },
+                paragraphProperties);
+            return numberingLevel;
+        }
+
+        private static NumberFormatValues MapLegacyDocFallbackNumberingFormat(int level) {
+            switch (level % 3) {
+                case 1:
+                    return NumberFormatValues.LowerLetter;
+                case 2:
+                    return NumberFormatValues.LowerRoman;
+                default:
+                    return NumberFormatValues.Decimal;
             }
         }
 

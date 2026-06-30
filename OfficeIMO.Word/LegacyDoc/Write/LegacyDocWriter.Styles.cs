@@ -15,6 +15,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 .Where(styleId => !string.IsNullOrWhiteSpace(styleId))
                 .Select(styleId => styleId!)
                 .Where(styleId => !string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase))
+                .Where(styleId => !string.Equals(styleId, "ListParagraph", StringComparison.OrdinalIgnoreCase))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             var builtInStyleIndexes = new SortedSet<ushort>(usedStyleIds

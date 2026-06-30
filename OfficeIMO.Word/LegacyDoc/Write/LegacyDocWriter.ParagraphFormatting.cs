@@ -29,6 +29,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? keepWithNext = null;
             bool? pageBreakBefore = null;
             bool? avoidWidowAndOrphan = null;
+            ushort? numberingListIndex = null;
+            byte? numberingLevel = null;
             LegacyDocParagraphShading? paragraphShading = null;
             LegacyDocParagraphBorders? paragraphBorders = null;
             IReadOnlyList<LegacyDocTabStop>? tabStops = null;
@@ -63,6 +65,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case WidowControl widowControl:
                         avoidWidowAndOrphan = ReadOnOffValue(widowControl);
                         break;
+                    case NumberingProperties numberingProperties:
+                        if (!allowParagraphStyleId) {
+                            throw new NotSupportedException("Native DOC saving currently supports simple numbering only on direct paragraph formatting. Unsupported paragraph property: numPr.");
+                        }
+
+                        ReadSupportedNumberingProperties(numberingProperties, out numberingListIndex, out numberingLevel);
+                        break;
                     case Shading shading:
                         paragraphShading = ReadSupportedParagraphShading(shading);
                         break;
@@ -76,7 +85,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ReadSupportedBuiltInOutlineLevel(outlineLevel, builtInStyleIndex);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, alignment, spacing, indentation, pagination flags, tab stops, palette-backed paragraph shading, and palette-backed paragraph borders. Unsupported paragraph property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, simple numbering, alignment, spacing, indentation, pagination flags, tab stops, palette-backed paragraph shading, and palette-backed paragraph borders. Unsupported paragraph property: {property.LocalName}.");
                 }
             }
 
@@ -93,6 +102,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 keepWithNext,
                 pageBreakBefore,
                 avoidWidowAndOrphan,
+                numberingListIndex,
+                numberingLevel,
                 null,
                 null,
                 tabStops,
@@ -117,6 +128,38 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 null,
                 paragraphShading,
                 paragraphBorders);
+        }
+
+        private static void ReadSupportedNumberingProperties(NumberingProperties numberingProperties, out ushort? numberingListIndex, out byte? numberingLevel) {
+            numberingListIndex = null;
+            numberingLevel = null;
+
+            foreach (OpenXmlElement child in numberingProperties.ChildElements) {
+                switch (child) {
+                    case NumberingId:
+                    case NumberingLevelReference:
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports simple paragraph numbering only. Unsupported numbering property: {child.LocalName}.");
+                }
+            }
+
+            int? numberId = numberingProperties.NumberingId?.Val?.Value;
+            if (numberId == null || numberId.Value == 0) {
+                return;
+            }
+
+            if (numberId.Value < 0 || numberId.Value > ushort.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports paragraph numbering ids only within the Word 97-2003 list index range.");
+            }
+
+            int level = numberingProperties.NumberingLevelReference?.Val?.Value ?? 0;
+            if (level < 0 || level > 8) {
+                throw new NotSupportedException("Native DOC saving supports paragraph numbering levels 0 through 8.");
+            }
+
+            numberingListIndex = checked((ushort)numberId.Value);
+            numberingLevel = checked((byte)level);
         }
 
         private static LegacyDocParagraphBorders ReadSupportedParagraphBorders(ParagraphBorders borders) {
@@ -294,7 +337,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static ushort? ReadSupportedParagraphStyleIndex(ParagraphStyleId paragraphStyleId, IReadOnlyDictionary<string, ushort> styleIndexes) {
             string? styleId = paragraphStyleId.Val?.Value;
-            if (string.IsNullOrWhiteSpace(styleId) || string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
+            if (string.IsNullOrWhiteSpace(styleId)
+                || string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(styleId, "ListParagraph", StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
 

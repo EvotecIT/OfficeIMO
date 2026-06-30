@@ -670,6 +670,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSimpleNumberedParagraphs() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithSimpleNumberedParagraphs();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+
+            WordParagraph[] paragraphs = result.Document.Paragraphs.ToArray();
+            Assert.Equal(3, paragraphs.Length);
+            Assert.Equal("plain", paragraphs[0].Text);
+            Assert.False(paragraphs[0].IsListItem);
+            Assert.Equal("numbered one", paragraphs[1].Text);
+            Assert.True(paragraphs[1].IsListItem);
+            Assert.Equal(0, paragraphs[1].ListItemLevel);
+            Assert.Equal("numbered nested", paragraphs[2].Text);
+            Assert.True(paragraphs[2].IsListItem);
+            Assert.Equal(1, paragraphs[2].ListItemLevel);
+
+            Numbering numbering = result.Document._wordprocessingDocument!.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+            Assert.Contains(numbering.Elements<NumberingInstance>(), instance => instance.NumberID?.Value == 1);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelParagraphTabStops() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelParagraphTabStops();
 
@@ -3461,6 +3485,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSimpleNumberedListAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordList list = document.AddList(WordListStyle.Numbered);
+                    list.AddItem("numbered one");
+                    list.AddItem("numbered nested", level: 1);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x0A, 0x26, 0x00, 0x0B, 0x46, 0x01, 0x00),
+                    "Expected the native DOC paragraph property stream to contain sprmPIlvl and sprmPIlfo for the first list item.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x0A, 0x26, 0x01, 0x0B, 0x46, 0x01, 0x00),
+                    "Expected the native DOC paragraph property stream to contain sprmPIlvl and sprmPIlfo for the nested list item.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
+                Assert.Equal(2, paragraphs.Length);
+                Assert.Equal("numbered one", paragraphs[0].Text);
+                Assert.True(paragraphs[0].IsListItem);
+                Assert.Equal(0, paragraphs[0].ListItemLevel);
+                Assert.Equal("numbered nested", paragraphs[1].Text);
+                Assert.True(paragraphs[1].IsListItem);
+                Assert.Equal(1, paragraphs[1].ListItemLevel);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphPaginationFlagsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -5751,11 +5812,11 @@ namespace OfficeIMO.Tests {
                     paragraphProperties = headerParagraph._paragraph.PrependChild(new ParagraphProperties());
                 }
 
-                paragraphProperties.Append(new NumberingProperties());
+                paragraphProperties.Append(new TextAlignment { Val = VerticalTextAlignmentValues.Center });
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("Unsupported paragraph property: numPr", exception.Message);
+                Assert.Contains("Unsupported paragraph property: textAlignment", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -5776,12 +5837,12 @@ namespace OfficeIMO.Tests {
                     paragraphProperties = footnoteBody._paragraph.PrependChild(new ParagraphProperties());
                 }
 
-                paragraphProperties.Append(new NumberingProperties());
+                paragraphProperties.Append(new TextAlignment { Val = VerticalTextAlignmentValues.Center });
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("supported paragraph formatting", exception.Message);
-                Assert.Contains("Unsupported paragraph property: numPr", exception.Message);
+                Assert.Contains("Unsupported paragraph property: textAlignment", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -7744,6 +7805,22 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithSimpleNumberedParagraphs() {
+                const string text = "plain\rnumbered one\rnumbered nested\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithSimpleNumberedParagraphs(text, textOffset, papxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithStyleLevelParagraphTabStops() {
                 const string text = "style tabs\r";
                 const int textOffset = 0x200;
@@ -8715,6 +8792,43 @@ namespace OfficeIMO.Tests {
                         [2] = CreateParagraphPropertiesPapx(CreateParagraphTabStopsSprm(
                             new[] { 1440 },
                             (2160, 4, 0)))
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
+            private static byte[] CreateUnicodeWordDocumentStreamWithSimpleNumberedParagraphs(string text, int textOffset, int papxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int firstListStart = textOffset + ("plain\r".Length * 2);
+                int nestedListStart = firstListStart + ("numbered one\r".Length * 2);
+                int end = nestedListStart + ("numbered nested\r".Length * 2);
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, firstListStart, nestedListStart, end },
+                    new Dictionary<int, byte[]> {
+                        [1] = CreateParagraphPropertiesPapx(
+                            CreateParagraphSprm(0x260A, 0),
+                            CreateParagraphSprm(0x460B, 1, 0)),
+                        [2] = CreateParagraphPropertiesPapx(
+                            CreateParagraphSprm(0x260A, 1),
+                            CreateParagraphSprm(0x460B, 1, 0))
                     });
 
                 if (stream.Length < fibLength) {
