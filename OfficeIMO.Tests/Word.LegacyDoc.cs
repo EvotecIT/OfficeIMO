@@ -4709,6 +4709,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocConditionalTableStyleParagraphFormattingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocFirstRowParagraphFormattingTable";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC First Row Paragraph Formatting Table" });
+                    style.Append(new BasedOn { Val = "TableNormal" });
+                    var firstRowParagraphProperties = new StyleParagraphProperties(
+                        new Justification { Val = JustificationValues.Center },
+                        new SpacingBetweenLines { After = "120" },
+                        new Indentation { Left = "360" });
+                    style.Append(new TableStyleProperties(firstRowParagraphProperties) { Type = TableStyleOverrideValues.FirstRow });
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                    WordTable table = document.AddTable(2, 2, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    table._tableProperties.TableLook = new TableLook { FirstRow = true, LastRow = false, FirstColumn = false, LastColumn = false, NoHorizontalBand = true, NoVerticalBand = true };
+                    table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
+                    WordParagraph directOverride = table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+                    directOverride.ParagraphAlignment = JustificationValues.Right;
+                    directOverride.LineSpacingAfter = 240;
+                    table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordParagraph firstStyled = reloadedTable.Rows[0].Cells[0].Paragraphs[0];
+                Assert.Equal("A1", firstStyled.Text);
+                Assert.Equal(JustificationValues.Center, firstStyled.ParagraphAlignment);
+                Assert.Equal(120, firstStyled.LineSpacingAfter);
+                Assert.Equal(360, firstStyled.IndentationBefore);
+
+                WordParagraph directStyled = reloadedTable.Rows[0].Cells[1].Paragraphs[0];
+                Assert.Equal("B1", directStyled.Text);
+                Assert.Equal(JustificationValues.Right, directStyled.ParagraphAlignment);
+                Assert.Equal(240, directStyled.LineSpacingAfter);
+                Assert.Equal(360, directStyled.IndentationBefore);
+
+                WordParagraph unstyled = reloadedTable.Rows[1].Cells[0].Paragraphs[0];
+                Assert.Equal("A2", unstyled.Text);
+                Assert.Null(unstyled.ParagraphAlignment);
+                Assert.Null(unstyled.LineSpacingAfter);
+                Assert.Null(unstyled.IndentationBefore);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocTableStyleParagraphFormattingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string styleId = "NativeDocTableParagraphFormatting";

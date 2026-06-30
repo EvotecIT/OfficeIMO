@@ -263,12 +263,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TableStyleConditionalFormattingTableProperties tableProperties:
                         ThrowIfUnsupportedTableStyleConditionalTableProperties(styleId, tableProperties);
                         break;
+                    case StyleParagraphProperties styleParagraphProperties:
+                        ThrowIfUnsupportedTableStyleConditionalParagraphProperties(styleId, styleParagraphProperties);
+                        break;
                     case StyleRunProperties styleRunProperties:
                         ThrowIfUnsupportedTableStyleConditionalRunProperties(styleId, styleRunProperties);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only with supported table, cell, and run effects. Unsupported conditional style element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only with supported table, cell, paragraph, and run effects. Unsupported conditional style element: {child.LocalName}.");
                 }
+            }
+        }
+
+        private static void ThrowIfUnsupportedTableStyleConditionalParagraphProperties(string styleId, StyleParagraphProperties paragraphProperties) {
+            try {
+                _ = ReadSupportedStyleParagraphFormatting(paragraphProperties);
+            } catch (NotSupportedException exception) {
+                throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional paragraph formatting only with supported paragraph properties. {exception.Message}", exception);
             }
         }
 

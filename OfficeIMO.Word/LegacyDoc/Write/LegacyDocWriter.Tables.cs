@@ -54,8 +54,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 IReadOnlyList<LegacyDocTableCellShading> cellShadings = ReadSupportedTableCellShadings(writableCells);
                 IReadOnlyList<LegacyDocTableCellBorders> cellBorders = ReadSupportedTableCellBorders(writableCells);
                 foreach (LegacyDocWritableTableCell writableCell in writableCells) {
+                    LegacyDocWritableParagraphFormatting cellParagraphFormatting = writableCell.ParagraphFormatting.WithInheritedParagraphFormatting(tableStyleParagraphFormatting);
                     LegacyDocWritableFormatting cellRunFormatting = writableCell.RunFormatting.WithInheritedFormatting(tableStyleRunFormatting);
-                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, paragraphFormats, writableCell.SourceCell, styleIndexes, tableStyleParagraphFormatting, cellRunFormatting, footnotes, endnotes, out int finalParagraphStart)
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, paragraphFormats, writableCell.SourceCell, styleIndexes, cellParagraphFormatting, cellRunFormatting, footnotes, endnotes, out int finalParagraphStart)
                         .WithTableMarkers(isTableTerminatingParagraph: false);
                     text.Append('\a');
                     paragraphFormats.Add(new LegacyDocWritableParagraph(finalParagraphStart, text.Length - finalParagraphStart, paragraphFormatting));
@@ -1239,10 +1240,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private readonly struct LegacyDocWritableTableCell {
             internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, LegacyDocTableCellTextDirection textDirection, bool fitText, bool noWrap, bool hideMark, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders)
-                : this(sourceCell, widthTwips, horizontalMerge, verticalMerge, verticalAlignment, textDirection, fitText, noWrap, hideMark, margins, shading, borders, LegacyDocWritableFormatting.Plain) {
+                : this(sourceCell, widthTwips, horizontalMerge, verticalMerge, verticalAlignment, textDirection, fitText, noWrap, hideMark, margins, shading, borders, LegacyDocWritableParagraphFormatting.Plain, LegacyDocWritableFormatting.Plain) {
             }
 
-            private LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, LegacyDocTableCellTextDirection textDirection, bool fitText, bool noWrap, bool hideMark, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders, LegacyDocWritableFormatting runFormatting) {
+            private LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, LegacyDocTableCellTextDirection textDirection, bool fitText, bool noWrap, bool hideMark, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders, LegacyDocWritableParagraphFormatting paragraphFormatting, LegacyDocWritableFormatting runFormatting) {
                 SourceCell = sourceCell;
                 WidthTwips = widthTwips;
                 HorizontalMerge = horizontalMerge;
@@ -1255,6 +1256,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 Margins = margins;
                 Shading = shading;
                 Borders = borders;
+                ParagraphFormatting = paragraphFormatting;
                 RunFormatting = runFormatting;
             }
 
@@ -1282,34 +1284,39 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal LegacyDocTableCellBorders Borders { get; }
 
+            internal LegacyDocWritableParagraphFormatting ParagraphFormatting { get; }
+
             internal LegacyDocWritableFormatting RunFormatting { get; }
 
             internal LegacyDocWritableTableCell WithBorders(LegacyDocTableCellBorders borders) =>
-                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, HideMark, Margins, Shading, borders, RunFormatting);
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, HideMark, Margins, Shading, borders, ParagraphFormatting, RunFormatting);
 
             internal LegacyDocWritableTableCell WithShading(LegacyDocTableCellShading shading) =>
-                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, HideMark, Margins, shading, Borders, RunFormatting);
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, HideMark, Margins, shading, Borders, ParagraphFormatting, RunFormatting);
 
             internal LegacyDocWritableTableCell WithVerticalAlignment(LegacyDocTableCellVerticalAlignment verticalAlignment) =>
-                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, verticalAlignment, TextDirection, FitText, NoWrap, HideMark, Margins, Shading, Borders, RunFormatting);
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, verticalAlignment, TextDirection, FitText, NoWrap, HideMark, Margins, Shading, Borders, ParagraphFormatting, RunFormatting);
 
             internal LegacyDocWritableTableCell WithTextDirection(LegacyDocTableCellTextDirection textDirection) =>
-                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, textDirection, FitText, NoWrap, HideMark, Margins, Shading, Borders, RunFormatting);
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, textDirection, FitText, NoWrap, HideMark, Margins, Shading, Borders, ParagraphFormatting, RunFormatting);
 
             internal LegacyDocWritableTableCell WithFitText(bool fitText) =>
-                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, fitText, NoWrap, HideMark, Margins, Shading, Borders, RunFormatting);
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, fitText, NoWrap, HideMark, Margins, Shading, Borders, ParagraphFormatting, RunFormatting);
 
             internal LegacyDocWritableTableCell WithNoWrap(bool noWrap) =>
-                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, noWrap, HideMark, Margins, Shading, Borders, RunFormatting);
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, noWrap, HideMark, Margins, Shading, Borders, ParagraphFormatting, RunFormatting);
 
             internal LegacyDocWritableTableCell WithHideMark(bool hideMark) =>
-                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, hideMark, Margins, Shading, Borders, RunFormatting);
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, hideMark, Margins, Shading, Borders, ParagraphFormatting, RunFormatting);
 
             internal LegacyDocWritableTableCell WithMargins(LegacyDocTableCellMargins margins) =>
-                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, HideMark, margins, Shading, Borders, RunFormatting);
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, HideMark, margins, Shading, Borders, ParagraphFormatting, RunFormatting);
+
+            internal LegacyDocWritableTableCell WithParagraphFormatting(LegacyDocWritableParagraphFormatting paragraphFormatting) =>
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, HideMark, Margins, Shading, Borders, paragraphFormatting, RunFormatting);
 
             internal LegacyDocWritableTableCell WithRunFormatting(LegacyDocWritableFormatting runFormatting) =>
-                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, HideMark, Margins, Shading, Borders, runFormatting);
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, HideMark, Margins, Shading, Borders, ParagraphFormatting, runFormatting);
         }
     }
 }
