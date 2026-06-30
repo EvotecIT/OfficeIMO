@@ -13,7 +13,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? marginLeftTwips,
             int? headerDistanceTwips,
             int? footerDistanceTwips,
-            int? gutterTwips) {
+            int? gutterTwips,
+            bool differentFirstPage = false) {
             SectionBreakType = sectionBreakType;
             PageWidthTwips = pageWidthTwips;
             PageHeightTwips = pageHeightTwips;
@@ -25,6 +26,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             HeaderDistanceTwips = headerDistanceTwips;
             FooterDistanceTwips = footerDistanceTwips;
             GutterTwips = gutterTwips;
+            DifferentFirstPage = differentFirstPage;
         }
 
         internal SectionMarkValues? SectionBreakType { get; }
@@ -49,6 +51,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal int? GutterTwips { get; }
 
+        internal bool DifferentFirstPage { get; }
+
         internal bool HasFormatting => IsNonDefaultSectionBreakType(SectionBreakType)
             || PageWidthTwips != null
             || PageHeightTwips != null
@@ -59,7 +63,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || MarginLeftTwips != null
             || HeaderDistanceTwips != null
             || FooterDistanceTwips != null
-            || GutterTwips != null;
+            || GutterTwips != null
+            || DifferentFirstPage;
 
         private static bool IsNonDefaultSectionBreakType(SectionMarkValues? sectionBreakType) {
             return sectionBreakType != null && sectionBreakType.Value != SectionMarkValues.NextPage;
@@ -77,7 +82,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 MarginLeftTwips,
                 HeaderDistanceTwips,
                 FooterDistanceTwips,
-                GutterTwips);
+                GutterTwips,
+                DifferentFirstPage);
         }
 
         internal static LegacyDocSectionFormat Default { get; } = new LegacyDocSectionFormat(null, null, null, null, null, null, null, null, null, null, null);

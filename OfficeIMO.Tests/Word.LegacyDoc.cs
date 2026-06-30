@@ -1238,6 +1238,21 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsFirstPageSectionFlag() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithTitlePageSectionFlag();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.Empty(result.UnsupportedFeatures);
+
+            WordDocument document = result.Document;
+            WordSection section = Assert.Single(document.Sections);
+            Assert.True(section.DifferentFirstPage);
+            Assert.Equal("First-page section", Assert.Single(section.Paragraphs).Text);
+        }
+
         [Theory]
         [InlineData(0, "continuous", "Continuous section")]
         [InlineData(1, "nextColumn", "Next-column section")]
@@ -1368,8 +1383,15 @@ namespace OfficeIMO.Tests {
                 }
 
                 byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                byte[] tableStream = ReadCompoundStream(File.ReadAllBytes(docPath), "1Table");
                 Assert.True(BitConverter.ToInt32(wordDocumentStream, 0x54) > 0);
                 Assert.Equal(56, BitConverter.ToInt32(wordDocumentStream, 0xF6));
+                AssertSectionSepxContainsSingleByteSprm(wordDocumentStream, tableStream, 0x300A, 1);
+                int fcDop = BitConverter.ToInt32(wordDocumentStream, 0x192);
+                int lcbDop = BitConverter.ToInt32(wordDocumentStream, 0x196);
+                Assert.True(fcDop > 0);
+                Assert.Equal(8, lcbDop);
+                Assert.Equal(1, BitConverter.ToUInt16(tableStream, fcDop) & 0x0001);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
@@ -4679,6 +4701,32 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithTitlePageSectionFlag() {
+                const string paragraph = "First-page section";
+                string text = paragraph + "\r";
+                const int sepxOffset = 0x300;
+
+                byte[] tableStream = CreateTableStream(text.Length);
+                int fcPlcfSed = tableStream.Length;
+                byte[] sectionDescriptorPlc = CreateOneSectionDescriptorPlc(text.Length, sepxOffset);
+                Array.Resize(ref tableStream, tableStream.Length + sectionDescriptorPlc.Length);
+                Buffer.BlockCopy(sectionDescriptorPlc, 0, tableStream, fcPlcfSed, sectionDescriptorPlc.Length);
+
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    fcPlcfSed: fcPlcfSed,
+                    lcbPlcfSed: sectionDescriptorPlc.Length);
+                WriteBytesAt(ref wordDocumentStream, sepxOffset, CreateSectionSepx(titlePage: true));
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithSectionBreakKind(int sectionBreakOperand, string secondParagraph) {
                 const string firstParagraph = "Before continuous section";
                 string text = firstParagraph + "\r" + secondParagraph + "\r";
@@ -5074,6 +5122,14 @@ namespace OfficeIMO.Tests {
                 return plc;
             }
 
+            private static byte[] CreateOneSectionDescriptorPlc(int characterCount, int sepxOffset) {
+                var plc = new byte[20];
+                WriteInt32(plc, 0, 0);
+                WriteInt32(plc, 4, characterCount);
+                WriteInt32(plc, 10, sepxOffset);
+                return plc;
+            }
+
             private static byte[] CreateSectionSepx(
                 byte? sectionBreakType = null,
                 byte? orientation = null,
@@ -5082,10 +5138,15 @@ namespace OfficeIMO.Tests {
                 int? marginLeft = null,
                 int? marginRight = null,
                 int? marginTop = null,
-                int? marginBottom = null) {
+                int? marginBottom = null,
+                bool titlePage = false) {
                 var grpprl = new List<byte>();
                 if (sectionBreakType != null) {
                     AddSingleByteSprm(grpprl, 0x3009, sectionBreakType.Value);
+                }
+
+                if (titlePage) {
+                    AddSingleByteSprm(grpprl, 0x300A, 1);
                 }
 
                 if (orientation != null) {
@@ -6453,6 +6514,29 @@ namespace OfficeIMO.Tests {
                 error);
             Assert.True(compoundFile!.Streams.TryGetValue(streamName, out byte[]? stream), $"Compound stream '{streamName}' was not found.");
             return stream!;
+        }
+
+        private static void AssertSectionSepxContainsSingleByteSprm(byte[] wordDocumentStream, byte[] tableStream, ushort sprm, byte operand) {
+            int fcPlcfSed = BitConverter.ToInt32(wordDocumentStream, 0xCA);
+            int lcbPlcfSed = BitConverter.ToInt32(wordDocumentStream, 0xCE);
+            Assert.True(fcPlcfSed >= 0);
+            Assert.True(lcbPlcfSed >= 20);
+            Assert.True(fcPlcfSed + lcbPlcfSed <= tableStream.Length);
+
+            int sectionCount = (lcbPlcfSed - 4) / 16;
+            Assert.True(sectionCount > 0);
+            int sedOffset = fcPlcfSed + ((sectionCount + 1) * 4);
+            int fcSepx = BitConverter.ToInt32(tableStream, sedOffset + 2);
+            Assert.True(fcSepx > 0);
+            Assert.True(fcSepx + 2 <= wordDocumentStream.Length);
+
+            int cbSepx = BitConverter.ToUInt16(wordDocumentStream, fcSepx);
+            Assert.True(fcSepx + 2 + cbSepx <= wordDocumentStream.Length);
+            byte sprmLow = (byte)(sprm & 0xFF);
+            byte sprmHigh = (byte)(sprm >> 8);
+            Assert.True(
+                ContainsBytePattern(wordDocumentStream.Skip(fcSepx + 2).Take(cbSepx).ToArray(), sprmLow, sprmHigh, operand),
+                $"SEPX did not contain sprm 0x{sprm:X4} with operand 0x{operand:X2}.");
         }
 
         private static bool ContainsBytePattern(byte[] bytes, params byte[] pattern) {

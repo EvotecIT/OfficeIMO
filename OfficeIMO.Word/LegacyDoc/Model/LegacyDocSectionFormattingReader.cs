@@ -6,6 +6,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmSBkc = 0x3009;
         private const ushort SprmSDyaHdrTop = 0xB017;
         private const ushort SprmSDyaHdrBottom = 0xB018;
+        private const ushort SprmSFTitlePage = 0x300A;
         private const ushort SprmSBOrientation = 0x301D;
         private const ushort SprmSXaPage = 0xB01F;
         private const ushort SprmSYaPage = 0xB020;
@@ -102,6 +103,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? headerDistance = null;
             int? footerDistance = null;
             int? gutter = null;
+            bool differentFirstPage = false;
             SectionMarkValues? sectionBreakType = null;
 
             while (offset + 2 <= end) {
@@ -122,6 +124,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     orientation = bytes[offset + 2] == 2 ? PageOrientationValues.Landscape : PageOrientationValues.Portrait;
+                    offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmSFTitlePage) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    differentFirstPage = bytes[offset + 2] != 0;
                     offset += 3;
                     continue;
                 }
@@ -185,7 +197,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 orientation = PageOrientationValues.Landscape;
             }
 
-            return new LegacyDocSectionFormat(sectionBreakType, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, headerDistance, footerDistance, gutter);
+            return new LegacyDocSectionFormat(sectionBreakType, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, headerDistance, footerDistance, gutter, differentFirstPage);
         }
 
         private static SectionMarkValues? ReadSectionBreakType(byte value) {

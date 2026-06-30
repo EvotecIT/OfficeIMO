@@ -132,6 +132,10 @@ namespace OfficeIMO.Word {
                 section._sectionProperties.Append(new SectionType { Val = sectionFormat.SectionBreakType.Value });
             }
 
+            if (sectionFormat.DifferentFirstPage) {
+                section.DifferentFirstPage = true;
+            }
+
             if (sectionFormat.Orientation != null) {
                 section.PageOrientation = sectionFormat.Orientation.Value;
             }

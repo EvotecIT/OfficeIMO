@@ -11,6 +11,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmSBkc = 0x3009;
         private const ushort SprmSDyaHdrTop = 0xB017;
         private const ushort SprmSDyaHdrBottom = 0xB018;
+        private const ushort SprmSFTitlePage = 0x300A;
         private const ushort SprmSBOrientation = 0x301D;
         private const ushort SprmSXaPage = 0xB01F;
         private const ushort SprmSYaPage = 0xB020;
@@ -31,13 +32,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int? headerDistance = null;
             int? footerDistance = null;
             int? gutter = null;
+            bool differentFirstPage = false;
             SectionMarkValues? sectionBreakType = null;
 
             foreach (OpenXmlElement property in sectionProperties.ChildElements) {
                 switch (property) {
                     case HeaderReference:
                     case FooterReference:
-                    case TitlePage:
+                        break;
+                    case TitlePage titlePage:
+                        differentFirstPage = IsOnOffEnabled(titlePage);
                         break;
                     case PageSize pageSize:
                         pageWidth = ReadTwipValue(pageSize.Width, DefaultPageWidthTwips, "section page width");
@@ -79,7 +83,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 marginLeft,
                 headerDistance,
                 footerDistance,
-                gutter);
+                gutter,
+                differentFirstPage);
+        }
+
+        private static bool IsOnOffEnabled(OnOffType element) {
+            return element.Val == null || element.Val.Value;
         }
 
         private static int? ReadTwipValue(OpenXmlSimpleType? value, int defaultValue, string description) {
@@ -109,6 +118,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (sectionFormat.FooterDistanceTwips != null) {
                 AddUInt16Sprm(grpprl, SprmSDyaHdrBottom, sectionFormat.FooterDistanceTwips.Value);
+            }
+
+            if (sectionFormat.DifferentFirstPage) {
+                AddSingleByteSprm(grpprl, SprmSFTitlePage, 1);
             }
 
             if (sectionFormat.Orientation == PageOrientationValues.Landscape) {

@@ -618,6 +618,11 @@ just to reserve names.
   - [x] Write simple first-page and even-page header/footer story text into
     the existing `PlcfHdd` section story slots, then reload the variant
     headers and footers through the legacy reader.
+  - [x] Read and write the native first-page section flag (`sprmSFTitlePage`)
+    so first-page header/footer intent is represented in SEPX, not only in the
+    header/footer story slots.
+  - [x] Write the native even/odd header document flag (`DopBase.fFacingPages`)
+    when OfficeIMO has separate even-page headers and footers enabled.
   - [ ] Add visual table styles, nested tables, section breaks inside richer body
     shapes, and richer section writing as separate preflight-backed slices.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
