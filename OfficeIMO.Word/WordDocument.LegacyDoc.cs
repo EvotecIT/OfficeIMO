@@ -80,18 +80,19 @@ namespace OfficeIMO.Word {
                 ? document.Sections[0]
                 : new WordSection(document, null!, null!);
             ApplyLegacyDocSectionFormatting(section, legacyDocument.SectionFormat);
+            var footnotes = new Queue<LegacyDocFootnote>(legacyDocument.Footnotes.OrderBy(footnote => footnote.ReferenceCharacterPosition));
 
             if (legacyDocument.BodyBlocks.Count == 0) {
                 section.AddParagraph();
             } else {
                 foreach (LegacyDocBodyBlock block in legacyDocument.BodyBlocks) {
                     if (block is LegacyDocParagraphBlock paragraphBlock) {
-                        AddLegacyDocParagraph(section, paragraphBlock.Runs, paragraphBlock.Format, legacyDocument.StyleSheet);
+                        AddLegacyDocParagraph(section, paragraphBlock.Runs, paragraphBlock.Format, legacyDocument.StyleSheet, footnotes);
                     } else if (block is LegacyDocSectionBreakBlock sectionBreakBlock) {
                         section = document.AddSection(sectionBreakBlock.Format.SectionBreakType ?? SectionMarkValues.NextPage);
                         ApplyLegacyDocSectionFormatting(section, sectionBreakBlock.Format);
                     } else if (block is LegacyDocTableBlock tableBlock) {
-                        AddLegacyDocTable(section, tableBlock, legacyDocument.StyleSheet);
+                        AddLegacyDocTable(section, tableBlock, legacyDocument.StyleSheet, footnotes);
                     }
                 }
             }
@@ -278,7 +279,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void AddLegacyDocTable(WordSection section, LegacyDocTableBlock tableBlock, LegacyDocStyleSheet styleSheet) {
+        private static void AddLegacyDocTable(WordSection section, LegacyDocTableBlock tableBlock, LegacyDocStyleSheet styleSheet, Queue<LegacyDocFootnote> footnotes) {
             int rowCount = tableBlock.Rows.Count;
             int columnCount = tableBlock.Rows.Count == 0
                 ? 0
@@ -327,7 +328,7 @@ namespace OfficeIMO.Word {
                 LegacyDocTableRow sourceRow = tableBlock.Rows[rowIndex];
                 ApplyLegacyDocTableRowFormatting(table.Rows[rowIndex], sourceRow);
                 for (int columnIndex = 0; columnIndex < sourceRow.Cells.Count && columnIndex < columnCount; columnIndex++) {
-                    AddLegacyDocTableCell(table.Rows[rowIndex].Cells[columnIndex], sourceRow.Cells[columnIndex], styleSheet);
+                    AddLegacyDocTableCell(table.Rows[rowIndex].Cells[columnIndex], sourceRow.Cells[columnIndex], styleSheet, footnotes);
                     if (columnIndex < sourceRow.CellWidthsTwips.Count) {
                         table.Rows[rowIndex].Cells[columnIndex].WidthType = TableWidthUnitValues.Dxa;
                         table.Rows[rowIndex].Cells[columnIndex].Width = sourceRow.CellWidthsTwips[columnIndex];
@@ -581,13 +582,13 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void AddLegacyDocTableCell(WordTableCell cell, LegacyDocTableCell sourceCell, LegacyDocStyleSheet styleSheet) {
+        private static void AddLegacyDocTableCell(WordTableCell cell, LegacyDocTableCell sourceCell, LegacyDocStyleSheet styleSheet, Queue<LegacyDocFootnote> footnotes) {
             for (int index = 0; index < sourceCell.Paragraphs.Count; index++) {
-                AddLegacyDocTableCellParagraph(cell, sourceCell.Paragraphs[index], styleSheet, removeExistingParagraphs: index == 0);
+                AddLegacyDocTableCellParagraph(cell, sourceCell.Paragraphs[index], styleSheet, footnotes, removeExistingParagraphs: index == 0);
             }
         }
 
-        private static void AddLegacyDocTableCellParagraph(WordTableCell cell, LegacyDocTableCellParagraph sourceParagraph, LegacyDocStyleSheet styleSheet, bool removeExistingParagraphs) {
+        private static void AddLegacyDocTableCellParagraph(WordTableCell cell, LegacyDocTableCellParagraph sourceParagraph, LegacyDocStyleSheet styleSheet, Queue<LegacyDocFootnote> footnotes, bool removeExistingParagraphs) {
             if (sourceParagraph.Runs.Count == 0) {
                 WordParagraph emptyParagraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: removeExistingParagraphs);
                 ApplyLegacyDocParagraphFormatting(emptyParagraph, sourceParagraph.Format, styleSheet);
@@ -598,7 +599,7 @@ namespace OfficeIMO.Word {
             WordParagraph paragraph;
             if (ContainsLegacyDocSpecialRunCharacter(firstRun.Text)) {
                 paragraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: removeExistingParagraphs);
-                AddLegacyDocRunContent(paragraph, firstRun);
+                AddLegacyDocRunContent(paragraph, firstRun, footnotes);
             } else {
                 paragraph = cell.AddParagraph(firstRun.Text, removeExistingParagraphs: removeExistingParagraphs);
                 ApplyLegacyDocRunFormatting(paragraph, firstRun);
@@ -606,11 +607,11 @@ namespace OfficeIMO.Word {
 
             ApplyLegacyDocParagraphFormatting(paragraph, sourceParagraph.Format, styleSheet);
             for (int index = 1; index < sourceParagraph.Runs.Count; index++) {
-                AddLegacyDocRunContent(paragraph, sourceParagraph.Runs[index]);
+                AddLegacyDocRunContent(paragraph, sourceParagraph.Runs[index], footnotes);
             }
         }
 
-        private static void AddLegacyDocParagraph(WordSection section, IReadOnlyList<LegacyDocTextRun> paragraphRuns, LegacyDocParagraphFormat paragraphFormat, LegacyDocStyleSheet styleSheet) {
+        private static void AddLegacyDocParagraph(WordSection section, IReadOnlyList<LegacyDocTextRun> paragraphRuns, LegacyDocParagraphFormat paragraphFormat, LegacyDocStyleSheet styleSheet, Queue<LegacyDocFootnote> footnotes) {
             if (paragraphRuns.Count == 0) {
                 ApplyLegacyDocParagraphFormatting(section.AddParagraph(), paragraphFormat, styleSheet);
                 return;
@@ -618,16 +619,16 @@ namespace OfficeIMO.Word {
 
             WordParagraph paragraph = section.AddParagraph(string.Empty);
             ApplyLegacyDocParagraphFormatting(paragraph, paragraphFormat, styleSheet);
-            AddLegacyDocRuns(paragraph, paragraphRuns);
+            AddLegacyDocRuns(paragraph, paragraphRuns, footnotes);
         }
 
-        private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns) {
+        private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns, Queue<LegacyDocFootnote> footnotes) {
             foreach (LegacyDocTextRun legacyRun in paragraphRuns) {
-                AddLegacyDocRunContent(paragraph, legacyRun);
+                AddLegacyDocRunContent(paragraph, legacyRun, footnotes);
             }
         }
 
-        private static void AddLegacyDocRunContent(WordParagraph paragraph, LegacyDocTextRun legacyRun) {
+        private static void AddLegacyDocRunContent(WordParagraph paragraph, LegacyDocTextRun legacyRun, Queue<LegacyDocFootnote> footnotes) {
             string text = legacyRun.Text;
             int segmentStart = 0;
             for (int index = 0; index < text.Length; index++) {
@@ -640,6 +641,8 @@ namespace OfficeIMO.Word {
                 if (character == '\t') {
                     WordParagraph tabRun = paragraph.AddTab();
                     ApplyLegacyDocRunFormatting(tabRun, legacyRun);
+                } else if (character == LegacyDocFootnoteReader.FootnoteReferenceCharacter) {
+                    AddLegacyDocFootnoteReference(paragraph, footnotes);
                 } else {
                     AddLegacyDocBreak(paragraph, legacyRun, character == '\f' ? BreakValues.Page : null);
                 }
@@ -648,6 +651,22 @@ namespace OfficeIMO.Word {
             }
 
             AddLegacyDocTextSegment(paragraph, legacyRun, segmentStart, text.Length - segmentStart);
+        }
+
+        private static void AddLegacyDocFootnoteReference(WordParagraph paragraph, Queue<LegacyDocFootnote> footnotes) {
+            if (footnotes.Count == 0) {
+                return;
+            }
+
+            LegacyDocFootnote footnote = footnotes.Dequeue();
+            if (footnote.Paragraphs.Count == 0) {
+                return;
+            }
+
+            WordParagraph reference = paragraph.AddFootNote(footnote.Paragraphs[0]);
+            for (int index = 1; index < footnote.Paragraphs.Count; index++) {
+                reference.FootNote!.Paragraphs!.Last().AddParagraph(footnote.Paragraphs[index]);
+            }
         }
 
         private static bool ContainsLegacyDocSpecialRunCharacter(string text) {
@@ -661,7 +680,10 @@ namespace OfficeIMO.Word {
         }
 
         private static bool IsLegacyDocSpecialRunCharacter(char character) {
-            return character == '\t' || character == '\v' || character == '\f';
+            return character == '\t'
+                || character == '\v'
+                || character == '\f'
+                || character == LegacyDocFootnoteReader.FootnoteReferenceCharacter;
         }
 
         private static void AddLegacyDocBreak(WordParagraph paragraph, LegacyDocTextRun legacyRun, BreakValues? breakType) {

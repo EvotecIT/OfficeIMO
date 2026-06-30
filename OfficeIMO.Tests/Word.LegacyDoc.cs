@@ -1095,6 +1095,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSimpleFootnoteStory() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFootnoteStory("Body with note", "Projected footnote");
+            string docxPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                Assert.True(result.HasDocument);
+                Assert.Equal("Body with note", result.Document.Sections[0].Paragraphs[0].Text);
+                Assert.DoesNotContain(result.UnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.Footnote);
+
+                WordFootNote footnote = Assert.Single(result.Document.FootNotes);
+                Assert.Equal("Projected footnote", footnote.Paragraphs![1].Text);
+
+                result.Document.Save(docxPath);
+
+                using WordDocument reloaded = WordDocument.Load(docxPath);
+                WordFootNote reloadedFootnote = Assert.Single(reloaded.FootNotes);
+                Assert.Equal("Projected footnote", reloadedFootnote.Paragraphs![1].Text);
+            } finally {
+                DeleteIfExists(docxPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_DoesNotProjectUnsupportedStoryTextIntoBody() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedHeaderFooterStoryText("Body story", "Header leak");
 
@@ -5076,6 +5102,40 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithFootnoteStory(string bodyText, string footnoteText) {
+                string documentText = bodyText + "\u0002\r";
+                string footnoteStory = footnoteText + "\r";
+                string text = documentText + footnoteStory;
+
+                byte[] tableStream = CreateTableStream(text.Length);
+                int fcPlcffndRef = tableStream.Length;
+                byte[] footnoteReferencePlc = CreateFootnoteReferencePlc(bodyText.Length);
+                Array.Resize(ref tableStream, tableStream.Length + footnoteReferencePlc.Length);
+                Buffer.BlockCopy(footnoteReferencePlc, 0, tableStream, fcPlcffndRef, footnoteReferencePlc.Length);
+
+                int fcPlcffndTxt = tableStream.Length;
+                byte[] footnoteTextPlc = CreateFootnoteTextPlc(footnoteStory.Length);
+                Array.Resize(ref tableStream, tableStream.Length + footnoteTextPlc.Length);
+                Buffer.BlockCopy(footnoteTextPlc, 0, tableStream, fcPlcffndTxt, footnoteTextPlc.Length);
+
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    ccpFtn: footnoteStory.Length,
+                    fcPlcffndRef: fcPlcffndRef,
+                    lcbPlcffndRef: footnoteReferencePlc.Length,
+                    fcPlcffndTxt: fcPlcffndTxt,
+                    lcbPlcffndTxt: footnoteTextPlc.Length,
+                    ccpTextOverride: documentText.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithUnsupportedHeaderFooterStoryText(string bodyParagraph, string headerFooterStory) {
                 string bodyText = bodyParagraph + "\r";
                 string storyText = headerFooterStory + "\r";
@@ -5729,6 +5789,10 @@ namespace OfficeIMO.Tests {
                 ushort fibFlags = 0x0200,
                 int fcPlcfSed = 0,
                 int lcbPlcfSed = 0,
+                int fcPlcffndRef = 0,
+                int lcbPlcffndRef = 0,
+                int fcPlcffndTxt = 0,
+                int lcbPlcffndTxt = 0,
                 int fcPlcfHdd = 0,
                 int lcbPlcfHdd = 0,
                 int fcDop = 0,
@@ -5748,6 +5812,10 @@ namespace OfficeIMO.Tests {
                 WriteInt32(stream, 0x60, ccpEdn);
                 WriteInt32(stream, 0x64, ccpTxbx);
                 WriteInt32(stream, 0x68, ccpHdrTxbx);
+                WriteInt32(stream, 0xAA, fcPlcffndRef);
+                WriteInt32(stream, 0xAE, lcbPlcffndRef);
+                WriteInt32(stream, 0xB2, fcPlcffndTxt);
+                WriteInt32(stream, 0xB6, lcbPlcffndTxt);
                 WriteInt32(stream, 0xCA, fcPlcfSed);
                 WriteInt32(stream, 0xCE, lcbPlcfSed);
                 WriteInt32(stream, 0xF2, fcPlcfHdd);
@@ -5783,6 +5851,20 @@ namespace OfficeIMO.Tests {
                 WriteInt32(plc, 0, 0);
                 WriteInt32(plc, 4, characterCount);
                 WriteInt32(plc, 10, sepxOffset);
+                return plc;
+            }
+
+            private static byte[] CreateFootnoteReferencePlc(int referenceCharacterPosition) {
+                var plc = new byte[10];
+                WriteInt32(plc, 0, referenceCharacterPosition);
+                WriteInt32(plc, 4, referenceCharacterPosition + 1);
+                return plc;
+            }
+
+            private static byte[] CreateFootnoteTextPlc(int footnoteStoryLength) {
+                var plc = new byte[8];
+                WriteInt32(plc, 0, 0);
+                WriteInt32(plc, 4, footnoteStoryLength);
                 return plc;
             }
 

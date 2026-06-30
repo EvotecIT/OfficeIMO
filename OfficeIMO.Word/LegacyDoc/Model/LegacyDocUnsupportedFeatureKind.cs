@@ -49,7 +49,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         Section,
 
         /// <summary>
-        /// Footnote story text exists but is not projected yet.
+        /// Footnote story text exists but is not projected in the current document shape.
         /// </summary>
         Footnote,
 

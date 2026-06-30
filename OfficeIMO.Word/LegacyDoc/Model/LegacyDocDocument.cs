@@ -38,6 +38,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<LegacyDocHeaderFooterStory> HeaderFooterStories { get; private set; } = Array.Empty<LegacyDocHeaderFooterStory>();
 
+        internal IReadOnlyList<LegacyDocFootnote> Footnotes { get; private set; } = Array.Empty<LegacyDocFootnote>();
+
         internal bool DifferentOddAndEvenPages { get; private set; }
 
         /// <summary>Gets diagnostics produced while reading the legacy document.</summary>
@@ -166,6 +168,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             AddUnsupportedParagraphFormattingFeaturesIfPresent(paragraphFormattingRanges, options.ReportUnsupportedFeatures);
 
             Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges, Sections, options.ReportUnsupportedFeatures);
+            Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, out string? footnoteWarning);
+            if (footnoteWarning != null) {
+                AddWarning("DOC-FOOTNOTE-PLC-INVALID", footnoteWarning);
+            }
+
             HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, out string? headerFooterWarning);
             if (headerFooterWarning != null) {
                 AddWarning("DOC-PLCFHDD-INVALID", headerFooterWarning);
@@ -229,12 +236,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     "The legacy DOC contains header or footer story text without a supported header/footer story PLC. Headers and footers are preserved in the source file but are not projected into the OfficeIMO document.",
                     "Fib:CcpHdd");
             }
-            AddUnsupportedStoryFeatureIfPresent(
-                fib.CcpFtn,
-                LegacyDocUnsupportedFeatureKind.Footnote,
-                "DOC-FOOTNOTE-STORIES-PRESENT",
-                "The legacy DOC contains footnote story text. Footnotes are preserved in the source file but are not projected into the OfficeIMO document.",
-                "Fib:CcpFtn");
+            if (!LegacyDocFootnoteReader.HasReadableFootnoteTables(tableStream, fib)) {
+                AddUnsupportedStoryFeatureIfPresent(
+                    fib.CcpFtn,
+                    LegacyDocUnsupportedFeatureKind.Footnote,
+                    "DOC-FOOTNOTE-STORIES-PRESENT",
+                    "The legacy DOC contains footnote story text. Footnotes are preserved in the source file but are not projected into the OfficeIMO document.",
+                    "Fib:CcpFtn");
+            }
             AddUnsupportedStoryFeatureIfPresent(
                 fib.CcpEdn,
                 LegacyDocUnsupportedFeatureKind.Endnote,
@@ -700,6 +709,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 case '\0':
                 case '\a':
                     return null;
+                case LegacyDocFootnoteReader.FootnoteReferenceCharacter:
                 case '\v':
                 case '\f':
                     return character;
