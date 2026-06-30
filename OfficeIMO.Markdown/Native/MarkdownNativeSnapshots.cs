@@ -7,11 +7,13 @@ public sealed class MarkdownNativeDocumentSnapshot {
     internal MarkdownNativeDocumentSnapshot(
         MarkdownNativeDocumentSourceKind sourceKind,
         IReadOnlyList<MarkdownNativeReferenceLinkDefinitionSnapshot> referenceLinkDefinitions,
+        IReadOnlyList<MarkdownNativeAbbreviationDefinitionSnapshot> abbreviationDefinitions,
         IReadOnlyList<MarkdownNativeSourceTriviaSnapshot> sourceTrivia,
         IReadOnlyList<MarkdownNativeBlockSnapshot> blocks,
         IReadOnlyList<MarkdownNativeDiagnosticSnapshot> diagnostics) {
         SourceKind = sourceKind;
         ReferenceLinkDefinitions = referenceLinkDefinitions ?? Array.Empty<MarkdownNativeReferenceLinkDefinitionSnapshot>();
+        AbbreviationDefinitions = abbreviationDefinitions ?? Array.Empty<MarkdownNativeAbbreviationDefinitionSnapshot>();
         SourceTrivia = sourceTrivia ?? Array.Empty<MarkdownNativeSourceTriviaSnapshot>();
         Blocks = blocks ?? Array.Empty<MarkdownNativeBlockSnapshot>();
         Diagnostics = diagnostics ?? Array.Empty<MarkdownNativeDiagnosticSnapshot>();
@@ -22,6 +24,9 @@ public sealed class MarkdownNativeDocumentSnapshot {
 
     /// <summary>Effective reference-style link definitions collected during parsing.</summary>
     public IReadOnlyList<MarkdownNativeReferenceLinkDefinitionSnapshot> ReferenceLinkDefinitions { get; }
+
+    /// <summary>Effective abbreviation definitions collected during parsing.</summary>
+    public IReadOnlyList<MarkdownNativeAbbreviationDefinitionSnapshot> AbbreviationDefinitions { get; }
 
     /// <summary>Document-level source trivia such as blank lines, in source order.</summary>
     public IReadOnlyList<MarkdownNativeSourceTriviaSnapshot> SourceTrivia { get; }
@@ -126,6 +131,84 @@ public sealed class MarkdownNativeReferenceLinkDefinitionFieldSnapshot {
     }
 
     /// <summary>Stable field name such as <c>openingMarker</c>, <c>label</c>, <c>separatorMarker</c>, <c>url</c>, or <c>title</c>.</summary>
+    public string Name { get; }
+
+    /// <summary>Semantic value represented by the field when one is available.</summary>
+    public string? Value { get; }
+
+    /// <summary>Source span for this field.</summary>
+    public MarkdownNativeSourceSpanSnapshot SourceSpan { get; }
+}
+
+/// <summary>
+/// UI-safe snapshot of a Markdig-style abbreviation definition.
+/// </summary>
+public sealed class MarkdownNativeAbbreviationDefinitionSnapshot {
+    internal MarkdownNativeAbbreviationDefinitionSnapshot(MarkdownAbbreviationDefinition definition) {
+        Label = definition.Label;
+        Title = definition.Title;
+        IsListItemDefinition = definition.IsListItemDefinition;
+        SourceSpan = definition.SourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.SourceSpan.Value) : null;
+        LabelSourceSpan = definition.LabelSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.LabelSourceSpan.Value) : null;
+        OpeningMarkerSourceSpan = definition.OpeningMarkerSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.OpeningMarkerSourceSpan.Value) : null;
+        SeparatorMarkerSourceSpan = definition.SeparatorMarkerSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.SeparatorMarkerSourceSpan.Value) : null;
+        TitleSourceSpan = definition.TitleSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.TitleSourceSpan.Value) : null;
+        SourceFields = FromAbbreviationDefinitionFields(definition);
+    }
+
+    /// <summary>Abbreviation label.</summary>
+    public string Label { get; }
+
+    /// <summary>Abbreviation title.</summary>
+    public string Title { get; }
+
+    /// <summary>Whether the definition was authored as leading content inside a list item.</summary>
+    public bool IsListItemDefinition { get; }
+
+    /// <summary>Source span for the entire abbreviation definition, when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>Source span for the abbreviation label token, when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? LabelSourceSpan { get; }
+
+    /// <summary>Source span for the opening <c>*[</c> marker, when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? OpeningMarkerSourceSpan { get; }
+
+    /// <summary>Source span for the closing <c>]:</c> marker, when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? SeparatorMarkerSourceSpan { get; }
+
+    /// <summary>Source span for the title token, when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? TitleSourceSpan { get; }
+
+    /// <summary>Source-backed token and payload fields in source order.</summary>
+    public IReadOnlyList<MarkdownNativeAbbreviationDefinitionFieldSnapshot> SourceFields { get; }
+
+    private static IReadOnlyList<MarkdownNativeAbbreviationDefinitionFieldSnapshot> FromAbbreviationDefinitionFields(MarkdownAbbreviationDefinition definition) {
+        var fields = MarkdownNativeDocument.EnumerateAbbreviationDefinitionFields(definition).ToArray();
+        if (fields.Length == 0) {
+            return Array.Empty<MarkdownNativeAbbreviationDefinitionFieldSnapshot>();
+        }
+
+        var snapshots = new List<MarkdownNativeAbbreviationDefinitionFieldSnapshot>(fields.Length);
+        for (var i = 0; i < fields.Length; i++) {
+            snapshots.Add(new MarkdownNativeAbbreviationDefinitionFieldSnapshot(fields[i]));
+        }
+
+        return snapshots;
+    }
+}
+
+/// <summary>
+/// UI-safe snapshot of a source-backed token or payload field owned by an abbreviation definition.
+/// </summary>
+public sealed class MarkdownNativeAbbreviationDefinitionFieldSnapshot {
+    internal MarkdownNativeAbbreviationDefinitionFieldSnapshot(MarkdownNativeAbbreviationDefinitionField field) {
+        Name = field.Name;
+        Value = field.Value;
+        SourceSpan = new MarkdownNativeSourceSpanSnapshot(field.SourceSpan);
+    }
+
+    /// <summary>Stable field name such as <c>openingMarker</c>, <c>label</c>, <c>separatorMarker</c>, or <c>title</c>.</summary>
     public string Name { get; }
 
     /// <summary>Semantic value represented by the field when one is available.</summary>

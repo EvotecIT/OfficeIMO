@@ -233,6 +233,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [x] Return exact original-source slice failure reasons for parse/native callers and include those reasons in roundtrip source-edit fallback diagnostics.
 - [x] Expose native inline and inline-metadata source-slice APIs for normalized/original text so link targets, titles, formatting content, and similar inline source-backed values do not require raw-string rescans.
 - [x] Expose source-slice APIs for native source-edit targets so blocks, list item content, table cells, definition-list objects, reference definitions, and reference-definition fields can be inspected before source edits are applied.
+- [x] Expose document-level native abbreviation-definition source fields, snapshots, position lookup, normalized/original source slices, and source edits so abbreviation definitions match reference-definition editor affordances.
 - [x] Expose native list-item paragraph projections, snapshots, inline runs, source-slice APIs, and source edits so loose-list paragraph edits can target a stable paragraph object instead of rescanning list item content.
 - [x] Expose native document-level blank-line source trivia, snapshots, and normalized/original source-slice APIs so empty and whitespace-only lines are addressable without raw-string rescans.
 - [x] Expose native document-level leading/trailing horizontal whitespace trivia, including tabs, with source-order enumeration, position lookup, snapshots, normalized/original source-slice APIs, and source-map-aligned tab-expanded columns.

@@ -7,6 +7,11 @@ internal static class MarkdownNativeSnapshotFactory {
             referenceDefinitions.Add(new MarkdownNativeReferenceLinkDefinitionSnapshot(document.ReferenceLinkDefinitions[i]));
         }
 
+        var abbreviationDefinitions = new List<MarkdownNativeAbbreviationDefinitionSnapshot>(document.AbbreviationDefinitions.Count);
+        for (var i = 0; i < document.AbbreviationDefinitions.Count; i++) {
+            abbreviationDefinitions.Add(new MarkdownNativeAbbreviationDefinitionSnapshot(document.AbbreviationDefinitions[i]));
+        }
+
         var blocks = new List<MarkdownNativeBlockSnapshot>(document.Blocks.Count);
         for (var i = 0; i < document.Blocks.Count; i++) {
             blocks.Add(FromBlock(document.Blocks[i]));
@@ -22,7 +27,7 @@ internal static class MarkdownNativeSnapshotFactory {
             diagnostics.Add(new MarkdownNativeDiagnosticSnapshot(document.Diagnostics[i]));
         }
 
-        return new MarkdownNativeDocumentSnapshot(document.SourceKind, referenceDefinitions, sourceTrivia, blocks, diagnostics);
+        return new MarkdownNativeDocumentSnapshot(document.SourceKind, referenceDefinitions, abbreviationDefinitions, sourceTrivia, blocks, diagnostics);
     }
 
     internal static MarkdownNativeBlockSnapshot FromBlock(MarkdownNativeBlock block) {

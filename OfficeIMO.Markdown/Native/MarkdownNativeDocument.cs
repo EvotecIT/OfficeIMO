@@ -41,6 +41,9 @@ public sealed partial class MarkdownNativeDocument {
     /// <summary>Effective reference-style link definitions collected during parsing.</summary>
     public IReadOnlyList<MarkdownReferenceLinkDefinition> ReferenceLinkDefinitions => ParseResult.ReferenceLinkDefinitions;
 
+    /// <summary>Effective abbreviation definitions collected during parsing.</summary>
+    public IReadOnlyList<MarkdownAbbreviationDefinition> AbbreviationDefinitions => ParseResult.AbbreviationDefinitions;
+
     /// <summary>Markdown source text whose source spans back this projection.</summary>
     public string SourceMarkdown { get; }
 

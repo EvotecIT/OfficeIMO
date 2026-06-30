@@ -292,6 +292,69 @@ public class Markdown_Reader_Abbreviations_Tests {
     }
 
     [Fact]
+    public void Native_Abbreviation_Definitions_Expose_Source_Fields_Slices_Edits_And_Snapshots() {
+        const string markdown = "*[HTML]: Hyper Text\r\n\r\nHTML";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Abbreviations = true;
+        options.PreserveTrivia = true;
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var definition = Assert.Single(native.AbbreviationDefinitions);
+        var fields = native.EnumerateAbbreviationDefinitionFields().ToArray();
+
+        Assert.Equal("HTML", definition.Label);
+        Assert.Equal("Hyper Text", definition.Title);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 19), definition.SourceSpan);
+        Assert.Equal(new[] { "openingMarker", "label", "separatorMarker", "title" }, fields.Select(field => field.Name).ToArray());
+        Assert.All(fields, field => Assert.Same(definition, field.Definition));
+        Assert.Equal("*[", fields[0].Value);
+        Assert.Equal("HTML", fields[1].Value);
+        Assert.Equal("]:", fields[2].Value);
+        Assert.Equal("Hyper Text", fields[3].Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 2), fields[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 6), fields[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 8), fields[2].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 19), fields[3].SourceSpan);
+
+        Assert.Same(definition, native.FindAbbreviationDefinitionAtPosition(1, 3));
+        Assert.Equal("openingMarker", native.FindAbbreviationDefinitionFieldAtPosition(1, 1)!.Name);
+        Assert.Equal("label", native.FindAbbreviationDefinitionFieldAtPosition(1, 4)!.Name);
+        Assert.Equal("separatorMarker", native.FindAbbreviationDefinitionFieldAtPosition(1, 8)!.Name);
+        Assert.Equal("title", native.FindAbbreviationDefinitionFieldAtPosition(1, 12)!.Name);
+        Assert.Null(native.FindAbbreviationDefinitionAtPosition(3, 1));
+        Assert.Null(native.FindAbbreviationDefinitionFieldAtPosition(3, 1));
+
+        Assert.True(native.TryCreateSourceSlice(definition, out var definitionSlice));
+        Assert.True(native.TryCreateSourceSlice(fields[3], out var titleSlice));
+        Assert.True(native.TryCreateOriginalSourceSlice(definition, out var originalDefinitionSlice, out var definitionReason));
+        Assert.True(native.TryCreateOriginalSourceSlice(fields[3], out var originalTitleSlice, out var titleReason));
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, definitionReason);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, titleReason);
+        Assert.Equal("*[HTML]: Hyper Text", definitionSlice.Text);
+        Assert.Equal("Hyper Text", titleSlice.Text);
+        Assert.Equal("*[HTML]: Hyper Text", originalDefinitionSlice.Text);
+        Assert.Equal("Hyper Text", originalTitleSlice.Text);
+
+        var edit = native.CreateReplaceEdit(fields[3], "Hypertext");
+        var roundtrip = native.WriteWithSourceEdit(edit);
+        Assert.Equal("*[HTML]: Hypertext\n\nHTML", edit.Apply(native.SourceMarkdown));
+        Assert.Equal("*[HTML]: Hypertext\r\n\r\nHTML", roundtrip.Markdown);
+        Assert.Empty(roundtrip.Diagnostics);
+
+        var snapshot = Assert.Single(native.ToSnapshot().AbbreviationDefinitions);
+        Assert.Equal("HTML", snapshot.Label);
+        Assert.Equal("Hyper Text", snapshot.Title);
+        Assert.False(snapshot.IsListItemDefinition);
+        Assert.Equal(1, snapshot.TitleSourceSpan!.StartLine);
+        Assert.Equal(10, snapshot.TitleSourceSpan.StartColumn);
+        Assert.Equal(1, snapshot.TitleSourceSpan.EndLine);
+        Assert.Equal(19, snapshot.TitleSourceSpan.EndColumn);
+        Assert.Equal(new[] { "openingMarker", "label", "separatorMarker", "title" }, snapshot.SourceFields.Select(field => field.Name).ToArray());
+        Assert.Equal("Hyper Text", snapshot.SourceFields[3].Value);
+        Assert.Equal(10, snapshot.SourceFields[3].SourceSpan.StartColumn);
+    }
+
+    [Fact]
     public void Abbreviations_Propagate_Into_Nested_Containers_And_Table_Cell_Ast() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\n\n> HTML quoted\n\n| Term |\n| --- |\n| HTML |";
         var options = MarkdownReaderOptions.CreatePortableProfile();
