@@ -543,6 +543,75 @@ x < y
 
         var bodyEdited = native.CreateReplaceEdit(body, "a > b").Apply(native.SourceMarkdown);
         Assert.Equal("<![CDATA[\na > b\n]]>", bodyEdited.TrimEnd('\r', '\n'));
+
+        var openingEdited = native.CreateReplaceEdit(openingMarker, "<![CDATA[!").Apply(native.SourceMarkdown);
+        Assert.Equal("<![CDATA[!\nx < y\n]]>", openingEdited.TrimEnd('\r', '\n'));
+
+        var closingEdited = native.CreateReplaceEdit(closingMarker, "]]!>").Apply(native.SourceMarkdown);
+        Assert.Equal("<![CDATA[\nx < y\n]]!>", closingEdited.TrimEnd('\r', '\n'));
+    }
+
+    [Fact]
+    public void Html_Raw_SourceFields_Use_ProcessingInstruction_Marker_And_Body_Token_Spans() {
+        const string markdown = """
+<?php
+
+  echo '>';
+
+?>
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var html = Assert.IsType<MarkdownNativeHtmlBlock>(Assert.Single(native.Blocks));
+
+        Assert.False(html.IsComment);
+        Assert.Equal("<?", html.OpeningMarker);
+        Assert.Equal("php\n\n  echo '>';", html.Body);
+        Assert.Equal("?>", html.ClosingMarker);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 2), html.RawOpeningMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 3, 11), html.RawBodySourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 2), html.RawClosingMarkerSourceSpan);
+
+        var openingMarker = Assert.Single(native.EnumerateBlockSourceFields("htmlOpeningMarker"));
+        Assert.Same(html, openingMarker.Block);
+        Assert.Equal("<?", openingMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 2), openingMarker.SourceSpan);
+
+        var body = Assert.Single(native.EnumerateBlockSourceFields("htmlBody"));
+        Assert.Same(html, body.Block);
+        Assert.Equal("php\n\n  echo '>';", body.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 3, 11), body.SourceSpan);
+
+        var closingMarker = Assert.Single(native.EnumerateBlockSourceFields("htmlClosingMarker"));
+        Assert.Same(html, closingMarker.Block);
+        Assert.Equal("?>", closingMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 2), closingMarker.SourceSpan);
+
+        Assert.Equal("htmlOpeningMarker", native.FindBlockSourceFieldAtPosition(1, 2)!.Name);
+        Assert.Equal("htmlBody", native.FindBlockSourceFieldAtPosition(3, 6)!.Name);
+        Assert.Equal("htmlClosingMarker", native.FindBlockSourceFieldAtPosition(5, 2)!.Name);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal(2, snapshot.FieldSourceSpans["htmlOpeningMarker"]!.EndColumn);
+        Assert.Equal(11, snapshot.FieldSourceSpans["htmlBody"]!.EndColumn);
+        Assert.Equal(2, snapshot.FieldSourceSpans["htmlClosingMarker"]!.EndColumn);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "htmlOpeningMarker"
+            && field.Value == "<?"
+            && field.SourceSpan.StartLine == 1);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "htmlClosingMarker"
+            && field.Value == "?>"
+            && field.SourceSpan.StartLine == 5);
+
+        var bodyEdited = native.CreateReplaceEdit(body, "xml version=\"1.0\"").Apply(native.SourceMarkdown);
+        Assert.Equal("<?xml version=\"1.0\"\n\n?>", bodyEdited.TrimEnd('\r', '\n'));
+
+        var openingEdited = native.CreateReplaceEdit(openingMarker, "<?!").Apply(native.SourceMarkdown);
+        Assert.Equal("<?!php\n\n  echo '>';\n\n?>", openingEdited.TrimEnd('\r', '\n'));
+
+        var closingEdited = native.CreateReplaceEdit(closingMarker, "?>>").Apply(native.SourceMarkdown);
+        Assert.Equal("<?php\n\n  echo '>';\n\n?>>", closingEdited.TrimEnd('\r', '\n'));
     }
 
     [Fact]
@@ -586,6 +655,12 @@ x < y
 
         var bodyEdited = native.CreateReplaceEdit(body, "doctype html").Apply(native.SourceMarkdown);
         Assert.Equal("<!doctype html>", bodyEdited.TrimEnd('\r', '\n'));
+
+        var openingEdited = native.CreateReplaceEdit(openingMarker, "<!-").Apply(native.SourceMarkdown);
+        Assert.Equal("<!-DOCTYPE html>", openingEdited.TrimEnd('\r', '\n'));
+
+        var closingEdited = native.CreateReplaceEdit(closingMarker, "/>").Apply(native.SourceMarkdown);
+        Assert.Equal("<!DOCTYPE html/>", closingEdited.TrimEnd('\r', '\n'));
     }
 
     [Fact]
