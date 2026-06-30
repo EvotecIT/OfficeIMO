@@ -221,6 +221,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Total pages: ").AddField(WordFieldType.NumPages);
                 document.AddParagraph("Formatted page: ")._paragraph.Append(BuildSimpleField(" PAGE \\# \"000\" ", "stale-page-picture"));
                 document.AddParagraph("Formatted total pages: ")._paragraph.Append(BuildSimpleField(" NUMPAGES \\# \"000\" ", "stale-total-picture"));
+                document.AddParagraph("Roman total pages: ")._paragraph.Append(BuildSimpleField(" NUMPAGES \\* Roman ", "stale-total-roman"));
                 document.AddParagraph("Unsupported: ").AddField(WordFieldType.Database);
                 document.AddParagraph()._paragraph.Append(BuildSimpleField(" SILLYFIELD value ", "Unknown"));
                 document.Save(false);
@@ -229,8 +230,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
-                Assert.Equal(7, report.TotalCount);
-                Assert.Equal(5, report.UpdatedCount);
+                Assert.Equal(8, report.TotalCount);
+                Assert.Equal(6, report.UpdatedCount);
                 Assert.Equal(1, report.UnsupportedCount);
                 Assert.Equal(1, report.ParseErrorCount);
 
@@ -248,6 +249,11 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Updated &&
                     result.ResultText == "005" &&
                     result.Message.Contains("Numeric picture", StringComparison.Ordinal));
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.NumPages &&
+                    result.Status == WordFieldUpdateStatus.Updated &&
+                    result.ResultText == "V" &&
+                    result.Message.Contains("General numeric format", StringComparison.Ordinal));
 
                 WordFieldUpdateResult unsupported = Assert.Single(report.Results, result => result.FieldType == WordFieldType.Database);
                 Assert.Equal(WordFieldUpdateStatus.Unsupported, unsupported.Status);
@@ -269,7 +275,32 @@ namespace OfficeIMO.Tests {
                     .ToArray());
                 Assert.Contains(fields, field => field.FieldType == WordFieldType.NumPages && field.ResultText == "5");
                 Assert.Contains(fields, field => field.FieldType == WordFieldType.NumPages && field.ResultText == "005");
+                Assert.Contains(fields, field => field.FieldType == WordFieldType.NumPages && field.ResultText == "V");
                 Assert.Contains(fields, field => field.FieldType == WordFieldType.Database);
+            }
+        }
+
+        [Fact]
+        public void Test_UpdateFieldsAndGetReport_AppliesFileNameTextFormatSwitches() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.FileNameFormat.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Upper file: ")._paragraph.Append(BuildSimpleField(" FILENAME \\* Upper ", "stale-upper"));
+                document.AddParagraph("Lower path: ")._paragraph.Append(BuildSimpleField(" FILENAME \\p \\* Lower ", "stale-lower"));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                Assert.Equal(2, report.TotalCount);
+                Assert.Equal(2, report.UpdatedCount);
+                string[] results = report.Results
+                    .Where(result => result.FieldType == WordFieldType.FileName && result.Status == WordFieldUpdateStatus.Updated)
+                    .Select(result => result.ResultText ?? string.Empty)
+                    .ToArray();
+                Assert.Contains(Path.GetFileName(filePath).ToUpperInvariant(), results);
+                Assert.Contains(filePath.ToLowerInvariant(), results);
             }
         }
 
