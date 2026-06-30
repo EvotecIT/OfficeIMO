@@ -413,12 +413,17 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     public static IEnumerable<object[]> AlertBlocksExtensionCases() {
         yield return new object[] { "note-paragraph", "> [!NOTE]\n> Body" };
+        yield return new object[] { "note-empty", "> [!NOTE]" };
+        yield return new object[] { "lowercase-note", "> [!note]\n> Body" };
+        yield return new object[] { "note-followed-by-outside-paragraph", "> [!NOTE]\nOutside" };
         yield return new object[] { "tip-rich-inline-body", "> [!TIP]\n> Use **strong** [links](https://example.com)." };
         yield return new object[] { "important-multiple-paragraphs", "> [!IMPORTANT]\n> First paragraph\n>\n> Second paragraph" };
         yield return new object[] { "warning-list", "> [!WARNING]\n> - Item" };
         yield return new object[] { "caution-fenced-code", "> [!CAUTION]\n> ```ps1\n> Get-Item .\n> ```" };
         yield return new object[] { "note-nested-blockquote", "> [!NOTE]\n> > Nested quote" };
         yield return new object[] { "custom-kind", "> [!CUSTOM]\n> Body" };
+        yield return new object[] { "numeric-marker-stays-blockquote", "> [!NOTE1]\n> Body" };
+        yield return new object[] { "hyphen-marker-stays-blockquote", "> [!NOTE-TIP]\n> Body" };
         yield return new object[] { "note-title-stays-blockquote", "> [!NOTE] Title\n> Body" };
         yield return new object[] { "note-strong-title-stays-blockquote", "> [!NOTE] **Title**\n> Body" };
         yield return new object[] { "custom-title-stays-blockquote", "> [!CUSTOM] Title\n> Body" };

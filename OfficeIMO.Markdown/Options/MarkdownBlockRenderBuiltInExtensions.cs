@@ -231,6 +231,8 @@ public static class MarkdownBlockRenderBuiltInExtensions {
                 sb.Append(HtmlTextEncoder.Encode(lines[i], options));
             }
             sb.Append("</p>");
+        } else {
+            sb.Append("<p></p>");
         }
 
         sb.Append("</div>");
