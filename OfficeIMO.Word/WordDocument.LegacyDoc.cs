@@ -268,12 +268,13 @@ namespace OfficeIMO.Word {
                     sectionFormat.FootnoteStart);
             }
 
-            if (sectionFormat.EndnoteRestart != null
+            if (sectionFormat.EndnotePosition != null
+                || sectionFormat.EndnoteRestart != null
                 || sectionFormat.EndnoteStart != null
                 || sectionFormat.EndnoteNumberFormat != null) {
                 section.AddEndnoteProperties(
                     numberingFormat: sectionFormat.EndnoteNumberFormat,
-                    position: null,
+                    position: sectionFormat.EndnotePosition,
                     restartNumbering: sectionFormat.EndnoteRestart,
                     startNumber: sectionFormat.EndnoteStart);
             }

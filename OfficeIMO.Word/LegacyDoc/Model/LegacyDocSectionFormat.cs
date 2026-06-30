@@ -30,6 +30,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             RestartNumberValues? footnoteRestart = null,
             int? footnoteStart = null,
             NumberFormatValues? footnoteNumberFormat = null,
+            EndnotePositionValues? endnotePosition = null,
             RestartNumberValues? endnoteRestart = null,
             int? endnoteStart = null,
             NumberFormatValues? endnoteNumberFormat = null) {
@@ -60,6 +61,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             FootnoteRestart = footnoteRestart;
             FootnoteStart = footnoteStart;
             FootnoteNumberFormat = footnoteNumberFormat;
+            EndnotePosition = endnotePosition;
             EndnoteRestart = endnoteRestart;
             EndnoteStart = endnoteStart;
             EndnoteNumberFormat = endnoteNumberFormat;
@@ -119,6 +121,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal NumberFormatValues? FootnoteNumberFormat { get; }
 
+        internal EndnotePositionValues? EndnotePosition { get; }
+
         internal RestartNumberValues? EndnoteRestart { get; }
 
         internal int? EndnoteStart { get; }
@@ -152,6 +156,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || FootnoteRestart != null
             || FootnoteStart != null
             || FootnoteNumberFormat != null
+            || EndnotePosition != null
             || EndnoteRestart != null
             || EndnoteStart != null
             || EndnoteNumberFormat != null;
@@ -189,6 +194,42 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 FootnoteRestart,
                 FootnoteStart,
                 FootnoteNumberFormat,
+                EndnotePosition,
+                EndnoteRestart,
+                EndnoteStart,
+                EndnoteNumberFormat);
+        }
+
+        internal LegacyDocSectionFormat WithEndnotePosition(EndnotePositionValues? endnotePosition) {
+            return new LegacyDocSectionFormat(
+                SectionBreakType,
+                PageWidthTwips,
+                PageHeightTwips,
+                Orientation,
+                MarginTopTwips,
+                MarginRightTwips,
+                MarginBottomTwips,
+                MarginLeftTwips,
+                HeaderDistanceTwips,
+                FooterDistanceTwips,
+                GutterTwips,
+                DifferentFirstPage,
+                ColumnCount,
+                ColumnSpacingTwips,
+                HasColumnSeparator,
+                PageNumberStart,
+                PageNumberFormat,
+                RtlGutter,
+                VerticalAlignment,
+                LineNumberCountBy,
+                LineNumberDistanceTwips,
+                LineNumberStart,
+                LineNumberRestart,
+                FootnotePosition,
+                FootnoteRestart,
+                FootnoteStart,
+                FootnoteNumberFormat,
+                endnotePosition,
                 EndnoteRestart,
                 EndnoteStart,
                 EndnoteNumberFormat);

@@ -1,4 +1,5 @@
 using OfficeIMO.Shared;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
@@ -135,6 +136,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             DifferentOddAndEvenPages = ReadDopFacingPagesFlag(tableStream, fib);
+            EndnotePositionValues? dopEndnotePosition = ReadDopEndnotePlacement(tableStream, fib);
 
             if (!LegacyDocPieceTable.TryRead(wordDocumentStream, tableStream, fib, out LegacyDocTextContent textContent, out string? textError)) {
                 AddError("DOC-PIECE-TABLE-INVALID", textError ?? "The legacy DOC piece table could not be decoded.");
@@ -151,7 +153,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-STYLESHEET-INVALID", styleSheetWarning);
             }
 
-            Sections = LegacyDocSectionFormattingReader.ReadSections(wordDocumentStream, tableStream, fib, out string? sectionFormattingWarning);
+            Sections = ApplyDopEndnotePlacement(
+                LegacyDocSectionFormattingReader.ReadSections(wordDocumentStream, tableStream, fib, out string? sectionFormattingWarning),
+                fib,
+                dopEndnotePosition);
             SectionFormat = Sections.Count == 0 ? LegacyDocSectionFormat.Default : Sections[0].Format;
             if (sectionFormattingWarning != null) {
                 AddWarning("DOC-SEPX-INVALID", sectionFormattingWarning);
@@ -377,6 +382,53 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             ushort dopFlags = LegacyDocFib.ReadUInt16(tableStream, fib.FcDop);
             return (dopFlags & facingPagesFlag) != 0;
+        }
+
+        private static EndnotePositionValues? ReadDopEndnotePlacement(byte[] tableStream, LegacyDocFib fib) {
+            const int endnotePlacementOffset = 52;
+            const int minimumDopLength = endnotePlacementOffset + 4;
+            const int endnotePlacementShift = 16;
+            const uint endnotePlacementMask = 0x3;
+            if (fib.LcbDop < minimumDopLength || fib.FcDop < 0 || fib.FcDop > tableStream.Length - fib.LcbDop) {
+                return null;
+            }
+
+            uint row = unchecked((uint)LegacyDocFib.ReadInt32(tableStream, fib.FcDop + endnotePlacementOffset));
+            uint placement = (row >> endnotePlacementShift) & endnotePlacementMask;
+            switch (placement) {
+                case 0:
+                    return EndnotePositionValues.SectionEnd;
+                case 3:
+                    return EndnotePositionValues.DocumentEnd;
+                default:
+                    return null;
+            }
+        }
+
+        private static IReadOnlyList<LegacyDocSection> ApplyDopEndnotePlacement(IReadOnlyList<LegacyDocSection> sections, LegacyDocFib fib, EndnotePositionValues? endnotePosition) {
+            if (endnotePosition == null) {
+                return sections;
+            }
+
+            if (sections.Count == 0) {
+                return new[] {
+                    new LegacyDocSection(
+                        0,
+                        Math.Max(0, fib.CcpText),
+                        LegacyDocSectionFormat.Default.WithEndnotePosition(endnotePosition))
+                };
+            }
+
+            var projected = new LegacyDocSection[sections.Count];
+            for (int index = 0; index < sections.Count; index++) {
+                LegacyDocSection section = sections[index];
+                projected[index] = new LegacyDocSection(
+                    section.StartCharacter,
+                    section.EndCharacter,
+                    section.Format.WithEndnotePosition(endnotePosition));
+            }
+
+            return projected;
         }
 
         private void AddUnsupportedStoryFeatureIfPresent(

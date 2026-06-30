@@ -404,6 +404,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 footnoteRestart,
                 footnoteStart,
                 footnoteNumberFormat,
+                null,
                 endnoteRestart,
                 endnoteStart,
                 endnoteNumberFormat);

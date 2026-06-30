@@ -67,6 +67,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int FcPlcfHddOffset = 0xF2;
         private const int LcbPlcfHddOffset = 0xF6;
         private const int DopBaseLength = 8;
+        private const int DopBaseEndnotePlacementLength = 56;
+        private const int DopBaseEndnotePlacementOffset = 52;
+        private const int DopBaseEndnotePlacementShift = 16;
         private const ushort FacingPagesDopFlag = 0x0001;
         private static readonly byte[] PlainParagraphPapx = { 0x00, 0x01, 0x00, 0x00 };
         private static readonly byte[] FootnoteTextParagraphPapx = { 0x00, 0x01, 0x23, 0x00 };
@@ -185,12 +188,30 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int terminalCharacterPadding = hasNoteReferences ? 1 : 0;
             LegacyDocWritableFootnoteStories footnoteStories = footnotes.CreateStories(text.Length, headerFooterStories.Text.Length, terminalCharacterPadding);
             LegacyDocWritableEndnoteStories endnoteStories = endnotes.CreateStories(text.Length, footnoteStories.Text.Length, headerFooterStories.Text.Length, terminalCharacterPadding);
-            return new LegacyDocWritableBody(text.ToString(), runs, paragraphFormats, sections, styleSheet, footnoteStories, endnoteStories, headerFooterStories, HasEvenAndOddHeaders(mainPart!));
+            return new LegacyDocWritableBody(text.ToString(), runs, paragraphFormats, sections, styleSheet, footnoteStories, endnoteStories, headerFooterStories, HasEvenAndOddHeaders(mainPart!), ReadDocumentEndnotePosition(sections));
         }
 
         private static bool HasEvenAndOddHeaders(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {
             Settings? settings = mainPart.DocumentSettingsPart?.Settings;
             return settings?.Elements<EvenAndOddHeaders>().Any(IsOnOffEnabled) == true;
+        }
+
+        private static EndnotePositionValues? ReadDocumentEndnotePosition(IReadOnlyList<LegacyDocWritableSection> sections) {
+            EndnotePositionValues? position = null;
+            foreach (LegacyDocWritableSection section in sections) {
+                EndnotePositionValues? sectionPosition = section.Format.EndnotePosition;
+                if (sectionPosition == null) {
+                    continue;
+                }
+
+                if (position != null && position.Value != sectionPosition.Value) {
+                    throw new NotSupportedException("Native DOC saving supports only one endnote placement for the whole document.");
+                }
+
+                position = sectionPosition;
+            }
+
+            return position;
         }
 
         private static void ThrowIfUnsupportedDocumentParts(WordDocument document, DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart) {
@@ -458,6 +479,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 WriteUInt16(dop, 0, FacingPagesDopFlag);
             }
 
+            if (body.EndnotePosition != null) {
+                uint placement = (uint)GetEndnotePositionOperand(body.EndnotePosition.Value)!.Value;
+                WriteUInt32(dop, DopBaseEndnotePlacementOffset, placement << DopBaseEndnotePlacementShift);
+            }
+
             return dop;
         }
 
@@ -547,7 +573,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocWritableFootnoteStories footnoteStories,
                 LegacyDocWritableEndnoteStories endnoteStories,
                 LegacyDocWritableHeaderFooterStories headerFooterStories,
-                bool facingPages) {
+                bool facingPages,
+                EndnotePositionValues? endnotePosition) {
                 Text = text;
                 FormattedRuns = formattedRuns;
                 FormattedParagraphs = formattedParagraphs;
@@ -565,6 +592,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PlcfHdd = headerFooterStories.PlcfHdd;
                 HeaderFooterMarkerPositions = headerFooterStories.MarkerPositions;
                 FacingPages = facingPages;
+                EndnotePosition = endnotePosition;
                 FontFamilies = styleSheet.FontFamilies
                     .Concat(formattedRuns.Select(run => run.Formatting.FontFamily))
                     .Where(fontFamily => !string.IsNullOrWhiteSpace(fontFamily))
@@ -610,6 +638,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool FacingPages { get; }
 
+            internal EndnotePositionValues? EndnotePosition { get; }
+
             internal IReadOnlyList<LegacyDocWritableRun> FormattedRuns { get; }
 
             internal IReadOnlyList<LegacyDocWritableParagraph> FormattedParagraphs { get; }
@@ -638,9 +668,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasEndnotes => EndnoteText.Length > 0 && PlcfendRef.Length > 0 && PlcfendTxt.Length > 0;
 
-            internal bool HasDocumentOptions => FacingPages;
+            internal bool HasDocumentOptions => FacingPages || EndnotePosition != null;
 
-            internal int DopLength => DopBaseLength;
+            internal int DopLength => EndnotePosition != null ? DopBaseEndnotePlacementLength : DopBaseLength;
 
             internal int PapxPlcOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0);
 

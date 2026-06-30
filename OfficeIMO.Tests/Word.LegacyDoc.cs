@@ -1514,6 +1514,28 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Facing pages body", Assert.Single(section.Paragraphs).Text);
         }
 
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsEndnotePlacementDop() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithEndnotePlacementDop(0, "Section-end endnotes");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.Empty(result.UnsupportedFeatures);
+
+            WordDocument document = result.Document;
+            WordSection section = Assert.Single(document.Sections);
+            Assert.Equal("Section-end endnotes", Assert.Single(section.Paragraphs).Text);
+            Assert.Equal(EndnotePositionValues.SectionEnd, section.EndnoteProperties.EndnotePosition?.Val?.Value);
+
+            byte[] documentEndDocBytes = LegacyDocTestBuilder.CreateSimpleDocWithEndnotePlacementDop(3, "Document-end endnotes");
+            using LegacyDocLoadResult documentEndResult = WordDocument.LoadLegacyDocWithReport(new MemoryStream(documentEndDocBytes));
+
+            documentEndResult.EnsureNoImportErrors();
+            Assert.Empty(documentEndResult.UnsupportedFeatures);
+            Assert.Equal(EndnotePositionValues.DocumentEnd, Assert.Single(documentEndResult.Document.Sections).EndnoteProperties.EndnotePosition?.Val?.Value);
+        }
+
         [Theory]
         [InlineData(0, "continuous", "Continuous section")]
         [InlineData(1, "nextColumn", "Next-column section")]
@@ -4497,18 +4519,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionEndnotePlacementBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionEndnotePlacementAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Unsupported endnote placement");
-                document.Sections[0].AddEndnoteProperties(position: EndnotePositionValues.SectionEnd);
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Section-end endnote placement");
+                    document.Sections[0].AddEndnoteProperties(position: EndnotePositionValues.SectionEnd);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                    document.Save(docPath);
+                }
 
-                Assert.Contains("endnote placement", exception.Message);
-                Assert.False(File.Exists(docPath));
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                int fcDop = BitConverter.ToInt32(wordDocumentStream, 0x192);
+                int lcbDop = BitConverter.ToInt32(wordDocumentStream, 0x196);
+                Assert.True(fcDop > 0);
+                Assert.Equal(56, lcbDop);
+                Assert.Equal(0u, (BitConverter.ToUInt32(tableStream, fcDop + 52) >> 16) & 0x3);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Section-end endnote placement", Assert.Single(reloaded.Paragraphs).Text);
+                Assert.Equal(EndnotePositionValues.SectionEnd, reloaded.Sections[0].EndnoteProperties.EndnotePosition?.Val?.Value);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -5163,15 +5198,26 @@ namespace OfficeIMO.Tests {
                 return CreateSimpleDocWithDop(0x0001, 0, paragraphs);
             }
 
+            internal static byte[] CreateSimpleDocWithEndnotePlacementDop(byte endnotePlacement, params string[] paragraphs) {
+                return CreateSimpleDocWithDop(0, 0, paragraphs, endnotePlacement);
+            }
+
             private static byte[] CreateSimpleDocWithDop(ushort dopFirstFlags, uint dopSecondFlags, params string[] paragraphs) {
+                return CreateSimpleDocWithDop(dopFirstFlags, dopSecondFlags, paragraphs, endnotePlacement: null);
+            }
+
+            private static byte[] CreateSimpleDocWithDop(ushort dopFirstFlags, uint dopSecondFlags, string[] paragraphs, byte? endnotePlacement) {
                 string text = string.Join("\r", paragraphs) + "\r";
                 const int dopOffset = 21;
-                const int dopLength = 8;
+                int dopLength = endnotePlacement == null ? 8 : 56;
                 byte[] wordDocumentStream = CreateWordDocumentStream(text, fcDop: dopOffset, lcbDop: dopLength);
                 byte[] tableStream = CreateTableStream(text.Length);
                 Array.Resize(ref tableStream, dopOffset + dopLength);
                 WriteUInt16(tableStream, dopOffset, dopFirstFlags);
                 WriteUInt32(tableStream, dopOffset + 4, dopSecondFlags);
+                if (endnotePlacement != null) {
+                    WriteUInt32(tableStream, dopOffset + 52, (uint)endnotePlacement.Value << 16);
+                }
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {

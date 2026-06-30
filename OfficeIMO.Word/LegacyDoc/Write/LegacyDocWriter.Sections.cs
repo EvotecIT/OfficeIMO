@@ -69,6 +69,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             RestartNumberValues? footnoteRestart = null;
             int? footnoteStart = null;
             NumberFormatValues? footnoteNumberFormat = null;
+            EndnotePositionValues? endnotePosition = null;
             RestartNumberValues? endnoteRestart = null;
             int? endnoteStart = null;
             NumberFormatValues? endnoteNumberFormat = null;
@@ -120,7 +121,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ReadSupportedFootnoteProperties(footnoteProperties, out footnotePosition, out footnoteRestart, out footnoteStart, out footnoteNumberFormat);
                         break;
                     case EndnoteProperties endnoteProperties:
-                        ReadSupportedEndnoteProperties(endnoteProperties, out endnoteRestart, out endnoteStart, out endnoteNumberFormat);
+                        ReadSupportedEndnoteProperties(endnoteProperties, out endnotePosition, out endnoteRestart, out endnoteStart, out endnoteNumberFormat);
                         break;
                     case GutterOnRight gutterOnRight:
                         rtlGutter = IsOnOffEnabled(gutterOnRight);
@@ -161,6 +162,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 footnoteRestart,
                 footnoteStart,
                 footnoteNumberFormat,
+                endnotePosition,
                 endnoteRestart,
                 endnoteStart,
                 endnoteNumberFormat);
@@ -225,17 +227,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static void ReadSupportedEndnoteProperties(
             EndnoteProperties endnoteProperties,
+            out EndnotePositionValues? position,
             out RestartNumberValues? restart,
             out int? start,
             out NumberFormatValues? numberFormat) {
+            position = null;
             restart = null;
             start = null;
             numberFormat = null;
 
             foreach (OpenXmlElement property in endnoteProperties.ChildElements) {
                 switch (property) {
-                    case EndnotePosition:
-                        throw new NotSupportedException("Native DOC saving does not support section endnote placement yet.");
+                    case EndnotePosition endnotePosition:
+                        position = ReadEndnotePosition(endnotePosition.Val);
+                        break;
                     case NumberingRestart numberingRestart:
                         restart = ReadEndnoteRestart(numberingRestart.Val);
                         break;
@@ -325,6 +330,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return GetFootnotePositionOperand(value.Value) != null
                 ? value.Value
                 : throw new NotSupportedException($"Native DOC saving does not support section footnote placement '{value.Value}'.");
+        }
+
+        private static EndnotePositionValues? ReadEndnotePosition(EnumValue<EndnotePositionValues>? value) {
+            if (value == null) {
+                return null;
+            }
+
+            return GetEndnotePositionOperand(value.Value) != null
+                ? value.Value
+                : throw new NotSupportedException($"Native DOC saving does not support section endnote placement '{value.Value}'.");
         }
 
         private static RestartNumberValues? ReadFootnoteRestart(EnumValue<RestartNumberValues>? value) {
@@ -633,6 +648,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (position == FootnotePositionValues.BeneathText) {
                 return 2;
+            }
+
+            return null;
+        }
+
+        private static byte? GetEndnotePositionOperand(EndnotePositionValues position) {
+            if (position == EndnotePositionValues.SectionEnd) {
+                return 0;
+            }
+
+            if (position == EndnotePositionValues.DocumentEnd) {
+                return 3;
             }
 
             return null;
