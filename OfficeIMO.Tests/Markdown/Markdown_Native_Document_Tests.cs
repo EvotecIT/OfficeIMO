@@ -474,6 +474,7 @@ Console.WriteLine();
         var quoteMarker = Assert.Single(native.EnumerateBlockSourceFields("quoteMarker"));
         var quoteBody = Assert.Single(native.EnumerateBlockSourceFields("quoteBody"));
         var alignment = Assert.Single(native.EnumerateBlockSourceFields("alignmentRow"));
+        var alignmentCell = native.EnumerateBlockSourceFields("alignmentCell").First();
         var thematicMarker = Assert.Single(native.EnumerateBlockSourceFields("marker"));
 
         Assert.Contains(fields, field => field.Name == "level" && field.Value == "1");
@@ -509,7 +510,7 @@ Console.WriteLine();
         AssertEquivalentField(content, native.FindBlockSourceFieldAtPosition(15, 3));
         AssertEquivalentField(quoteMarker, native.FindBlockSourceFieldAtPosition(18, 1));
         AssertEquivalentField(quoteBody, native.FindBlockSourceFieldAtPosition(18, 3));
-        AssertEquivalentField(alignment, native.FindBlockSourceFieldAtPosition(21, 3));
+        AssertEquivalentField(alignmentCell, native.FindBlockSourceFieldAtPosition(21, 3));
         AssertEquivalentField(thematicMarker, native.FindBlockSourceFieldAtPosition(24, 2));
         Assert.Null(native.FindBlockSourceFieldAtPosition(2, 1));
 
@@ -1366,14 +1367,42 @@ After
         Assert.Equal(ColumnAlignment.Left, table.Rows[0][0].Alignment);
         Assert.Equal(ColumnAlignment.Right, table.Rows[0][1].Alignment);
         Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 15), table.AlignmentRowSourceSpan);
+        Assert.Equal(2, table.AlignmentCells.Count);
+        Assert.Equal(":---", table.AlignmentCells[0].Markdown);
+        Assert.Equal("---:", table.AlignmentCells[1].Markdown);
+        Assert.Equal(ColumnAlignment.Left, table.AlignmentCells[0].Alignment);
+        Assert.Equal(ColumnAlignment.Right, table.AlignmentCells[1].Alignment);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 6), table.AlignmentCells[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 10, 2, 13), table.AlignmentCells[1].SourceSpan);
 
         var snapshot = native.ToSnapshot().Blocks[0];
         Assert.Equal(2, snapshot.FieldSourceSpans["alignmentRow"]!.StartLine);
         Assert.Equal(1, snapshot.FieldSourceSpans["alignmentRow"]!.StartColumn);
         Assert.Equal(15, snapshot.FieldSourceSpans["alignmentRow"]!.EndColumn);
+        var alignmentCells = table.EnumerateSourceFields("alignmentCell").ToArray();
+        Assert.Equal(2, alignmentCells.Length);
+        Assert.Equal(0, alignmentCells[0].Index);
+        Assert.Equal(1, alignmentCells[1].Index);
+        Assert.Equal(":---", alignmentCells[0].Value);
+        Assert.Equal("---:", alignmentCells[1].Value);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 6), alignmentCells[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 10, 2, 13), alignmentCells[1].SourceSpan);
+        var selectedAlignmentCell = native.FindBlockSourceFieldAtPosition(2, 3);
+        Assert.NotNull(selectedAlignmentCell);
+        Assert.Equal("alignmentCell", selectedAlignmentCell!.Name);
+        Assert.Equal(alignmentCells[0].SourceSpan, selectedAlignmentCell.SourceSpan);
+
+        var snapshotAlignmentCells = snapshot.EnumerateSourceFields("alignmentCell").ToArray();
+        Assert.Equal(2, snapshotAlignmentCells.Length);
+        Assert.Equal(0, snapshotAlignmentCells[0].Index);
+        Assert.Equal(1, snapshotAlignmentCells[1].Index);
+        Assert.Equal(3, snapshotAlignmentCells[0].SourceSpan.StartColumn);
+        Assert.Equal(13, snapshotAlignmentCells[1].SourceSpan.EndColumn);
 
         var edited = native.CreateReplaceEdit(table.AlignmentRowSourceSpan!.Value, "| :---: | --- |").Apply(native.SourceMarkdown);
         Assert.Equal("| :---: | --- |", edited.Split('\n')[1]);
+        var editedCell = native.CreateReplaceEdit(alignmentCells[0], ":---:").Apply(native.SourceMarkdown);
+        Assert.Equal("| :---: | ---: |", editedCell.Split('\n')[1]);
     }
 
     [Fact]

@@ -110,6 +110,11 @@ public sealed partial class MarkdownNativeDocument {
                     yield return new MarkdownNativeBlockSourceField("alignmentRow", null, table.AlignmentRowSourceSpan.Value, table);
                 }
 
+                for (var i = 0; i < table.AlignmentCells.Count; i++) {
+                    var cell = table.AlignmentCells[i];
+                    yield return new MarkdownNativeBlockSourceField("alignmentCell", cell.Markdown, cell.SourceSpan, table, i);
+                }
+
                 break;
             case MarkdownNativeListBlock list:
                 foreach (var field in EnumerateListFields(list)) {

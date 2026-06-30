@@ -134,9 +134,13 @@ public static partial class MarkdownReader {
         if (start + 1 <= end && IsAlignmentRow(lines[start + 1])) {
             headerCells = cells0;
             table.UseHeaderColumnCountForRendering = true;
-            table.SetAlignmentRowSourceSpan(CreateLineSpan(state, state.SourceLineOffset + start + 2, state.SourceLineOffset + start + 2));
-            var aligns = SplitTableRow(lines[start + 1]);
-            for (int i = 0; i < aligns.Count; i++) table.Alignments.Add(ParseAlignmentCell(aligns[i]));
+            var alignmentLine = state.SourceLineOffset + start + 2;
+            table.SetAlignmentRowSourceSpan(CreateLineSpan(state, alignmentLine, alignmentLine));
+            var alignmentCells = SplitTableRowWithSourceInfo(lines[start + 1], alignmentLine, state);
+            table.SetAlignmentCellSources(alignmentCells
+                .Select(cell => new TableAlignmentCellSource(cell.Markdown, cell.SourceSpan))
+                .ToArray());
+            for (int i = 0; i < alignmentCells.Count; i++) table.Alignments.Add(ParseAlignmentCell(alignmentCells[i].Text));
             for (int i = start + 2; i <= end; i++) {
                 int absoluteLine = state.SourceLineOffset + i + 1;
                 var row = SplitTableRowWithSourceInfo(lines[i], absoluteLine, state);

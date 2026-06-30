@@ -292,6 +292,7 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
         : base(MarkdownNativeBlockKind.Table, table, syntaxNode) {
         Table = table;
         AlignmentRowSourceSpan = syntaxNode.Children.FirstOrDefault(static child => child.Kind == MarkdownSyntaxKind.TableAlignmentRow)?.SourceSpan;
+        AlignmentCells = BuildAlignmentCells(table);
         HeaderCells = BuildHeaderCells(table, syntaxNode, diagnostics);
         Rows = BuildRows(table, syntaxNode, diagnostics);
     }
@@ -302,11 +303,31 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
     /// <summary>Source span for the GFM table alignment/separator row when present.</summary>
     public MarkdownSourceSpan? AlignmentRowSourceSpan { get; }
 
+    /// <summary>Per-column alignment markers from the GFM table alignment/separator row.</summary>
+    public IReadOnlyList<MarkdownNativeTableAlignmentCell> AlignmentCells { get; }
+
     /// <summary>Header cells in document order.</summary>
     public IReadOnlyList<MarkdownNativeTableCell> HeaderCells { get; }
 
     /// <summary>Body rows and cells in document order.</summary>
     public IReadOnlyList<IReadOnlyList<MarkdownNativeTableCell>> Rows { get; }
+
+    private static IReadOnlyList<MarkdownNativeTableAlignmentCell> BuildAlignmentCells(TableBlock table) {
+        if (table.AlignmentCellSources.Count == 0) {
+            return Array.Empty<MarkdownNativeTableAlignmentCell>();
+        }
+
+        var cells = new List<MarkdownNativeTableAlignmentCell>(table.AlignmentCellSources.Count);
+        for (var columnIndex = 0; columnIndex < table.AlignmentCellSources.Count; columnIndex++) {
+            var source = table.AlignmentCellSources[columnIndex];
+            var alignment = table.Alignments != null && columnIndex < table.Alignments.Count
+                ? table.Alignments[columnIndex]
+                : ColumnAlignment.None;
+            cells.Add(new MarkdownNativeTableAlignmentCell(columnIndex, alignment, source.Markdown, source.SourceSpan));
+        }
+
+        return cells;
+    }
 
     private static IReadOnlyList<MarkdownNativeTableCell> BuildHeaderCells(
         TableBlock table,
@@ -381,6 +402,34 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
             ? columnAlignments[columnIndex]
             : ColumnAlignment.None;
     }
+}
+
+/// <summary>
+/// Native projection for a table alignment/separator row cell.
+/// </summary>
+public sealed class MarkdownNativeTableAlignmentCell {
+    internal MarkdownNativeTableAlignmentCell(
+        int columnIndex,
+        ColumnAlignment alignment,
+        string markdown,
+        MarkdownSourceSpan sourceSpan) {
+        ColumnIndex = columnIndex;
+        Alignment = alignment;
+        Markdown = markdown ?? string.Empty;
+        SourceSpan = sourceSpan;
+    }
+
+    /// <summary>Zero-based column index.</summary>
+    public int ColumnIndex { get; }
+
+    /// <summary>Semantic alignment represented by this alignment cell.</summary>
+    public ColumnAlignment Alignment { get; }
+
+    /// <summary>Original alignment marker text such as <c>:---</c>, <c>---:</c>, or <c>:---:</c>.</summary>
+    public string Markdown { get; }
+
+    /// <summary>Source span for this alignment marker in the normalized markdown text.</summary>
+    public MarkdownSourceSpan SourceSpan { get; }
 }
 
 /// <summary>
