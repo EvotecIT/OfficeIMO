@@ -1314,6 +1314,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSectionRtlGutter() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithSectionRtlGutter();
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                Assert.Empty(result.UnsupportedFeatures);
+
+                WordDocument document = result.Document;
+                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.Equal("RTL gutter section", Assert.Single(document.Paragraphs).Text);
+                Assert.True(document.Sections[0].RtlGutter);
+
+                document.Save(docPath);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.Sections[0].RtlGutter);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsEvenOddHeaderDocumentFlag() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFacingPagesDop("Facing pages body");
 
@@ -4065,6 +4091,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionRtlGutterAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("RTL gutter");
+                    document.Sections[0].RtlGutter = true;
+
+                    document.Save(docPath);
+                }
+
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                AssertSectionSepxContainsSingleByteSprm(wordDocumentStream, tableStream, 0x322A, 1);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("RTL gutter", Assert.Single(reloaded.Paragraphs).Text);
+                Assert.True(reloaded.Sections[0].RtlGutter);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionPageNumberFormatBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -4952,6 +5005,32 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithSectionRtlGutter() {
+                const string paragraph = "RTL gutter section";
+                string text = paragraph + "\r";
+                const int sepxOffset = 0x300;
+
+                byte[] tableStream = CreateTableStream(text.Length);
+                int fcPlcfSed = tableStream.Length;
+                byte[] sectionDescriptorPlc = CreateOneSectionDescriptorPlc(text.Length, sepxOffset);
+                Array.Resize(ref tableStream, tableStream.Length + sectionDescriptorPlc.Length);
+                Buffer.BlockCopy(sectionDescriptorPlc, 0, tableStream, fcPlcfSed, sectionDescriptorPlc.Length);
+
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    fcPlcfSed: fcPlcfSed,
+                    lcbPlcfSed: sectionDescriptorPlc.Length);
+                WriteBytesAt(ref wordDocumentStream, sepxOffset, CreateSectionSepx(rtlGutter: true));
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithSectionBreakKind(int sectionBreakOperand, string secondParagraph) {
                 const string firstParagraph = "Before continuous section";
                 string text = firstParagraph + "\r" + secondParagraph + "\r";
@@ -5370,7 +5449,8 @@ namespace OfficeIMO.Tests {
                 bool columnSeparator = false,
                 int? pageNumberStart = null,
                 byte? pageNumberFormat = null,
-                bool restartPageNumbering = false) {
+                bool restartPageNumbering = false,
+                bool rtlGutter = false) {
                 var grpprl = new List<byte>();
                 if (sectionBreakType != null) {
                     AddSingleByteSprm(grpprl, 0x3009, sectionBreakType.Value);
@@ -5408,6 +5488,9 @@ namespace OfficeIMO.Tests {
                 AddUInt16SprmIfPresent(grpprl, 0xB022, marginRight);
                 AddUInt16SprmIfPresent(grpprl, 0x9023, marginTop);
                 AddUInt16SprmIfPresent(grpprl, 0x9024, marginBottom);
+                if (rtlGutter) {
+                    AddSingleByteSprm(grpprl, 0x322A, 1);
+                }
 
                 var sepx = new byte[2 + grpprl.Count];
                 WriteUInt16(sepx, 0, (ushort)grpprl.Count);

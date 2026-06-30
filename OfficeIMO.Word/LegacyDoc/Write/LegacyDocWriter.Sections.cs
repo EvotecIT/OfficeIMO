@@ -21,6 +21,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmSFTitlePage = 0x300A;
         private const ushort SprmSLBetween = 0x3019;
         private const ushort SprmSBOrientation = 0x301D;
+        private const ushort SprmSFRTLGutter = 0x322A;
         private const ushort SprmSXaPage = 0xB01F;
         private const ushort SprmSYaPage = 0xB020;
         private const ushort SprmSDxaLeft = 0xB021;
@@ -46,6 +47,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool hasColumnSeparator = false;
             int? pageNumberStart = null;
             NumberFormatValues? pageNumberFormat = null;
+            bool rtlGutter = false;
             SectionMarkValues? sectionBreakType = null;
 
             foreach (OpenXmlElement property in sectionProperties.ChildElements) {
@@ -87,6 +89,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         pageNumberStart = ReadPageNumberStart(pageNumberType.Start);
                         pageNumberFormat = ReadPageNumberFormat(pageNumberType.Format);
                         break;
+                    case GutterOnRight gutterOnRight:
+                        rtlGutter = IsOnOffEnabled(gutterOnRight);
+                        break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports simple section page setup only. Unsupported section property: {property.LocalName}.");
                 }
@@ -109,7 +114,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 columnSpacing,
                 hasColumnSeparator,
                 pageNumberStart,
-                pageNumberFormat);
+                pageNumberFormat,
+                rtlGutter);
         }
 
         private static void ReadSupportedColumns(Columns columns, out int? columnCount, out int? columnSpacing, out bool hasColumnSeparator) {
@@ -262,6 +268,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (sectionFormat.GutterTwips != null) {
                 AddUInt16Sprm(grpprl, SprmSDzaGutter, sectionFormat.GutterTwips.Value);
+            }
+
+            if (sectionFormat.RtlGutter) {
+                AddSingleByteSprm(grpprl, SprmSFRTLGutter, 1);
             }
 
             if (grpprl.Count > ushort.MaxValue) {

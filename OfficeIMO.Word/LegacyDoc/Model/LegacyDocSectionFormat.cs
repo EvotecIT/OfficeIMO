@@ -19,7 +19,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? columnSpacingTwips = null,
             bool hasColumnSeparator = false,
             int? pageNumberStart = null,
-            NumberFormatValues? pageNumberFormat = null) {
+            NumberFormatValues? pageNumberFormat = null,
+            bool rtlGutter = false) {
             SectionBreakType = sectionBreakType;
             PageWidthTwips = pageWidthTwips;
             PageHeightTwips = pageHeightTwips;
@@ -37,6 +38,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             HasColumnSeparator = hasColumnSeparator;
             PageNumberStart = pageNumberStart;
             PageNumberFormat = pageNumberFormat;
+            RtlGutter = rtlGutter;
         }
 
         internal SectionMarkValues? SectionBreakType { get; }
@@ -73,6 +75,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal NumberFormatValues? PageNumberFormat { get; }
 
+        internal bool RtlGutter { get; }
+
         internal bool HasFormatting => IsNonDefaultSectionBreakType(SectionBreakType)
             || PageWidthTwips != null
             || PageHeightTwips != null
@@ -89,7 +93,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || ColumnSpacingTwips != null
             || HasColumnSeparator
             || PageNumberStart != null
-            || PageNumberFormat != null;
+            || PageNumberFormat != null
+            || RtlGutter;
 
         private static bool IsNonDefaultSectionBreakType(SectionMarkValues? sectionBreakType) {
             return sectionBreakType != null && sectionBreakType.Value != SectionMarkValues.NextPage;
@@ -113,7 +118,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ColumnSpacingTwips,
                 HasColumnSeparator,
                 PageNumberStart,
-                PageNumberFormat);
+                PageNumberFormat,
+                RtlGutter);
         }
 
         internal static LegacyDocSectionFormat Default { get; } = new LegacyDocSectionFormat(null, null, null, null, null, null, null, null, null, null, null);

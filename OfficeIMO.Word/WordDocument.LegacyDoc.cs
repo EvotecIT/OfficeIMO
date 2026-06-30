@@ -215,6 +215,10 @@ namespace OfficeIMO.Word {
                 section.HasColumnSeparator = true;
             }
 
+            if (sectionFormat.RtlGutter) {
+                section.RtlGutter = true;
+            }
+
             if (sectionFormat.PageNumberStart != null || sectionFormat.PageNumberFormat != null) {
                 section.AddPageNumbering(sectionFormat.PageNumberStart, sectionFormat.PageNumberFormat);
             }

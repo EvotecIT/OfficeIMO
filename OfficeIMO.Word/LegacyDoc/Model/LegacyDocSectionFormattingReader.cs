@@ -15,6 +15,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmSFTitlePage = 0x300A;
         private const ushort SprmSLBetween = 0x3019;
         private const ushort SprmSBOrientation = 0x301D;
+        private const ushort SprmSFRTLGutter = 0x322A;
         private const ushort SprmSXaPage = 0xB01F;
         private const ushort SprmSYaPage = 0xB020;
         private const ushort SprmSDxaLeft = 0xB021;
@@ -117,6 +118,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool restartPageNumbering = false;
             int? pageNumberStart = null;
             NumberFormatValues? pageNumberFormat = null;
+            bool rtlGutter = false;
             SectionMarkValues? sectionBreakType = null;
 
             while (offset + 2 <= end) {
@@ -157,6 +159,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     hasColumnSeparator = bytes[offset + 2] != 0;
+                    offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmSFRTLGutter) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    rtlGutter = bytes[offset + 2] != 0;
                     offset += 3;
                     continue;
                 }
@@ -266,7 +278,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 orientation = PageOrientationValues.Landscape;
             }
 
-            return new LegacyDocSectionFormat(sectionBreakType, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, headerDistance, footerDistance, gutter, differentFirstPage, columnCount, columnSpacing, hasColumnSeparator, restartPageNumbering ? pageNumberStart ?? 0 : null, pageNumberFormat);
+            return new LegacyDocSectionFormat(sectionBreakType, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, headerDistance, footerDistance, gutter, differentFirstPage, columnCount, columnSpacing, hasColumnSeparator, restartPageNumbering ? pageNumberStart ?? 0 : null, pageNumberFormat, rtlGutter);
         }
 
         private static NumberFormatValues? ReadPageNumberFormat(byte value) {

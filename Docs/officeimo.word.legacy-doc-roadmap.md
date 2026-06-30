@@ -394,6 +394,9 @@ just to reserve names.
   - [x] Project simple section page numbering start and decimal/roman/letter
     formats from DOC section records into normal OfficeIMO section properties,
     and preserve them through native DOC save/reload.
+  - [x] Project the native right-to-left gutter flag from DOC section records
+    into normal OfficeIMO section properties, and preserve it through native
+    DOC save/reload.
   - [x] Report multiple section descriptor records as unsupported/preserve-only
     before multi-section projection exists, so native DOC re-save is blocked
     instead of flattening section boundaries.
@@ -609,6 +612,8 @@ just to reserve names.
     decimal/roman/letter formats, then reload them through the legacy reader
     while blocking unsupported page-number formats before native `.doc` bytes
     are committed.
+  - [x] Write the native right-to-left gutter section flag, then reload it
+    through the legacy reader.
   - [x] Keep blocking unsupported final-section properties before native `.doc`
     bytes are committed so unimplemented section features are not silently
     dropped.
