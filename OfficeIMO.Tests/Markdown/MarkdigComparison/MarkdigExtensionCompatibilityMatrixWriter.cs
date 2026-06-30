@@ -55,7 +55,7 @@ internal static class MarkdigExtensionCompatibilityMatrixWriter {
             sb.AppendLine("- [ ] Promote or explicitly bound `UseDefinitionLists` after closing remaining source-map and writer edge breadth.");
         }
         sb.AppendLine("- [x] Keep the `UseAlertBlocks` titled-callout boundary explicit: OfficeIMO mode keeps rich titles; Markdig-compatible mode treats titled markers as ordinary blockquotes.");
-        sb.AppendLine("- [ ] Return to `UsePreciseSourceLocation` and the broader lossless AST/source model once the active extension rows stop moving.");
+        sb.AppendLine("- [ ] Continue `UsePreciseSourceLocation` through the broader lossless AST/source model; the current native-field accessor slice improves editor-grade source addressing but does not close full trivia parity.");
 
         return sb.ToString().Replace("\r\n", "\n");
     }
@@ -95,7 +95,7 @@ internal static class MarkdigExtensionCompatibilityMatrixWriter {
             case "UseMediaLinks":
                 return new MatrixCells("Renderer policy plus optional parser", "Missing shortcut parser", "Needs source metadata for providers", "Needs safe renderer output policy", "Needs provider comparison fixtures", row.NextAction);
             case "UsePreciseSourceLocation":
-                return new MatrixCells("Cross-cutting source architecture", "Partial parser spans", "Needs lossless trivia and mapping", "Needs roundtrip diagnostics", "Needs broader source-edit proof", row.NextAction);
+                return new MatrixCells("Cross-cutting source architecture", "Partial parser spans", "Has native block/snapshot field accessors; still needs full lossless trivia and mapping", "Has explicit source edits and fallback diagnostics; needs broader roundtrip behavior", "Needs broader source-edit and original-mapping proof", row.NextAction);
             case "UseReferralLinks":
                 return new MatrixCells("Renderer policy", "Not parser-owned", "Needs link metadata decision", "Missing opt-in rel policy", "Needs renderer-policy tests", row.NextAction);
             case "UseSmartyPants":

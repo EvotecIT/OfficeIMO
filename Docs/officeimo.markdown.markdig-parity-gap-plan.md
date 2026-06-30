@@ -40,6 +40,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Add a Markdig-compatible opt-in delimiter option.
   - [x] Implement delimiter behavior in the inline parser and prove source-token/writer behavior with CJK comparison cases.
 - [ ] `UsePreciseSourceLocation` promotion: cross-cutting AST/source architecture.
+  - [x] Engine: expose addressable native block and snapshot source-field accessors so repeated fields such as quote/list markers can be selected by occurrence index without consumers rescanning or relying on lossy dictionaries.
   - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated nodes, and normalized text.
   - [ ] Engine: define one original-to-normalized mapping story for CRLF/LF/CR, tabs, nested containers, transforms, generated nodes, and normalized paragraph text.
   - [ ] Engine: broaden source-edit support beyond the current native field and explicit-edit coverage.
@@ -83,7 +84,9 @@ Do not move an extension row to `Covered` until each applicable box is true.
 
 ## P0 - Finish Active Engine Promotion
 
-Current active row: `UseDefinitionLists`.
+Current active row: `UsePreciseSourceLocation`.
+
+The `UseDefinitionLists` promotion below is closed and retained as evidence, not the next active lane.
 
 - [x] Run the final compact Markdig comparison probe for definition-list tail behavior.
   - [x] Paragraph-after-blank tails after plain paragraph, nested unordered list, nested ordered list, and nested blockquote bodies.
@@ -182,6 +185,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [ ] Establish one original-to-normalized mapping story for CRLF/LF/CR, tab expansion, nested containers, transformed nodes, generated nodes, and normalized paragraph text.
 - [ ] Broaden `MarkdownRoundtripWriter` beyond unchanged documents and explicit native edits.
 - [ ] Add precise fallback diagnostics when exact source preservation is unavailable.
+- [x] Expose live native-block and UI-safe snapshot source-field accessors so editor hosts can select repeated source fields by name and occurrence index without falling back to raw-string rescans.
 
 ## P4 - Keep Renderer, Writer, Extension, And Security Policy Explicit
 

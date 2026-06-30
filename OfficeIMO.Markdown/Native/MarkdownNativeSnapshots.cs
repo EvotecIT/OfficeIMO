@@ -171,6 +171,42 @@ public sealed class MarkdownNativeBlockSnapshot {
 
     /// <summary>Table body row snapshots.</summary>
     public IReadOnlyList<IReadOnlyList<MarkdownNativeTableCellSnapshot>> Rows { get; internal set; }
+
+    /// <summary>Enumerates source-backed fields with the supplied field name in source order.</summary>
+    public IEnumerable<MarkdownNativeBlockSourceFieldSnapshot> EnumerateSourceFields(string name) {
+        if (string.IsNullOrWhiteSpace(name) || SourceFields.Count == 0) {
+            yield break;
+        }
+
+        for (var i = 0; i < SourceFields.Count; i++) {
+            var field = SourceFields[i];
+            if (string.Equals(field.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                yield return field;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Finds the first source-backed field with the supplied name, optionally constrained to a repeated-field occurrence index.
+    /// </summary>
+    public MarkdownNativeBlockSourceFieldSnapshot? FindSourceField(string name, int index = -1) {
+        if (string.IsNullOrWhiteSpace(name) || SourceFields.Count == 0) {
+            return null;
+        }
+
+        for (var i = 0; i < SourceFields.Count; i++) {
+            var field = SourceFields[i];
+            if (!string.Equals(field.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            if (index < 0 || field.Index == index) {
+                return field;
+            }
+        }
+
+        return null;
+    }
 }
 
 /// <summary>

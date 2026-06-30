@@ -33,6 +33,44 @@ public abstract class MarkdownNativeBlock {
     /// <summary>Returns <see langword="true"/> when this block's source span contains the supplied 1-based line.</summary>
     public bool ContainsLine(int lineNumber) => SourceSpan.HasValue && SourceSpan.Value.ContainsLine(lineNumber);
 
+    /// <summary>Enumerates source-backed fields owned by this block in source order.</summary>
+    public IEnumerable<MarkdownNativeBlockSourceField> EnumerateSourceFields() =>
+        MarkdownNativeDocument.EnumerateBlockSourceFields(this);
+
+    /// <summary>Enumerates source-backed fields with the supplied field name owned by this block in source order.</summary>
+    public IEnumerable<MarkdownNativeBlockSourceField> EnumerateSourceFields(string name) {
+        if (string.IsNullOrWhiteSpace(name)) {
+            yield break;
+        }
+
+        foreach (var field in EnumerateSourceFields()) {
+            if (string.Equals(field.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                yield return field;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Finds the first source-backed field with the supplied name, optionally constrained to a repeated-field occurrence index.
+    /// </summary>
+    public MarkdownNativeBlockSourceField? FindSourceField(string name, int index = -1) {
+        if (string.IsNullOrWhiteSpace(name)) {
+            return null;
+        }
+
+        foreach (var field in EnumerateSourceFields()) {
+            if (!string.Equals(field.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            if (index < 0 || field.Index == index) {
+                return field;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Creates a UI-safe snapshot of this block without parser object references.</summary>
     public MarkdownNativeBlockSnapshot ToSnapshot() => MarkdownNativeSnapshotFactory.FromBlock(this);
 }
