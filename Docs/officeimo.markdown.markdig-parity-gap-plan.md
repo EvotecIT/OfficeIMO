@@ -14,7 +14,7 @@ Use the Markdig extension inventory and Markdig extension compatibility matrix a
 - [x] Markdig extension inventory exists: 33 Markdig extension-family rows.
 - [x] Markdig extension compatibility matrix exists with Decision, Route, Scope decision, Engine parser, AST/source, Writer/render, Proof, and Next-action lanes.
 - [ ] Markdig extension parity is not closed: 13 rows are covered, 6 partial, 3 intentional, and 11 gap.
-- [ ] AST/source/lossless parity is not closed: full trivia, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, broader source edits, and extension-node roundtrip still need work.
+- [ ] AST/source/lossless parity is not closed: full trivia, delimiter tokens, original-to-normalized mapping, broader source edits, and extension-node roundtrip still need work.
 - [ ] Performance parity is not known: release-mode benchmark comparison should wait until parser/source/writer behavior stops moving.
 
 ## What Is Still Missing From Parity
@@ -55,9 +55,10 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Engine: expose emphasis-extra opening and closing delimiters for strikethrough, highlight, inserted, superscript, and subscript through source-order native metadata snapshots and source edits.
   - [x] Engine: expose footnote definition opening/separator markers and front-matter opening/closing fences through native source fields, snapshots, and source edits.
   - [x] Engine: expose code and semantic fenced-block opening/closing marker values through native source fields, snapshots, position lookup, and source edits.
-  - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated nodes, and normalized text.
+  - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated-node roundtrip semantics, and normalized text.
   - [ ] Engine: define one original-to-normalized mapping story for CRLF/LF/CR, tabs, nested containers, transforms, generated nodes, and normalized paragraph text.
   - [ ] Engine: broaden source-edit support beyond the current native field and explicit-edit coverage.
+  - [x] Diagnostics: report generated final syntax nodes at parse-result level, including path, index path, source fallback anchor, and associated semantic object details.
   - [ ] Diagnostics: report precise fallback reasons when exact source preservation is unavailable.
   - [ ] Proof: add source-map and roundtrip tests after the mapping rules exist.
 - [ ] Optional parser gaps need product scope before implementation.
@@ -185,7 +186,7 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
   - [x] Align callout/alert AST fields, source spans, writer output, and broader comparison fixtures around that decision.
 - [x] Decide and close `UseCjkFriendlyEmphasis`.
   - [x] Add a Markdig-compatible delimiter option with CJK comparison/source-token proof.
-- [ ] Keep `UsePreciseSourceLocation` partial until lossless trivia, original mapping, generated-node diagnostics, and broader source edits are complete.
+- [ ] Keep `UsePreciseSourceLocation` partial until lossless trivia, original mapping, generated-node roundtrip semantics, and broader source edits are complete.
 
 ## P2 - Make Scope Decisions Before Optional Syntax
 
@@ -209,7 +210,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 
 - [ ] Canonicalize duplicated semantic/syntax ownership for lists, tables, definition lists, callouts, footnotes, front matter, and extension nodes.
 - [ ] Associate syntax nodes with semantic subobjects such as callout titles, list item paragraphs, definition groups/definitions, table rows/cells, and sequence-style inline wrappers.
-- [ ] Capture lossless trivia: whitespace, blank lines, tabs, delimiters, raw slices, normalized text, and generated-node diagnostics.
+- [ ] Capture lossless trivia: whitespace, blank lines, tabs, delimiters, raw slices, normalized text, and generated-node roundtrip semantics.
 - [ ] Complete delimiter-token coverage for extension nodes.
   - [x] Raw inline HTML fragments now expose exact native/snapshot `html` metadata and source edits so editor hosts can address the raw tag without rescanning paragraph text.
   - [x] Raw HTML block comments, tag frames, CDATA, declarations, and processing instructions expose source-backed opening/body/closing tag or marker fields with snapshot and source-edit proof.
@@ -220,6 +221,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [ ] Establish one original-to-normalized mapping story for CRLF/LF/CR, tab expansion, nested containers, transformed nodes, generated nodes, and normalized paragraph text.
 - [ ] Broaden `MarkdownRoundtripWriter` beyond unchanged documents and explicit native edits.
 - [ ] Add precise fallback diagnostics when exact source preservation is unavailable.
+- [x] Expose parse-result generated syntax diagnostics so final syntax nodes rebuilt from semantic content are visible without native-projection-specific checks.
 - [x] Expose live native-block and UI-safe snapshot source-field accessors so editor hosts can select repeated source fields by name and occurrence index without falling back to raw-string rescans.
 - [x] Return exact original-source slice failure reasons for parse/native callers and include those reasons in roundtrip source-edit fallback diagnostics.
 - [x] Expose native inline and inline-metadata source-slice APIs for normalized/original text so link targets, titles, formatting content, and similar inline source-backed values do not require raw-string rescans.

@@ -29,6 +29,8 @@ public sealed class MarkdownParseResult {
     public bool PreservesOriginalMarkdown { get; }
     /// <summary>Optional document-transform diagnostics captured during parsing.</summary>
     public IReadOnlyList<MarkdownDocumentTransformDiagnostic> TransformDiagnostics { get; }
+    /// <summary>Diagnostics for final syntax nodes generated from semantic content rather than exact parsed source.</summary>
+    public IReadOnlyList<MarkdownGeneratedSyntaxDiagnostic> GeneratedSyntaxDiagnostics { get; }
     /// <summary>Effective reference-style link definitions collected during parsing, in source order where spans are available.</summary>
     public IReadOnlyList<MarkdownReferenceLinkDefinition> ReferenceLinkDefinitions { get; }
     /// <summary>Effective abbreviation definitions collected during parsing, in source order where spans are available.</summary>
@@ -51,6 +53,7 @@ public sealed class MarkdownParseResult {
         OriginalMarkdown = preservesOriginalMarkdown ? originalMarkdown ?? string.Empty : SourceMarkdown;
         PreservesOriginalMarkdown = preservesOriginalMarkdown;
         TransformDiagnostics = transformDiagnostics ?? Array.Empty<MarkdownDocumentTransformDiagnostic>();
+        GeneratedSyntaxDiagnostics = BuildGeneratedSyntaxDiagnostics(FinalSyntaxTree);
         ReferenceLinkDefinitions = referenceLinkDefinitions ?? Array.Empty<MarkdownReferenceLinkDefinition>();
         AbbreviationDefinitions = abbreviationDefinitions ?? Array.Empty<MarkdownAbbreviationDefinition>();
         document.AttachParseResult(this);
@@ -297,6 +300,43 @@ public sealed class MarkdownParseResult {
         }
 
         return null;
+    }
+
+    private static IReadOnlyList<MarkdownGeneratedSyntaxDiagnostic> BuildGeneratedSyntaxDiagnostics(MarkdownSyntaxNode? syntaxTree) {
+        if (syntaxTree == null) {
+            return Array.Empty<MarkdownGeneratedSyntaxDiagnostic>();
+        }
+
+        var diagnostics = new List<MarkdownGeneratedSyntaxDiagnostic>();
+        AddGeneratedSyntaxDiagnostics(syntaxTree, FormatPathSegment(syntaxTree), "0", diagnostics);
+        return diagnostics;
+    }
+
+    private static void AddGeneratedSyntaxDiagnostics(
+        MarkdownSyntaxNode node,
+        string syntaxPath,
+        string indexPath,
+        ICollection<MarkdownGeneratedSyntaxDiagnostic> diagnostics) {
+        if (node.IsGenerated) {
+            diagnostics.Add(new MarkdownGeneratedSyntaxDiagnostic(node, syntaxPath, indexPath));
+        }
+
+        for (var i = 0; i < node.Children.Count; i++) {
+            var child = node.Children[i];
+            AddGeneratedSyntaxDiagnostics(
+                child,
+                syntaxPath + " > " + FormatPathSegment(child),
+                indexPath + "/" + i.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                diagnostics);
+        }
+    }
+
+    private static string FormatPathSegment(MarkdownSyntaxNode node) {
+        if (string.IsNullOrWhiteSpace(node.CustomKind)) {
+            return node.Kind.ToString();
+        }
+
+        return node.Kind + "(" + node.CustomKind + ")";
     }
 
 }

@@ -2152,6 +2152,15 @@ beta
         Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 14), diagnostic.SourceSpan);
         Assert.Same(paragraph, diagnostic.Block);
         Assert.Equal(MarkdownNativeDiagnosticSeverity.Info, diagnostic.Severity);
+
+        var generatedDiagnostics = native.ParseResult.GeneratedSyntaxDiagnostics;
+        var generatedParagraph = Assert.Single(generatedDiagnostics, item => item.Kind == MarkdownSyntaxKind.Paragraph);
+        Assert.Equal("syntax.generated-node", generatedParagraph.Id);
+        Assert.Equal("Document > DefinitionList > DefinitionGroup > DefinitionValue > Paragraph", generatedParagraph.SyntaxPath);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 14), generatedParagraph.SourceSpan);
+        Assert.Equal(nameof(ParagraphBlock), generatedParagraph.AssociatedObjectType);
+        Assert.Same(paragraph.SyntaxNode, generatedParagraph.SyntaxNode);
+        Assert.Same(paragraph.SourceBlock, generatedParagraph.AssociatedObject);
     }
 
     [Fact]
