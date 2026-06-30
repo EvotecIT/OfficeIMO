@@ -201,6 +201,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [x] Expose native document-level blank-line source trivia, snapshots, and normalized/original source-slice APIs so empty and whitespace-only lines are addressable without raw-string rescans.
 - [x] Expose native document-level leading/trailing horizontal whitespace trivia, including tabs, with source-order enumeration, position lookup, snapshots, normalized/original source-slice APIs, and source-map-aligned tab-expanded columns.
 - [x] Resolve offset-less line/column source slices with source-map-aligned tab-expanded columns so fallback slices do not drift on tabbed input.
+- [x] Centralize tab-expanded source-column mapping so source maps, source slices, and document-level trivia share one column model instead of parallel local implementations.
 - [x] Expose native document-level line-ending trivia and original-source slices/edits that preserve CRLF, LF, and standalone CR spelling around line-ending-equivalent mapping.
 
 ## P4 - Keep Renderer, Writer, Extension, And Security Policy Explicit

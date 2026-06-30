@@ -76,9 +76,7 @@ internal sealed class MarkdownSourceTextMap {
 
         var columns = 0;
         for (var index = lineStart; index < lineEndExclusive; index++) {
-            columns += _text[index] == '\t'
-                ? 4 - (columns % 4)
-                : 1;
+            columns += MarkdownSourceColumns.GetColumnWidth(columns, _text[index]);
         }
 
         return Math.Max(1, columns);
@@ -95,20 +93,7 @@ internal sealed class MarkdownSourceTextMap {
             lineEndExclusive--;
         }
 
-        var columns = 0;
-        var lastCharacterOffset = lineStart;
-        for (var index = lineStart; index < lineEndExclusive; index++) {
-            lastCharacterOffset = index;
-            columns += _text[index] == '\t'
-                ? 4 - (columns % 4)
-                : 1;
-
-            if (column <= columns) {
-                return index;
-            }
-        }
-
-        return Math.Min(_text.Length - 1, lastCharacterOffset);
+        return MarkdownSourceColumns.ResolveVisualColumnOffset(_text, lineStart, lineEndExclusive, column);
     }
 
     private static int[] BuildLineStarts(string text) {

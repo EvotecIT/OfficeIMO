@@ -197,30 +197,8 @@ public readonly struct MarkdownSourceSlice {
             return false;
         }
 
-        offset = ResolveVisualColumnOffset(sourceText, lineStart, columnNumber);
+        offset = MarkdownSourceColumns.ResolveVisualColumnOffset(sourceText, lineStart, columnNumber);
         return true;
-    }
-
-    private static int ResolveVisualColumnOffset(string sourceText, int lineStart, int columnNumber) {
-        var normalizedColumn = Math.Max(1, columnNumber);
-        var columns = 0;
-        var lastCharacterOffset = Math.Min(sourceText.Length - 1, lineStart);
-        for (var index = lineStart; index < sourceText.Length; index++) {
-            if (IsLineBreakStart(sourceText, index, out _)) {
-                break;
-            }
-
-            lastCharacterOffset = index;
-            columns += sourceText[index] == '\t'
-                ? 4 - (columns % 4)
-                : 1;
-
-            if (normalizedColumn <= columns) {
-                return index;
-            }
-        }
-
-        return Math.Min(sourceText.Length - 1, lastCharacterOffset);
     }
 
     private static bool TryGetLineStartOffset(string sourceText, int lineNumber, out int offset) {
@@ -235,7 +213,7 @@ public readonly struct MarkdownSourceSlice {
 
         var currentLine = 1;
         for (var i = 0; i < sourceText.Length; i++) {
-            if (!IsLineBreakStart(sourceText, i, out var lineBreakLength)) {
+            if (!MarkdownSourceColumns.IsLineBreakStart(sourceText, i, out var lineBreakLength)) {
                 continue;
             }
 
@@ -259,30 +237,13 @@ public readonly struct MarkdownSourceSlice {
 
         offset = sourceText.Length - 1;
         for (var i = lineStart; i < sourceText.Length; i++) {
-            if (IsLineBreakStart(sourceText, i, out _)) {
+            if (MarkdownSourceColumns.IsLineBreakStart(sourceText, i, out _)) {
                 offset = Math.Max(lineStart, i - 1);
                 return true;
             }
         }
 
         return true;
-    }
-
-    private static bool IsLineBreakStart(string sourceText, int offset, out int length) {
-        if (sourceText[offset] == '\r') {
-            length = offset + 1 < sourceText.Length && sourceText[offset + 1] == '\n'
-                ? 2
-                : 1;
-            return true;
-        }
-
-        if (sourceText[offset] == '\n') {
-            length = 1;
-            return true;
-        }
-
-        length = 0;
-        return false;
     }
 
     private static bool IsEmptyLineSpan(string sourceText, MarkdownSourceSpan span, int startOffset) {
@@ -292,6 +253,6 @@ public readonly struct MarkdownSourceSlice {
             return false;
         }
 
-        return startOffset >= sourceText.Length || IsLineBreakStart(sourceText, startOffset, out _);
+        return startOffset >= sourceText.Length || MarkdownSourceColumns.IsLineBreakStart(sourceText, startOffset, out _);
     }
 }

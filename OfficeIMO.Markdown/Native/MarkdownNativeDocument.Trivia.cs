@@ -32,7 +32,7 @@ public sealed partial class MarkdownNativeDocument {
         var lineStartOffset = 0;
         while (lineStartOffset < sourceMarkdown.Length) {
             var lineBreakOffset = lineStartOffset;
-            while (lineBreakOffset < sourceMarkdown.Length && !IsLineBreakStart(sourceMarkdown, lineBreakOffset, out _)) {
+            while (lineBreakOffset < sourceMarkdown.Length && !MarkdownSourceColumns.IsLineBreakStart(sourceMarkdown, lineBreakOffset, out _)) {
                 lineBreakOffset++;
             }
 
@@ -70,7 +70,7 @@ public sealed partial class MarkdownNativeDocument {
                 break;
             }
 
-            IsLineBreakStart(sourceMarkdown, lineBreakOffset, out var lineBreakLength);
+            MarkdownSourceColumns.IsLineBreakStart(sourceMarkdown, lineBreakOffset, out var lineBreakLength);
             trivia.Add(CreateTrivia(
                 MarkdownNativeSourceTriviaKind.LineEnding,
                 sourceMarkdown,
@@ -96,10 +96,10 @@ public sealed partial class MarkdownNativeDocument {
         var endOffsetInclusive = length == 0
             ? startOffset - 1
             : startOffset + length - 1;
-        var startColumn = GetColumnNumber(sourceMarkdown, startOffset);
+        var startColumn = MarkdownSourceColumns.GetColumnNumber(sourceMarkdown, startOffset);
         var endColumn = length == 0
             ? startColumn
-            : GetEndColumnNumber(sourceMarkdown, startOffset, length, startColumn);
+            : MarkdownSourceColumns.GetEndColumnNumber(sourceMarkdown, startOffset, length, startColumn);
         var sourceSpan = new MarkdownSourceSpan(
             lineNumber,
             startColumn,
@@ -141,55 +141,4 @@ public sealed partial class MarkdownNativeDocument {
 
     private static bool IsHorizontalWhitespace(char value) => value == ' ' || value == '\t';
 
-    private static int GetColumnNumber(string sourceMarkdown, int offset) {
-        var column = 1;
-        var lineStartOffset = 0;
-        for (var i = offset - 1; i >= 0; i--) {
-            if (IsLineBreakStart(sourceMarkdown, i, out _)) {
-                lineStartOffset = i + 1;
-                break;
-            }
-        }
-
-        for (var i = lineStartOffset; i < offset; i++) {
-            column = AdvanceColumn(column, sourceMarkdown[i]);
-        }
-
-        return column;
-    }
-
-    private static int GetEndColumnNumber(string sourceMarkdown, int startOffset, int length, int startColumn) {
-        var column = startColumn;
-        for (var i = startOffset; i < startOffset + length; i++) {
-            if (i > startOffset) {
-                column = AdvanceColumn(column, sourceMarkdown[i - 1]);
-            }
-        }
-
-        return sourceMarkdown[startOffset + length - 1] == '\t'
-            ? AdvanceColumn(column, '\t') - 1
-            : column;
-    }
-
-    private static int AdvanceColumn(int column, char value) =>
-        value == '\t'
-            ? column + (4 - ((column - 1) % 4))
-            : column + 1;
-
-    private static bool IsLineBreakStart(string sourceMarkdown, int offset, out int length) {
-        if (sourceMarkdown[offset] == '\r') {
-            length = offset + 1 < sourceMarkdown.Length && sourceMarkdown[offset + 1] == '\n'
-                ? 2
-                : 1;
-            return true;
-        }
-
-        if (sourceMarkdown[offset] == '\n') {
-            length = 1;
-            return true;
-        }
-
-        length = 0;
-        return false;
-    }
 }
