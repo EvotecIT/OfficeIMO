@@ -636,7 +636,7 @@ namespace OfficeIMO.Word {
                 return true;
             }
 
-            string normalizedFormat = NormalizeDateTimeFormat(customFormat);
+            string normalizedFormat = NormalizeDateTimeFormat(customFormat!);
             try {
                 value = source.ToString(normalizedFormat, CultureInfo.InvariantCulture);
                 message = string.Empty;
@@ -752,9 +752,21 @@ namespace OfficeIMO.Word {
             }
 
             texts[0].Text = value;
+            ApplyTextSpacePreservation(texts[0], value);
             for (int i = 1; i < texts.Count; i++) {
                 texts[i].Text = string.Empty;
+                ApplyTextSpacePreservation(texts[i], string.Empty);
             }
+        }
+
+        private static void ApplyTextSpacePreservation(Text text, string value) {
+            text.Space = RequiresSpacePreservation(value)
+                ? SpaceProcessingModeValues.Preserve
+                : null;
+        }
+
+        private static bool RequiresSpacePreservation(string value) {
+            return value.Length > 0 && (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[value.Length - 1]));
         }
 
         private static IEnumerable<MutableFieldCandidate> EnumerateFields(MainDocumentPart mainPart) {

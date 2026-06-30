@@ -536,10 +536,6 @@ namespace OfficeIMO.Word {
         }
 
         private static bool ShouldTrackFinding(WordComparisonFinding finding, WordComparisonRedlineOptions options) {
-            if (!options.TrackTextFindings) {
-                return false;
-            }
-
             if (!options.TrackFeatureFindings && IsFeatureFinding(finding)) {
                 return false;
             }
@@ -549,6 +545,10 @@ namespace OfficeIMO.Word {
             }
 
             if (!options.TrackFormattingFindings && IsFormattingFinding(finding)) {
+                return false;
+            }
+
+            if (!options.TrackTextFindings && IsTextFinding(finding)) {
                 return false;
             }
 
@@ -578,6 +578,13 @@ namespace OfficeIMO.Word {
             string sourceText = finding.SourceText ?? string.Empty;
             string targetText = finding.TargetText ?? string.Empty;
             return ContainsReviewFormattingKind(sourceText) || ContainsReviewFormattingKind(targetText);
+        }
+
+        private static bool IsTextFinding(WordComparisonFinding finding) {
+            return HasTrackedText(finding)
+                && !IsFeatureFinding(finding)
+                && !IsReviewFinding(finding)
+                && !IsFormattingFinding(finding);
         }
 
         private static bool ContainsReviewFormattingKind(string value) {

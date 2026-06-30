@@ -79,5 +79,42 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(result.Findings, finding => finding.Scope == WordComparisonScope.Hyperlink);
             Assert.DoesNotContain(result.Findings, finding => finding.Scope == WordComparisonScope.List);
         }
+
+        [Fact]
+        public void CompareStructureMatchesBookmarkHyperlinkAndListFeaturesAcrossInsertions() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_links_lists_insert_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Anchor paragraph").AddBookmark("StableAnchor");
+                document.AddParagraph("Portal: ").AddHyperLink("Open portal", new Uri("https://example.com/stable"));
+                WordList sourceList = document.AddList(WordListStyle.Numbered);
+                sourceList.AddItem("Collect requirements");
+                sourceList.AddItem("Draft proposal");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_links_lists_insert_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Inserted anchor").AddBookmark("InsertedAnchor");
+                document.AddParagraph("Anchor paragraph").AddBookmark("StableAnchor");
+                document.AddParagraph("Inserted portal: ").AddHyperLink("Open inserted portal", new Uri("https://example.com/inserted"));
+                document.AddParagraph("Portal: ").AddHyperLink("Open portal", new Uri("https://example.com/stable"));
+                WordList targetList = document.AddList(WordListStyle.Numbered);
+                targetList.AddItem("Inserted task");
+                targetList.AddItem("Collect requirements");
+                targetList.AddItem("Draft proposal");
+                document.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
+                CompareGeneratedIds = false
+            });
+
+            Assert.Single(result.Findings, finding => finding.Scope == WordComparisonScope.Bookmark);
+            Assert.Single(result.Findings, finding => finding.Scope == WordComparisonScope.Hyperlink);
+            Assert.Single(result.Findings, finding => finding.Scope == WordComparisonScope.List);
+            Assert.DoesNotContain(result.Findings, finding =>
+                (finding.Scope is WordComparisonScope.Bookmark or WordComparisonScope.Hyperlink or WordComparisonScope.List) &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+        }
     }
 }

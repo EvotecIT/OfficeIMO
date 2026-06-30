@@ -51,6 +51,12 @@ namespace OfficeIMO.Word {
                     string id = bookmarkStart.Id?.Value ?? string.Empty;
                     string text = GetBookmarkDisplayText(bookmarkStart);
                     string displayText = "name=" + name + "; id=" + id + "; text=" + text;
+                    string matchSignature = string.Join(
+                        "|",
+                        NormalizeComparisonText(name, options),
+                        NormalizeComparisonText(text, options),
+                        IsInTableFeature(bookmarkStart) ? "table" : string.Empty,
+                        IsInTextBoxFeature(bookmarkStart) ? "text-box" : string.Empty);
                     string signature = string.Join(
                         "|",
                         NormalizeComparisonText(name, options),
@@ -61,7 +67,7 @@ namespace OfficeIMO.Word {
 
                     snapshots.Add(new BookmarkSnapshot(
                         snapshots.Count,
-                        GetFeatureMatchKey(root, snapshots.Count, bookmarkStart.LocalName),
+                        GetFeatureMatchKey(root, matchSignature, bookmarkStart.LocalName),
                         signature,
                         displayText,
                         JoinFeatureLocation(
@@ -98,6 +104,13 @@ namespace OfficeIMO.Word {
                     string target = GetHyperlinkTarget(part, relationshipId);
                     string text = NormalizeFeatureText(hyperlink.InnerText ?? string.Empty);
                     string displayText = "text=" + text + "; anchor=" + anchor + "; target=" + target + "; relationshipId=" + relationshipId;
+                    string matchSignature = string.Join(
+                        "|",
+                        NormalizeComparisonText(text, options),
+                        NormalizeComparisonText(anchor, options),
+                        NormalizeComparisonText(target, options),
+                        IsInTableFeature(hyperlink) ? "table" : string.Empty,
+                        IsInTextBoxFeature(hyperlink) ? "text-box" : string.Empty);
                     string signature = string.Join(
                         "|",
                         NormalizeComparisonText(text, options),
@@ -109,7 +122,7 @@ namespace OfficeIMO.Word {
 
                     snapshots.Add(new HyperlinkSnapshot(
                         snapshots.Count,
-                        GetFeatureMatchKey(root, snapshots.Count, hyperlink.LocalName),
+                        GetFeatureMatchKey(root, matchSignature, hyperlink.LocalName),
                         signature,
                         displayText,
                         JoinFeatureLocation(
@@ -148,6 +161,13 @@ namespace OfficeIMO.Word {
                     string level = numbering.NumberingLevelReference?.Val?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
                     string text = NormalizeFeatureText(paragraph.InnerText ?? string.Empty);
                     string displayText = "numId=" + numberId + "; level=" + level + "; text=" + text;
+                    string matchSignature = string.Join(
+                        "|",
+                        NormalizeComparisonText(level, options),
+                        NormalizeComparisonText(text, options),
+                        IsInTableFeature(paragraph) ? "table" : string.Empty,
+                        IsInContentControlFeature(paragraph) ? "content-control" : string.Empty,
+                        IsInTextBoxFeature(paragraph) ? "text-box" : string.Empty);
                     string signature = string.Join(
                         "|",
                         NormalizeComparisonText(numberId, options),
@@ -159,7 +179,7 @@ namespace OfficeIMO.Word {
 
                     snapshots.Add(new ListSnapshot(
                         snapshots.Count,
-                        GetFeatureMatchKey(root, snapshots.Count, paragraph.LocalName),
+                        GetFeatureMatchKey(root, matchSignature, paragraph.LocalName),
                         signature,
                         displayText,
                         JoinFeatureLocation(
@@ -236,13 +256,13 @@ namespace OfficeIMO.Word {
             return parts;
         }
 
-        private static string GetFeatureMatchKey(WordFieldInventory.FieldRoot root, int index, string elementName) {
+        private static string GetFeatureMatchKey(WordFieldInventory.FieldRoot root, string signature, string elementName) {
             return string.Join(
                 "|",
                 root.LocationKind.ToString(),
                 root.PartUri,
-                index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                elementName);
+                elementName,
+                signature);
         }
 
         private static bool IsInContentControlFeature(OpenXmlElement element) => element.Ancestors<SdtElement>().Any();
