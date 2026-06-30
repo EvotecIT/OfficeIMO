@@ -8,7 +8,7 @@ public static partial class MarkdownReader {
         var sequence = ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true, sourceMap);
         ApplyGenericAttributesToInlineElements(sequence, options);
         NormalizeInlineSequenceInPlace(sequence, options.InputNormalization);
-        ApplyInlineTransformExtensions(sequence, text, options);
+        ApplyInlineTransformExtensions(sequence, text, options, state);
         return sequence;
     }
 

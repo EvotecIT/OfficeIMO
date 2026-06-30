@@ -112,6 +112,9 @@ public static partial class MarkdownReader {
             return;
         }
 
+        MarkdownInlineSourceSpans.Set(
+            inline,
+            sourceMap.GetSpan(openingIndex, closingIndex + closingLength - openingIndex));
         MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
             inline,
             openingLength > 0 ? new string(marker, openingLength) : string.Empty,

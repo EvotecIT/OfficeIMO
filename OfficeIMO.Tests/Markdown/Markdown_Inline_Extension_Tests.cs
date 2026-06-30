@@ -145,6 +145,35 @@ public sealed class Markdown_Inline_Extension_Tests {
     }
 
     [Fact]
+    public void InlineTransformContext_Can_Create_SourceSlices_For_Parsed_Inlines() {
+        MarkdownSourceSpan? strongSpan = null;
+        MarkdownSourceSlice strongSlice = default;
+        bool strongSliceOk = false;
+        var options = new MarkdownReaderOptions();
+        options.InlineTransformExtensions.Add(new MarkdownInlineTransformExtension(
+            "source-aware-transform",
+            (sequence, context) => {
+                if (context.IsNestedSequence) {
+                    return sequence;
+                }
+
+                var strong = sequence.Nodes.OfType<BoldSequenceInline>().Single();
+                strongSpan = context.GetSourceSpan(strong);
+                strongSliceOk = context.TryCreateSourceSlice(strong, out strongSlice);
+                return sequence;
+            }));
+
+        var document = MarkdownReader.Parse("Lead **Bold**\r\n", options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        Assert.IsType<BoldSequenceInline>(paragraph.Inlines.Nodes[1]);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 13), strongSpan);
+        Assert.True(strongSliceOk);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, strongSlice.TextKind);
+        Assert.Equal("**Bold**", strongSlice.Text);
+    }
+
+    [Fact]
     public void InlineTransformExtensions_Can_Return_Replacement_Sequences_And_Null_Noops() {
         var options = new MarkdownReaderOptions();
         options.InlineTransformExtensions.Add(new MarkdownInlineTransformExtension(

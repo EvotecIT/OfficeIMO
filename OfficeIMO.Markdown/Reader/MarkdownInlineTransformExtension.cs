@@ -4,12 +4,16 @@ namespace OfficeIMO.Markdown;
 /// Context passed to post-parse inline transform extensions.
 /// </summary>
 public sealed class MarkdownInlineTransformContext {
+    private readonly MarkdownReaderState? _state;
+
     internal MarkdownInlineTransformContext(
         string sourceText,
         MarkdownReaderOptions options,
+        MarkdownReaderState? state,
         bool isNestedSequence) {
         SourceText = sourceText ?? string.Empty;
         Options = options ?? throw new ArgumentNullException(nameof(options));
+        _state = state;
         IsNestedSequence = isNestedSequence;
     }
 
@@ -26,6 +30,38 @@ public sealed class MarkdownInlineTransformContext {
     /// Returns <see langword="true"/> when the transform is visiting a nested inline container sequence.
     /// </summary>
     public bool IsNestedSequence { get; }
+
+    /// <summary>
+    /// Returns the source span associated with an inline node, when the node came from parsed Markdown source.
+    /// </summary>
+    public MarkdownSourceSpan? GetSourceSpan(IMarkdownInline inline) =>
+        MarkdownInlineSourceSpans.Get(inline);
+
+    /// <summary>
+    /// Creates a normalized source slice for an inline node, when the node came from parsed Markdown source.
+    /// </summary>
+    public bool TryCreateSourceSlice(IMarkdownInline inline, out MarkdownSourceSlice slice) {
+        var span = GetSourceSpan(inline);
+        if (!span.HasValue) {
+            slice = default;
+            return false;
+        }
+
+        return TryCreateSourceSlice(span.Value, out slice);
+    }
+
+    /// <summary>
+    /// Creates a normalized source slice for a token or field source span captured during inline parsing.
+    /// </summary>
+    public bool TryCreateSourceSlice(MarkdownSourceSpan sourceSpan, out MarkdownSourceSlice slice) {
+        var sourceMap = _state?.SourceTextMap;
+        if (sourceMap == null) {
+            slice = default;
+            return false;
+        }
+
+        return MarkdownSourceSlice.TryCreate(sourceMap.Text, sourceSpan, MarkdownSourceTextKind.Normalized, out slice);
+    }
 }
 
 /// <summary>

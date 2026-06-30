@@ -54,19 +54,20 @@ public static partial class MarkdownReader {
         return active;
     }
 
-    private static void ApplyInlineTransformExtensions(InlineSequence sequence, string sourceText, MarkdownReaderOptions options) {
+    private static void ApplyInlineTransformExtensions(InlineSequence sequence, string sourceText, MarkdownReaderOptions options, MarkdownReaderState? state) {
         var inlineTransformExtensions = BuildEffectiveInlineTransformExtensions(options);
         if (inlineTransformExtensions.Count == 0) {
             return;
         }
 
-        ApplyInlineTransformExtensions(sequence, sourceText, options, inlineTransformExtensions, isNestedSequence: false);
+        ApplyInlineTransformExtensions(sequence, sourceText, options, state, inlineTransformExtensions, isNestedSequence: false);
     }
 
     private static void ApplyInlineTransformExtensions(
         InlineSequence sequence,
         string sourceText,
         MarkdownReaderOptions options,
+        MarkdownReaderState? state,
         IReadOnlyList<MarkdownInlineTransformExtension> inlineTransformExtensions,
         bool isNestedSequence) {
         for (var i = 0; i < sequence.Nodes.Count; i++) {
@@ -75,12 +76,13 @@ public static partial class MarkdownReader {
                     container.NestedInlines,
                     sourceText,
                     options,
+                    state,
                     inlineTransformExtensions,
                     isNestedSequence: true);
             }
         }
 
-        var context = new MarkdownInlineTransformContext(sourceText, options, isNestedSequence);
+        var context = new MarkdownInlineTransformContext(sourceText, options, state, isNestedSequence);
         for (var i = 0; i < inlineTransformExtensions.Count; i++) {
             var extension = inlineTransformExtensions[i];
             var transformed = extension.Transform(sequence, context);
