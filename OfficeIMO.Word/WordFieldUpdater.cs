@@ -135,7 +135,7 @@ namespace OfficeIMO.Word {
                 case WordFieldType.NumWords:
                     return TryFormatNumericField(document.Statistics.Words, parsed.NumericPictureSwitch, "Updated from OfficeIMO document statistics Words.", out value, out status, out message);
                 case WordFieldType.NumPages:
-                    return TryFormatNumericField(totalPages, parsed.NumericPictureSwitch, "Updated from OfficeIMO page-break count.", out value, out status, out message);
+                    return TryFormatIntegerField(totalPages, parsed, "Updated from OfficeIMO page-break count.", out value, out status, out message);
                 case WordFieldType.RevNum:
                     return TrySetTextValue(document.BuiltinDocumentProperties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);
                 case WordFieldType.Section:
@@ -454,9 +454,21 @@ namespace OfficeIMO.Word {
             }
 
             bool includePath = parsed.Switches.Any(fieldSwitch => string.Equals(fieldSwitch, "\\p", StringComparison.OrdinalIgnoreCase));
-            value = includePath ? document.FilePath : Path.GetFileName(document.FilePath);
+            string source = includePath ? document.FilePath : Path.GetFileName(document.FilePath);
+            if (!TryApplyReferenceTextFormat(parsed.FormatSwitches, source, out string formattedValue, out string? unsupportedFormat)) {
+                value = null;
+                status = WordFieldUpdateStatus.Unsupported;
+                message = $"FILENAME format switch {unsupportedFormat} is not supported for deterministic refresh.";
+                return false;
+            }
+
+            value = formattedValue;
             status = WordFieldUpdateStatus.Updated;
             message = includePath ? "Updated from document file path." : "Updated from document file name.";
+            if (GetLastMeaningfulFormat(parsed.FormatSwitches) != null) {
+                message += " Text format switch was applied.";
+            }
+
             return true;
         }
 
@@ -570,6 +582,53 @@ namespace OfficeIMO.Word {
                 ? successMessage
                 : $"{successMessage} Numeric picture formatting was applied.";
             return true;
+        }
+
+        private static bool TryFormatIntegerField(
+            int numericValue,
+            WordFieldInventory.ParsedFieldInstruction parsed,
+            string successMessage,
+            out string? value,
+            out WordFieldUpdateStatus status,
+            out string message) {
+            value = null;
+            WordFieldFormat? format = GetLastMeaningfulFormat(parsed.FormatSwitches);
+
+            if (!string.IsNullOrWhiteSpace(parsed.NumericPictureSwitch) && format != null) {
+                status = WordFieldUpdateStatus.Unsupported;
+                message = "Field cannot combine numeric picture and general format switches for deterministic refresh.";
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(parsed.NumericPictureSwitch)) {
+                return TryFormatNumericField(numericValue, parsed.NumericPictureSwitch, successMessage, out value, out status, out message);
+            }
+
+            switch (format) {
+                case null:
+                case WordFieldFormat.Arabic:
+                    value = numericValue.ToString(CultureInfo.InvariantCulture);
+                    status = WordFieldUpdateStatus.Updated;
+                    message = successMessage;
+                    return true;
+                case WordFieldFormat.Roman:
+                case WordFieldFormat.roman:
+                case WordFieldFormat.Ordinal:
+                case WordFieldFormat.Alphabetical:
+                case WordFieldFormat.ALPHABETICAL:
+                case WordFieldFormat.Hex:
+                case WordFieldFormat.CardText:
+                case WordFieldFormat.OrdText:
+                case WordFieldFormat.DollarText:
+                    value = FormatSequenceValue(numericValue, new[] { format.Value });
+                    status = WordFieldUpdateStatus.Updated;
+                    message = successMessage + " General numeric format switch was applied.";
+                    return true;
+                default:
+                    status = WordFieldUpdateStatus.Unsupported;
+                    message = $"Field format switch {format.Value} is not supported for deterministic numeric refresh.";
+                    return false;
+            }
         }
 
         private enum FileSizeUnit {

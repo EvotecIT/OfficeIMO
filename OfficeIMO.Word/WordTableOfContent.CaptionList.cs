@@ -70,28 +70,29 @@ namespace OfficeIMO.Word {
             skippedCaptionCount = 0;
 
             foreach (WordFieldInventory.FieldRoot root in roots) {
+                int rootPageNumber = 1;
                 foreach (OpenXmlElement child in root.Root.ChildElements) {
                     if (ReferenceEquals(child, _sdtBlock)) {
                         continue;
                     }
 
                     if (child is Paragraph paragraph) {
-                        ProcessCaptionParagraph(paragraph, sequenceIdentifier, entries, existingBookmarkNames, ref pageNumber, ref captionIndex, ref skippedCaptionCount);
+                        ProcessCaptionParagraph(paragraph, sequenceIdentifier, entries, existingBookmarkNames, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
                         continue;
                     }
 
                     if (child is Table || child is SdtBlock) {
-                        ProcessNestedCaptionParagraphs(child, sequenceIdentifier, entries, existingBookmarkNames, ref pageNumber, ref captionIndex, ref skippedCaptionCount);
+                        ProcessNestedCaptionParagraphs(child, sequenceIdentifier, entries, existingBookmarkNames, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
                         continue;
                     }
 
                     if (child is Footnote footnote && IsVisibleNote(footnote)) {
-                        ProcessNestedCaptionParagraphs(footnote, sequenceIdentifier, entries, existingBookmarkNames, ref pageNumber, ref captionIndex, ref skippedCaptionCount);
+                        ProcessNestedCaptionParagraphs(footnote, sequenceIdentifier, entries, existingBookmarkNames, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
                         continue;
                     }
 
                     if (child is Endnote endnote && IsVisibleNote(endnote)) {
-                        ProcessNestedCaptionParagraphs(endnote, sequenceIdentifier, entries, existingBookmarkNames, ref pageNumber, ref captionIndex, ref skippedCaptionCount);
+                        ProcessNestedCaptionParagraphs(endnote, sequenceIdentifier, entries, existingBookmarkNames, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
                     }
                 }
             }

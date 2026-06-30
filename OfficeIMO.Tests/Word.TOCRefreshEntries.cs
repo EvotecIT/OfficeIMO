@@ -1191,6 +1191,9 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordTableOfContent list = document.AddTableOfContent();
                 AddGeneratedCaptionParagraph(document, "_BodyCaption", "Figure", "1", "Body deployment view");
+                AppendBodyParagraph(document, new Paragraph(
+                    new Run(new Break { Type = BreakValues.Page }),
+                    new Run(new Break { Type = BreakValues.Page })));
                 document.AddHeadersAndFooters();
 
                 Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;

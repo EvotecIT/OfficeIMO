@@ -7,6 +7,10 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
+internal static class ReaderCurrentDirectoryLock {
+    internal static readonly object Gate = new();
+}
+
 public sealed class ReaderEpubModularTests {
     [Fact]
     public void EpubReader_UsesOpfSpineOrderAndMetadata() {
@@ -270,34 +274,36 @@ public sealed class ReaderEpubModularTests {
         var epubPath = Path.Combine(tempDirectory, "canonical.epub");
         var originalCurrentDirectory = Environment.CurrentDirectory;
 
-        try {
-            BuildEpubWithSpine(epubPath);
+        lock (ReaderCurrentDirectoryLock.Gate) {
+            try {
+                BuildEpubWithSpine(epubPath);
 
-            Environment.CurrentDirectory = tempDirectory;
-            var relativePath = Path.GetFileName(epubPath);
-            var fullPath = Path.GetFullPath(relativePath).Replace('\\', '/');
+                Environment.CurrentDirectory = tempDirectory;
+                var relativePath = Path.GetFileName(epubPath);
+                var fullPath = Path.GetFullPath(relativePath).Replace('\\', '/');
 
-            var relativeChunk = DocumentReaderEpubExtensions.ReadEpub(
-                relativePath,
-                readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
-                epubOptions: new EpubReadOptions { PreferSpineOrder = true })
-                .Single(c => c.Location.Path?.Contains("::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
+                var relativeChunk = DocumentReaderEpubExtensions.ReadEpub(
+                    relativePath,
+                    readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
+                    epubOptions: new EpubReadOptions { PreferSpineOrder = true })
+                    .Single(c => c.Location.Path?.Contains("::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
 
-            var fullChunk = DocumentReaderEpubExtensions.ReadEpub(
-                epubPath,
-                readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
-                epubOptions: new EpubReadOptions { PreferSpineOrder = true })
-                .Single(c => c.Location.Path?.Contains("::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
+                var fullChunk = DocumentReaderEpubExtensions.ReadEpub(
+                    epubPath,
+                    readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
+                    epubOptions: new EpubReadOptions { PreferSpineOrder = true })
+                    .Single(c => c.Location.Path?.Contains("::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
 
-            Assert.Equal(fullPath + "::OEBPS/chapter2.xhtml", relativeChunk.Location.Path);
-            Assert.Equal(relativeChunk.Location.Path, fullChunk.Location.Path);
-            Assert.Equal(relativeChunk.SourceId, fullChunk.SourceId);
-            Assert.Equal(relativeChunk.ChunkHash, fullChunk.ChunkHash);
-            Assert.Equal(relativeChunk.SourceHash, fullChunk.SourceHash);
-        } finally {
-            Environment.CurrentDirectory = originalCurrentDirectory;
-            if (File.Exists(epubPath)) File.Delete(epubPath);
-            if (Directory.Exists(tempDirectory)) Directory.Delete(tempDirectory);
+                Assert.Equal(fullPath + "::OEBPS/chapter2.xhtml", relativeChunk.Location.Path);
+                Assert.Equal(relativeChunk.Location.Path, fullChunk.Location.Path);
+                Assert.Equal(relativeChunk.SourceId, fullChunk.SourceId);
+                Assert.Equal(relativeChunk.ChunkHash, fullChunk.ChunkHash);
+                Assert.Equal(relativeChunk.SourceHash, fullChunk.SourceHash);
+            } finally {
+                Environment.CurrentDirectory = originalCurrentDirectory;
+                if (File.Exists(epubPath)) File.Delete(epubPath);
+                if (Directory.Exists(tempDirectory)) Directory.Delete(tempDirectory, recursive: true);
+            }
         }
     }
 
