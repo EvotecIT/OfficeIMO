@@ -1350,6 +1350,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocFirstAndEvenHeaderFooterAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Variant body");
+                    WordSection section = document.Sections[0];
+                    section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Default header");
+                    section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Default footer");
+                    section.GetOrCreateHeader(HeaderFooterValues.First).AddParagraph("First header");
+                    section.GetOrCreateFooter(HeaderFooterValues.First).AddParagraph("First footer");
+                    section.GetOrCreateHeader(HeaderFooterValues.Even).AddParagraph("Even header");
+                    section.GetOrCreateFooter(HeaderFooterValues.Even).AddParagraph("Even footer");
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(BitConverter.ToInt32(wordDocumentStream, 0x54) > 0);
+                Assert.Equal(56, BitConverter.ToInt32(wordDocumentStream, 0xF6));
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.DifferentFirstPage);
+                Assert.True(reloaded.DifferentOddAndEvenPages);
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                Assert.Equal("Variant body", Assert.Single(reloadedSection.Paragraphs).Text);
+                Assert.Equal("Default header", Assert.Single(reloadedSection.Header.Default!.Paragraphs).Text);
+                Assert.Equal("Default footer", Assert.Single(reloadedSection.Footer.Default!.Paragraphs).Text);
+                Assert.Equal("First header", Assert.Single(reloadedSection.Header.First!.Paragraphs).Text);
+                Assert.Equal("First footer", Assert.Single(reloadedSection.Footer.First!.Paragraphs).Text);
+                Assert.Equal("Even header", Assert.Single(reloadedSection.Header.Even!.Paragraphs).Text);
+                Assert.Equal("Even footer", Assert.Single(reloadedSection.Footer.Even!.Paragraphs).Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocMultiSectionDefaultHeaderFooterAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

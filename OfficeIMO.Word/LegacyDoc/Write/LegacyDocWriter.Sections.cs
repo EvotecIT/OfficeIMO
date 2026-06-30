@@ -37,6 +37,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (property) {
                     case HeaderReference:
                     case FooterReference:
+                    case TitlePage:
                         break;
                     case PageSize pageSize:
                         pageWidth = ReadTwipValue(pageSize.Width, DefaultPageWidthTwips, "section page width");

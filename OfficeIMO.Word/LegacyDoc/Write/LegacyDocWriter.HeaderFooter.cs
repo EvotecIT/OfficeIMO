@@ -24,11 +24,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             for (int sectionIndex = 0; sectionIndex < document.Sections.Count; sectionIndex++) {
                 SectionProperties sectionProperties = document.Sections[sectionIndex]._sectionProperties;
-                string? defaultHeader = ReadDefaultHeaderStory(mainPart, sectionProperties);
-                string? defaultFooter = ReadDefaultFooterStory(mainPart, sectionProperties);
                 int sectionStoryOffset = HeaderFooterSeparatorStoryCount + (sectionIndex * HeaderFooterStoriesPerSection);
-                stories[sectionStoryOffset + 1] = defaultHeader ?? string.Empty;
-                stories[sectionStoryOffset + 3] = defaultFooter ?? string.Empty;
+                stories[sectionStoryOffset] = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.Even) ?? string.Empty;
+                stories[sectionStoryOffset + 1] = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.Default) ?? string.Empty;
+                stories[sectionStoryOffset + 2] = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.Even) ?? string.Empty;
+                stories[sectionStoryOffset + 3] = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.Default) ?? string.Empty;
+                stories[sectionStoryOffset + 4] = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.First) ?? string.Empty;
+                stories[sectionStoryOffset + 5] = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.First) ?? string.Empty;
             }
 
             ThrowIfUnreferencedHeaderFooterContent(mainPart, document.Sections.Select(section => section._sectionProperties));
@@ -53,26 +55,36 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return new LegacyDocWritableHeaderFooterStories(text.ToString(), plcfHdd);
         }
 
-        private static string? ReadDefaultHeaderStory(MainDocumentPart mainPart, SectionProperties sectionProperties) {
+        private static string? ReadHeaderStory(MainDocumentPart mainPart, SectionProperties sectionProperties, HeaderFooterValues type) {
             HeaderReference[] references = sectionProperties.Elements<HeaderReference>().ToArray();
             if (references.Length == 0) {
                 return null;
             }
 
-            HeaderReference reference = GetSingleDefaultReference(references, "header");
-            HeaderPart headerPart = GetReferencedPart<HeaderPart>(mainPart, reference.Id?.Value, "header");
-            return ReadSimpleHeaderFooterStory(headerPart.Header, "header");
+            string kind = GetHeaderFooterStoryDescription(type, "header");
+            HeaderReference? reference = GetSingleReference(references, type, "header");
+            if (reference == null) {
+                return null;
+            }
+
+            HeaderPart headerPart = GetReferencedPart<HeaderPart>(mainPart, reference.Id?.Value, kind);
+            return ReadSimpleHeaderFooterStory(headerPart.Header, kind);
         }
 
-        private static string? ReadDefaultFooterStory(MainDocumentPart mainPart, SectionProperties sectionProperties) {
+        private static string? ReadFooterStory(MainDocumentPart mainPart, SectionProperties sectionProperties, HeaderFooterValues type) {
             FooterReference[] references = sectionProperties.Elements<FooterReference>().ToArray();
             if (references.Length == 0) {
                 return null;
             }
 
-            FooterReference reference = GetSingleDefaultReference(references, "footer");
-            FooterPart footerPart = GetReferencedPart<FooterPart>(mainPart, reference.Id?.Value, "footer");
-            return ReadSimpleHeaderFooterStory(footerPart.Footer, "footer");
+            string kind = GetHeaderFooterStoryDescription(type, "footer");
+            FooterReference? reference = GetSingleReference(references, type, "footer");
+            if (reference == null) {
+                return null;
+            }
+
+            FooterPart footerPart = GetReferencedPart<FooterPart>(mainPart, reference.Id?.Value, kind);
+            return ReadSimpleHeaderFooterStory(footerPart.Footer, kind);
         }
 
         private static TPart GetReferencedPart<TPart>(MainDocumentPart mainPart, string? relationshipId, string kind)
@@ -95,23 +107,53 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             throw new NotSupportedException($"Native DOC saving cannot write a {kind} reference that points to an unexpected part type.");
         }
 
-        private static TReference GetSingleDefaultReference<TReference>(IReadOnlyList<TReference> references, string kind)
+        private static TReference? GetSingleReference<TReference>(IReadOnlyList<TReference> references, HeaderFooterValues requestedType, string kind)
             where TReference : HeaderFooterReferenceType {
-            TReference? defaultReference = default;
+            TReference? requestedReference = default;
             foreach (TReference reference in references) {
                 HeaderFooterValues type = reference.Type?.Value ?? HeaderFooterValues.Default;
-                if (type != HeaderFooterValues.Default) {
-                    throw new NotSupportedException($"Native DOC saving currently supports only default {kind}s. First-page and even-page {kind}s are not supported yet.");
+                if (!IsSupportedHeaderFooterType(type)) {
+                    throw new NotSupportedException($"Native DOC saving supports only default, first-page, and even-page {kind}s.");
                 }
 
-                if (defaultReference != null) {
-                    throw new NotSupportedException($"Native DOC saving cannot write multiple default {kind} references in one section.");
+                if (type != requestedType) {
+                    continue;
                 }
 
-                defaultReference = reference;
+                if (requestedReference != null) {
+                    throw new NotSupportedException($"Native DOC saving cannot write multiple {GetHeaderFooterDescription(requestedType, kind)} references in one section.");
+                }
+
+                requestedReference = reference;
             }
 
-            return defaultReference ?? throw new NotSupportedException($"Native DOC saving cannot write an empty {kind} reference list.");
+            return requestedReference;
+        }
+
+        private static bool IsSupportedHeaderFooterType(HeaderFooterValues type) {
+            return type == HeaderFooterValues.Default
+                || type == HeaderFooterValues.First
+                || type == HeaderFooterValues.Even;
+        }
+
+        private static string GetHeaderFooterDescription(HeaderFooterValues type, string kind) {
+            if (type == HeaderFooterValues.First) {
+                return $"first-page {kind}";
+            }
+
+            if (type == HeaderFooterValues.Even) {
+                return $"even-page {kind}";
+            }
+
+            return $"default {kind}";
+        }
+
+        private static string GetHeaderFooterStoryDescription(HeaderFooterValues type, string kind) {
+            if (type == HeaderFooterValues.Default) {
+                return kind;
+            }
+
+            return GetHeaderFooterDescription(type, kind);
         }
 
         private static string? ReadSimpleHeaderFooterStory(OpenXmlCompositeElement? container, string kind) {

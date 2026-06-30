@@ -615,6 +615,9 @@ just to reserve names.
   - [x] Write simple multi-section default header/footer story text with one
     `PlcfHdd` story group per section, then reload section-scoped headers and
     footers through the legacy reader.
+  - [x] Write simple first-page and even-page header/footer story text into
+    the existing `PlcfHdd` section story slots, then reload the variant
+    headers and footers through the legacy reader.
   - [ ] Add visual table styles, nested tables, section breaks inside richer body
     shapes, and richer section writing as separate preflight-backed slices.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
