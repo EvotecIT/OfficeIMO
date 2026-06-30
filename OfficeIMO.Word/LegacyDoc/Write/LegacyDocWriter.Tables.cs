@@ -1181,7 +1181,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedHyperlinkText(text, runs, hyperlink, mainPart, footnotes, endnotes, tableStyleRunFormatting);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple table cell paragraphs only with text runs and simple external hyperlinks. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple table cell paragraphs only with text runs and simple hyperlinks. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 

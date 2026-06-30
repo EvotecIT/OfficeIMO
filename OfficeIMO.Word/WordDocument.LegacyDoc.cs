@@ -87,7 +87,7 @@ namespace OfficeIMO.Word {
             } else {
                 foreach (LegacyDocBodyBlock block in legacyDocument.BodyBlocks) {
                     if (block is LegacyDocParagraphBlock paragraphBlock) {
-                        AddLegacyDocParagraph(section, paragraphBlock.Runs, paragraphBlock.Format, legacyDocument.StyleSheet, notes);
+                        AddLegacyDocParagraph(section, paragraphBlock, legacyDocument.StyleSheet, notes);
                     } else if (block is LegacyDocSectionBreakBlock sectionBreakBlock) {
                         section = document.AddSection(sectionBreakBlock.Format.SectionBreakType ?? SectionMarkValues.NextPage);
                         ApplyLegacyDocSectionFormatting(section, sectionBreakBlock.Format);
@@ -614,15 +614,26 @@ namespace OfficeIMO.Word {
             AddLegacyDocRuns(paragraph, sourceParagraph.Runs, remainingRunStartIndex, notes);
         }
 
-        private static void AddLegacyDocParagraph(WordSection section, IReadOnlyList<LegacyDocTextRun> paragraphRuns, LegacyDocParagraphFormat paragraphFormat, LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes) {
+        private static void AddLegacyDocParagraph(WordSection section, LegacyDocParagraphBlock paragraphBlock, LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes) {
+            IReadOnlyList<LegacyDocTextRun> paragraphRuns = paragraphBlock.Runs;
+            LegacyDocParagraphFormat paragraphFormat = paragraphBlock.Format;
             if (paragraphRuns.Count == 0) {
-                ApplyLegacyDocParagraphFormatting(section.AddParagraph(), paragraphFormat, styleSheet);
+                WordParagraph emptyParagraph = section.AddParagraph();
+                ApplyLegacyDocParagraphFormatting(emptyParagraph, paragraphFormat, styleSheet);
+                AddLegacyDocParagraphBookmarks(emptyParagraph, paragraphBlock.Bookmarks);
                 return;
             }
 
             WordParagraph paragraph = section.AddParagraph(string.Empty);
             ApplyLegacyDocParagraphFormatting(paragraph, paragraphFormat, styleSheet);
             AddLegacyDocRuns(paragraph, paragraphRuns, notes);
+            AddLegacyDocParagraphBookmarks(paragraph, paragraphBlock.Bookmarks);
+        }
+
+        private static void AddLegacyDocParagraphBookmarks(WordParagraph paragraph, IReadOnlyList<LegacyDocBookmark> bookmarks) {
+            foreach (LegacyDocBookmark bookmark in bookmarks) {
+                paragraph.AddBookmark(bookmark.Name);
+            }
         }
 
         private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns, LegacyDocNoteProjection notes) {

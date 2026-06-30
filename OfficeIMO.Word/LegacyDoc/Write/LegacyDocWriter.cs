@@ -65,6 +65,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int LcbPlcfBtePapxOffset = 0x106;
         private const int FcSttbfFfnOffset = 0x112;
         private const int LcbSttbfFfnOffset = 0x116;
+        private const int FcSttbfBkmkOffset = 0x142;
+        private const int LcbSttbfBkmkOffset = 0x146;
+        private const int FcPlcfBkfOffset = 0x14A;
+        private const int LcbPlcfBkfOffset = 0x14E;
+        private const int FcPlcfBklOffset = 0x152;
+        private const int LcbPlcfBklOffset = 0x156;
         private const int FcPlcfHddOffset = 0xF2;
         private const int LcbPlcfHddOffset = 0xF6;
         private const int DopBaseLength = 8;
@@ -143,6 +149,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var text = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var paragraphFormats = new List<LegacyDocWritableParagraph>();
+            var bookmarks = new LegacyDocWritableBookmarksBuilder();
             LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!);
             LegacyDocWritableEndnotes endnotes = ReadSupportedEndnotes(mainPart!);
             LegacyDocWritableStyleSheet styleSheet = CreateWritableStyleSheet(mainPart!, body);
@@ -155,7 +162,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Paragraph paragraph:
                         if (!IsPureSectionBreakParagraph(paragraph)) {
-                            AppendParagraph(text, runs, paragraphFormats, paragraph, mainPart!, styleSheet.StyleIndexes, footnotes, endnotes);
+                            AppendParagraph(text, runs, paragraphFormats, bookmarks, paragraph, mainPart!, styleSheet.StyleIndexes, footnotes, endnotes);
                             bodyContentCount++;
                         }
 
@@ -191,7 +198,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int terminalCharacterPadding = hasNoteReferences ? 1 : 0;
             LegacyDocWritableFootnoteStories footnoteStories = footnotes.CreateStories(text.Length, headerFooterStories.Text.Length, terminalCharacterPadding);
             LegacyDocWritableEndnoteStories endnoteStories = endnotes.CreateStories(text.Length, footnoteStories.Text.Length, headerFooterStories.Text.Length, terminalCharacterPadding);
-            return new LegacyDocWritableBody(text.ToString(), runs, paragraphFormats, sections, styleSheet, footnoteStories, endnoteStories, headerFooterStories, HasEvenAndOddHeaders(mainPart!), ReadDocumentEndnotePosition(sections));
+            return new LegacyDocWritableBody(text.ToString(), runs, paragraphFormats, bookmarks.Create(), sections, styleSheet, footnoteStories, endnoteStories, headerFooterStories, HasEvenAndOddHeaders(mainPart!), ReadDocumentEndnotePosition(sections));
         }
 
         private static bool HasEvenAndOddHeaders(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {
@@ -327,7 +334,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             sections.Add(new LegacyDocWritableSection(endCharacter, format));
         }
 
-        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, Paragraph paragraph, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
+        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
             int paragraphStart = text.Length;
 
@@ -341,8 +348,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Hyperlink hyperlink:
                         AppendSupportedHyperlinkText(text, runs, hyperlink, mainPart, footnotes, endnotes);
                         break;
+                    case BookmarkStart bookmarkStart:
+                        bookmarks.AddStart(bookmarkStart, text.Length);
+                        break;
+                    case BookmarkEnd bookmarkEnd:
+                        bookmarks.AddEnd(bookmarkEnd, text.Length);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs and simple external hyperlinks with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs, bookmarks, and simple hyperlinks with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 
@@ -407,6 +420,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteInt32(stream, LcbPlcfendTxtOffset, body.HasEndnotes ? body.PlcfendTxt.Length : 0);
             WriteInt32(stream, FcPlcfHddOffset, body.HasHeaderFooterStories ? body.PlcfHddOffsetInTableStream : 0);
             WriteInt32(stream, LcbPlcfHddOffset, body.HasHeaderFooterStories ? body.PlcfHdd.Length : 0);
+            WriteInt32(stream, FcSttbfBkmkOffset, body.HasBookmarks ? body.SttbfBkmkOffsetInTableStream : 0);
+            WriteInt32(stream, LcbSttbfBkmkOffset, body.HasBookmarks ? body.SttbfBkmk.Length : 0);
+            WriteInt32(stream, FcPlcfBkfOffset, body.HasBookmarks ? body.PlcfBkfOffsetInTableStream : 0);
+            WriteInt32(stream, LcbPlcfBkfOffset, body.HasBookmarks ? body.PlcfBkf.Length : 0);
+            WriteInt32(stream, FcPlcfBklOffset, body.HasBookmarks ? body.PlcfBklOffsetInTableStream : 0);
+            WriteInt32(stream, LcbPlcfBklOffset, body.HasBookmarks ? body.PlcfBkl.Length : 0);
             WriteInt32(stream, FcSttbfFfnOffset, body.HasFontTable ? body.FontTableOffsetInTableStream : 0);
             WriteInt32(stream, LcbSttbfFfnOffset, fontTable.Length);
             WriteInt32(stream, FcDopOffset, body.HasDocumentOptions ? body.DopOffsetInTableStream : 0);
@@ -499,6 +518,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (body.HasDocumentOptions) {
                 byte[] dop = CreateDopBase(body);
                 Buffer.BlockCopy(dop, 0, table, body.DopOffsetInTableStream, dop.Length);
+            }
+
+            if (body.HasBookmarks) {
+                Buffer.BlockCopy(body.SttbfBkmk, 0, table, body.SttbfBkmkOffsetInTableStream, body.SttbfBkmk.Length);
+                Buffer.BlockCopy(body.PlcfBkf, 0, table, body.PlcfBkfOffsetInTableStream, body.PlcfBkf.Length);
+                Buffer.BlockCopy(body.PlcfBkl, 0, table, body.PlcfBklOffsetInTableStream, body.PlcfBkl.Length);
             }
 
             if (body.HasStyleSheet) {
@@ -607,6 +632,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 string text,
                 IReadOnlyList<LegacyDocWritableRun> formattedRuns,
                 IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs,
+                LegacyDocWritableBookmarks bookmarks,
                 IReadOnlyList<LegacyDocWritableSection> sections,
                 LegacyDocWritableStyleSheet styleSheet,
                 LegacyDocWritableFootnoteStories footnoteStories,
@@ -638,6 +664,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 HeaderFooterFormattedParagraphs = headerFooterStories.FormattedParagraphs;
                 FacingPages = facingPages;
                 EndnotePosition = endnotePosition;
+                LegacyDocWritableBookmarks resolvedBookmarks = bookmarks.WithTerminalCharacterPosition(PieceTableCharacterCount + 1);
+                SttbfBkmk = resolvedBookmarks.SttbfBkmk;
+                PlcfBkf = resolvedBookmarks.PlcfBkf;
+                PlcfBkl = resolvedBookmarks.PlcfBkl;
                 FontFamilies = styleSheet.FontFamilies
                     .Concat(formattedRuns.Select(run => run.Formatting.FontFamily))
                     .Concat(FootnoteFormattedRuns.Select(run => run.Formatting.FontFamily))
@@ -696,6 +726,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal byte[] PlcfHdd { get; }
 
+            internal byte[] SttbfBkmk { get; }
+
+            internal byte[] PlcfBkf { get; }
+
+            internal byte[] PlcfBkl { get; }
+
             internal bool FacingPages { get; }
 
             internal EndnotePositionValues? EndnotePosition { get; }
@@ -727,6 +763,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal bool HasFootnotes => FootnoteText.Length > 0 && PlcffndRef.Length > 0 && PlcffndTxt.Length > 0;
 
             internal bool HasEndnotes => EndnoteText.Length > 0 && PlcfendRef.Length > 0 && PlcfendTxt.Length > 0;
+
+            internal bool HasBookmarks => SttbfBkmk.Length > 0 && PlcfBkf.Length > 0 && PlcfBkl.Length > 0;
 
             internal bool HasDocumentOptions => FacingPages || EndnotePosition != null;
 
@@ -760,11 +798,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             private int AfterDocumentOptionsOffsetInTableStream => HasDocumentOptions ? DopOffsetInTableStream + DopLength : AfterEndnoteDataOffsetInTableStream;
 
-            internal int StyleSheetOffsetInTableStream => HasStyleSheet ? AlignToEven(AfterDocumentOptionsOffsetInTableStream) : AfterDocumentOptionsOffsetInTableStream;
+            internal int SttbfBkmkOffsetInTableStream => HasBookmarks ? AlignToEven(AfterDocumentOptionsOffsetInTableStream) : AfterDocumentOptionsOffsetInTableStream;
+
+            internal int PlcfBkfOffsetInTableStream => SttbfBkmkOffsetInTableStream + (HasBookmarks ? SttbfBkmk.Length : 0);
+
+            internal int PlcfBklOffsetInTableStream => PlcfBkfOffsetInTableStream + (HasBookmarks ? PlcfBkf.Length : 0);
+
+            private int AfterBookmarkDataOffsetInTableStream => HasBookmarks ? PlcfBklOffsetInTableStream + PlcfBkl.Length : AfterDocumentOptionsOffsetInTableStream;
+
+            internal int StyleSheetOffsetInTableStream => HasStyleSheet ? AlignToEven(AfterBookmarkDataOffsetInTableStream) : AfterBookmarkDataOffsetInTableStream;
 
             internal int FontTableOffsetInTableStream => HasStyleSheet
                 ? StyleSheetOffsetInTableStream + StyleSheet.Bytes.Length
-                : AfterDocumentOptionsOffsetInTableStream;
+                : AfterBookmarkDataOffsetInTableStream;
 
             internal IReadOnlyList<LegacyDocWritableSegment> CreateFormattingSegments() {
                 var segments = new List<LegacyDocWritableSegment>();

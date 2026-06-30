@@ -242,7 +242,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, text, hyperlink, relationshipOwner, kind);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs and simple external hyperlinks with supported direct formatting in {kind}s. Unsupported {kind} paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs and simple hyperlinks with supported direct formatting in {kind}s. Unsupported {kind} paragraph element: {child.LocalName}.");
                 }
             }
 

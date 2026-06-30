@@ -689,9 +689,10 @@ just to reserve names.
     through native DOC `HYPERLINK` field characters, then reload them as normal
     OfficeIMO `WordHyperLink` objects.
   - [x] Read simple internal bookmark `HYPERLINK \l` field targets into normal
-    OfficeIMO `WordHyperLink.Anchor` objects while continuing to block authored
-    internal bookmark hyperlink writes until native DOC bookmark records are
-    implemented.
+    OfficeIMO `WordHyperLink.Anchor` objects.
+  - [x] Read and write simple zero-length body bookmarks through native DOC
+    `SttbfBkmk`, `Plcfbkf`, and `Plcfbkl` records, then use those records to
+    round-trip authored internal bookmark hyperlinks.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.
@@ -764,9 +765,10 @@ just to reserve names.
   - [x] Block unsupported visual and embedded related parts through a recursive
     native-save preflight, including image parts owned by header/footer
     relationship parts, before native `.doc` bytes are committed.
-  - [ ] Add the remaining richer visual table style effects, nested tables,
-    section breaks inside richer body shapes, and richer section writing as
-    separate preflight-backed slices.
+  - [ ] Add richer bookmark ranges, bookmark locations outside body
+    paragraphs, richer visual table style effects, nested tables, section breaks
+    inside richer body shapes, and richer section writing as separate
+    preflight-backed slices.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound

@@ -103,7 +103,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "footnote", storyStart);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only with text runs and simple external hyperlinks. Unsupported footnote paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only with text runs and simple hyperlinks. Unsupported footnote paragraph element: {child.LocalName}.");
                 }
             }
 
@@ -184,9 +184,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             long id,
             string noteKind,
             int storyStart) {
-            Uri uri = ReadSupportedExternalHyperlinkUri(hyperlink, relationshipOwner);
+            string instruction = CreateSupportedHyperlinkInstruction(hyperlink, relationshipOwner);
             AppendFormattedNoteText(text, runs, LegacyDocField.Begin.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
-            AppendFormattedNoteText(text, runs, " HYPERLINK \"" + EscapeFieldString(uri.ToString()) + "\" ", LegacyDocWritableFormatting.Plain, storyStart);
+            AppendFormattedNoteText(text, runs, instruction, LegacyDocWritableFormatting.Plain, storyStart);
             AppendFormattedNoteText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
 
             int displayStart = text.Length;

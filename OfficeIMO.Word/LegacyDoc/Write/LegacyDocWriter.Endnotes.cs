@@ -91,7 +91,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "endnote", storyStart);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs only with text runs and simple external hyperlinks. Unsupported endnote paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs only with text runs and simple hyperlinks. Unsupported endnote paragraph element: {child.LocalName}.");
                 }
             }
 

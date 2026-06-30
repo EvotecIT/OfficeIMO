@@ -24,9 +24,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
             LegacyDocWritableFormatting inheritedFormatting) {
-            Uri uri = ReadSupportedExternalHyperlinkUri(hyperlink, relationshipOwner);
+            string instruction = CreateSupportedHyperlinkInstruction(hyperlink, relationshipOwner);
             AppendFormattedText(text, runs, LegacyDocField.Begin.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
-            AppendFormattedText(text, runs, " HYPERLINK \"" + EscapeFieldString(uri.ToString()) + "\" ", LegacyDocWritableFormatting.Plain);
+            AppendFormattedText(text, runs, instruction, LegacyDocWritableFormatting.Plain);
             AppendFormattedText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
 
             int displayStart = text.Length;
@@ -37,7 +37,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: true);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple external hyperlinks only when they contain text runs. Unsupported hyperlink element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple hyperlinks only when they contain text runs. Unsupported hyperlink element: {child.LocalName}.");
                 }
             }
 
@@ -48,9 +48,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AppendFormattedText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
         }
 
-        private static Uri ReadSupportedExternalHyperlinkUri(Hyperlink hyperlink, OpenXmlPartContainer relationshipOwner) {
+        private static string CreateSupportedHyperlinkInstruction(Hyperlink hyperlink, OpenXmlPartContainer relationshipOwner) {
             if (string.IsNullOrEmpty(hyperlink.Id)) {
-                throw new NotSupportedException("Native DOC saving supports external hyperlinks only. Internal bookmark hyperlinks are not supported yet.");
+                if (string.IsNullOrWhiteSpace(hyperlink.Anchor?.Value)) {
+                    throw new NotSupportedException("Native DOC saving supports hyperlinks only when they target an external relationship or an internal bookmark anchor.");
+                }
+
+                return " HYPERLINK \\l \"" + EscapeFieldString(hyperlink.Anchor!.Value!) + "\" ";
             }
 
             HyperlinkRelationship? relationship = relationshipOwner.HyperlinkRelationships.FirstOrDefault(item => item.Id == hyperlink.Id);
@@ -62,7 +66,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports external hyperlinks only when their target URI is absolute.");
             }
 
-            return relationship.Uri;
+            return " HYPERLINK \"" + EscapeFieldString(relationship.Uri.ToString()) + "\" ";
         }
 
         private static void EnsureSupportedHyperlinkRun(Run run) {
@@ -77,7 +81,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case EndnoteReference:
                         throw new NotSupportedException("Native DOC saving supports hyperlink display text only as regular text runs. Footnote and endnote references inside hyperlinks are not supported yet.");
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple external hyperlinks only when their display text contains text, tabs, and supported breaks. Unsupported hyperlink run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple hyperlinks only when their display text contains text, tabs, and supported breaks. Unsupported hyperlink run element: {child.LocalName}.");
                 }
             }
         }

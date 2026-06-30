@@ -1872,18 +1872,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksInternalHyperlinksBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocInternalBookmarkHyperlinksAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Jump ").AddHyperLink("inside", "TargetBookmark", addStyle: true);
-                document.AddParagraph("Target").AddBookmark("TargetBookmark");
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Jump ").AddHyperLink("inside", "TargetBookmark", addStyle: true);
+                    document.AddParagraph("Target").AddBookmark("TargetBookmark");
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                    document.Save(docPath);
+                }
 
-                Assert.Contains("internal bookmark hyperlinks", exception.Message.ToLowerInvariant());
-                Assert.False(File.Exists(docPath));
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TargetBookmark");
+                WordHyperLink hyperlink = Assert.Single(reloaded.HyperLinks, link => link.Anchor == "TargetBookmark");
+                Assert.Equal("inside", hyperlink.Text);
             } finally {
                 DeleteIfExists(docPath);
             }

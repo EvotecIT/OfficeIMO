@@ -74,6 +74,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         TextBox,
 
         /// <summary>
+        /// Bookmark structures exist but are outside the currently projected simple body shape.
+        /// </summary>
+        Bookmark,
+
+        /// <summary>
         /// Invalid or conflicting merged table cell descriptors were found.
         /// </summary>
         MergedTableCell

@@ -232,14 +232,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     }
 
     internal sealed class LegacyDocParagraphBlock : LegacyDocBodyBlock {
-        internal LegacyDocParagraphBlock(IReadOnlyList<LegacyDocTextRun> runs, LegacyDocParagraphFormat format) {
+        internal LegacyDocParagraphBlock(
+            IReadOnlyList<LegacyDocTextRun> runs,
+            LegacyDocParagraphFormat format,
+            IReadOnlyList<LegacyDocBookmark>? bookmarks = null) {
             Runs = runs;
             Format = format;
+            Bookmarks = bookmarks ?? Array.Empty<LegacyDocBookmark>();
         }
 
         internal IReadOnlyList<LegacyDocTextRun> Runs { get; }
 
         internal LegacyDocParagraphFormat Format { get; }
+
+        internal IReadOnlyList<LegacyDocBookmark> Bookmarks { get; }
     }
 
     internal sealed class LegacyDocSectionBreakBlock : LegacyDocBodyBlock {
