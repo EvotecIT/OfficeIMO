@@ -121,7 +121,10 @@ public static partial class MarkdownReader {
             bool suppressInlineAutolinks = false;
             if (ShouldParseBlockGenericAttributes(options, state) && paragraphLines.Count > 0) {
                 var lastLineIndex = paragraphLines.Count - 1;
-                if (!IsStandaloneGenericAttributeBeforeBlockquote(paragraphLines, lines, j)
+                if (IsStandaloneGenericAttributeContinuationLine(paragraphLines, lastLineIndex)) {
+                    paragraphLines.RemoveAt(lastLineIndex);
+                    RemoveTrailingHardBreakMarkerBeforeConsumedAttributeLine(paragraphLines, options);
+                } else if (!IsStandaloneGenericAttributeBeforeBlockquote(paragraphLines, lines, j)
                     && TryConsumeParagraphTrailingGenericAttributes(
                     paragraphLines[lastLineIndex],
                     options,
@@ -223,6 +226,35 @@ public static partial class MarkdownReader {
             attributeStart = -1;
             attributeEnd = -1;
             return false;
+        }
+
+        private static bool IsStandaloneGenericAttributeContinuationLine(
+            IReadOnlyList<string> paragraphLines,
+            int lineIndex) =>
+            paragraphLines != null
+            && paragraphLines.Count > 1
+            && lineIndex >= 0
+            && lineIndex < paragraphLines.Count
+            && IsStandaloneGenericAttributeOnlyLine(paragraphLines[lineIndex]);
+
+        private static void RemoveTrailingHardBreakMarkerBeforeConsumedAttributeLine(
+            List<string> paragraphLines,
+            MarkdownReaderOptions options) {
+            if (paragraphLines == null || paragraphLines.Count == 0) {
+                return;
+            }
+
+            var previousIndex = paragraphLines.Count - 1;
+            var previous = paragraphLines[previousIndex] ?? string.Empty;
+            var trimmed = previous.TrimEnd();
+            if (options?.BackslashHardBreaks == true && trimmed.EndsWith("\\", StringComparison.Ordinal)) {
+                paragraphLines[previousIndex] = trimmed.Substring(0, trimmed.Length - 1);
+                return;
+            }
+
+            if (EndsWithTwoSpaces(previous)) {
+                paragraphLines[previousIndex] = trimmed;
+            }
         }
 
         private static bool IsStandaloneGenericAttributeBeforeBlockquote(

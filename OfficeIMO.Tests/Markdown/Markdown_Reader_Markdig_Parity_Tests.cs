@@ -310,6 +310,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "atx-heading-id-class-title", "# Heading {#intro .wide title=\"Overview\"}" };
         yield return new object[] { "setext-heading-id-class-title", "Heading {#intro .wide title=\"Overview\"}\n=======" };
         yield return new object[] { "paragraph-id-class-title", "Paragraph {#intro .wide title=\"Overview\"}" };
+        yield return new object[] { "paragraph-continuation-standalone-attribute-is-consumed", "Paragraph\n{#intro .wide}" };
+        yield return new object[] { "paragraph-hardbreak-continuation-standalone-attribute-is-consumed", "Paragraph  \n{#intro .wide}" };
+        yield return new object[] { "paragraph-backslash-hardbreak-continuation-standalone-attribute-is-consumed", "Paragraph\\\n{#intro .wide}" };
         yield return new object[] { "plain-text-no-space-attribute", "word{#plain .wide}" };
         yield return new object[] { "plain-text-plus-ending-no-space-attribute", "C++{#plain .wide}" };
         yield return new object[] { "thematic-break-like-line-is-attributed-paragraph", "--- {#hr .wide}" };

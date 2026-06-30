@@ -417,6 +417,33 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void Paragraph_StandaloneGenericAttributeContinuation_Is_Consumed_Without_Metadata() {
+        const string markdown = "Paragraph\n{#literal .wide}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var block = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
+        Assert.True(block.Attributes.IsEmpty);
+        Assert.Equal("Paragraph", InlinePlainText.Extract(block.Inlines));
+
+        var paragraph = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.Paragraph);
+        Assert.DoesNotContain(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal("Paragraph", nativeParagraph.Text);
+        Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Empty(native.EnumerateInlineMetadata("attributes"));
+    }
+
+    [Fact]
     public void PlainText_Paragraph_GenericAttributes_Preserve_NoSpace_Source_And_Target_Paragraph() {
         const string markdown = "word{#plain .wide}\n";
         var options = new MarkdownReaderOptions {
