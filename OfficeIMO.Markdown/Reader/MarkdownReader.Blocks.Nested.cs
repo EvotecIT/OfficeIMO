@@ -96,6 +96,19 @@ public static partial class MarkdownReader {
             if (CountLeadingIndentColumns(line) >= continuationIndent) {
                 var slice = StripLeadingIndentColumns(line, continuationIndent);
                 var sliceTrim = slice.TrimStart();
+                if (state != null
+                    && TryConsumeNestedStandaloneGenericAttributeLine(
+                        lines,
+                        k,
+                        continuationIndent,
+                        options,
+                        state,
+                        out _,
+                        out _,
+                        out _)) {
+                    break;
+                }
+
                 if (IsCodeFenceOpen(slice, out _, out _, out _)) break;
                 if (sliceTrim.StartsWith(">")) break;
 
@@ -249,10 +262,34 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryParseNestedFencedCodeBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, out IMarkdownBlock? block) {
+    private static bool TryParseNestedFencedCodeBlock(
+        string[] lines,
+        ref int index,
+        int continuationIndent,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        out IMarkdownBlock? block) {
         block = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
         if (!options.FencedCode) return false;
+
+        var attributeSourceText = string.Empty;
+        MarkdownAttributeSet attributeSet = MarkdownAttributeSet.Empty;
+        MarkdownSourceSpan? attributeSourceSpan = null;
+        if (TryConsumeNestedStandaloneGenericAttributeLine(
+                lines,
+                index,
+                continuationIndent,
+                options,
+                state,
+                out attributeSet,
+                out attributeSourceText,
+                out attributeSourceSpan)) {
+            index++;
+            if (index >= lines.Length) {
+                return false;
+            }
+        }
 
         string line = lines[index] ?? string.Empty;
         int indent = CountLeadingIndentColumns(line);
@@ -311,7 +348,80 @@ public static partial class MarkdownReader {
             hasClosingFence,
             openingFenceIndent + closingFenceIndentColumns,
             closingFenceLength);
+        if (!attributeSet.IsEmpty && block is MarkdownObject markdownObject && markdownObject.Attributes.IsEmpty) {
+            markdownObject.SetAttributes(attributeSet);
+            MarkdownGenericAttributeSourceSpans.Set(markdownObject, attributeSourceText, attributeSourceSpan);
+        }
+
         index = j;
+        return true;
+    }
+
+    private static bool TryConsumeNestedStandaloneGenericAttributeLine(
+        string[] lines,
+        int index,
+        int continuationIndent,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        out MarkdownAttributeSet attributes,
+        out string sourceText,
+        out MarkdownSourceSpan? sourceSpan) {
+        attributes = MarkdownAttributeSet.Empty;
+        sourceText = string.Empty;
+        sourceSpan = null;
+
+        if (!ShouldParseBlockGenericAttributes(options, state)
+            || lines == null
+            || index < 0
+            || index + 1 >= lines.Length) {
+            return false;
+        }
+
+        var line = lines[index] ?? string.Empty;
+        if (CountLeadingIndentColumns(line) < continuationIndent) {
+            return false;
+        }
+
+        var slice = StripLeadingIndentColumns(line, continuationIndent);
+        var attributeIndent = CountLeadingIndentColumns(slice);
+        if (attributeIndent > 3) {
+            return false;
+        }
+
+        var attributeCandidate = StripLeadingIndentColumns(slice, attributeIndent).TrimEnd();
+        if (!MarkdownGenericAttributeParser.TryConsumeLeadingAttributeBlock(
+                attributeCandidate,
+                out var remaining,
+                out attributes,
+                out var consumedLength)
+            || !string.IsNullOrWhiteSpace(remaining)
+            || consumedLength != attributeCandidate.Length
+            || attributes.IsEmpty) {
+            attributes = MarkdownAttributeSet.Empty;
+            return false;
+        }
+
+        var next = lines[index + 1] ?? string.Empty;
+        if (CountLeadingIndentColumns(next) < continuationIndent) {
+            attributes = MarkdownAttributeSet.Empty;
+            return false;
+        }
+
+        var nextSlice = StripLeadingIndentColumns(next, continuationIndent);
+        if (!IsCodeFenceOpen(nextSlice, out _, out _, out _)) {
+            attributes = MarkdownAttributeSet.Empty;
+            return false;
+        }
+
+        sourceText = attributeCandidate.Substring(0, consumedLength);
+        var absoluteLine = state.SourceLineOffset + index + 1;
+        var startColumn = continuationIndent + attributeIndent + 1;
+        sourceSpan = CreateSpan(
+            state,
+            absoluteLine,
+            startColumn,
+            absoluteLine,
+            startColumn + sourceText.Length - 1);
         return true;
     }
 

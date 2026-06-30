@@ -351,11 +351,66 @@ public static partial class MarkdownReader {
 
         var lastLine = slices[slices.Count - 1].Text;
         var localSpan = new MarkdownSourceSpan(1, 1, slices.Count, Math.Max(1, lastLine.Length));
-        var localNode = BuildSyntaxNode(block, localSpan);
+        var markdownObject = block as MarkdownObject;
+        var originalAttributeSourceText = MarkdownGenericAttributeSourceSpans.GetSourceText(markdownObject);
+        var originalAttributeSourceSpan = MarkdownGenericAttributeSourceSpans.GetSourceSpan(markdownObject);
+        MarkdownSourceSpan localAttributeSourceSpan = default;
+        var useLocalAttributeSourceSpan = markdownObject != null
+            && originalAttributeSourceSpan.HasValue
+            && TryMapSourceSpanToNestedLocal(slices, originalAttributeSourceSpan.Value, out localAttributeSourceSpan);
+        if (useLocalAttributeSourceSpan) {
+            MarkdownGenericAttributeSourceSpans.Set(markdownObject, originalAttributeSourceText, localAttributeSourceSpan);
+        }
+
+        MarkdownSyntaxNode localNode;
+        try {
+            localNode = BuildSyntaxNode(block, localSpan);
+        } finally {
+            if (useLocalAttributeSourceSpan) {
+                MarkdownGenericAttributeSourceSpans.Set(markdownObject, originalAttributeSourceText, originalAttributeSourceSpan);
+            }
+        }
+
         var remappedNode = RemapNestedSyntaxNode(slices, localNode);
         SynchronizeOwnedSyntaxCaches(remappedNode);
         MarkdownObjectTreeBinder.BindSourceSpans(remappedNode);
         item.SyntaxChildren.Add(remappedNode);
+    }
+
+    private static bool TryMapSourceSpanToNestedLocal(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        MarkdownSourceSpan sourceSpan,
+        out MarkdownSourceSpan localSpan) {
+        localSpan = default;
+        if (sourceLines == null || sourceLines.Count == 0 || !sourceSpan.StartColumn.HasValue) {
+            return false;
+        }
+
+        var startIndex = FindNestedSourceLineIndex(sourceLines, sourceSpan.StartLine);
+        var endIndex = FindNestedSourceLineIndex(sourceLines, sourceSpan.EndLine);
+        if (startIndex < 0 || endIndex < 0) {
+            return false;
+        }
+
+        var startLine = sourceLines[startIndex];
+        var endLine = sourceLines[endIndex];
+        var startColumn = Math.Max(1, sourceSpan.StartColumn.Value - startLine.StartColumn + 1);
+        var endColumn = sourceSpan.EndColumn.HasValue
+            ? Math.Max(1, sourceSpan.EndColumn.Value - endLine.StartColumn + 1)
+            : Math.Max(1, endLine.Text.Length);
+
+        localSpan = new MarkdownSourceSpan(startIndex + 1, startColumn, endIndex + 1, endColumn);
+        return true;
+    }
+
+    private static int FindNestedSourceLineIndex(IReadOnlyList<MarkdownSourceLineSlice> sourceLines, int absoluteLine) {
+        for (var i = 0; i < sourceLines.Count; i++) {
+            if (sourceLines[i].AbsoluteLine == absoluteLine) {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     private static List<MarkdownSourceLineSlice> BuildListItemNestedSourceLines(

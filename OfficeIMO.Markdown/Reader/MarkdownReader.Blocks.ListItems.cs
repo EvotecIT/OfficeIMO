@@ -49,7 +49,7 @@ public static partial class MarkdownReader {
 
             // Nested fenced code block
             int tmp = k;
-            if (TryParseNestedFencedCodeBlock(lines, ref tmp, continuationIndent, options, out var code) && code != null) {
+            if (TryParseNestedFencedCodeBlock(lines, ref tmp, continuationIndent, options, state, out var code) && code != null) {
                 item.Children.Add(code);
                 AddListItemChildSyntaxNode(item, code, lines, continuationIndent, k, tmp, state);
                 if (sawBlankLine) item.ForceLoose = true;
