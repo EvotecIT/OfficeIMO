@@ -8,6 +8,7 @@ namespace OfficeIMO.Word {
             List<RedlineParagraphEntry> sourceParagraphs = GetRedlineParagraphEntries(sourceDocument);
             List<RedlineParagraphEntry> targetParagraphs = GetRedlineParagraphEntries(targetDocument);
             var rewrittenParagraphs = new HashSet<int>();
+            var deletedParagraphOffsets = new Dictionary<string, int>(StringComparer.Ordinal);
 
             foreach (WordComparisonFinding finding in result.Findings) {
                 if (!ShouldTrackFinding(finding, options) ||
@@ -52,7 +53,11 @@ namespace OfficeIMO.Word {
                             sourceIndex < sourceParagraphs.Count &&
                             !string.IsNullOrEmpty(finding.SourceText) &&
                             !IsContentControlParagraph(sourceParagraphs[sourceIndex].Paragraph)) {
-                            InsertDeletedParagraph(targetParagraphs, sourceParagraphs[sourceIndex], finding.SourceText!, options);
+                            RedlineParagraphEntry sourceEntry = sourceParagraphs[sourceIndex];
+                            deletedParagraphOffsets.TryGetValue(sourceEntry.PartKey, out int deletedOffset);
+                            int targetLocalIndex = Math.Max(0, sourceEntry.LocalIndex - deletedOffset);
+                            InsertDeletedParagraph(targetParagraphs, sourceEntry, targetLocalIndex, finding.SourceText!, options);
+                            deletedParagraphOffsets[sourceEntry.PartKey] = deletedOffset + 1;
                         }
 
                         break;
@@ -220,7 +225,7 @@ namespace OfficeIMO.Word {
             return paragraph.Ancestors<SdtElement>().Any() || paragraph.Descendants<SdtElement>().Any();
         }
 
-        private static void InsertDeletedParagraph(IReadOnlyList<RedlineParagraphEntry> targetParagraphs, RedlineParagraphEntry sourceEntry, string deletedText, WordComparisonRedlineOptions options) {
+        private static void InsertDeletedParagraph(IReadOnlyList<RedlineParagraphEntry> targetParagraphs, RedlineParagraphEntry sourceEntry, int targetLocalIndex, string deletedText, WordComparisonRedlineOptions options) {
             RedlineParagraphEntry? firstTargetPartEntry = targetParagraphs.FirstOrDefault(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal));
             if (firstTargetPartEntry == null) {
                 return;
@@ -233,8 +238,8 @@ namespace OfficeIMO.Word {
                 .Where(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal))
                 .ToList();
 
-            if (sourceEntry.LocalIndex >= 0 && sourceEntry.LocalIndex < targetPartEntries.Count) {
-                targetPartEntries[sourceEntry.LocalIndex].Paragraph.InsertBeforeSelf(paragraph);
+            if (targetLocalIndex >= 0 && targetLocalIndex < targetPartEntries.Count) {
+                targetPartEntries[targetLocalIndex].Paragraph.InsertBeforeSelf(paragraph);
                 return;
             }
 

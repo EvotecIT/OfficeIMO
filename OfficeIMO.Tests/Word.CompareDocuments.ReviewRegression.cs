@@ -137,6 +137,163 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("Beta", TocText(toc));
         }
 
+        [Fact]
+        public void CompareStructureInPlaceRedlineKeepsConsecutiveDeletedParagraphOrder() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_paragraph_order_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("A");
+                document.AddParagraph("B");
+                document.AddParagraph("C");
+                document.AddParagraph("D");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_paragraph_order_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("A");
+                document.AddParagraph("D");
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_paragraph_order_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            string[] paragraphTexts = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Elements<Paragraph>()
+                .Select(paragraph => paragraph.InnerText)
+                .Where(text => text is "A" or "B" or "C" or "D")
+                .ToArray();
+
+            Assert.Equal(new[] { "A", "B", "C", "D" }, paragraphTexts);
+            Assert.Contains(redline._document.Body!.Descendants<DeletedRun>(), run => run.InnerText == "B");
+            Assert.Contains(redline._document.Body!.Descendants<DeletedRun>(), run => run.InnerText == "C");
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceRedlinesDeletedContentControlWithDelimiterText() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_control_delimiter_source.docx");
+            CreateContentControlRegressionDocument(sourcePath, ("Legacy", "Legacy.Tag", "before; text=after"));
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_control_delimiter_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("No controlled content remains.");
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_control_delimiter_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests",
+                    ComparisonOptions = new WordComparisonOptions {
+                        IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.ContentControl }
+                    }
+                });
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.ContentControl &&
+                finding.ChangeKind == WordComparisonChangeKind.Deleted);
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            DeletedRun deleted = Assert.Single(redline._document.Body!.Descendants<DeletedRun>(), run => run.InnerText.Contains("before; text=after", StringComparison.Ordinal));
+            Assert.Equal("OfficeIMO Tests", deleted.Author?.Value);
+        }
+
+        [Fact]
+        public void UpdateFieldsAndGetReportAddsSeparatorForEmptyComplexFieldResults() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.EmptyComplexField.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.BuiltinDocumentProperties.Title = "Current title";
+                document._document.Body!.Append(new Paragraph(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" TITLE ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End })));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                WordFieldUpdateResult update = Assert.Single(report.Results);
+                Assert.Equal(WordFieldUpdateStatus.Updated, update.Status);
+                Paragraph paragraph = Assert.Single(document._document.Body!.Elements<Paragraph>());
+                Assert.Contains(paragraph.Elements<Run>(), run => run.Elements<FieldChar>().Any(field => field.FieldCharType?.Value == FieldCharValues.Separate));
+                Assert.True(paragraph.Elements<Run>().TakeWhile(run => !run.Elements<FieldChar>().Any(field => field.FieldCharType?.Value == FieldCharValues.End)).Any(run => run.InnerText == "Current title"));
+            }
+        }
+
+        [Fact]
+        public void TableOfContentRefreshCaptionListAllocatesUniqueBookmarkIdsAcrossRelatedParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "CaptionListUniqueRelatedBookmarkIds.docx");
+
+            using WordDocument document = WordDocument.Create(filePath);
+            WordTableOfContent list = document.AddTableOfContent();
+            AddGeneratedCaptionParagraph(document, "_BodyCaptionUnique", "Figure", "1", "Body deployment view");
+            document.AddHeadersAndFooters();
+
+            Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
+            Footer footer = document._wordprocessingDocument.MainDocumentPart!.FooterParts.Single().Footer!;
+            AppendCaptionParagraph(header, "Figure", "2", "Header architecture map");
+            AppendCaptionParagraph(footer, "Figure", "3", "Footer recovery map");
+
+            WordCaptionListRefreshReport report = list.RefreshListOfFigures();
+
+            Assert.Equal(3, report.EntryCount);
+            string[] bookmarkIds = document._wordprocessingDocument.MainDocumentPart!
+                .HeaderParts.SelectMany(part => part.Header!.Descendants<BookmarkStart>())
+                .Concat(document._wordprocessingDocument.MainDocumentPart!.FooterParts.SelectMany(part => part.Footer!.Descendants<BookmarkStart>()))
+                .Concat(document._document.Body!.Descendants<BookmarkStart>())
+                .Where(bookmark => bookmark.Name?.Value?.StartsWith("_OfficeIMO_Caption_", StringComparison.Ordinal) == true)
+                .Select(bookmark => bookmark.Id!.Value!)
+                .ToArray();
+
+            Assert.Equal(bookmarkIds.Length, bookmarkIds.Distinct(StringComparer.Ordinal).Count());
+        }
+
+        [Fact]
+        public void AcceptRevisionsStripsNestedRevisionMarkupFromPromotedRuns() {
+            string filePath = Path.Combine(_directoryWithFiles, "TrackedChangesNestedRunProperties.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document._document.Body!.Append(new Paragraph(
+                    new InsertedRun(
+                        new Run(
+                            new RunProperties(
+                                new RunPropertiesChange(
+                                    new PreviousRunProperties(new Bold())) {
+                                    Id = "2",
+                                    Author = "OfficeIMO Tests",
+                                    Date = new DateTime(2026, 6, 30, 12, 0, 0, DateTimeKind.Utc)
+                                }),
+                            new Text("Promoted text"))) {
+                        Id = "1",
+                        Author = "OfficeIMO Tests",
+                        Date = new DateTime(2026, 6, 30, 12, 0, 0, DateTimeKind.Utc)
+                    }));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordRevisionOperationReport report = document.AcceptRevisions(WordRevisionFilter.All());
+
+                Assert.Equal(2, report.MatchedRevisions.Count);
+                Assert.Contains(document._document.Body!.Descendants<Run>(), run => run.InnerText == "Promoted text");
+                Assert.Empty(document._document.Body!.Descendants<RunPropertiesChange>());
+                Assert.Empty(document._document.Body!.Descendants<InsertedRun>());
+            }
+        }
+
         private static void CreateFieldRegressionDocument(string path, params (string Instruction, string Result)[] fields) {
             using WordDocument document = WordDocument.Create(path);
             foreach ((string instruction, string result) in fields) {

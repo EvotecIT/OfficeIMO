@@ -251,6 +251,7 @@ namespace OfficeIMO.Word {
                     RestoreDeletedText(promoted);
                 }
 
+                RemoveNestedRevisionMarkup(promoted);
                 next.InsertAfterSelf(promoted);
                 next = next.NextSibling() ?? throw new InvalidOperationException("Revision has no next sibling.");
             }
@@ -269,6 +270,12 @@ namespace OfficeIMO.Word {
 
                 deletedText.InsertAfterSelf(restored);
                 deletedText.Remove();
+            }
+        }
+
+        private static void RemoveNestedRevisionMarkup(Run run) {
+            foreach (OpenXmlElement revision in run.Descendants().Where(element => TryGetRevisionType(element, out _)).ToList()) {
+                revision.Remove();
             }
         }
 
