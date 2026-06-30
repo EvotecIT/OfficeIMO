@@ -336,6 +336,9 @@ just to reserve names.
   - [x] Project simple table cell fit-text and no-wrap flags from DOC
     `sprmTDefTable` / `TC80` row definitions into normal OfficeIMO table cell
     text layout properties, and preserve them through native DOC save/reload.
+  - [x] Project simple table cell hide-mark flags from DOC `sprmTDefTable` /
+    `TC80` row definitions into normal OfficeIMO table cell properties, and
+    preserve them through native DOC save/reload.
   - [x] Project simple table cell text direction from DOC `sprmTDefTable`
     / `TC80` `textFlow` values into normal OfficeIMO table cell text
     direction properties, and preserve them through native DOC save/reload.
@@ -501,6 +504,8 @@ just to reserve names.
     merge descriptors blocked before native `.doc` bytes are committed.
   - [x] Write simple table cell fit-text and no-wrap flags with
     `sprmTDefTable`/`TC80`, then reload them through the legacy reader.
+  - [x] Write simple table cell hide-mark flags with `sprmTDefTable`/`TC80`,
+    then reload them through the legacy reader.
   - [x] Write simple table cell text direction with `sprmTDefTable`/`TC80`
     `textFlow`, then reload it through the legacy reader.
   - [x] Write simple table cell margins with `sprmTCellPadding`, then reload

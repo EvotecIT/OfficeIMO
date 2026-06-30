@@ -625,6 +625,30 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets whether the empty cell mark is hidden for this cell.
+        /// </summary>
+        public bool HideMark {
+            get {
+                var tcPr = _tableCell.GetFirstChild<TableCellProperties>();
+                return tcPr?.GetFirstChild<HideMark>() != null;
+            }
+            set {
+                AddTableCellProperties();
+                var current = _tableCellProperties!.GetFirstChild<HideMark>();
+                if (value) {
+                    if (current == null) {
+                        _tableCellProperties.Append(new HideMark { Val = OnOffOnlyValues.On });
+                        NormalizeTableCellPropertiesOrder();
+                    } else {
+                        current.Val = OnOffOnlyValues.On;
+                    }
+                } else {
+                    current?.Remove();
+                }
+            }
+        }
+
 
         /// <summary>
         /// Create a WordTableCell and add it to given Table Row

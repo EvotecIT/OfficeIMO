@@ -211,8 +211,10 @@ namespace OfficeIMO.Tests {
             WordTableRow row = Assert.Single(table.Rows);
             Assert.True(row.Cells[0].FitText);
             Assert.True(row.Cells[0].WrapText);
+            Assert.True(row.Cells[0].HideMark);
             Assert.False(row.Cells[1].FitText);
             Assert.False(row.Cells[1].WrapText);
+            Assert.False(row.Cells[1].HideMark);
         }
 
         [Fact]
@@ -2216,6 +2218,7 @@ namespace OfficeIMO.Tests {
                     WordTable table = document.AddTable(1, 2);
                     table.Rows[0].Cells[0].AddParagraph("Fit", removeExistingParagraphs: true);
                     table.Rows[0].Cells[0].FitText = true;
+                    table.Rows[0].Cells[0].HideMark = true;
                     table.Rows[0].Cells[1].AddParagraph("No wrap", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].WrapText = false;
 
@@ -2224,8 +2227,8 @@ namespace OfficeIMO.Tests {
 
                 byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
                 Assert.True(
-                    ContainsBytePattern(wordDocumentStream, 0x00, 0x10),
-                    "Expected the native DOC table cell descriptor to contain the fit-text flag.");
+                    ContainsBytePattern(wordDocumentStream, 0x00, 0x50),
+                    "Expected the native DOC table cell descriptor to contain the combined fit-text and hide-mark flags.");
                 Assert.True(
                     ContainsBytePattern(wordDocumentStream, 0x00, 0x20),
                     "Expected the native DOC table cell descriptor to contain the no-wrap flag.");
@@ -2238,9 +2241,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Fit", row.Cells[0].Paragraphs[0].Text);
                 Assert.True(row.Cells[0].FitText);
                 Assert.True(row.Cells[0].WrapText);
+                Assert.True(row.Cells[0].HideMark);
                 Assert.Equal("No wrap", row.Cells[1].Paragraphs[0].Text);
                 Assert.False(row.Cells[1].FitText);
                 Assert.False(row.Cells[1].WrapText);
+                Assert.False(row.Cells[1].HideMark);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -3168,7 +3173,7 @@ namespace OfficeIMO.Tests {
                     textOffset,
                     papxFkpOffset,
                     new[] { 1440, 1440 },
-                    new ushort[] { 0x1000, 0x2000 });
+                    new ushort[] { 0x5000, 0x2000 });
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();

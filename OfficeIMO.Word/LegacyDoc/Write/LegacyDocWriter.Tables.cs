@@ -37,6 +37,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 IReadOnlyList<LegacyDocTableCellTextDirection> cellTextDirections = ReadSupportedTableCellTextDirections(writableCells);
                 IReadOnlyList<bool> cellFitTexts = ReadSupportedTableCellFitTexts(writableCells);
                 IReadOnlyList<bool> cellNoWraps = ReadSupportedTableCellNoWraps(writableCells);
+                IReadOnlyList<bool> cellHideMarks = ReadSupportedTableCellHideMarks(writableCells);
                 IReadOnlyList<LegacyDocTableCellMargins> cellMargins = ReadSupportedTableCellMargins(writableCells);
                 IReadOnlyList<LegacyDocTableCellShading> cellShadings = ReadSupportedTableCellShadings(writableCells);
                 IReadOnlyList<LegacyDocTableCellBorders> cellBorders = ReadSupportedTableCellBorders(writableCells);
@@ -68,6 +69,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         tableCellTextDirections: cellTextDirections,
                         tableCellFitTexts: cellFitTexts,
                         tableCellNoWraps: cellNoWraps,
+                        tableCellHideMarks: cellHideMarks,
                         tableCellMargins: cellMargins,
                         tableCellShadings: cellShadings,
                         tableCellBorders: cellBorders,
@@ -438,6 +440,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocTableCellTextDirection textDirection = ReadSupportedTableCellTextDirection(cellProperties);
                 bool fitText = ReadSupportedTableCellFitText(cellProperties);
                 bool noWrap = ReadSupportedTableCellNoWrap(cellProperties);
+                bool hideMark = ReadSupportedTableCellHideMark(cellProperties);
                 LegacyDocTableCellMargins margins = ReadSupportedTableCellMargins(cellProperties);
                 LegacyDocTableCellShading shading = ReadSupportedTableCellShading(cellProperties);
                 LegacyDocTableCellBorders borders = ReadSupportedTableCellBorders(cellProperties);
@@ -452,7 +455,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         : spanIndex == 0
                             ? LegacyDocTableCellHorizontalMerge.Restart
                             : LegacyDocTableCellHorizontalMerge.Continue;
-                    writableCells.Add(new LegacyDocWritableTableCell(spanIndex == 0 ? cell : null, width, merge, verticalMerge, verticalAlignment, textDirection, fitText, noWrap, margins, shading, borders));
+                    writableCells.Add(new LegacyDocWritableTableCell(spanIndex == 0 ? cell : null, width, merge, verticalMerge, verticalAlignment, textDirection, fitText, noWrap, hideMark, margins, shading, borders));
                 }
 
                 logicalColumnIndex += gridSpan;
@@ -595,6 +598,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return hasNoWrap ? noWraps : Array.Empty<bool>();
         }
 
+        private static IReadOnlyList<bool> ReadSupportedTableCellHideMarks(IReadOnlyList<LegacyDocWritableTableCell> cells) {
+            var hideMarks = new bool[cells.Count];
+            bool hasHideMark = false;
+            for (int index = 0; index < cells.Count; index++) {
+                hideMarks[index] = cells[index].HideMark;
+                if (hideMarks[index]) {
+                    hasHideMark = true;
+                }
+            }
+
+            return hasHideMark ? hideMarks : Array.Empty<bool>();
+        }
+
         private static IReadOnlyList<LegacyDocTableCellMargins> ReadSupportedTableCellMargins(IReadOnlyList<LegacyDocWritableTableCell> cells) {
             var margins = new LegacyDocTableCellMargins[cells.Count];
             bool hasMargins = false;
@@ -730,6 +746,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static bool ReadSupportedTableCellNoWrap(TableCellProperties? cellProperties) {
             NoWrap? noWrap = cellProperties?.GetFirstChild<NoWrap>();
             return noWrap != null && ReadTableCellOnOffValue(noWrap);
+        }
+
+        private static bool ReadSupportedTableCellHideMark(TableCellProperties? cellProperties) {
+            HideMark? hideMark = cellProperties?.GetFirstChild<HideMark>();
+            return hideMark != null && ReadTableCellOnOffValue(hideMark);
         }
 
         private static LegacyDocTableCellMargins ReadSupportedTableCellMargins(TableCellProperties? cellProperties) {
@@ -1023,6 +1044,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case NoWrap:
                         ReadSupportedTableCellNoWrap(cellProperties);
                         break;
+                    case HideMark:
+                        ReadSupportedTableCellHideMark(cellProperties);
+                        break;
                     case TableCellMargin:
                         ReadSupportedTableCellMargins(cellProperties);
                         break;
@@ -1112,7 +1136,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableTableCell {
-            internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, LegacyDocTableCellTextDirection textDirection, bool fitText, bool noWrap, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders) {
+            internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, LegacyDocTableCellTextDirection textDirection, bool fitText, bool noWrap, bool hideMark, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders) {
                 SourceCell = sourceCell;
                 WidthTwips = widthTwips;
                 HorizontalMerge = horizontalMerge;
@@ -1121,6 +1145,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 TextDirection = textDirection;
                 FitText = fitText;
                 NoWrap = noWrap;
+                HideMark = hideMark;
                 Margins = margins;
                 Shading = shading;
                 Borders = borders;
@@ -1142,6 +1167,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool NoWrap { get; }
 
+            internal bool HideMark { get; }
+
             internal LegacyDocTableCellMargins Margins { get; }
 
             internal LegacyDocTableCellShading Shading { get; }
@@ -1149,7 +1176,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal LegacyDocTableCellBorders Borders { get; }
 
             internal LegacyDocWritableTableCell WithBorders(LegacyDocTableCellBorders borders) =>
-                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, Margins, Shading, borders);
+                new LegacyDocWritableTableCell(SourceCell, WidthTwips, HorizontalMerge, VerticalMerge, VerticalAlignment, TextDirection, FitText, NoWrap, HideMark, Margins, Shading, borders);
         }
     }
 }

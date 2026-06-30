@@ -31,6 +31,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTableCellTextDirection>? tableCellTextDirections = null,
             IReadOnlyList<bool>? tableCellFitTexts = null,
             IReadOnlyList<bool>? tableCellNoWraps = null,
+            IReadOnlyList<bool>? tableCellHideMarks = null,
             IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null,
             IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings = null,
             IReadOnlyList<LegacyDocTableCellBorders>? tableCellBorders = null,
@@ -86,6 +87,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             TableCellNoWraps = tableCellNoWraps == null || tableCellNoWraps.Count == 0
                 ? Array.Empty<bool>()
                 : tableCellNoWraps.ToArray();
+            TableCellHideMarks = tableCellHideMarks == null || tableCellHideMarks.Count == 0
+                ? Array.Empty<bool>()
+                : tableCellHideMarks.ToArray();
             TableCellMargins = tableCellMargins == null || tableCellMargins.Count == 0
                 ? Array.Empty<LegacyDocTableCellMargins>()
                 : tableCellMargins.ToArray();
@@ -167,6 +171,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<bool> TableCellNoWraps { get; }
 
+        internal IReadOnlyList<bool> TableCellHideMarks { get; }
+
         internal IReadOnlyList<LegacyDocTableCellMargins> TableCellMargins { get; }
 
         internal IReadOnlyList<LegacyDocTableCellShading> TableCellShadings { get; }
@@ -210,6 +216,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || TableCellTextDirections.Count > 0
             || TableCellFitTexts.Count > 0
             || TableCellNoWraps.Count > 0
+            || TableCellHideMarks.Count > 0
             || TableCellMargins.Count > 0
             || TableCellShadings.Count > 0
             || TableCellBorders.Count > 0
@@ -251,6 +258,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && TableCellTextDirectionsEqual(TableCellTextDirections, other.TableCellTextDirections)
                 && TableCellBooleansEqual(TableCellFitTexts, other.TableCellFitTexts)
                 && TableCellBooleansEqual(TableCellNoWraps, other.TableCellNoWraps)
+                && TableCellBooleansEqual(TableCellHideMarks, other.TableCellHideMarks)
                 && TableCellMarginsEqual(TableCellMargins, other.TableCellMargins)
                 && TableCellShadingsEqual(TableCellShadings, other.TableCellShadings)
                 && TableCellBordersEqual(TableCellBorders, other.TableCellBorders)
@@ -313,6 +321,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             foreach (bool noWrap in TableCellNoWraps) {
                 hash = (hash * 31) + noWrap.GetHashCode();
+            }
+
+            foreach (bool hideMark in TableCellHideMarks) {
+                hash = (hash * 31) + hideMark.GetHashCode();
             }
 
             hash = (hash * 31) + DefaultTableCellMargins.GetHashCode();

@@ -247,6 +247,10 @@ namespace OfficeIMO.Word {
                         table.Rows[rowIndex].Cells[columnIndex].WrapText = false;
                     }
 
+                    if (columnIndex < sourceRow.CellHideMarks.Count && sourceRow.CellHideMarks[columnIndex]) {
+                        table.Rows[rowIndex].Cells[columnIndex].HideMark = true;
+                    }
+
                     if (columnIndex < sourceRow.CellMargins.Count) {
                         ApplyLegacyDocTableCellMargins(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellMargins[columnIndex]);
                     }

@@ -46,6 +46,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort TcgrfVerticalAlignmentMask = 0x0180;
         private const ushort TcgrfFitTextMask = 0x1000;
         private const ushort TcgrfNoWrapMask = 0x2000;
+        private const ushort TcgrfHideMarkMask = 0x4000;
 
         internal static IReadOnlyList<LegacyDocParagraphFormatRange> ReadParagraphFormatting(
             byte[] wordDocumentStream,
@@ -180,6 +181,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTableCellTextDirection>? tableCellTextDirections = null;
             IReadOnlyList<bool>? tableCellFitTexts = null;
             IReadOnlyList<bool>? tableCellNoWraps = null;
+            IReadOnlyList<bool>? tableCellHideMarks = null;
             IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null;
             IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings = null;
             IReadOnlyList<LegacyDocTableCellBorders>? tableCellBorders = null;
@@ -397,6 +399,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         out tableCellTextDirections,
                         out tableCellFitTexts,
                         out tableCellNoWraps,
+                        out tableCellHideMarks,
                         out tableCellBorders,
                         out bool tableDefinitionHasUnsupportedMergedCells,
                         out int tableDefinitionOperandLength)) {
@@ -490,6 +493,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableCellTextDirections,
                 tableCellFitTexts,
                 tableCellNoWraps,
+                tableCellHideMarks,
                 tableCellMargins,
                 tableCellShadings,
                 tableCellBorders,
@@ -523,6 +527,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             out IReadOnlyList<LegacyDocTableCellTextDirection>? tableCellTextDirections,
             out IReadOnlyList<bool>? tableCellFitTexts,
             out IReadOnlyList<bool>? tableCellNoWraps,
+            out IReadOnlyList<bool>? tableCellHideMarks,
             out IReadOnlyList<LegacyDocTableCellBorders>? tableCellBorders,
             out bool hasUnsupportedMergedTableCells,
             out int operandLength) {
@@ -534,6 +539,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             tableCellTextDirections = null;
             tableCellFitTexts = null;
             tableCellNoWraps = null;
+            tableCellHideMarks = null;
             tableCellBorders = null;
             hasUnsupportedMergedTableCells = false;
             operandLength = 0;
@@ -559,6 +565,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 tableCellTextDirections = Array.Empty<LegacyDocTableCellTextDirection>();
                 tableCellFitTexts = Array.Empty<bool>();
                 tableCellNoWraps = Array.Empty<bool>();
+                tableCellHideMarks = Array.Empty<bool>();
                 tableCellBorders = Array.Empty<LegacyDocTableCellBorders>();
                 return true;
             }
@@ -576,6 +583,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var textDirections = new LegacyDocTableCellTextDirection[columnCount];
             var fitTexts = new bool[columnCount];
             var noWraps = new bool[columnCount];
+            var hideMarks = new bool[columnCount];
             var borders = new LegacyDocTableCellBorders[columnCount];
             int previousEdge = ReadInt16(bytes, edgesOffset);
             if (previousEdge > 0) {
@@ -661,6 +669,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 fitTexts[index] = (tcgrf & TcgrfFitTextMask) != 0;
                 noWraps[index] = (tcgrf & TcgrfNoWrapMask) != 0;
+                hideMarks[index] = (tcgrf & TcgrfHideMarkMask) != 0;
                 borders[index] = ReadTableCellBorders(bytes, tc80Offset + (index * Tc80Length));
             }
 
@@ -682,6 +691,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : Array.Empty<bool>();
             tableCellNoWraps = noWraps.Any(noWrap => noWrap)
                 ? noWraps
+                : Array.Empty<bool>();
+            tableCellHideMarks = hideMarks.Any(hideMark => hideMark)
+                ? hideMarks
                 : Array.Empty<bool>();
             tableCellBorders = borders.Any(border => border.HasAny)
                 ? borders

@@ -274,6 +274,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTableCellTextDirection>? cellTextDirections = null,
             IReadOnlyList<bool>? cellFitTexts = null,
             IReadOnlyList<bool>? cellNoWraps = null,
+            IReadOnlyList<bool>? cellHideMarks = null,
             IReadOnlyList<LegacyDocTableCellMargins>? cellMargins = null,
             IReadOnlyList<LegacyDocTableCellShading>? cellShadings = null,
             IReadOnlyList<LegacyDocTableCellBorders>? cellBorders = null,
@@ -310,6 +311,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             CellNoWraps = cellNoWraps == null || cellNoWraps.Count == 0
                 ? Array.Empty<bool>()
                 : cellNoWraps.ToArray();
+            CellHideMarks = cellHideMarks == null || cellHideMarks.Count == 0
+                ? Array.Empty<bool>()
+                : cellHideMarks.ToArray();
             CellMargins = cellMargins == null || cellMargins.Count == 0
                 ? Array.Empty<LegacyDocTableCellMargins>()
                 : cellMargins.ToArray();
@@ -353,6 +357,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal IReadOnlyList<bool> CellFitTexts { get; }
 
         internal IReadOnlyList<bool> CellNoWraps { get; }
+
+        internal IReadOnlyList<bool> CellHideMarks { get; }
 
         internal IReadOnlyList<LegacyDocTableCellMargins> CellMargins { get; }
 
