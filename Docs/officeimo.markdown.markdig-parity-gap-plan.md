@@ -47,6 +47,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Engine: expose paragraph-level native projections and source slices for list-item paragraphs so editor hosts can address individual loose-list paragraphs instead of treating the whole item content as one span.
   - [x] Engine: expose document-level blank-line source trivia, snapshots, and source slices so editor hosts can address empty and whitespace-only lines without rescanning raw markdown.
   - [x] Engine: capture document-level leading/trailing horizontal whitespace source trivia, including tabs, with source-order enumeration, position lookup, snapshots, source slices, and tab-expanded source columns.
+  - [x] Engine: align generic line/column source-slice fallback with source-map tab-expanded columns.
   - [x] Engine: capture document-level line-ending source trivia and map normalized line-ending spans back to original CRLF, LF, or standalone CR source slices and original-preserving source edits.
   - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated nodes, and normalized text.
   - [ ] Engine: define one original-to-normalized mapping story for CRLF/LF/CR, tabs, nested containers, transforms, generated nodes, and normalized paragraph text.
@@ -199,6 +200,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [x] Expose native list-item paragraph projections, snapshots, inline runs, and source-slice APIs so loose-list paragraph edits can target a stable paragraph object instead of rescanning list item content.
 - [x] Expose native document-level blank-line source trivia, snapshots, and normalized/original source-slice APIs so empty and whitespace-only lines are addressable without raw-string rescans.
 - [x] Expose native document-level leading/trailing horizontal whitespace trivia, including tabs, with source-order enumeration, position lookup, snapshots, normalized/original source-slice APIs, and source-map-aligned tab-expanded columns.
+- [x] Resolve offset-less line/column source slices with source-map-aligned tab-expanded columns so fallback slices do not drift on tabbed input.
 - [x] Expose native document-level line-ending trivia and original-source slices/edits that preserve CRLF, LF, and standalone CR spelling around line-ending-equivalent mapping.
 
 ## P4 - Keep Renderer, Writer, Extension, And Security Policy Explicit

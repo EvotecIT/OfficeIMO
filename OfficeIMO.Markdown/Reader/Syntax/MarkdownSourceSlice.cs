@@ -197,8 +197,30 @@ public readonly struct MarkdownSourceSlice {
             return false;
         }
 
-        offset = Math.Min(sourceText.Length - 1, lineStart + Math.Max(0, columnNumber - 1));
+        offset = ResolveVisualColumnOffset(sourceText, lineStart, columnNumber);
         return true;
+    }
+
+    private static int ResolveVisualColumnOffset(string sourceText, int lineStart, int columnNumber) {
+        var normalizedColumn = Math.Max(1, columnNumber);
+        var columns = 0;
+        var lastCharacterOffset = Math.Min(sourceText.Length - 1, lineStart);
+        for (var index = lineStart; index < sourceText.Length; index++) {
+            if (IsLineBreakStart(sourceText, index, out _)) {
+                break;
+            }
+
+            lastCharacterOffset = index;
+            columns += sourceText[index] == '\t'
+                ? 4 - (columns % 4)
+                : 1;
+
+            if (normalizedColumn <= columns) {
+                return index;
+            }
+        }
+
+        return Math.Min(sourceText.Length - 1, lastCharacterOffset);
     }
 
     private static bool TryGetLineStartOffset(string sourceText, int lineNumber, out int offset) {

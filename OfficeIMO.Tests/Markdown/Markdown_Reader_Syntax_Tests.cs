@@ -84,6 +84,29 @@ Paragraph text
     }
 
     [Fact]
+    public void SourceSlice_LineColumnFallback_Uses_TabExpanded_Columns() {
+        const string source = "\tTabbed\n";
+
+        Assert.True(MarkdownSourceSlice.TryCreateFromLineColumns(
+            source,
+            new MarkdownSourceSpan(1, 1, 1, 4),
+            MarkdownSourceTextKind.Normalized,
+            out var tabSlice));
+        Assert.Equal("\t", tabSlice.Text);
+        Assert.Equal(0, tabSlice.StartOffset);
+        Assert.Equal(0, tabSlice.EndOffsetInclusive);
+
+        Assert.True(MarkdownSourceSlice.TryCreateFromLineColumns(
+            source,
+            new MarkdownSourceSpan(1, 5, 1, 10),
+            MarkdownSourceTextKind.Normalized,
+            out var textSlice));
+        Assert.Equal("Tabbed", textSlice.Text);
+        Assert.Equal(1, textSlice.StartOffset);
+        Assert.Equal(6, textSlice.EndOffsetInclusive);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_PreserveTrivia_Creates_Original_SourceSlices_For_LineEndingEquivalent_Input() {
         const string markdown = "# Title\r\n\r\nParagraph one\r\n";
         var options = new MarkdownReaderOptions {
