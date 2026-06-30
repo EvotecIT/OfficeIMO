@@ -402,6 +402,9 @@ just to reserve names.
   - [x] Report section descriptor boundaries that land inside active table
     shapes as unsupported/preserve-only instead of projecting the section break
     at the wrong body-block position.
+  - [x] Project simple `PlcfHdd`-described default header and footer story text
+    into normal OfficeIMO section headers/footers while keeping unstructured or
+    invalid header/footer story text preserve-only.
   - [ ] Add section breaks inside richer body shapes, headers, footers,
     footnotes, and endnotes as separate fixture-backed slices.
 - [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`

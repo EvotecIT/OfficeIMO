@@ -1111,6 +1111,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSimpleHeaderFooterStories() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithHeaderFooterStories(
+                "Body story",
+                defaultHeader: "Projected header",
+                defaultFooter: "Projected footer");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.Equal("Body story", Assert.Single(result.Document.Paragraphs).Text);
+            Assert.DoesNotContain(result.UnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.HeaderFooter);
+
+            WordSection section = Assert.Single(result.Document.Sections);
+            Assert.NotNull(section.Header.Default);
+            Assert.NotNull(section.Footer.Default);
+            WordHeader defaultHeader = section.Header.Default!;
+            WordFooter defaultFooter = section.Footer.Default!;
+            Assert.Equal("Projected header", Assert.Single(defaultHeader.Paragraphs).Text);
+            Assert.Equal("Projected footer", Assert.Single(defaultFooter.Paragraphs).Text);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsMultipleSectionsAndBlocksNativeDocResave() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithMultipleSectionDescriptors("Section one");
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
@@ -4425,6 +4448,30 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithHeaderFooterStories(string bodyParagraph, string defaultHeader, string defaultFooter) {
+                string bodyText = bodyParagraph + "\r";
+                string headerFooterText = CreateHeaderFooterStoryText(defaultHeader, defaultFooter, out byte[] headerFooterPlc);
+                string documentText = bodyText + headerFooterText;
+                byte[] tableStream = CreateTableStream(documentText.Length);
+                int fcPlcfHdd = tableStream.Length;
+                Array.Resize(ref tableStream, tableStream.Length + headerFooterPlc.Length);
+                Buffer.BlockCopy(headerFooterPlc, 0, tableStream, fcPlcfHdd, headerFooterPlc.Length);
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    documentText,
+                    ccpTextOverride: bodyText.Length,
+                    ccpHdd: headerFooterText.Length,
+                    fcPlcfHdd: fcPlcfHdd,
+                    lcbPlcfHdd: headerFooterPlc.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithMultipleSectionDescriptors(params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
                 byte[] tableStream = CreateTableStream(text.Length);
@@ -4836,6 +4883,8 @@ namespace OfficeIMO.Tests {
                 ushort fibFlags = 0x0200,
                 int fcPlcfSed = 0,
                 int lcbPlcfSed = 0,
+                int fcPlcfHdd = 0,
+                int lcbPlcfHdd = 0,
                 int fcDop = 0,
                 int lcbDop = 0,
                 int? ccpTextOverride = null) {
@@ -4855,6 +4904,8 @@ namespace OfficeIMO.Tests {
                 WriteInt32(stream, 0x68, ccpHdrTxbx);
                 WriteInt32(stream, 0xCA, fcPlcfSed);
                 WriteInt32(stream, 0xCE, lcbPlcfSed);
+                WriteInt32(stream, 0xF2, fcPlcfHdd);
+                WriteInt32(stream, 0xF6, lcbPlcfHdd);
                 WriteInt32(stream, 0x192, fcDop);
                 WriteInt32(stream, 0x196, lcbDop);
                 WriteInt32(stream, 0x1A2, 0);
@@ -5614,6 +5665,36 @@ namespace OfficeIMO.Tests {
                 WriteUInt32(table, 15, 0x40000000U | ((uint)textOffset * 2U));
                 WriteUInt16(table, 19, 0);
                 return table;
+            }
+
+            private static string CreateHeaderFooterStoryText(string defaultHeader, string defaultFooter, out byte[] headerFooterPlc) {
+                string[] stories = new string[12];
+                stories[7] = CreateHeaderFooterStory(defaultHeader);
+                stories[9] = CreateHeaderFooterStory(defaultFooter);
+
+                var text = new System.Text.StringBuilder();
+                var characterPositions = new List<int>();
+                foreach (string? story in stories) {
+                    characterPositions.Add(text.Length);
+                    text.Append(story);
+                }
+
+                characterPositions.Add(text.Length);
+                characterPositions.Add(text.Length);
+                headerFooterPlc = new byte[characterPositions.Count * 4];
+                for (int index = 0; index < characterPositions.Count; index++) {
+                    WriteInt32(headerFooterPlc, index * 4, characterPositions[index]);
+                }
+
+                return text.ToString();
+            }
+
+            private static string CreateHeaderFooterStory(string text) {
+                if (string.IsNullOrEmpty(text)) {
+                    return string.Empty;
+                }
+
+                return text + "\r\r";
             }
 
             private static byte[] CreateUnicodeTableStreamWithParagraphBinTable(int characterCount, int textOffset, int papxFkpPageNumber) {

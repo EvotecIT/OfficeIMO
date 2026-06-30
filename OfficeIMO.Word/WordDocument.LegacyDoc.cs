@@ -96,8 +96,29 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            AddLegacyDocHeaderFooterStories(document, legacyDocument.HeaderFooterStories);
             document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument);
             return document;
+        }
+
+        private static void AddLegacyDocHeaderFooterStories(WordDocument document, IReadOnlyList<LegacyDocHeaderFooterStory> stories) {
+            foreach (LegacyDocHeaderFooterStory story in stories) {
+                if (story.SectionIndex < 0 || story.SectionIndex >= document.Sections.Count || story.Paragraphs.Count == 0) {
+                    continue;
+                }
+
+                WordSection section = document.Sections[story.SectionIndex];
+                WordHeaderFooter target = story.IsHeader
+                    ? section.GetOrCreateHeader(story.Type)
+                    : section.GetOrCreateFooter(story.Type);
+                foreach (WordParagraph paragraph in target.Paragraphs.ToList()) {
+                    paragraph.Remove();
+                }
+
+                foreach (string paragraphText in story.Paragraphs) {
+                    target.AddParagraph(paragraphText);
+                }
+            }
         }
 
         private static void ApplyLegacyDocSectionFormatting(WordSection section, LegacyDocSectionFormat sectionFormat) {

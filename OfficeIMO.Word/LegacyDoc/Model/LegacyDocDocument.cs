@@ -36,6 +36,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<LegacyDocSection> Sections { get; private set; } = Array.Empty<LegacyDocSection>();
 
+        internal IReadOnlyList<LegacyDocHeaderFooterStory> HeaderFooterStories { get; private set; } = Array.Empty<LegacyDocHeaderFooterStory>();
+
         /// <summary>Gets diagnostics produced while reading the legacy document.</summary>
         public IReadOnlyList<LegacyDocImportDiagnostic> Diagnostics => _diagnostics;
 
@@ -160,6 +162,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             AddUnsupportedParagraphFormattingFeaturesIfPresent(paragraphFormattingRanges, options.ReportUnsupportedFeatures);
 
             Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges, Sections, options.ReportUnsupportedFeatures);
+            HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, out string? headerFooterWarning);
+            if (headerFooterWarning != null) {
+                AddWarning("DOC-PLCFHDD-INVALID", headerFooterWarning);
+                if (options.ReportUnsupportedFeatures) {
+                    AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
+                        LegacyDocUnsupportedFeatureKind.HeaderFooter,
+                        "DOC-HEADER-FOOTER-STORIES-PRESENT",
+                        "The legacy DOC contains header or footer story text with an unsupported header/footer story PLC. Headers and footers are preserved in the source file but are not projected into the OfficeIMO document.",
+                        detailCode: "Fib:PlcfHdd"));
+                }
+            }
         }
 
         private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile, byte[] tableStream, LegacyDocFib fib) {
@@ -204,12 +217,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             AddUnsupportedDataStreamFeatureIfPresent(compoundFile);
 
-            AddUnsupportedStoryFeatureIfPresent(
-                fib.CcpHdd,
-                LegacyDocUnsupportedFeatureKind.HeaderFooter,
-                "DOC-HEADER-FOOTER-STORIES-PRESENT",
-                "The legacy DOC contains header or footer story text. Headers and footers are preserved in the source file but are not projected into the OfficeIMO document.",
-                "Fib:CcpHdd");
+            if (fib.CcpHdd > 0 && fib.LcbPlcfHdd == 0) {
+                AddUnsupportedStoryFeatureIfPresent(
+                    fib.CcpHdd,
+                    LegacyDocUnsupportedFeatureKind.HeaderFooter,
+                    "DOC-HEADER-FOOTER-STORIES-PRESENT",
+                    "The legacy DOC contains header or footer story text without a supported header/footer story PLC. Headers and footers are preserved in the source file but are not projected into the OfficeIMO document.",
+                    "Fib:CcpHdd");
+            }
             AddUnsupportedStoryFeatureIfPresent(
                 fib.CcpFtn,
                 LegacyDocUnsupportedFeatureKind.Footnote,

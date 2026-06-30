@@ -8,8 +8,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal static bool TryRead(byte[] wordDocumentStream, byte[] tableStream, LegacyDocFib fib, out LegacyDocTextContent content, out string? error) {
             content = new LegacyDocTextContent(string.Empty, Array.Empty<LegacyDocTextCharacter>());
             error = null;
+            int totalCharacterCount = checked(fib.CcpText
+                + fib.CcpFtn
+                + fib.CcpHdd
+                + fib.CcpAtn
+                + fib.CcpEdn
+                + fib.CcpTxbx
+                + fib.CcpHdrTxbx);
 
-            if (fib.CcpText == 0) {
+            if (totalCharacterCount == 0) {
                 return true;
             }
 
@@ -48,8 +55,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             int pieceCount = (pcdByteCount - 4) / 12;
-            var builder = new System.Text.StringBuilder(fib.CcpText);
-            var characters = new List<LegacyDocTextCharacter>(fib.CcpText);
+            var allCharacters = new List<LegacyDocTextCharacter>(totalCharacterCount);
             int cpArrayOffset = pcdOffset;
             int pcdArrayOffset = cpArrayOffset + ((pieceCount + 1) * 4);
 
@@ -60,9 +66,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                int characterCount = cpEnd - cpStart;
-                int bodyCharacterCount = Math.Min(cpEnd, fib.CcpText) - cpStart;
-                if (bodyCharacterCount <= 0) {
+                int decodedCharacterCount = Math.Min(cpEnd, totalCharacterCount) - cpStart;
+                if (decodedCharacterCount <= 0) {
                     break;
                 }
 
@@ -74,41 +79,42 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     : checked((int)fileCharacterPosition);
 
                 if (compressed) {
-                    if (byteOffset + bodyCharacterCount > wordDocumentStream.Length) {
+                    if (byteOffset + decodedCharacterCount > wordDocumentStream.Length) {
                         error = "A compressed text piece points outside the WordDocument stream.";
                         return false;
                     }
 
-                    AppendWindows1252(builder, characters, wordDocumentStream, byteOffset, bodyCharacterCount);
+                    AppendWindows1252(allCharacters, wordDocumentStream, byteOffset, decodedCharacterCount, cpStart);
                 } else {
-                    int byteCount = checked(bodyCharacterCount * 2);
+                    int byteCount = checked(decodedCharacterCount * 2);
                     if (byteOffset + byteCount > wordDocumentStream.Length) {
                         error = "A Unicode text piece points outside the WordDocument stream.";
                         return false;
                     }
 
-                    AppendUnicode(builder, characters, wordDocumentStream, byteOffset, bodyCharacterCount);
+                    AppendUnicode(allCharacters, wordDocumentStream, byteOffset, decodedCharacterCount, cpStart);
                 }
             }
 
-            content = new LegacyDocTextContent(builder.ToString(), characters);
+            LegacyDocTextCharacter[] bodyCharacters = allCharacters
+                .Where(character => character.CharacterPosition < fib.CcpText)
+                .ToArray();
+            content = new LegacyDocTextContent(new string(bodyCharacters.Select(character => character.Character).ToArray()), bodyCharacters, allCharacters);
             return true;
         }
 
-        private static void AppendWindows1252(System.Text.StringBuilder builder, List<LegacyDocTextCharacter> characters, byte[] bytes, int offset, int count) {
+        private static void AppendWindows1252(List<LegacyDocTextCharacter> characters, byte[] bytes, int offset, int count, int characterPositionStart) {
             for (int i = 0; i < count; i++) {
                 char character = DecodeWindows1252(bytes[offset + i]);
-                builder.Append(character);
-                characters.Add(new LegacyDocTextCharacter(character, offset + i, characters.Count));
+                characters.Add(new LegacyDocTextCharacter(character, offset + i, characterPositionStart + i));
             }
         }
 
-        private static void AppendUnicode(System.Text.StringBuilder builder, List<LegacyDocTextCharacter> characters, byte[] bytes, int offset, int count) {
+        private static void AppendUnicode(List<LegacyDocTextCharacter> characters, byte[] bytes, int offset, int count, int characterPositionStart) {
             for (int i = 0; i < count; i++) {
                 int byteOffset = offset + (i * 2);
                 char character = (char)(bytes[byteOffset] | (bytes[byteOffset + 1] << 8));
-                builder.Append(character);
-                characters.Add(new LegacyDocTextCharacter(character, byteOffset, characters.Count));
+                characters.Add(new LegacyDocTextCharacter(character, byteOffset, characterPositionStart + i));
             }
         }
 
