@@ -20,6 +20,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmSDyaHdrBottom = 0xB018;
         private const ushort SprmSFTitlePage = 0x300A;
         private const ushort SprmSLBetween = 0x3019;
+        private const ushort SprmSVjc = 0x301A;
         private const ushort SprmSBOrientation = 0x301D;
         private const ushort SprmSFRTLGutter = 0x322A;
         private const ushort SprmSXaPage = 0xB01F;
@@ -48,6 +49,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int? pageNumberStart = null;
             NumberFormatValues? pageNumberFormat = null;
             bool rtlGutter = false;
+            VerticalJustificationValues? verticalAlignment = null;
             SectionMarkValues? sectionBreakType = null;
 
             foreach (OpenXmlElement property in sectionProperties.ChildElements) {
@@ -92,6 +94,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case GutterOnRight gutterOnRight:
                         rtlGutter = IsOnOffEnabled(gutterOnRight);
                         break;
+                    case VerticalTextAlignmentOnPage verticalTextAlignment:
+                        verticalAlignment = ReadVerticalAlignment(verticalTextAlignment.Val);
+                        break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports simple section page setup only. Unsupported section property: {property.LocalName}.");
                 }
@@ -115,7 +120,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 hasColumnSeparator,
                 pageNumberStart,
                 pageNumberFormat,
-                rtlGutter);
+                rtlGutter,
+                verticalAlignment);
         }
 
         private static void ReadSupportedColumns(Columns columns, out int? columnCount, out int? columnSpacing, out bool hasColumnSeparator) {
@@ -198,6 +204,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : throw new NotSupportedException($"Native DOC saving does not support section page number format '{value.Value}'.");
         }
 
+        private static VerticalJustificationValues? ReadVerticalAlignment(EnumValue<VerticalJustificationValues>? value) {
+            if (value == null || value.Value == VerticalJustificationValues.Top) {
+                return null;
+            }
+
+            return GetVerticalAlignmentOperand(value.Value) != null
+                ? value.Value
+                : throw new NotSupportedException($"Native DOC saving does not support section vertical alignment '{value.Value}'.");
+        }
+
         private static byte[] CreateSepx(LegacyDocSectionFormat sectionFormat) {
             var grpprl = new List<byte>();
 
@@ -274,6 +290,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmSFRTLGutter, 1);
             }
 
+            if (sectionFormat.VerticalAlignment != null) {
+                AddSingleByteSprm(grpprl, SprmSVjc, GetVerticalAlignmentOperand(sectionFormat.VerticalAlignment.Value)!.Value);
+            }
+
             if (grpprl.Count > ushort.MaxValue) {
                 throw new NotSupportedException("Native DOC saving cannot write section page setup because the SEPX record is too large.");
             }
@@ -328,6 +348,26 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (format == NumberFormatValues.LowerLetter) {
                 return 4;
+            }
+
+            return null;
+        }
+
+        private static byte? GetVerticalAlignmentOperand(VerticalJustificationValues alignment) {
+            if (alignment == VerticalJustificationValues.Top) {
+                return 0;
+            }
+
+            if (alignment == VerticalJustificationValues.Center) {
+                return 1;
+            }
+
+            if (alignment == VerticalJustificationValues.Both) {
+                return 2;
+            }
+
+            if (alignment == VerticalJustificationValues.Bottom) {
+                return 3;
             }
 
             return null;

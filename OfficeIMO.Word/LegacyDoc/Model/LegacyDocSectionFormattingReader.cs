@@ -14,6 +14,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmSDyaHdrBottom = 0xB018;
         private const ushort SprmSFTitlePage = 0x300A;
         private const ushort SprmSLBetween = 0x3019;
+        private const ushort SprmSVjc = 0x301A;
         private const ushort SprmSBOrientation = 0x301D;
         private const ushort SprmSFRTLGutter = 0x322A;
         private const ushort SprmSXaPage = 0xB01F;
@@ -119,6 +120,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? pageNumberStart = null;
             NumberFormatValues? pageNumberFormat = null;
             bool rtlGutter = false;
+            VerticalJustificationValues? verticalAlignment = null;
             SectionMarkValues? sectionBreakType = null;
 
             while (offset + 2 <= end) {
@@ -169,6 +171,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     rtlGutter = bytes[offset + 2] != 0;
+                    offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmSVjc) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    verticalAlignment = ReadVerticalAlignment(bytes[offset + 2]);
                     offset += 3;
                     continue;
                 }
@@ -278,7 +290,22 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 orientation = PageOrientationValues.Landscape;
             }
 
-            return new LegacyDocSectionFormat(sectionBreakType, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, headerDistance, footerDistance, gutter, differentFirstPage, columnCount, columnSpacing, hasColumnSeparator, restartPageNumbering ? pageNumberStart ?? 0 : null, pageNumberFormat, rtlGutter);
+            return new LegacyDocSectionFormat(sectionBreakType, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, headerDistance, footerDistance, gutter, differentFirstPage, columnCount, columnSpacing, hasColumnSeparator, restartPageNumbering ? pageNumberStart ?? 0 : null, pageNumberFormat, rtlGutter, verticalAlignment);
+        }
+
+        private static VerticalJustificationValues? ReadVerticalAlignment(byte value) {
+            switch (value) {
+                case 0:
+                    return VerticalJustificationValues.Top;
+                case 1:
+                    return VerticalJustificationValues.Center;
+                case 2:
+                    return VerticalJustificationValues.Both;
+                case 3:
+                    return VerticalJustificationValues.Bottom;
+                default:
+                    return null;
+            }
         }
 
         private static NumberFormatValues? ReadPageNumberFormat(byte value) {

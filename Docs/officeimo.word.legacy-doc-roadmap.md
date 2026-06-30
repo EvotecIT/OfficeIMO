@@ -397,6 +397,9 @@ just to reserve names.
   - [x] Project the native right-to-left gutter flag from DOC section records
     into normal OfficeIMO section properties, and preserve it through native
     DOC save/reload.
+  - [x] Project simple section vertical page alignment from DOC section
+    records into normal OfficeIMO section properties, and preserve it through
+    native DOC save/reload.
   - [x] Report multiple section descriptor records as unsupported/preserve-only
     before multi-section projection exists, so native DOC re-save is blocked
     instead of flattening section boundaries.
@@ -614,6 +617,8 @@ just to reserve names.
     are committed.
   - [x] Write the native right-to-left gutter section flag, then reload it
     through the legacy reader.
+  - [x] Write simple section vertical page alignment, then reload it through
+    the legacy reader.
   - [x] Keep blocking unsupported final-section properties before native `.doc`
     bytes are committed so unimplemented section features are not silently
     dropped.

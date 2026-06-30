@@ -219,6 +219,12 @@ namespace OfficeIMO.Word {
                 section.RtlGutter = true;
             }
 
+            if (sectionFormat.VerticalAlignment != null) {
+                VerticalTextAlignmentOnPage? verticalAlignment = section._sectionProperties.GetFirstChild<VerticalTextAlignmentOnPage>();
+                verticalAlignment?.Remove();
+                section._sectionProperties.Append(new VerticalTextAlignmentOnPage { Val = sectionFormat.VerticalAlignment.Value });
+            }
+
             if (sectionFormat.PageNumberStart != null || sectionFormat.PageNumberFormat != null) {
                 section.AddPageNumbering(sectionFormat.PageNumberStart, sectionFormat.PageNumberFormat);
             }

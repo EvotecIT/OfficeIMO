@@ -1340,6 +1340,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSectionVerticalAlignment() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithSectionVerticalAlignment();
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                Assert.Empty(result.UnsupportedFeatures);
+
+                WordDocument document = result.Document;
+                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.Equal("Vertically centered section", Assert.Single(document.Paragraphs).Text);
+                VerticalTextAlignmentOnPage verticalAlignment = document.Sections[0]._sectionProperties.GetFirstChild<VerticalTextAlignmentOnPage>()!;
+                Assert.NotNull(verticalAlignment);
+                Assert.Equal(VerticalJustificationValues.Center, verticalAlignment.Val?.Value);
+
+                document.Save(docPath);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                VerticalTextAlignmentOnPage reloadedVerticalAlignment = reloaded.Sections[0]._sectionProperties.GetFirstChild<VerticalTextAlignmentOnPage>()!;
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.NotNull(reloadedVerticalAlignment);
+                Assert.Equal(VerticalJustificationValues.Center, reloadedVerticalAlignment.Val?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsEvenOddHeaderDocumentFlag() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFacingPagesDop("Facing pages body");
 
@@ -4118,6 +4148,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionVerticalAlignmentAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Bottom aligned section");
+                    document.Sections[0]._sectionProperties.Append(new VerticalTextAlignmentOnPage { Val = VerticalJustificationValues.Bottom });
+
+                    document.Save(docPath);
+                }
+
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                AssertSectionSepxContainsSingleByteSprm(wordDocumentStream, tableStream, 0x301A, 3);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Bottom aligned section", Assert.Single(reloaded.Paragraphs).Text);
+                VerticalTextAlignmentOnPage verticalAlignment = reloaded.Sections[0]._sectionProperties.GetFirstChild<VerticalTextAlignmentOnPage>()!;
+                Assert.NotNull(verticalAlignment);
+                Assert.Equal(VerticalJustificationValues.Bottom, verticalAlignment.Val?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionPageNumberFormatBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -5031,6 +5090,32 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithSectionVerticalAlignment() {
+                const string paragraph = "Vertically centered section";
+                string text = paragraph + "\r";
+                const int sepxOffset = 0x300;
+
+                byte[] tableStream = CreateTableStream(text.Length);
+                int fcPlcfSed = tableStream.Length;
+                byte[] sectionDescriptorPlc = CreateOneSectionDescriptorPlc(text.Length, sepxOffset);
+                Array.Resize(ref tableStream, tableStream.Length + sectionDescriptorPlc.Length);
+                Buffer.BlockCopy(sectionDescriptorPlc, 0, tableStream, fcPlcfSed, sectionDescriptorPlc.Length);
+
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    fcPlcfSed: fcPlcfSed,
+                    lcbPlcfSed: sectionDescriptorPlc.Length);
+                WriteBytesAt(ref wordDocumentStream, sepxOffset, CreateSectionSepx(verticalAlignment: 1));
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithSectionBreakKind(int sectionBreakOperand, string secondParagraph) {
                 const string firstParagraph = "Before continuous section";
                 string text = firstParagraph + "\r" + secondParagraph + "\r";
@@ -5450,7 +5535,8 @@ namespace OfficeIMO.Tests {
                 int? pageNumberStart = null,
                 byte? pageNumberFormat = null,
                 bool restartPageNumbering = false,
-                bool rtlGutter = false) {
+                bool rtlGutter = false,
+                byte? verticalAlignment = null) {
                 var grpprl = new List<byte>();
                 if (sectionBreakType != null) {
                     AddSingleByteSprm(grpprl, 0x3009, sectionBreakType.Value);
@@ -5490,6 +5576,9 @@ namespace OfficeIMO.Tests {
                 AddUInt16SprmIfPresent(grpprl, 0x9024, marginBottom);
                 if (rtlGutter) {
                     AddSingleByteSprm(grpprl, 0x322A, 1);
+                }
+                if (verticalAlignment != null) {
+                    AddSingleByteSprm(grpprl, 0x301A, verticalAlignment.Value);
                 }
 
                 var sepx = new byte[2 + grpprl.Count];

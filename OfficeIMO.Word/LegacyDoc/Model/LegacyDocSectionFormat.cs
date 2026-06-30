@@ -20,7 +20,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool hasColumnSeparator = false,
             int? pageNumberStart = null,
             NumberFormatValues? pageNumberFormat = null,
-            bool rtlGutter = false) {
+            bool rtlGutter = false,
+            VerticalJustificationValues? verticalAlignment = null) {
             SectionBreakType = sectionBreakType;
             PageWidthTwips = pageWidthTwips;
             PageHeightTwips = pageHeightTwips;
@@ -39,6 +40,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             PageNumberStart = pageNumberStart;
             PageNumberFormat = pageNumberFormat;
             RtlGutter = rtlGutter;
+            VerticalAlignment = verticalAlignment;
         }
 
         internal SectionMarkValues? SectionBreakType { get; }
@@ -77,6 +79,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool RtlGutter { get; }
 
+        internal VerticalJustificationValues? VerticalAlignment { get; }
+
         internal bool HasFormatting => IsNonDefaultSectionBreakType(SectionBreakType)
             || PageWidthTwips != null
             || PageHeightTwips != null
@@ -94,7 +98,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || HasColumnSeparator
             || PageNumberStart != null
             || PageNumberFormat != null
-            || RtlGutter;
+            || RtlGutter
+            || VerticalAlignment != null;
 
         private static bool IsNonDefaultSectionBreakType(SectionMarkValues? sectionBreakType) {
             return sectionBreakType != null && sectionBreakType.Value != SectionMarkValues.NextPage;
@@ -119,7 +124,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 HasColumnSeparator,
                 PageNumberStart,
                 PageNumberFormat,
-                RtlGutter);
+                RtlGutter,
+                VerticalAlignment);
         }
 
         internal static LegacyDocSectionFormat Default { get; } = new LegacyDocSectionFormat(null, null, null, null, null, null, null, null, null, null, null);
