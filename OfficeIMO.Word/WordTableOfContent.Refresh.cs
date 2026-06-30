@@ -179,9 +179,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            if (paragraph.Descendants<Break>().Any(documentBreak => documentBreak.Type?.Value == BreakValues.Page)) {
-                pageNumber++;
-            }
+            pageNumber += paragraph.Descendants<Break>().Count(documentBreak => documentBreak.Type?.Value == BreakValues.Page);
 
             if (StartsNewPage(paragraph.ParagraphProperties?.SectionProperties)) {
                 pageNumber++;

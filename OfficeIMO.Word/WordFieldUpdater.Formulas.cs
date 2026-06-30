@@ -21,6 +21,10 @@ namespace OfficeIMO.Word {
             @"^(?<expression>.*?)\s+\\#\s*(?<format>""[^""]*""|\S+)(?:\s+\\\*\s*(?:""[^""]*""|\S+))*\s*$",
             RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
+        private static readonly Regex FormulaTrailingFormatSwitchPattern = new Regex(
+            @"^(?<expression>.*?)(?:\s+\\\*\s*(?:""[^""]*""|\S+))+\s*$",
+            RegexOptions.CultureInvariant | RegexOptions.Singleline);
+
         private static bool TryEvaluateFormula(
             MutableFieldCandidate candidate,
             WordFieldInventory.ParsedFieldInstruction parsed,
@@ -141,6 +145,11 @@ namespace OfficeIMO.Word {
                 if (expression.IndexOf(@"\#", StringComparison.Ordinal) >= 0) {
                     diagnostic = "Formula numeric picture switch must appear at the end of the field instruction.";
                     return false;
+                }
+
+                Match trailingFormatMatch = FormulaTrailingFormatSwitchPattern.Match(expression);
+                if (trailingFormatMatch.Success) {
+                    expressionWithoutPicture = trailingFormatMatch.Groups["expression"].Value.Trim();
                 }
 
                 return true;
