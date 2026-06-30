@@ -362,6 +362,15 @@ public sealed partial class MarkdownNativeDocument {
         return CreateReplaceEdit(metadata.SourceSpan.Value, replacementMarkdown);
     }
 
+    /// <summary>Creates a non-mutating source edit that replaces document-level source trivia.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeSourceTrivia trivia, string replacementMarkdown) {
+        if (trivia == null) {
+            throw new ArgumentNullException(nameof(trivia));
+        }
+
+        return CreateReplaceEdit(trivia.SourceSpan, replacementMarkdown);
+    }
+
     private static MarkdownNativeBlock? FindBlockAtLine(MarkdownNativeBlock block, int lineNumber) {
         switch (block) {
             case MarkdownNativeQuoteBlock quote:

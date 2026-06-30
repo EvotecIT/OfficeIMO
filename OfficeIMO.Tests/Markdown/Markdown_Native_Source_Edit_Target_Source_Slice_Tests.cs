@@ -139,6 +139,21 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     }
 
     [Fact]
+    public void NativeDocument_SourceTrivia_Line_Endings_Are_Source_Edit_Targets() {
+        var native = MarkdownNativeDocument.Parse(
+            "Alpha\r\nBeta\rGamma\nDelta",
+            new MarkdownReaderOptions { PreserveTrivia = true });
+        var lineEndings = native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.LineEnding).ToArray();
+
+        var normalizedEdit = native.CreateReplaceEdit(lineEndings[1], "\n\n");
+        var originalRoundtrip = native.WriteWithSourceEdit(normalizedEdit);
+
+        Assert.Equal("Alpha\nBeta\n\nGamma\nDelta", normalizedEdit.Apply(native.SourceMarkdown));
+        Assert.Equal("Alpha\r\nBeta\n\nGamma\nDelta", originalRoundtrip.Markdown);
+        Assert.Empty(originalRoundtrip.Diagnostics);
+    }
+
+    [Fact]
     public void NativeDocument_SourceTrivia_Columns_Expand_Tabs_Like_Source_Map() {
         var native = MarkdownNativeDocument.Parse(
             "\tTabbed\t \n\t\nDone",
