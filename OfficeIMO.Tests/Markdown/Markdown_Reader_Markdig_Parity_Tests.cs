@@ -476,6 +476,34 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     }
 
     [Theory]
+    [MemberData(nameof(AlertBlocksExtensionCases))]
+    public void MarkdownReader_AlertBlocks_Writer_Reparse_Matches_Markdig_Extension(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        MarkdownBlockRenderBuiltInExtensions.AddMarkdigAlertHtmlFallback(htmlOptions);
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseAlertBlocks(builder, null);
+
+        var officeOptions = new MarkdownReaderOptions {
+            CalloutTitleMode = MarkdownCalloutTitleMode.MarkdigCompatible
+        };
+
+        var written = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" });
+        var officeReparsed = MarkdownReader
+            .Parse(written, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeAlertHtmlForParity(markdig), NormalizeAlertHtmlForParity(officeReparsed));
+    }
+
+    [Theory]
     [MemberData(nameof(AutoLinksExtensionCases))]
     public void MarkdownReader_GfmAutolinks_Match_Markdig_AutoLinks_Extension(string _, string markdown) {
         var htmlOptions = new HtmlOptions {

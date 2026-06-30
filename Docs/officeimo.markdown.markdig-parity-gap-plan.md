@@ -162,6 +162,7 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
   - [x] Add focused Markdig comparison proof for no-title note, list, and custom alert rendering through an opt-in Markdig-style HTML fallback.
   - [x] Make titled OfficeIMO callouts an intentional default with an explicit Markdig-compatible boundary mode.
   - [x] Expose GitHub alert header marker tokens (`[!` and `]`) as syntax/native source fields so editor hosts can address the full alert header without raw-string rescans.
+  - [x] Prove curated Markdig-compatible alert cases can be written and reparsed back to equivalent Markdig alert HTML.
   - [ ] Align callout/alert AST fields, source spans, writer output, and broader comparison fixtures around that decision.
 - [x] Decide and close `UseCjkFriendlyEmphasis`.
   - [x] Add a Markdig-compatible delimiter option with CJK comparison/source-token proof.
