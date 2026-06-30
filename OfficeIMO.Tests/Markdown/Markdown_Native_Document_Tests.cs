@@ -436,6 +436,24 @@ Paragraph with footnote[^note] and ![Alt](img.png "Img").
         Assert.Equal(3, linkSnapshot.FindMetadataField("title")!.Index);
         Assert.NotNull(linkSnapshot.FindMetadataField("target")!.SourceSpan);
         Assert.NotNull(linkSnapshot.FindMetadataField("title")!.SourceSpan);
+
+        var paragraphSnapshot = snapshot.Blocks[1];
+        var imageSnapshot = Assert.Single(paragraphSnapshot.Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Image);
+        var imageMetadata = imageSnapshot.MetadataFields.ToArray();
+        Assert.Equal(new[] { "openingMarker", "alt", "separatorMarker", "source", "imageTitle", "closingMarker" }, imageMetadata.Select(field => field.Name).ToArray());
+        Assert.Equal("![", imageSnapshot.FindMetadataField("openingMarker")!.Value);
+        Assert.Equal("](", imageSnapshot.FindMetadataField("separatorMarker")!.Value);
+        Assert.Equal(")", imageSnapshot.FindMetadataField("closingMarker")!.Value);
+        Assert.Equal(36, imageSnapshot.FindMetadataField("openingMarker")!.SourceSpan!.StartColumn);
+        Assert.Equal(42, imageSnapshot.FindMetadataField("separatorMarker")!.SourceSpan!.EndColumn);
+        Assert.Equal(56, imageSnapshot.FindMetadataField("closingMarker")!.SourceSpan!.StartColumn);
+
+        var imageOpening = Assert.Single(native.EnumerateInlineMetadata("openingMarker"), metadata => metadata.Value == "![" && metadata.SourceSpan?.StartLine == 3);
+        var imageSeparator = Assert.Single(native.EnumerateInlineMetadata("separatorMarker"), metadata => metadata.Value == "](" && metadata.SourceSpan?.StartLine == 3);
+        var imageClosing = Assert.Single(native.EnumerateInlineMetadata("closingMarker"), metadata => metadata.Value == ")" && metadata.SourceSpan?.StartLine == 3);
+        Assert.Contains("and [Alt](img.png \"Img\").", native.CreateReplaceEdit(imageOpening, "[").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("![Alt]][img.png \"Img\").", native.CreateReplaceEdit(imageSeparator, "]][").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("![Alt](img.png \"Img\"]", native.CreateReplaceEdit(imageClosing, "]").Apply(native.SourceMarkdown), StringComparison.Ordinal);
     }
 
     [Fact]
