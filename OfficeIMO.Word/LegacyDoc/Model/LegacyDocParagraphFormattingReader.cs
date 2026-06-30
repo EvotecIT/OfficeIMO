@@ -8,6 +8,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPFPageBreakBefore = 0x2407;
         private const ushort SprmPFNoLineNumb = 0x240C;
         private const ushort SprmPFNoAutoHyph = 0x242A;
+        private const ushort SprmPFKinsoku = 0x2433;
+        private const ushort SprmPFWordWrap = 0x2434;
+        private const ushort SprmPFOverflowPunct = 0x2435;
+        private const ushort SprmPFTopLinePunct = 0x2436;
+        private const ushort SprmPFAutoSpaceDE = 0x2437;
+        private const ushort SprmPFAutoSpaceDN = 0x2438;
         private const ushort SprmPFContextualSpacing = 0x246D;
         private const ushort SprmPFMirrorIndents = 0x2470;
         private const ushort SprmPFInTable = 0x2416;
@@ -186,6 +192,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? suppressAutoHyphens = null;
             bool? contextualSpacing = null;
             bool? mirrorIndents = null;
+            bool? kinsoku = null;
+            bool? wordWrap = null;
+            bool? overflowPunctuation = null;
+            bool? topLinePunctuation = null;
+            bool? autoSpaceDE = null;
+            bool? autoSpaceDN = null;
             bool? bidirectional = null;
             ushort? numberingListIndex = null;
             byte? numberingLevel = null;
@@ -239,6 +251,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     || sprm == SprmPFPageBreakBefore
                     || sprm == SprmPFNoLineNumb
                     || sprm == SprmPFNoAutoHyph
+                    || sprm == SprmPFKinsoku
+                    || sprm == SprmPFWordWrap
+                    || sprm == SprmPFOverflowPunct
+                    || sprm == SprmPFTopLinePunct
+                    || sprm == SprmPFAutoSpaceDE
+                    || sprm == SprmPFAutoSpaceDN
                     || sprm == SprmPFContextualSpacing
                     || sprm == SprmPFMirrorIndents
                     || sprm == SprmPFWidowControl
@@ -268,6 +286,24 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             break;
                         case SprmPFNoAutoHyph:
                             suppressAutoHyphens = value;
+                            break;
+                        case SprmPFKinsoku:
+                            kinsoku = value;
+                            break;
+                        case SprmPFWordWrap:
+                            wordWrap = value;
+                            break;
+                        case SprmPFOverflowPunct:
+                            overflowPunctuation = value;
+                            break;
+                        case SprmPFTopLinePunct:
+                            topLinePunctuation = value;
+                            break;
+                        case SprmPFAutoSpaceDE:
+                            autoSpaceDE = value;
+                            break;
+                        case SprmPFAutoSpaceDN:
+                            autoSpaceDN = value;
                             break;
                         case SprmPFContextualSpacing:
                             contextualSpacing = value;
@@ -599,6 +635,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 suppressAutoHyphens,
                 contextualSpacing,
                 mirrorIndents,
+                kinsoku,
+                wordWrap,
+                overflowPunctuation,
+                topLinePunctuation,
+                autoSpaceDE,
+                autoSpaceDN,
                 bidirectional,
                 numberingListIndex,
                 numberingLevel,

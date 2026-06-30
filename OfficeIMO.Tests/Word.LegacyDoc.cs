@@ -763,6 +763,30 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(paragraph._paragraphProperties?.GetFirstChild<MirrorIndents>());
         }
 
+        public static IEnumerable<object[]> LegacyDocParagraphTypographyPropertyCases() {
+            yield return new object[] { "kinsoku", "kinsoku typography", (ushort)0x2433, typeof(Kinsoku) };
+            yield return new object[] { "word wrap", "word wrap typography", (ushort)0x2434, typeof(WordWrap) };
+            yield return new object[] { "overflow punctuation", "overflow punctuation", (ushort)0x2435, typeof(OverflowPunctuation) };
+            yield return new object[] { "top line punctuation", "top line punctuation", (ushort)0x2436, typeof(TopLinePunctuation) };
+            yield return new object[] { "auto space de", "auto space de", (ushort)0x2437, typeof(AutoSpaceDE) };
+            yield return new object[] { "auto space dn", "auto space dn", (ushort)0x2438, typeof(AutoSpaceDN) };
+        }
+
+        [Theory]
+        [MemberData(nameof(LegacyDocParagraphTypographyPropertyCases))]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphTypographyProperties(string _, string text, ushort sprm, Type propertyType) {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithParagraphTypographyProperty(text, sprm);
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+
+            WordParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+            Assert.Equal(text, paragraph.Text);
+            AssertParagraphProperty(paragraph._paragraphProperties, propertyType);
+        }
+
         [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphBiDi() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithParagraphBiDi();
@@ -3745,6 +3769,35 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [MemberData(nameof(LegacyDocParagraphTypographyPropertyCases))]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphTypographyPropertiesAndReloadsThroughLegacyReader(string _, string text, ushort sprm, Type propertyType) {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph(text);
+                    paragraph._paragraphProperties!.Append(CreateParagraphProperty(propertyType));
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, (byte)(sprm & 0xFF), (byte)(sprm >> 8), 0x01),
+                    $"Expected the native DOC paragraph property stream to contain 0x{sprm:X4} for {propertyType.Name}.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph reloadedParagraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal(text, reloadedParagraph.Text);
+                AssertParagraphProperty(reloadedParagraph._paragraphProperties, propertyType);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
         [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphBiDiAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
@@ -4157,6 +4210,42 @@ namespace OfficeIMO.Tests {
                 Style customStyle = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == projectedStyleId);
                 StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(customStyle.StyleParagraphProperties);
                 Assert.NotNull(paragraphProperties.GetFirstChild<MirrorIndents>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(LegacyDocParagraphTypographyPropertyCases))]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleTypographyPropertiesAndReloadsThroughLegacyReader(string label, string text, ushort _, Type propertyType) {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string styleSuffix = propertyType.Name;
+            string styleId = "NativeDoc" + styleSuffix + "Style";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC " + label + " Style" });
+                    style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
+                    style.Append(new StyleParagraphProperties(CreateParagraphProperty(propertyType)));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+                    document.AddParagraph("Styled " + text).SetStyleId(styleId);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Styled " + text, paragraph.Text);
+
+                Styles styles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style customStyle = Assert.Single(
+                    styles.Elements<Style>(),
+                    styleDefinition => styleDefinition.StyleId == paragraph.StyleId);
+                StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(customStyle.StyleParagraphProperties);
+                AssertParagraphProperty(paragraphProperties, propertyType);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -8447,6 +8536,22 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithParagraphTypographyProperty(string paragraphText, ushort sprm) {
+                string text = paragraphText + "\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithParagraphTypographyProperty(text, textOffset, papxFkpOffset, sprm);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithParagraphBiDi() {
                 const string text = "bidirectional paragraph\r";
                 const int textOffset = 0x200;
@@ -9630,6 +9735,36 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
+            private static byte[] CreateUnicodeWordDocumentStreamWithParagraphTypographyProperty(string text, int textOffset, int papxFkpOffset, ushort sprm) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int end = textOffset + textBytes.Length;
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, end },
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphPropertiesPapx(CreateParagraphSprm(sprm, 1))
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
             private static byte[] CreateUnicodeWordDocumentStreamWithParagraphBiDi(string text, int textOffset, int papxFkpOffset) {
                 const int fibLength = 0x1AA;
                 byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
@@ -10412,6 +10547,17 @@ namespace OfficeIMO.Tests {
             if (File.Exists(path)) {
                 File.Delete(path);
             }
+        }
+
+        private static OpenXmlElement CreateParagraphProperty(Type propertyType) {
+            OpenXmlElement? property = Activator.CreateInstance(propertyType) as OpenXmlElement;
+            Assert.NotNull(property);
+            return property!;
+        }
+
+        private static void AssertParagraphProperty(OpenXmlCompositeElement? paragraphProperties, Type propertyType) {
+            Assert.NotNull(paragraphProperties);
+            Assert.Contains(paragraphProperties!.ChildElements, element => element.GetType() == propertyType);
         }
 
         private static byte[] ReadCompoundStream(byte[] compoundBytes, string streamName) {

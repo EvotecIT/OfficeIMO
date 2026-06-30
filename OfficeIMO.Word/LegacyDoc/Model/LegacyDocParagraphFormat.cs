@@ -17,6 +17,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? suppressAutoHyphens = null,
             bool? contextualSpacing = null,
             bool? mirrorIndents = null,
+            bool? kinsoku = null,
+            bool? wordWrap = null,
+            bool? overflowPunctuation = null,
+            bool? topLinePunctuation = null,
+            bool? autoSpaceDE = null,
+            bool? autoSpaceDN = null,
             bool? bidirectional = null,
             ushort? numberingListIndex = null,
             byte? numberingLevel = null,
@@ -64,6 +70,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             SuppressAutoHyphens = suppressAutoHyphens;
             ContextualSpacing = contextualSpacing;
             MirrorIndents = mirrorIndents;
+            Kinsoku = kinsoku;
+            WordWrap = wordWrap;
+            OverflowPunctuation = overflowPunctuation;
+            TopLinePunctuation = topLinePunctuation;
+            AutoSpaceDE = autoSpaceDE;
+            AutoSpaceDN = autoSpaceDN;
             Bidirectional = bidirectional;
             NumberingListIndex = numberingListIndex.HasValue && numberingListIndex.Value > 0
                 ? numberingListIndex
@@ -169,6 +181,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool? MirrorIndents { get; }
 
+        internal bool? Kinsoku { get; }
+
+        internal bool? WordWrap { get; }
+
+        internal bool? OverflowPunctuation { get; }
+
+        internal bool? TopLinePunctuation { get; }
+
+        internal bool? AutoSpaceDE { get; }
+
+        internal bool? AutoSpaceDN { get; }
+
         internal bool? Bidirectional { get; }
 
         internal ushort? NumberingListIndex { get; }
@@ -247,6 +271,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || SuppressAutoHyphens != null
             || ContextualSpacing != null
             || MirrorIndents != null
+            || Kinsoku != null
+            || WordWrap != null
+            || OverflowPunctuation != null
+            || TopLinePunctuation != null
+            || AutoSpaceDE != null
+            || AutoSpaceDN != null
             || Bidirectional != null
             || NumberingListIndex != null
             || NumberingLevel != null
@@ -297,6 +327,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && SuppressAutoHyphens == other.SuppressAutoHyphens
                 && ContextualSpacing == other.ContextualSpacing
                 && MirrorIndents == other.MirrorIndents
+                && Kinsoku == other.Kinsoku
+                && WordWrap == other.WordWrap
+                && OverflowPunctuation == other.OverflowPunctuation
+                && TopLinePunctuation == other.TopLinePunctuation
+                && AutoSpaceDE == other.AutoSpaceDE
+                && AutoSpaceDN == other.AutoSpaceDN
                 && Bidirectional == other.Bidirectional
                 && NumberingListIndex == other.NumberingListIndex
                 && NumberingLevel == other.NumberingLevel
@@ -352,6 +388,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + SuppressAutoHyphens.GetHashCode();
             hash = (hash * 31) + ContextualSpacing.GetHashCode();
             hash = (hash * 31) + MirrorIndents.GetHashCode();
+            hash = (hash * 31) + Kinsoku.GetHashCode();
+            hash = (hash * 31) + WordWrap.GetHashCode();
+            hash = (hash * 31) + OverflowPunctuation.GetHashCode();
+            hash = (hash * 31) + TopLinePunctuation.GetHashCode();
+            hash = (hash * 31) + AutoSpaceDE.GetHashCode();
+            hash = (hash * 31) + AutoSpaceDN.GetHashCode();
             hash = (hash * 31) + Bidirectional.GetHashCode();
             hash = (hash * 31) + NumberingListIndex.GetHashCode();
             hash = (hash * 31) + NumberingLevel.GetHashCode();

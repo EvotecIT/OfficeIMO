@@ -1235,6 +1235,30 @@ namespace OfficeIMO.Word {
                 EnsureLegacyDocParagraphProperties(paragraph).Append(new MirrorIndents());
             }
 
+            if (paragraphFormat.Kinsoku == true) {
+                EnsureLegacyDocParagraphProperties(paragraph).Append(new Kinsoku());
+            }
+
+            if (paragraphFormat.WordWrap == true) {
+                EnsureLegacyDocParagraphProperties(paragraph).Append(new WordWrap());
+            }
+
+            if (paragraphFormat.OverflowPunctuation == true) {
+                EnsureLegacyDocParagraphProperties(paragraph).Append(new OverflowPunctuation());
+            }
+
+            if (paragraphFormat.TopLinePunctuation == true) {
+                EnsureLegacyDocParagraphProperties(paragraph).Append(new TopLinePunctuation());
+            }
+
+            if (paragraphFormat.AutoSpaceDE == true) {
+                EnsureLegacyDocParagraphProperties(paragraph).Append(new AutoSpaceDE());
+            }
+
+            if (paragraphFormat.AutoSpaceDN == true) {
+                EnsureLegacyDocParagraphProperties(paragraph).Append(new AutoSpaceDN());
+            }
+
             if (paragraphFormat.Bidirectional == true) {
                 paragraph.BiDi = true;
             }
@@ -1705,6 +1729,36 @@ namespace OfficeIMO.Word {
 
             if (paragraphFormat.MirrorIndents == true) {
                 properties.Append(new MirrorIndents());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.Kinsoku == true) {
+                properties.Append(new Kinsoku());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.WordWrap == true) {
+                properties.Append(new WordWrap());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.OverflowPunctuation == true) {
+                properties.Append(new OverflowPunctuation());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.TopLinePunctuation == true) {
+                properties.Append(new TopLinePunctuation());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.AutoSpaceDE == true) {
+                properties.Append(new AutoSpaceDE());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.AutoSpaceDN == true) {
+                properties.Append(new AutoSpaceDN());
                 hasProperties = true;
             }
 

@@ -293,6 +293,10 @@ just to reserve names.
   - [x] Project direct PAPX mirrored paragraph indents from DOC
     `sprmPFMirrorIndents` into normal OfficeIMO paragraphs with synthetic
     legacy DOC fixture proof.
+  - [x] Project direct PAPX East Asian typography and punctuation spacing flags
+    from DOC `sprmPFKinsoku`, `sprmPFWordWrap`, `sprmPFOverflowPunct`,
+    `sprmPFTopLinePunct`, `sprmPFAutoSpaceDE`, and `sprmPFAutoSpaceDN` into
+    normal OfficeIMO paragraphs with synthetic legacy DOC fixture proof.
   - [x] Project simple palette-backed direct PAPX paragraph shading from DOC
     `sprmPShd80` into normal OfficeIMO paragraphs with synthetic legacy DOC
     fixture proof.
@@ -550,6 +554,10 @@ just to reserve names.
     `sprmPFContextualSpacing`, then reload it through the legacy reader.
   - [x] Write direct and custom paragraph-style mirror indents with
     `sprmPFMirrorIndents`, then reload it through the legacy reader.
+  - [x] Write direct and custom paragraph-style East Asian typography and
+    punctuation spacing flags with `sprmPFKinsoku`, `sprmPFWordWrap`,
+    `sprmPFOverflowPunct`, `sprmPFTopLinePunct`, `sprmPFAutoSpaceDE`, and
+    `sprmPFAutoSpaceDN`, then reload them through the legacy reader.
   - [x] Write simple palette-backed paragraph shading with `sprmPShd80`, then
     reload it through the legacy reader while blocking non-palette fill colors
     before bytes are committed.

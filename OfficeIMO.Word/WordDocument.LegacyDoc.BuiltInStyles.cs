@@ -129,6 +129,30 @@ namespace OfficeIMO.Word {
                 ReplaceStyleProperty(properties, new MirrorIndents());
             }
 
+            if (paragraphFormat.Kinsoku == true) {
+                ReplaceStyleProperty(properties, new Kinsoku());
+            }
+
+            if (paragraphFormat.WordWrap == true) {
+                ReplaceStyleProperty(properties, new WordWrap());
+            }
+
+            if (paragraphFormat.OverflowPunctuation == true) {
+                ReplaceStyleProperty(properties, new OverflowPunctuation());
+            }
+
+            if (paragraphFormat.TopLinePunctuation == true) {
+                ReplaceStyleProperty(properties, new TopLinePunctuation());
+            }
+
+            if (paragraphFormat.AutoSpaceDE == true) {
+                ReplaceStyleProperty(properties, new AutoSpaceDE());
+            }
+
+            if (paragraphFormat.AutoSpaceDN == true) {
+                ReplaceStyleProperty(properties, new AutoSpaceDN());
+            }
+
             if (paragraphFormat.Bidirectional == true) {
                 ReplaceStyleProperty(properties, new BiDi());
             }
