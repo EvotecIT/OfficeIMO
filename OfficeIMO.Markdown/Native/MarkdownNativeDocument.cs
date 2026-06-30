@@ -693,7 +693,7 @@ public sealed partial class MarkdownNativeDocument {
             return false;
         }
 
-        offset = Math.Min(SourceMarkdown.Length - 1, lineStart + Math.Max(0, columnNumber - 1));
+        offset = MarkdownSourceColumns.ResolveVisualColumnOffset(SourceMarkdown, lineStart, columnNumber);
         return true;
     }
 
@@ -709,15 +709,17 @@ public sealed partial class MarkdownNativeDocument {
 
         var currentLine = 1;
         for (var i = 0; i < SourceMarkdown.Length; i++) {
-            if (SourceMarkdown[i] != '\n') {
+            if (!MarkdownSourceColumns.IsLineBreakStart(SourceMarkdown, i, out var lineBreakLength)) {
                 continue;
             }
 
             currentLine++;
             if (currentLine == lineNumber) {
-                offset = i + 1;
+                offset = i + lineBreakLength;
                 return offset <= SourceMarkdown.Length;
             }
+
+            i += lineBreakLength - 1;
         }
 
         return false;
@@ -731,12 +733,8 @@ public sealed partial class MarkdownNativeDocument {
 
         offset = SourceMarkdown.Length - 1;
         for (var i = lineStart; i < SourceMarkdown.Length; i++) {
-            if (SourceMarkdown[i] == '\n') {
+            if (MarkdownSourceColumns.IsLineBreakStart(SourceMarkdown, i, out _)) {
                 offset = Math.Max(lineStart, i - 1);
-                if (offset > lineStart && SourceMarkdown[offset] == '\r') {
-                    offset--;
-                }
-
                 return true;
             }
         }

@@ -179,6 +179,15 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     }
 
     [Fact]
+    public void NativeDocument_SourceEdit_Offsetless_LineColumn_Spans_Expand_Tabs_Like_Source_Map() {
+        var native = MarkdownNativeDocument.Parse("\tTabbed\n");
+
+        var edit = native.CreateReplaceEdit(new MarkdownSourceSpan(1, 5, 1, 10), "Changed");
+
+        Assert.Equal("\tChanged\n", edit.Apply(native.SourceMarkdown));
+    }
+
+    [Fact]
     public void NativeTableCell_SourceSlice_Matches_ReplaceEdit_Target() {
         var native = MarkdownNativeDocument.Parse("""
 | Name | Value |
