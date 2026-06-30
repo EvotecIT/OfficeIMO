@@ -17,6 +17,53 @@ Use the Markdig extension inventory and Markdig extension compatibility matrix a
 - [ ] AST/source/lossless parity is not closed: full trivia, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, broader source edits, and extension-node roundtrip still need work.
 - [ ] Performance parity is not known: release-mode benchmark comparison should wait until parser/source/writer behavior stops moving.
 
+## What Is Still Missing From Parity
+
+This is the non-looping checklist. A test-only slice is valid only when the matching engine behavior already exists and the open lane is proof.
+
+- [ ] `UseDefinitionLists` promotion: mostly engine plus proof.
+  - [ ] Engine: finish generated paragraph wrapper source ownership or diagnostics so transformed/rebuilt definition bodies do not pretend to be fully lossless parsed source.
+  - [ ] Engine: broaden remaining lazy-continuation and nested-body parser cases where Markdig keeps lines literal or attaches them to definition bodies.
+  - [ ] Writer: prove Markdown output reparses to equivalent definition-list behavior for the remaining edge cases.
+  - [ ] Proof: refresh focused Markdig comparison, native/source-map, writer, and matrix evidence before changing the row to `Covered`.
+- [ ] `UseGenericAttributes` promotion: engine plus proof.
+  - [ ] Engine: extend attribute ownership from the already-covered shapes to the remaining Markdig-supported block and inline families.
+  - [ ] Engine: keep attributes attached to the semantic owner and syntax/source owner through containers such as blockquotes, lists, tables, footnotes, and definition lists.
+  - [ ] Writer/render: preserve attributes through HTML rendering and Markdown writing where the row claims support.
+  - [ ] Proof: add target-by-target Markdig comparison and source/native fixtures only after each target exists in the engine.
+- [ ] `UseAlertBlocks` decision: scope first, then engine.
+  - [ ] Decide whether Markdig alert rendering callbacks become an OfficeIMO renderer contract or remain an intentional callout difference.
+  - [ ] If in scope, align alert/callout parser behavior, syntax fields, native source fields, renderer customization, writer output, and comparison fixtures.
+- [ ] `UseCjkFriendlyEmphasis` decision: parser option or intentional gap.
+  - [ ] Decide whether to add a Markdig-compatible delimiter option.
+  - [ ] If in scope, implement delimiter behavior in the inline parser and prove source-token/writer behavior with CJK comparison cases.
+- [ ] `UsePreciseSourceLocation` promotion: cross-cutting AST/source architecture.
+  - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated nodes, and normalized text.
+  - [ ] Engine: define one original-to-normalized mapping story for CRLF/LF/CR, tabs, nested containers, transforms, generated nodes, and normalized paragraph text.
+  - [ ] Engine: broaden source-edit support beyond the current native field and explicit-edit coverage.
+  - [ ] Diagnostics: report precise fallback reasons when exact source preservation is unavailable.
+  - [ ] Proof: add source-map and roundtrip tests after the mapping rules exist.
+- [ ] Optional parser gaps need product scope before implementation.
+  - [ ] `UseCustomContainers`: decide core versus optional package, then implement colon-fence parsing, child source mapping, renderer seams, and writer support.
+  - [ ] `UseGridTables`: decide whether grid tables belong in core, then implement malformed fallback, source spans, renderer, and writer behavior.
+  - [ ] `UseListExtras`: inventory Markdig list-extra syntax first, then choose core versus optional behavior.
+  - [ ] `UseMathematics`: decide inline/block math ownership and renderer handoff before adding delimiter parsing.
+  - [ ] `UseMediaLinks`: decide provider and safe-renderer policy before parser shortcuts.
+  - [ ] `UseFigures`: separate HTML-import recovery from Markdown figure syntax before parser work.
+  - [ ] `UseEmojiAndSmiley`, `UseJiraLinks`, and `UseSmartyPants`: keep as optional transforms unless a consumer needs them in core.
+- [ ] Deferred rows stay out of the current parity push until a real consumer needs them.
+  - [ ] `UseCitations`
+  - [ ] `UseFooters`
+  - [ ] `UseGlobalization`
+  - [ ] `UsePragmaLines`
+- [ ] Renderer/writer/security seams are still incomplete.
+  - [ ] Build source-aware extension seams for custom block/inlines, transforms, renderers, and writers.
+  - [ ] Separate raw HTML grammar from policy: CommonMark parsing, GFM tag filtering, OfficeIMO allow/strip/escape/sanitize modes, URL policy, source metadata, and Markdown writing.
+  - [ ] Bound renderer-owned rows before parser work starts: `UseDiagrams`, `UseFigures`, `UseMathematics`, `UseMediaLinks`, and `UseReferralLinks`.
+- [ ] Performance parity is intentionally last.
+  - [ ] Add representative README/docs/chat corpora.
+  - [ ] Compare parse, parse-with-syntax, HTML render, Markdown write, transforms, source edits, allocations, and throughput against Markdig after the moving parser/source/writer contracts settle.
+
 ## Promotion Gate
 
 Do not move an extension row to `Covered` until each applicable box is true.
