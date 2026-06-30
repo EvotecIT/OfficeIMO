@@ -574,6 +574,10 @@ just to reserve names.
   - [x] Write simple table-level `tblBorders` by expanding outer and inside
     table edges to per-cell `TC80` `Brc80` values, then reload them through the
     legacy reader while keeping direct cell borders as explicit overrides.
+  - [x] Write authored `TableGrid` table-style borders by expanding supported
+    style-level border formatting to native DOC `TC80` values, while importing
+    plain legacy DOC tables as `TableNormal` so source tables do not gain
+    default OfficeIMO borders on re-save.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.

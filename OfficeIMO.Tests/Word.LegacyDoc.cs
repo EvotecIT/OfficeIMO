@@ -48,6 +48,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("B1", table.Rows[0].Cells[1].Paragraphs[0].Text);
             Assert.Equal("A2", table.Rows[1].Cells[0].Paragraphs[0].Text);
             Assert.Equal("B2", table.Rows[1].Cells[1].Paragraphs[0].Text);
+            Assert.Equal(WordTableStyle.TableNormal, table.Style);
         }
 
         [Fact]
@@ -2226,6 +2227,63 @@ namespace OfficeIMO.Tests {
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 WordTableCell cell = Assert.Single(row.Cells);
                 Assert.Equal("Normal", cell.Paragraphs[0].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocImportedPlainTableWithoutDefaultTableGridBorders() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Load(new MemoryStream(LegacyDocTestBuilder.CreateSimpleDocWithTable()))) {
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableCell cell = reloadedTable.Rows[0].Cells[0];
+                Assert.Equal("A1", cell.Paragraphs[0].Text);
+                Assert.Null(cell.Borders.TopStyle);
+                Assert.Null(cell.Borders.LeftStyle);
+                Assert.Null(cell.Borders.BottomStyle);
+                Assert.Null(cell.Borders.RightStyle);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableGridStyleBordersAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
+                    table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal(BorderValues.Single, reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
+                Assert.Equal(4U, reloadedTable.Rows[0].Cells[0].Borders.TopSize?.Value);
+                Assert.Equal(BorderValues.Single, reloadedTable.Rows[0].Cells[0].Borders.RightStyle);
+                Assert.Equal(4U, reloadedTable.Rows[0].Cells[0].Borders.RightSize?.Value);
+                Assert.Equal(BorderValues.Single, reloadedTable.Rows[0].Cells[0].Borders.BottomStyle);
+                Assert.Equal(4U, reloadedTable.Rows[0].Cells[0].Borders.BottomSize?.Value);
+                Assert.Equal(BorderValues.Single, reloadedTable.Rows[1].Cells[1].Borders.BottomStyle);
+                Assert.Equal(4U, reloadedTable.Rows[1].Cells[1].Borders.BottomSize?.Value);
             } finally {
                 DeleteIfExists(docPath);
             }

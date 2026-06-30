@@ -177,7 +177,7 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            WordTable table = section.AddTable(rowCount, columnCount, WordTableStyle.TableGrid);
+            WordTable table = section.AddTable(rowCount, columnCount, WordTableStyle.TableNormal);
             LegacyDocTableAlignment? tableAlignment = tableBlock.Rows
                 .Select(row => row.TableAlignment)
                 .FirstOrDefault(alignment => alignment.HasValue);

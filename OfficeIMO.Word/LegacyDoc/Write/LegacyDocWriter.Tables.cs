@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
@@ -905,6 +906,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocTableBorders ReadSupportedTableBorders(TableProperties? tableProperties) {
             TableBorders? borders = tableProperties?.GetFirstChild<TableBorders>();
+            if (borders != null) {
+                return ReadSupportedTableBorders(borders);
+            }
+
+            return ReadSupportedTableStyleBorders(tableProperties?.GetFirstChild<TableStyle>());
+        }
+
+        private static LegacyDocTableBorders ReadSupportedTableStyleBorders(TableStyle? tableStyle) {
+            string? styleId = tableStyle?.Val?.Value;
+            if (!string.Equals(styleId, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
+                return default;
+            }
+
+            Style styleDefinition = WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
+            TableBorders? borders = styleDefinition.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>();
             return borders == null ? default : ReadSupportedTableBorders(borders);
         }
 
