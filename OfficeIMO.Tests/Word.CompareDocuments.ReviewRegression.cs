@@ -138,6 +138,110 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void TableOfContentRefreshIndexCombinesSplitComplexIndexInstruction() {
+            string filePath = Path.Combine(_directoryWithFiles, "IndexRefreshSplitComplexInstruction.docx");
+
+            using WordDocument document = WordDocument.Create(filePath);
+            WordTableOfContent index = document.AddTableOfContent();
+            ReplaceIndexInstructionWithSplitComplexField(index);
+            AddIndexEntryParagraph(document, "Alpha topic", " XE \"Alpha\" \\f \"A\" ");
+            AddIndexEntryParagraph(document, "Beta topic", " XE \"Beta\" \\f \"B\" ");
+
+            WordIndexRefreshReport report = index.RefreshIndex("Split Complex Index");
+
+            WordIndexEntry entry = Assert.Single(report.Entries);
+            Assert.Equal("Alpha", entry.Term);
+            Assert.Equal(2, report.ColumnCount);
+            Assert.Contains("Alpha", TocText(index));
+            Assert.DoesNotContain("Beta", TocText(index));
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceRedlinesReviewFindings() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_review_in_place_source.docx");
+            CreateRevisionRegressionDocument(sourcePath);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_review_in_place_target.docx");
+            CreateRevisionRegressionDocument(targetPath, "New review text");
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_review_in_place_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "Redline Bot",
+                    ComparisonOptions = new WordComparisonOptions {
+                        CompareGeneratedIds = false,
+                        CompareVolatileMetadata = false,
+                        IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.Revision }
+                    }
+                });
+
+            Assert.Contains(result.Findings, finding => finding.Scope == WordComparisonScope.Revision);
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Assert.Contains("Tracked Review Changes", redline._document.Body!.InnerText, StringComparison.Ordinal);
+            Assert.Contains(redline._document.Body!.Descendants<InsertedRun>(), run =>
+                run.Author?.Value == "Redline Bot" &&
+                run.InnerText.Contains("New review text", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceAllowsSignedTargetCopies() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_signed_target_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Original text");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_signed_target_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Changed text");
+                document.Save(false);
+            }
+
+            AddDigitalSignatureMetadata(targetPath, CreateSignatureXml());
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_signed_target_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Assert.True(redline.InspectSignatures().HasSignatures);
+            Assert.Contains(redline._document.Body!.Descendants<InsertedRun>(), run => run.InnerText.Contains("Changed text", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void UpdateFieldsAndGetReportParsesNumericPictureBeforeTrailingFormatSwitches() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.NumericPictureBeforeMergeFormat.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document._document.Body!.Append(new Paragraph(
+                    new SimpleField(new Run(new Text("stale") { Space = SpaceProcessingModeValues.Preserve })) {
+                        Instruction = " PAGE \\# \"000\" \\* MERGEFORMAT "
+                    }));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                WordFieldUpdateResult update = Assert.Single(report.Results);
+                Assert.Equal(WordFieldUpdateStatus.Updated, update.Status);
+                Assert.Equal("001", update.ResultText);
+                Assert.Equal(0, report.ParseErrorCount);
+            }
+        }
+
+        [Fact]
         public void CompareStructureInPlaceRedlineKeepsConsecutiveDeletedParagraphOrder() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_paragraph_order_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
@@ -346,6 +450,24 @@ namespace OfficeIMO.Tests {
                 new Run(new FieldCode("C \\f \"A\" \\h ") { Space = SpaceProcessingModeValues.Preserve }),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                 new Run(new Text("Stale contents") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+        }
+
+        private static void ReplaceIndexInstructionWithSplitComplexField(WordTableOfContent index) {
+            SimpleField field = index.SdtBlock.Descendants<SimpleField>().First();
+            Paragraph paragraph = field.Ancestors<Paragraph>().First();
+            foreach (SimpleField indexField in index.SdtBlock.Descendants<SimpleField>().ToList()) {
+                indexField.Remove();
+            }
+
+            paragraph.RemoveAllChildren<Run>();
+            paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" IND") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldCode("EX \\f \"A\" ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldCode("\\c \"2\" ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("Stale index") { Space = SpaceProcessingModeValues.Preserve }),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
         }
 

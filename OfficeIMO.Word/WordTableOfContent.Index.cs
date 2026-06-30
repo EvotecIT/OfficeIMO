@@ -451,6 +451,15 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            foreach (Paragraph paragraph in _sdtBlock.Descendants<Paragraph>()) {
+                foreach (string instruction in EnumerateComplexFieldInstructions(paragraph)) {
+                    IndexRefreshOptions? options = GetIndexRefreshOptions(instruction);
+                    if (options != null) {
+                        return options.Value;
+                    }
+                }
+            }
+
             foreach (FieldCode fieldCode in _sdtBlock.Descendants<FieldCode>()) {
                 IndexRefreshOptions? options = GetIndexRefreshOptions(fieldCode.Text ?? string.Empty);
                 if (options != null) {
