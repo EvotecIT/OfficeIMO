@@ -188,9 +188,7 @@ namespace OfficeIMO.Word {
                 var matchingParts = parts
                     .Where(part => string.Equals(GetCustomXmlStoreItemId(part), storeItemId, StringComparison.OrdinalIgnoreCase))
                     .ToList();
-                if (matchingParts.Count > 0) {
-                    parts = matchingParts;
-                }
+                parts = matchingParts;
             }
 
             foreach (CustomXmlPart part in parts) {
