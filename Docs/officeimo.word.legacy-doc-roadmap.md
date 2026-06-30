@@ -285,9 +285,15 @@ just to reserve names.
   - [x] Project simple palette-backed direct PAPX paragraph shading from DOC
     `sprmPShd80` into normal OfficeIMO paragraphs with synthetic legacy DOC
     fixture proof.
+  - [x] Project simple palette-backed direct PAPX paragraph borders from DOC
+    `sprmPBrc*80` into normal OfficeIMO paragraphs with synthetic legacy DOC
+    fixture proof.
   - [x] Project simple palette-backed stylesheet paragraph shading from DOC
     `sprmPShd80` into custom DOCX style definitions with synthetic legacy DOC
     fixture proof.
+  - [x] Project simple palette-backed stylesheet paragraph borders from DOC
+    `sprmPBrc*80` into built-in DOCX style definitions with synthetic legacy
+    DOC fixture proof.
   - [x] Project direct PAPX paragraph tab-stop changes, including clear stops,
     into normal OfficeIMO paragraph `TabStops` with synthetic legacy DOC fixture
     proof.
@@ -484,10 +490,10 @@ just to reserve names.
   - [x] Write simple palette-backed paragraph shading with `sprmPShd80`, then
     reload it through the legacy reader while blocking non-palette fill colors
     before bytes are committed.
-  - [x] Write simple palette-backed paragraph borders with `sprmPBrc*80`
-    `Brc80` records, then reload top/left/bottom/right borders through the
-    legacy reader while blocking unsupported border styles and non-palette
-    colors before bytes are committed.
+  - [x] Write simple palette-backed direct and style-level paragraph borders
+    with `sprmPBrc*80` `Brc80` records, then reload top/left/bottom/right
+    borders through the legacy reader while blocking unsupported border styles
+    and non-palette colors before bytes are committed.
   - [x] Write built-in paragraph style PAPX records and reload them through
     the legacy reader.
   - [x] Write supported custom paragraph styles as native DOC STSH records,

@@ -116,6 +116,10 @@ namespace OfficeIMO.Word {
                     Fill = paragraphFormat.ParagraphShading.Value.FillColorHex!
                 });
             }
+
+            if (paragraphFormat.ParagraphBorders != null && paragraphFormat.ParagraphBorders.Value.HasAny) {
+                ReplaceStyleProperty(properties, CreateLegacyDocStyleParagraphBorders(paragraphFormat.ParagraphBorders.Value));
+            }
         }
 
         private static void MergeLegacyDocBuiltInStyleRunFormatting(Style style, LegacyDocCharacterFormat characterFormat) {

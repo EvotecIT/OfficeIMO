@@ -76,7 +76,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ReadSupportedBuiltInOutlineLevel(outlineLevel, builtInStyleIndex);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, alignment, spacing, indentation, pagination flags, tab stops, and palette-backed paragraph shading. Unsupported paragraph property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, alignment, spacing, indentation, pagination flags, tab stops, palette-backed paragraph shading, and palette-backed paragraph borders. Unsupported paragraph property: {property.LocalName}.");
                 }
             }
 

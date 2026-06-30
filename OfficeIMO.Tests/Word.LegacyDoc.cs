@@ -767,6 +767,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(ShadingPatternValues.Clear, shading.Val!.Value);
             Assert.Equal("auto", shading.Color!.Value);
             Assert.Equal("ff0000", shading.Fill!.Value);
+            ParagraphBorders paragraphBorders = Assert.IsType<ParagraphBorders>(paragraphProperties.GetFirstChild<ParagraphBorders>());
+            Assert.Equal(BorderValues.Single, paragraphBorders.TopBorder!.Val!.Value);
+            Assert.Equal("ff0000", paragraphBorders.TopBorder.Color!.Value);
+            Assert.Equal(4U, paragraphBorders.TopBorder.Size!.Value);
+            Assert.Equal(2U, paragraphBorders.TopBorder.Space!.Value);
             StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(headingStyle.StyleRunProperties);
             Assert.NotNull(runProperties.GetFirstChild<Bold>());
             Assert.NotNull(runProperties.GetFirstChild<BoldComplexScript>());
@@ -2034,7 +2039,13 @@ namespace OfficeIMO.Tests {
                     style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
                     style.Append(new StyleParagraphProperties(
                         new Justification { Val = JustificationValues.Center },
-                        new SpacingBetweenLines { Before = "120", After = "240" }));
+                        new SpacingBetweenLines { Before = "120", After = "240" },
+                        new ParagraphBorders(new TopBorder {
+                            Val = BorderValues.Single,
+                            Color = "FF0000",
+                            Size = 4U,
+                            Space = 2U
+                        })));
                     style.Append(new StyleRunProperties(
                         new Bold(),
                         new Color { Val = "FF0000" },
@@ -2064,6 +2075,11 @@ namespace OfficeIMO.Tests {
                 SpacingBetweenLines spacing = Assert.IsType<SpacingBetweenLines>(paragraphProperties.GetFirstChild<SpacingBetweenLines>());
                 Assert.Equal("120", spacing.Before!.Value);
                 Assert.Equal("240", spacing.After!.Value);
+                ParagraphBorders paragraphBorders = Assert.IsType<ParagraphBorders>(paragraphProperties.GetFirstChild<ParagraphBorders>());
+                Assert.Equal(BorderValues.Single, paragraphBorders.TopBorder!.Val!.Value);
+                Assert.Equal("ff0000", paragraphBorders.TopBorder.Color!.Value);
+                Assert.Equal(4U, paragraphBorders.TopBorder.Size!.Value);
+                Assert.Equal(2U, paragraphBorders.TopBorder.Space!.Value);
 
                 StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.StyleRunProperties);
                 Assert.NotNull(runProperties.GetFirstChild<Bold>());
@@ -4674,6 +4690,7 @@ namespace OfficeIMO.Tests {
                             CreateParagraphSprm(0xA413, 0xF0, 0x00),
                             CreateParagraphSprm(0xA414, 0x78, 0x00),
                             CreateParagraphSprm(0x442D, 0xC0, 0x00),
+                            CreateParagraphSprm(0x6424, CreateBrc80(sizeEighthPoints: 4, borderType: 0x01, colorIndex: 6, spacePoints: 2)),
                             CreateParagraphTabStopsSprm(
                                 Array.Empty<int>(),
                                 (1440, 0, 0),
