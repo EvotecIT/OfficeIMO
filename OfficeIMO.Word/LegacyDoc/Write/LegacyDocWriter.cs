@@ -144,6 +144,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!);
             LegacyDocWritableEndnotes endnotes = ReadSupportedEndnotes(mainPart!);
             LegacyDocWritableStyleSheet styleSheet = CreateWritableStyleSheet(mainPart!, body);
+            IReadOnlyDictionary<string, Style> tableStyleDefinitions = ReadTableStyleDefinitions(mainPart!);
             LegacyDocSectionFormat finalSectionFormat = LegacyDocSectionFormat.Default;
             var sections = new List<LegacyDocWritableSection>();
             SectionMarkValues? pendingSectionBreakType = null;
@@ -165,7 +166,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Table table:
-                        AppendTable(text, runs, paragraphFormats, table, styleSheet.StyleIndexes, footnotes, endnotes);
+                        AppendTable(text, runs, paragraphFormats, table, styleSheet.StyleIndexes, tableStyleDefinitions, footnotes, endnotes);
                         bodyContentCount++;
                         break;
                     case SectionProperties sectionProperties:

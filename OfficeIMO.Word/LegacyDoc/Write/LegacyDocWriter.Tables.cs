@@ -6,8 +6,8 @@ using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static void AppendTable(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, Table table, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
-            ThrowIfUnsupportedTableShape(table);
+        private static void AppendTable(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, Table table, IReadOnlyDictionary<string, ushort> styleIndexes, IReadOnlyDictionary<string, Style> tableStyleDefinitions, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
+            ThrowIfUnsupportedTableShape(table, tableStyleDefinitions);
 
             TableRow[] rows = table.Elements<TableRow>().ToArray();
             if (rows.Length == 0) {
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? tableAutofit = ReadSupportedTableAutofit(tableProperties);
             LegacyDocTableCellMargins? defaultCellMargins = ReadSupportedTableDefaultCellMargins(tableProperties);
             int? defaultCellSpacingTwips = ReadSupportedTableDefaultCellSpacing(tableProperties);
-            LegacyDocTableBorders tableBorders = ReadSupportedTableBorders(tableProperties);
+            LegacyDocTableBorders tableBorders = ReadSupportedTableBorders(tableProperties, tableStyleDefinitions);
             IReadOnlyList<int> gridColumnWidthsTwips = ReadSupportedTableGridWidths(table.GetFirstChild<TableGrid>());
             for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
                 TableRow row = rows[rowIndex];
@@ -82,11 +82,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             text.Append('\r');
         }
 
-        private static void ThrowIfUnsupportedTableShape(Table table) {
+        private static void ThrowIfUnsupportedTableShape(Table table, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
             foreach (OpenXmlElement child in table.ChildElements) {
                 switch (child) {
                     case TableProperties tableProperties:
-                        ThrowIfUnsupportedTableProperties(tableProperties);
+                        ThrowIfUnsupportedTableProperties(tableProperties, tableStyleDefinitions);
                         break;
                     case TableGrid tableGrid:
                         ThrowIfUnsupportedTableGrid(tableGrid);
@@ -99,13 +99,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableProperties(TableProperties tableProperties) {
+        private static void ThrowIfUnsupportedTableProperties(TableProperties tableProperties, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
             foreach (OpenXmlElement property in tableProperties.ChildElements) {
                 switch (property) {
                     case TableStyle tableStyle:
-                        if (!IsSupportedNativeDocTableStyle(tableStyle.Val?.Value)) {
-                            throw new NotSupportedException("Native DOC saving supports simple tables only with no-op table styles or the TableGrid table style.");
-                        }
+                        ReadSupportedTableStyleBorders(tableStyle, tableStyleDefinitions);
                         break;
                     case TableWidth tableWidth:
                         ReadSupportedTablePreferredWidth(tableWidth);
@@ -134,17 +132,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table property: {property.LocalName}.");
                 }
             }
-        }
-
-        private static bool IsSupportedNativeDocTableStyle(string? styleId) {
-            if (string.IsNullOrWhiteSpace(styleId)) {
-                return true;
-            }
-
-            string value = styleId!.Trim();
-            return string.Equals(value, "TableGrid", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(value, "TableNormal", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(value, "NormalTable", StringComparison.OrdinalIgnoreCase);
         }
 
         private static void ThrowIfUnsupportedTableGrid(TableGrid tableGrid) {
@@ -912,24 +899,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ReadSupportedTableCellBorder(borders.RightBorder));
         }
 
-        private static LegacyDocTableBorders ReadSupportedTableBorders(TableProperties? tableProperties) {
+        private static LegacyDocTableBorders ReadSupportedTableBorders(TableProperties? tableProperties, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
             TableBorders? borders = tableProperties?.GetFirstChild<TableBorders>();
             if (borders != null) {
                 return ReadSupportedTableBorders(borders);
             }
 
-            return ReadSupportedTableStyleBorders(tableProperties?.GetFirstChild<TableStyle>());
-        }
-
-        private static LegacyDocTableBorders ReadSupportedTableStyleBorders(TableStyle? tableStyle) {
-            string? styleId = tableStyle?.Val?.Value;
-            if (!string.Equals(styleId, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
-                return default;
-            }
-
-            Style styleDefinition = WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
-            TableBorders? borders = styleDefinition.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>();
-            return borders == null ? default : ReadSupportedTableBorders(borders);
+            return ReadSupportedTableStyleBorders(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
         }
 
         private static LegacyDocTableBorders ReadSupportedTableBorders(TableBorders borders) {

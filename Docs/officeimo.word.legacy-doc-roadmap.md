@@ -633,6 +633,11 @@ just to reserve names.
     style-level border formatting to native DOC `TC80` values, while importing
     plain legacy DOC tables as `TableNormal` so source tables do not gain
     default OfficeIMO borders on re-save.
+  - [x] Write custom table styles whose only table-level formatting is
+    supported palette-backed borders by expanding the style borders to native
+    DOC `TC80` values, while continuing to block conditional, paragraph, run,
+    non-palette, or otherwise richer visual table styles before bytes are
+    committed.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.

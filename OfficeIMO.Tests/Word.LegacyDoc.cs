@@ -3097,6 +3097,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomTableStyleBordersAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocPaletteBorderTable";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Palette Border Table" });
+                    style.Append(new BasedOn { Val = "TableNormal" });
+                    style.Append(new StyleTableProperties(
+                        new TableBorders(
+                            new TopBorder { Val = BorderValues.Single, Color = "ff0000", Size = 4U, Space = 0U },
+                            new LeftBorder { Val = BorderValues.Single, Color = "0000ff", Size = 4U, Space = 0U },
+                            new BottomBorder { Val = BorderValues.Single, Color = "00ff00", Size = 4U, Space = 0U },
+                            new RightBorder { Val = BorderValues.Single, Color = "000000", Size = 4U, Space = 0U },
+                            new InsideHorizontalBorder { Val = BorderValues.Single, Color = "c0c0c0", Size = 4U, Space = 0U },
+                            new InsideVerticalBorder { Val = BorderValues.Single, Color = "808080", Size = 4U, Space = 0U })));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                    WordTable table = document.AddTable(2, 2, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableCell firstCell = reloadedTable.Rows[0].Cells[0];
+                Assert.Equal("A1", firstCell.Paragraphs[0].Text);
+                Assert.Equal(BorderValues.Single, firstCell.Borders.TopStyle);
+                Assert.Equal("ff0000", firstCell.Borders.TopColorHex);
+                Assert.Equal(BorderValues.Single, firstCell.Borders.LeftStyle);
+                Assert.Equal("0000ff", firstCell.Borders.LeftColorHex);
+                Assert.Equal(BorderValues.Single, firstCell.Borders.BottomStyle);
+                Assert.Equal("c0c0c0", firstCell.Borders.BottomColorHex);
+                Assert.Equal(BorderValues.Single, firstCell.Borders.RightStyle);
+                Assert.Equal("808080", firstCell.Borders.RightColorHex);
+
+                WordTableCell lastCell = reloadedTable.Rows[1].Cells[1];
+                Assert.Equal("B2", lastCell.Paragraphs[0].Text);
+                Assert.Equal(BorderValues.Single, lastCell.Borders.BottomStyle);
+                Assert.Equal("00ff00", lastCell.Borders.BottomColorHex);
+                Assert.Equal(BorderValues.Single, lastCell.Borders.RightStyle);
+                Assert.Equal("000000", lastCell.Borders.RightColorHex);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedTableCellRunsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
