@@ -472,26 +472,31 @@ namespace OfficeIMO.Word {
         }
 
         private static void AddLegacyDocTableCell(WordTableCell cell, LegacyDocTableCell sourceCell, LegacyDocStyleSheet styleSheet) {
-            if (sourceCell.Runs.Count == 0) {
-                WordParagraph emptyParagraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: true);
-                ApplyLegacyDocParagraphFormatting(emptyParagraph, sourceCell.Format, styleSheet);
+            for (int index = 0; index < sourceCell.Paragraphs.Count; index++) {
+                AddLegacyDocTableCellParagraph(cell, sourceCell.Paragraphs[index], styleSheet, removeExistingParagraphs: index == 0);
+            }
+        }
+
+        private static void AddLegacyDocTableCellParagraph(WordTableCell cell, LegacyDocTableCellParagraph sourceParagraph, LegacyDocStyleSheet styleSheet, bool removeExistingParagraphs) {
+            if (sourceParagraph.Runs.Count == 0) {
+                WordParagraph emptyParagraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: removeExistingParagraphs);
+                ApplyLegacyDocParagraphFormatting(emptyParagraph, sourceParagraph.Format, styleSheet);
                 return;
             }
 
-            LegacyDocTextRun firstRun = sourceCell.Runs[0];
+            LegacyDocTextRun firstRun = sourceParagraph.Runs[0];
             WordParagraph paragraph;
-            if (!ContainsLegacyDocSpecialRunCharacter(firstRun.Text)) {
-                paragraph = cell.AddParagraph(firstRun.Text, removeExistingParagraphs: true);
-                ApplyLegacyDocRunFormatting(paragraph, firstRun);
-            } else {
-                paragraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: true);
+            if (ContainsLegacyDocSpecialRunCharacter(firstRun.Text)) {
+                paragraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: removeExistingParagraphs);
                 AddLegacyDocRunContent(paragraph, firstRun);
+            } else {
+                paragraph = cell.AddParagraph(firstRun.Text, removeExistingParagraphs: removeExistingParagraphs);
+                ApplyLegacyDocRunFormatting(paragraph, firstRun);
             }
 
-            ApplyLegacyDocParagraphFormatting(paragraph, sourceCell.Format, styleSheet);
-
-            for (int index = 1; index < sourceCell.Runs.Count; index++) {
-                AddLegacyDocRunContent(paragraph, sourceCell.Runs[index]);
+            ApplyLegacyDocParagraphFormatting(paragraph, sourceParagraph.Format, styleSheet);
+            for (int index = 1; index < sourceParagraph.Runs.Count; index++) {
+                AddLegacyDocRunContent(paragraph, sourceParagraph.Runs[index]);
             }
         }
 

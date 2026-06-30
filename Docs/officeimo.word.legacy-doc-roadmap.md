@@ -368,6 +368,9 @@ just to reserve names.
   - [x] Preserve simple palette-backed table-level borders by expanding normal
     `tblBorders` outer and inside edges into DOC `TC80` `Brc80` cell borders
     during native DOC save/reload.
+  - [x] Project simple multi-paragraph DOC table cells into multiple
+    `WordTableCell` paragraphs instead of splitting the table at the in-cell
+    paragraph mark.
   - [ ] Add table formatting, merged cells, and nested tables as separate
     fixture-backed slices.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as

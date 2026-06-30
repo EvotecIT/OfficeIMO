@@ -66,6 +66,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsMultiParagraphTableCell() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithMultiParagraphTableCell();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            WordTable table = Assert.Single(result.Document.Tables);
+            WordTableRow row = Assert.Single(table.Rows);
+            Assert.Equal(2, row.Cells.Count);
+            Assert.Equal(2, row.Cells[0].Paragraphs.Count);
+            Assert.Equal("A1 first", row.Cells[0].Paragraphs[0].Text);
+            Assert.Equal("A1 second", row.Cells[0].Paragraphs[1].Text);
+            Assert.Equal("B1", row.Cells[1].Paragraphs[0].Text);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsTableCellWidthsFromRowDefinition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithTableCellWidths();
 
@@ -3254,6 +3271,22 @@ namespace OfficeIMO.Tests {
 
             internal static byte[] CreateUnicodeDocWithExplicitTableMarkersAndTrailingEmptyCell() {
                 const string text = "A1\a\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(text, textOffset, papxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithMultiParagraphTableCell() {
+                const string text = "A1 first\rA1 second\aB1\a\a\r";
                 const int textOffset = 0x200;
                 const int papxFkpOffset = 0x400;
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(text, textOffset, papxFkpOffset);

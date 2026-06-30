@@ -375,6 +375,32 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
     internal sealed class LegacyDocTableCell {
         internal LegacyDocTableCell(IReadOnlyList<LegacyDocTextRun> runs, LegacyDocParagraphFormat format) {
+            Paragraphs = new[] { new LegacyDocTableCellParagraph(runs, format) };
+            Runs = runs;
+            Format = format;
+            Text = string.Concat(Paragraphs.Select(paragraph => paragraph.Text));
+        }
+
+        internal LegacyDocTableCell(IReadOnlyList<LegacyDocTableCellParagraph> paragraphs) {
+            Paragraphs = paragraphs.Count == 0
+                ? new[] { new LegacyDocTableCellParagraph(Array.Empty<LegacyDocTextRun>(), LegacyDocParagraphFormat.Default) }
+                : paragraphs.ToArray();
+            Runs = Paragraphs[0].Runs;
+            Format = Paragraphs[0].Format;
+            Text = string.Concat(Paragraphs.Select(paragraph => paragraph.Text));
+        }
+
+        internal string Text { get; }
+
+        internal IReadOnlyList<LegacyDocTableCellParagraph> Paragraphs { get; }
+
+        internal IReadOnlyList<LegacyDocTextRun> Runs { get; }
+
+        internal LegacyDocParagraphFormat Format { get; }
+    }
+
+    internal sealed class LegacyDocTableCellParagraph {
+        internal LegacyDocTableCellParagraph(IReadOnlyList<LegacyDocTextRun> runs, LegacyDocParagraphFormat format) {
             Runs = runs;
             Format = format;
             Text = string.Concat(runs.Select(run => run.Text));
