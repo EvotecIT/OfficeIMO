@@ -1677,6 +1677,11 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
+            if (paragraphFormat.VerticalCharacterAlignment != null && TryMapVerticalCharacterAlignment(paragraphFormat.VerticalCharacterAlignment.Value, out VerticalTextAlignmentValues verticalCharacterAlignment)) {
+                properties.Append(new TextAlignment { Val = verticalCharacterAlignment });
+                hasProperties = true;
+            }
+
             if (paragraphFormat.ParagraphShading != null && !string.IsNullOrEmpty(paragraphFormat.ParagraphShading.Value.FillColorHex)) {
                 properties.Append(new Shading {
                     Val = ShadingPatternValues.Clear,

@@ -3893,6 +3893,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleTextAlignmentAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocTextAlignmentStyle";
+            const string projectedStyleId = "LegacyDocNativeDOCTextAlignmentStyle";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Text Alignment Style" });
+                    style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
+                    style.Append(new StyleParagraphProperties(new TextAlignment { Val = VerticalTextAlignmentValues.Bottom }));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+                    document.AddParagraph("Styled text alignment").SetStyleId(styleId);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Styled text alignment", paragraph.Text);
+                Assert.Equal(projectedStyleId, paragraph.StyleId);
+
+                Styles styles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style customStyle = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == projectedStyleId);
+                StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(customStyle.StyleParagraphProperties);
+                TextAlignment textAlignment = Assert.IsType<TextAlignment>(paragraphProperties.GetFirstChild<TextAlignment>());
+                Assert.Equal(VerticalTextAlignmentValues.Bottom, textAlignment.Val!.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleNumberingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string styleId = "NativeDocNumberedStyle";
@@ -3950,7 +3985,8 @@ namespace OfficeIMO.Tests {
 
                     headingStyle.StyleParagraphProperties = new StyleParagraphProperties(
                         new Justification { Val = JustificationValues.Center },
-                        new SpacingBetweenLines { Before = "120", After = "240" });
+                        new SpacingBetweenLines { Before = "120", After = "240" },
+                        new TextAlignment { Val = VerticalTextAlignmentValues.Bottom });
                     headingStyle.StyleRunProperties = new StyleRunProperties(
                         new Bold(),
                         new Underline { Val = UnderlineValues.Single },
@@ -3977,6 +4013,7 @@ namespace OfficeIMO.Tests {
                 SpacingBetweenLines spacing = Assert.IsType<SpacingBetweenLines>(paragraphProperties.GetFirstChild<SpacingBetweenLines>());
                 Assert.Equal("120", spacing.Before!.Value);
                 Assert.Equal("240", spacing.After!.Value);
+                Assert.Equal(VerticalTextAlignmentValues.Bottom, paragraphProperties.GetFirstChild<TextAlignment>()!.Val!.Value);
 
                 StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(headingStyleAfterReload.StyleRunProperties);
                 Assert.NotNull(runProperties.GetFirstChild<Bold>());
