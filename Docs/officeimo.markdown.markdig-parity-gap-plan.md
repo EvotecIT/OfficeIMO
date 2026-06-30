@@ -91,6 +91,7 @@ Current active row: `UseDefinitionLists`.
 - [ ] Broaden remaining lazy-continuation cases.
   - [ ] Paragraph-after-blank variants not already covered.
   - [ ] Multiple lazy lines after nested blocks.
+    - [x] Multiple lazy lines inside a nested blockquote now stay in the definition body while a following unindented list closes the definition list like Markdig, with syntax/native source spans and writer reparse proof.
   - [ ] Remaining list-like and table-like interruption starts, with pipe tables on and off.
 - [ ] Broaden nested-body cases.
   - [ ] Blockquote source breadth beyond the already-covered heading/thematic/table-shaped cases.
