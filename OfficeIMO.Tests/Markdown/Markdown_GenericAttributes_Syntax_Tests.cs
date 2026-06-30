@@ -159,6 +159,50 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void SingleCharacterId_GenericAttributes_Remain_Literal_Without_Metadata() {
+        const string markdown = "# Heading {#h .wide}\n\nParagraph {#p .lead}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var headingBlock = Assert.IsType<HeadingBlock>(document.Blocks[0]);
+        var paragraphBlock = Assert.IsType<ParagraphBlock>(document.Blocks[1]);
+
+        Assert.True(headingBlock.Attributes.IsEmpty);
+        Assert.True(paragraphBlock.Attributes.IsEmpty);
+        Assert.Equal("Heading {#h .wide}", headingBlock.Text);
+        Assert.Equal("Paragraph {#p .lead}", paragraphBlock.Inlines.RenderMarkdown());
+        Assert.Equal(
+            "<h1>Heading {#h .wide}</h1><p>Paragraph {#p .lead}</p>",
+            document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            }));
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        var heading = Assert.IsType<HeadingBlock>(result.Document.Blocks[0]);
+        var paragraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[1]);
+
+        Assert.True(heading.Attributes.IsEmpty);
+        Assert.True(paragraph.Attributes.IsEmpty);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+
+        Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
+    }
+
+    [Fact]
     public void Standalone_GenericAttributes_Before_ReferenceDefinition_Create_Attributed_Paragraph() {
         const string markdown = "{#ref .wide}\n[id]: https://example.com\n\n[site][id]\n";
         var options = MarkdownReaderOptions.CreatePortableProfile();
@@ -628,6 +672,66 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.True(roundtrip.IsLossless);
         Assert.Empty(roundtrip.Diagnostics);
         Assert.Equal("```{#sample .snippet}\nvar x = 1;\n```\n", roundtrip.Markdown);
+    }
+
+    [Fact]
+    public void FencedCode_InfoString_SingleCharacterId_Remains_Language_Without_Metadata() {
+        const string markdown = "```{#h .wide}\nvar x = 1;\n```\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("{#h", codeBlock.Language);
+        Assert.Equal("{#h .wide}", codeBlock.InfoString);
+        Assert.True(codeBlock.Attributes.IsEmpty);
+        Assert.True(codeBlock.FenceInfo.GenericAttributes.IsEmpty);
+        Assert.Equal(
+            "<pre><code class=\"language-{#h\">var x = 1;\n</code></pre>",
+            document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            }));
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var code = Assert.Single(result.FinalSyntaxTree.Children);
+        var openingFence = Assert.Single(code.Children, node => node.Kind == MarkdownSyntaxKind.CodeFenceOpening);
+        var info = Assert.Single(code.Children, node => node.Kind == MarkdownSyntaxKind.CodeFenceInfo);
+        var content = Assert.Single(code.Children, node => node.Kind == MarkdownSyntaxKind.CodeContent);
+        var closingFence = Assert.Single(code.Children, node => node.Kind == MarkdownSyntaxKind.CodeFenceClosing);
+
+        Assert.Equal(MarkdownSyntaxKind.CodeBlock, code.Kind);
+        Assert.DoesNotContain(code.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        Assert.Equal("{#h .wide}", info.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), openingFence.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 13), info.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 10), content.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), closingFence.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(info, out var slice));
+        Assert.Equal("{#h .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeCode = Assert.IsType<MarkdownNativeCodeBlock>(Assert.Single(native.Blocks));
+        var infoField = Assert.Single(native.EnumerateBlockSourceFields("infoString"));
+        var selectedField = native.FindBlockSourceFieldAtPosition(1, 4);
+
+        Assert.Equal("{#h", nativeCode.Language);
+        Assert.Null(nativeCode.ElementId);
+        Assert.Empty(nativeCode.Classes);
+        Assert.Same(nativeCode, infoField.Block);
+        Assert.Equal("{#h .wide}", infoField.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 13), infoField.SourceSpan);
+        Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Equal("infoString", selectedField?.Name);
+        Assert.Equal(infoField.SourceSpan, selectedField?.SourceSpan);
     }
 
     [Fact]

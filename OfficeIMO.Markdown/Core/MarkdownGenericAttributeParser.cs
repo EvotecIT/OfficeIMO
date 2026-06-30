@@ -77,9 +77,36 @@ internal static class MarkdownGenericAttributeParser {
     }
 
     internal static bool TryParseAttributeBlock(string? value, out MarkdownAttributeSet attributes) {
+        if (HasInvalidIdToken(value)) {
+            attributes = MarkdownAttributeSet.Empty;
+            return false;
+        }
+
         ParseTokens(value, out var elementId, out var classes, out var attributeMap);
         attributes = MarkdownAttributeSet.Create(elementId, classes, attributeMap);
         return !attributes.IsEmpty;
+    }
+
+    internal static bool HasTrailingAttributeBlockSyntax(string? value, bool requireLeadingWhitespace = false) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return false;
+        }
+
+        int end = value!.Length - 1;
+        while (end >= 0 && char.IsWhiteSpace(value[end])) {
+            end--;
+        }
+
+        if (end < 1 || value[end] != '}') {
+            return false;
+        }
+
+        int start = FindMatchingOpeningBrace(value, end);
+        if (start < 0) {
+            return false;
+        }
+
+        return !requireLeadingWhitespace || start == 0 || char.IsWhiteSpace(value[start - 1]);
     }
 
     internal static void ParseTokens(
@@ -155,6 +182,21 @@ internal static class MarkdownGenericAttributeParser {
         if (!attributes.ContainsKey(trimmed)) {
             attributes[trimmed] = "true";
         }
+    }
+
+    private static bool HasInvalidIdToken(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return false;
+        }
+
+        foreach (var token in Tokenize(value!)) {
+            var trimmed = token.Trim();
+            if (trimmed.Length > 0 && trimmed[0] == '#' && trimmed.Length <= 2) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static int FindMatchingOpeningBrace(string value, int closingBraceIndex) {

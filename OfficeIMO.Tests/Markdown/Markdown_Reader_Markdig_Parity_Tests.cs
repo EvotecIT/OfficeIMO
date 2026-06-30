@@ -316,11 +316,13 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     public static IEnumerable<object[]> GenericAttributesExtensionCases() {
         yield return new object[] { "atx-heading-id-class-title", "# Heading {#intro .wide title=\"Overview\"}" };
+        yield return new object[] { "atx-heading-single-character-id-stays-literal", "# Heading {#h .wide}" };
         yield return new object[] { "atx-heading-hash-suffix-attribute", "# C# {#intro .wide}" };
         yield return new object[] { "atx-heading-closing-marker-before-attribute", "# Heading # {#intro .wide}" };
         yield return new object[] { "atx-heading-attribute-before-closing-marker", "# Heading {#intro .wide} #" };
         yield return new object[] { "setext-heading-id-class-title", "Heading {#intro .wide title=\"Overview\"}\n=======" };
         yield return new object[] { "paragraph-id-class-title", "Paragraph {#intro .wide title=\"Overview\"}" };
+        yield return new object[] { "paragraph-single-character-id-stays-literal", "Paragraph {#p .lead}" };
         yield return new object[] { "paragraph-continuation-standalone-attribute-is-consumed", "Paragraph\n{#intro .wide}" };
         yield return new object[] { "paragraph-hardbreak-continuation-standalone-attribute-is-consumed", "Paragraph  \n{#intro .wide}" };
         yield return new object[] { "paragraph-backslash-hardbreak-continuation-standalone-attribute-is-consumed", "Paragraph\\\n{#intro .wide}" };
@@ -342,12 +344,15 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "asterisk-thematic-break-like-line-is-attributed-paragraph", "*** {#hr .wide}" };
         yield return new object[] { "underscore-thematic-break-like-line-is-attributed-paragraph", "___ {#hr .wide}" };
         yield return new object[] { "standalone-attribute-before-heading", "{#intro .wide}\n# Heading" };
+        yield return new object[] { "standalone-single-character-id-before-setext-heading-stays-literal", "{#h .wide}\nHeading\n=====" };
         yield return new object[] { "standalone-attribute-before-paragraph", "{#intro .wide}\nParagraph" };
         yield return new object[] { "standalone-attribute-before-fenced-code", "{#code .wide}\n```cs\nvar x = 1;\n```" };
         yield return new object[] { "list-contained-standalone-attribute-before-fenced-code", "- item\n\n  {#code .wide}\n  ```cs\n  x\n  ```" };
         yield return new object[] { "blockquote-contained-standalone-attribute-before-fenced-code", "> {#code .wide}\n> ```cs\n> x\n> ```" };
         yield return new object[] { "fenced-code-attribute-only-info-string", "```{#code .wide}\nvar x = 1;\n```" };
+        yield return new object[] { "fenced-code-single-character-id-info-string-stays-language", "```{#h .wide}\nvar x = 1;\n```" };
         yield return new object[] { "fenced-code-language-info-attributes", "```cs {#code .wide}\nvar x = 1;\n```" };
+        yield return new object[] { "fenced-code-language-single-character-id-info-string-ignores-attributes", "```cs {#h .wide}\nvar x = 1;\n```" };
         yield return new object[] { "fenced-code-opaque-info-before-attributes", "```cs linenums {#code .wide}\nvar x = 1;\n```" };
         yield return new object[] { "tilde-fenced-code-attribute-only-info-string", "~~~{#code .wide}\nvar x = 1;\n~~~" };
         yield return new object[] { "standalone-attribute-before-unordered-list", "{#list .wide}\n- item" };

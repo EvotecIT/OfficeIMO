@@ -250,8 +250,12 @@ public sealed class MarkdownCodeFenceInfo {
             ? normalized.Substring(split).Trim()
             : string.Empty;
 
+        var metadataSource = StartsWithInvalidAttributeBlock(normalized)
+            ? string.Empty
+            : additionalInfo;
+
         ParseMetadata(
-            additionalInfo,
+            metadataSource,
             out var elementId,
             out var classes,
             out var attributes,
@@ -277,7 +281,18 @@ public sealed class MarkdownCodeFenceInfo {
         }
 
         int index = 0;
-        return TryReadAttributeBlock(value, ref index, out _);
+        return TryReadAttributeBlock(value, ref index, out var block)
+            && MarkdownGenericAttributeParser.TryParseAttributeBlock(block, out _);
+    }
+
+    private static bool StartsWithInvalidAttributeBlock(string value) {
+        if (value.Length == 0 || value[0] != '{') {
+            return false;
+        }
+
+        int index = 0;
+        return TryReadAttributeBlock(value, ref index, out var block)
+            && !MarkdownGenericAttributeParser.TryParseAttributeBlock(block, out _);
     }
 
     private static string DecodeInfoStringToken(string token) {
@@ -350,26 +365,29 @@ public sealed class MarkdownCodeFenceInfo {
             }
 
             hasExplicitAttributes = true;
+            if (!MarkdownGenericAttributeParser.TryParseAttributeBlock(segment.Value, out var blockAttributes)) {
+                continue;
+            }
+
             if (genericAttributeStart < 0) {
                 genericAttributeStart = segment.StartIndex;
             }
 
             genericAttributeEnd = segment.EndIndex;
-            MarkdownGenericAttributeParser.ParseTokens(segment.Value, out var blockElementId, out var blockClasses, out var blockAttributes);
-            if (string.IsNullOrWhiteSpace(elementId) && !string.IsNullOrWhiteSpace(blockElementId)) {
-                elementId = blockElementId;
+            if (string.IsNullOrWhiteSpace(elementId) && !string.IsNullOrWhiteSpace(blockAttributes.ElementId)) {
+                elementId = blockAttributes.ElementId;
             }
 
-            if (string.IsNullOrWhiteSpace(genericElementId) && !string.IsNullOrWhiteSpace(blockElementId)) {
-                genericElementId = blockElementId;
+            if (string.IsNullOrWhiteSpace(genericElementId) && !string.IsNullOrWhiteSpace(blockAttributes.ElementId)) {
+                genericElementId = blockAttributes.ElementId;
             }
 
-            for (int i = 0; i < blockClasses.Count; i++) {
-                AddClass(parsedClasses, blockClasses[i]);
-                AddClass(parsedGenericClasses, blockClasses[i]);
+            for (int i = 0; i < blockAttributes.Classes.Count; i++) {
+                AddClass(parsedClasses, blockAttributes.Classes[i]);
+                AddClass(parsedGenericClasses, blockAttributes.Classes[i]);
             }
 
-            foreach (var attribute in blockAttributes) {
+            foreach (var attribute in blockAttributes.Attributes) {
                 if (!parsedAttributes.ContainsKey(attribute.Key)) {
                     parsedAttributes[attribute.Key] = attribute.Value;
                 }

@@ -256,14 +256,15 @@ public static partial class MarkdownReader {
         MarkdownReaderOptions options,
         MarkdownReaderState? state) =>
         options?.GenericAttributes == true
-        && state?.SuppressHeadingGenericAttributes == true
-        && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
+        && (state?.SuppressHeadingGenericAttributes == true
+            || !MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
             text,
             out _,
             out _,
             out _,
             out _,
-            requireLeadingWhitespace: true);
+            requireLeadingWhitespace: true))
+        && MarkdownGenericAttributeParser.HasTrailingAttributeBlockSyntax(text, requireLeadingWhitespace: true);
 
     private static SuppressHeadingGenericAttributesScope SuppressHeadingGenericAttributesInListItems(MarkdownReaderState state) =>
         new SuppressHeadingGenericAttributesScope(state);

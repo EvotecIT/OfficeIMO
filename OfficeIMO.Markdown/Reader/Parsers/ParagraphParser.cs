@@ -87,7 +87,7 @@ public static partial class MarkdownReader {
                 var (headingInlineText, headingSourceMap) = JoinParagraphLinesWithSourceMap(contentLines, state.SourceLineOffset + i, options, state);
                 var heading = new HeadingBlock(level, ParseInlines(headingInlineText, options, state, headingSourceMap));
                 if (contentLines.Count > 0
-                    && ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(contentLines[contentLines.Count - 1], options, state)) {
+                    && ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(contentLines, options, state)) {
                     heading.SuppressAutomaticIdentifier();
                 }
                 heading.SetAttributes(headingAttributes);
@@ -169,6 +169,23 @@ public static partial class MarkdownReader {
             }
             doc.Add(paragraph);
             i = j; return true;
+        }
+
+        private static bool ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(
+            IReadOnlyList<string> contentLines,
+            MarkdownReaderOptions options,
+            MarkdownReaderState state) {
+            if (contentLines == null || contentLines.Count == 0) {
+                return false;
+            }
+
+            for (int lineIndex = 0; lineIndex < contentLines.Count; lineIndex++) {
+                if (MarkdownReader.ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(contentLines[lineIndex], options, state)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool IsQuoteContainerParagraph(MarkdownReaderState state, int startIndex, int endExclusiveIndex) {
