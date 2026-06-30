@@ -43,7 +43,9 @@ public sealed class MarkdownNativeCalloutBlock : MarkdownNativeBlock {
         : base(MarkdownNativeBlockKind.Callout, callout, syntaxNode) {
         Callout = callout;
         CalloutKind = callout.Kind;
+        OpeningMarkerSourceSpan = callout.OpeningMarkerSourceSpan ?? FindCalloutChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CalloutOpeningMarker);
         KindSourceSpan = callout.KindSourceSpan ?? FindCalloutKindSourceSpan(syntaxNode);
+        ClosingMarkerSourceSpan = callout.ClosingMarkerSourceSpan ?? FindCalloutChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CalloutClosingMarker);
         Title = callout.Title;
         TitleSourceSpan = callout.TitleSourceSpan ?? FindCalloutTitleSourceSpan(syntaxNode);
         TitleInlines = callout.TitleInlines;
@@ -59,8 +61,14 @@ public sealed class MarkdownNativeCalloutBlock : MarkdownNativeBlock {
     /// <summary>Callout kind such as info, warning, note, or success.</summary>
     public string CalloutKind { get; }
 
+    /// <summary>Source span for the opening <c>[!</c> marker when available.</summary>
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; }
+
     /// <summary>Source span for the callout kind token when available.</summary>
     public MarkdownSourceSpan? KindSourceSpan { get; }
+
+    /// <summary>Source span for the closing <c>]</c> marker when available.</summary>
+    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; }
 
     /// <summary>Plain-text title.</summary>
     public string Title { get; }
@@ -83,9 +91,9 @@ public sealed class MarkdownNativeCalloutBlock : MarkdownNativeBlock {
     /// <summary>Nested native body blocks.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Children { get; }
 
-    private static MarkdownSourceSpan? FindCalloutKindSourceSpan(MarkdownSyntaxNode syntaxNode) {
+    private static MarkdownSourceSpan? FindCalloutChildSourceSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) {
         for (int i = 0; i < syntaxNode.Children.Count; i++) {
-            if (syntaxNode.Children[i].Kind == MarkdownSyntaxKind.CalloutKind) {
+            if (syntaxNode.Children[i].Kind == kind) {
                 return syntaxNode.Children[i].SourceSpan;
             }
         }
@@ -93,14 +101,12 @@ public sealed class MarkdownNativeCalloutBlock : MarkdownNativeBlock {
         return null;
     }
 
-    private static MarkdownSourceSpan? FindCalloutTitleSourceSpan(MarkdownSyntaxNode syntaxNode) {
-        for (int i = 0; i < syntaxNode.Children.Count; i++) {
-            if (syntaxNode.Children[i].Kind == MarkdownSyntaxKind.CalloutTitle) {
-                return syntaxNode.Children[i].SourceSpan;
-            }
-        }
+    private static MarkdownSourceSpan? FindCalloutKindSourceSpan(MarkdownSyntaxNode syntaxNode) {
+        return FindCalloutChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CalloutKind);
+    }
 
-        return null;
+    private static MarkdownSourceSpan? FindCalloutTitleSourceSpan(MarkdownSyntaxNode syntaxNode) {
+        return FindCalloutChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CalloutTitle);
     }
 }
 

@@ -136,8 +136,16 @@ public sealed partial class MarkdownNativeDocument {
 
                 break;
             case MarkdownNativeCalloutBlock callout:
+                if (callout.OpeningMarkerSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("calloutOpeningMarker", "[!", callout.OpeningMarkerSourceSpan.Value, callout);
+                }
+
                 if (callout.KindSourceSpan.HasValue) {
                     yield return new MarkdownNativeBlockSourceField("calloutKind", callout.CalloutKind, callout.KindSourceSpan.Value, callout);
+                }
+
+                if (callout.ClosingMarkerSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("calloutClosingMarker", "]", callout.ClosingMarkerSourceSpan.Value, callout);
                 }
 
                 if (callout.TitleSourceSpan.HasValue) {

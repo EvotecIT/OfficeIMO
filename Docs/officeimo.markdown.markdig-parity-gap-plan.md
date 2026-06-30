@@ -161,6 +161,7 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
 - [ ] Decide and close `UseAlertBlocks`.
   - [x] Add focused Markdig comparison proof for no-title note, list, and custom alert rendering through an opt-in Markdig-style HTML fallback.
   - [x] Make titled OfficeIMO callouts an intentional default with an explicit Markdig-compatible boundary mode.
+  - [x] Expose GitHub alert header marker tokens (`[!` and `]`) as syntax/native source fields so editor hosts can address the full alert header without raw-string rescans.
   - [ ] Align callout/alert AST fields, source spans, writer output, and broader comparison fixtures around that decision.
 - [x] Decide and close `UseCjkFriendlyEmphasis`.
   - [x] Add a Markdig-compatible delimiter option with CJK comparison/source-token proof.
@@ -205,6 +206,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [x] Align native source-edit offset fallback with the shared tab-expanded column model so offset-less line/column edit spans do not drift on tabbed input.
 - [x] Add shared visual-column start-offset mapping so prefix/trivia preservation code can slice text before a tab-expanded column without raw-character drift.
 - [x] Expose native document-level line-ending trivia and original-source slices/edits that preserve CRLF, LF, and standalone CR spelling around line-ending-equivalent mapping.
+- [x] Expose callout/alert opening and closing marker spans in syntax and native projections so alert header source ownership covers marker, kind, title, and body fields.
 
 ## P4 - Keep Renderer, Writer, Extension, And Security Policy Explicit
 

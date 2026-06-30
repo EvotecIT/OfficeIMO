@@ -59,7 +59,9 @@ Inside details
 
         var callout = Assert.IsType<MarkdownNativeCalloutBlock>(native.Blocks[2]);
         Assert.Equal("warning", callout.CalloutKind);
+        Assert.Equal(new MarkdownSourceSpan(6, 3, 6, 4), callout.OpeningMarkerSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(6, 5, 6, 11), callout.KindSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(6, 12, 6, 12), callout.ClosingMarkerSourceSpan);
         Assert.Equal("Watch", callout.Title);
         Assert.Equal(new MarkdownSourceSpan(6, 14, 6, 18), callout.TitleSourceSpan);
         Assert.Equal("Body text", Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(callout.Children)).Text);
@@ -458,7 +460,9 @@ Console.WriteLine();
         var fields = native.EnumerateBlockSourceFields().ToArray();
         var text = Assert.Single(native.EnumerateBlockSourceFields("text"));
         var paragraphTexts = native.EnumerateBlockSourceFields("paragraphText").ToArray();
+        var calloutOpeningMarker = Assert.Single(native.EnumerateBlockSourceFields("calloutOpeningMarker"));
         var calloutKind = Assert.Single(native.EnumerateBlockSourceFields("calloutKind"));
+        var calloutClosingMarker = Assert.Single(native.EnumerateBlockSourceFields("calloutClosingMarker"));
         var title = Assert.Single(native.EnumerateBlockSourceFields("title"));
         var calloutBody = Assert.Single(native.EnumerateBlockSourceFields("calloutBody"));
         var summary = Assert.Single(native.EnumerateBlockSourceFields("summary"));
@@ -476,7 +480,9 @@ Console.WriteLine();
         Assert.Equal("Title", text.Value);
         Assert.Contains(paragraphTexts, field => field.Value == "Body" && field.SourceSpan.StartLine == 4);
         Assert.Contains(paragraphTexts, field => field.Value == "Inside" && field.SourceSpan.StartLine == 9);
+        Assert.Equal("[!", calloutOpeningMarker.Value);
         Assert.Equal("note", calloutKind.Value);
+        Assert.Equal("]", calloutClosingMarker.Value);
         Assert.Equal("Heads up", title.Value);
         Assert.Equal("Body", calloutBody.Value);
         Assert.Equal("More", summary.Value);
@@ -490,7 +496,9 @@ Console.WriteLine();
         Assert.Empty(native.EnumerateBlockSourceFields("missing"));
 
         AssertEquivalentField(text, native.FindBlockSourceFieldAtPosition(1, 3));
+        AssertEquivalentField(calloutOpeningMarker, native.FindBlockSourceFieldAtPosition(3, 3));
         AssertEquivalentField(calloutKind, native.FindBlockSourceFieldAtPosition(3, 5));
+        AssertEquivalentField(calloutClosingMarker, native.FindBlockSourceFieldAtPosition(3, 9));
         AssertEquivalentField(title, native.FindBlockSourceFieldAtPosition(3, 13));
         AssertEquivalentField(calloutBody, native.FindBlockSourceFieldAtPosition(4, 3));
         AssertEquivalentField(summary, native.FindBlockSourceFieldAtPosition(7, 10));
@@ -1699,10 +1707,16 @@ Outside
         Assert.Same(callout, native.FindBlockById(callout.Id));
         Assert.Same(child, native.FindBlockAtPosition(child.SourceSpan!.Value.StartLine, child.SourceSpan.Value.StartColumn!.Value));
         Assert.Equal(new[] { callout.Id, child.Id }, native.GetBlockPath(child.Id).Select(block => block.Id).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 4), callout.OpeningMarkerSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), callout.KindSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 9), callout.ClosingMarkerSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 18), callout.TitleSourceSpan);
+        Assert.Equal(3, snapshot.FieldSourceSpans["calloutOpeningMarker"]!.StartColumn);
+        Assert.Equal(4, snapshot.FieldSourceSpans["calloutOpeningMarker"]!.EndColumn);
         Assert.Equal(5, snapshot.FieldSourceSpans["calloutKind"]!.StartColumn);
         Assert.Equal(8, snapshot.FieldSourceSpans["calloutKind"]!.EndColumn);
+        Assert.Equal(9, snapshot.FieldSourceSpans["calloutClosingMarker"]!.StartColumn);
+        Assert.Equal(9, snapshot.FieldSourceSpans["calloutClosingMarker"]!.EndColumn);
         Assert.Equal(11, snapshot.FieldSourceSpans["title"]!.StartColumn);
         Assert.Equal(18, snapshot.FieldSourceSpans["title"]!.EndColumn);
 

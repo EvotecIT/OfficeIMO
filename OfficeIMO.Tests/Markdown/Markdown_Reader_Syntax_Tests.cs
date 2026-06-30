@@ -3206,9 +3206,14 @@ See ![Badge][hero]
         var callout = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
         Assert.Equal("note:Title", callout.Literal);
-        Assert.Equal(3, callout.Children.Count);
+        Assert.Equal(5, callout.Children.Count);
 
-        var kind = callout.Children[0];
+        var openingMarker = callout.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.CalloutOpeningMarker, openingMarker.Kind);
+        Assert.Equal("[!", openingMarker.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 4), openingMarker.SourceSpan);
+
+        var kind = callout.Children[1];
         Assert.Equal(MarkdownSyntaxKind.CalloutKind, kind.Kind);
         Assert.Equal("note", kind.Literal);
         Assert.NotNull(kind.SourceSpan);
@@ -3218,9 +3223,16 @@ See ![Badge][hero]
         Assert.Equal(8, kind.SourceSpan!.Value.EndColumn);
 
         var semanticCallout = Assert.IsType<CalloutBlock>(Assert.Single(result.Document.Blocks));
+        Assert.Equal(openingMarker.SourceSpan, semanticCallout.OpeningMarkerSourceSpan);
         Assert.Equal(kind.SourceSpan, semanticCallout.KindSourceSpan);
 
-        var title = callout.Children[1];
+        var closingMarker = callout.Children[2];
+        Assert.Equal(MarkdownSyntaxKind.CalloutClosingMarker, closingMarker.Kind);
+        Assert.Equal("]", closingMarker.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 9), closingMarker.SourceSpan);
+        Assert.Equal(closingMarker.SourceSpan, semanticCallout.ClosingMarkerSourceSpan);
+
+        var title = callout.Children[3];
         Assert.Equal(MarkdownSyntaxKind.CalloutTitle, title.Kind);
         Assert.Equal("Title", title.Literal);
         Assert.Same(semanticCallout.TitleInlines, title.AssociatedObject);
@@ -3236,7 +3248,7 @@ See ![Badge][hero]
         Assert.Equal(11, titleText.SourceSpan!.Value.StartColumn);
         Assert.Equal(15, titleText.SourceSpan!.Value.EndColumn);
 
-        var paragraph = callout.Children[2];
+        var paragraph = callout.Children[4];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
         Assert.NotNull(paragraph.SourceSpan);
         Assert.Equal(2, paragraph.SourceSpan!.Value.StartLine);
@@ -3332,17 +3344,17 @@ See ![Badge][hero]
         var finalCalloutBlock = Assert.IsType<CalloutBlock>(Assert.Single(result.Document.Blocks));
         var finalCalloutParagraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(finalCalloutBlock.ChildBlocks));
         var finalCallout = Assert.Single(result.FinalSyntaxTree.Children);
-        Assert.Equal(3, finalCallout.Children.Count);
-        var finalKind = finalCallout.Children[0];
+        Assert.Equal(5, finalCallout.Children.Count);
+        var finalKind = finalCallout.Children[1];
         Assert.Equal(MarkdownSyntaxKind.CalloutKind, finalKind.Kind);
         Assert.Equal("note", finalKind.Literal);
-        var finalTitle = finalCallout.Children[1];
+        var finalTitle = finalCallout.Children[3];
         Assert.Equal(MarkdownSyntaxKind.CalloutTitle, finalTitle.Kind);
         Assert.Equal("Title", finalTitle.Literal);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
         Assert.Same(finalCalloutBlock, finalCallout.AssociatedObject);
         Assert.Same(finalCalloutBlock.TitleInlines, finalTitle.AssociatedObject);
-        var finalParagraph = finalCallout.Children[2];
+        var finalParagraph = finalCallout.Children[4];
         var finalText = Assert.Single(finalParagraph.Children);
 
         Assert.Same(finalCalloutParagraphBlock, finalParagraph.AssociatedObject);
@@ -3380,9 +3392,11 @@ See ![Badge][hero]
 
         var callout = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
-        Assert.Equal(MarkdownSyntaxKind.CalloutKind, callout.Children[0].Kind);
-        Assert.Equal(MarkdownSyntaxKind.CalloutTitle, callout.Children[1].Kind);
-        var list = callout.Children[2];
+        Assert.Equal(MarkdownSyntaxKind.CalloutOpeningMarker, callout.Children[0].Kind);
+        Assert.Equal(MarkdownSyntaxKind.CalloutKind, callout.Children[1].Kind);
+        Assert.Equal(MarkdownSyntaxKind.CalloutClosingMarker, callout.Children[2].Kind);
+        Assert.Equal(MarkdownSyntaxKind.CalloutTitle, callout.Children[3].Kind);
+        var list = callout.Children[4];
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
         Assert.NotNull(list.SourceSpan);
         Assert.Equal(2, list.SourceSpan!.Value.StartLine);
@@ -3412,9 +3426,11 @@ See ![Badge][hero]
         var callout = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
         Assert.Equal("note:Title with **strong** [link](https://example.com)", callout.Literal);
-        Assert.Equal(MarkdownSyntaxKind.CalloutKind, callout.Children[0].Kind);
-        Assert.Equal("note", callout.Children[0].Literal);
-        var title = callout.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.CalloutOpeningMarker, callout.Children[0].Kind);
+        Assert.Equal(MarkdownSyntaxKind.CalloutKind, callout.Children[1].Kind);
+        Assert.Equal("note", callout.Children[1].Literal);
+        Assert.Equal(MarkdownSyntaxKind.CalloutClosingMarker, callout.Children[2].Kind);
+        var title = callout.Children[3];
         Assert.Equal(MarkdownSyntaxKind.CalloutTitle, title.Kind);
         Assert.Equal("Title with **strong** [link](https://example.com)", title.Literal);
         Assert.Same(Assert.IsType<CalloutBlock>(Assert.Single(result.Document.Blocks)).TitleInlines, title.AssociatedObject);
@@ -3432,16 +3448,24 @@ See ![Badge][hero]
         var callout = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
         Assert.Equal("tip", callout.Literal);
-        Assert.Equal(2, callout.Children.Count);
+        Assert.Equal(4, callout.Children.Count);
 
-        var kind = callout.Children[0];
+        var openingMarker = callout.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.CalloutOpeningMarker, openingMarker.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 4), openingMarker.SourceSpan);
+
+        var kind = callout.Children[1];
         Assert.Equal(MarkdownSyntaxKind.CalloutKind, kind.Kind);
         Assert.Equal("tip", kind.Literal);
         Assert.NotNull(kind.SourceSpan);
         Assert.Equal(5, kind.SourceSpan!.Value.StartColumn);
         Assert.Equal(7, kind.SourceSpan!.Value.EndColumn);
 
-        var paragraph = callout.Children[1];
+        var closingMarker = callout.Children[2];
+        Assert.Equal(MarkdownSyntaxKind.CalloutClosingMarker, closingMarker.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 8), closingMarker.SourceSpan);
+
+        var paragraph = callout.Children[3];
         Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
         Assert.Equal("body", paragraph.Literal);
     }
@@ -4296,9 +4320,9 @@ Lead[^1]
         var finalParagraphBlocks = finalListItemBlock.ParagraphBlocks.ToArray();
 
         var finalCallout = Assert.Single(result.FinalSyntaxTree.Children);
-        Assert.Equal(3, finalCallout.Children.Count);
-        var finalTitle = finalCallout.Children[1];
-        var finalList = finalCallout.Children[2];
+        Assert.Equal(5, finalCallout.Children.Count);
+        var finalTitle = finalCallout.Children[3];
+        var finalList = finalCallout.Children[4];
         var finalListItem = Assert.Single(finalList.Children);
         var finalParagraphs = finalListItem.Children.Where(child => child.Kind == MarkdownSyntaxKind.Paragraph).ToArray();
 

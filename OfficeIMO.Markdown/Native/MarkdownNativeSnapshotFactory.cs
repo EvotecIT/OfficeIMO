@@ -103,7 +103,9 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.Children = FromBlocks(callout.Children);
                 snapshot.Fields = Fields(("calloutKind", callout.CalloutKind));
                 snapshot.FieldSourceSpans = FieldSpans(
+                    ("calloutOpeningMarker", callout.OpeningMarkerSourceSpan),
                     ("calloutKind", callout.KindSourceSpan),
+                    ("calloutClosingMarker", callout.ClosingMarkerSourceSpan),
                     ("title", callout.TitleSourceSpan),
                     ("calloutBody", callout.BodySourceSpan));
                 break;

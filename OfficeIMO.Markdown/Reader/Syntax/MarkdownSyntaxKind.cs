@@ -152,8 +152,12 @@ public enum MarkdownSyntaxKind {
     ImageTitle,
     /// <summary>Callout or admonition block.</summary>
     Callout,
+    /// <summary>Opening callout/admonition marker token (<c>[!</c>).</summary>
+    CalloutOpeningMarker,
     /// <summary>Callout/admonition marker kind such as note or tip.</summary>
     CalloutKind,
+    /// <summary>Closing callout/admonition marker token (<c>]</c>).</summary>
+    CalloutClosingMarker,
     /// <summary>Inline title/header content for a callout block.</summary>
     CalloutTitle,
     /// <summary>Definition list block.</summary>

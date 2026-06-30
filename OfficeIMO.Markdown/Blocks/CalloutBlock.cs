@@ -7,8 +7,12 @@ namespace OfficeIMO.Markdown;
 public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Admonition kind, e.g., info, warning, success.</summary>
     public string Kind { get; }
+    /// <summary>Source span for the opening callout marker (<c>[!</c>) when parsed from markdown.</summary>
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; internal set; }
     /// <summary>Source span for the callout kind token when parsed from markdown.</summary>
     public MarkdownSourceSpan? KindSourceSpan { get; internal set; }
+    /// <summary>Source span for the closing callout marker (<c>]</c>) when parsed from markdown.</summary>
+    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; internal set; }
     /// <summary>Source span for the explicit callout title when parsed from markdown.</summary>
     public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
     private readonly string _fallbackBody;
@@ -241,12 +245,28 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
         var calloutTitleMarkdown = TitleInlines.RenderMarkdown();
+        OpeningMarkerSourceSpan = GetCalloutOpeningMarkerSpan(span);
         KindSourceSpan = GetCalloutKindSpan(span);
+        ClosingMarkerSourceSpan = GetCalloutClosingMarkerSpan(span);
         var children = new List<MarkdownSyntaxNode>();
+        if (OpeningMarkerSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CalloutOpeningMarker,
+                OpeningMarkerSourceSpan,
+                "[!"));
+        }
+
         children.Add(new MarkdownSyntaxNode(
             MarkdownSyntaxKind.CalloutKind,
             KindSourceSpan,
             Kind));
+
+        if (ClosingMarkerSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CalloutClosingMarker,
+                ClosingMarkerSourceSpan,
+                "]"));
+        }
 
         if (!string.IsNullOrWhiteSpace(calloutTitleMarkdown)) {
             TitleSourceSpan = TitleInlines.SourceSpan;
@@ -272,6 +292,19 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
             this);
     }
 
+    private MarkdownSourceSpan? GetCalloutOpeningMarkerSpan(MarkdownSourceSpan? calloutSpan) {
+        if (!calloutSpan.HasValue || !calloutSpan.Value.StartColumn.HasValue) {
+            return null;
+        }
+
+        var startColumn = calloutSpan.Value.StartColumn.Value + 2;
+        return new MarkdownSourceSpan(
+            calloutSpan.Value.StartLine,
+            startColumn,
+            calloutSpan.Value.StartLine,
+            startColumn + 1);
+    }
+
     private MarkdownSourceSpan? GetCalloutKindSpan(MarkdownSourceSpan? calloutSpan) {
         if (!calloutSpan.HasValue || string.IsNullOrWhiteSpace(Kind)) {
             return null;
@@ -287,5 +320,23 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
             startColumn.Value + 4,
             calloutSpan.Value.StartLine,
             startColumn.Value + 3 + Kind.Length);
+    }
+
+    private MarkdownSourceSpan? GetCalloutClosingMarkerSpan(MarkdownSourceSpan? calloutSpan) {
+        if (!calloutSpan.HasValue || string.IsNullOrWhiteSpace(Kind)) {
+            return null;
+        }
+
+        var startColumn = calloutSpan.Value.StartColumn;
+        if (!startColumn.HasValue) {
+            return null;
+        }
+
+        var markerColumn = startColumn.Value + 4 + Kind.Length;
+        return new MarkdownSourceSpan(
+            calloutSpan.Value.StartLine,
+            markerColumn,
+            calloutSpan.Value.StartLine,
+            markerColumn);
     }
 }
