@@ -961,11 +961,11 @@ summary: |
         Assert.Equal(new MarkdownSourceSpan(2, 1, 7, 13), body.SourceSpan);
 
         var openingFence = Assert.Single(native.EnumerateBlockSourceFields("openingFence"));
-        Assert.Null(openingFence.Value);
+        Assert.Equal("---", openingFence.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), openingFence.SourceSpan);
 
         var closingFence = Assert.Single(native.EnumerateBlockSourceFields("closingFence"));
-        Assert.Null(closingFence.Value);
+        Assert.Equal("---", closingFence.Value);
         Assert.Equal(new MarkdownSourceSpan(8, 1, 8, 3), closingFence.SourceSpan);
 
         var found = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(4, 8));
@@ -1001,6 +1001,7 @@ summary: |
             && field.SourceSpan.StartColumn == 3);
         Assert.Contains(snapshot.SourceFields, field =>
             field.Name == "openingFence"
+            && field.Value == "---"
             && field.SourceSpan.StartLine == 1
             && field.SourceSpan.EndColumn == 3);
         Assert.Contains(snapshot.SourceFields, field =>
@@ -1010,6 +1011,7 @@ summary: |
             && field.SourceSpan.EndLine == 7);
         Assert.Contains(snapshot.SourceFields, field =>
             field.Name == "closingFence"
+            && field.Value == "---"
             && field.SourceSpan.StartLine == 8
             && field.SourceSpan.EndColumn == 3);
 
@@ -1019,6 +1021,9 @@ summary: |
 
         var fenceEdited = native.CreateReplaceEdit(openingFence, "...").Apply(native.SourceMarkdown);
         Assert.StartsWith("... \n", fenceEdited.Replace("\r\n", "\n"), StringComparison.Ordinal);
+
+        var closingFenceEdited = native.CreateReplaceEdit(closingFence, "...").Apply(native.SourceMarkdown);
+        Assert.Contains("\n...\n\n# Heading", closingFenceEdited.Replace("\r\n", "\n"), StringComparison.Ordinal);
     }
 
     [Fact]
