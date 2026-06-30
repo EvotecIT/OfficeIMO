@@ -673,25 +673,58 @@ namespace OfficeIMO.Word {
         }
 
         private static void AddLegacyDocFootnoteReference(WordParagraph paragraph, LegacyDocFootnote footnote) {
-            if (footnote.Paragraphs.Count == 0) {
+            if (footnote.ParagraphRuns.Count == 0) {
                 return;
             }
 
-            WordParagraph reference = paragraph.AddFootNote(footnote.Paragraphs[0]);
-            for (int index = 1; index < footnote.Paragraphs.Count; index++) {
-                reference.FootNote!.Paragraphs!.Last().AddParagraph(footnote.Paragraphs[index]);
+            WordParagraph reference = paragraph.AddFootNote(footnote.ParagraphRuns[0].Text);
+            List<WordParagraph>? noteParagraphs = reference.FootNote!.Paragraphs;
+            if (noteParagraphs == null || noteParagraphs.Count == 0) {
+                return;
+            }
+
+            ReplaceLegacyDocNoteParagraphRuns(noteParagraphs[0], footnote.ParagraphRuns[0], keepNoteReferenceMark: true, LegacyDocNoteProjection.Empty);
+            WordParagraph lastParagraph = noteParagraphs[0];
+            for (int index = 1; index < footnote.ParagraphRuns.Count; index++) {
+                lastParagraph = lastParagraph.AddParagraph(footnote.ParagraphRuns[index].Text);
+                ReplaceLegacyDocNoteParagraphRuns(lastParagraph, footnote.ParagraphRuns[index], keepNoteReferenceMark: false, LegacyDocNoteProjection.Empty);
             }
         }
 
         private static void AddLegacyDocEndnoteReference(WordParagraph paragraph, LegacyDocEndnote endnote) {
-            if (endnote.Paragraphs.Count == 0) {
+            if (endnote.ParagraphRuns.Count == 0) {
                 return;
             }
 
-            WordParagraph reference = paragraph.AddEndNote(endnote.Paragraphs[0]);
-            for (int index = 1; index < endnote.Paragraphs.Count; index++) {
-                reference.EndNote!.Paragraphs!.Last().AddParagraph(endnote.Paragraphs[index]);
+            WordParagraph reference = paragraph.AddEndNote(endnote.ParagraphRuns[0].Text);
+            List<WordParagraph>? noteParagraphs = reference.EndNote!.Paragraphs;
+            if (noteParagraphs == null || noteParagraphs.Count == 0) {
+                return;
             }
+
+            ReplaceLegacyDocNoteParagraphRuns(noteParagraphs[0], endnote.ParagraphRuns[0], keepNoteReferenceMark: true, LegacyDocNoteProjection.Empty);
+            WordParagraph lastParagraph = noteParagraphs[0];
+            for (int index = 1; index < endnote.ParagraphRuns.Count; index++) {
+                lastParagraph = lastParagraph.AddParagraph(endnote.ParagraphRuns[index].Text);
+                ReplaceLegacyDocNoteParagraphRuns(lastParagraph, endnote.ParagraphRuns[index], keepNoteReferenceMark: false, LegacyDocNoteProjection.Empty);
+            }
+        }
+
+        private static void ReplaceLegacyDocNoteParagraphRuns(WordParagraph target, LegacyDocNoteParagraph source, bool keepNoteReferenceMark, LegacyDocNoteProjection notes) {
+            foreach (Run run in target._paragraph.Elements<Run>().ToArray()) {
+                if (keepNoteReferenceMark && ContainsLegacyDocNoteReferenceMark(run)) {
+                    continue;
+                }
+
+                run.Remove();
+            }
+
+            AddLegacyDocRuns(new WordParagraph(target._document, target._paragraph, newRun: false), source.Runs, notes);
+        }
+
+        private static bool ContainsLegacyDocNoteReferenceMark(Run run) {
+            return run.Elements<FootnoteReferenceMark>().Any()
+                || run.Elements<EndnoteReferenceMark>().Any();
         }
 
         private sealed class LegacyDocNoteProjection {
@@ -714,6 +747,10 @@ namespace OfficeIMO.Word {
                         .GroupBy(endnote => endnote.ReferenceCharacterPosition)
                         .ToDictionary(group => group.Key, group => group.First()));
             }
+
+            internal static LegacyDocNoteProjection Empty { get; } = new LegacyDocNoteProjection(
+                new Dictionary<int, LegacyDocFootnote>(),
+                new Dictionary<int, LegacyDocEndnote>());
 
             internal bool TryGetFootnote(int referenceCharacterPosition, out LegacyDocFootnote? footnote) {
                 return _footnotesByReferencePosition.TryGetValue(referenceCharacterPosition, out footnote);

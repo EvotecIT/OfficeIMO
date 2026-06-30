@@ -175,12 +175,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             AddUnsupportedParagraphFormattingFeaturesIfPresent(paragraphFormattingRanges, options.ReportUnsupportedFeatures);
 
             Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges, Sections, options.ReportUnsupportedFeatures);
-            Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, out string? footnoteWarning);
+            Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, out string? footnoteWarning);
             if (footnoteWarning != null) {
                 AddWarning("DOC-FOOTNOTE-PLC-INVALID", footnoteWarning);
             }
 
-            Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, out string? endnoteWarning);
+            Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, formattingRanges, out string? endnoteWarning);
             if (endnoteWarning != null) {
                 AddWarning("DOC-ENDNOTE-PLC-INVALID", endnoteWarning);
             }

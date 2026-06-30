@@ -1121,6 +1121,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsFormattedFootnoteStory() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFormattedFootnoteStory("Body with formatted note");
+            string docxPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                Assert.True(result.HasDocument);
+                Assert.Equal("Body with formatted note", result.Document.Sections[0].Paragraphs[0].Text);
+
+                WordFootNote footnote = Assert.Single(result.Document.FootNotes);
+                AssertFormattedNoteRuns(footnote.Paragraphs!);
+
+                result.Document.Save(docxPath);
+
+                using WordDocument reloaded = WordDocument.Load(docxPath);
+                WordFootNote reloadedFootnote = Assert.Single(reloaded.FootNotes);
+                AssertFormattedNoteRuns(reloadedFootnote.Paragraphs!);
+            } finally {
+                DeleteIfExists(docxPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSimpleEndnoteStory() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithEndnoteStory("Body with endnote", "Projected endnote");
             string docxPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
@@ -1144,6 +1169,47 @@ namespace OfficeIMO.Tests {
             } finally {
                 DeleteIfExists(docxPath);
             }
+        }
+
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsFormattedEndnoteStory() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFormattedEndnoteStory("Body with formatted endnote");
+            string docxPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                Assert.True(result.HasDocument);
+                Assert.Equal("Body with formatted endnote", result.Document.Sections[0].Paragraphs[0].Text);
+
+                WordEndNote endnote = Assert.Single(result.Document.EndNotes);
+                AssertFormattedNoteRuns(endnote.Paragraphs!);
+
+                result.Document.Save(docxPath);
+
+                using WordDocument reloaded = WordDocument.Load(docxPath);
+                WordEndNote reloadedEndnote = Assert.Single(reloaded.EndNotes);
+                AssertFormattedNoteRuns(reloadedEndnote.Paragraphs!);
+            } finally {
+                DeleteIfExists(docxPath);
+            }
+        }
+
+        private static void AssertFormattedNoteRuns(IReadOnlyList<WordParagraph> paragraphs) {
+            WordParagraph[] runs = paragraphs.Where(paragraph => paragraph.Text.Length > 0).ToArray();
+            Assert.Equal(3, runs.Length);
+            Assert.Equal("plain ", runs[0].Text);
+            Assert.False(runs[0].Bold);
+            Assert.False(runs[0].Italic);
+            Assert.Equal("bold ", runs[1].Text);
+            Assert.True(runs[1].Bold);
+            Assert.NotNull(runs[1]._runProperties?.BoldComplexScript);
+            Assert.False(runs[1].Italic);
+            Assert.Equal("italic", runs[2].Text);
+            Assert.False(runs[2].Bold);
+            Assert.True(runs[2].Italic);
+            Assert.NotNull(runs[2]._runProperties?.ItalicComplexScript);
         }
 
 
@@ -1724,7 +1790,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
-                Assert.Equal("plain bold italic", footnote.Paragraphs![1].Text);
+                AssertFormattedNoteRuns(footnote.Paragraphs!);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -1811,7 +1877,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
-                Assert.Equal("plain bold italic", endnote.Paragraphs![1].Text);
+                AssertFormattedNoteRuns(endnote.Paragraphs!);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -5380,6 +5446,50 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithFormattedFootnoteStory(string bodyText) {
+                const string footnoteText = "plain bold italic";
+                string documentText = bodyText + "\u0002\r";
+                string footnoteStory = footnoteText + "\r";
+                string text = documentText + footnoteStory;
+
+                const int textOffset = 0x200;
+                const int chpxFkpOffset = 0x400;
+                byte[] tableStream = CreateTableStream(text.Length, textOffset);
+                int fcPlcffndRef = tableStream.Length;
+                byte[] footnoteReferencePlc = CreateFootnoteReferencePlc(bodyText.Length);
+                Array.Resize(ref tableStream, tableStream.Length + footnoteReferencePlc.Length);
+                Buffer.BlockCopy(footnoteReferencePlc, 0, tableStream, fcPlcffndRef, footnoteReferencePlc.Length);
+
+                int fcPlcffndTxt = tableStream.Length;
+                byte[] footnoteTextPlc = CreateFootnoteTextPlc(footnoteStory.Length);
+                Array.Resize(ref tableStream, tableStream.Length + footnoteTextPlc.Length);
+                Buffer.BlockCopy(footnoteTextPlc, 0, tableStream, fcPlcffndTxt, footnoteTextPlc.Length);
+
+                int fcPlcfBteChpx = AppendCompressedCharacterBinTable(ref tableStream, textOffset, text.Length, chpxFkpOffset);
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    ccpFtn: footnoteStory.Length,
+                    fcPlcffndRef: fcPlcffndRef,
+                    lcbPlcffndRef: footnoteReferencePlc.Length,
+                    fcPlcffndTxt: fcPlcffndTxt,
+                    lcbPlcffndTxt: footnoteTextPlc.Length,
+                    ccpTextOverride: documentText.Length,
+                    textOffset: textOffset,
+                    fcPlcfBteChpx: fcPlcfBteChpx,
+                    lcbPlcfBteChpx: 12,
+                    minimumLength: chpxFkpOffset + 512);
+
+                WriteFormattedNoteChpxFkp(wordDocumentStream, chpxFkpOffset, textOffset, documentText.Length, footnoteText.Length, text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithEndnoteStory(string bodyText, string endnoteText) {
                 string documentText = bodyText + "\u0002\r";
                 string endnoteStory = endnoteText + "\r";
@@ -5406,6 +5516,50 @@ namespace OfficeIMO.Tests {
                     lcbPlcfendTxt: endnoteTextPlc.Length,
                     textOffset: textOffset,
                     ccpTextOverride: documentText.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateSimpleDocWithFormattedEndnoteStory(string bodyText) {
+                const string endnoteText = "plain bold italic";
+                string documentText = bodyText + "\u0002\r";
+                string endnoteStory = endnoteText + "\r";
+                string text = documentText + endnoteStory;
+
+                const int textOffset = 0x800;
+                const int chpxFkpOffset = 0xA00;
+                byte[] tableStream = CreateTableStream(text.Length, textOffset);
+                int fcPlcfendRef = tableStream.Length;
+                byte[] endnoteReferencePlc = CreateFootnoteReferencePlc(bodyText.Length);
+                Array.Resize(ref tableStream, tableStream.Length + endnoteReferencePlc.Length);
+                Buffer.BlockCopy(endnoteReferencePlc, 0, tableStream, fcPlcfendRef, endnoteReferencePlc.Length);
+
+                int fcPlcfendTxt = tableStream.Length;
+                byte[] endnoteTextPlc = CreateFootnoteTextPlc(endnoteStory.Length);
+                Array.Resize(ref tableStream, tableStream.Length + endnoteTextPlc.Length);
+                Buffer.BlockCopy(endnoteTextPlc, 0, tableStream, fcPlcfendTxt, endnoteTextPlc.Length);
+
+                int fcPlcfBteChpx = AppendCompressedCharacterBinTable(ref tableStream, textOffset, text.Length, chpxFkpOffset);
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    ccpEdn: endnoteStory.Length,
+                    fcPlcfendRef: fcPlcfendRef,
+                    lcbPlcfendRef: endnoteReferencePlc.Length,
+                    fcPlcfendTxt: fcPlcfendTxt,
+                    lcbPlcfendTxt: endnoteTextPlc.Length,
+                    textOffset: textOffset,
+                    ccpTextOverride: documentText.Length,
+                    fcPlcfBteChpx: fcPlcfBteChpx,
+                    lcbPlcfBteChpx: 12,
+                    minimumLength: chpxFkpOffset + 512);
+
+                WriteFormattedNoteChpxFkp(wordDocumentStream, chpxFkpOffset, textOffset, documentText.Length, endnoteText.Length, text.Length);
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
@@ -6081,11 +6235,14 @@ namespace OfficeIMO.Tests {
                 int lcbPlcfHdd = 0,
                 int fcDop = 0,
                 int lcbDop = 0,
+                int fcPlcfBteChpx = 0,
+                int lcbPlcfBteChpx = 0,
                 int? ccpTextOverride = null,
-                int textOffset = 0x200) {
+                int textOffset = 0x200,
+                int minimumLength = 0) {
                 const int fibLength = 0x1AA;
                 byte[] textBytes = EncodeWindows1252(text);
-                var stream = new byte[textOffset + textBytes.Length];
+                var stream = new byte[Math.Max(minimumLength, textOffset + textBytes.Length)];
                 WriteUInt16(stream, 0x00, 0xA5EC);
                 WriteUInt16(stream, 0x02, nFib);
                 WriteUInt16(stream, 0x0A, fibFlags);
@@ -6112,6 +6269,8 @@ namespace OfficeIMO.Tests {
                 }
                 WriteInt32(stream, 0xCA, fcPlcfSed);
                 WriteInt32(stream, 0xCE, lcbPlcfSed);
+                WriteInt32(stream, 0xFA, fcPlcfBteChpx);
+                WriteInt32(stream, 0xFE, lcbPlcfBteChpx);
                 WriteInt32(stream, 0xF2, fcPlcfHdd);
                 WriteInt32(stream, 0xF6, lcbPlcfHdd);
                 WriteInt32(stream, 0x192, fcDop);
@@ -6961,6 +7120,33 @@ namespace OfficeIMO.Tests {
                 WriteUInt32(table, 15, 0x40000000U | ((uint)textOffset * 2U));
                 WriteUInt16(table, 19, 0);
                 return table;
+            }
+
+            private static int AppendCompressedCharacterBinTable(ref byte[] table, int textOffset, int characterCount, int chpxFkpOffset) {
+                int offset = table.Length;
+                Array.Resize(ref table, offset + 12);
+                WriteInt32(table, offset, textOffset);
+                WriteInt32(table, offset + 4, textOffset + characterCount);
+                WriteInt32(table, offset + 8, chpxFkpOffset / 512);
+                return offset;
+            }
+
+            private static void WriteFormattedNoteChpxFkp(byte[] stream, int chpxFkpOffset, int textOffset, int documentTextLength, int noteTextLength, int totalTextLength) {
+                int boldStart = textOffset + documentTextLength + "plain ".Length;
+                int italicStart = boldStart + "bold ".Length;
+                int noteParagraphMark = textOffset + documentTextLength + noteTextLength;
+                WriteChpxFkp(
+                    stream,
+                    chpxFkpOffset,
+                    new[] {
+                        textOffset,
+                        boldStart,
+                        italicStart,
+                        noteParagraphMark,
+                        textOffset + totalTextLength
+                    },
+                    boldRunIndex: 1,
+                    italicRunIndex: 2);
             }
 
             private static string CreateHeaderFooterStoryText(string defaultHeader, string defaultFooter, out byte[] headerFooterPlc) {

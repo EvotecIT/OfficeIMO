@@ -427,12 +427,18 @@ just to reserve names.
   - [x] Project simple footnote reference/text PLCs into normal OfficeIMO
     footnotes and preserve the projected content through normal DOCX save/reload,
     while keeping malformed footnote PLCs preserve-only.
+  - [x] Project supported direct run formatting inside simple footnote story
+    text through DOC CHPX records and preserve those runs through normal DOCX
+    save/reload.
   - [x] Write simple authored footnote references and text bodies with native
     DOC `PlcffndRef`/`PlcffndTxt` records, then reload them through the legacy
     reader.
   - [x] Project simple endnote reference/text PLCs into normal OfficeIMO
     endnotes and preserve the projected content through normal DOCX save/reload,
     while keeping malformed endnote PLCs preserve-only.
+  - [x] Project supported direct run formatting inside simple endnote story
+    text through DOC CHPX records and preserve those runs through normal DOCX
+    save/reload.
   - [x] Write simple authored endnote references and text bodies with native
     DOC `PlcfendRef`/`PlcfendTxt` records, then reload them through the legacy
     reader.
@@ -650,8 +656,8 @@ just to reserve names.
   - [x] Write simple authored endnote references and text bodies through native
     DOC save, then reload them through the legacy reader.
   - [x] Write supported direct run formatting inside authored footnote and
-    endnote text bodies through native DOC CHPX records, while still reloading
-    the note text through the current legacy reader.
+    endnote text bodies through native DOC CHPX records, then reload the note
+    text and supported direct run formatting through the legacy reader.
   - [x] Keep blocking unsupported final-section properties before native `.doc`
     bytes are committed so unimplemented section features are not silently
     dropped.
