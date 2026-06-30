@@ -437,6 +437,9 @@ _Caption_
             Assert.True(code.Attributes.TryGetAttribute("pinned", out var genericPinned));
             Assert.Equal("true", genericPinned);
             Assert.Equal("Quarterly Revenue", code.Attributes.GetAttribute("title"));
+            Assert.Equal("quarterly-overview", code.FenceInfo.GenericAttributes.ElementId);
+            Assert.Equal(new[] { "wide", "accent" }, code.FenceInfo.GenericAttributes.Classes);
+            Assert.Equal("true", code.FenceInfo.GenericAttributes.GetAttribute("pinned"));
 
             var syntax = Assert.Single(result.SyntaxTree.Children);
             Assert.Equal("quarterly-overview", syntax.Attributes.ElementId);
@@ -456,7 +459,7 @@ _Caption_
                 CssDelivery = CssDelivery.None,
                 BodyClass = null
             });
-            Assert.Contains("<pre id=\"quarterly-overview\" class=\"wide accent\" pinned=\"true\" title=\"Quarterly Revenue\"><code class=\"language-chart\">", html, StringComparison.Ordinal);
+            Assert.Contains("<pre><code id=\"quarterly-overview\" class=\"wide accent language-chart\" pinned=\"true\" title=\"Quarterly Revenue\">", html, StringComparison.Ordinal);
         }
 
         [Fact]

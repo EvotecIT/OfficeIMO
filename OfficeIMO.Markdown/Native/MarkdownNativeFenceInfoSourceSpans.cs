@@ -4,14 +4,12 @@ internal static class MarkdownNativeFenceInfoSourceSpans {
     internal static string? GetAttributeSourceText(MarkdownCodeFenceInfo? fenceInfo) {
         if (fenceInfo == null ||
             !fenceInfo.HasExplicitAttributes ||
-            string.IsNullOrWhiteSpace(fenceInfo.AdditionalInfo) ||
-            (string.IsNullOrWhiteSpace(fenceInfo.ElementId) &&
-             fenceInfo.Classes.Count == 0 &&
-             fenceInfo.Attributes.Count == 0)) {
+            fenceInfo.GenericAttributes.IsEmpty ||
+            string.IsNullOrWhiteSpace(fenceInfo.GenericAttributeSourceText)) {
             return null;
         }
 
-        return fenceInfo.AdditionalInfo;
+        return fenceInfo.GenericAttributeSourceText;
     }
 
     internal static MarkdownSourceSpan? GetAttributeSourceSpan(MarkdownCodeFenceInfo? fenceInfo, MarkdownSourceSpan? infoStringSourceSpan) {

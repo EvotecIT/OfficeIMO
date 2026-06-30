@@ -109,6 +109,56 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void AtxHeading_GenericAttributes_After_ClosingMarker_Are_SourceBacked() {
+        const string markdown = "# Heading # {#intro .wide}\n";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.GenericAttributes = true;
+        options.PreserveTrivia = true;
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("Heading", headingBlock.Text);
+        Assert.Equal("intro", headingBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, headingBlock.Attributes.Classes);
+        Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 11), headingBlock.ClosingMarkerSourceSpan);
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var heading = Assert.Single(result.FinalSyntaxTree.Children);
+        var headingText = Assert.Single(heading.Descendants(), node => node.Kind == MarkdownSyntaxKind.HeadingText);
+        var closingMarker = Assert.Single(heading.Children, node => node.Kind == MarkdownSyntaxKind.HeadingClosingMarker);
+        var attributes = Assert.Single(heading.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        Assert.Equal("Heading", headingText.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 9), headingText.SourceSpan);
+        Assert.Equal("#", closingMarker.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 11), closingMarker.SourceSpan);
+        Assert.Equal("{#intro .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 13, 1, 26), attributes.SourceSpan);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeHeading = Assert.IsType<MarkdownNativeHeadingBlock>(Assert.Single(native.Blocks));
+        var attributeField = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        var closingField = Assert.Single(native.EnumerateBlockSourceFields("closingMarker"));
+
+        Assert.Same(nativeHeading, attributeField.Block);
+        Assert.Equal("{#intro .wide}", attributeField.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 13, 1, 26), attributeField.SourceSpan);
+        Assert.Same(nativeHeading, closingField.Block);
+        Assert.Equal("#", closingField.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 11), closingField.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributeField, "{#docs .anchor}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("# Heading # {#docs .anchor}\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void Standalone_GenericAttributes_Before_ReferenceDefinition_Create_Attributed_Paragraph() {
         const string markdown = "{#ref .wide}\n[id]: https://example.com\n\n[site][id]\n";
         var options = MarkdownReaderOptions.CreatePortableProfile();
@@ -445,6 +495,65 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.True(roundtrip.IsLossless);
         Assert.Empty(roundtrip.Diagnostics);
         Assert.Equal("```cs {#sample .snippet}\nvar x = 1;\n```\n", roundtrip.Markdown);
+    }
+
+    [Fact]
+    public void FencedCode_InfoString_GenericAttributes_Ignore_Opaque_Metadata_For_Code_Html() {
+        const string markdown = "```cs linenums {#code .wide}\nvar x = 1;\n```\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("cs", codeBlock.Language);
+        Assert.Equal("cs linenums {#code .wide}", codeBlock.InfoString);
+        Assert.True(codeBlock.FenceInfo.TryGetAttribute("linenums", out var linenums));
+        Assert.Equal("true", linenums);
+        Assert.Equal("code", codeBlock.FenceInfo.GenericAttributes.ElementId);
+        Assert.Equal(new[] { "wide" }, codeBlock.FenceInfo.GenericAttributes.Classes);
+        Assert.False(codeBlock.FenceInfo.GenericAttributes.TryGetAttribute("linenums", out _));
+        Assert.Equal(
+            "<pre><code id=\"code\" class=\"wide language-cs\">var x = 1;\n</code></pre>",
+            document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            }));
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeCode = Assert.IsType<MarkdownNativeCodeBlock>(Assert.Single(native.Blocks));
+        var infoField = Assert.Single(native.EnumerateBlockSourceFields("infoString"));
+        var attributeField = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        var selectedField = native.FindBlockSourceFieldAtPosition(1, 16);
+
+        Assert.Equal("cs", nativeCode.Language);
+        Assert.Same(nativeCode, infoField.Block);
+        Assert.Equal("cs linenums {#code .wide}", infoField.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 28), infoField.SourceSpan);
+        Assert.Same(nativeCode, attributeField.Block);
+        Assert.Equal("{#code .wide}", attributeField.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 28), attributeField.SourceSpan);
+        Assert.Equal("attributes", selectedField?.Name);
+        Assert.Equal(attributeField.SourceSpan, selectedField?.SourceSpan);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        var snapshotAttributes = Assert.Single(snapshot.EnumerateSourceFields("attributes"));
+        Assert.Equal("{#code .wide}", snapshot.Fields["attributes"]);
+        Assert.Equal(16, snapshot.FieldSourceSpans["attributes"]!.StartColumn);
+        Assert.Equal(28, snapshot.FieldSourceSpans["attributes"]!.EndColumn);
+        Assert.Equal("{#code .wide}", snapshotAttributes.Value);
+        Assert.Equal(16, snapshotAttributes.SourceSpan.StartColumn);
+        Assert.Equal(28, snapshotAttributes.SourceSpan.EndColumn);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributeField, "{#sample .snippet}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("```cs linenums {#sample .snippet}\nvar x = 1;\n```\n", roundtrip.Markdown);
     }
 
     [Fact]

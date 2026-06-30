@@ -6,6 +6,8 @@ public static partial class MarkdownReader {
             if (!options.Headings) return false;
             if (!TryGetAtxHeadingContentRange(lines[i], out int level, out int contentStart, out int contentEnd, out string text, out int closingMarkerStart, out int closingMarkerEnd)) return false;
             int effectiveContentEnd = contentEnd;
+            int effectiveClosingMarkerStart = closingMarkerStart;
+            int effectiveClosingMarkerEnd = closingMarkerEnd;
             MarkdownAttributeSet parsedAttributes = MarkdownAttributeSet.Empty;
             MarkdownSourceSpan? attributeSpan = null;
             string? attributeSourceText = null;
@@ -13,6 +15,14 @@ public static partial class MarkdownReader {
                 && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(text, out var headingText, out parsedAttributes, out var attributeStart, out var attributeEnd, requireLeadingWhitespace: true)) {
                 text = headingText;
                 effectiveContentEnd = contentStart + attributeStart;
+                if (effectiveClosingMarkerStart < 0 &&
+                    TryTrimAtxClosingMarkerBeforeAttribute(headingText, contentStart, out var textWithoutClosingMarker, out var detectedClosingMarkerStart, out var detectedClosingMarkerEnd, out var textEndBeforeMarker)) {
+                    text = textWithoutClosingMarker;
+                    effectiveContentEnd = textEndBeforeMarker;
+                    effectiveClosingMarkerStart = detectedClosingMarkerStart;
+                    effectiveClosingMarkerEnd = detectedClosingMarkerEnd;
+                }
+
                 while (effectiveContentEnd > contentStart && char.IsWhiteSpace(lines[i][effectiveContentEnd - 1])) {
                     effectiveContentEnd--;
                 }
@@ -43,15 +53,62 @@ public static partial class MarkdownReader {
             if (effectiveContentEnd > contentStart) {
                 heading.SetTextSourceInfo(0, contentStart + 1, effectiveContentEnd);
             }
-            if (closingMarkerStart >= 0 && closingMarkerEnd > closingMarkerStart) {
+            if (effectiveClosingMarkerStart >= 0 && effectiveClosingMarkerEnd > effectiveClosingMarkerStart) {
                 heading.SetClosingMarkerSourceInfo(
                     0,
-                    closingMarkerStart + 1,
-                    closingMarkerEnd,
-                    CreateSpan(state, absoluteLineNumber, closingMarkerStart + 1, absoluteLineNumber, closingMarkerEnd));
+                    effectiveClosingMarkerStart + 1,
+                    effectiveClosingMarkerEnd,
+                    CreateSpan(state, absoluteLineNumber, effectiveClosingMarkerStart + 1, absoluteLineNumber, effectiveClosingMarkerEnd));
             }
             doc.Add(heading);
             i++; return true;
+        }
+
+        private static bool TryTrimAtxClosingMarkerBeforeAttribute(
+            string headingText,
+            int contentStart,
+            out string textWithoutClosingMarker,
+            out int closingMarkerStart,
+            out int closingMarkerEnd,
+            out int textEndBeforeMarker) {
+            textWithoutClosingMarker = headingText;
+            closingMarkerStart = -1;
+            closingMarkerEnd = -1;
+            textEndBeforeMarker = contentStart + headingText.Length;
+
+            if (string.IsNullOrEmpty(headingText)) {
+                return false;
+            }
+
+            var end = headingText.Length;
+            while (end > 0 && char.IsWhiteSpace(headingText[end - 1])) {
+                end--;
+            }
+
+            var markerStart = end;
+            while (markerStart > 0 && headingText[markerStart - 1] == '#') {
+                markerStart--;
+            }
+
+            if (markerStart == end) {
+                return false;
+            }
+
+            var beforeMarker = markerStart - 1;
+            if (beforeMarker >= 0 && !char.IsWhiteSpace(headingText[beforeMarker])) {
+                return false;
+            }
+
+            var textEnd = Math.Max(0, beforeMarker);
+            while (textEnd > 0 && char.IsWhiteSpace(headingText[textEnd - 1])) {
+                textEnd--;
+            }
+
+            textWithoutClosingMarker = headingText.Substring(0, textEnd);
+            closingMarkerStart = contentStart + markerStart;
+            closingMarkerEnd = contentStart + end;
+            textEndBeforeMarker = contentStart + textEnd;
+            return true;
         }
     }
 }

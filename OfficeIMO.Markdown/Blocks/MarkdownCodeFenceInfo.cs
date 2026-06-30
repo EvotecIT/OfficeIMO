@@ -15,6 +15,8 @@ public sealed class MarkdownCodeFenceInfo {
         string? elementId,
         IReadOnlyList<string> classes,
         IReadOnlyDictionary<string, string?> attributes,
+        MarkdownAttributeSet genericAttributes,
+        string? genericAttributeSourceText,
         bool hasExplicitAttributes) {
         InfoString = infoString;
         Language = language;
@@ -22,6 +24,8 @@ public sealed class MarkdownCodeFenceInfo {
         ElementId = elementId;
         _classes = classes;
         _attributes = attributes;
+        GenericAttributes = genericAttributes ?? MarkdownAttributeSet.Empty;
+        GenericAttributeSourceText = genericAttributeSourceText;
         HasExplicitAttributes = hasExplicitAttributes;
     }
 
@@ -55,6 +59,17 @@ public sealed class MarkdownCodeFenceInfo {
     /// Recognizes <c>key=value</c>, <c>key="value with spaces"</c>, and standalone flags.
     /// </summary>
     public IReadOnlyDictionary<string, string?> Attributes => _attributes;
+
+    /// <summary>
+    /// Markdig-style generic attributes parsed from explicit <c>{...}</c> fence-info attribute blocks only.
+    /// Other fence options remain available through <see cref="Attributes"/> for host renderers.
+    /// </summary>
+    public MarkdownAttributeSet GenericAttributes { get; }
+
+    /// <summary>
+    /// Source text for the explicit fence-info attribute block, including braces, when present.
+    /// </summary>
+    internal string? GenericAttributeSourceText { get; }
 
     /// <summary>
     /// True when the info string contains explicit attribute syntax such as <c>{...}</c>, <c>#id</c>, or <c>.class</c>.
@@ -199,11 +214,20 @@ public sealed class MarkdownCodeFenceInfo {
                 null,
                 EmptyClasses,
                 new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase),
+                MarkdownAttributeSet.Empty,
+                null,
                 hasExplicitAttributes: false);
         }
 
         if (StartsWithAttributeBlock(normalized)) {
-            ParseMetadata(normalized, out var attributeOnlyElementId, out var attributeOnlyClasses, out var attributeOnlyAttributes, out var attributeOnlyHasExplicitAttributes);
+            ParseMetadata(
+                normalized,
+                out var attributeOnlyElementId,
+                out var attributeOnlyClasses,
+                out var attributeOnlyAttributes,
+                out var attributeOnlyGenericAttributes,
+                out var attributeOnlyGenericAttributeSourceText,
+                out var attributeOnlyHasExplicitAttributes);
             return new MarkdownCodeFenceInfo(
                 normalized,
                 string.Empty,
@@ -211,6 +235,8 @@ public sealed class MarkdownCodeFenceInfo {
                 attributeOnlyElementId,
                 attributeOnlyClasses,
                 attributeOnlyAttributes,
+                attributeOnlyGenericAttributes,
+                attributeOnlyGenericAttributeSourceText,
                 attributeOnlyHasExplicitAttributes);
         }
 
@@ -224,9 +250,25 @@ public sealed class MarkdownCodeFenceInfo {
             ? normalized.Substring(split).Trim()
             : string.Empty;
 
-        ParseMetadata(additionalInfo, out var elementId, out var classes, out var attributes, out var hasExplicitAttributes);
+        ParseMetadata(
+            additionalInfo,
+            out var elementId,
+            out var classes,
+            out var attributes,
+            out var genericAttributes,
+            out var genericAttributeSourceText,
+            out var hasExplicitAttributes);
 
-        return new MarkdownCodeFenceInfo(normalized, language, additionalInfo, elementId, classes, attributes, hasExplicitAttributes);
+        return new MarkdownCodeFenceInfo(
+            normalized,
+            language,
+            additionalInfo,
+            elementId,
+            classes,
+            attributes,
+            genericAttributes,
+            genericAttributeSourceText,
+            hasExplicitAttributes);
     }
 
     private static bool StartsWithAttributeBlock(string value) {
@@ -276,14 +318,23 @@ public sealed class MarkdownCodeFenceInfo {
         out string? elementId,
         out IReadOnlyList<string> classes,
         out IReadOnlyDictionary<string, string?> attributes,
+        out MarkdownAttributeSet genericAttributes,
+        out string? genericAttributeSourceText,
         out bool hasExplicitAttributes) {
         elementId = null;
+        string? genericElementId = null;
+        genericAttributeSourceText = null;
         hasExplicitAttributes = false;
         var parsedAttributes = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        var parsedGenericAttributes = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         var parsedClasses = new List<string>();
+        var parsedGenericClasses = new List<string>();
+        int genericAttributeStart = -1;
+        int genericAttributeEnd = -1;
         if (string.IsNullOrWhiteSpace(additionalInfo)) {
             classes = EmptyClasses;
             attributes = parsedAttributes;
+            genericAttributes = MarkdownAttributeSet.Empty;
             return;
         }
 
@@ -299,24 +350,42 @@ public sealed class MarkdownCodeFenceInfo {
             }
 
             hasExplicitAttributes = true;
+            if (genericAttributeStart < 0) {
+                genericAttributeStart = segment.StartIndex;
+            }
+
+            genericAttributeEnd = segment.EndIndex;
             MarkdownGenericAttributeParser.ParseTokens(segment.Value, out var blockElementId, out var blockClasses, out var blockAttributes);
             if (string.IsNullOrWhiteSpace(elementId) && !string.IsNullOrWhiteSpace(blockElementId)) {
                 elementId = blockElementId;
             }
 
+            if (string.IsNullOrWhiteSpace(genericElementId) && !string.IsNullOrWhiteSpace(blockElementId)) {
+                genericElementId = blockElementId;
+            }
+
             for (int i = 0; i < blockClasses.Count; i++) {
                 AddClass(parsedClasses, blockClasses[i]);
+                AddClass(parsedGenericClasses, blockClasses[i]);
             }
 
             foreach (var attribute in blockAttributes) {
                 if (!parsedAttributes.ContainsKey(attribute.Key)) {
                     parsedAttributes[attribute.Key] = attribute.Value;
                 }
+
+                if (!parsedGenericAttributes.ContainsKey(attribute.Key)) {
+                    parsedGenericAttributes[attribute.Key] = attribute.Value;
+                }
             }
         }
 
         classes = parsedClasses.Count == 0 ? EmptyClasses : parsedClasses.AsReadOnly();
         attributes = parsedAttributes;
+        genericAttributes = MarkdownAttributeSet.Create(genericElementId, parsedGenericClasses, parsedGenericAttributes);
+        if (genericAttributeStart >= 0 && genericAttributeEnd >= genericAttributeStart) {
+            genericAttributeSourceText = additionalInfo.Substring(genericAttributeStart, genericAttributeEnd - genericAttributeStart + 1);
+        }
     }
 
     private static bool IsExplicitAttributeToken(string token) =>
@@ -334,9 +403,10 @@ public sealed class MarkdownCodeFenceInfo {
             }
 
             if (value[index] == '{') {
+                var segmentStart = index;
                 if (TryReadAttributeBlock(value, ref index, out var block)) {
                     if (!string.IsNullOrWhiteSpace(block)) {
-                        yield return new FenceMetadataSegment(block, isAttributeBlock: true, isOpaque: false);
+                        yield return new FenceMetadataSegment(block, isAttributeBlock: true, isOpaque: false, segmentStart, index - 1);
                     }
 
                     continue;
@@ -344,7 +414,7 @@ public sealed class MarkdownCodeFenceInfo {
 
                 var opaqueRemainder = value.Substring(index).Trim();
                 if (opaqueRemainder.Length > 0) {
-                    yield return new FenceMetadataSegment(opaqueRemainder, isAttributeBlock: false, isOpaque: true);
+                    yield return new FenceMetadataSegment(opaqueRemainder, isAttributeBlock: false, isOpaque: true, index, value.Length - 1);
                 }
 
                 yield break;
@@ -371,7 +441,7 @@ public sealed class MarkdownCodeFenceInfo {
 
             var token = value.Substring(start, index - start).Trim();
             if (token.Length > 0) {
-                yield return new FenceMetadataSegment(token, isAttributeBlock: false, isOpaque: false);
+                yield return new FenceMetadataSegment(token, isAttributeBlock: false, isOpaque: false, start, index - 1);
             }
         }
     }
@@ -448,10 +518,12 @@ public sealed class MarkdownCodeFenceInfo {
     }
 
     private readonly struct FenceMetadataSegment {
-        public FenceMetadataSegment(string value, bool isAttributeBlock, bool isOpaque) {
+        public FenceMetadataSegment(string value, bool isAttributeBlock, bool isOpaque, int startIndex, int endIndex) {
             Value = value;
             IsAttributeBlock = isAttributeBlock;
             IsOpaque = isOpaque;
+            StartIndex = startIndex;
+            EndIndex = endIndex;
         }
 
         public string Value { get; }
@@ -459,5 +531,9 @@ public sealed class MarkdownCodeFenceInfo {
         public bool IsAttributeBlock { get; }
 
         public bool IsOpaque { get; }
+
+        public int StartIndex { get; }
+
+        public int EndIndex { get; }
     }
 }

@@ -130,8 +130,9 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
             classes.Add("language-" + Language);
         }
 
-        for (int i = 0; i < Attributes.Classes.Count; i++) {
-            classes.Add(Attributes.Classes[i]);
+        var sourceAttributes = renderFenceInfoAttributesFirst ? FenceInfo.GenericAttributes : Attributes;
+        for (int i = 0; i < sourceAttributes.Classes.Count; i++) {
+            classes.Add(sourceAttributes.Classes[i]);
         }
 
         if (renderFenceInfoAttributesFirst && !string.IsNullOrEmpty(Language)) {
@@ -139,9 +140,9 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
         }
 
         var codeAttributes = MarkdownAttributeSet.Create(
-            Attributes.ElementId,
+            sourceAttributes.ElementId,
             classes,
-            Attributes.Attributes);
+            sourceAttributes.Attributes);
 
         return MarkdownHtmlAttributes.Render(codeAttributes, options);
     }
