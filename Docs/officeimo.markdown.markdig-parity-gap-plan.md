@@ -90,6 +90,7 @@ Current active row: `UseDefinitionLists`.
   - [x] AST/source/native spans describe the nested paragraph and definition body correctly.
 - [ ] Broaden remaining lazy-continuation cases.
   - [ ] Paragraph-after-blank variants not already covered.
+    - [x] Blank-separated nested blockquote lazy tails preserve Markdig soft-break behavior with syntax/native source spans and writer reparse proof.
   - [ ] Multiple lazy lines after nested blocks.
     - [x] Multiple lazy lines inside a nested blockquote now stay in the definition body while a following unindented list closes the definition list like Markdig, with syntax/native source spans and writer reparse proof.
   - [ ] Remaining list-like and table-like interruption starts, with pipe tables on and off.

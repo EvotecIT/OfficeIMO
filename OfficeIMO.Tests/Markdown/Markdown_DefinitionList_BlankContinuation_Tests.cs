@@ -152,6 +152,76 @@ lazy continuation
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
+    [Fact]
+    public void DefinitionList_BlankSeparatedNestedBlockquoteLazyTail_PreservesQuoteSoftBreak() {
+        const string markdown = """
+Term
+:   First
+
+    > quote
+lazy continuation
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
+        var firstParagraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
+        var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First", firstParagraph.Inlines.RenderMarkdown());
+        Assert.Equal("quote\nlazy continuation", quoteParagraph.Inlines.RenderMarkdown().Replace("\r\n", "\n"));
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.InlineText,
+                MarkdownSyntaxKind.InlineSoftBreak,
+                MarkdownSyntaxKind.InlineText
+            },
+            quoteParagraphSyntax.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 17), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 5, 5, 17), quoteSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 7, 5, 17), quoteParagraphSyntax.SourceSpan);
+        Assert.Equal("Term\n:   First\n    > quote\n    > lazy continuation", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        var blankLine = Assert.Single(native.EnumerateBlockSourceFields("definitionBlankLine"));
+        var continuationIndent = Assert.Single(native.EnumerateBlockSourceFields("definitionContinuationIndent"));
+        var nativeDefinitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var nativeDefinition = Assert.Single(Assert.Single(nativeDefinitionList.Groups).Definitions);
+        var nativeQuote = Assert.IsType<MarkdownNativeQuoteBlock>(nativeDefinition.Children[1]);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(nativeQuote.Children));
+
+        Assert.Equal("First\n\n> quote\n> lazy continuation", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 17), definitionBody.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 1), blankLine.SourceSpan);
+        var foundBlankLine = native.FindBlockSourceFieldAtPosition(3, 1);
+        Assert.NotNull(foundBlankLine);
+        Assert.Equal(blankLine.Name, foundBlankLine!.Name);
+        Assert.Equal(blankLine.SourceSpan, foundBlankLine.SourceSpan);
+        Assert.Equal(new[] { new MarkdownSourceSpan(3, 1, 3, 1) }, nativeDefinition.BlankLineSourceSpans);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 4), continuationIndent.SourceSpan);
+        var foundContinuationIndent = native.FindBlockSourceFieldAtPosition(4, 1);
+        Assert.NotNull(foundContinuationIndent);
+        Assert.Equal(continuationIndent.Name, foundContinuationIndent!.Name);
+        Assert.Equal(continuationIndent.SourceSpan, foundContinuationIndent.SourceSpan);
+        Assert.Equal(new[] { new MarkdownSourceSpan(4, 1, 4, 4) }, nativeDefinition.ContinuationIndentSourceSpans);
+        Assert.Equal("quote\nlazy continuation", nativeParagraph.Text.Replace("\r\n", "\n"));
+        Assert.Contains(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.SoftBreak);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
     private static Markdig.MarkdownPipeline CreateMarkdigDefinitionListPipeline() {
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseDefinitionLists(builder);
