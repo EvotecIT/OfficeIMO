@@ -91,7 +91,7 @@ namespace OfficeIMO.Word {
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
         }
 
-        internal static string GetNewParaId(CommentsEx commentsEx) {
+        internal static string GetNewParaId(CommentsEx commentsEx, Comments? comments = null) {
             if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
 
             var existing = commentsEx
@@ -99,6 +99,13 @@ namespace OfficeIMO.Word {
                 .Select(c => c.ParaId?.Value)
                 .Where(v => !string.IsNullOrEmpty(v))
                 .ToList();
+            if (comments != null) {
+                existing.AddRange(comments
+                    .Descendants<Comment>()
+                    .Select(GetCommentParagraphId)
+                    .Where(v => !string.IsNullOrEmpty(v))
+                    .Select(v => v!));
+            }
 
             int max = 0;
             foreach (var v in existing) {

@@ -64,13 +64,53 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            ApplyParagraphFormattingFindings(sourceParagraphs, targetParagraphs, result, options);
             return rewrittenParagraphs;
+        }
+
+        private static void ApplyParagraphFormattingFindings(
+            IReadOnlyList<RedlineParagraphEntry> sourceParagraphs,
+            IReadOnlyList<RedlineParagraphEntry> targetParagraphs,
+            WordComparisonResult result,
+            WordComparisonRedlineOptions options) {
+            foreach (WordComparisonFinding finding in result.Findings) {
+                if (!ShouldTrackFinding(finding, options) ||
+                    finding.Scope != WordComparisonScope.Paragraph ||
+                    !IsParagraphFormattingRedlineFinding(finding) ||
+                    finding.ChangeKind != WordComparisonChangeKind.Modified ||
+                    finding.TargetIndex is not int targetIndex ||
+                    targetIndex < 0 ||
+                    targetIndex >= targetParagraphs.Count) {
+                    continue;
+                }
+
+                int sourceIndex = finding.SourceIndex ?? targetIndex;
+                if (sourceIndex < 0 || sourceIndex >= sourceParagraphs.Count) {
+                    continue;
+                }
+
+                ApplyParagraphFormattingFinding(sourceParagraphs[sourceIndex].Paragraph, targetParagraphs[targetIndex].Paragraph, options);
+            }
         }
 
         private static bool IsParagraphTextRedlineFinding(WordComparisonFinding finding) {
             return string.Equals(finding.Message, "Paragraph text changed.", StringComparison.Ordinal) ||
                    string.Equals(finding.Message, "Paragraph inserted.", StringComparison.Ordinal) ||
                    string.Equals(finding.Message, "Paragraph deleted.", StringComparison.Ordinal);
+        }
+
+        private static bool IsParagraphFormattingRedlineFinding(WordComparisonFinding finding) {
+            return string.Equals(finding.Message, "Paragraph style id changed.", StringComparison.Ordinal) ||
+                   string.Equals(finding.Message, "Paragraph effective formatting changed.", StringComparison.Ordinal);
+        }
+
+        private static void ApplyParagraphFormattingFinding(Paragraph sourceParagraph, Paragraph targetParagraph, WordComparisonRedlineOptions options) {
+            targetParagraph.ParagraphProperties ??= new ParagraphProperties();
+            foreach (ParagraphPropertiesChange existingChange in targetParagraph.ParagraphProperties.Elements<ParagraphPropertiesChange>().ToList()) {
+                existingChange.Remove();
+            }
+
+            targetParagraph.ParagraphProperties.ParagraphPropertiesChange = CreateParagraphPropertiesChange(sourceParagraph.ParagraphProperties, options);
         }
 
         private static void ApplyRunFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options, HashSet<int> rewrittenParagraphs) {
@@ -168,6 +208,26 @@ namespace OfficeIMO.Word {
             };
         }
 
+        private static ParagraphPropertiesChange CreateParagraphPropertiesChange(ParagraphProperties? sourceProperties, WordComparisonRedlineOptions options) {
+            var previousProperties = new PreviousParagraphProperties();
+            if (sourceProperties != null) {
+                ParagraphProperties clonedProperties = (ParagraphProperties)sourceProperties.CloneNode(true);
+                foreach (ParagraphPropertiesChange existingChange in clonedProperties.Elements<ParagraphPropertiesChange>().ToList()) {
+                    existingChange.Remove();
+                }
+
+                foreach (OpenXmlElement child in clonedProperties.ChildElements.ToList()) {
+                    previousProperties.Append(child.CloneNode(true));
+                }
+            }
+
+            return new ParagraphPropertiesChange(previousProperties) {
+                Author = options.Author,
+                Date = options.DateTime ?? DateTime.Now,
+                Id = WordHeadersAndFooters.GenerateRevisionId()
+            };
+        }
+
         private static List<RedlineParagraphEntry> GetRedlineParagraphEntries(WordprocessingDocument document) {
             var entries = new List<RedlineParagraphEntry>();
             MainDocumentPart? mainPart = document.MainDocumentPart;
@@ -213,6 +273,10 @@ namespace OfficeIMO.Word {
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
                 if (ordered.Element is not Paragraph paragraph ||
                     paragraph.Ancestors<TableCell>().Any()) {
+                    continue;
+                }
+
+                if (GetParagraphText(paragraph).Length == 0 && HasImageContent(paragraph)) {
                     continue;
                 }
 

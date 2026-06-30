@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -118,6 +119,72 @@ namespace OfficeIMO.Tests {
             Paragraph changedParagraph = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Elements<Paragraph>().Last();
             Run changedRun = Assert.Single(changedParagraph.Elements<Run>());
             Assert.NotNull(changedRun.RunProperties?.RunPropertiesChange);
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceRedlineSkipsImageOnlyParagraphIndexes() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_image_only_paragraph_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.AddParagraph("Stable text");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_image_only_paragraph_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.AddParagraph("Changed text");
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_image_only_paragraph_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Paragraph[] paragraphs = redline._document.Body!.Elements<Paragraph>().ToArray();
+            Assert.True(paragraphs[0].Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any());
+            Assert.Empty(paragraphs[0].Descendants<InsertedRun>());
+            Assert.Empty(paragraphs[0].Descendants<DeletedRun>());
+            Assert.Contains(paragraphs[1].Descendants<DeletedRun>(), run => run.InnerText == "Stable text");
+            Assert.Contains(paragraphs[1].Descendants<InsertedRun>(), run => run.InnerText == "Changed text");
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceRedlinesParagraphFormattingChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_paragraph_format_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Formatted paragraph");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_paragraph_format_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Formatted paragraph").SetStyle(WordParagraphStyles.Heading1);
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_paragraph_format_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            Assert.Contains(result.Findings, finding => finding.Message == "Paragraph style id changed.");
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Paragraph paragraph = Assert.Single(redline._document.Body!.Elements<Paragraph>(), item => item.InnerText == "Formatted paragraph");
+            Assert.NotNull(paragraph.ParagraphProperties?.ParagraphPropertiesChange);
         }
 
         [Fact]
@@ -395,6 +462,39 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(document._document.Body!.Descendants<Run>(), run => run.InnerText == "Promoted text");
                 Assert.Empty(document._document.Body!.Descendants<RunPropertiesChange>());
                 Assert.Empty(document._document.Body!.Descendants<InsertedRun>());
+            }
+        }
+
+        [Fact]
+        public void AddCommentReservesImportedCommentParagraphIdsWithoutCommentsEx() {
+            string filePath = Path.Combine(_directoryWithFiles, "CommentParaIdReservation.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Comment target");
+                document.Save(false);
+            }
+
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
+                WordprocessingCommentsPart commentsPart = package.MainDocumentPart!.AddNewPart<WordprocessingCommentsPart>();
+                commentsPart.Comments = new Comments(
+                    new Comment(
+                        new Paragraph(
+                            new Run(new Text("Imported comment")))) {
+                        Id = "0",
+                        Author = "Imported",
+                        Initials = "IM",
+                        Date = new DateTime(2026, 6, 30, 12, 0, 0, DateTimeKind.Utc)
+                    });
+                commentsPart.Comments.GetFirstChild<Comment>()!.GetFirstChild<Paragraph>()!.ParagraphId = "0000000A";
+                commentsPart.Comments.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                document.AddParagraph("New comment target").AddComment("OfficeIMO Tests", "OT", "New comment");
+
+                var commentsEx = document._wordprocessingDocument.MainDocumentPart!.WordprocessingCommentsExPart!.CommentsEx!;
+                Assert.DoesNotContain(commentsEx.Elements<DocumentFormat.OpenXml.Office2013.Word.CommentEx>(), commentEx => commentEx.ParaId?.Value == "0000000A");
+                Assert.Contains(commentsEx.Elements<DocumentFormat.OpenXml.Office2013.Word.CommentEx>(), commentEx => commentEx.ParaId?.Value == "0000000B");
             }
         }
 
