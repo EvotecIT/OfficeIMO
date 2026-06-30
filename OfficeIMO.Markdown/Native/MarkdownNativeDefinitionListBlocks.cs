@@ -170,6 +170,7 @@ public sealed class MarkdownNativeDefinitionListDefinition {
         SyntaxNode = syntaxNode;
         SourceSpan = syntaxNode?.SourceSpan ?? Definition.SourceSpan;
         Markdown = Definition.RenderMarkdown();
+        BlankLineSourceSpans = Definition.BlankLineSourceSpans;
         Children = syntaxNode != null
             ? MarkdownNativeProjectionFactory.CreateChildren(syntaxNode, diagnostics)
             : Array.Empty<MarkdownNativeBlock>();
@@ -186,6 +187,9 @@ public sealed class MarkdownNativeDefinitionListDefinition {
 
     /// <summary>Markdown representation of the definition body.</summary>
     public string Markdown { get; }
+
+    /// <summary>Source spans for blank separator lines inside this definition body.</summary>
+    public IReadOnlyList<MarkdownSourceSpan> BlankLineSourceSpans { get; }
 
     /// <summary>Native definition body children.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Children { get; }

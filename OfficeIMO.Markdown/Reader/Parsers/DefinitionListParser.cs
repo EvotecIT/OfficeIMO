@@ -83,6 +83,7 @@ public static partial class MarkdownReader {
                 }
 
                 var definitionObject = new DefinitionListDefinition(definitionBlocks);
+                definitionObject.ReplaceBlankLineSourceSpans(GetDefinitionBlankLineSourceSpans(definitionSourceLines, state));
                 var group = new DefinitionListGroup(
                     new[] { termInlines },
                     new[] { definitionObject });
@@ -441,6 +442,7 @@ public static partial class MarkdownReader {
                 lineNumber,
                 Math.Max(definitionStartIndex + 1, definitionEndExclusive));
         var definition = new DefinitionListDefinition(definitionBlocks);
+        definition.ReplaceBlankLineSourceSpans(GetDefinitionBlankLineSourceSpans(definitionSourceLines, state));
         if (consumedLeadingBlankLine) {
             definition.ForceParagraphHtml = true;
             definition.HasLeadingBlankLineBeforeBody = true;
@@ -743,6 +745,31 @@ public static partial class MarkdownReader {
         var nodes = new List<MarkdownSyntaxNode>();
         AddParagraphSyntaxNodes(nodes, definitionSourceLines, options, state);
         return (paragraphs, nodes);
+    }
+
+    private static IReadOnlyList<MarkdownSourceSpan> GetDefinitionBlankLineSourceSpans(
+        IReadOnlyList<MarkdownSourceLineSlice> definitionSourceLines,
+        MarkdownReaderState state) {
+        if (definitionSourceLines == null || definitionSourceLines.Count == 0) {
+            return Array.Empty<MarkdownSourceSpan>();
+        }
+
+        var spans = new List<MarkdownSourceSpan>();
+        for (int i = 0; i < definitionSourceLines.Count; i++) {
+            var sourceLine = definitionSourceLines[i];
+            if (!string.IsNullOrWhiteSpace(sourceLine.Text)) {
+                continue;
+            }
+
+            spans.Add(CreateSpan(
+                state,
+                sourceLine.AbsoluteLine,
+                sourceLine.StartColumn,
+                sourceLine.AbsoluteLine,
+                sourceLine.StartColumn));
+        }
+
+        return spans;
     }
 
     private static List<MarkdownSourceLineSlice> NormalizeDefinitionFencedCodeSourceLines(List<MarkdownSourceLineSlice> definitionSourceLines) {

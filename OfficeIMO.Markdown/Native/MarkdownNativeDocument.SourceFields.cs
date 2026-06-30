@@ -48,6 +48,10 @@ public sealed partial class MarkdownNativeDocument {
     }
 
     private static int GetSourceFieldSelectionPriority(MarkdownNativeBlockSourceField field) {
+        if (string.Equals(field.Name, "definitionBlankLine", StringComparison.OrdinalIgnoreCase)) {
+            return 2;
+        }
+
         return field.Name.EndsWith("Body", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
     }
 
@@ -446,6 +450,15 @@ public sealed partial class MarkdownNativeDocument {
                 var definition = group.Definitions[definitionOffset];
                 if (definition.SourceSpan.HasValue) {
                     yield return new MarkdownNativeBlockSourceField("definitionBody", definition.Markdown, definition.SourceSpan.Value, definitionList, definitionIndex);
+                }
+
+                for (var blankIndex = 0; blankIndex < definition.BlankLineSourceSpans.Count; blankIndex++) {
+                    yield return new MarkdownNativeBlockSourceField(
+                        "definitionBlankLine",
+                        string.Empty,
+                        definition.BlankLineSourceSpans[blankIndex],
+                        definitionList,
+                        definitionIndex);
                 }
 
                 definitionIndex++;

@@ -65,6 +65,7 @@ Current coverage:
 - definition-list group/value syntax nodes now map source spans back to `DefinitionListGroup` and `DefinitionListDefinition` semantic objects
 - definition lists now expose definition body blocks through public `ChildBlocks`, matching the same underlying objects owned by `DefinitionListDefinition`
 - native definition-list projection now exposes grouped terms, definition body children, term inline runs, and snapshot DTOs instead of reporting definition lists as unsupported native blocks
+- definition-list blank separator lines inside definition bodies now expose native `definitionBlankLine` source fields, snapshots, and position lookup targets without hiding the broader `definitionBody` field
 - native thematic-break projection now exposes CommonMark horizontal rules as first-class native blocks with source spans and snapshots
 - reference-style link definitions now have effective parse-result/native metadata with definition-level spans, label/destination/title token spans, snapshots, and source-edit coverage instead of living only in internal parser state and syntax nodes
 - inline footnote references now expose label and delimiter marker metadata spans in syntax and native snapshots, with native source-edit coverage for the label token and delimiter markers

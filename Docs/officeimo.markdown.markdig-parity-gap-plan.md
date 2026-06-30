@@ -52,7 +52,7 @@ Current active row: `UseDefinitionLists`.
 - [ ] Finish definition-list source mapping.
   - [ ] Marker lines.
   - [ ] Continuation indentation.
-  - [ ] Blank separators.
+  - [x] Blank separators now surface as native `definitionBlankLine` source fields with precise caret lookup while broad `definitionBody` spans remain available.
   - [ ] Generated paragraph wrappers.
   - [ ] Normalized native `definitionBody` values versus original source spans.
 - [ ] Promote `UseDefinitionLists` only after parser behavior, AST/source/native projection, HTML rendering, Markdown writing, reparse stability, generated inventory, and the compatibility matrix all agree.
