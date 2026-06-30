@@ -39,6 +39,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocTableCellMargins cellMargins = ReadSupportedTableCellMargins(cellProperties?.GetFirstChild<TableCellMargin>());
                 LegacyDocTableCellShading cellShading = ReadSupportedConditionalTableStyleShading(cellProperties?.GetFirstChild<Shading>());
                 LegacyDocTableCellBorders cellBorders = ReadSupportedConditionalTableStyleBorders(cellProperties);
+                LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(properties.GetFirstChild<StyleRunProperties>());
                 if (tableShading.HasAny
                     || tableBorders.HasAny
                     || cellVerticalAlignment != null
@@ -48,8 +49,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     || cellHideMark != null
                     || cellMargins.HasAny
                     || cellShading.HasAny
-                    || cellBorders.HasAny) {
-                    conditionalStyles.Add(new LegacyDocTableConditionalStyle(type.Value, tableShading, tableBorders, cellVerticalAlignment, cellTextDirection, cellFitText, cellNoWrap, cellHideMark, cellMargins, cellShading, cellBorders));
+                    || cellBorders.HasAny
+                    || runFormatting.HasFormatting) {
+                    conditionalStyles.Add(new LegacyDocTableConditionalStyle(type.Value, tableShading, tableBorders, cellVerticalAlignment, cellTextDirection, cellFitText, cellNoWrap, cellHideMark, cellMargins, cellShading, cellBorders, runFormatting));
                 }
             }
 
@@ -194,6 +196,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     if (conditionalStyle.TableBorders.HasAny) {
                         LegacyDocTableCellBorders regionBorders = CreateSupportedConditionalTableBorders(conditionalStyle.Type, conditionalStyle.TableBorders, tableLook, conditionalStyles.RowBandSize, conditionalStyles.ColumnBandSize, rowIndex, rowCount, columnIndex, writableCells.Count);
                         cell = cell.WithBorders(MergeSupportedTableCellBorders(cell.Borders, regionBorders));
+                    }
+
+                    if (conditionalStyle.RunFormatting.HasFormatting) {
+                        cell = cell.WithRunFormatting(conditionalStyle.RunFormatting.WithInheritedFormatting(cell.RunFormatting));
                     }
                 }
 
@@ -342,7 +348,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 bool? cellHideMark,
                 LegacyDocTableCellMargins cellMargins,
                 LegacyDocTableCellShading cellShading,
-                LegacyDocTableCellBorders cellBorders) {
+                LegacyDocTableCellBorders cellBorders,
+                LegacyDocWritableFormatting runFormatting) {
                 Type = type;
                 TableShading = tableShading;
                 TableBorders = tableBorders;
@@ -354,6 +361,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 CellMargins = cellMargins;
                 CellShading = cellShading;
                 CellBorders = cellBorders;
+                RunFormatting = runFormatting;
             }
 
             internal TableStyleOverrideValues Type { get; }
@@ -377,6 +385,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal LegacyDocTableCellShading CellShading { get; }
 
             internal LegacyDocTableCellBorders CellBorders { get; }
+
+            internal LegacyDocWritableFormatting RunFormatting { get; }
         }
 
         private readonly struct LegacyDocTableLook {

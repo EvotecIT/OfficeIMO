@@ -263,9 +263,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TableStyleConditionalFormattingTableProperties tableProperties:
                         ThrowIfUnsupportedTableStyleConditionalTableProperties(styleId, tableProperties);
                         break;
+                    case StyleRunProperties styleRunProperties:
+                        ThrowIfUnsupportedTableStyleConditionalRunProperties(styleId, styleRunProperties);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only with supported table and cell effects. Unsupported conditional style element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only with supported table, cell, and run effects. Unsupported conditional style element: {child.LocalName}.");
                 }
+            }
+        }
+
+        private static void ThrowIfUnsupportedTableStyleConditionalRunProperties(string styleId, StyleRunProperties runProperties) {
+            try {
+                _ = ReadSupportedRunFormatting(runProperties);
+            } catch (NotSupportedException exception) {
+                throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional run formatting only with supported run properties. {exception.Message}", exception);
             }
         }
 

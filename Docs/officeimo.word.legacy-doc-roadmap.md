@@ -665,8 +665,8 @@ just to reserve names.
   - [x] Write supported conditional table-style cell shading and cell borders
     by flattening first/last row, first/last column, corner, and banded
     conditional effects into native DOC `TC80` values, while keeping direct
-    cell formatting as an override and blocking conditional paragraph, run, and
-    table effects before bytes are committed.
+    cell formatting as an override and blocking unsupported conditional
+    paragraph and richer table effects before bytes are committed.
   - [x] Write supported conditional table-style table-level shading and borders
     by flattening conditional `tblPr` first/last row, first/last column,
     corner, and banded effects into native DOC cell shading and `TC80` border
@@ -676,6 +676,10 @@ just to reserve names.
     (vertical alignment, text direction, fit-text, no-wrap, hide-mark, and
     margins) by flattening conditional `tcPr` layout into native DOC `TC80` and
     padding values, while keeping direct cell formatting as the override.
+  - [x] Write supported conditional table-style run formatting by flattening
+    conditional style run properties into native DOC cell text CHPX records for
+    matching table regions, while preserving direct run formatting as the
+    override.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.
