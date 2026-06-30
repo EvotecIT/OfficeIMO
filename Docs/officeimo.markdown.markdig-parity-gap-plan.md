@@ -20,6 +20,7 @@ Use the Markdig extension inventory and Markdig extension compatibility matrix a
 ## What Is Still Missing From Parity
 
 This is the non-looping checklist. A test-only slice is valid only when the matching engine behavior already exists and the open lane is proof.
+Each unchecked item should be treated as exactly one lane before work starts: engine behavior, AST/source model, writer/render behavior, product-scope decision, or proof. If a comparison exposes a behavior mismatch, fix the engine first; do not paper over it with tests.
 
 - [ ] `UseDefinitionLists` promotion: mostly engine plus proof.
   - [x] Engine: generated/rebuilt definition body wrappers are marked through `MarkdownSyntaxNode.IsGenerated`, and native projection emits `native.generated-definition-child` diagnostics when definition children are regenerated from semantic content.
@@ -83,15 +84,28 @@ Do not move an extension row to `Covered` until each applicable box is true.
 
 Current active row: `UseDefinitionLists`.
 
+- [ ] Run the final compact Markdig comparison probe for definition-list tail behavior.
+  - [ ] Paragraph-after-blank tails after plain paragraph, nested unordered list, nested ordered list, and nested blockquote bodies.
+  - [ ] Two-or-more lazy lines after nested unordered list, nested ordered list, and nested blockquote bodies.
+  - [ ] Boundary candidates after blank lines: setext/thematic/heading, fenced code, raw HTML, reference-definition-looking text, pipe-table-shaped text, ordered/unordered/task-list starts.
+  - [ ] Run with pipe tables off and on where the input is table-shaped.
+- [ ] Fix only real `UseDefinitionLists` engine mismatches found by that probe.
+  - [ ] Parser ownership: decide whether each tail stays inside the definition body or closes it, matching Markdig unless documented otherwise.
+  - [ ] Semantic AST: make the chosen ownership visible as stable OfficeIMO blocks, not a writer-only workaround.
+  - [ ] Syntax/native source: preserve spans for definition markers, body text, blank separators, continuation indentation, generated children, and boundary blocks.
+- [ ] Fix only real writer/reparse mismatches found by that probe.
+  - [ ] Ensure `ToMarkdown()` output reparses to equivalent HTML/AST behavior for covered definition-list cases.
+  - [ ] Preserve literal text when Markdig keeps it literal, including setext-looking, table-looking, reference-looking, and escaped-pipe tails.
+  - [ ] Insert blank boundaries only where required to prevent semantic collapse on reparse.
 - [x] Close the active nested-body equals-setext literal gap.
   - [x] Nested list lazy paragraph followed by `===` stays literal text when Markdig keeps it literal.
   - [x] Nested blockquote lazy paragraph followed by `===` stays literal text when Markdig keeps it literal.
   - [x] Markdown writer escapes or preserves the shape so OfficeIMO reparse does not create a heading by accident.
   - [x] AST/source/native spans describe the nested paragraph and definition body correctly.
 - [ ] Broaden remaining lazy-continuation cases.
-  - [ ] Paragraph-after-blank variants not already covered.
+  - [ ] Paragraph-after-blank variants not already covered by the final compact probe.
     - [x] Blank-separated nested blockquote lazy tails preserve Markdig soft-break behavior with syntax/native source spans and writer reparse proof.
-  - [ ] Multiple lazy lines after nested blocks.
+  - [ ] Multiple lazy lines after nested blocks not already covered by the final compact probe.
     - [x] Multiple lazy lines inside a nested blockquote now stay in the definition body while a following unindented list closes the definition list like Markdig, with syntax/native source spans and writer reparse proof.
   - [x] Remaining list-like and table-like interruption starts, with pipe tables on and off.
     - [x] Compact Markdig comparison now matches for unordered, ordered, task-list-shaped, non-`1` ordered, ordered-parenthesis, escaped-pipe table-shaped, and pipe-table delimiter-mismatch tails across nested paragraph, list, ordered-list, and blockquote definition bodies.
@@ -107,13 +121,18 @@ Current active row: `UseDefinitionLists`.
     - [x] Unindented blockquote tails after nested list bodies now close the definition list like Markdig, with syntax/native source spans and writer reparse proof.
     - [x] Unindented list tails after nested blockquote bodies now close the definition list like Markdig, with syntax/native source spans and writer reparse proof.
     - [x] Unindented raw HTML after nested list bodies now closes the definition list like Markdig, with syntax/native source spans and writer reparse proof.
-- [ ] Finish definition-list source mapping.
+- [x] Finish definition-list source mapping.
   - [x] Marker lines are source-backed through parsed `DefinitionMarker` syntax tokens and native `definitionMarker` source fields; generated marker tokens remain source-less by design.
   - [x] Continuation indentation stripped from definition body lines now surfaces as native `definitionContinuationIndent` source fields with precise caret lookup.
   - [x] Blank separators now surface as native `definitionBlankLine` source fields with precise caret lookup while broad `definitionBody` spans remain available.
   - [x] Generated paragraph wrappers are now honest in the final syntax/native model: rebuilt semantic children carry `MarkdownSyntaxNode.IsGenerated`, and definition-list native projection reports `native.generated-definition-child` instead of presenting fallback anchors as exact parsed source.
   - [x] Normalized native `definitionBody` values versus original source spans are now explicit: `definitionBody.Value` stays semantic/normalized while `MarkdownNativeDocument` can materialize normalized or original source slices for the span-backed native field.
 - [ ] Promote `UseDefinitionLists` only after parser behavior, AST/source/native projection, HTML rendering, Markdown writing, reparse stability, generated inventory, and the compatibility matrix all agree.
+  - [ ] Focused definition-list tests are green.
+  - [ ] Broad CommonMark/GFM/Markdig comparison lane is green.
+  - [ ] Compact Markdig comparison matrix has zero failures for the final definition-list probe.
+  - [ ] Markdig extension inventory and compatibility docs mark `UseDefinitionLists` as `Covered` with current proof.
+  - [ ] No new source-map, native-projection, or writer diagnostics are hiding unresolved exactness gaps.
 
 ## P1 - Close High-Value Partial Rows
 
