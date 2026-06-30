@@ -3131,6 +3131,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_IgnoresZeroAutoTableCellSpacingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 1);
+                    table._tableProperties!.TableCellSpacing = new TableCellSpacing {
+                        Type = TableWidthUnitValues.Auto,
+                        Width = "0"
+                    };
+                    table.Rows[0].Cells[0].AddParagraph("No spacing", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.False(
+                    ContainsBytePattern(wordDocumentStream, 0x33, 0xD6, 0x06),
+                    "Expected native DOC save to omit sprmTCellSpacingDefault for zero auto table cell spacing.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Null(reloadedTable.StyleDetails!.CellSpacing);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("No spacing", row.Cells[0].Paragraphs[0].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellShadingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

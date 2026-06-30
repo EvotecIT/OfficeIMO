@@ -573,8 +573,9 @@ just to reserve names.
   - [x] Write table-level default cell margins with `sprmTCellPaddingDefault`,
     then reload inherited defaults and per-cell overrides through the legacy
     reader.
-  - [x] Write table-level cell spacing with `sprmTCellSpacingDefault`, then
-    reload it through the legacy reader.
+  - [x] Write table-level cell spacing with `sprmTCellSpacingDefault`, reload
+    it through the legacy reader, and ignore zero or missing spacing widths as
+    native DOC no-spacing rows.
   - [x] Write simple palette-backed table cell shading with
     `sprmTDefTableShd80`, then reload it through the legacy reader while
     blocking non-palette fill colors before bytes are committed.

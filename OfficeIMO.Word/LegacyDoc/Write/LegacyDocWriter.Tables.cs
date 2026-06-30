@@ -279,15 +279,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static int? ReadSupportedTableDefaultCellSpacing(TableCellSpacing spacing) {
-            if (spacing.Type?.Value != TableWidthUnitValues.Dxa) {
-                throw new NotSupportedException("Native DOC saving supports table cell spacing only as DXA twip values.");
+            string? widthText = spacing.Width?.Value;
+            if (string.IsNullOrWhiteSpace(widthText)) {
+                return null;
             }
 
-            string? widthText = spacing.Width?.Value;
             if (!int.TryParse(widthText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int width)
                 || width < 0
                 || width > 31680) {
                 throw new NotSupportedException("Native DOC saving supports table cell spacing only as nonnegative DXA twip values within the Word 97-2003 limit.");
+            }
+
+            if (width == 0) {
+                return null;
+            }
+
+            if (spacing.Type?.Value != TableWidthUnitValues.Dxa) {
+                throw new NotSupportedException("Native DOC saving supports table cell spacing only as DXA twip values.");
             }
 
             return width;
