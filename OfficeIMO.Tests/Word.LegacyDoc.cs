@@ -1370,6 +1370,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSectionLineNumbering() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithSectionLineNumbering();
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                Assert.Empty(result.UnsupportedFeatures);
+
+                WordDocument document = result.Document;
+                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.Equal("Line-numbered section", Assert.Single(document.Paragraphs).Text);
+                LineNumberType lineNumbering = document.Sections[0]._sectionProperties.GetFirstChild<LineNumberType>()!;
+                Assert.NotNull(lineNumbering);
+                Assert.Equal(2, (int?)lineNumbering.CountBy?.Value);
+                Assert.Equal("360", lineNumbering.Distance?.Value);
+                Assert.Equal(10, (int?)lineNumbering.Start?.Value);
+                Assert.Equal(LineNumberRestartValues.NewSection, lineNumbering.Restart?.Value);
+
+                document.Save(docPath);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                LineNumberType reloadedLineNumbering = reloaded.Sections[0]._sectionProperties.GetFirstChild<LineNumberType>()!;
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.NotNull(reloadedLineNumbering);
+                Assert.Equal(2, (int?)reloadedLineNumbering.CountBy?.Value);
+                Assert.Equal("360", reloadedLineNumbering.Distance?.Value);
+                Assert.Equal(10, (int?)reloadedLineNumbering.Start?.Value);
+                Assert.Equal(LineNumberRestartValues.NewSection, reloadedLineNumbering.Restart?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsEvenOddHeaderDocumentFlag() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFacingPagesDop("Facing pages body");
 
@@ -4177,6 +4213,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionLineNumberingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Line numbering");
+                    document.Sections[0]._sectionProperties.Append(new LineNumberType {
+                        CountBy = 2,
+                        Distance = "360",
+                        Start = 10,
+                        Restart = LineNumberRestartValues.Continuous
+                    });
+
+                    document.Save(docPath);
+                }
+
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                AssertSectionSepxContainsSingleByteSprm(wordDocumentStream, tableStream, 0x3013, 2);
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x5015, 2);
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x9016, 360);
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x501B, 9);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Line numbering", Assert.Single(reloaded.Paragraphs).Text);
+                LineNumberType lineNumbering = reloaded.Sections[0]._sectionProperties.GetFirstChild<LineNumberType>()!;
+                Assert.NotNull(lineNumbering);
+                Assert.Equal(2, (int?)lineNumbering.CountBy?.Value);
+                Assert.Equal("360", lineNumbering.Distance?.Value);
+                Assert.Equal(10, (int?)lineNumbering.Start?.Value);
+                Assert.Equal(LineNumberRestartValues.Continuous, lineNumbering.Restart?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionPageNumberFormatBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -4188,6 +4264,24 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("page number format", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionLineNumberIntervalBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Unsupported line numbering");
+                document.Sections[0]._sectionProperties.Append(new LineNumberType { CountBy = 101 });
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("line number intervals", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -5116,6 +5210,39 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithSectionLineNumbering() {
+                const string paragraph = "Line-numbered section";
+                string text = paragraph + "\r";
+                const int sepxOffset = 0x300;
+
+                byte[] tableStream = CreateTableStream(text.Length);
+                int fcPlcfSed = tableStream.Length;
+                byte[] sectionDescriptorPlc = CreateOneSectionDescriptorPlc(text.Length, sepxOffset);
+                Array.Resize(ref tableStream, tableStream.Length + sectionDescriptorPlc.Length);
+                Buffer.BlockCopy(sectionDescriptorPlc, 0, tableStream, fcPlcfSed, sectionDescriptorPlc.Length);
+
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    fcPlcfSed: fcPlcfSed,
+                    lcbPlcfSed: sectionDescriptorPlc.Length);
+                WriteBytesAt(
+                    ref wordDocumentStream,
+                    sepxOffset,
+                    CreateSectionSepx(
+                        lineNumberRestart: 1,
+                        lineNumberCountBy: 2,
+                        lineNumberDistance: 360,
+                        lineNumberStartMinusOne: 9));
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithSectionBreakKind(int sectionBreakOperand, string secondParagraph) {
                 const string firstParagraph = "Before continuous section";
                 string text = firstParagraph + "\r" + secondParagraph + "\r";
@@ -5536,7 +5663,11 @@ namespace OfficeIMO.Tests {
                 byte? pageNumberFormat = null,
                 bool restartPageNumbering = false,
                 bool rtlGutter = false,
-                byte? verticalAlignment = null) {
+                byte? verticalAlignment = null,
+                byte? lineNumberRestart = null,
+                int? lineNumberCountBy = null,
+                int? lineNumberDistance = null,
+                int? lineNumberStartMinusOne = null) {
                 var grpprl = new List<byte>();
                 if (sectionBreakType != null) {
                     AddSingleByteSprm(grpprl, 0x3009, sectionBreakType.Value);
@@ -5580,6 +5711,12 @@ namespace OfficeIMO.Tests {
                 if (verticalAlignment != null) {
                     AddSingleByteSprm(grpprl, 0x301A, verticalAlignment.Value);
                 }
+                if (lineNumberRestart != null) {
+                    AddSingleByteSprm(grpprl, 0x3013, lineNumberRestart.Value);
+                }
+                AddUInt16SprmIfPresent(grpprl, 0x5015, lineNumberCountBy);
+                AddUInt16SprmIfPresent(grpprl, 0x9016, lineNumberDistance);
+                AddUInt16SprmIfPresent(grpprl, 0x501B, lineNumberStartMinusOne);
 
                 var sepx = new byte[2 + grpprl.Count];
                 WriteUInt16(sepx, 0, (ushort)grpprl.Count);

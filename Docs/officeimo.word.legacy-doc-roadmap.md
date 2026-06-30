@@ -400,6 +400,9 @@ just to reserve names.
   - [x] Project simple section vertical page alignment from DOC section
     records into normal OfficeIMO section properties, and preserve it through
     native DOC save/reload.
+  - [x] Project simple section line numbering interval, distance, start, and
+    restart mode from DOC section records into normal OfficeIMO section
+    properties, and preserve it through native DOC save/reload.
   - [x] Report multiple section descriptor records as unsupported/preserve-only
     before multi-section projection exists, so native DOC re-save is blocked
     instead of flattening section boundaries.
@@ -619,6 +622,10 @@ just to reserve names.
     through the legacy reader.
   - [x] Write simple section vertical page alignment, then reload it through
     the legacy reader.
+  - [x] Write simple section line numbering interval, distance, start, and
+    restart mode, then reload it through the legacy reader while blocking
+    out-of-range line-number intervals before native `.doc` bytes are
+    committed.
   - [x] Keep blocking unsupported final-section properties before native `.doc`
     bytes are committed so unimplemented section features are not silently
     dropped.

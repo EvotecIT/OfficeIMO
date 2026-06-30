@@ -15,6 +15,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmSDxaColumns = 0x900C;
         private const ushort SprmSNfcPgn = 0x300E;
         private const ushort SprmSFPgnRestart = 0x3011;
+        private const ushort SprmSLnc = 0x3013;
+        private const ushort SprmSNLnnMod = 0x5015;
+        private const ushort SprmSDxaLnn = 0x9016;
+        private const ushort SprmSLnnMin = 0x501B;
         private const ushort SprmSPgnStart97 = 0x501C;
         private const ushort SprmSDyaHdrTop = 0xB017;
         private const ushort SprmSDyaHdrBottom = 0xB018;
@@ -50,6 +54,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             NumberFormatValues? pageNumberFormat = null;
             bool rtlGutter = false;
             VerticalJustificationValues? verticalAlignment = null;
+            int? lineNumberCountBy = null;
+            int? lineNumberDistance = null;
+            int? lineNumberStart = null;
+            LineNumberRestartValues? lineNumberRestart = null;
             SectionMarkValues? sectionBreakType = null;
 
             foreach (OpenXmlElement property in sectionProperties.ChildElements) {
@@ -91,6 +99,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         pageNumberStart = ReadPageNumberStart(pageNumberType.Start);
                         pageNumberFormat = ReadPageNumberFormat(pageNumberType.Format);
                         break;
+                    case LineNumberType lineNumberType:
+                        ReadSupportedLineNumbering(lineNumberType, out lineNumberCountBy, out lineNumberDistance, out lineNumberStart, out lineNumberRestart);
+                        break;
                     case GutterOnRight gutterOnRight:
                         rtlGutter = IsOnOffEnabled(gutterOnRight);
                         break;
@@ -121,7 +132,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 pageNumberStart,
                 pageNumberFormat,
                 rtlGutter,
-                verticalAlignment);
+                verticalAlignment,
+                lineNumberCountBy,
+                lineNumberDistance,
+                lineNumberStart,
+                lineNumberRestart);
         }
 
         private static void ReadSupportedColumns(Columns columns, out int? columnCount, out int? columnSpacing, out bool hasColumnSeparator) {
@@ -136,6 +151,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static bool IsOnOffEnabled(OnOffType element) {
             return element.Val == null || element.Val.Value;
+        }
+
+        private static void ReadSupportedLineNumbering(
+            LineNumberType lineNumberType,
+            out int? countBy,
+            out int? distance,
+            out int? start,
+            out LineNumberRestartValues? restart) {
+            countBy = ReadLineNumberCountBy(lineNumberType.CountBy);
+            distance = ReadLineNumberDistance(lineNumberType.Distance);
+            start = ReadLineNumberStart(lineNumberType.Start);
+            restart = ReadLineNumberRestart(lineNumberType.Restart);
         }
 
         private static int? ReadTwipValue(OpenXmlSimpleType? value, int defaultValue, string description) {
@@ -204,6 +231,58 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : throw new NotSupportedException($"Native DOC saving does not support section page number format '{value.Value}'.");
         }
 
+        private static int? ReadLineNumberCountBy(OpenXmlSimpleType? value) {
+            if (value == null) {
+                return 1;
+            }
+
+            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
+                || actual < 0
+                || actual > 100) {
+                throw new NotSupportedException("Native DOC saving supports section line number intervals from 0 through 100.");
+            }
+
+            return actual;
+        }
+
+        private static int? ReadLineNumberDistance(OpenXmlSimpleType? value) {
+            if (value == null) {
+                return null;
+            }
+
+            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
+                || actual < 0
+                || actual > ushort.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports section line number distance only within the Word 97-2003 unsigned twip range.");
+            }
+
+            return actual;
+        }
+
+        private static int? ReadLineNumberStart(OpenXmlSimpleType? value) {
+            if (value == null) {
+                return null;
+            }
+
+            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
+                || actual < 1
+                || actual > 32767) {
+                throw new NotSupportedException("Native DOC saving supports section line number starts from 1 through 32767.");
+            }
+
+            return actual;
+        }
+
+        private static LineNumberRestartValues? ReadLineNumberRestart(EnumValue<LineNumberRestartValues>? value) {
+            if (value == null) {
+                return null;
+            }
+
+            return GetLineNumberRestartOperand(value.Value) != null
+                ? value.Value
+                : throw new NotSupportedException($"Native DOC saving does not support section line number restart mode '{value.Value}'.");
+        }
+
         private static VerticalJustificationValues? ReadVerticalAlignment(EnumValue<VerticalJustificationValues>? value) {
             if (value == null || value.Value == VerticalJustificationValues.Top) {
                 return null;
@@ -240,6 +319,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (sectionFormat.PageNumberStart != null) {
                 AddSingleByteSprm(grpprl, SprmSFPgnRestart, 1);
                 AddUInt16Sprm(grpprl, SprmSPgnStart97, sectionFormat.PageNumberStart.Value);
+            }
+
+            if (sectionFormat.LineNumberRestart != null) {
+                AddSingleByteSprm(grpprl, SprmSLnc, GetLineNumberRestartOperand(sectionFormat.LineNumberRestart.Value)!.Value);
+            }
+
+            if (sectionFormat.LineNumberCountBy != null) {
+                AddUInt16Sprm(grpprl, SprmSNLnnMod, sectionFormat.LineNumberCountBy.Value);
+            }
+
+            if (sectionFormat.LineNumberDistanceTwips != null) {
+                AddUInt16Sprm(grpprl, SprmSDxaLnn, sectionFormat.LineNumberDistanceTwips.Value);
+            }
+
+            if (sectionFormat.LineNumberStart != null) {
+                AddUInt16Sprm(grpprl, SprmSLnnMin, sectionFormat.LineNumberStart.Value - 1);
             }
 
             if (sectionFormat.HeaderDistanceTwips != null) {
@@ -348,6 +443,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (format == NumberFormatValues.LowerLetter) {
                 return 4;
+            }
+
+            return null;
+        }
+
+        private static byte? GetLineNumberRestartOperand(LineNumberRestartValues restart) {
+            if (restart == LineNumberRestartValues.NewPage) {
+                return 0;
+            }
+
+            if (restart == LineNumberRestartValues.NewSection) {
+                return 1;
+            }
+
+            if (restart == LineNumberRestartValues.Continuous) {
+                return 2;
             }
 
             return null;

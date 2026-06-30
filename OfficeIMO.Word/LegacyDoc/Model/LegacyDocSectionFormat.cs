@@ -21,7 +21,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? pageNumberStart = null,
             NumberFormatValues? pageNumberFormat = null,
             bool rtlGutter = false,
-            VerticalJustificationValues? verticalAlignment = null) {
+            VerticalJustificationValues? verticalAlignment = null,
+            int? lineNumberCountBy = null,
+            int? lineNumberDistanceTwips = null,
+            int? lineNumberStart = null,
+            LineNumberRestartValues? lineNumberRestart = null) {
             SectionBreakType = sectionBreakType;
             PageWidthTwips = pageWidthTwips;
             PageHeightTwips = pageHeightTwips;
@@ -41,6 +45,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             PageNumberFormat = pageNumberFormat;
             RtlGutter = rtlGutter;
             VerticalAlignment = verticalAlignment;
+            LineNumberCountBy = lineNumberCountBy;
+            LineNumberDistanceTwips = lineNumberDistanceTwips;
+            LineNumberStart = lineNumberStart;
+            LineNumberRestart = lineNumberRestart;
         }
 
         internal SectionMarkValues? SectionBreakType { get; }
@@ -81,6 +89,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal VerticalJustificationValues? VerticalAlignment { get; }
 
+        internal int? LineNumberCountBy { get; }
+
+        internal int? LineNumberDistanceTwips { get; }
+
+        internal int? LineNumberStart { get; }
+
+        internal LineNumberRestartValues? LineNumberRestart { get; }
+
         internal bool HasFormatting => IsNonDefaultSectionBreakType(SectionBreakType)
             || PageWidthTwips != null
             || PageHeightTwips != null
@@ -99,7 +115,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || PageNumberStart != null
             || PageNumberFormat != null
             || RtlGutter
-            || VerticalAlignment != null;
+            || VerticalAlignment != null
+            || LineNumberCountBy != null
+            || LineNumberDistanceTwips != null
+            || LineNumberStart != null
+            || LineNumberRestart != null;
 
         private static bool IsNonDefaultSectionBreakType(SectionMarkValues? sectionBreakType) {
             return sectionBreakType != null && sectionBreakType.Value != SectionMarkValues.NextPage;
@@ -125,7 +145,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 PageNumberStart,
                 PageNumberFormat,
                 RtlGutter,
-                VerticalAlignment);
+                VerticalAlignment,
+                LineNumberCountBy,
+                LineNumberDistanceTwips,
+                LineNumberStart,
+                LineNumberRestart);
         }
 
         internal static LegacyDocSectionFormat Default { get; } = new LegacyDocSectionFormat(null, null, null, null, null, null, null, null, null, null, null);

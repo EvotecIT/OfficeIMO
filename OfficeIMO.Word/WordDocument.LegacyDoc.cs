@@ -225,6 +225,33 @@ namespace OfficeIMO.Word {
                 section._sectionProperties.Append(new VerticalTextAlignmentOnPage { Val = sectionFormat.VerticalAlignment.Value });
             }
 
+            if (sectionFormat.LineNumberCountBy != null
+                || sectionFormat.LineNumberDistanceTwips != null
+                || sectionFormat.LineNumberStart != null
+                || sectionFormat.LineNumberRestart != null) {
+                LineNumberType? lineNumbering = section._sectionProperties.GetFirstChild<LineNumberType>();
+                lineNumbering?.Remove();
+
+                var projectedLineNumbering = new LineNumberType();
+                if (sectionFormat.LineNumberCountBy != null) {
+                    projectedLineNumbering.CountBy = (short)sectionFormat.LineNumberCountBy.Value;
+                }
+
+                if (sectionFormat.LineNumberDistanceTwips != null) {
+                    projectedLineNumbering.Distance = sectionFormat.LineNumberDistanceTwips.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+
+                if (sectionFormat.LineNumberStart != null) {
+                    projectedLineNumbering.Start = (short)sectionFormat.LineNumberStart.Value;
+                }
+
+                if (sectionFormat.LineNumberRestart != null) {
+                    projectedLineNumbering.Restart = sectionFormat.LineNumberRestart.Value;
+                }
+
+                section._sectionProperties.Append(projectedLineNumbering);
+            }
+
             if (sectionFormat.PageNumberStart != null || sectionFormat.PageNumberFormat != null) {
                 section.AddPageNumbering(sectionFormat.PageNumberStart, sectionFormat.PageNumberFormat);
             }

@@ -8,6 +8,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmSDxaColumns = 0x900C;
         private const ushort SprmSNfcPgn = 0x300E;
         private const ushort SprmSFPgnRestart = 0x3011;
+        private const ushort SprmSLnc = 0x3013;
+        private const ushort SprmSNLnnMod = 0x5015;
+        private const ushort SprmSDxaLnn = 0x9016;
+        private const ushort SprmSLnnMin = 0x501B;
         private const ushort SprmSPgnStart97 = 0x501C;
         private const ushort SprmSPgnStart = 0x7044;
         private const ushort SprmSDyaHdrTop = 0xB017;
@@ -121,6 +125,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             NumberFormatValues? pageNumberFormat = null;
             bool rtlGutter = false;
             VerticalJustificationValues? verticalAlignment = null;
+            int? lineNumberCountBy = null;
+            int? lineNumberDistance = null;
+            int? lineNumberStart = null;
+            LineNumberRestartValues? lineNumberRestart = null;
             SectionMarkValues? sectionBreakType = null;
 
             while (offset + 2 <= end) {
@@ -185,6 +193,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmSLnc) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    lineNumberRestart = ReadLineNumberRestart(bytes[offset + 2]);
+                    offset += 3;
+                    continue;
+                }
+
                 if (sprm == SprmSNfcPgn) {
                     if (offset + 3 > end) {
                         break;
@@ -209,6 +227,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     || sprm == SprmSDyaHdrBottom
                     || sprm == SprmSCcolumns
                     || sprm == SprmSDxaColumns
+                    || sprm == SprmSNLnnMod
+                    || sprm == SprmSDxaLnn
+                    || sprm == SprmSLnnMin
                     || sprm == SprmSPgnStart97
                     || sprm == SprmSXaPage
                     || sprm == SprmSYaPage
@@ -234,6 +255,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             break;
                         case SprmSDxaColumns:
                             columnSpacing = value;
+                            break;
+                        case SprmSNLnnMod:
+                            lineNumberCountBy = value == 0 ? null : value;
+                            break;
+                        case SprmSDxaLnn:
+                            lineNumberDistance = value;
+                            break;
+                        case SprmSLnnMin:
+                            lineNumberStart = value + 1;
                             break;
                         case SprmSPgnStart97:
                             pageNumberStart = value;
@@ -290,7 +320,43 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 orientation = PageOrientationValues.Landscape;
             }
 
-            return new LegacyDocSectionFormat(sectionBreakType, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, headerDistance, footerDistance, gutter, differentFirstPage, columnCount, columnSpacing, hasColumnSeparator, restartPageNumbering ? pageNumberStart ?? 0 : null, pageNumberFormat, rtlGutter, verticalAlignment);
+            return new LegacyDocSectionFormat(
+                sectionBreakType,
+                pageWidth,
+                pageHeight,
+                orientation,
+                marginTop,
+                marginRight,
+                marginBottom,
+                marginLeft,
+                headerDistance,
+                footerDistance,
+                gutter,
+                differentFirstPage,
+                columnCount,
+                columnSpacing,
+                hasColumnSeparator,
+                restartPageNumbering ? pageNumberStart ?? 0 : null,
+                pageNumberFormat,
+                rtlGutter,
+                verticalAlignment,
+                lineNumberCountBy,
+                lineNumberDistance,
+                lineNumberStart,
+                lineNumberRestart);
+        }
+
+        private static LineNumberRestartValues? ReadLineNumberRestart(byte value) {
+            switch (value) {
+                case 0:
+                    return LineNumberRestartValues.NewPage;
+                case 1:
+                    return LineNumberRestartValues.NewSection;
+                case 2:
+                    return LineNumberRestartValues.Continuous;
+                default:
+                    return null;
+            }
         }
 
         private static VerticalJustificationValues? ReadVerticalAlignment(byte value) {
