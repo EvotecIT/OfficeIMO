@@ -50,6 +50,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             private readonly Dictionary<string, LegacyDocWritableBookmarkStart> _starts = new(StringComparer.Ordinal);
             private readonly List<LegacyDocWritableBookmark> _bookmarks = new();
             private readonly HashSet<string> _names = new(StringComparer.Ordinal);
+            private readonly HashSet<string> _ids = new(StringComparer.Ordinal);
 
             internal void AddStart(BookmarkStart bookmarkStart, int startCharacter) {
                 string id = ReadBookmarkId(bookmarkStart.Id?.Value, "start");
@@ -58,17 +59,27 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     throw new NotSupportedException($"Native DOC saving cannot write duplicate bookmark name '{name}'.");
                 }
 
-                if (_starts.ContainsKey(id)) {
-                    throw new NotSupportedException($"Native DOC saving cannot write duplicate bookmark start id '{id}'.");
+                if (!_ids.Add(id)) {
+                    throw new NotSupportedException($"Native DOC saving cannot write duplicate bookmark id '{id}'.");
                 }
 
                 _starts.Add(id, new LegacyDocWritableBookmarkStart(id, name, startCharacter));
             }
 
+            internal void AddRange(LegacyDocWritableBookmarks bookmarks, int characterOffset) {
+                foreach (LegacyDocWritableBookmark bookmark in bookmarks.StartOrderedBookmarks) {
+                    AddCompleted(
+                        bookmark.Id,
+                        bookmark.Name,
+                        bookmark.StartCharacter + characterOffset,
+                        bookmark.EndCharacter + characterOffset);
+                }
+            }
+
             internal void AddEnd(BookmarkEnd bookmarkEnd, int endCharacter) {
                 string id = ReadBookmarkId(bookmarkEnd.Id?.Value, "end");
                 if (!_starts.TryGetValue(id, out LegacyDocWritableBookmarkStart start)) {
-                    throw new NotSupportedException($"Native DOC saving cannot write bookmark end id '{id}' because the matching bookmark start was not found in the same supported body story.");
+                    throw new NotSupportedException($"Native DOC saving cannot write bookmark end id '{id}' because the matching bookmark start was not found in the same supported story.");
                 }
 
                 if (endCharacter < start.StartCharacter) {
@@ -77,6 +88,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 _starts.Remove(id);
                 _bookmarks.Add(new LegacyDocWritableBookmark(id, start.Name, start.StartCharacter, endCharacter));
+            }
+
+            private void AddCompleted(string id, string name, int startCharacter, int endCharacter) {
+                if (!_names.Add(name)) {
+                    throw new NotSupportedException($"Native DOC saving cannot write duplicate bookmark name '{name}'.");
+                }
+
+                if (!_ids.Add(id)) {
+                    throw new NotSupportedException($"Native DOC saving cannot write duplicate bookmark id '{id}'.");
+                }
+
+                if (endCharacter < startCharacter) {
+                    throw new NotSupportedException($"Native DOC saving cannot write bookmark '{name}' because its end is before its start.");
+                }
+
+                _bookmarks.Add(new LegacyDocWritableBookmark(id, name, startCharacter, endCharacter));
             }
 
             internal LegacyDocWritableBookmarks Create() {

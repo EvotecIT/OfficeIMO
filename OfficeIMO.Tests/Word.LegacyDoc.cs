@@ -2083,6 +2083,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderBookmarkRangesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body with header bookmark");
+                    document.AddHeadersAndFooters();
+                    WordParagraph headerParagraph = document.Sections[0].Header.Default!.AddParagraph();
+                    headerParagraph._paragraph.RemoveAllChildren<Run>();
+                    headerParagraph._paragraph.Append(
+                        new BookmarkStart { Id = "61", Name = "HeaderBookmark" },
+                        new Run(new Text("HeaderMarked") { Space = SpaceProcessingModeValues.Preserve }),
+                        new BookmarkEnd { Id = "61" });
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "HeaderBookmark");
+
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                WordParagraph reloadedHeaderParagraph = Assert.Single(
+                    reloadedSection.Header.Default!.Paragraphs,
+                    paragraph => paragraph.Bookmark?.Name == "HeaderBookmark");
+                Assert.Equal("HeaderMarked", reloadedHeaderParagraph._paragraph.InnerText);
+
+                OpenXmlElement[] content = reloadedHeaderParagraph._paragraph.ChildElements
+                    .Where(element => element is not ParagraphProperties)
+                    .ToArray();
+                Assert.Equal(3, content.Length);
+                BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(content[0]);
+                Assert.Equal("HeaderBookmark", bookmarkStart.Name?.Value);
+                Assert.Equal("HeaderMarked", Assert.IsType<Text>(Assert.IsType<Run>(content[1]).FirstChild).Text);
+                BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(content[2]);
+                Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderFooterExternalHyperlinksAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

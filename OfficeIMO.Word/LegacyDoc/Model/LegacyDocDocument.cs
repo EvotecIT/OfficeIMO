@@ -178,10 +178,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             if (bookmarkWarning != null) {
                 AddWarning("DOC-BOOKMARK-PLC-INVALID", bookmarkWarning);
             }
+            var bookmarkProjection = new LegacyDocBookmarkProjectionTracker(Bookmarks);
 
             AddUnsupportedParagraphFormattingFeaturesIfPresent(paragraphFormattingRanges, options.ReportUnsupportedFeatures);
 
-            Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges, Sections, Bookmarks, options.ReportUnsupportedFeatures);
+            Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges, Sections, bookmarkProjection, options.ReportUnsupportedFeatures);
             Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, out string? footnoteWarning);
             if (footnoteWarning != null) {
                 AddWarning("DOC-FOOTNOTE-PLC-INVALID", footnoteWarning);
@@ -192,7 +193,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-ENDNOTE-PLC-INVALID", endnoteWarning);
             }
 
-            HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, out string? headerFooterWarning);
+            HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, out string? headerFooterWarning);
             if (headerFooterWarning != null) {
                 AddWarning("DOC-PLCFHDD-INVALID", headerFooterWarning);
                 if (options.ReportUnsupportedFeatures) {
@@ -203,6 +204,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         detailCode: "Fib:PlcfHdd"));
                 }
             }
+
+            ReportRemainingUnprojectedBookmarks(bookmarkProjection, options.ReportUnsupportedFeatures);
         }
 
         private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile, byte[] tableStream, LegacyDocFib fib) {
@@ -470,12 +473,29 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
+        private void ReportRemainingUnprojectedBookmarks(LegacyDocBookmarkProjectionTracker bookmarkProjection, bool reportUnsupportedFeatures) {
+            if (!reportUnsupportedFeatures) {
+                return;
+            }
+
+            LegacyDocBookmark? bookmark = bookmarkProjection.GetUnprojectedBookmarks().FirstOrDefault();
+            if (bookmark == null) {
+                return;
+            }
+
+            AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
+                LegacyDocUnsupportedFeatureKind.Bookmark,
+                "DOC-BOOKMARK-RANGE-PRESENT",
+                $"The legacy DOC contains bookmark '{bookmark.Name}' at character range {bookmark.StartCharacter}-{bookmark.EndCharacter} outside the currently supported body, table-cell, and header/footer paragraph bookmark projection. The bookmark is preserved in the source file but is not projected into the OfficeIMO document.",
+                detailCode: "Fib:PlcfBkf"));
+        }
+
         private string BuildFormattedParagraphs(
             IReadOnlyList<LegacyDocTextCharacter> characters,
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
             IReadOnlyList<LegacyDocSection> sections,
-            IReadOnlyList<LegacyDocBookmark> bookmarks,
+            LegacyDocBookmarkProjectionTracker bookmarkProjection,
             bool reportUnsupportedFeatures) {
             var bodyText = new System.Text.StringBuilder(characters.Count);
             var currentRuns = new List<LegacyDocTextRun>();
@@ -492,9 +512,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int nextSectionIndex = sections.Count > 1 ? 1 : sections.Count;
             bool reportedUnprojectedSectionBoundary = false;
             int currentParagraphStartCharacter = 0;
-            var projectedBookmarkStarts = new HashSet<LegacyDocBookmark>();
-            var projectedBookmarkEnds = new HashSet<LegacyDocBookmark>();
-            bool reportedUnprojectedBookmark = false;
 
             for (int characterIndex = 0; characterIndex < characters.Count; characterIndex++) {
                 LegacyDocTextCharacter textCharacter = characters[characterIndex];
@@ -559,7 +576,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             ReportRemainingUnprojectedSectionBoundaries();
-            ReportRemainingUnprojectedBookmarks();
             return bodyText.ToString();
 
             void AddSectionBreaksAtBodyBoundary(int characterPosition) {
@@ -682,62 +698,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     paragraphFormat,
                     currentParagraphStartCharacter,
                     paragraphEndCharacter,
-                    ExtractProjectedParagraphBookmarks(currentParagraphStartCharacter, paragraphEndCharacter)));
+                    bookmarkProjection.ExtractProjectedParagraphBookmarks(currentParagraphStartCharacter, paragraphEndCharacter)));
                 currentRuns.Clear();
                 hasCurrentRun = false;
-            }
-
-            IReadOnlyList<LegacyDocBookmark> ExtractProjectedParagraphBookmarks(int paragraphStartCharacter, int paragraphEndCharacter) {
-                if (bookmarks.Count == 0) {
-                    return Array.Empty<LegacyDocBookmark>();
-                }
-
-                var result = new List<LegacyDocBookmark>();
-                foreach (LegacyDocBookmark bookmark in bookmarks) {
-                    bool containsStart = bookmark.StartCharacter >= paragraphStartCharacter
-                        && bookmark.StartCharacter <= paragraphEndCharacter;
-                    bool containsEnd = bookmark.EndCharacter >= paragraphStartCharacter
-                        && bookmark.EndCharacter <= paragraphEndCharacter;
-                    if (!containsStart && !containsEnd) {
-                        continue;
-                    }
-
-                    result.Add(bookmark);
-                    if (containsStart) {
-                        projectedBookmarkStarts.Add(bookmark);
-                    }
-
-                    if (containsEnd) {
-                        projectedBookmarkEnds.Add(bookmark);
-                    }
-                }
-
-                return result;
-            }
-
-            void ReportRemainingUnprojectedBookmarks() {
-                if (bookmarks.Count == 0) {
-                    return;
-                }
-
-                foreach (LegacyDocBookmark bookmark in bookmarks) {
-                    if (!projectedBookmarkStarts.Contains(bookmark) || !projectedBookmarkEnds.Contains(bookmark)) {
-                        ReportUnprojectedBookmark(bookmark);
-                    }
-                }
-            }
-
-            void ReportUnprojectedBookmark(LegacyDocBookmark bookmark) {
-                if (!reportUnsupportedFeatures || reportedUnprojectedBookmark) {
-                    return;
-                }
-
-                reportedUnprojectedBookmark = true;
-                AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
-                    LegacyDocUnsupportedFeatureKind.Bookmark,
-                    "DOC-BOOKMARK-RANGE-PRESENT",
-                    $"The legacy DOC contains bookmark '{bookmark.Name}' at character range {bookmark.StartCharacter}-{bookmark.EndCharacter} outside the currently supported body and table-cell paragraph bookmark projection. The bookmark is preserved in the source file but is not projected into the OfficeIMO document.",
-                    detailCode: "Fib:PlcfBkf"));
             }
 
             void AddCurrentTextAsTableCellParagraph(LegacyDocParagraphFormat paragraphFormat) {
@@ -884,7 +847,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     paragraphFormat,
                     paragraphStartCharacter,
                     paragraphEndCharacter,
-                    ExtractProjectedParagraphBookmarks(paragraphStartCharacter, paragraphEndCharacter));
+                    bookmarkProjection.ExtractProjectedParagraphBookmarks(paragraphStartCharacter, paragraphEndCharacter));
             }
 
             int GetRunStartCharacter(IReadOnlyList<LegacyDocTextRun> runs) {

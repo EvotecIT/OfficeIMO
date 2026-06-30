@@ -296,7 +296,30 @@ namespace OfficeIMO.Word {
                     AddBookmarksFromTable(table, list);
                 }
 
+                AddBookmarksFromHeaderFooter(Header.Default, list);
+                AddBookmarksFromHeaderFooter(Header.First, list);
+                AddBookmarksFromHeaderFooter(Header.Even, list);
+                AddBookmarksFromHeaderFooter(Footer.Default, list);
+                AddBookmarksFromHeaderFooter(Footer.First, list);
+                AddBookmarksFromHeaderFooter(Footer.Even, list);
+
                 return list;
+            }
+        }
+
+        private static void AddBookmarksFromHeaderFooter(WordHeaderFooter? headerFooter, List<WordBookmark> list) {
+            if (headerFooter == null) {
+                return;
+            }
+
+            foreach (var paragraph in headerFooter.Paragraphs.Where(p => p.IsBookmark)) {
+                if (paragraph.Bookmark != null) {
+                    list.Add(paragraph.Bookmark);
+                }
+            }
+
+            foreach (var table in headerFooter.Tables) {
+                AddBookmarksFromTable(table, list);
             }
         }
 

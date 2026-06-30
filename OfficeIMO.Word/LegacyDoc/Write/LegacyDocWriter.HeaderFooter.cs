@@ -54,6 +54,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var markerPositions = new List<int>();
             var formattedRuns = new List<LegacyDocWritableRun>();
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
+            var bookmarks = new LegacyDocWritableBookmarksBuilder();
             foreach (LegacyDocWritableHeaderFooterStory story in stories) {
                 characterPositions.Add(text.Length);
                 AddHeaderFooterSpecialCharacterPositions(text.Length, story.Text, markerPositions);
@@ -65,6 +66,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     formattedParagraphs.Add(new LegacyDocWritableParagraph(text.Length + paragraph.StartCharacter, paragraph.Length, paragraph.Formatting));
                 }
 
+                bookmarks.AddRange(story.Bookmarks, text.Length);
                 text.Append(story.Text);
             }
 
@@ -79,7 +81,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 WriteInt32(plcfHdd, index * 4, characterPositions[index]);
             }
 
-            return new LegacyDocWritableHeaderFooterStories(text.ToString(), plcfHdd, markerPositions, formattedRuns, formattedParagraphs);
+            return new LegacyDocWritableHeaderFooterStories(text.ToString(), plcfHdd, markerPositions, formattedRuns, formattedParagraphs, bookmarks.Create());
         }
 
         private static void AddHeaderFooterSpecialCharacterPositions(int storyStart, string story, List<int> markerPositions) {
@@ -201,13 +203,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var storyText = new StringBuilder();
             var formattedRuns = new List<LegacyDocWritableRun>();
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
+            var bookmarks = new LegacyDocWritableBookmarksBuilder();
             foreach (OpenXmlElement child in container.ChildElements) {
                 if (child is not Paragraph paragraph) {
                     throw new NotSupportedException($"Native DOC saving currently supports only text paragraphs in {kind}s. Unsupported {kind} element: {child.LocalName}.");
                 }
 
                 int paragraphStart = storyText.Length;
-                LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleHeaderFooterParagraph(storyText, formattedRuns, paragraph, relationshipOwner, kind, styleIndexes, out string paragraphText);
+                LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleHeaderFooterParagraph(storyText, formattedRuns, bookmarks, paragraph, relationshipOwner, kind, styleIndexes, out string paragraphText);
                 paragraphs.Add(paragraphText);
                 storyText.Append('\r');
                 if (paragraphFormatting.HasFormatting) {
@@ -225,10 +228,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             storyText.Append('\r');
-            return new LegacyDocWritableHeaderFooterStory(storyText.ToString(), formattedRuns, formattedParagraphs);
+            return new LegacyDocWritableHeaderFooterStory(storyText.ToString(), formattedRuns, formattedParagraphs, bookmarks.Create());
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSimpleHeaderFooterParagraph(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, Paragraph paragraph, OpenXmlPartContainer relationshipOwner, string kind, IReadOnlyDictionary<string, ushort> styleIndexes, out string paragraphText) {
+        private static LegacyDocWritableParagraphFormatting ReadSimpleHeaderFooterParagraph(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, OpenXmlPartContainer relationshipOwner, string kind, IReadOnlyDictionary<string, ushort> styleIndexes, out string paragraphText) {
             var text = new StringBuilder();
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
             foreach (OpenXmlElement child in paragraph.ChildElements) {
@@ -241,8 +244,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Hyperlink hyperlink:
                         AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, text, hyperlink, relationshipOwner, kind);
                         break;
+                    case BookmarkStart bookmarkStart:
+                        bookmarks.AddStart(bookmarkStart, storyText.Length);
+                        break;
+                    case BookmarkEnd bookmarkEnd:
+                        bookmarks.AddEnd(bookmarkEnd, storyText.Length);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs and simple hyperlinks with supported direct formatting in {kind}s. Unsupported {kind} paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs, bookmarks, and simple hyperlinks with supported direct formatting in {kind}s. Unsupported {kind} paragraph element: {child.LocalName}.");
                 }
             }
 
@@ -340,14 +349,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableHeaderFooterStories {
-            internal static LegacyDocWritableHeaderFooterStories Empty { get; } = new LegacyDocWritableHeaderFooterStories(string.Empty, Array.Empty<byte>(), Array.Empty<int>(), Array.Empty<LegacyDocWritableRun>(), Array.Empty<LegacyDocWritableParagraph>());
+            internal static LegacyDocWritableHeaderFooterStories Empty { get; } = new LegacyDocWritableHeaderFooterStories(string.Empty, Array.Empty<byte>(), Array.Empty<int>(), Array.Empty<LegacyDocWritableRun>(), Array.Empty<LegacyDocWritableParagraph>(), LegacyDocWritableBookmarks.Empty);
 
-            internal LegacyDocWritableHeaderFooterStories(string text, byte[] plcfHdd, IReadOnlyList<int> markerPositions, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs) {
+            internal LegacyDocWritableHeaderFooterStories(string text, byte[] plcfHdd, IReadOnlyList<int> markerPositions, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs, LegacyDocWritableBookmarks bookmarks) {
                 Text = text;
                 PlcfHdd = plcfHdd;
                 MarkerPositions = markerPositions;
                 FormattedRuns = formattedRuns;
                 FormattedParagraphs = formattedParagraphs;
+                Bookmarks = bookmarks;
             }
 
             internal string Text { get; }
@@ -359,15 +369,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal IReadOnlyList<LegacyDocWritableRun> FormattedRuns { get; }
 
             internal IReadOnlyList<LegacyDocWritableParagraph> FormattedParagraphs { get; }
+
+            internal LegacyDocWritableBookmarks Bookmarks { get; }
         }
 
         private readonly struct LegacyDocWritableHeaderFooterStory {
-            internal static LegacyDocWritableHeaderFooterStory Empty { get; } = new LegacyDocWritableHeaderFooterStory(string.Empty, Array.Empty<LegacyDocWritableRun>(), Array.Empty<LegacyDocWritableParagraph>());
+            internal static LegacyDocWritableHeaderFooterStory Empty { get; } = new LegacyDocWritableHeaderFooterStory(string.Empty, Array.Empty<LegacyDocWritableRun>(), Array.Empty<LegacyDocWritableParagraph>(), LegacyDocWritableBookmarks.Empty);
 
-            internal LegacyDocWritableHeaderFooterStory(string text, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs) {
+            internal LegacyDocWritableHeaderFooterStory(string text, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs, LegacyDocWritableBookmarks bookmarks) {
                 Text = text;
                 FormattedRuns = formattedRuns;
                 FormattedParagraphs = formattedParagraphs;
+                Bookmarks = bookmarks;
             }
 
             internal string Text { get; }
@@ -376,8 +389,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal IReadOnlyList<LegacyDocWritableParagraph> FormattedParagraphs { get; }
 
+            internal LegacyDocWritableBookmarks Bookmarks { get; }
+
             internal static LegacyDocWritableHeaderFooterStory Plain(string text) {
-                return new LegacyDocWritableHeaderFooterStory(text, Array.Empty<LegacyDocWritableRun>(), Array.Empty<LegacyDocWritableParagraph>());
+                return new LegacyDocWritableHeaderFooterStory(text, Array.Empty<LegacyDocWritableRun>(), Array.Empty<LegacyDocWritableParagraph>(), LegacyDocWritableBookmarks.Empty);
             }
         }
     }

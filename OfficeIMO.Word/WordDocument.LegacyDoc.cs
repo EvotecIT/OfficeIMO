@@ -129,9 +129,17 @@ namespace OfficeIMO.Word {
                 }
 
                 foreach (LegacyDocHeaderFooterParagraph sourceParagraph in story.Paragraphs) {
-                    WordParagraph paragraph = target.AddParagraph(sourceParagraph.Text);
+                    WordParagraph paragraph = target.AddParagraph(sourceParagraph.Bookmarks.Count == 0 ? sourceParagraph.Text : string.Empty);
+                    if (sourceParagraph.Bookmarks.Count > 0) {
+                        paragraph._paragraph.RemoveAllChildren<Run>();
+                    }
+
                     ApplyLegacyDocParagraphFormatting(paragraph, sourceParagraph.Format, styleSheet);
-                    ReplaceLegacyDocParagraphRuns(paragraph, sourceParagraph.Runs, LegacyDocNoteProjection.Empty);
+                    ReplaceLegacyDocParagraphRuns(
+                        paragraph,
+                        sourceParagraph.Runs,
+                        LegacyDocNoteProjection.Empty,
+                        LegacyDocBookmarkProjection.Create(sourceParagraph.Bookmarks, sourceParagraph.StartCharacter, sourceParagraph.EndCharacter));
                 }
             }
         }
@@ -861,11 +869,17 @@ namespace OfficeIMO.Word {
         }
 
         private static void ReplaceLegacyDocParagraphRuns(WordParagraph target, IReadOnlyList<LegacyDocTextRun> sourceRuns, LegacyDocNoteProjection notes) {
+            ReplaceLegacyDocParagraphRuns(target, sourceRuns, notes, LegacyDocBookmarkProjection.Empty);
+        }
+
+        private static void ReplaceLegacyDocParagraphRuns(WordParagraph target, IReadOnlyList<LegacyDocTextRun> sourceRuns, LegacyDocNoteProjection notes, LegacyDocBookmarkProjection bookmarks) {
             foreach (Run run in target._paragraph.Elements<Run>().ToArray()) {
                 run.Remove();
             }
 
-            AddLegacyDocRuns(new WordParagraph(target._document, target._paragraph, newRun: false), sourceRuns, notes);
+            WordParagraph paragraph = new WordParagraph(target._document, target._paragraph, newRun: false);
+            AddLegacyDocRuns(paragraph, sourceRuns, notes, bookmarks);
+            bookmarks.EmitRemaining(paragraph._paragraph);
         }
 
         private static bool ContainsLegacyDocNoteReferenceMark(Run run) {
