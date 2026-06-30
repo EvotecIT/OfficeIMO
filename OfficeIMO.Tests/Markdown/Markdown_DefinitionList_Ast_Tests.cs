@@ -337,6 +337,86 @@ Term
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
+    [Theory]
+    [InlineData("---", 2, "##")]
+    [InlineData("===", 1, "#")]
+    public void DefinitionList_MarkdigLazySetextContinuation_Preserves_Multiline_Heading(string marker, int level, string normalizedMarker) {
+        var markdown = $"""
+Term
+:   First
+lazy title
+{marker}
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        var heading = Assert.IsType<HeadingBlock>(Assert.Single(definition.Blocks));
+        var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var headingSyntax = Assert.Single(definitionValue.Children);
+        var textSyntax = Assert.Single(headingSyntax.Children, child => child.Kind == MarkdownSyntaxKind.HeadingText);
+        var markerSyntax = Assert.Single(headingSyntax.Children, child => child.Kind == MarkdownSyntaxKind.HeadingSetextUnderlineMarker);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+        var markdigWritten = MarkdigMarkdown.ToHtml(written + "\n", CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal(level, heading.Level);
+        Assert.Equal("First\nlazy title", heading.Text.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, marker.Length), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, marker.Length), headingSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 10), textSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, marker.Length), markerSyntax.SourceSpan);
+        Assert.Equal(marker, markerSyntax.Literal);
+        Assert.Equal($"Term\n:   \n    First\n    lazy title\n    {marker}", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(markdigWritten));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        var nativeDefinitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var nativeDefinition = Assert.Single(Assert.Single(nativeDefinitionList.Groups).Definitions);
+        var nativeHeading = Assert.IsType<MarkdownNativeHeadingBlock>(Assert.Single(nativeDefinition.Children));
+
+        Assert.Equal($"{normalizedMarker} First\nlazy title", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 4, marker.Length), definitionBody.SourceSpan);
+        Assert.Equal(level, nativeHeading.Level);
+        Assert.Equal("First\nlazy title", nativeHeading.Text.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, marker.Length), nativeHeading.SetextUnderlineMarkerSourceSpan);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_BlankSeparatedSetextBody_Writes_BlankSeparator_ForMarkdigReparse() {
+        const string markdown = """
+Term
+:   First
+
+    lazy title
+    ---
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var heading = Assert.IsType<HeadingBlock>(definition.Blocks[1]);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+        var markdigWritten = MarkdigMarkdown.ToHtml(written + "\n", CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal(2, heading.Level);
+        Assert.Equal("lazy title", heading.Text);
+        Assert.Equal("Term\n:   First\n\n    lazy title\n    ---", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(markdigWritten));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
     [Fact]
     public void DefinitionList_SetextContinuation_Stops_LazyContinuation_Before_FollowingParagraph() {
         const string markdown = """
@@ -367,7 +447,7 @@ text
         Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 3), definitionValue.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 3), headingSyntax.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 4), result.SyntaxTree.Children[1].SourceSpan);
-        Assert.Equal("Term\n:   \n    ## First paragraph\n\ntext", written);
+        Assert.Equal("Term\n:   \n    First paragraph\n    ---\n\ntext", written);
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
 
         var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
@@ -1531,7 +1611,7 @@ Term
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
-        Assert.Equal("Term\n:   \n    ## First paragraph", written);
+        Assert.Equal("Term\n:   \n    First paragraph\n    ---", written);
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
     }
 

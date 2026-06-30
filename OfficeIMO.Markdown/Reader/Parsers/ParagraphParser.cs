@@ -52,9 +52,7 @@ public static partial class MarkdownReader {
                 paragraphLines.Add(lines[lineIndex]);
             }
 
-            int setextUnderlineLineIndex = i + paragraphLines.Count - 1;
-            if (!state.LazyQuoteContinuationLines.Contains(setextUnderlineLineIndex)
-                && TryParseSetextHeadingParagraphLines(paragraphLines, options, out int level, out string headingText)) {
+            if (TryParseSetextHeadingParagraphLines(paragraphLines, options, out int level, out string headingText)) {
                 var contentLines = paragraphLines.GetRange(0, paragraphLines.Count - 1);
                 MarkdownAttributeSet headingAttributes = MarkdownAttributeSet.Empty;
                 MarkdownSourceSpan? headingAttributeSpan = null;

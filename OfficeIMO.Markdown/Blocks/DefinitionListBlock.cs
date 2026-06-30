@@ -395,14 +395,15 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
 
     private static bool ShouldSeparateDefinitionBlocksWithBlankLine(IMarkdownBlock previousBlock, IMarkdownBlock block) =>
         block is ParagraphBlock ||
-        (previousBlock is ParagraphBlock && block is HorizontalRuleBlock);
+        (previousBlock is ParagraphBlock && block is HorizontalRuleBlock) ||
+        (previousBlock is ParagraphBlock && block is HeadingBlock heading && heading.HasSetextUnderlineMarkerSourceInfo);
 
     private static void AppendIndentedDefinitionBlockMarkdown(
         StringBuilder sb,
         IMarkdownBlock block,
         bool firstBlock,
         string continuationIndent = "  ") {
-        var rendered = (block?.RenderMarkdown() ?? string.Empty)
+        var rendered = RenderDefinitionBlockMarkdown(block)
             .Replace("\r\n", "\n")
             .Replace('\r', '\n');
         var lines = rendered.Split('\n');
@@ -421,6 +422,22 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
                 ? UnescapeDefinitionLazyListTailLine(lines[i].TrimStart(' '))
                 : lines[i]);
         }
+    }
+
+    private static string RenderDefinitionBlockMarkdown(IMarkdownBlock? block) {
+        if (block is HeadingBlock heading && heading.HasSetextUnderlineMarkerSourceInfo) {
+            var marker = !string.IsNullOrWhiteSpace(heading.SetextUnderlineMarkerText)
+                ? heading.SetextUnderlineMarkerText!
+                : heading.Level == 1
+                    ? "==="
+                    : "---";
+            return heading.Inlines.RenderMarkdown() +
+                MarkdownAttributeBlockRenderer.RenderTrailing(heading.Attributes) +
+                "\n" +
+                marker;
+        }
+
+        return block?.RenderMarkdown() ?? string.Empty;
     }
 
     private static string UnescapeDefinitionLazyListTailLine(string line) =>
