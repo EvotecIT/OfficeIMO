@@ -241,10 +241,7 @@ namespace OfficeIMO.Word {
                 .FirstOrDefault(pair => string.Equals(pair.Key, variableName, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrEmpty(variable.Key)) {
-                value = variable.Value;
-                status = WordFieldUpdateStatus.Updated;
-                message = $"Updated from document variable {variable.Key}.";
-                return true;
+                return TrySetTextValue(variable.Value, parsed, $"Updated from document variable {variable.Key}.", out value, out status, out message);
             }
 
             status = WordFieldUpdateStatus.Skipped;
@@ -425,13 +422,13 @@ namespace OfficeIMO.Word {
                     return TrySetTextValue(document.BuiltinDocumentProperties.LastModifiedBy, parsed, "Updated from built-in document property LastModifiedBy.", out value, out status, out message);
                 case "LASTPRINTED":
                 case "PRINTDATE":
-                    return TrySetTextValue(FormatValue(document.BuiltinDocumentProperties.LastPrinted), parsed, "Updated from built-in document property LastPrinted.", out value, out status, out message);
+                    return TrySetDate(document.BuiltinDocumentProperties.LastPrinted, parsed, "Updated from built-in document property LastPrinted.", out value, out status, out message);
                 case "CREATED":
                 case "CREATEDATE":
-                    return TrySetTextValue(FormatValue(document.BuiltinDocumentProperties.Created), parsed, "Updated from built-in document property Created.", out value, out status, out message);
+                    return TrySetDate(document.BuiltinDocumentProperties.Created, parsed, "Updated from built-in document property Created.", out value, out status, out message);
                 case "MODIFIED":
                 case "SAVEDATE":
-                    return TrySetTextValue(FormatValue(document.BuiltinDocumentProperties.Modified), parsed, "Updated from built-in document property Modified.", out value, out status, out message);
+                    return TrySetDate(document.BuiltinDocumentProperties.Modified, parsed, "Updated from built-in document property Modified.", out value, out status, out message);
                 case "REVISION":
                 case "REVNUM":
                     return TrySetTextValue(document.BuiltinDocumentProperties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);
@@ -695,9 +692,7 @@ namespace OfficeIMO.Word {
                         estimatedPage++;
                     }
 
-                    if (paragraph.Descendants<Break>().Any(documentBreak => documentBreak.Type?.Value == BreakValues.Page)) {
-                        estimatedPage++;
-                    }
+                    estimatedPage += paragraph.Descendants<Break>().Count(documentBreak => documentBreak.Type?.Value == BreakValues.Page);
 
                     if (StartsNewPage(paragraph.ParagraphProperties?.SectionProperties)) {
                         estimatedPage++;
@@ -737,9 +732,7 @@ namespace OfficeIMO.Word {
                     return page;
                 }
 
-                if (currentParagraph.Descendants<Break>().Any(documentBreak => documentBreak.Type?.Value == BreakValues.Page)) {
-                    page++;
-                }
+                page += currentParagraph.Descendants<Break>().Count(documentBreak => documentBreak.Type?.Value == BreakValues.Page);
 
                 if (StartsNewPage(currentParagraph.ParagraphProperties?.SectionProperties)) {
                     page++;

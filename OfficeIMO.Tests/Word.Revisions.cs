@@ -163,6 +163,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AcceptRevisions_ByAuthor_PreservesUnmatchedNestedRevisions() {
+            string filePath = Path.Combine(_directoryWithFiles, "TrackedChangesAcceptNestedByAuthor.docx");
+            File.Delete(filePath);
+
+            DateTime revisionDate = new DateTime(2026, 6, 30, 12, 0, 0, DateTimeKind.Utc);
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph._paragraph.Append(new InsertedRun(
+                    new Run(new Text("AddedByAlice")),
+                    new InsertedRun(new Run(new Text("NestedByBob"))) {
+                        Author = "Bob",
+                        Date = revisionDate,
+                        Id = "9102"
+                    }) {
+                    Author = "Alice",
+                    Date = revisionDate,
+                    Id = "9101"
+                });
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordRevisionOperationReport report = document.AcceptRevisions(new WordRevisionFilter { Author = "Alice" });
+
+                Assert.Single(report.MatchedRevisions);
+                Body body = document._document.Body!;
+                Assert.DoesNotContain(body.Descendants<InsertedRun>(), run => run.Author?.Value == "Alice");
+                Assert.Contains(body.Descendants<Run>(), run => run.InnerText == "AddedByAlice");
+                Assert.Contains(body.Descendants<InsertedRun>(), run => run.Author?.Value == "Bob" && run.InnerText == "NestedByBob");
+            }
+        }
+
+        [Fact]
         public void Test_RejectRevisions_ByAuthor_OnlyRejectsMatchingChanges() {
             string filePath = Path.Combine(_directoryWithFiles, "TrackedChangesRejectByAuthor.docx");
             File.Delete(filePath);

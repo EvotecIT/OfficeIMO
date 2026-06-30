@@ -126,7 +126,9 @@ namespace OfficeIMO.Word {
                 .ToArray();
 
             foreach (RevisionCandidate match in matches) {
-                ApplyRevisionOperation(operation, match);
+                if (match.Element.Parent != null) {
+                    ApplyRevisionOperation(operation, match, filter);
+                }
             }
 
             return new WordRevisionOperationReport(operation, matchedInfo);
@@ -206,13 +208,13 @@ namespace OfficeIMO.Word {
             return element.Ancestors().Any(ancestor => ReferenceEquals(ancestor, scope));
         }
 
-        private static void ApplyRevisionOperation(WordRevisionOperationKind operation, RevisionCandidate candidate) {
+        private static void ApplyRevisionOperation(WordRevisionOperationKind operation, RevisionCandidate candidate, WordRevisionFilter filter) {
             bool accept = operation == WordRevisionOperationKind.Accept;
             switch (candidate.RevisionType) {
                 case WordReviewRevisionType.Insertion:
                 case WordReviewRevisionType.MoveTo:
                     if (accept) {
-                        PromoteRevisionRuns(candidate.Element, "rsidR", restoreDeletedText: false);
+                        PromoteRevisionRuns(candidate.Element, "rsidR", restoreDeletedText: false, operation, candidate, filter);
                     } else {
                         candidate.Element.Remove();
                     }
@@ -222,7 +224,7 @@ namespace OfficeIMO.Word {
                     if (accept) {
                         candidate.Element.Remove();
                     } else {
-                        PromoteRevisionRuns(candidate.Element, "rsidDel", restoreDeletedText: true);
+                        PromoteRevisionRuns(candidate.Element, "rsidDel", restoreDeletedText: true, operation, candidate, filter);
                     }
                     break;
                 case WordReviewRevisionType.RunFormatting:
@@ -243,7 +245,13 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void PromoteRevisionRuns(OpenXmlElement revisionElement, string revisionAttributeName, bool restoreDeletedText) {
+        private static void PromoteRevisionRuns(
+            OpenXmlElement revisionElement,
+            string revisionAttributeName,
+            bool restoreDeletedText,
+            WordRevisionOperationKind operation,
+            RevisionCandidate parentCandidate,
+            WordRevisionFilter filter) {
             OpenXmlElement next = revisionElement;
             foreach (OpenXmlElement child in revisionElement.ChildElements.ToList()) {
                 OpenXmlElement promoted = child.CloneNode(true);
@@ -257,7 +265,7 @@ namespace OfficeIMO.Word {
                     }
                 }
 
-                RemoveNestedRevisionMarkup(promoted);
+                FinalizeMatchingNestedRevisions(promoted, operation, parentCandidate, filter);
                 next.InsertAfterSelf(promoted);
                 next = next.NextSibling() ?? throw new InvalidOperationException("Revision has no next sibling.");
             }
@@ -279,10 +287,84 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void RemoveNestedRevisionMarkup(OpenXmlElement element) {
-            foreach (OpenXmlElement revision in element.Descendants().Where(item => TryGetRevisionType(item, out _)).ToList()) {
-                revision.Remove();
+        private static void FinalizeMatchingNestedRevisions(
+            OpenXmlElement element,
+            WordRevisionOperationKind operation,
+            RevisionCandidate parentCandidate,
+            WordRevisionFilter filter) {
+            foreach (OpenXmlElement revision in element.Descendants().Where(item => TryGetRevisionType(item, out _)).Reverse().ToList()) {
+                if (!TryGetRevisionType(revision, out WordReviewRevisionType revisionType)) {
+                    continue;
+                }
+
+                var nestedCandidate = new RevisionCandidate(revision, revisionType, parentCandidate.LocationKind, parentCandidate.PartUri);
+                if (!MatchesFilter(nestedCandidate, filter)) {
+                    continue;
+                }
+
+                FinalizeNestedRevision(revision, revisionType, operation);
             }
+        }
+
+        private static void FinalizeNestedRevision(OpenXmlElement revision, WordReviewRevisionType revisionType, WordRevisionOperationKind operation) {
+            bool accept = operation == WordRevisionOperationKind.Accept;
+            switch (revisionType) {
+                case WordReviewRevisionType.Insertion:
+                case WordReviewRevisionType.MoveTo:
+                    if (accept) {
+                        ReplaceRevisionWithChildren(revision, restoreDeletedText: false);
+                    } else {
+                        revision.Remove();
+                    }
+
+                    break;
+                case WordReviewRevisionType.Deletion:
+                case WordReviewRevisionType.MoveFrom:
+                    if (accept) {
+                        revision.Remove();
+                    } else {
+                        ReplaceRevisionWithChildren(revision, restoreDeletedText: true);
+                    }
+
+                    break;
+                case WordReviewRevisionType.RunFormatting:
+                case WordReviewRevisionType.ParagraphFormatting:
+                case WordReviewRevisionType.TableFormatting:
+                case WordReviewRevisionType.TableRowFormatting:
+                case WordReviewRevisionType.TableCellFormatting:
+                case WordReviewRevisionType.SectionFormatting:
+                    if (accept) {
+                        revision.Remove();
+                    } else {
+                        RestorePreviousProperties(revision);
+                    }
+
+                    break;
+                default:
+                    revision.Remove();
+                    break;
+            }
+        }
+
+        private static void ReplaceRevisionWithChildren(OpenXmlElement revision, bool restoreDeletedText) {
+            OpenXmlElement next = revision;
+            foreach (OpenXmlElement child in revision.ChildElements.ToList()) {
+                OpenXmlElement promoted = child.CloneNode(true);
+                if (restoreDeletedText) {
+                    if (promoted is Run promotedRun) {
+                        RestoreDeletedText(promotedRun);
+                    }
+
+                    foreach (Run run in promoted.Descendants<Run>()) {
+                        RestoreDeletedText(run);
+                    }
+                }
+
+                next.InsertAfterSelf(promoted);
+                next = next.NextSibling() ?? throw new InvalidOperationException("Revision has no next sibling.");
+            }
+
+            revision.Remove();
         }
 
         private static void RestorePreviousProperties(OpenXmlElement revisionElement) {
