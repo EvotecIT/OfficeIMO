@@ -594,11 +594,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 HeaderFooterText = headerFooterStories.Text;
                 PlcfHdd = headerFooterStories.PlcfHdd;
                 HeaderFooterMarkerPositions = headerFooterStories.MarkerPositions;
+                HeaderFooterFormattedRuns = headerFooterStories.FormattedRuns;
                 FacingPages = facingPages;
                 EndnotePosition = endnotePosition;
                 FontFamilies = styleSheet.FontFamilies
                     .Concat(formattedRuns.Select(run => run.Formatting.FontFamily))
                     .Concat(FootnoteFormattedRuns.Select(run => run.Formatting.FontFamily))
+                    .Concat(HeaderFooterFormattedRuns.Select(run => run.Formatting.FontFamily))
                     .Concat(EndnoteFormattedRuns.Select(run => run.Formatting.FontFamily))
                     .Where(fontFamily => !string.IsNullOrWhiteSpace(fontFamily))
                     .Select(fontFamily => fontFamily!)
@@ -643,6 +645,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal IReadOnlyList<int> HeaderFooterMarkerPositions { get; }
 
+            internal IReadOnlyList<LegacyDocWritableRun> HeaderFooterFormattedRuns { get; }
+
             internal byte[] PlcfHdd { get; }
 
             internal bool FacingPages { get; }
@@ -661,7 +665,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal IReadOnlyDictionary<string, int> FontFamilyIndexes { get; }
 
-            internal bool HasCharacterFormatting => FormattedRuns.Count > 0 || FootnoteFormattedRuns.Count > 0 || EndnoteFormattedRuns.Count > 0;
+            internal bool HasCharacterFormatting => FormattedRuns.Count > 0 || FootnoteFormattedRuns.Count > 0 || HeaderFooterFormattedRuns.Count > 0 || EndnoteFormattedRuns.Count > 0;
 
             internal bool HasParagraphFormatting => FormattedParagraphs.Count > 0 || HasNoteStories;
 
@@ -738,6 +742,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 if (FootnoteMarkerPositions.Count == 0
                     && FootnoteFormattedRuns.Count == 0
                     && HeaderFooterMarkerPositions.Count == 0
+                    && HeaderFooterFormattedRuns.Count == 0
                     && EndnoteMarkerPositions.Count == 0
                     && EndnoteFormattedRuns.Count == 0) {
                     return FormattedRuns;
@@ -748,6 +753,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     + FootnoteMarkerPositions.Count
                     + FootnoteFormattedRuns.Count
                     + HeaderFooterMarkerPositions.Count
+                    + HeaderFooterFormattedRuns.Count
                     + EndnoteMarkerPositions.Count
                     + EndnoteFormattedRuns.Count);
                 runs.AddRange(FormattedRuns);
@@ -761,6 +767,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
 
                 int headerFooterStartCharacter = Text.Length + FootnoteText.Length;
+                foreach (LegacyDocWritableRun run in HeaderFooterFormattedRuns) {
+                    runs.Add(new LegacyDocWritableRun(headerFooterStartCharacter + run.StartCharacter, run.Length, run.Formatting));
+                }
+
                 foreach (int markerPosition in HeaderFooterMarkerPositions) {
                     runs.Add(new LegacyDocWritableRun(headerFooterStartCharacter + markerPosition, 1, LegacyDocWritableFormatting.SpecialCharacter));
                 }

@@ -1212,6 +1212,22 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(runs[2]._runProperties?.ItalicComplexScript);
         }
 
+        private static void AssertFormattedHeaderFooterRuns(IReadOnlyList<WordParagraph> paragraphs) {
+            WordParagraph[] runs = paragraphs.Where(paragraph => paragraph.Text.Length > 0).ToArray();
+            Assert.Equal(3, runs.Length);
+            Assert.Equal("plain ", runs[0].Text);
+            Assert.False(runs[0].Bold);
+            Assert.False(runs[0].Italic);
+            Assert.Equal("bold ", runs[1].Text);
+            Assert.True(runs[1].Bold);
+            Assert.NotNull(runs[1]._runProperties?.BoldComplexScript);
+            Assert.False(runs[1].Italic);
+            Assert.Equal("italic", runs[2].Text);
+            Assert.False(runs[2].Bold);
+            Assert.True(runs[2].Italic);
+            Assert.NotNull(runs[2]._runProperties?.ItalicComplexScript);
+        }
+
 
         [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_DoesNotProjectUnsupportedStoryTextIntoBody() {
@@ -1708,6 +1724,55 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(reloadedSection.Footer.Default);
                 Assert.Equal("Saved header", Assert.Single(reloadedSection.Header.Default!.Paragraphs).Text);
                 Assert.Equal("Saved footer", Assert.Single(reloadedSection.Footer.Default!.Paragraphs).Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedHeaderFooterRunsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string bodyText = "Body with formatted header footer";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph(bodyText);
+                    WordSection section = document.Sections[0];
+                    WordParagraph header = section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph();
+                    header.AddText("plain ");
+                    header.AddText("bold ").SetBold();
+                    header.AddText("italic").SetItalic();
+
+                    WordParagraph footer = section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph();
+                    footer.AddText("plain ");
+                    footer.AddText("bold ").SetBold();
+                    footer.AddText("italic").SetItalic();
+
+                    document.Save(docPath);
+                }
+
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                int ccpText = BitConverter.ToInt32(wordDocumentStream, 0x4C);
+                int ccpHdd = BitConverter.ToInt32(wordDocumentStream, 0x54);
+                string formattedStory = "plain bold italic\r\r";
+                int headerStart = ccpText;
+                int footerStart = headerStart + formattedStory.Length;
+
+                Assert.Equal(bodyText.Length + 1, ccpText);
+                Assert.Equal(formattedStory.Length * 2, ccpHdd);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, headerStart + "plain ".Length, "bold ".Length, 0x0835, 1);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, headerStart + "plain bold ".Length, "italic".Length, 0x0836, 1);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, footerStart + "plain ".Length, "bold ".Length, 0x0835, 1);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, footerStart + "plain bold ".Length, "italic".Length, 0x0836, 1);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                AssertFormattedHeaderFooterRuns(reloadedSection.Header.Default!.Paragraphs);
+                AssertFormattedHeaderFooterRuns(reloadedSection.Footer.Default!.Paragraphs);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -4425,7 +4490,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedHeaderFormattingBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedHeaderParagraphFormattingBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
@@ -4433,11 +4498,12 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Body");
                 document.AddHeadersAndFooters();
                 WordParagraph headerParagraph = document.Sections[0].Header.Default!.AddParagraph();
-                headerParagraph.AddText("Rich header").SetBold();
+                headerParagraph.AddText("Rich header");
+                headerParagraph.ParagraphAlignment = JustificationValues.Center;
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("unformatted text runs in headers", exception.Message);
+                Assert.Contains("unformatted text paragraphs in headers", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

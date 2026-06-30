@@ -703,6 +703,9 @@ just to reserve names.
   - [x] Write simple first-page and even-page header/footer story text into
     the existing `PlcfHdd` section story slots, then reload the variant
     headers and footers through the legacy reader.
+  - [x] Read and write supported direct run formatting inside simple
+    header/footer story text through native DOC CHPX records, then reload bold
+    and italic header/footer runs through the legacy reader.
   - [x] Read and write the native first-page section flag (`sprmSFTitlePage`)
     so first-page header/footer intent is represented in SEPX, not only in the
     header/footer story slots.

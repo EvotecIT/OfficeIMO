@@ -2,7 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
     internal sealed class LegacyDocHeaderFooterStory {
-        internal LegacyDocHeaderFooterStory(int sectionIndex, bool isHeader, HeaderFooterValues type, IReadOnlyList<string> paragraphs) {
+        internal LegacyDocHeaderFooterStory(int sectionIndex, bool isHeader, HeaderFooterValues type, IReadOnlyList<LegacyDocHeaderFooterParagraph> paragraphs) {
             SectionIndex = sectionIndex;
             IsHeader = isHeader;
             Type = type;
@@ -15,6 +15,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal HeaderFooterValues Type { get; }
 
-        internal IReadOnlyList<string> Paragraphs { get; }
+        internal IReadOnlyList<LegacyDocHeaderFooterParagraph> Paragraphs { get; }
+    }
+
+    internal sealed class LegacyDocHeaderFooterParagraph {
+        internal LegacyDocHeaderFooterParagraph(IReadOnlyList<LegacyDocTextRun> runs) {
+            Runs = runs.Count == 0
+                ? Array.Empty<LegacyDocTextRun>()
+                : runs.ToArray();
+        }
+
+        internal IReadOnlyList<LegacyDocTextRun> Runs { get; }
+
+        internal string Text => string.Concat(Runs.Select(run => run.Text));
     }
 }

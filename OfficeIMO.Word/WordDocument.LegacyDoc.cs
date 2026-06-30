@@ -127,8 +127,9 @@ namespace OfficeIMO.Word {
                     paragraph.Remove();
                 }
 
-                foreach (string paragraphText in story.Paragraphs) {
-                    target.AddParagraph(paragraphText);
+                foreach (LegacyDocHeaderFooterParagraph sourceParagraph in story.Paragraphs) {
+                    WordParagraph paragraph = target.AddParagraph(sourceParagraph.Text);
+                    ReplaceLegacyDocParagraphRuns(paragraph, sourceParagraph.Runs, LegacyDocNoteProjection.Empty);
                 }
             }
         }
@@ -720,6 +721,14 @@ namespace OfficeIMO.Word {
             }
 
             AddLegacyDocRuns(new WordParagraph(target._document, target._paragraph, newRun: false), source.Runs, notes);
+        }
+
+        private static void ReplaceLegacyDocParagraphRuns(WordParagraph target, IReadOnlyList<LegacyDocTextRun> sourceRuns, LegacyDocNoteProjection notes) {
+            foreach (Run run in target._paragraph.Elements<Run>().ToArray()) {
+                run.Remove();
+            }
+
+            AddLegacyDocRuns(new WordParagraph(target._document, target._paragraph, newRun: false), sourceRuns, notes);
         }
 
         private static bool ContainsLegacyDocNoteReferenceMark(Run run) {
