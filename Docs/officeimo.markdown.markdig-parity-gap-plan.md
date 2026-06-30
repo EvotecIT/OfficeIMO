@@ -169,6 +169,7 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
     - [x] Superscript and subscript generic attributes expose source-backed syntax/native metadata and source-edit proof; triple-delimiter strong-emphasis attributes now render like Markdig without duplicating the Markdown writer attribute block.
   - [ ] Prove container interactions such as blockquotes, lists, tables, footnotes, and definition lists by contract, not incidental HTML output.
     - [x] Standalone generic attributes before pipe tables now target the semantic table, match Markdig HTML, expose syntax/native `attributes` source fields, and support source edits.
+    - [x] Standalone generic attributes immediately after pipe-table-looking paragraph runs now keep the run as a paragraph like Markdig, without table syntax or `attributes` metadata.
     - [x] Standalone generic attributes before image paragraphs match Markdig in portable profiles, and OfficeIMO-default typed image blocks now carry syntax/native/source-edit-backed attributes.
     - [x] Standalone generic attributes before reference-definition-looking lines now match Markdig by producing attributed literal paragraphs without registering reference definitions, with syntax/native/source-edit proof.
     - [x] Standalone generic attribute continuation lines at the end of paragraphs now match Markdig by being consumed without attributes or rendered output, including soft and hard line-break forms.

@@ -401,6 +401,38 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void Standalone_GenericAttributes_After_PipeTableLookingParagraph_Stay_Paragraph_Without_Metadata() {
+        const string markdown = "| A |\n|---|\n| B |\n{#tbl .wide}\n";
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.GenericAttributes = true;
+        options.PreserveTrivia = true;
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var block = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+        Assert.True(block.Attributes.IsEmpty);
+        Assert.Equal("| A | |---| | B |", InlinePlainText.Extract(block.Inlines));
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var paragraph = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.Paragraph);
+
+        Assert.NotNull(paragraph.SourceSpan);
+        Assert.DoesNotContain(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.Table);
+        Assert.DoesNotContain(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal("| A | |---| | B |", nativeParagraph.Text);
+        Assert.Empty(native.EnumerateTableCells());
+        Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Empty(native.EnumerateInlineMetadata("attributes"));
+    }
+
+    [Fact]
     public void Standalone_GenericAttributes_Attach_To_Following_FencedCode_With_Source_Backup() {
         const string markdown = "{#code .wide}\n```cs\nvar x = 1;\n```\n";
         var options = new MarkdownReaderOptions {

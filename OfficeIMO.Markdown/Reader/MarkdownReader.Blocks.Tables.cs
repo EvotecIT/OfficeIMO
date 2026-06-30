@@ -114,7 +114,17 @@ public static partial class MarkdownReader {
                 j++;
             }
         } else {
-            while (j < lines.Length && LooksLikeTableBodyRow(lines, j, options)) j++;
+            while (j < lines.Length) {
+                if (IsStandaloneTableGenericAttributeLine(lines[j], options)) {
+                    return false;
+                }
+
+                if (!LooksLikeTableBodyRow(lines, j, options)) {
+                    break;
+                }
+
+                j++;
+            }
         }
 
         end = j - 1;
@@ -413,6 +423,9 @@ public static partial class MarkdownReader {
 
         return !IsTableTerminatingBlockStart(lines, index, options);
     }
+
+    private static bool IsStandaloneTableGenericAttributeLine(string? line, MarkdownReaderOptions? options) =>
+        options?.GenericAttributes == true && IsStandaloneGenericAttributeOnlyLine(line);
 
     private static bool IsTableTerminatingBlockStart(string[] lines, int index, MarkdownReaderOptions options) {
         var line = lines[index] ?? string.Empty;
