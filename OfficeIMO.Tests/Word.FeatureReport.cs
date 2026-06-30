@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Bibliography;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Packaging;
@@ -31,7 +32,7 @@ namespace OfficeIMO.Tests {
                 document.AddEmbeddedFragment("<html><body><p>Imported</p></body></html>", WordAlternativeFormatImportPartType.Html);
                 document.AddMacro(System.Text.Encoding.ASCII.GetBytes("OfficeIMO macro placeholder"));
                 document.ApplicationProperties.DigitalSignature = new DigitalSignature();
-                document.Save(false);
+                document.Save(false, new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
             }
 
             using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
@@ -85,6 +86,46 @@ namespace OfficeIMO.Tests {
                 Assert.Same(report, report.EnsureNoAdvancedFeatures());
                 Assert.Empty(report.FindFeatures("Digital signatures"));
                 Assert.NotEmpty(report.FindFeatures(WordFeatureSupportLevel.Editable));
+            }
+        }
+
+        [Fact]
+        public void Test_WordFeatureReport_SummarizesFieldRefreshReadiness() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordFeatureReport.FieldRefreshReadiness.docx");
+            File.Delete(filePath);
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.BuiltinDocumentProperties.Creator = "Ada Lovelace";
+                document.AddParagraph("Target heading").AddBookmark("TargetBookmark");
+                AddFeatureReportComplexField(document.AddParagraph("Reference: ")._paragraph, " REF ", " \"TargetBookmark\" \\h ", "Target heading", dirty: true, locked: true);
+                document.AddParagraph("Page: ").AddField(WordFieldType.Page);
+                document.AddParagraph("Formula: ")._paragraph.Append(BuildFeatureReportSimpleField(" = COUNT(1, 2, 3) ", "stale", locked: false));
+                document.AddParagraph("TOC: ").AddField(WordFieldType.TOC);
+                document.AddParagraph("Date: ").AddField(WordFieldType.Date);
+                document.AddParagraph("Unsupported: ")._paragraph.Append(BuildFeatureReportSimpleField(" SILLYFIELD value ", "Unknown", locked: false));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+                WordFeatureReport report = document.InspectFeatures();
+                WordFeatureFinding fields = Assert.Single(report.FindFeatures("Fields"));
+
+                Assert.Equal(WordFeatureSupportLevel.PartiallyEditable, fields.SupportLevel);
+                Assert.Equal(6, fields.Count);
+                Assert.Contains(fields.Details, detail => detail == "Simple fields: 5");
+                Assert.Contains(fields.Details, detail => detail == "Complex fields: 1");
+                Assert.Contains(fields.Details, detail => detail == "Deterministic refresh candidates: 3");
+                Assert.Contains(fields.Details, detail => detail.Contains("Refreshable field types:", StringComparison.Ordinal)
+                    && detail.Contains("Formula: 1", StringComparison.Ordinal)
+                    && detail.Contains("Page: 1", StringComparison.Ordinal)
+                    && detail.Contains("Ref: 1", StringComparison.Ordinal));
+                Assert.Contains(fields.Details, detail => detail == "Queued/manual refresh fields: TOC: 1");
+                Assert.Contains(fields.Details, detail => detail == "Known unsupported refresh fields: Date: 1");
+                Assert.Contains(fields.Details, detail => detail == "Field parser diagnostics: 1");
+
+                string markdown = report.ToMarkdown();
+                Assert.Contains("Deterministic refresh candidates: 3", markdown, StringComparison.Ordinal);
+                Assert.Contains("Known unsupported refresh fields: Date: 1", markdown, StringComparison.Ordinal);
             }
         }
 
@@ -422,6 +463,25 @@ namespace OfficeIMO.Tests {
             ExtendedPart part = container.AddExtendedPart(relationshipType, contentType, "xml");
             using var stream = new MemoryStream(bytes);
             part.FeedData(stream);
+        }
+
+        private static void AddFeatureReportComplexField(Paragraph paragraph, string instructionPart1, string instructionPart2, string resultText, bool dirty, bool locked) {
+            paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin, Dirty = dirty, FieldLock = locked }),
+                new Run(new FieldCode { Text = instructionPart1, Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldCode { Text = instructionPart2, Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text(resultText) { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+        }
+
+        private static SimpleField BuildFeatureReportSimpleField(string instruction, string resultText, bool locked) {
+            return new SimpleField(
+                new Run(
+                    new Text(resultText) { Space = SpaceProcessingModeValues.Preserve })) {
+                Instruction = instruction,
+                FieldLock = locked
+            };
         }
 
         private static void AssertPartBytes(OpenXmlPartContainer container, string contentTypeFragment, byte[] expectedBytes) {

@@ -67,6 +67,30 @@ namespace OfficeIMO.Word {
             return commentsExPart.CommentsEx;
         }
 
+        internal static CommentEx? FindCommentExForComment(Comment comment, IReadOnlyList<CommentEx> commentsEx, int fallbackIndex) {
+            if (comment == null) throw new ArgumentNullException(nameof(comment));
+            if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
+
+            string? paraId = GetCommentParagraphId(comment);
+            if (!string.IsNullOrWhiteSpace(paraId)) {
+                CommentEx? matched = commentsEx.FirstOrDefault(commentEx =>
+                    string.Equals(commentEx.ParaId?.Value, paraId, StringComparison.Ordinal));
+                return matched;
+            }
+
+            return fallbackIndex >= 0 && fallbackIndex < commentsEx.Count
+                ? commentsEx[fallbackIndex]
+                : null;
+        }
+
+        internal static string? GetCommentParagraphId(Comment comment) {
+            if (comment == null) throw new ArgumentNullException(nameof(comment));
+
+            return comment.Elements<Paragraph>()
+                .Select(paragraph => paragraph.ParagraphId?.Value)
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+        }
+
         internal static string GetNewParaId(CommentsEx commentsEx) {
             if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
 

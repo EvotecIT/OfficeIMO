@@ -9,6 +9,11 @@ using System.Xml.XPath;
 
 namespace OfficeIMO.Word {
     public static partial class WordMailMerge {
+        private static readonly Regex MailMergeControlFieldTypePattern = new Regex(
+            @"^\s*(?<field>NEXTIF|SKIPIF|NEXT|MERGEREC|MERGESEQ)\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled,
+            TimeSpan.FromMilliseconds(100));
+
         private static void ReplaceMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields) {
             ReplaceSimpleMergeFields(root, values, removeFields);
             ReplaceComplexMergeFields(root, values, removeFields);
@@ -221,6 +226,76 @@ namespace OfficeIMO.Word {
             } catch (NotImplementedException) {
                 return null;
             }
+        }
+
+        private static IEnumerable<WordMailMergeTemplateIssue> EnumerateUnsupportedMailMergeControlFieldIssues(OpenXmlElement root) {
+            foreach (string instruction in EnumerateFieldInstructions(root)) {
+                if (!TryGetUnsupportedMailMergeControlField(instruction, out string? fieldName)) {
+                    continue;
+                }
+
+                yield return new WordMailMergeTemplateIssue(
+                    WordMailMergeTemplateIssueKind.UnsupportedMailMergeControlField,
+                    fieldName!,
+                    $"{fieldName} field '{NormalizeFieldInstructionForMessage(instruction)}' is a Word-native mail-merge record-control field and is not executed by OfficeIMO mail merge.");
+            }
+        }
+
+        private static IEnumerable<string> EnumerateFieldInstructions(OpenXmlElement root) {
+            foreach (var simpleField in root.Descendants<SimpleField>()) {
+                string? instruction = simpleField.Instruction?.Value;
+                if (!string.IsNullOrWhiteSpace(instruction)) {
+                    yield return instruction!;
+                }
+            }
+
+            foreach (var paragraph in EnumerateParagraphs(root)) {
+                List<Run>? fieldRuns = null;
+                foreach (var run in paragraph.Elements<Run>()) {
+                    var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
+                    if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
+                        fieldRuns = new List<Run> { run };
+                        continue;
+                    }
+
+                    if (fieldRuns == null) {
+                        continue;
+                    }
+
+                    fieldRuns.Add(run);
+                    if (fieldChar?.FieldCharType?.Value != FieldCharValues.End) {
+                        continue;
+                    }
+
+                    string instruction = string.Concat(fieldRuns
+                        .SelectMany(item => item.Elements<FieldCode>())
+                        .Select(code => code.Text));
+                    if (!string.IsNullOrWhiteSpace(instruction)) {
+                        yield return instruction;
+                    }
+
+                    fieldRuns = null;
+                }
+            }
+        }
+
+        private static bool TryGetUnsupportedMailMergeControlField(string? instruction, out string? fieldName) {
+            fieldName = null;
+            if (string.IsNullOrWhiteSpace(instruction)) {
+                return false;
+            }
+
+            Match match = MailMergeControlFieldTypePattern.Match(instruction!);
+            if (!match.Success) {
+                return false;
+            }
+
+            fieldName = match.Groups["field"].Value.ToUpperInvariant();
+            return true;
+        }
+
+        private static string NormalizeFieldInstructionForMessage(string instruction) {
+            return Regex.Replace(instruction.Trim(), @"\s+", " ");
         }
 
     }

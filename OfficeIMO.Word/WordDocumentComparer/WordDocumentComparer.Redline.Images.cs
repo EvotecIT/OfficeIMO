@@ -1,0 +1,475 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using A = DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Wordprocessing;
+using V = DocumentFormat.OpenXml.Vml;
+
+namespace OfficeIMO.Word {
+    public static partial class WordDocumentComparer {
+        private static void ApplyImageFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
+            List<RedlineImageContainer> targetContainers = GetRedlineImageContainers(targetDocument);
+            List<RedlineImageEntry> sourceImages = GetRedlineImageEntries(sourceDocument);
+            List<RedlineImageEntry> targetImages = GetRedlineImageEntries(targetDocument);
+            var rewrittenTargetImages = new HashSet<int>();
+            var insertedSourceImages = new HashSet<int>();
+
+            foreach (WordComparisonFinding finding in result.Findings) {
+                if (!ShouldTrackFinding(finding, options) ||
+                    finding.Scope != WordComparisonScope.Image) {
+                    continue;
+                }
+
+                switch (finding.ChangeKind) {
+                    case WordComparisonChangeKind.Inserted:
+                        int insertedTargetIndex = GetTargetImageIndex(finding);
+                        if (insertedTargetIndex >= 0 &&
+                            insertedTargetIndex < targetImages.Count &&
+                            !rewrittenTargetImages.Contains(insertedTargetIndex) &&
+                            WrapImageRunAsInserted(targetImages[insertedTargetIndex], options)) {
+                            rewrittenTargetImages.Add(insertedTargetIndex);
+                        }
+
+                        break;
+                    case WordComparisonChangeKind.Deleted:
+                        int deletedSourceIndex = GetSourceImageIndex(finding);
+                        if (deletedSourceIndex >= 0 &&
+                            deletedSourceIndex < sourceImages.Count &&
+                            !insertedSourceImages.Contains(deletedSourceIndex) &&
+                            InsertDeletedImageRun(sourceImages[deletedSourceIndex], targetContainers, targetImages, targetDocument, options)) {
+                            insertedSourceImages.Add(deletedSourceIndex);
+                        }
+
+                        break;
+                    case WordComparisonChangeKind.Modified:
+                        int modifiedSourceIndex = GetSourceImageIndex(finding);
+                        int modifiedTargetIndex = GetTargetImageIndex(finding);
+                        if (modifiedSourceIndex >= 0 &&
+                            modifiedSourceIndex < sourceImages.Count &&
+                            modifiedTargetIndex >= 0 &&
+                            modifiedTargetIndex < targetImages.Count &&
+                            !rewrittenTargetImages.Contains(modifiedTargetIndex) &&
+                            WrapImageRunAsChanged(sourceImages[modifiedSourceIndex], targetImages[modifiedTargetIndex], targetDocument, options)) {
+                            rewrittenTargetImages.Add(modifiedTargetIndex);
+                            insertedSourceImages.Add(modifiedSourceIndex);
+                        }
+
+                        break;
+                }
+            }
+        }
+
+        private static List<RedlineImageEntry> GetRedlineImageEntries(WordprocessingDocument document) {
+            var entries = new List<RedlineImageEntry>();
+            foreach (RedlineImageContainer container in GetRedlineImageContainers(document)) {
+                AddRedlineImageEntries(entries, container);
+            }
+
+            return entries;
+        }
+
+        private static List<RedlineImageContainer> GetRedlineImageContainers(WordprocessingDocument document) {
+            MainDocumentPart? mainPart = document.MainDocumentPart;
+            var containers = new List<RedlineImageContainer>();
+            if (mainPart?.Document?.Body != null) {
+                containers.Add(new RedlineImageContainer(containers.Count, mainPart, mainPart.Document.Body, BodyPartOrderBase));
+            }
+
+            if (mainPart == null) {
+                return containers;
+            }
+
+            int headerIndex = 0;
+            foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+                if (headerPartKey.Key.Header != null) {
+                    containers.Add(new RedlineImageContainer(containers.Count, headerPartKey.Key, headerPartKey.Key.Header, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride)));
+                }
+
+                headerIndex++;
+            }
+
+            int footerIndex = 0;
+            foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+                if (footerPartKey.Key.Footer != null) {
+                    containers.Add(new RedlineImageContainer(containers.Count, footerPartKey.Key, footerPartKey.Key.Footer, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride)));
+                }
+
+                footerIndex++;
+            }
+
+            List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+            for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
+                if (mainPart.FootnotesPart != null) {
+                    containers.Add(new RedlineImageContainer(containers.Count, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride)));
+                }
+            }
+
+            List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+            for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
+                if (mainPart.EndnotesPart != null) {
+                    containers.Add(new RedlineImageContainer(containers.Count, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride)));
+                }
+            }
+
+            return containers;
+        }
+
+        private static void AddRedlineImageEntries(List<RedlineImageEntry> entries, RedlineImageContainer container) {
+            int containerImageIndex = 0;
+            foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container.Container, container.OrderBase)) {
+                if (ordered.Element is not DocumentFormat.OpenXml.Wordprocessing.Drawing and not V.ImageData) {
+                    continue;
+                }
+
+                Run? run = ordered.Element.Ancestors<Run>().FirstOrDefault();
+                if (run == null) {
+                    continue;
+                }
+
+                entries.Add(new RedlineImageEntry(entries.Count, container.Index, containerImageIndex, container.Part, container.Container, run));
+                containerImageIndex++;
+            }
+        }
+
+        private static bool WrapImageRunAsInserted(RedlineImageEntry entry, WordComparisonRedlineOptions options) {
+            Run imageRun = entry.Run;
+            OpenXmlElement? parent = imageRun.Parent;
+            if (parent == null || imageRun.Ancestors<InsertedRun>().Any() || imageRun.Ancestors<DeletedRun>().Any()) {
+                return false;
+            }
+
+            var inserted = new InsertedRun {
+                Author = options.Author,
+                Date = options.DateTime ?? DateTime.Now,
+                Id = WordHeadersAndFooters.GenerateRevisionId()
+            };
+            inserted.Append((Run)imageRun.CloneNode(true));
+            parent.InsertBefore(inserted, imageRun);
+            imageRun.Remove();
+            return true;
+        }
+
+        private static bool WrapImageRunAsChanged(RedlineImageEntry sourceEntry, RedlineImageEntry targetEntry, WordprocessingDocument targetDocument, WordComparisonRedlineOptions options) {
+            Run targetRun = targetEntry.Run;
+            OpenXmlElement? parent = targetRun.Parent;
+            if (parent == null || targetRun.Ancestors<InsertedRun>().Any() || targetRun.Ancestors<DeletedRun>().Any()) {
+                return false;
+            }
+
+            Run? deletedRun = CloneImageRunForPart(sourceEntry, targetEntry.Part, targetDocument);
+            if (deletedRun == null) {
+                return false;
+            }
+
+            parent.InsertBefore(WrapRunAsDeleted(deletedRun, options), targetRun);
+            parent.InsertBefore(WrapRunAsInserted((Run)targetRun.CloneNode(true), options), targetRun);
+            targetRun.Remove();
+            return true;
+        }
+
+        private static bool InsertDeletedImageRun(
+            RedlineImageEntry sourceEntry,
+            IReadOnlyList<RedlineImageContainer> targetContainers,
+            IReadOnlyList<RedlineImageEntry> targetImages,
+            WordprocessingDocument targetDocument,
+            WordComparisonRedlineOptions options) {
+            RedlineImageContainer targetContainer = GetTargetImageContainer(sourceEntry, targetContainers);
+            Run? deletedRun = CloneImageRunForPart(sourceEntry, targetContainer.Part, targetDocument);
+            if (deletedRun == null) {
+                return false;
+            }
+
+            DeletedRun deleted = WrapRunAsDeleted(deletedRun, options);
+            RedlineImageEntry? nextImage = targetImages
+                .Where(image => image.ContainerIndex == targetContainer.Index && image.ContainerImageIndex >= sourceEntry.ContainerImageIndex)
+                .OrderBy(image => image.ContainerImageIndex)
+                .FirstOrDefault();
+            if (nextImage?.Run.Parent != null) {
+                nextImage.Run.Parent.InsertBefore(deleted, nextImage.Run);
+                return true;
+            }
+
+            RedlineImageEntry? previousImage = targetImages
+                .Where(image => image.ContainerIndex == targetContainer.Index && image.ContainerImageIndex < sourceEntry.ContainerImageIndex)
+                .OrderByDescending(image => image.ContainerImageIndex)
+                .FirstOrDefault();
+            if (previousImage?.Run.Parent != null) {
+                previousImage.Run.Parent.InsertAfter(deleted, previousImage.Run);
+                return true;
+            }
+
+            var paragraph = new Paragraph(deleted);
+            targetContainer.Container.Append(paragraph);
+            return true;
+        }
+
+        private static RedlineImageContainer GetTargetImageContainer(RedlineImageEntry sourceEntry, IReadOnlyList<RedlineImageContainer> targetContainers) {
+            RedlineImageContainer? matchingContainer = targetContainers.FirstOrDefault(container => container.Index == sourceEntry.ContainerIndex);
+            if (matchingContainer != null) {
+                return matchingContainer;
+            }
+
+            if (targetContainers.Count > 0) {
+                return targetContainers[0];
+            }
+
+            throw new InvalidOperationException("Target document has no part that can receive a deleted image redline.");
+        }
+
+        private static Run? CloneImageRunForPart(RedlineImageEntry sourceEntry, OpenXmlPart targetPart, WordprocessingDocument targetDocument) {
+            var clonedRun = (Run)sourceEntry.Run.CloneNode(true);
+            foreach (A.Blip blip in clonedRun.Descendants<A.Blip>()) {
+                if (blip.Embed?.Value is string embeddedRelationshipId) {
+                    string? copiedRelationshipId = CopyEmbeddedImageRelationship(sourceEntry.Part, targetPart, embeddedRelationshipId);
+                    if (copiedRelationshipId == null) {
+                        return null;
+                    }
+
+                    blip.Embed = copiedRelationshipId;
+                }
+
+                if (blip.Link?.Value is string externalRelationshipId) {
+                    string? copiedRelationshipId = CopyExternalImageRelationship(sourceEntry.Part, targetPart, externalRelationshipId);
+                    if (copiedRelationshipId == null) {
+                        return null;
+                    }
+
+                    blip.Link = copiedRelationshipId;
+                }
+            }
+
+            foreach (V.ImageData imageData in clonedRun.Descendants<V.ImageData>()) {
+                if (imageData.RelationshipId?.Value is not string relationshipId) {
+                    continue;
+                }
+
+                string? copiedRelationshipId = sourceEntry.Part.ExternalRelationships.Any(relationship => relationship.Id == relationshipId)
+                    ? CopyExternalImageRelationship(sourceEntry.Part, targetPart, relationshipId)
+                    : CopyEmbeddedImageRelationship(sourceEntry.Part, targetPart, relationshipId);
+                if (copiedRelationshipId == null) {
+                    return null;
+                }
+
+                imageData.RelationshipId = copiedRelationshipId;
+            }
+
+            RefreshClonedDrawingIds(targetDocument, clonedRun);
+            RefreshClonedVmlIds(targetDocument, clonedRun);
+            return clonedRun;
+        }
+
+        private static string? CopyEmbeddedImageRelationship(OpenXmlPart sourcePart, OpenXmlPart targetPart, string relationshipId) {
+            OpenXmlPart sourceRelatedPart;
+            try {
+                sourceRelatedPart = sourcePart.GetPartById(relationshipId);
+            } catch (ArgumentOutOfRangeException) {
+                return null;
+            }
+
+            if (sourceRelatedPart is not ImagePart sourceImagePart) {
+                return null;
+            }
+
+            ImagePart targetImagePart = AddImagePart(targetPart, sourceImagePart.ContentType);
+            using Stream sourceStream = sourceImagePart.GetStream(FileMode.Open, FileAccess.Read);
+            targetImagePart.FeedData(sourceStream);
+            return targetPart.GetIdOfPart(targetImagePart);
+        }
+
+        private static string? CopyExternalImageRelationship(OpenXmlPart sourcePart, OpenXmlPart targetPart, string relationshipId) {
+            ExternalRelationship? sourceRelationship = sourcePart.ExternalRelationships.FirstOrDefault(relationship => relationship.Id == relationshipId);
+            if (sourceRelationship == null) {
+                return null;
+            }
+
+            ExternalRelationship targetRelationship = targetPart.AddExternalRelationship(sourceRelationship.RelationshipType, sourceRelationship.Uri);
+            return targetRelationship.Id;
+        }
+
+        private static void RefreshClonedDrawingIds(WordprocessingDocument targetDocument, Run clonedRun) {
+            uint nextId = GetNextDrawingDocPropertiesId(targetDocument);
+            foreach (DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties properties in clonedRun.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()) {
+                properties.Id = nextId;
+                nextId++;
+            }
+
+            foreach (DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties properties in clonedRun.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties>()) {
+                properties.Id = nextId;
+                nextId++;
+            }
+        }
+
+        private static uint GetNextDrawingDocPropertiesId(WordprocessingDocument document) {
+            uint max = 0U;
+            MainDocumentPart? mainPart = document.MainDocumentPart;
+            UpdateMaxDrawingDocPropertiesId(mainPart?.Document, ref max);
+
+            if (mainPart != null) {
+                foreach (HeaderPart headerPart in mainPart.HeaderParts) {
+                    UpdateMaxDrawingDocPropertiesId(headerPart.Header, ref max);
+                }
+
+                foreach (FooterPart footerPart in mainPart.FooterParts) {
+                    UpdateMaxDrawingDocPropertiesId(footerPart.Footer, ref max);
+                }
+
+                UpdateMaxDrawingDocPropertiesId(mainPart.FootnotesPart?.Footnotes, ref max);
+                UpdateMaxDrawingDocPropertiesId(mainPart.EndnotesPart?.Endnotes, ref max);
+                UpdateMaxDrawingDocPropertiesId(mainPart.WordprocessingCommentsPart?.Comments, ref max);
+            }
+
+            return max + 1U;
+        }
+
+        private static void UpdateMaxDrawingDocPropertiesId(OpenXmlElement? root, ref uint max) {
+            if (root == null) {
+                return;
+            }
+
+            foreach (DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties properties in root.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()) {
+                if (properties.Id != null && properties.Id.Value > max) {
+                    max = properties.Id.Value;
+                }
+            }
+
+            foreach (DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties properties in root.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties>()) {
+                if (properties.Id != null && properties.Id.Value > max) {
+                    max = properties.Id.Value;
+                }
+            }
+        }
+
+        private static void RefreshClonedVmlIds(WordprocessingDocument targetDocument, Run clonedRun) {
+            HashSet<string> usedIds = GetVmlShapeIds(targetDocument);
+            int nextId = usedIds.Count + 1;
+            foreach (V.Shape shape in clonedRun.Descendants<V.Shape>()) {
+                string candidate;
+                do {
+                    candidate = "OfficeIMOImageRedline" + nextId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    nextId++;
+                } while (usedIds.Contains(candidate));
+
+                shape.Id = candidate;
+                usedIds.Add(candidate);
+            }
+        }
+
+        private static HashSet<string> GetVmlShapeIds(WordprocessingDocument document) {
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            MainDocumentPart? mainPart = document.MainDocumentPart;
+            AddVmlShapeIds(ids, mainPart?.Document);
+
+            if (mainPart != null) {
+                foreach (HeaderPart headerPart in mainPart.HeaderParts) {
+                    AddVmlShapeIds(ids, headerPart.Header);
+                }
+
+                foreach (FooterPart footerPart in mainPart.FooterParts) {
+                    AddVmlShapeIds(ids, footerPart.Footer);
+                }
+
+                AddVmlShapeIds(ids, mainPart.FootnotesPart?.Footnotes);
+                AddVmlShapeIds(ids, mainPart.EndnotesPart?.Endnotes);
+                AddVmlShapeIds(ids, mainPart.WordprocessingCommentsPart?.Comments);
+            }
+
+            return ids;
+        }
+
+        private static void AddVmlShapeIds(HashSet<string> ids, OpenXmlElement? root) {
+            if (root == null) {
+                return;
+            }
+
+            foreach (V.Shape shape in root.Descendants<V.Shape>()) {
+                string? shapeId = shape.Id?.Value;
+                if (!string.IsNullOrEmpty(shapeId)) {
+                    ids.Add(shapeId!);
+                }
+            }
+        }
+
+        private static ImagePart AddImagePart(OpenXmlPart part, string contentType) {
+            return part switch {
+                MainDocumentPart mainDocumentPart => mainDocumentPart.AddImagePart(contentType),
+                HeaderPart headerPart => headerPart.AddImagePart(contentType),
+                FooterPart footerPart => footerPart.AddImagePart(contentType),
+                FootnotesPart footnotesPart => footnotesPart.AddImagePart(contentType),
+                EndnotesPart endnotesPart => endnotesPart.AddImagePart(contentType),
+                _ => throw new InvalidOperationException("Images cannot be copied into this document part.")
+            };
+        }
+
+        private static InsertedRun WrapRunAsInserted(Run run, WordComparisonRedlineOptions options) {
+            var inserted = new InsertedRun {
+                Author = options.Author,
+                Date = options.DateTime ?? DateTime.Now,
+                Id = WordHeadersAndFooters.GenerateRevisionId()
+            };
+            inserted.Append(run);
+            return inserted;
+        }
+
+        private static DeletedRun WrapRunAsDeleted(Run run, WordComparisonRedlineOptions options) {
+            var deleted = new DeletedRun {
+                Author = options.Author,
+                Date = options.DateTime ?? DateTime.Now,
+                Id = WordHeadersAndFooters.GenerateRevisionId()
+            };
+            deleted.Append(run);
+            return deleted;
+        }
+
+        private static int GetSourceImageIndex(WordComparisonFinding finding) {
+            return finding.SourceIndex ?? -1;
+        }
+
+        private static int GetTargetImageIndex(WordComparisonFinding finding) {
+            int targetIndex = finding.TargetIndex ?? -1;
+            if (targetIndex < 0) {
+                TryParseIndexedLocation(finding.Location, "image", out targetIndex);
+            }
+
+            return targetIndex;
+        }
+
+        private sealed class RedlineImageContainer {
+            internal RedlineImageContainer(int index, OpenXmlPart part, OpenXmlElement container, int orderBase) {
+                Index = index;
+                Part = part;
+                Container = container;
+                OrderBase = orderBase;
+            }
+
+            internal int Index { get; }
+
+            internal OpenXmlPart Part { get; }
+
+            internal OpenXmlElement Container { get; }
+
+            internal int OrderBase { get; }
+        }
+
+        private sealed class RedlineImageEntry {
+            internal RedlineImageEntry(int index, int containerIndex, int containerImageIndex, OpenXmlPart part, OpenXmlElement container, Run run) {
+                Index = index;
+                ContainerIndex = containerIndex;
+                ContainerImageIndex = containerImageIndex;
+                Part = part;
+                Container = container;
+                Run = run;
+            }
+
+            internal int Index { get; }
+
+            internal int ContainerIndex { get; }
+
+            internal int ContainerImageIndex { get; }
+
+            internal OpenXmlPart Part { get; }
+
+            internal OpenXmlElement Container { get; }
+
+            internal Run Run { get; }
+        }
+    }
+}

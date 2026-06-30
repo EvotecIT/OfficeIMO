@@ -542,6 +542,10 @@ namespace OfficeIMO.Word {
                     }
                 }
 
+                foreach (var table in Tables) {
+                    list.AddRange(table.StructuredDocumentTags);
+                }
+
                 return list;
             }
         }
