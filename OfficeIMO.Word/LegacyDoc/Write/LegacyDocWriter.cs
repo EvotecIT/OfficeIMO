@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Shared;
 using OfficeIMO.Word.LegacyDoc.Model;
@@ -154,7 +155,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Paragraph paragraph:
                         if (!IsPureSectionBreakParagraph(paragraph)) {
-                            AppendParagraph(text, runs, paragraphFormats, paragraph, styleSheet.StyleIndexes, footnotes, endnotes);
+                            AppendParagraph(text, runs, paragraphFormats, paragraph, mainPart!, styleSheet.StyleIndexes, footnotes, endnotes);
                             bodyContentCount++;
                         }
 
@@ -167,7 +168,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Table table:
-                        AppendTable(text, runs, paragraphFormats, table, styleSheet.StyleIndexes, tableStyleDefinitions, footnotes, endnotes);
+                        AppendTable(text, runs, paragraphFormats, table, mainPart!, styleSheet.StyleIndexes, tableStyleDefinitions, footnotes, endnotes);
                         bodyContentCount++;
                         break;
                     case SectionProperties sectionProperties:
@@ -293,7 +294,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             sections.Add(new LegacyDocWritableSection(endCharacter, format));
         }
 
-        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, Paragraph paragraph, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
+        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, Paragraph paragraph, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
             int paragraphStart = text.Length;
 
@@ -304,8 +305,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Run run:
                         AppendSupportedRunText(text, runs, run, footnotes, endnotes);
                         break;
+                    case Hyperlink hyperlink:
+                        AppendSupportedHyperlinkText(text, runs, hyperlink, mainPart, footnotes, endnotes);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs and simple external hyperlinks with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 

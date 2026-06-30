@@ -17,7 +17,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocHighlightColorKind? highlight,
             int? fontSizeHalfPoints,
             string? colorHex,
-            string? fontFamily)
+            string? fontFamily,
+            string? hyperlinkUri = null)
             : this(
                 text,
                 bold,
@@ -36,7 +37,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 fontSizeHalfPoints,
                 colorHex,
                 fontFamily,
-                Array.Empty<int>()) {
+                Array.Empty<int>(),
+                hyperlinkUri) {
         }
 
         internal LegacyDocTextRun(
@@ -57,7 +59,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? fontSizeHalfPoints,
             string? colorHex,
             string? fontFamily,
-            IReadOnlyList<int> characterPositions) {
+            IReadOnlyList<int> characterPositions,
+            string? hyperlinkUri = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -78,6 +81,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             CharacterPositions = characterPositions.Count == 0
                 ? Array.Empty<int>()
                 : characterPositions.ToArray();
+            HyperlinkUri = string.IsNullOrWhiteSpace(hyperlinkUri) ? null : hyperlinkUri;
         }
 
         internal string Text { get; }
@@ -115,5 +119,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal string? FontFamily { get; }
 
         internal IReadOnlyList<int> CharacterPositions { get; }
+
+        internal string? HyperlinkUri { get; }
     }
 }

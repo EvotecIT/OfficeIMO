@@ -474,6 +474,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var runText = new System.Text.StringBuilder();
             var runCharacterPositions = new List<int>();
             LegacyDocCharacterFormat currentFormat = LegacyDocCharacterFormat.Default;
+            string? currentHyperlinkUri = null;
             bool hasCurrentRun = false;
             bool inTable = false;
             bool justClosedCell = false;
@@ -483,7 +484,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int nextSectionIndex = sections.Count > 1 ? 1 : sections.Count;
             bool reportedUnprojectedSectionBoundary = false;
 
-            foreach (LegacyDocTextCharacter textCharacter in characters) {
+            for (int characterIndex = 0; characterIndex < characters.Count; characterIndex++) {
+                LegacyDocTextCharacter textCharacter = characters[characterIndex];
+                if (LegacyDocField.TryReadExternalHyperlink(
+                    characters,
+                    characterIndex,
+                    out string? hyperlinkUri,
+                    out int resultStartIndex,
+                    out int resultEndIndex,
+                    out int fieldEndIndex)) {
+                    AppendHyperlinkResult(hyperlinkUri!, resultStartIndex, resultEndIndex);
+                    characterIndex = fieldEndIndex;
+                    continue;
+                }
+
                 if (textCharacter.Character == '\a') {
                     LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset);
                     if (paragraphFormat.IsInTable == true) {
@@ -580,10 +594,27 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     detailCode: "Fib:PlcfSed"));
             }
 
-            void AppendRunCharacter(char character, LegacyDocCharacterFormat format, int characterPosition) {
-                if (!hasCurrentRun || !format.Equals(currentFormat)) {
+            void AppendHyperlinkResult(string hyperlinkUri, int resultStartIndex, int resultEndIndex) {
+                for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
+                    LegacyDocTextCharacter resultCharacter = characters[resultIndex];
+                    char? normalized = NormalizeBodyCharacter(resultCharacter.Character);
+                    if (normalized == null) {
+                        continue;
+                    }
+
+                    LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
+                    AppendRunCharacter(normalized.Value, format, resultCharacter.CharacterPosition, hyperlinkUri);
+                    bodyText.Append(normalized.Value);
+                }
+            }
+
+            void AppendRunCharacter(char character, LegacyDocCharacterFormat format, int characterPosition, string? hyperlinkUri = null) {
+                if (!hasCurrentRun
+                    || !format.Equals(currentFormat)
+                    || !string.Equals(hyperlinkUri, currentHyperlinkUri, StringComparison.Ordinal)) {
                     FlushRun();
                     currentFormat = format;
+                    currentHyperlinkUri = hyperlinkUri;
                     hasCurrentRun = true;
                 }
 
@@ -617,9 +648,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentFormat.FontSizeHalfPoints,
                     currentFormat.ColorHex,
                     currentFormat.FontFamily,
-                    runCharacterPositions));
+                    runCharacterPositions,
+                    currentHyperlinkUri));
                 runText.Clear();
                 runCharacterPositions.Clear();
+                currentHyperlinkUri = null;
             }
 
             void AddCurrentTextAsParagraph(LegacyDocParagraphFormat paragraphFormat) {

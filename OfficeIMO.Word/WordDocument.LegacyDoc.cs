@@ -600,7 +600,7 @@ namespace OfficeIMO.Word {
 
             LegacyDocTextRun firstRun = sourceParagraph.Runs[0];
             WordParagraph paragraph;
-            if (ContainsLegacyDocSpecialRunCharacter(firstRun.Text)) {
+            if (ContainsLegacyDocSpecialRunCharacter(firstRun.Text) || !string.IsNullOrEmpty(firstRun.HyperlinkUri)) {
                 paragraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: removeExistingParagraphs);
                 AddLegacyDocRunContent(paragraph, firstRun, notes);
             } else {
@@ -811,8 +811,40 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            if (!string.IsNullOrEmpty(legacyRun.HyperlinkUri)) {
+                AddLegacyDocHyperlinkTextSegment(paragraph, legacyRun, startIndex, length);
+                return;
+            }
+
             WordParagraph run = paragraph.AddText(legacyRun.Text.Substring(startIndex, length));
             ApplyLegacyDocRunFormatting(run, legacyRun);
+        }
+
+        private static void AddLegacyDocHyperlinkTextSegment(WordParagraph paragraph, LegacyDocTextRun legacyRun, int startIndex, int length) {
+            string text = legacyRun.Text.Substring(startIndex, length);
+            if (!Uri.TryCreate(legacyRun.HyperlinkUri, UriKind.Absolute, out Uri? uri)) {
+                WordParagraph fallbackRun = paragraph.AddText(text);
+                ApplyLegacyDocRunFormatting(fallbackRun, legacyRun);
+                return;
+            }
+
+            MainDocumentPart mainPart = paragraph._document._wordprocessingDocument?.MainDocumentPart
+                ?? throw new InvalidOperationException("Legacy DOC hyperlink projection requires a main document part.");
+            HyperlinkRelationship relationship = mainPart.AddHyperlinkRelationship(uri, true);
+            var hyperlink = new Hyperlink {
+                Id = relationship.Id,
+                History = true
+            };
+            var run = new Run(new Text(text) {
+                Space = SpaceProcessingModeValues.Preserve
+            });
+            hyperlink.Append(run);
+            paragraph._paragraph.Append(hyperlink);
+            paragraph._hyperlink = hyperlink;
+            var hyperlinkRun = new WordParagraph(paragraph._document, paragraph._paragraph, run) {
+                _hyperlink = hyperlink
+            };
+            ApplyLegacyDocRunFormatting(hyperlinkRun, legacyRun);
         }
 
         private static void ApplyLegacyDocParagraphFormatting(WordParagraph paragraph, LegacyDocParagraphFormat paragraphFormat, LegacyDocStyleSheet styleSheet) {

@@ -1732,6 +1732,89 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocExternalHyperlinksAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Visit ");
+                    paragraph.AddHyperLink("OfficeIMO", new Uri("https://officeimo.net/docs"), addStyle: true);
+                    paragraph.AddText(" today");
+
+                    WordTable table = document.AddTable(1, 1);
+                    table.Rows[0].Cells[0].Paragraphs[0].AddHyperLink("Table link", new Uri("mailto:support@example.org"), addStyle: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                string visibleText = string.Concat(reloaded.Paragraphs.Select(paragraph => paragraph.Text));
+                Assert.Contains("Visit ", visibleText);
+                Assert.Contains(" today", visibleText);
+                Assert.DoesNotContain("HYPERLINK", visibleText);
+                Assert.DoesNotContain(visibleText, character => character == '\u0013');
+                Assert.DoesNotContain(visibleText, character => character == '\u0014');
+                Assert.DoesNotContain(visibleText, character => character == '\u0015');
+                WordHyperLink? bodyHyperlink = reloaded.HyperLinks.FirstOrDefault(link => link.Text == "OfficeIMO");
+                Assert.NotNull(bodyHyperlink);
+                Assert.Equal("OfficeIMO", bodyHyperlink.Text);
+                Assert.Equal("https://officeimo.net/docs", bodyHyperlink.Uri?.ToString());
+
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordHyperLink? tableHyperlink = reloadedTable.Rows[0].Cells[0].Paragraphs
+                    .SelectMany(paragraph => paragraph.GetRuns())
+                    .Where(run => run.IsHyperLink)
+                    .Select(run => run.Hyperlink)
+                    .FirstOrDefault(link => link?.Text == "Table link");
+                Assert.NotNull(tableHyperlink);
+                Assert.Equal("Table link", tableHyperlink.Text);
+                Assert.Equal("mailto:support@example.org", tableHyperlink.Uri?.ToString());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksInternalHyperlinksBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Jump ").AddHyperLink("inside", "TargetBookmark", addStyle: true);
+                document.AddParagraph("Target").AddBookmark("TargetBookmark");
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("internal bookmark hyperlinks", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedHyperlinkRunsBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph paragraph = document.AddParagraph("Open ");
+                paragraph.AddHyperLink("site", new Uri("https://officeimo.net/docs"), addStyle: true);
+                paragraph.Hyperlink!._hyperlink.AppendChild(new Run(new Break()));
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("plain text", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocDefaultHeaderFooterAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

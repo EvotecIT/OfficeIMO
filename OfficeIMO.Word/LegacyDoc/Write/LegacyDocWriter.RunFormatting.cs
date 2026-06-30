@@ -10,6 +10,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, LegacyDocWritableFormatting inheritedFormatting) {
+            AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: false);
+        }
+
+        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, LegacyDocWritableFormatting inheritedFormatting, bool allowHyperlinkRunStyle) {
             if (run.Elements<FootnoteReference>().Any()) {
                 AppendFootnoteReferenceRun(text, runs, footnotes, run);
                 return;
@@ -20,7 +24,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return;
             }
 
-            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties)
+            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties, allowHyperlinkRunStyle)
                 .WithInheritedFormatting(inheritedFormatting);
 
             foreach (OpenXmlElement child in run.ChildElements) {
@@ -114,6 +118,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static LegacyDocWritableFormatting ReadSupportedRunFormatting(OpenXmlCompositeElement? runProperties) {
+            return ReadSupportedRunFormatting(runProperties, allowHyperlinkRunStyle: false);
+        }
+
+        private static LegacyDocWritableFormatting ReadSupportedRunFormatting(OpenXmlCompositeElement? runProperties, bool allowHyperlinkRunStyle) {
             if (runProperties == null || !runProperties.HasChildren) {
                 return LegacyDocWritableFormatting.Plain;
             }
@@ -216,6 +224,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case RunFonts runFonts:
                         specified |= LegacyDocWritableFormattingProperties.FontFamily;
                         fontFamily = ReadSupportedRunFontFamily(runFonts);
+                        break;
+                    case RunStyle runStyle when allowHyperlinkRunStyle && string.Equals(runStyle.Val?.Value, "Hyperlink", StringComparison.OrdinalIgnoreCase):
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family run formatting. Unsupported run property: {property.LocalName}.");
