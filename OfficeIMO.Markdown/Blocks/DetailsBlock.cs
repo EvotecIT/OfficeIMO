@@ -24,16 +24,16 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     public bool Open { get; set; }
 
     /// <summary>Exact source opening tag for parsed details blocks, when available.</summary>
-    internal string? OpeningTag { get; set; }
+    public string? OpeningTag { get; internal set; }
 
     /// <summary>Exact source closing tag for parsed details blocks, when available.</summary>
-    internal string? ClosingTag { get; set; }
+    public string? ClosingTag { get; internal set; }
 
     /// <summary>Source span for the parsed details opening tag, when available.</summary>
-    internal MarkdownSourceSpan? OpeningTagSourceSpan { get; set; }
+    public MarkdownSourceSpan? OpeningTagSourceSpan { get; internal set; }
 
     /// <summary>Source span for the parsed details closing tag, when available.</summary>
-    internal MarkdownSourceSpan? ClosingTagSourceSpan { get; set; }
+    public MarkdownSourceSpan? ClosingTagSourceSpan { get; internal set; }
 
     /// <summary>Creates an empty details block.</summary>
     public DetailsBlock() {
@@ -124,12 +124,18 @@ public sealed class SummaryBlock : MarkdownBlock, IMarkdownBlock, IInlineSyntaxM
     /// <summary>Inline content inside the &lt;summary&gt; element.</summary>
     public InlineSequence Inlines { get; }
     internal MarkdownSourceSpan? SyntaxSpan { get; set; }
-    internal string? OpeningTag { get; set; }
-    internal string? ClosingTag { get; set; }
-    internal string? SourceText { get; set; }
-    internal MarkdownSourceSpan? OpeningTagSourceSpan { get; set; }
-    internal MarkdownSourceSpan? TextSourceSpan { get; set; }
-    internal MarkdownSourceSpan? ClosingTagSourceSpan { get; set; }
+    /// <summary>Exact source opening tag for a parsed summary element, when available.</summary>
+    public string? OpeningTag { get; internal set; }
+    /// <summary>Exact source closing tag for a parsed summary element, when available.</summary>
+    public string? ClosingTag { get; internal set; }
+    /// <summary>Exact source text between the parsed summary tags, when available.</summary>
+    public string? SourceText { get; internal set; }
+    /// <summary>Source span for the parsed summary opening tag, when available.</summary>
+    public MarkdownSourceSpan? OpeningTagSourceSpan { get; internal set; }
+    /// <summary>Source span for the parsed summary text, when available.</summary>
+    public MarkdownSourceSpan? TextSourceSpan { get; internal set; }
+    /// <summary>Source span for the parsed summary closing tag, when available.</summary>
+    public MarkdownSourceSpan? ClosingTagSourceSpan { get; internal set; }
 
     /// <summary>Create a summary block from an inline sequence.</summary>
     public SummaryBlock(InlineSequence inlines) {

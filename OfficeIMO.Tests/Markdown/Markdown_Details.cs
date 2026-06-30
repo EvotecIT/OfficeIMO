@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Reader_RoundTrips_Details_Html() {
-            string markdown = "<details open>\n<summary>Expand</summary>\n\nParagraph text\n</details>";
+            string markdown = "<details open>\n<summary>  Expand  </summary>\n\nParagraph text\n</details>";
 
             var doc = MarkdownReader.Parse(markdown);
 
@@ -27,6 +27,16 @@ namespace OfficeIMO.Tests {
             Assert.True(details.Open);
             var summaryText = Assert.IsType<TextRun>(details.Summary!.Inlines.Items[0]);
             Assert.Equal("Expand", summaryText.Text);
+            Assert.Equal("<details open>", details.OpeningTag);
+            Assert.Equal("</details>", details.ClosingTag);
+            Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 14), details.OpeningTagSourceSpan);
+            Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 10), details.ClosingTagSourceSpan);
+            Assert.Equal("<summary>", details.Summary.OpeningTag);
+            Assert.Equal("  Expand  ", details.Summary.SourceText);
+            Assert.Equal("</summary>", details.Summary.ClosingTag);
+            Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 9), details.Summary.OpeningTagSourceSpan);
+            Assert.Equal(new MarkdownSourceSpan(2, 10, 2, 19), details.Summary.TextSourceSpan);
+            Assert.Equal(new MarkdownSourceSpan(2, 20, 2, 29), details.Summary.ClosingTagSourceSpan);
             var child = Assert.Single(details.ChildBlocks);
             var paragraph = Assert.IsType<ParagraphBlock>(child);
             Assert.Equal("Paragraph text", paragraph.Inlines.RenderMarkdown());
