@@ -1,5 +1,8 @@
 using System.Globalization;
 using System.IO;
+using DocumentFormat.OpenXml.Wordprocessing;
+using W14 = DocumentFormat.OpenXml.Office2010.Word;
+using W15 = DocumentFormat.OpenXml.Office2013.Word;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -180,6 +183,10 @@ namespace OfficeIMO.Word {
             }
 
             foreach (WordStructuredDocumentTag structuredDocumentTag in StructuredDocumentTags) {
+                if (IsSpecializedStructuredDocumentTag(structuredDocumentTag)) {
+                    continue;
+                }
+
                 AddFormValue(values, keyMode, structuredDocumentTag.Tag, structuredDocumentTag.Alias, structuredDocumentTag.Text);
             }
 
@@ -439,6 +446,16 @@ namespace OfficeIMO.Word {
             foreach (string key in GetFormKeys(keyMode, tag, alias)) {
                 values.Add(key);
             }
+        }
+
+        private static bool IsSpecializedStructuredDocumentTag(WordStructuredDocumentTag structuredDocumentTag) {
+            SdtProperties? properties = structuredDocumentTag.SdtElement?.SdtProperties;
+            return properties?.Elements<W14.SdtContentCheckBox>().Any() == true ||
+                   properties?.Elements<SdtContentDate>().Any() == true ||
+                   properties?.Elements<SdtContentDropDownList>().Any() == true ||
+                   properties?.Elements<SdtContentComboBox>().Any() == true ||
+                   properties?.Elements<SdtContentPicture>().Any() == true ||
+                   properties?.Elements<W15.SdtRepeatedSection>().Any() == true;
         }
 
         private static bool TryGetFormValue(

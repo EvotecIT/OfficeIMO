@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Office2013.Word;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace OfficeIMO.Word {
@@ -107,14 +108,21 @@ namespace OfficeIMO.Word {
                     .Select(v => v!));
             }
 
-            int max = 0;
+            var used = new HashSet<uint>();
+            uint max = 0;
             foreach (var v in existing) {
-                if (int.TryParse(v, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int num)) {
+                if (uint.TryParse(v, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint num)) {
+                    used.Add(num);
                     if (num > max) max = num;
                 }
             }
 
-            return (max + 1).ToString("X8", CultureInfo.InvariantCulture);
+            uint candidate = max + 1U;
+            while (used.Contains(candidate)) {
+                candidate++;
+            }
+
+            return candidate.ToString("X8", CultureInfo.InvariantCulture);
         }
 
         private static MainDocumentPart GetMainDocumentPart(WordDocument document) {

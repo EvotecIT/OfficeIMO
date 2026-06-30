@@ -8,6 +8,9 @@ namespace OfficeIMO.Word {
             List<RedlineTableEntry> sourceTables = GetRedlineTableEntries(sourceDocument);
             List<RedlineTableEntry> targetTables = GetRedlineTableEntries(targetDocument);
             var rewrittenTables = new HashSet<int>();
+            var insertedBeforeTableAnchors = new Dictionary<Table, OpenXmlElement>();
+            var insertedAfterTableAnchors = new Dictionary<Table, OpenXmlElement>();
+            var appendedDeletedTables = new Dictionary<string, OpenXmlElement>(StringComparer.Ordinal);
 
             foreach (WordComparisonFinding finding in result.Findings) {
                 if (!ShouldTrackFinding(finding, options) ||
@@ -33,7 +36,7 @@ namespace OfficeIMO.Word {
                         break;
                     case WordComparisonChangeKind.Deleted:
                         if (tableIndex < sourceTables.Count) {
-                            InsertDeletedTable(targetDocument, sourceTables, targetTables, sourceTables[tableIndex], tableIndex, options);
+                            InsertDeletedTable(targetDocument, sourceTables, targetTables, sourceTables[tableIndex], options, insertedBeforeTableAnchors, insertedAfterTableAnchors, appendedDeletedTables);
                             rewrittenTables.Add(tableIndex);
                         }
 
@@ -48,7 +51,15 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void InsertDeletedTable(WordprocessingDocument targetDocument, IReadOnlyList<RedlineTableEntry> sourceTables, IReadOnlyList<RedlineTableEntry> targetTables, RedlineTableEntry sourceEntry, int tableIndex, WordComparisonRedlineOptions options) {
+        private static void InsertDeletedTable(
+            WordprocessingDocument targetDocument,
+            IReadOnlyList<RedlineTableEntry> sourceTables,
+            IReadOnlyList<RedlineTableEntry> targetTables,
+            RedlineTableEntry sourceEntry,
+            WordComparisonRedlineOptions options,
+            Dictionary<Table, OpenXmlElement> insertedBeforeTableAnchors,
+            Dictionary<Table, OpenXmlElement> insertedAfterTableAnchors,
+            Dictionary<string, OpenXmlElement> appendedDeletedTables) {
             var deletedTable = (Table)sourceEntry.Table.CloneNode(true);
             RewriteTableWithTrackedText(deletedTable, trackInserted: false, options);
             RemoveEmptyWordColorAttributes(deletedTable);
@@ -57,8 +68,22 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            if (tableIndex >= 0 && tableIndex < targetTables.Count) {
-                targetTables[tableIndex].Table.InsertBeforeSelf(deletedTable);
+            RedlineTableEntry? nextTable = FindNextSurvivingTargetTable(sourceTables, targetTables, sourceEntry) ??
+                                           targetTables
+                                               .Where(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal) && entry.LocalIndex >= sourceEntry.LocalIndex)
+                                               .OrderBy(entry => entry.LocalIndex)
+                                               .FirstOrDefault();
+            if (nextTable != null) {
+                InsertBeforeTableAnchor(nextTable.Table, deletedTable, insertedBeforeTableAnchors);
+                return;
+            }
+
+            RedlineTableEntry? previousTable = targetTables
+                .Where(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal) && entry.LocalIndex < sourceEntry.LocalIndex)
+                .OrderByDescending(entry => entry.LocalIndex)
+                .FirstOrDefault();
+            if (previousTable != null) {
+                InsertAfterTableAnchor(previousTable.Table, deletedTable, insertedAfterTableAnchors);
                 return;
             }
 
@@ -67,7 +92,77 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            AppendRedlineTable(targetContainer, deletedTable);
+            if (appendedDeletedTables.TryGetValue(sourceEntry.PartKey, out OpenXmlElement? previousAppended)) {
+                previousAppended.InsertAfterSelf(deletedTable);
+            } else {
+                AppendRedlineTable(targetContainer, deletedTable);
+            }
+
+            appendedDeletedTables[sourceEntry.PartKey] = deletedTable;
+        }
+
+        private static RedlineTableEntry? FindNextSurvivingTargetTable(
+            IReadOnlyList<RedlineTableEntry> sourceTables,
+            IReadOnlyList<RedlineTableEntry> targetTables,
+            RedlineTableEntry sourceEntry) {
+            int sourceIndex = FindRedlineTableEntryIndex(sourceTables, sourceEntry.Table);
+            if (sourceIndex < 0) {
+                return null;
+            }
+
+            for (int followingIndex = sourceIndex + 1; followingIndex < sourceTables.Count; followingIndex++) {
+                RedlineTableEntry followingSource = sourceTables[followingIndex];
+                if (!string.Equals(followingSource.PartKey, sourceEntry.PartKey, StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                string followingIdentity = GetRedlineTableIdentity(followingSource.Table);
+                RedlineTableEntry? targetMatch = targetTables
+                    .Where(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal) &&
+                                    string.Equals(GetRedlineTableIdentity(entry.Table), followingIdentity, StringComparison.Ordinal))
+                    .OrderBy(entry => entry.LocalIndex)
+                    .FirstOrDefault();
+                if (targetMatch != null) {
+                    return targetMatch;
+                }
+            }
+
+            return null;
+        }
+
+        private static int FindRedlineTableEntryIndex(IReadOnlyList<RedlineTableEntry> entries, Table table) {
+            for (int index = 0; index < entries.Count; index++) {
+                if (ReferenceEquals(entries[index].Table, table)) {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        private static string GetRedlineTableIdentity(Table table) {
+            return string.Join("\u001e", table.Elements<TableRow>().Select(row =>
+                string.Join("\u001f", row.Elements<TableCell>().Select(cell => cell.InnerText).ToArray())).ToArray());
+        }
+
+        private static void InsertBeforeTableAnchor(Table anchorTable, OpenXmlElement deletedTable, Dictionary<Table, OpenXmlElement> insertedBeforeTableAnchors) {
+            if (insertedBeforeTableAnchors.TryGetValue(anchorTable, out OpenXmlElement? previousInserted)) {
+                previousInserted.InsertAfterSelf(deletedTable);
+            } else {
+                anchorTable.InsertBeforeSelf(deletedTable);
+            }
+
+            insertedBeforeTableAnchors[anchorTable] = deletedTable;
+        }
+
+        private static void InsertAfterTableAnchor(Table anchorTable, OpenXmlElement deletedTable, Dictionary<Table, OpenXmlElement> insertedAfterTableAnchors) {
+            if (insertedAfterTableAnchors.TryGetValue(anchorTable, out OpenXmlElement? previousInserted)) {
+                previousInserted.InsertAfterSelf(deletedTable);
+            } else {
+                anchorTable.InsertAfterSelf(deletedTable);
+            }
+
+            insertedAfterTableAnchors[anchorTable] = deletedTable;
         }
 
         private static void AppendRedlineTable(OpenXmlCompositeElement targetContainer, Table deletedTable) {

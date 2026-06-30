@@ -17,6 +17,11 @@ namespace OfficeIMO.Word {
         internal SdtBlock? SdtBlock => _sdtBlock;
 
         /// <summary>
+        /// Gets the underlying structured document tag element for internal content-control workflows.
+        /// </summary>
+        internal SdtElement? SdtElement => _stdRun != null ? _stdRun : _sdtBlock;
+
+        /// <summary>
         /// Gets the parent document for internal converters.
         /// </summary>
         internal WordDocument Document => _document;

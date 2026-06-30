@@ -57,6 +57,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(File.ReadAllBytes(replacementImagePath), logo.Bytes);
                 var items = Assert.IsAssignableFrom<IReadOnlyList<string>>(values["Items"]);
                 Assert.Equal(new[] { "First", "Second", "Third" }, items);
+                Assert.DoesNotContain("Accepted Alias", values.Keys);
+                Assert.DoesNotContain("Due Alias", values.Keys);
+                Assert.DoesNotContain("Priority Alias", values.Keys);
+                Assert.DoesNotContain("Contact Alias", values.Keys);
+                Assert.DoesNotContain("Logo Alias", values.Keys);
+                Assert.DoesNotContain("Items Alias", values.Keys);
 
                 Assert.Equal("Northwind", document.GetStructuredDocumentTagByTag("ClientName")!.Text);
                 Assert.True(document.GetCheckBoxByTag("Accepted")!.IsChecked);

@@ -62,8 +62,14 @@ namespace OfficeIMO.Word {
             File.Copy(targetPath, outputPath, overwrite: true);
             using WordDocument sourceDocument = WordDocument.Load(sourcePath, readOnly: true);
             using WordDocument document = WordDocument.Load(outputPath);
-            HashSet<int> rewrittenParagraphs = ApplyParagraphFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
-            ApplyRunFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options, rewrittenParagraphs);
+            HashSet<int> rewrittenParagraphs = ApplyParagraphFindings(
+                sourceDocument._wordprocessingDocument,
+                document._wordprocessingDocument,
+                result,
+                options,
+                out IReadOnlyList<RedlineParagraphEntry> sourceParagraphs,
+                out IReadOnlyList<RedlineParagraphEntry> targetParagraphs);
+            ApplyRunFindings(sourceParagraphs, targetParagraphs, result, options, rewrittenParagraphs);
             ApplyContentControlFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             ApplyImageFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
 
@@ -296,9 +302,11 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            int localIndex = 0;
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
                 if (ordered.Element is Table table) {
-                    entries.Add(new RedlineTableEntry(partKey, container, table));
+                    entries.Add(new RedlineTableEntry(partKey, container, table, localIndex));
+                    localIndex++;
                 }
             }
         }
@@ -445,10 +453,11 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class RedlineTableEntry {
-            internal RedlineTableEntry(string partKey, OpenXmlCompositeElement container, Table table) {
+            internal RedlineTableEntry(string partKey, OpenXmlCompositeElement container, Table table, int localIndex) {
                 PartKey = partKey;
                 Container = container;
                 Table = table;
+                LocalIndex = localIndex;
             }
 
             internal string PartKey { get; }
@@ -456,6 +465,8 @@ namespace OfficeIMO.Word {
             internal OpenXmlCompositeElement Container { get; }
 
             internal Table Table { get; }
+
+            internal int LocalIndex { get; }
         }
 
         private static InsertedRun CreateInsertedRun(string text, WordComparisonRedlineOptions options) {
