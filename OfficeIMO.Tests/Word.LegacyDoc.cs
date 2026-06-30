@@ -1925,9 +1925,13 @@ namespace OfficeIMO.Tests {
                     WordSection section = document.Sections[0];
                     WordParagraph header = section.Header.Default!.AddParagraph("Header ");
                     header.AddHyperLink("site", new Uri("https://officeimo.net/header"), addStyle: true);
+                    header.Hyperlink!._hyperlink.Append(new Run(new TabChar()));
+                    header.Hyperlink!._hyperlink.Append(new Run(new Text("tab") { Space = SpaceProcessingModeValues.Preserve }));
                     header.AddText(" done");
                     WordParagraph footer = section.Footer.Default!.AddParagraph("Footer ");
                     footer.AddHyperLink("mail", new Uri("mailto:footer@example.org"), addStyle: true);
+                    footer.Hyperlink!._hyperlink.Append(new Run(new Break()));
+                    footer.Hyperlink!._hyperlink.Append(new Run(new Text("break") { Space = SpaceProcessingModeValues.Preserve }));
                     footer.AddText(" done");
 
                     document.Save(docPath);
@@ -1949,17 +1953,22 @@ namespace OfficeIMO.Tests {
                     .SelectMany(paragraph => paragraph.GetRuns())
                     .Where(run => run.IsHyperLink)
                     .Select(run => run.Hyperlink)
-                    .FirstOrDefault(link => link?.Text == "site");
+                    .FirstOrDefault(link => GetHyperlinkText(link!._hyperlink) == "sitetab");
                 Assert.NotNull(headerLink);
                 Assert.Equal("https://officeimo.net/header", headerLink.Uri?.ToString());
+                Assert.Equal("site\ttab", GetHyperlinkDisplayText(headerLink._hyperlink));
+                Assert.Single(headerLink._hyperlink.Descendants<TabChar>());
 
                 WordHyperLink? footerLink = footerParagraphs
                     .SelectMany(paragraph => paragraph.GetRuns())
                     .Where(run => run.IsHyperLink)
                     .Select(run => run.Hyperlink)
-                    .FirstOrDefault(link => link?.Text == "mail");
+                    .FirstOrDefault(link => GetHyperlinkText(link!._hyperlink) == "mailbreak");
                 Assert.NotNull(footerLink);
                 Assert.Equal("mailto:footer@example.org", footerLink.Uri?.ToString());
+                Assert.Equal("mail\vbreak", GetHyperlinkDisplayText(footerLink._hyperlink));
+                Break footerBreak = Assert.Single(footerLink._hyperlink.Descendants<Break>());
+                Assert.Null(footerBreak.Type);
             } finally {
                 DeleteIfExists(docPath);
             }
