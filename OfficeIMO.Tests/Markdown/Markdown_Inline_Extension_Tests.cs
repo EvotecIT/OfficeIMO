@@ -69,6 +69,43 @@ public sealed class Markdown_Inline_Extension_Tests {
     }
 
     [Fact]
+    public void InlineParserContext_Can_Create_Normalized_SourceSlice_For_Custom_Inline() {
+        MarkdownSourceSlice sourceSlice = default;
+        bool sourceSliceOk = false;
+        var options = new MarkdownReaderOptions();
+        options.InlineParserExtensions.Add(new MarkdownInlineParserExtension(
+            "source-aware-double-brace",
+            (MarkdownInlineParserContext context, out MarkdownInlineParseResult result) => {
+                result = default;
+                if (!IsClaimStart(context)) {
+                    return false;
+                }
+
+                var closing = context.Text.IndexOf("}}", context.Position + 2, StringComparison.Ordinal);
+                if (closing < 0) {
+                    return false;
+                }
+
+                var consumedLength = closing + 2 - context.Position;
+                sourceSliceOk = context.TryCreateSourceSlice(0, consumedLength, out sourceSlice);
+                result = new MarkdownInlineParseResult(
+                    new TestClaimInline("source-aware"),
+                    consumedLength);
+                return true;
+            }));
+
+        var document = MarkdownReader.Parse("Lead {{core}}\r\n", options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        var custom = Assert.IsType<TestClaimInline>(paragraph.Inlines.Nodes[1]);
+        Assert.Equal("source-aware", custom.Value);
+        Assert.True(sourceSliceOk);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, sourceSlice.TextKind);
+        Assert.Equal("{{core}}", sourceSlice.Text);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 13), sourceSlice.SourceSpan);
+    }
+
+    [Fact]
     public void InlineTransformExtensions_Run_After_Core_Parsing_In_Registration_Order() {
         var calls = new List<string>();
         var options = new MarkdownReaderOptions();

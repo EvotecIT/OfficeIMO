@@ -70,6 +70,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
 - [ ] Renderer/writer/security seams are still incomplete.
   - [ ] Build source-aware extension seams for custom block/inlines, transforms, renderers, and writers.
     - [x] Custom block parser contexts can materialize normalized source slices for claimed spans and line ranges without rescanning raw Markdown.
+    - [x] Custom inline parser contexts can materialize normalized source slices for claimed inline ranges without rescanning raw Markdown.
     - [x] Document transforms can materialize normalized and original source slices for parsed model objects, syntax nodes, and source spans without rescanning raw Markdown.
   - [ ] Separate raw HTML grammar from policy: CommonMark parsing, GFM tag filtering, OfficeIMO allow/strip/escape/sanitize modes, URL policy, source metadata, and Markdown writing.
   - [ ] Bound renderer-owned rows before parser work starts: `UseDiagrams`, `UseFigures`, `UseMathematics`, `UseMediaLinks`, and `UseReferralLinks`.
@@ -219,6 +220,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 
 - [ ] Build source-aware extension seams for custom blocks, inlines, transforms, renderers, and writers so downstream code does not rescan strings.
   - [x] Custom block parser contexts expose normalized source-slice helpers for parser-created spans and relative line ranges.
+  - [x] Custom inline parser contexts expose normalized source-slice helpers for parser-created inline spans.
   - [x] Document-transform contexts expose normalized/original source-slice helpers for associated model objects, syntax nodes, and source spans, sharing the same original-source mapping as parse results.
 - [ ] Separate raw HTML grammar from security policy.
   - [ ] CommonMark raw HTML parsing.
