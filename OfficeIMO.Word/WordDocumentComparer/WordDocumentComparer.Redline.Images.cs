@@ -116,7 +116,7 @@ namespace OfficeIMO.Word {
         private static void AddRedlineImageEntries(List<RedlineImageEntry> entries, RedlineImageContainer container) {
             int containerImageIndex = 0;
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container.Container, container.OrderBase)) {
-                if (ordered.Element is not DocumentFormat.OpenXml.Wordprocessing.Drawing and not V.ImageData) {
+                if (!IsRedlineImageElement(ordered.Element)) {
                     continue;
                 }
 
@@ -128,6 +128,12 @@ namespace OfficeIMO.Word {
                 entries.Add(new RedlineImageEntry(entries.Count, container.Index, containerImageIndex, container.Part, container.Container, run));
                 containerImageIndex++;
             }
+        }
+
+        private static bool IsRedlineImageElement(OpenXmlElement element) {
+            return element is V.ImageData ||
+                element is DocumentFormat.OpenXml.Wordprocessing.Drawing drawing &&
+                drawing.Descendants<A.Blip>().Any();
         }
 
         private static bool WrapImageRunAsInserted(RedlineImageEntry entry, WordComparisonRedlineOptions options) {

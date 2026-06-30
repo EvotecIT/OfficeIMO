@@ -561,8 +561,6 @@ namespace OfficeIMO.Word {
                 or WordComparisonScope.Bookmark
                 or WordComparisonScope.Hyperlink
                 or WordComparisonScope.List
-                or WordComparisonScope.Comment
-                or WordComparisonScope.Revision
                 or WordComparisonScope.Image;
         }
 
