@@ -133,6 +133,11 @@ public abstract class VerifyTestBase {
             foreach (var comment in commentsPart.RootElement.Descendants<Comment>()) {
                 comment.Date = DateTime.MaxValue;
             }
+
+            foreach (var paragraph in commentsPart.RootElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()) {
+                paragraph.ParagraphId = null;
+                paragraph.TextId = null;
+            }
         }
 
         if (part is NumberingDefinitionsPart numberingPart && numberingPart.RootElement != null) {
