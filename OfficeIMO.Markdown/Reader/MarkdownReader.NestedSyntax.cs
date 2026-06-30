@@ -31,9 +31,14 @@ public static partial class MarkdownReader {
         var nestedOptions = CloneOptionsWithoutFrontMatter(options);
         var nestedState = CloneState(state);
         nestedState.LazyQuoteContinuationLines.Clear();
+        nestedState.SuppressedSetextHeadingUnderlineLines.Clear();
         for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
             if (sourceLines[lineIndex].IsLazyQuoteContinuation) {
                 nestedState.LazyQuoteContinuationLines.Add(lineIndex);
+            }
+
+            if (ShouldSuppressNestedLazySetextHeadingUnderline(sourceLines, lineIndex)) {
+                nestedState.SuppressedSetextHeadingUnderlineLines.Add(lineIndex);
             }
         }
         var syntaxChildren = new List<MarkdownSyntaxNode>();
@@ -43,6 +48,35 @@ public static partial class MarkdownReader {
         SynchronizeOwnedSyntaxCaches(remappedSyntaxTree);
         MarkdownObjectTreeBinder.BindDocument(nestedDoc, remappedSyntaxTree);
         return (nestedDoc.Blocks, remappedSyntaxChildren);
+    }
+
+    private static bool ShouldSuppressNestedLazySetextHeadingUnderline(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        int lineIndex) {
+        if (sourceLines == null ||
+            lineIndex <= 0 ||
+            lineIndex >= sourceLines.Count ||
+            !sourceLines[lineIndex].IsLazyQuoteContinuation ||
+            !TryGetSetextHeadingUnderlineLevel(sourceLines[lineIndex].Text, out int level) ||
+            level != 1) {
+            return false;
+        }
+
+        for (int index = lineIndex - 1; index >= 0; index--) {
+            var previous = sourceLines[index].Text;
+            if (string.IsNullOrWhiteSpace(previous)) {
+                return false;
+            }
+
+            var trimmed = previous.TrimStart();
+            if (trimmed.StartsWith(">", StringComparison.Ordinal) ||
+                TryGetUnorderedListMarkerInfo(previous, out _, out _, out _) ||
+                TryGetOrderedListMarkerInfo(previous, out _, out _, out _, out _)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> RemapNestedSyntaxNodes(

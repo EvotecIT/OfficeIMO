@@ -633,8 +633,11 @@ public static partial class MarkdownReader {
         }
 
         var previous = definitionSourceLines[definitionSourceLines.Count - 1].Text;
-        return TryGetSetextHeadingUnderlineLevel(previous, out _) ||
-            IsParagraphInterruptingThematicBreakLine(previous) ||
+        if (TryGetSetextHeadingUnderlineLevel(previous, out _)) {
+            return !PreviousDefinitionLinesContainActiveNestedBlock(definitionSourceLines);
+        }
+
+        return IsParagraphInterruptingThematicBreakLine(previous) ||
             PreviousDefinitionLinesEndClosedFencedCodeBlock(definitionSourceLines);
     }
 

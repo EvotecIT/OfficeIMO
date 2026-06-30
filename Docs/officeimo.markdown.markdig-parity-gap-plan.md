@@ -36,11 +36,11 @@ Do not move an extension row to `Covered` until each applicable box is true.
 
 Current active row: `UseDefinitionLists`.
 
-- [ ] Close the active nested-body equals-setext literal gap.
-  - [ ] Nested list lazy paragraph followed by `===` stays literal text when Markdig keeps it literal.
-  - [ ] Nested blockquote lazy paragraph followed by `===` stays literal text when Markdig keeps it literal.
-  - [ ] Markdown writer escapes or preserves the shape so OfficeIMO reparse does not create a heading by accident.
-  - [ ] AST/source/native spans describe the nested paragraph and definition body correctly.
+- [x] Close the active nested-body equals-setext literal gap.
+  - [x] Nested list lazy paragraph followed by `===` stays literal text when Markdig keeps it literal.
+  - [x] Nested blockquote lazy paragraph followed by `===` stays literal text when Markdig keeps it literal.
+  - [x] Markdown writer escapes or preserves the shape so OfficeIMO reparse does not create a heading by accident.
+  - [x] AST/source/native spans describe the nested paragraph and definition body correctly.
 - [ ] Broaden remaining lazy-continuation cases.
   - [ ] Paragraph-after-blank variants not already covered.
   - [ ] Multiple lazy lines after nested blocks.

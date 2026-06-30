@@ -52,7 +52,9 @@ public static partial class MarkdownReader {
                 paragraphLines.Add(lines[lineIndex]);
             }
 
-            if (TryParseSetextHeadingParagraphLines(paragraphLines, options, out int level, out string headingText)) {
+            var underlineLineIndex = i + paragraphLines.Count - 1;
+            if (!IsSetextHeadingUnderlineSuppressed(state, underlineLineIndex) &&
+                TryParseSetextHeadingParagraphLines(paragraphLines, options, out int level, out string headingText)) {
                 var contentLines = paragraphLines.GetRange(0, paragraphLines.Count - 1);
                 MarkdownAttributeSet headingAttributes = MarkdownAttributeSet.Empty;
                 MarkdownSourceSpan? headingAttributeSpan = null;

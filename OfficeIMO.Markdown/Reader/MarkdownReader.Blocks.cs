@@ -29,6 +29,9 @@ public static partial class MarkdownReader {
         return true;
     }
 
+    private static bool IsSetextHeadingUnderlineSuppressed(MarkdownReaderState? state, int zeroBasedLineIndex) =>
+        state?.SuppressedSetextHeadingUnderlineLines.Contains(zeroBasedLineIndex) == true;
+
     private static bool TryGetAtxHeadingContentRange(
         string line,
         out int level,

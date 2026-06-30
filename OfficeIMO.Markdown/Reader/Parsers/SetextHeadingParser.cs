@@ -16,6 +16,7 @@ public static partial class MarkdownReader {
             var line = lines[i];
             var next = lines[i + 1];
             if (string.IsNullOrWhiteSpace(line) || string.IsNullOrWhiteSpace(next)) return false;
+            if (IsSetextHeadingUnderlineSuppressed(state, i + 1)) return false;
             if (!TryGetSetextHeadingUnderlineLevel(next, out int level)) return false;
             var t = next.Trim();
             var headingText = line.Trim();

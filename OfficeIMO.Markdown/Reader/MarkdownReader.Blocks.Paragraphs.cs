@@ -414,7 +414,7 @@ public static partial class MarkdownReader {
             return AttachLeadingAbbreviationSyntax(blockLeadItem);
         }
 
-        if (TryParseListItemLeadSetextBlocks(lines, options, state, out var leadBlocks)) {
+        if (TryParseListItemLeadSetextBlocks(lines, options, state, lineOffset, out var leadBlocks)) {
             var headingItem = isTask ? ListItem.TaskInlines(new InlineSequence(), done) : new ListItem(new InlineSequence());
             for (int i = 0; i < leadBlocks.Count; i++) {
                 headingItem.Children.Add(leadBlocks[i]);
@@ -814,11 +814,12 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool TryParseListItemLeadSetextBlocks(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state, out List<IMarkdownBlock> blocks) {
+    private static bool TryParseListItemLeadSetextBlocks(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state, int lineOffset, out List<IMarkdownBlock> blocks) {
         blocks = new List<IMarkdownBlock>();
         if (lines == null || lines.Count == 0 || options == null || !options.Headings) return false;
 
         if (!TryGetLeadingSetextHeadingPrefix(lines, options, out int headingLineCount, out int level, out string headingText)) return false;
+        if (IsSetextHeadingUnderlineSuppressed(state, lineOffset + headingLineCount - 1)) return false;
 
         blocks.Add(new HeadingBlock(level, ParseInlines(headingText, options, state)));
 
