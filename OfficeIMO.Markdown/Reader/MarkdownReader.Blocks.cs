@@ -11,7 +11,7 @@ public static partial class MarkdownReader {
         return TryGetAtxHeadingContentRange(line, out level, out _, out _, out text, out _, out _);
     }
 
-    private static bool TryGetSetextHeadingUnderlineLevel(string line, out int level) {
+    internal static bool TryGetSetextHeadingUnderlineLevel(string line, out int level) {
         level = 0;
         if (string.IsNullOrWhiteSpace(line)) return false;
         if (CountLeadingIndentColumns(line) > 3) return false;
@@ -30,7 +30,28 @@ public static partial class MarkdownReader {
     }
 
     private static bool IsSetextHeadingUnderlineSuppressed(MarkdownReaderState? state, int zeroBasedLineIndex) =>
-        state?.SuppressedSetextHeadingUnderlineLines.Contains(zeroBasedLineIndex) == true;
+        state?.SuppressedSetextHeadingUnderlineLines.Contains(zeroBasedLineIndex) == true ||
+        IsLazyQuoteContainerSetextUnderline(state, zeroBasedLineIndex);
+
+    private static bool IsLazyQuoteContainerSetextUnderline(MarkdownReaderState? state, int zeroBasedLineIndex) {
+        if (state == null ||
+            !state.LazyQuoteContinuationLines.Contains(zeroBasedLineIndex) ||
+            !state.QuoteContainerLines.Contains(zeroBasedLineIndex)) {
+            return false;
+        }
+
+        for (var index = zeroBasedLineIndex - 1; index >= 0; index--) {
+            if (state.QuoteContainerLines.Contains(index)) {
+                return true;
+            }
+
+            if (!state.LazyQuoteContinuationLines.Contains(index)) {
+                return false;
+            }
+        }
+
+        return false;
+    }
 
     private static bool TryGetAtxHeadingContentRange(
         string line,

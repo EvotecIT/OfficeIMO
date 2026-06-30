@@ -91,17 +91,20 @@ internal static class MarkdownObjectTreeBinder {
                 yield break;
 
             case TableBlock table:
-                var headerCells = table.HeaderCells;
-                for (int i = 0; i < headerCells.Count; i++) {
-                    yield return headerCells[i];
+                var headerRow = table.HeaderRow;
+                if (headerRow != null) {
+                    yield return headerRow;
                 }
 
-                var rows = table.RowCells;
+                var rows = table.BodyRows;
                 for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
-                    var row = rows[rowIndex];
-                    for (int columnIndex = 0; columnIndex < row.Count; columnIndex++) {
-                        yield return row[columnIndex];
-                    }
+                    yield return rows[rowIndex];
+                }
+                yield break;
+
+            case TableRow row:
+                for (int i = 0; i < row.Cells.Count; i++) {
+                    yield return row.Cells[i];
                 }
                 yield break;
 

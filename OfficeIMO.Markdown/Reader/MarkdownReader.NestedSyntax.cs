@@ -31,10 +31,15 @@ public static partial class MarkdownReader {
         var nestedOptions = CloneOptionsWithoutFrontMatter(options);
         var nestedState = CloneState(state);
         nestedState.LazyQuoteContinuationLines.Clear();
+        nestedState.QuoteContainerLines.Clear();
         nestedState.SuppressedSetextHeadingUnderlineLines.Clear();
         for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
             if (sourceLines[lineIndex].IsLazyQuoteContinuation) {
                 nestedState.LazyQuoteContinuationLines.Add(lineIndex);
+            }
+
+            if (sourceLines[lineIndex].IsQuoteContainerLine) {
+                nestedState.QuoteContainerLines.Add(lineIndex);
             }
 
             if (ShouldSuppressNestedLazySetextHeadingUnderline(sourceLines, lineIndex)) {
@@ -66,6 +71,11 @@ public static partial class MarkdownReader {
             var previous = sourceLines[index].Text;
             if (string.IsNullOrWhiteSpace(previous)) {
                 return false;
+            }
+
+            if (sourceLines[lineIndex].IsQuoteContainerLine &&
+                sourceLines[index].IsQuoteContainerLine) {
+                return true;
             }
 
             var trimmed = previous.TrimStart();

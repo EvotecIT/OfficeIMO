@@ -178,6 +178,15 @@ public class MarkdownDoc : MarkdownObject {
         }
     }
 
+    /// <summary>Enumerates all table rows in document order, including header rows and nested tables.</summary>
+    public IEnumerable<TableRow> DescendantTableRows() {
+        foreach (var table in DescendantTables()) {
+            foreach (var row in table.EnumerateRows()) {
+                yield return row;
+            }
+        }
+    }
+
     /// <summary>Enumerates all table cells in document order, including header cells and nested tables.</summary>
     public IEnumerable<TableCell> DescendantTableCells() {
         foreach (var table in DescendantTables()) {

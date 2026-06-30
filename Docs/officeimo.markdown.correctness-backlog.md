@@ -101,6 +101,10 @@ Current coverage:
 - list-item paragraph syntax nodes now associate to `ParagraphBlock` objects instead of their nested `InlineSequence`
 - definition-list entry term replacement now synchronizes the grouped AST owner, flat entry adapter, Markdown/HTML renderers, and parsed syntax cache invalidation
 - sequence inline syntax nodes now associate back to their wrapper objects across strong, emphasis, strong-emphasis, strikethrough, and highlight grouped inline content
+- table header/body row syntax nodes now associate to first-class `TableRow` semantic objects, with table cells parented under their owning row while existing `HeaderCells`, `RowCells`, `GetCell`, and `EnumerateCells()` APIs keep stable cell objects
+- table cell syntax now keeps parsed cell spans as the table-cell source owner even when child reference-link metadata points at a later definition, preserving row/cell position lookup inside GFM tables
+- final syntax normalization now keeps reference-link use-site wrapper spans when definition-site target/title metadata spans would otherwise expand the inline outside its paragraph, while those metadata token spans stay source-less in the final tree
+- lazy blockquote continuation lines that look like Setext underlines now remain paragraph text where Markdig keeps them literal, and quote Markdown writing escapes setext-looking lines for stable reparse behavior
 - transform diagnostics now expose deepest original/final syntax-node anchors alongside block-level anchors, and one-to-one single-block transforms compare child syntax fingerprints to report a precise original changed node when a smaller source span can be proven, including nested container bodies after the final syntax tree is rebuilt
 
 ### A2. Add tree invariant test helpers

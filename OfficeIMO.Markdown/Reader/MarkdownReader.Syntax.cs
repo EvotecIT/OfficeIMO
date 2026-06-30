@@ -193,22 +193,22 @@ public static partial class MarkdownReader {
             throw new ArgumentNullException(nameof(child));
         }
 
+        var normalizedSpan = child.SourceSpan;
+        if (parentSpan.HasValue && normalizedSpan.HasValue && !parentSpan.Value.Contains(normalizedSpan.Value)) {
+            var containedChildSpan = GetAggregateSpanContainedBy(child.Children, parentSpan.Value);
+            normalizedSpan = containedChildSpan.HasValue && parentSpan.Value.Contains(containedChildSpan.Value)
+                ? containedChildSpan
+                : null;
+        }
+
         IReadOnlyList<MarkdownSyntaxNode> children = child.Children;
         if (child.Children.Count > 0) {
             var normalizedChildren = new List<MarkdownSyntaxNode>(child.Children.Count);
             for (var i = 0; i < child.Children.Count; i++) {
-                normalizedChildren.Add(NormalizeFinalSyntaxTreeChild(child.SourceSpan, child.Children[i]));
+                normalizedChildren.Add(NormalizeFinalSyntaxTreeChild(normalizedSpan, child.Children[i]));
             }
 
             children = normalizedChildren;
-        }
-
-        var normalizedSpan = child.SourceSpan;
-        if (parentSpan.HasValue && normalizedSpan.HasValue && !parentSpan.Value.Contains(normalizedSpan.Value)) {
-            var aggregateChildSpan = MarkdownBlockSyntaxBuilder.GetAggregateSpan(children);
-            normalizedSpan = aggregateChildSpan.HasValue && parentSpan.Value.Contains(aggregateChildSpan.Value)
-                ? aggregateChildSpan
-                : null;
         }
 
         return new MarkdownSyntaxNode(
@@ -219,5 +219,21 @@ public static partial class MarkdownReader {
             child.AssociatedObject,
             child.CustomKind,
             child.Attributes);
+    }
+
+    private static MarkdownSourceSpan? GetAggregateSpanContainedBy(IReadOnlyList<MarkdownSyntaxNode> children, MarkdownSourceSpan parentSpan) {
+        if (children == null || children.Count == 0) {
+            return null;
+        }
+
+        var contained = new List<MarkdownSyntaxNode>();
+        for (int i = 0; i < children.Count; i++) {
+            var span = children[i].SourceSpan;
+            if (span.HasValue && parentSpan.Contains(span.Value)) {
+                contained.Add(children[i]);
+            }
+        }
+
+        return MarkdownBlockSyntaxBuilder.GetAggregateSpan(contained);
     }
 }

@@ -30,9 +30,39 @@ public sealed partial class TableBlock {
     private void InvalidateRealizedCellCache() {
         _cachedHeaderCells = null;
         _cachedRowCells = null;
+        _cachedHeaderRow = null;
+        _cachedBodyRows = null;
         _cachedCellContentSignature = null;
         _cachedUsesStructuredCells = false;
         _cachedCellColumnCount = -1;
+    }
+
+    private TableRow? GetOrBuildHeaderRow() {
+        if (Headers.Count == 0) {
+            return null;
+        }
+
+        return _cachedHeaderRow ??= new TableRow(HeaderCells, isHeader: true, rowIndex: -1);
+    }
+
+    private IReadOnlyList<TableRow> GetOrBuildBodyRows() {
+        if (_cachedBodyRows != null) {
+            return _cachedBodyRows;
+        }
+
+        var rowCells = RowCells;
+        if (rowCells.Count == 0) {
+            _cachedBodyRows = Array.Empty<TableRow>();
+            return _cachedBodyRows;
+        }
+
+        var rows = new TableRow[rowCells.Count];
+        for (int i = 0; i < rowCells.Count; i++) {
+            rows[i] = new TableRow(rowCells[i], isHeader: false, rowIndex: i);
+        }
+
+        _cachedBodyRows = rows;
+        return _cachedBodyRows;
     }
 
     internal int ComputeContentSignature() {
@@ -105,9 +135,11 @@ public sealed partial class TableBlock {
         int line = span.Value.StartLine;
         int columnCount = GetEffectiveColumnCount();
         var bodyRows = RowCells;
+        var bodyRowOwners = BodyRows;
 
         if (Headers.Count > 0) {
             var headerCells = HeaderCells;
+            var headerRow = HeaderRow;
             var headerChildren = BuildTableCellSyntaxChildren(
                 PrepareRowCells(Headers, columnCount),
                 headerCells,
@@ -116,7 +148,8 @@ public sealed partial class TableBlock {
                 MarkdownSyntaxKind.TableHeader,
                 MarkdownBlockSyntaxBuilder.GetAggregateSpan(headerChildren) ?? new MarkdownSourceSpan(line, line),
                 string.Join(" | ", Headers),
-                headerChildren));
+                headerChildren,
+                headerRow));
             nodes.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.TableAlignmentRow,
                 GetAlignmentRowSourceSpan(span, line + 1),
@@ -138,7 +171,8 @@ public sealed partial class TableBlock {
                 MarkdownSyntaxKind.TableRow,
                 MarkdownBlockSyntaxBuilder.GetAggregateSpan(rowChildren) ?? new MarkdownSourceSpan(line, line),
                 string.Join(" | ", Rows[i]),
-                rowChildren));
+                rowChildren,
+                i < bodyRowOwners.Count ? bodyRowOwners[i] : null));
             line++;
         }
 
@@ -201,7 +235,7 @@ public sealed partial class TableBlock {
 
             nodes.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.TableCell,
-                MarkdownBlockSyntaxBuilder.GetAggregateSpan(children) ?? cellSpan,
+                cellSpan,
                 literal,
                 children,
                 structuredCells != null && i < structuredCells.Count ? structuredCells[i] : null));

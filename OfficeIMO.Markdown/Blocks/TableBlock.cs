@@ -14,6 +14,8 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
 
     private IReadOnlyList<TableCell>? _cachedHeaderCells;
     private IReadOnlyList<IReadOnlyList<TableCell>>? _cachedRowCells;
+    private TableRow? _cachedHeaderRow;
+    private IReadOnlyList<TableRow>? _cachedBodyRows;
     private int? _cachedCellContentSignature;
     private bool _cachedUsesStructuredCells;
     private int _cachedCellColumnCount = -1;
@@ -22,14 +24,31 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     public List<string> Headers { get; } = new List<string>();
     /// <summary>Typed header cell content.</summary>
     public IReadOnlyList<TableCell> HeaderCells => GetOrBuildHeaderCells();
+    /// <summary>Typed header row, or <c>null</c> when the table has no header.</summary>
+    public TableRow? HeaderRow => GetOrBuildHeaderRow();
     /// <summary>Parsed inline representation of the current header cells.</summary>
     public IReadOnlyList<InlineSequence> HeaderInlines => BuildHeaderInlines();
     /// <summary>Data rows.</summary>
     public List<IReadOnlyList<string>> Rows { get; } = new List<IReadOnlyList<string>>();
     /// <summary>Typed row cell content.</summary>
     public IReadOnlyList<IReadOnlyList<TableCell>> RowCells => GetOrBuildRowCells();
+    /// <summary>Typed body rows.</summary>
+    public IReadOnlyList<TableRow> BodyRows => GetOrBuildBodyRows();
     /// <summary>Structured child blocks flattened from header and body cells in table order.</summary>
     public IReadOnlyList<IMarkdownBlock> ChildBlocks => BuildChildBlocks();
+    /// <summary>Enumerates header and body rows in document order.</summary>
+    public IEnumerable<TableRow> EnumerateRows() {
+        var header = HeaderRow;
+        if (header != null) {
+            yield return header;
+        }
+
+        var rows = BodyRows;
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            yield return rows[rowIndex];
+        }
+    }
+
     /// <summary>Enumerates header and body cells in document order, preserving row/column metadata on each cell.</summary>
     public IEnumerable<TableCell> EnumerateCells() {
         var headers = HeaderCells;

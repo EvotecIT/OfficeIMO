@@ -83,6 +83,10 @@ Generated scoreboards: `Docs/officeimo.markdown.gfm-inventory.md` tracks the cur
 
 ## Recent Parity Slices
 
+- 2026-06-30: Table header/body rows now have first-class `TableRow` semantic owners. `TableHeader` and `TableRow` syntax nodes associate to those row objects, table cells are parented under their owning row in the public object tree, and existing `HeaderCells`, `RowCells`, `GetCell`, and `EnumerateCells()` accessors keep stable cell objects.
+- 2026-06-30: Table cell syntax now keeps the parsed cell source span even when child reference-link metadata points at a later definition, so position lookup inside GFM tables lands on the body row instead of an earlier header cell.
+- 2026-06-30: Final syntax normalization now preserves reference-link use-site wrapper spans even when definition-site target/title metadata spans exist, and it clears the out-of-parent metadata token spans from the final tree instead of letting them erase the inline wrapper span.
+- 2026-06-30: Lazy blockquote continuation lines that look like Setext underlines now remain paragraph text where Markdig keeps them literal, and quote Markdown writing escapes setext-looking lines so reparsing does not accidentally create headings.
 - 2026-06-28: `UseDefinitionLists` gained Markdig-style colon-marker parsing for the pinned comparison package: `Term` followed by `:   Definition` or `:\tDefinition` now maps to grouped definition-list AST/source syntax, multiple term lines and multiple definition markers stay in one group, and one/two-space marker lines remain paragraphs like Markdig.
 - 2026-06-29: Definition-list colon markers are now first-class `DefinitionMarker` syntax tokens and native `definitionMarker` source fields, so editor hosts can position-resolve and source-edit the marker separately from the semantic term and definition body while grouped syntax rebuilds preserve parsed marker tokens.
 - 2026-06-29: Generated and transformed definition-list syntax now emits source-less `DefinitionMarker` tokens for writer-emitted marker lines, keeping final AST shape aligned with parsed marker syntax without inventing source spans for generated text.

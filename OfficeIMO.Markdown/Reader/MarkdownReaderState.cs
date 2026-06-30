@@ -120,6 +120,7 @@ public sealed class MarkdownReaderState {
     internal bool SuppressBlockGenericAttributes { get; set; }
     internal MarkdownPendingGenericAttributeBlock? PendingGenericAttributeBlock { get; set; }
     internal HashSet<int> LazyQuoteContinuationLines { get; } = new HashSet<int>();
+    internal HashSet<int> QuoteContainerLines { get; } = new HashSet<int>();
     internal HashSet<int> SuppressedSetextHeadingUnderlineLines { get; } = new HashSet<int>();
 }
 

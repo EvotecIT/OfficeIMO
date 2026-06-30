@@ -1381,12 +1381,19 @@ Lead {{core}} tail
         var headerRead2 = table.HeaderCells[0];
         var bodyRead1 = table.RowCells[0][1];
         var bodyRead2 = table.GetCell(0, 1);
+        var headerRow = table.HeaderRow;
+        var bodyRow = table.BodyRows[0];
 
         Assert.Same(headerRead1, headerRead2);
         Assert.Same(bodyRead1, bodyRead2);
-        Assert.Same(table, headerRead1.Parent);
-        Assert.Same(table, bodyRead1.Parent);
-        Assert.All(table.EnumerateCells(), cell => Assert.Same(table, cell.Parent));
+        Assert.NotNull(headerRow);
+        Assert.Same(table, headerRow!.Parent);
+        Assert.Same(table, bodyRow.Parent);
+        Assert.Same(headerRow, headerRead1.Parent);
+        Assert.Same(bodyRow, bodyRead1.Parent);
+        Assert.All(headerRow.Cells, cell => Assert.Same(headerRow, cell.Parent));
+        Assert.All(bodyRow.Cells, cell => Assert.Same(bodyRow, cell.Parent));
+        Assert.Equal(new[] { headerRead1, table.HeaderCells[1], table.RowCells[0][0], bodyRead1 }, table.EnumerateCells().ToArray());
     }
 
     [Fact]
@@ -1720,6 +1727,7 @@ Lead {{core}} tail
             "InlineSequence",
             "TextRun",
             "TableBlock",
+            "TableRow",
             "TableCell",
             "ParagraphBlock",
             "InlineSequence",
@@ -1728,6 +1736,7 @@ Lead {{core}} tail
             "ParagraphBlock",
             "InlineSequence",
             "TextRun",
+            "TableRow",
             "TableCell",
             "ParagraphBlock",
             "InlineSequence",
@@ -4426,6 +4435,52 @@ Lead[^1]
         Assert.Equal(4, secondRow.SourceSpan!.Value.StartLine);
         Assert.Equal(4, secondRow.SourceSpan!.Value.EndLine);
         Assert.Equal("Two | 2", secondRow.Literal);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Associates_Table_Row_Syntax_With_Row_Ast_Objects() {
+        var markdown = """
+| Name | Value |
+| --- | ---: |
+| One | 1 |
+| Two | 2 |
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var tableBlock = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
+        var tableSyntax = Assert.Single(result.SyntaxTree.Children);
+        var finalTableSyntax = Assert.Single(result.FinalSyntaxTree.Children);
+
+        var headerRow = tableBlock.HeaderRow;
+        Assert.NotNull(headerRow);
+        var bodyRows = tableBlock.BodyRows;
+        Assert.Equal(2, bodyRows.Count);
+
+        Assert.Same(headerRow, tableSyntax.Children[0].AssociatedObject);
+        Assert.Same(bodyRows[0], tableSyntax.Children[2].AssociatedObject);
+        Assert.Same(bodyRows[1], tableSyntax.Children[3].AssociatedObject);
+        Assert.Same(headerRow, finalTableSyntax.Children[0].AssociatedObject);
+        Assert.Same(bodyRows[0], finalTableSyntax.Children[2].AssociatedObject);
+        Assert.Same(bodyRows[1], finalTableSyntax.Children[3].AssociatedObject);
+
+        Assert.True(headerRow!.IsHeader);
+        Assert.Equal(-1, headerRow.RowIndex);
+        Assert.Equal(2, headerRow.Cells.Count);
+        Assert.False(bodyRows[0].IsHeader);
+        Assert.Equal(0, bodyRows[0].RowIndex);
+        Assert.Equal(2, bodyRows[0].Cells.Count);
+        Assert.Same(tableBlock, headerRow.Parent);
+        Assert.Same(tableBlock, bodyRows[0].Parent);
+        Assert.Same(headerRow, tableBlock.GetHeaderCell(0)!.Parent);
+        Assert.Same(bodyRows[0], tableBlock.GetCell(0, 0)!.Parent);
+
+        Assert.Equal(tableSyntax.Children[0].SourceSpan, headerRow.SourceSpan);
+        Assert.Equal(tableSyntax.Children[2].SourceSpan, bodyRows[0].SourceSpan);
+        Assert.Equal(headerRow, result.FindFinalAssociatedObjectContainingSpan<TableRow>(headerRow.SourceSpan!.Value));
+        Assert.Equal(bodyRows[0], result.FindFinalAssociatedObjectContainingSpan<TableRow>(bodyRows[0].SourceSpan!.Value));
+
+        Assert.Equal(new[] { -1, 0, 1 }, result.Document.DescendantTableRows().Select(row => row.RowIndex).ToArray());
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
     [Fact]

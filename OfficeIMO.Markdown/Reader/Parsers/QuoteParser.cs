@@ -55,7 +55,8 @@ public static partial class MarkdownReader {
                     innerSourceLines.Add(new MarkdownSourceLineSlice(
                         stripped,
                         state.SourceLineOffset + j + 1,
-                        GetQuoteContentStartColumn(ln)));
+                        GetQuoteContentStartColumn(ln),
+                        isQuoteContainerLine: true));
                     markerSourceSpans.Add(CreateQuoteMarkerSourceSpan(ln, state.SourceLineOffset + j + 1, state));
                     sawQuotedLine = true;
                     j++;
@@ -80,7 +81,8 @@ public static partial class MarkdownReader {
                                 normalizedLazyLine,
                                 state.SourceLineOffset + j + 1,
                                 CountLeadingIndentColumns(ln) + 1,
-                                isLazyQuoteContinuation: true));
+                                isLazyQuoteContinuation: true,
+                                isQuoteContainerLine: true));
                             j++;
                             continue;
                         }
@@ -91,7 +93,8 @@ public static partial class MarkdownReader {
                                 normalizedListLazyLine,
                                 state.SourceLineOffset + j + 1,
                                 CountLeadingIndentColumns(ln) + 1,
-                                isLazyQuoteContinuation: true));
+                                isLazyQuoteContinuation: true,
+                                isQuoteContainerLine: true));
                             j++;
                             continue;
                         }
@@ -102,7 +105,8 @@ public static partial class MarkdownReader {
                                 normalizedNestedLazyLine,
                                 state.SourceLineOffset + j + 1,
                                 CountLeadingIndentColumns(ln) + 1,
-                                isLazyQuoteContinuation: true));
+                                isLazyQuoteContinuation: true,
+                                isQuoteContainerLine: true));
                             j++;
                             continue;
                         }

@@ -44,7 +44,7 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
                 string? line; bool first = true;
                 while ((line = reader.ReadLine()) != null) {
                     if (!first) sb.AppendLine();
-                    sb.Append("> ").Append(line);
+                    sb.Append("> ").Append(EscapeQuoteLineForMarkdown(line));
                     first = false;
                 }
                 if (i < Children.Count - 1) sb.AppendLine().AppendLine("> "); // blank quote line to separate blocks
@@ -52,8 +52,19 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
             return sb.ToString();
         }
         var sb2 = new StringBuilder();
-        foreach (var l in Lines) sb2.AppendLine("> " + l);
+        foreach (var l in Lines) sb2.AppendLine("> " + EscapeQuoteLineForMarkdown(l));
         return sb2.ToString().TrimEnd();
+    }
+
+    private static string EscapeQuoteLineForMarkdown(string? line) {
+        if (string.IsNullOrEmpty(line)) {
+            return line ?? string.Empty;
+        }
+
+        var value = line ?? string.Empty;
+        return MarkdownReader.TryGetSetextHeadingUnderlineLevel(value, out _)
+            ? "\\" + value
+            : value;
     }
 
     string IMarkdownBlock.RenderHtml() {

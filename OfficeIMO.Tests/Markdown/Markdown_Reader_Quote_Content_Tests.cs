@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Equal(2, list.Items.Count);
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-            Assert.Contains("<blockquote><p>Outer</p><blockquote><p>Inner</p><ul><li>a</li><li>b After</li></ul></blockquote></blockquote>", html, StringComparison.Ordinal);
+            Assert.Contains("<blockquote><p>Outer</p><blockquote><p>Inner</p><ul><li>a</li><li>b\nAfter</li></ul></blockquote></blockquote>", html, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -127,6 +127,30 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(nativeQuote.Children));
             Assert.Equal(new MarkdownSourceSpan(1, 3, 2, 4), nativeQuote.BodySourceSpan);
             Assert.Contains(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.SoftBreak);
+            MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+        }
+
+        [Fact]
+        public void Quote_Lazy_Paragraph_Setext_Looking_Line_Stays_Paragraph_Text() {
+            const string md = "> foo\nbar\n===\n";
+
+            var result = MarkdownReader.ParseWithSyntaxTree(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var quote = Assert.IsType<QuoteBlock>(Assert.Single(result.Document.Blocks));
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
+            var quoteSyntax = Assert.Single(result.FinalSyntaxTree.Children);
+            var paragraphSyntax = Assert.Single(quoteSyntax.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
+            var written = NormalizeMarkdown(result.Document.ToMarkdown());
+            var office = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+            var reparsedOffice = MarkdownReader.Parse(written, MarkdownReaderOptions.CreateCommonMarkProfile()).ToHtmlFragment(CreatePlainHtmlOptions());
+            var markdig = MarkdigMarkdown.ToHtml(md);
+
+            Assert.Equal("foo\nbar\n===", paragraph.Inlines.RenderMarkdown().Replace("\r\n", "\n"));
+            Assert.DoesNotContain(quote.ChildBlocks, child => child is HeadingBlock);
+            Assert.DoesNotContain(quoteSyntax.Descendants(), node => node.Kind == MarkdownSyntaxKind.Heading);
+            Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraphSyntax.Kind);
+            Assert.Equal("> foo\n> bar\n> \\===", written);
+            Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+            Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
             MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
         }
 

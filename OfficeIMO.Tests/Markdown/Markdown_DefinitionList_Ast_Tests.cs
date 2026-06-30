@@ -1634,14 +1634,14 @@ text
         Assert.Equal(new MarkdownSourceSpan(2, 5, 7, 4), definitionValue.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(4, 5, 7, 4), quoteSyntax.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(4, 7, 7, 4), quoteParagraphSyntax.SourceSpan);
-        Assert.Contains("> ===", written, StringComparison.Ordinal);
+        Assert.Contains("> \\===", written, StringComparison.Ordinal);
         Assert.DoesNotContain("<h1>", reparsedOffice, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
 
         var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
-        Assert.Equal("First\n\n> quote\n> lazy title\n> ===\n> text", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal("First\n\n> quote\n> lazy title\n> \\===\n> text", definitionBody.Value!.Replace("\r\n", "\n"));
         Assert.Equal(new MarkdownSourceSpan(2, 5, 7, 4), definitionBody.SourceSpan);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }

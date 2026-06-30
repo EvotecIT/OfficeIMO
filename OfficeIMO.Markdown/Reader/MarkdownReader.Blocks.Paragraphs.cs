@@ -51,17 +51,19 @@ public static partial class MarkdownReader {
     }
 
     private readonly struct MarkdownSourceLineSlice {
-        public MarkdownSourceLineSlice(string text, int absoluteLine, int startColumn, bool isLazyQuoteContinuation = false) {
+        public MarkdownSourceLineSlice(string text, int absoluteLine, int startColumn, bool isLazyQuoteContinuation = false, bool isQuoteContainerLine = false) {
             Text = text ?? string.Empty;
             AbsoluteLine = absoluteLine;
             StartColumn = startColumn < 1 ? 1 : startColumn;
             IsLazyQuoteContinuation = isLazyQuoteContinuation;
+            IsQuoteContainerLine = isQuoteContainerLine;
         }
 
         public string Text { get; }
         public int AbsoluteLine { get; }
         public int StartColumn { get; }
         public bool IsLazyQuoteContinuation { get; }
+        public bool IsQuoteContainerLine { get; }
     }
 
     private readonly struct ParagraphLineJoinInfo {
@@ -554,7 +556,8 @@ public static partial class MarkdownReader {
                     lineWithoutAttributeBlock,
                     sourceLine.AbsoluteLine,
                     sourceLine.StartColumn,
-                    sourceLine.IsLazyQuoteContinuation);
+                    sourceLine.IsLazyQuoteContinuation,
+                    sourceLine.IsQuoteContainerLine);
             }
 
             parsed = new ParsedListItemGenericAttributes(attributes, sourceText, span, consumedWhitespace);

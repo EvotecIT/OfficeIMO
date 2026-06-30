@@ -790,7 +790,8 @@ public static partial class MarkdownReader {
             stripped,
             sourceLine.AbsoluteLine,
             sourceLine.StartColumn + relativeStartColumn - 1,
-            sourceLine.IsLazyQuoteContinuation);
+            sourceLine.IsLazyQuoteContinuation,
+            sourceLine.IsQuoteContainerLine);
     }
 
     private static bool ShouldParseDefinitionBodyAsLiteralParagraph(
