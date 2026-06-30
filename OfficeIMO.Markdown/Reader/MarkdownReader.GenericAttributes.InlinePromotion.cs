@@ -1,0 +1,309 @@
+namespace OfficeIMO.Markdown;
+
+public static partial class MarkdownReader {
+    private static void PromoteNestedInlineGenericAttributesToParagraph(ParagraphBlock paragraph, MarkdownReaderOptions options) {
+        if (paragraph == null ||
+            options?.GenericAttributes != true ||
+            !paragraph.Attributes.IsEmpty) {
+            return;
+        }
+
+        if (!TryConsumeNestedInlineGenericAttributes(
+            paragraph.Inlines,
+            out var attributes,
+            out var attributeSourceText,
+            out var attributeSpan)) {
+            return;
+        }
+
+        paragraph.SetAttributes(attributes);
+        MarkdownGenericAttributeSourceSpans.Set(paragraph, attributeSourceText, attributeSpan);
+    }
+
+    private static bool TryConsumeNestedInlineGenericAttributes(
+        InlineSequence sequence,
+        out MarkdownAttributeSet attributes,
+        out string attributeSourceText,
+        out MarkdownSourceSpan? attributeSpan) {
+        attributes = MarkdownAttributeSet.Empty;
+        attributeSourceText = string.Empty;
+        attributeSpan = null;
+
+        if (sequence == null || sequence.Nodes.Count == 0) {
+            return false;
+        }
+
+        var rewritten = new List<IMarkdownInline>(sequence.Nodes.Count);
+        var consumed = false;
+        for (var i = 0; i < sequence.Nodes.Count; i++) {
+            var node = sequence.Nodes[i];
+
+            if (!consumed &&
+                TryConsumeNestedInlineGenericAttributes(node, out var replacement, out attributes, out attributeSourceText, out attributeSpan)) {
+                rewritten.Add(replacement ?? node);
+                consumed = true;
+                continue;
+            }
+
+            rewritten.Add(node);
+        }
+
+        if (!consumed) {
+            return false;
+        }
+
+        sequence.ReplaceItems(rewritten);
+        return true;
+    }
+
+    private static bool TryConsumeNestedInlineGenericAttributes(
+        IMarkdownInline inline,
+        out IMarkdownInline? replacement,
+        out MarkdownAttributeSet attributes,
+        out string attributeSourceText,
+        out MarkdownSourceSpan? attributeSpan) {
+        replacement = null;
+        attributes = MarkdownAttributeSet.Empty;
+        attributeSourceText = string.Empty;
+        attributeSpan = null;
+
+        switch (inline) {
+            case IInlineContainerMarkdownInline container when container.NestedInlines != null:
+                return TryConsumeNestedInlineSequenceTrailingAttributes(
+                    container.NestedInlines,
+                    out attributes,
+                    out attributeSourceText,
+                    out attributeSpan);
+
+            case ImageInline image:
+                return TryConsumeImageAltTrailingAttributes(
+                    image,
+                    out replacement,
+                    out attributes,
+                    out attributeSourceText,
+                    out attributeSpan);
+
+            case ImageLinkInline imageLink:
+                return TryConsumeImageLinkAltTrailingAttributes(
+                    imageLink,
+                    out replacement,
+                    out attributes,
+                    out attributeSourceText,
+                    out attributeSpan);
+        }
+
+        return false;
+    }
+
+    private static bool TryConsumeNestedInlineSequenceTrailingAttributes(
+        InlineSequence sequence,
+        out MarkdownAttributeSet attributes,
+        out string attributeSourceText,
+        out MarkdownSourceSpan? attributeSpan) {
+        attributes = MarkdownAttributeSet.Empty;
+        attributeSourceText = string.Empty;
+        attributeSpan = null;
+
+        if (sequence == null || sequence.Nodes.Count == 0) {
+            return false;
+        }
+
+        var lastIndex = sequence.Nodes.Count - 1;
+        if (sequence.Nodes[lastIndex] is not TextRun textRun ||
+            !TryConsumeTrailingAttributesFromText(
+                textRun.Text,
+                MarkdownInlineSourceSpans.Get(textRun),
+                out var textWithoutAttributeBlock,
+                out attributes,
+                out attributeSourceText,
+                out attributeSpan,
+                out var remainingTextSpan)) {
+            return false;
+        }
+
+        var replacement = new List<IMarkdownInline>(sequence.Nodes.Count);
+        for (var i = 0; i < lastIndex; i++) {
+            replacement.Add(sequence.Nodes[i]);
+        }
+
+        if (!string.IsNullOrEmpty(textWithoutAttributeBlock)) {
+            var remainingText = new TextRun(textWithoutAttributeBlock);
+            MarkdownInlineSourceSpans.Set(remainingText, remainingTextSpan);
+            replacement.Add(remainingText);
+        }
+
+        sequence.ReplaceItems(replacement);
+        return true;
+    }
+
+    private static bool TryConsumeImageAltTrailingAttributes(
+        ImageInline image,
+        out IMarkdownInline? replacement,
+        out MarkdownAttributeSet attributes,
+        out string attributeSourceText,
+        out MarkdownSourceSpan? attributeSpan) {
+        replacement = null;
+        attributes = MarkdownAttributeSet.Empty;
+        attributeSourceText = string.Empty;
+        attributeSpan = null;
+
+        if (image == null ||
+            !TryConsumeTrailingAttributesFromText(
+                image.Alt,
+                MarkdownInlineMetadataSourceSpans.GetImageAltSpan(image),
+                out var altWithoutAttributeBlock,
+                out attributes,
+                out attributeSourceText,
+                out attributeSpan,
+                out _)) {
+            return false;
+        }
+
+        var plainAlt = TryStripPlainAltTrailingAttributes(image.PlainAlt, out var strippedPlainAlt)
+            ? strippedPlainAlt
+            : altWithoutAttributeBlock;
+        var rewritten = new ImageInline(altWithoutAttributeBlock, image.Src, image.Title, plainAlt);
+        CopyImageInlineSourceMetadata(image, rewritten);
+        replacement = rewritten;
+        return true;
+    }
+
+    private static bool TryConsumeImageLinkAltTrailingAttributes(
+        ImageLinkInline image,
+        out IMarkdownInline? replacement,
+        out MarkdownAttributeSet attributes,
+        out string attributeSourceText,
+        out MarkdownSourceSpan? attributeSpan) {
+        replacement = null;
+        attributes = MarkdownAttributeSet.Empty;
+        attributeSourceText = string.Empty;
+        attributeSpan = null;
+
+        if (image == null ||
+            !TryConsumeTrailingAttributesFromText(
+                image.Alt,
+                MarkdownInlineMetadataSourceSpans.GetImageAltSpan(image),
+                out var altWithoutAttributeBlock,
+                out attributes,
+                out attributeSourceText,
+                out attributeSpan,
+                out _)) {
+            return false;
+        }
+
+        var plainAlt = TryStripPlainAltTrailingAttributes(image.PlainAlt, out var strippedPlainAlt)
+            ? strippedPlainAlt
+            : altWithoutAttributeBlock;
+        var rewritten = new ImageLinkInline(altWithoutAttributeBlock, image.ImageUrl, image.LinkUrl, image.Title, image.LinkTitle, plainAlt);
+        CopyImageLinkInlineSourceMetadata(image, rewritten);
+        replacement = rewritten;
+        return true;
+    }
+
+    private static bool TryConsumeTrailingAttributesFromText(
+        string value,
+        MarkdownSourceSpan? valueSourceSpan,
+        out string textWithoutAttributeBlock,
+        out MarkdownAttributeSet attributes,
+        out string attributeSourceText,
+        out MarkdownSourceSpan? attributeSpan,
+        out MarkdownSourceSpan? remainingTextSpan) {
+        attributeSourceText = string.Empty;
+        attributeSpan = null;
+        remainingTextSpan = null;
+
+        if (!MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
+            value,
+            out textWithoutAttributeBlock,
+            out attributes,
+            out var attributeStart,
+            out var attributeEnd,
+            requireLeadingWhitespace: false)) {
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(textWithoutAttributeBlock)) {
+            attributes = MarkdownAttributeSet.Empty;
+            return false;
+        }
+
+        attributeSourceText = value.Substring(attributeStart, attributeEnd - attributeStart + 1);
+        attributeSpan = SliceSourceSpan(valueSourceSpan, attributeStart, attributeSourceText.Length);
+        remainingTextSpan = TrimSourceSpanToConsumedPrefix(valueSourceSpan, textWithoutAttributeBlock.Length);
+        return !attributes.IsEmpty;
+    }
+
+    private static bool TryStripPlainAltTrailingAttributes(string value, out string stripped) {
+        if (MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
+            value,
+            out stripped,
+            out var attributes,
+            out _,
+            out _,
+            requireLeadingWhitespace: false)) {
+            return !attributes.IsEmpty;
+        }
+
+        stripped = value ?? string.Empty;
+        return false;
+    }
+
+    private static MarkdownSourceSpan? SliceSourceSpan(MarkdownSourceSpan? span, int startIndex, int length) {
+        if (!span.HasValue || length <= 0) {
+            return null;
+        }
+
+        var value = span.Value;
+        if (value.StartLine != value.EndLine || !value.StartColumn.HasValue) {
+            return null;
+        }
+
+        var startColumn = value.StartColumn.Value + startIndex;
+        var endColumn = startColumn + length - 1;
+        int? startOffset = value.StartOffset.HasValue ? value.StartOffset.Value + startIndex : null;
+        int? endOffset = startOffset.HasValue ? startOffset.Value + length - 1 : value.EndOffset;
+        return new MarkdownSourceSpan(
+            value.StartLine,
+            startColumn,
+            value.EndLine,
+            endColumn,
+            startOffset,
+            endOffset);
+    }
+
+    private static MarkdownSourceSpan? TrimSourceSpanToConsumedPrefix(MarkdownSourceSpan? span, int consumedLength) =>
+        span.HasValue ? TrimSourceSpanToConsumedPrefix(span.Value, consumedLength) : null;
+
+    private static void CopyImageInlineSourceMetadata(ImageInline source, ImageInline target) {
+        MarkdownInlineSourceSpans.Set(target, MarkdownInlineSourceSpans.Get(source));
+        MarkdownInlineMetadataSourceSpans.SetImageParts(
+            target,
+            MarkdownInlineMetadataSourceSpans.GetImageAltSpan(source),
+            MarkdownInlineMetadataSourceSpans.GetImageSourceSpan(source),
+            MarkdownInlineMetadataSourceSpans.GetImageTitleSpan(source));
+        CopyFormattingMarkerMetadata(source, target);
+    }
+
+    private static void CopyImageLinkInlineSourceMetadata(ImageLinkInline source, ImageLinkInline target) {
+        MarkdownInlineSourceSpans.Set(target, MarkdownInlineSourceSpans.Get(source));
+        MarkdownInlineMetadataSourceSpans.SetImageLinkParts(
+            target,
+            MarkdownInlineMetadataSourceSpans.GetImageAltSpan(source),
+            MarkdownInlineMetadataSourceSpans.GetImageSourceSpan(source),
+            MarkdownInlineMetadataSourceSpans.GetImageTitleSpan(source),
+            MarkdownInlineMetadataSourceSpans.GetImageLinkTargetSpan(source),
+            MarkdownInlineMetadataSourceSpans.GetImageLinkTitleSpan(source));
+        CopyFormattingMarkerMetadata(source, target);
+    }
+
+    private static void CopyFormattingMarkerMetadata(MarkdownInline source, MarkdownInline target) {
+        MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
+            target,
+            MarkdownInlineMetadataSourceSpans.GetOpeningMarker(source) ?? string.Empty,
+            MarkdownInlineMetadataSourceSpans.GetOpeningMarkerSpan(source),
+            MarkdownInlineMetadataSourceSpans.GetClosingMarker(source) ?? string.Empty,
+            MarkdownInlineMetadataSourceSpans.GetClosingMarkerSpan(source),
+            MarkdownInlineMetadataSourceSpans.GetSeparatorMarker(source),
+            MarkdownInlineMetadataSourceSpans.GetSeparatorMarkerSpan(source));
+    }
+}

@@ -160,8 +160,25 @@ public static partial class MarkdownReader {
             paragraph.GenericAttributeConsumedWhitespace = paragraphAttributeConsumedWhitespace;
             paragraph.GenericAttributeSuppressSeparator = suppressGenericAttributeSeparator;
             MarkdownGenericAttributeSourceSpans.Set(paragraph, paragraphAttributeSourceText, paragraphAttributeSpan);
+            if (!IsQuoteContainerParagraph(state, i, j)) {
+                PromoteNestedInlineGenericAttributesToParagraph(paragraph, options);
+            }
             doc.Add(paragraph);
             i = j; return true;
+        }
+
+        private static bool IsQuoteContainerParagraph(MarkdownReaderState state, int startIndex, int endExclusiveIndex) {
+            if (state == null || state.QuoteContainerLines.Count == 0) {
+                return false;
+            }
+
+            for (var lineIndex = startIndex; lineIndex < endExclusiveIndex; lineIndex++) {
+                if (state.QuoteContainerLines.Contains(lineIndex)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool TryConsumeParagraphTrailingGenericAttributes(

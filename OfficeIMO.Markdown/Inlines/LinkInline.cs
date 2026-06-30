@@ -106,6 +106,13 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
     }
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
-    void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);
+    void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) {
+        if (LabelInlines != null) {
+            InlinePlainText.AppendPlainText(sb, LabelInlines);
+            return;
+        }
+
+        sb.Append(Text);
+    }
     InlineSequence? IInlineContainerMarkdownInline.NestedInlines => LabelInlines;
 }

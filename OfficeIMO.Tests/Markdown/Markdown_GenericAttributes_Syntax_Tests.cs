@@ -525,6 +525,49 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("*[HTML]: Hyper Text Markup Language\n\nHTML{#abbr .wide}", result.Document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
     }
 
+    [Theory]
+    [InlineData("[site{#txt .wide}](https://example.com)\n", "txt", "site", "{#txt .wide}", 1, 6, 1, 17)]
+    [InlineData("![alt{#alt .wide}](img.png)\n", "alt", "alt", "{#alt .wide}", 1, 6, 1, 17)]
+    public void NestedInlineContent_GenericAttributes_Promote_To_Paragraph(string markdown, string expectedId, string expectedText, string expectedSourceText, int startLine, int startColumn, int endLine, int endColumn) {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.GenericAttributes = true;
+        options.PreserveTrivia = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var semanticParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
+        Assert.Equal(expectedId, semanticParagraph.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, semanticParagraph.Attributes.Classes);
+        Assert.Equal(expectedText, InlinePlainText.Extract(semanticParagraph.Inlines));
+
+        var paragraph = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.Paragraph);
+        var attributes = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        var expectedSpan = new MarkdownSourceSpan(startLine, startColumn, endLine, endColumn);
+
+        Assert.Equal(expectedSourceText, attributes.Literal);
+        Assert.Equal(expectedSpan, attributes.SourceSpan);
+        Assert.True(paragraph.SourceSpan!.Value.Contains(attributes.SourceSpan!.Value));
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal(expectedSourceText, slice.Text);
+
+        Assert.DoesNotContain(result.FinalSyntaxTree.Descendants()
+            .Where(node => node.Kind is MarkdownSyntaxKind.InlineLink or MarkdownSyntaxKind.InlineImage),
+            node => node.Children.Any(child => child.Kind == MarkdownSyntaxKind.GenericAttributeBlock));
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Equal(expectedText, nativeParagraph.Text);
+        Assert.Same(nativeParagraph, field.Block);
+        Assert.Equal(expectedSourceText, field.Value);
+        Assert.Equal(expectedSpan, field.SourceSpan);
+        Assert.Empty(native.EnumerateInlineMetadata("attributes"));
+    }
+
     [Fact]
     public void ParseWithSyntaxTree_Captures_Inline_GenericAttribute_Tokens_Without_Duplicating_Native_Metadata() {
         const string markdown = "See [docs](old.md){#docs .primary} now\n";

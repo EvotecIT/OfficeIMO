@@ -339,11 +339,16 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "blockquote-list-item-attribute-is-consumed", "> - item {#li .selected}" };
         yield return new object[] { "nested-list-item-attribute-is-consumed", "- outer\n  - inner {#li .selected}" };
         yield return new object[] { "inline-link-id-class-title", "[site](https://example.com){#lnk .primary title=\"Site\"}" };
+        yield return new object[] { "inline-link-label-attribute-promotes-to-paragraph", "[site{#txt .wide}](https://example.com)" };
         yield return new object[] { "inline-emphasis-id-class", "*emphasis*{#em .marked}" };
+        yield return new object[] { "inline-emphasis-content-attribute-promotes-to-paragraph", "*em{#inner .wide}*" };
         yield return new object[] { "inline-strong-id-class", "**strong**{#strong .marked}" };
+        yield return new object[] { "inline-strong-content-attribute-promotes-to-paragraph", "**strong{#inner .wide}**" };
         yield return new object[] { "inline-code-id-class", "`code`{#code .token}" };
         yield return new object[] { "inline-image-id-class", "![alt](img.png){#img .wide}" };
+        yield return new object[] { "inline-image-alt-attribute-promotes-to-paragraph", "![alt{#alt .wide}](img.png)" };
         yield return new object[] { "linked-image-id-class", "[![alt](img.png)](https://example.com){#linked .wide}" };
+        yield return new object[] { "linked-image-alt-attribute-promotes-to-paragraph", "[![alt{#alt .wide}](img.png)](https://example.com)" };
         yield return new object[] { "inline-html-span-attribute-stays-literal", "<span>hi</span>{#span .wide}" };
     }
 

@@ -144,6 +144,7 @@ Current active row: `UseDefinitionLists`.
     - [x] Standalone generic attributes before image paragraphs match Markdig in portable profiles, and OfficeIMO-default typed image blocks now carry syntax/native/source-edit-backed attributes.
     - [x] Standalone generic attributes before reference-definition-looking lines now match Markdig by producing attributed literal paragraphs without registering reference definitions, with syntax/native/source-edit proof.
     - [x] Standalone generic attribute continuation lines at the end of paragraphs now match Markdig by being consumed without attributes or rendered output, including soft and hard line-break forms.
+    - [x] Paragraph-contained attributes embedded at the end of nested link labels, image alt text, linked-image alt text, emphasis content, and strong content now promote to the paragraph owner like Markdig, with syntax/native source proof.
   - [ ] Keep writer behavior and source edits stable across attributed shapes.
 - [ ] Decide and close `UseAlertBlocks`.
   - [ ] Decide whether Markdig alert rendering callbacks become an OfficeIMO renderer contract or remain an intentional callout difference.
