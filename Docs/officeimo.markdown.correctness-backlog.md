@@ -63,6 +63,7 @@ Current coverage:
 - footnote syntax projection now treats `Blocks` as the canonical body owner and rebuilds owned syntax children when cached parsed syntax no longer matches those blocks
 - public callout construction can now preserve rich bodies as child blocks through structured constructors and the fluent body builder instead of flattening lists/code/tables into a raw body string
 - definition-list group/value syntax nodes now map source spans back to `DefinitionListGroup` and `DefinitionListDefinition` semantic objects
+- definition-list colon marker lines now expose parsed `DefinitionMarker` syntax tokens and native `definitionMarker` source fields, while generated marker tokens remain source-less instead of inventing spans
 - definition lists now expose definition body blocks through public `ChildBlocks`, matching the same underlying objects owned by `DefinitionListDefinition`
 - native definition-list projection now exposes grouped terms, definition body children, term inline runs, and snapshot DTOs instead of reporting definition lists as unsupported native blocks
 - definition-list blank separator lines inside definition bodies now expose native `definitionBlankLine` source fields, snapshots, and position lookup targets without hiding the broader `definitionBody` field

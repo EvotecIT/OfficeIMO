@@ -50,7 +50,7 @@ Current active row: `UseDefinitionLists`.
   - [ ] Fenced-code variants beyond the marker-line and empty-marker boundary cases already closed.
   - [ ] List-tail variants after nested body boundaries.
 - [ ] Finish definition-list source mapping.
-  - [ ] Marker lines.
+  - [x] Marker lines are source-backed through parsed `DefinitionMarker` syntax tokens and native `definitionMarker` source fields; generated marker tokens remain source-less by design.
   - [x] Continuation indentation stripped from definition body lines now surfaces as native `definitionContinuationIndent` source fields with precise caret lookup.
   - [x] Blank separators now surface as native `definitionBlankLine` source fields with precise caret lookup while broad `definitionBody` spans remain available.
   - [ ] Generated paragraph wrappers.
