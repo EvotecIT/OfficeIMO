@@ -221,6 +221,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentFormat.Emboss,
                     currentFormat.Imprint,
                     currentFormat.Hidden,
+                    currentFormat.NoProof,
                     currentFormat.Caps,
                     currentFormat.VerticalPosition,
                     currentFormat.Underline,

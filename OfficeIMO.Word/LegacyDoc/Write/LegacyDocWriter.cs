@@ -27,6 +27,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmCFVanish = 0x083C;
         private const ushort SprmCFEmboss = 0x0858;
         private const ushort SprmCFSpec = 0x0855;
+        private const ushort SprmCFNoProof = 0x0875;
         private const ushort SprmCHighlight = 0x2A0C;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCIss = 0x2A48;
@@ -182,7 +183,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         finalSectionFormat = ReadSupportedSectionProperties(sectionProperties);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs and simple tables with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs and simple tables with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");
                 }
             }
 
@@ -358,7 +359,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         bookmarks.AddEnd(bookmarkEnd, text.Length);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs, bookmarks, and simple hyperlinks with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs, bookmarks, and simple hyperlinks with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 

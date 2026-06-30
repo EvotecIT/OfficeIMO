@@ -11,6 +11,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmCFCaps = 0x083B;
         private const ushort SprmCFVanish = 0x083C;
         private const ushort SprmCFEmboss = 0x0858;
+        private const ushort SprmCFNoProof = 0x0875;
         private const ushort SprmCHighlight = 0x2A0C;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCIco = 0x2A42;
@@ -121,6 +122,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool emboss = false;
             bool imprint = false;
             bool hidden = false;
+            bool noProof = false;
             bool smallCaps = false;
             bool caps = false;
             LegacyDocVerticalPositionKind? verticalPosition = null;
@@ -132,7 +134,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
-                if (sprm == SprmCFBold || sprm == SprmCFItalic || sprm == SprmCFStrike || sprm == SprmCFOutline || sprm == SprmCFShadow || sprm == SprmCFSmallCaps || sprm == SprmCFCaps || sprm == SprmCFVanish || sprm == SprmCFImprint || sprm == SprmCFEmboss || sprm == SprmCFDStrike) {
+                if (sprm == SprmCFBold || sprm == SprmCFItalic || sprm == SprmCFStrike || sprm == SprmCFOutline || sprm == SprmCFShadow || sprm == SprmCFSmallCaps || sprm == SprmCFCaps || sprm == SprmCFVanish || sprm == SprmCFImprint || sprm == SprmCFEmboss || sprm == SprmCFNoProof || sprm == SprmCFDStrike) {
                     if (offset + 3 > end) {
                         break;
                     }
@@ -154,6 +156,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         imprint = enabled;
                     } else if (sprm == SprmCFVanish) {
                         hidden = enabled;
+                    } else if (sprm == SprmCFNoProof) {
+                        noProof = enabled;
                     } else if (sprm == SprmCFSmallCaps) {
                         smallCaps = enabled;
                     } else if (sprm == SprmCFDStrike) {
@@ -251,7 +255,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ? LegacyDocCapsKind.Caps
                 : smallCaps ? LegacyDocCapsKind.SmallCaps : null;
 
-            return new LegacyDocCharacterFormat(bold, italic, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, capsKind, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocCharacterFormat(bold, italic, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, capsKind, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
         }
 
         private static LegacyDocVerticalPositionKind? MapVerticalPosition(byte value) {

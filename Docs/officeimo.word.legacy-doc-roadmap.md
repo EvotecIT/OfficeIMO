@@ -533,6 +533,9 @@ just to reserve names.
     the legacy reader.
   - [x] Write direct highlight CHPX runs and reload them through the legacy
     reader.
+  - [x] Read and write direct proofing-exclusion run formatting with
+    `sprmCFNoProof`, then reload it as OpenXML `w:noProof` through the legacy
+    reader.
   - [x] Extend native character writing to font family through the DOC font
     table.
   - [x] Accept matching script-specific `RunFonts` values, including

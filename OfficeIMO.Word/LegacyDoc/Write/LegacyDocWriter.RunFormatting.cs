@@ -135,6 +135,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool emboss = false;
             bool imprint = false;
             bool hidden = false;
+            bool noProof = false;
             byte? caps = null;
             byte? verticalPosition = null;
             byte? underline = null;
@@ -189,6 +190,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         specified |= LegacyDocWritableFormattingProperties.Hidden;
                         hidden = IsEnabled(vanishProperty);
                         break;
+                    case NoProof noProofProperty:
+                        specified |= LegacyDocWritableFormattingProperties.NoProof;
+                        noProof = IsEnabled(noProofProperty);
+                        break;
                     case Caps capsProperty:
                         specified |= LegacyDocWritableFormattingProperties.Caps;
                         caps = MergeCapsKind(caps, IsEnabled(capsProperty), 1);
@@ -228,11 +233,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case RunStyle runStyle when allowHyperlinkRunStyle && string.Equals(runStyle.Val?.Value, "Hyperlink", StringComparison.OrdinalIgnoreCase):
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family run formatting. Unsupported run property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family run formatting. Unsupported run property: {property.LocalName}.");
                 }
             }
 
-            return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, false, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, specified);
+            return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, false, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, specified);
         }
 
         private static bool IsEnabled(OnOffType property) {
@@ -515,6 +520,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmCFVanish, 1);
             }
 
+            if (formatting.NoProof) {
+                AddSingleByteSprm(grpprl, SprmCFNoProof, 1);
+            }
+
             if (formatting.Special) {
                 AddSingleByteSprm(grpprl, SprmCFSpec, 1);
             }
@@ -629,21 +638,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             Emboss = 1 << 6,
             Imprint = 1 << 7,
             Hidden = 1 << 8,
-            Special = 1 << 9,
-            Caps = 1 << 10,
-            VerticalPosition = 1 << 11,
-            Underline = 1 << 12,
-            Highlight = 1 << 13,
-            FontSize = 1 << 14,
-            Color = 1 << 15,
-            FontFamily = 1 << 16
+            NoProof = 1 << 9,
+            Special = 1 << 10,
+            Caps = 1 << 11,
+            VerticalPosition = 1 << 12,
+            Underline = 1 << 13,
+            Highlight = 1 << 14,
+            FontSize = 1 << 15,
+            Color = 1 << 16,
+            FontFamily = 1 << 17
         }
 
         private readonly struct LegacyDocWritableFormatting : IEquatable<LegacyDocWritableFormatting> {
-            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null);
-            internal static readonly LegacyDocWritableFormatting SpecialCharacter = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, true, null, null, null, null, null, null, null, LegacyDocWritableFormattingProperties.Special);
+            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null);
+            internal static readonly LegacyDocWritableFormatting SpecialCharacter = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, false, true, null, null, null, null, null, null, null, LegacyDocWritableFormattingProperties.Special);
 
-            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, bool special, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily, LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None) {
+            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, bool noProof, bool special, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily, LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None) {
                 Bold = bold;
                 Italic = italic;
                 Strike = strike;
@@ -653,6 +663,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 Emboss = emboss;
                 Imprint = imprint;
                 Hidden = hidden;
+                NoProof = noProof;
                 Special = special;
                 Caps = caps;
                 VerticalPosition = verticalPosition;
@@ -682,6 +693,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool Hidden { get; }
 
+            internal bool NoProof { get; }
+
             internal bool Special { get; }
 
             internal byte? Caps { get; }
@@ -698,7 +711,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal string? FontFamily { get; }
 
-            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
+            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || NoProof || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
 
             private LegacyDocWritableFormattingProperties Specified { get; }
 
@@ -717,6 +730,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     IsSpecified(LegacyDocWritableFormattingProperties.Emboss) ? Emboss : inherited.Emboss,
                     IsSpecified(LegacyDocWritableFormattingProperties.Imprint) ? Imprint : inherited.Imprint,
                     IsSpecified(LegacyDocWritableFormattingProperties.Hidden) ? Hidden : inherited.Hidden,
+                    IsSpecified(LegacyDocWritableFormattingProperties.NoProof) ? NoProof : inherited.NoProof,
                     Special,
                     IsSpecified(LegacyDocWritableFormattingProperties.Caps) ? Caps : inherited.Caps,
                     IsSpecified(LegacyDocWritableFormattingProperties.VerticalPosition) ? VerticalPosition : inherited.VerticalPosition,
@@ -742,6 +756,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     && Emboss == other.Emboss
                     && Imprint == other.Imprint
                     && Hidden == other.Hidden
+                    && NoProof == other.NoProof
                     && Special == other.Special
                     && Caps == other.Caps
                     && VerticalPosition == other.VerticalPosition
@@ -767,6 +782,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 hash = (hash * 31) + Emboss.GetHashCode();
                 hash = (hash * 31) + Imprint.GetHashCode();
                 hash = (hash * 31) + Hidden.GetHashCode();
+                hash = (hash * 31) + NoProof.GetHashCode();
                 hash = (hash * 31) + Special.GetHashCode();
                 hash = (hash * 31) + Caps.GetHashCode();
                 hash = (hash * 31) + VerticalPosition.GetHashCode();

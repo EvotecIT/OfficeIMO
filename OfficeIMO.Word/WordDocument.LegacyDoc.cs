@@ -990,6 +990,7 @@ namespace OfficeIMO.Word {
                 source.Emboss,
                 source.Imprint,
                 source.Hidden,
+                source.NoProof,
                 source.Caps,
                 source.VerticalPosition,
                 source.Underline,
@@ -1895,6 +1896,11 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
+            if (characterFormat.NoProof) {
+                properties.Append(new NoProof());
+                hasProperties = true;
+            }
+
             if (characterFormat.Caps == LegacyDocCapsKind.Caps) {
                 properties.Append(new Caps());
                 hasProperties = true;
@@ -2016,6 +2022,12 @@ namespace OfficeIMO.Word {
                 RunProperties runProperties = run._runProperties ?? new RunProperties();
                 run._runProperties = runProperties;
                 runProperties.Vanish = new Vanish();
+            }
+
+            if (legacyRun.NoProof) {
+                RunProperties runProperties = run._runProperties ?? new RunProperties();
+                run._runProperties = runProperties;
+                runProperties.NoProof = new NoProof();
             }
 
             if (legacyRun.Caps == LegacyDocCapsKind.Caps) {

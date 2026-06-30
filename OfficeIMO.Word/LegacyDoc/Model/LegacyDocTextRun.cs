@@ -19,7 +19,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? colorHex,
             string? fontFamily,
             string? hyperlinkUri = null,
-            string? hyperlinkAnchor = null)
+            string? hyperlinkAnchor = null,
+            bool noProof = false)
             : this(
                 text,
                 bold,
@@ -31,6 +32,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 emboss,
                 imprint,
                 hidden,
+                noProof,
                 caps,
                 verticalPosition,
                 underline,
@@ -54,6 +56,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool emboss,
             bool imprint,
             bool hidden,
+            bool noProof,
             LegacyDocCapsKind? caps,
             LegacyDocVerticalPositionKind? verticalPosition,
             LegacyDocUnderlineKind? underline,
@@ -74,6 +77,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Emboss = emboss;
             Imprint = imprint;
             Hidden = hidden;
+            NoProof = noProof;
             Caps = caps;
             VerticalPosition = verticalPosition;
             Underline = underline;
@@ -107,6 +111,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal bool Imprint { get; }
 
         internal bool Hidden { get; }
+
+        internal bool NoProof { get; }
 
         internal LegacyDocCapsKind? Caps { get; }
 
