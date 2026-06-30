@@ -179,6 +179,7 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
     - [x] Fenced-code info-string attributes now parse attribute-only, language-plus-attribute, and opaque-info-prefix forms as metadata; ordinary code blocks render only the explicit `{...}` attribute block on `<code>` like Markdig while preserving opaque fence options for hosts, and expose source-backed native/snapshot `attributes` fields for code and semantic fenced blocks.
     - [x] List-contained ATX and loose nested headings now keep trailing generic attributes literal like Markdig, suppress automatic ids derived from that literal marker, preserve fenced-code attributes inside list items with native source-field proof, and attach list-contained standalone generic attributes to following fenced code like Markdig with source-edit proof.
     - [x] List-item generic attributes now preserve the captured separator whitespace in Markdown writer output instead of normalizing it away after the parser/source layer has already retained it.
+    - [x] Footnote and definition-list continuation paragraphs after a blank line now keep trailing generic attributes literal like Markdig, without emitting `GenericAttributeBlock` syntax or native `attributes` metadata.
     - [x] Inline generic attributes now preserve source spans for trailing text that remains after an attributed or consumed-without-metadata inline target consumes the `{...}` block.
   - [ ] Keep writer behavior and source edits stable across attributed shapes.
 - [x] Decide and close `UseAlertBlocks`.

@@ -1271,6 +1271,39 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void Footnote_Continuation_Paragraph_GenericAttributes_Stay_Literal() {
+        const string markdown = "[^a]: first\n\n    second {#p .wide}\n\ntext[^a]\n";
+        var options = new MarkdownReaderOptions {
+            Footnotes = true,
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var footnote = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
+        var paragraphs = footnote.Descendants().Where(node => node.Kind == MarkdownSyntaxKind.Paragraph).ToArray();
+        Assert.Equal(2, paragraphs.Length);
+        Assert.Contains("second {#p .wide}", paragraphs[1].Literal, StringComparison.Ordinal);
+        Assert.DoesNotContain(paragraphs[1].Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        Assert.True(result.TryCreateOriginalSourceSlice(paragraphs[1], out var slice));
+        Assert.Contains("second {#p .wide}", slice.Text, StringComparison.Ordinal);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeFootnote = Assert.Single(native.Blocks.OfType<MarkdownNativeFootnoteDefinitionBlock>());
+        var nativeParagraphs = nativeFootnote.Children.OfType<MarkdownNativeParagraphBlock>().ToArray();
+        Assert.Equal(2, nativeParagraphs.Length);
+        Assert.Contains("second {#p .wide}", nativeParagraphs[1].Text, StringComparison.Ordinal);
+        Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Keeps_Blockquote_Block_GenericAttributes_Literal() {
         const string markdown = "> quote {#q .lead}\n> # Heading {#h .wide}\n";
         var options = new MarkdownReaderOptions {
@@ -1598,6 +1631,40 @@ public class Markdown_GenericAttributes_Syntax_Tests {
 
         Assert.Contains("Term {#label .tag}", roundtrip.Markdown, StringComparison.Ordinal);
         Assert.Contains(":   Definition {#def .wide}", roundtrip.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DefinitionList_Continuation_Paragraph_GenericAttributes_Stay_Literal() {
+        const string markdown = "Term\n:   first\n\n    second {#p .wide}\n";
+        var options = new MarkdownReaderOptions {
+            DefinitionLists = true,
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var definitionValue = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var paragraphs = definitionValue.Descendants().Where(node => node.Kind == MarkdownSyntaxKind.Paragraph).ToArray();
+        Assert.Equal(2, paragraphs.Length);
+        Assert.Equal("second {#p .wide}", paragraphs[1].Literal);
+        Assert.DoesNotContain(paragraphs[1].Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        Assert.True(result.TryCreateOriginalSourceSlice(paragraphs[1], out var slice));
+        Assert.Equal("second {#p .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var definitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
+        var nativeParagraphs = definition.Children.OfType<MarkdownNativeParagraphBlock>().ToArray();
+        Assert.Equal(2, nativeParagraphs.Length);
+        Assert.Equal("second {#p .wide}", nativeParagraphs[1].Text);
+        Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
     }
 
     private static void AssertGenericAttributeToken(

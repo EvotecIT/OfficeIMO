@@ -92,7 +92,12 @@ public static partial class MarkdownReader {
             return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());
         }
 
-        var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(contentSourceLines, options, state);
+        var suppressedParagraphAttributeStartLines = GetContinuationParagraphGenericAttributeSuppressionLines(contentSourceLines);
+        var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(
+            contentSourceLines,
+            options,
+            state,
+            suppressedParagraphAttributeStartLines);
         if (blocks.Count > 0) {
             return (blocks, syntaxChildren);
         }
@@ -101,6 +106,37 @@ public static partial class MarkdownReader {
         var paragraphSyntax = new List<MarkdownSyntaxNode>();
         AddParagraphSyntaxNodes(paragraphSyntax, contentSourceLines, options, state);
         return (paragraphs, paragraphSyntax);
+    }
+
+    private static IReadOnlyCollection<int> GetContinuationParagraphGenericAttributeSuppressionLines(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines) {
+        if (sourceLines == null || sourceLines.Count == 0) {
+            return Array.Empty<int>();
+        }
+
+        List<int>? suppressedLines = null;
+        bool seenContent = false;
+        bool seenBlankAfterContent = false;
+
+        for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
+            if (string.IsNullOrWhiteSpace(sourceLines[lineIndex].Text)) {
+                if (seenContent) {
+                    seenBlankAfterContent = true;
+                }
+
+                continue;
+            }
+
+            if (seenBlankAfterContent) {
+                suppressedLines ??= new List<int>();
+                suppressedLines.Add(lineIndex);
+            }
+
+            seenContent = true;
+            seenBlankAfterContent = false;
+        }
+
+        return suppressedLines ?? (IReadOnlyCollection<int>)Array.Empty<int>();
     }
 }
 

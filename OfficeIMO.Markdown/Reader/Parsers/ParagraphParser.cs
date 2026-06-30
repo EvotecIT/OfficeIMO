@@ -123,7 +123,7 @@ public static partial class MarkdownReader {
             string paragraphAttributeConsumedWhitespace = string.Empty;
             bool suppressGenericAttributeSeparator = false;
             bool suppressInlineAutolinks = false;
-            if (ShouldParseBlockGenericAttributes(options, state) && paragraphLines.Count > 0) {
+            if (ShouldParseParagraphGenericAttributes(options, state, i) && paragraphLines.Count > 0) {
                 var lastLineIndex = paragraphLines.Count - 1;
                 if (IsStandaloneGenericAttributeContinuationLine(paragraphLines, lastLineIndex)) {
                     paragraphLines.RemoveAt(lastLineIndex);

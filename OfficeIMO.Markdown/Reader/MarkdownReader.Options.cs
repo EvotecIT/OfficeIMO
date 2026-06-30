@@ -203,6 +203,7 @@ public static partial class MarkdownReader {
         foreach (var line in state.LazyQuoteContinuationLines) clone.LazyQuoteContinuationLines.Add(line);
         foreach (var line in state.QuoteContainerLines) clone.QuoteContainerLines.Add(line);
         foreach (var line in state.SuppressedSetextHeadingUnderlineLines) clone.SuppressedSetextHeadingUnderlineLines.Add(line);
+        foreach (var line in state.SuppressedParagraphGenericAttributeStartLines) clone.SuppressedParagraphGenericAttributeStartLines.Add(line);
         return clone;
     }
 

@@ -22,7 +22,8 @@ public static partial class MarkdownReader {
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseNestedMarkdownBlocks(
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
         MarkdownReaderOptions options,
-        MarkdownReaderState state) {
+        MarkdownReaderState state,
+        IReadOnlyCollection<int>? suppressedParagraphGenericAttributeStartLines = null) {
         if (sourceLines == null || sourceLines.Count == 0) {
             return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());
         }
@@ -33,6 +34,7 @@ public static partial class MarkdownReader {
         nestedState.LazyQuoteContinuationLines.Clear();
         nestedState.QuoteContainerLines.Clear();
         nestedState.SuppressedSetextHeadingUnderlineLines.Clear();
+        nestedState.SuppressedParagraphGenericAttributeStartLines.Clear();
         for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
             if (sourceLines[lineIndex].IsLazyQuoteContinuation) {
                 nestedState.LazyQuoteContinuationLines.Add(lineIndex);
@@ -46,6 +48,13 @@ public static partial class MarkdownReader {
                 nestedState.SuppressedSetextHeadingUnderlineLines.Add(lineIndex);
             }
         }
+
+        if (suppressedParagraphGenericAttributeStartLines != null) {
+            foreach (var lineIndex in suppressedParagraphGenericAttributeStartLines) {
+                nestedState.SuppressedParagraphGenericAttributeStartLines.Add(lineIndex);
+            }
+        }
+
         var syntaxChildren = new List<MarkdownSyntaxNode>();
         var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, out _, syntaxChildren, lineOffset: 0, applyDocumentTransforms: false);
         var remappedSyntaxChildren = RemapNestedSyntaxNodes(sourceLines, syntaxChildren);
@@ -211,6 +220,10 @@ public static partial class MarkdownReader {
 
     private static bool ShouldParseBlockGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state) =>
         options?.GenericAttributes == true && state?.SuppressBlockGenericAttributes != true;
+
+    private static bool ShouldParseParagraphGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state, int startLineIndex) =>
+        ShouldParseBlockGenericAttributes(options, state)
+        && (state == null || !state.SuppressedParagraphGenericAttributeStartLines.Contains(startLineIndex));
 
     private static bool ShouldParseHeadingGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state) =>
         ShouldParseBlockGenericAttributes(options, state) && state?.SuppressHeadingGenericAttributes != true;

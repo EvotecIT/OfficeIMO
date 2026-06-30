@@ -805,7 +805,12 @@ public static partial class MarkdownReader {
         var definitionBodyState = CloneState(state);
         definitionBodyState.IsMarkdigDefinitionListBody = true;
         RemoveLazyDefinitionContinuationReferenceDefinitions(definitionBodyState, definitionSourceLines);
-        var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(definitionSourceLines, options, definitionBodyState);
+        var suppressedParagraphAttributeStartLines = GetContinuationParagraphGenericAttributeSuppressionLines(definitionSourceLines);
+        var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(
+            definitionSourceLines,
+            options,
+            definitionBodyState,
+            suppressedParagraphAttributeStartLines);
         (blocks, syntaxChildren) = MergeMarkdigDefinitionLazyListContinuations(blocks, syntaxChildren, definitionSourceLines, options, state);
         (blocks, syntaxChildren) = PreserveMarkdigDefinitionLazyParagraphSoftBreaks(blocks, syntaxChildren, definitionSourceLines, options, state);
         if (blocks.Count > 0) {

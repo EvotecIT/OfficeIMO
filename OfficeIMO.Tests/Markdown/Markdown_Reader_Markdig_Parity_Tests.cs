@@ -423,6 +423,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     public static IEnumerable<object[]> GenericAttributesFootnoteExtensionCases() {
         yield return new object[] { "footnote-definition-paragraph-attribute", "[^a]: note {#fn .wide}\n\ntext[^a]" };
+        yield return new object[] { "footnote-second-paragraph-attribute-stays-literal", "[^a]: first\n\n    second {#p .wide}\n\ntext[^a]" };
         yield return new object[] { "standalone-attribute-before-footnote-definition", "{#fn .wide}\n[^a]: note\n\ntext[^a]" };
     }
 
@@ -432,6 +433,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     public static IEnumerable<object[]> GenericAttributesDefinitionListExtensionCases() {
         yield return new object[] { "definition-list-definition-paragraph-attribute", "Term\n:   Definition {#def .wide}" };
+        yield return new object[] { "definition-list-second-paragraph-attribute-stays-literal", "Term\n:   first\n\n    second {#p .wide}" };
         yield return new object[] { "definition-list-term-attribute", "Term {#term .wide}\n:   Definition" };
     }
 
@@ -924,6 +926,14 @@ public class Markdown_Reader_Markdig_Parity_Tests {
             Assert.DoesNotContain("id=\"fn\" class=\"wide\"", normalizedMarkdig, StringComparison.Ordinal);
             Assert.DoesNotContain("id=\"fn\" class=\"wide\"", normalizedOffice, StringComparison.Ordinal);
             Assert.DoesNotContain("<p id=\"fn\" class=\"wide\"></p>", normalizedOffice, StringComparison.Ordinal);
+            return;
+        }
+
+        if (string.Equals(caseName, "footnote-second-paragraph-attribute-stays-literal", StringComparison.Ordinal)) {
+            Assert.Contains("second {#p .wide}", normalizedMarkdig, StringComparison.Ordinal);
+            Assert.DoesNotContain("id=\"p\" class=\"wide\"", normalizedMarkdig, StringComparison.Ordinal);
+            Assert.Contains("second {#p .wide}", normalizedOffice, StringComparison.Ordinal);
+            Assert.DoesNotContain("id=\"p\" class=\"wide\"", normalizedOffice, StringComparison.Ordinal);
             return;
         }
 

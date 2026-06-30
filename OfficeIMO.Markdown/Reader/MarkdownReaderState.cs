@@ -124,6 +124,7 @@ public sealed class MarkdownReaderState {
     internal HashSet<int> LazyQuoteContinuationLines { get; } = new HashSet<int>();
     internal HashSet<int> QuoteContainerLines { get; } = new HashSet<int>();
     internal HashSet<int> SuppressedSetextHeadingUnderlineLines { get; } = new HashSet<int>();
+    internal HashSet<int> SuppressedParagraphGenericAttributeStartLines { get; } = new HashSet<int>();
 }
 
 internal sealed class MarkdownPendingGenericAttributeBlock {
