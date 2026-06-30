@@ -257,6 +257,10 @@ public sealed partial class MarkdownNativeDocument {
             return false;
         }
 
+        if (field.Block.SyntaxNode.IsGenerated) {
+            return ParseResult.TryCreateOriginalSourceSlice(field.Block.SyntaxNode, out slice, out failureReason);
+        }
+
         return TryCreateOriginalSourceSlice(field.SourceSpan, out slice, out failureReason);
     }
 
@@ -349,6 +353,10 @@ public sealed partial class MarkdownNativeDocument {
             return false;
         }
 
+        if (listItem.SyntaxNode.IsGenerated) {
+            return ParseResult.TryCreateOriginalSourceSlice(listItem.SyntaxNode, out slice, out failureReason);
+        }
+
         return TryCreateOriginalSourceSlice(listItem.ContentSourceSpan, out slice, out failureReason);
     }
 
@@ -370,6 +378,10 @@ public sealed partial class MarkdownNativeDocument {
             slice = default;
             failureReason = MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable;
             return false;
+        }
+
+        if (paragraph.SyntaxNode?.IsGenerated == true) {
+            return ParseResult.TryCreateOriginalSourceSlice(paragraph.SyntaxNode, out slice, out failureReason);
         }
 
         return TryCreateOriginalSourceSlice(paragraph.SourceSpan, out slice, out failureReason);
@@ -441,6 +453,10 @@ public sealed partial class MarkdownNativeDocument {
             return false;
         }
 
+        if (tableCell.SyntaxNode?.IsGenerated == true) {
+            return ParseResult.TryCreateOriginalSourceSlice(tableCell.SyntaxNode, out slice, out failureReason);
+        }
+
         return TryCreateOriginalSourceSlice(tableCell.SourceSpan, out slice, out failureReason);
     }
 
@@ -462,6 +478,10 @@ public sealed partial class MarkdownNativeDocument {
             slice = default;
             failureReason = MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable;
             return false;
+        }
+
+        if (definitionGroup.SyntaxNode?.IsGenerated == true) {
+            return ParseResult.TryCreateOriginalSourceSlice(definitionGroup.SyntaxNode, out slice, out failureReason);
         }
 
         return TryCreateOriginalSourceSlice(definitionGroup.SourceSpan, out slice, out failureReason);
@@ -487,6 +507,10 @@ public sealed partial class MarkdownNativeDocument {
             return false;
         }
 
+        if (definitionTerm.SyntaxNode?.IsGenerated == true) {
+            return ParseResult.TryCreateOriginalSourceSlice(definitionTerm.SyntaxNode, out slice, out failureReason);
+        }
+
         return TryCreateOriginalSourceSlice(definitionTerm.SourceSpan, out slice, out failureReason);
     }
 
@@ -508,6 +532,10 @@ public sealed partial class MarkdownNativeDocument {
             slice = default;
             failureReason = MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable;
             return false;
+        }
+
+        if (definition.SyntaxNode?.IsGenerated == true) {
+            return ParseResult.TryCreateOriginalSourceSlice(definition.SyntaxNode, out slice, out failureReason);
         }
 
         return TryCreateOriginalSourceSlice(definition.SourceSpan, out slice, out failureReason);

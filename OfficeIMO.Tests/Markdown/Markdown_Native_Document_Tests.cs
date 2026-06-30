@@ -2166,10 +2166,15 @@ beta
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, parseFailureReason);
         Assert.False(native.TryCreateOriginalSourceSlice(paragraph, out _, out var nativeFailureReason));
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, nativeFailureReason);
+        var paragraphText = Assert.Single(paragraph.EnumerateSourceFields("paragraphText"));
+        Assert.False(native.TryCreateOriginalSourceSlice(paragraphText, out _, out var fieldFailureReason));
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, fieldFailureReason);
 
         var edit = native.CreateReplaceEdit(paragraph, "updated");
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, edit.OriginalSourceFailureReason);
         Assert.Equal("Term: updated", edit.Apply(native.SourceMarkdown));
+        var fieldEdit = native.CreateReplaceEdit(paragraphText, "field-updated");
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, fieldEdit.OriginalSourceFailureReason);
 
         var roundtrip = native.WriteWithSourceEdit(edit);
         Assert.Equal("Term: updated", roundtrip.Markdown);
@@ -2179,6 +2184,13 @@ beta
             item => item.Id == "roundtrip.original-source-slice-unavailable");
         Assert.Contains("generated from semantic content", sourceFailure.Message, StringComparison.Ordinal);
         Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 14), sourceFailure.SourceSpan);
+
+        var fieldRoundtrip = native.WriteWithSourceEdit(fieldEdit);
+        Assert.Equal("Term: field-updated", fieldRoundtrip.Markdown);
+        Assert.Contains(
+            fieldRoundtrip.Diagnostics,
+            item => item.Id == "roundtrip.original-source-slice-unavailable" &&
+                    item.SourceSpan.Equals(new MarkdownSourceSpan(1, 7, 1, 14)));
     }
 
     [Fact]

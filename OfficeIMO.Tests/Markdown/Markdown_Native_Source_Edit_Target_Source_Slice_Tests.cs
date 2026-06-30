@@ -29,7 +29,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
 - alpha **one**
 
   beta [two](https://example.com)
-""");
+""", new MarkdownReaderOptions { PreserveTrivia = true });
         var item = Assert.Single(native.EnumerateListItems());
 
         var paragraphs = item.Paragraphs.ToArray();
@@ -52,6 +52,15 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
         Assert.NotNull(snapshotParagraphs[1].SourceSpan);
         Assert.Contains(snapshotParagraphs[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "one");
         Assert.Contains(snapshotParagraphs[1].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Link && inline.Text == "two");
+
+        var edit = native.CreateReplaceEdit(paragraphs[1], "gamma [three](https://example.org)");
+        var roundtrip = native.WriteWithSourceEdit(edit);
+
+        Assert.Contains("  gamma [three](https://example.org)", edit.Apply(native.SourceMarkdown));
+        Assert.Contains("  gamma [three](https://example.org)", roundtrip.Markdown);
+        var diagnostic = Assert.Single(roundtrip.Diagnostics);
+        Assert.Equal("roundtrip.original-source-slice-unavailable", diagnostic.Id);
+        Assert.Equal(paragraphs[1].SourceSpan, diagnostic.SourceSpan);
     }
 
     [Fact]

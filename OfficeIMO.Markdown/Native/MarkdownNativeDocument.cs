@@ -303,6 +303,22 @@ public sealed partial class MarkdownNativeDocument {
             GetOriginalSourceFailureReason(listItem.SyntaxNode));
     }
 
+    /// <summary>Creates a non-mutating source edit that replaces a paragraph owned by a native list item.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeListItemParagraph paragraph, string replacementMarkdown) {
+        if (paragraph == null) {
+            throw new ArgumentNullException(nameof(paragraph));
+        }
+
+        if (!paragraph.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native list item paragraph does not have a source span.");
+        }
+
+        return CreateReplaceEdit(
+            paragraph.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(paragraph.SyntaxNode));
+    }
+
     /// <summary>Creates a non-mutating source edit that replaces a reference-style link definition.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownReferenceLinkDefinition referenceDefinition, string replacementMarkdown) {
         if (referenceDefinition == null) {
@@ -326,7 +342,10 @@ public sealed partial class MarkdownNativeDocument {
             throw new InvalidOperationException("The native table cell does not have a source span.");
         }
 
-        return CreateReplaceEdit(tableCell.SourceSpan.Value, replacementMarkdown);
+        return CreateReplaceEdit(
+            tableCell.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(tableCell.SyntaxNode));
     }
 
     /// <summary>Creates a non-mutating source edit that replaces a native definition-list group.</summary>
@@ -339,7 +358,10 @@ public sealed partial class MarkdownNativeDocument {
             throw new InvalidOperationException("The native definition-list group does not have a source span.");
         }
 
-        return CreateReplaceEdit(definitionGroup.SourceSpan.Value, replacementMarkdown);
+        return CreateReplaceEdit(
+            definitionGroup.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(definitionGroup.SyntaxNode));
     }
 
     /// <summary>Creates a non-mutating source edit that replaces a native definition-list term.</summary>
@@ -352,7 +374,10 @@ public sealed partial class MarkdownNativeDocument {
             throw new InvalidOperationException("The native definition-list term does not have a source span.");
         }
 
-        return CreateReplaceEdit(definitionTerm.SourceSpan.Value, replacementMarkdown);
+        return CreateReplaceEdit(
+            definitionTerm.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(definitionTerm.SyntaxNode));
     }
 
     /// <summary>Creates a non-mutating source edit that replaces a native definition-list definition body.</summary>
@@ -367,7 +392,8 @@ public sealed partial class MarkdownNativeDocument {
 
         return CreateReplaceEdit(
             definition.SourceSpan.Value,
-            FormatDefinitionListDefinitionReplacement(definition, replacementMarkdown));
+            FormatDefinitionListDefinitionReplacement(definition, replacementMarkdown),
+            GetOriginalSourceFailureReason(definition.SyntaxNode));
     }
 
     /// <summary>Creates a non-mutating source edit that replaces source-backed inline metadata.</summary>
