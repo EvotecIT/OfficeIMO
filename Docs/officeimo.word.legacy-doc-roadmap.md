@@ -656,6 +656,9 @@ just to reserve names.
     fixed/autofit layout by expanding those style properties to native DOC row
     sprms, while preserving direct table overrides and continuing to block
     unsupported width shapes before bytes are committed.
+  - [x] Write supported table-style paragraph formatting by flattening style
+    paragraph properties into native DOC cell paragraph PAPX records, while
+    preserving direct cell paragraph formatting as the override.
   - [x] Write supported conditional table-style cell shading and cell borders
     by flattening first/last row, first/last column, corner, and banded
     conditional effects into native DOC `TC80` values, while keeping direct

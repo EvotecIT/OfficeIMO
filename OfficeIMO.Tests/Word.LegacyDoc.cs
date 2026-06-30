@@ -4648,6 +4648,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableStyleParagraphFormattingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocTableParagraphFormatting";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Table Paragraph Formatting" });
+                    style.Append(new BasedOn { Val = "TableNormal" });
+                    style.Append(new StyleParagraphProperties(
+                        new Justification { Val = JustificationValues.Center },
+                        new SpacingBetweenLines { After = "120" },
+                        new Indentation { Left = "360" }));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    table.Rows[0].Cells[0].AddParagraph("Inherited", removeExistingParagraphs: true);
+                    WordParagraph directOverride = table.Rows[0].Cells[1].AddParagraph("Direct", removeExistingParagraphs: true);
+                    directOverride.ParagraphAlignment = JustificationValues.Right;
+                    directOverride.LineSpacingAfter = 240;
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                WordParagraph inheritedParagraph = row.Cells[0].Paragraphs[0];
+                Assert.Equal("Inherited", inheritedParagraph.Text);
+                Assert.Equal(JustificationValues.Center, inheritedParagraph.ParagraphAlignment);
+                Assert.Equal(120, inheritedParagraph.LineSpacingAfter);
+                Assert.Equal(360, inheritedParagraph.IndentationBefore);
+
+                WordParagraph directParagraph = row.Cells[1].Paragraphs[0];
+                Assert.Equal("Direct", directParagraph.Text);
+                Assert.Equal(JustificationValues.Right, directParagraph.ParagraphAlignment);
+                Assert.Equal(240, directParagraph.LineSpacingAfter);
+                Assert.Equal(360, directParagraph.IndentationBefore);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedVisualTableStyleBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

@@ -1036,6 +1036,52 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 DefaultTableCellSpacingTwips);
         }
 
+        internal LegacyDocWritableParagraphFormatting WithInheritedParagraphFormatting(LegacyDocWritableParagraphFormatting inherited) {
+            if (!inherited.HasFormatting) {
+                return this;
+            }
+
+            return new LegacyDocWritableParagraphFormatting(
+                Alignment ?? inherited.Alignment,
+                StyleIndex ?? inherited.StyleIndex,
+                SpacingBeforeTwips ?? inherited.SpacingBeforeTwips,
+                SpacingAfterTwips ?? inherited.SpacingAfterTwips,
+                LineSpacingTwips ?? inherited.LineSpacingTwips,
+                LeftIndentTwips ?? inherited.LeftIndentTwips,
+                RightIndentTwips ?? inherited.RightIndentTwips,
+                FirstLineIndentTwips ?? inherited.FirstLineIndentTwips,
+                KeepLinesTogether ?? inherited.KeepLinesTogether,
+                KeepWithNext ?? inherited.KeepWithNext,
+                PageBreakBefore ?? inherited.PageBreakBefore,
+                AvoidWidowAndOrphan ?? inherited.AvoidWidowAndOrphan,
+                IsInTable ?? inherited.IsInTable,
+                IsTableTerminatingParagraph ?? inherited.IsTableTerminatingParagraph,
+                TabStops.Count > 0 ? TabStops : inherited.TabStops,
+                TableCellWidthsTwips.Count > 0 ? TableCellWidthsTwips : inherited.TableCellWidthsTwips,
+                TableLeftIndentTwips ?? inherited.TableLeftIndentTwips,
+                TableRowHeightTwips ?? inherited.TableRowHeightTwips,
+                TableRowHeightTwips != null ? TableRowHeightIsExact : inherited.TableRowHeightIsExact,
+                TableRowCantSplit ?? inherited.TableRowCantSplit,
+                TableRowIsHeader ?? inherited.TableRowIsHeader,
+                TableAlignment ?? inherited.TableAlignment,
+                TablePreferredWidth ?? inherited.TablePreferredWidth,
+                TableAutofit ?? inherited.TableAutofit,
+                TableCellHorizontalMerges.Count > 0 ? TableCellHorizontalMerges : inherited.TableCellHorizontalMerges,
+                TableCellVerticalMerges.Count > 0 ? TableCellVerticalMerges : inherited.TableCellVerticalMerges,
+                TableCellVerticalAlignments.Count > 0 ? TableCellVerticalAlignments : inherited.TableCellVerticalAlignments,
+                TableCellTextDirections.Count > 0 ? TableCellTextDirections : inherited.TableCellTextDirections,
+                TableCellFitTexts.Count > 0 ? TableCellFitTexts : inherited.TableCellFitTexts,
+                TableCellNoWraps.Count > 0 ? TableCellNoWraps : inherited.TableCellNoWraps,
+                TableCellHideMarks.Count > 0 ? TableCellHideMarks : inherited.TableCellHideMarks,
+                TableCellMargins.Count > 0 ? TableCellMargins : inherited.TableCellMargins,
+                TableCellShadings.Count > 0 ? TableCellShadings : inherited.TableCellShadings,
+                TableCellBorders.Count > 0 ? TableCellBorders : inherited.TableCellBorders,
+                ParagraphShading ?? inherited.ParagraphShading,
+                ParagraphBorders ?? inherited.ParagraphBorders,
+                DefaultTableCellMargins ?? inherited.DefaultTableCellMargins,
+                DefaultTableCellSpacingTwips ?? inherited.DefaultTableCellSpacingTwips);
+        }
+
         internal LegacyDocWritableParagraphFormatting WithTableMarkers(
             bool isTableTerminatingParagraph,
             IReadOnlyList<int>? tableCellWidthsTwips = null,

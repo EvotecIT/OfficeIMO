@@ -29,6 +29,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             defaultCellSpacingTwips ??= ReadSupportedTableStyleDefaultCellSpacing(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             LegacyDocTableBorders tableBorders = ReadSupportedTableBorders(tableProperties, tableStyleDefinitions);
             LegacyDocTableCellShading tableShading = ReadSupportedTableShading(tableProperties, tableStyleDefinitions);
+            LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting = ReadSupportedTableStyleParagraphFormatting(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             LegacyDocTableConditionalStyleSet conditionalStyles = ReadSupportedTableConditionalStyles(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             LegacyDocTableLook tableLook = ReadSupportedTableLook(tableProperties?.GetFirstChild<TableLook>());
             IReadOnlyList<int> gridColumnWidthsTwips = ReadSupportedTableGridWidths(table.GetFirstChild<TableGrid>());
@@ -52,7 +53,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 IReadOnlyList<LegacyDocTableCellShading> cellShadings = ReadSupportedTableCellShadings(writableCells);
                 IReadOnlyList<LegacyDocTableCellBorders> cellBorders = ReadSupportedTableCellBorders(writableCells);
                 foreach (LegacyDocWritableTableCell writableCell in writableCells) {
-                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, paragraphFormats, writableCell.SourceCell, styleIndexes, footnotes, endnotes, out int finalParagraphStart)
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, paragraphFormats, writableCell.SourceCell, styleIndexes, tableStyleParagraphFormatting, footnotes, endnotes, out int finalParagraphStart)
                         .WithTableMarkers(isTableTerminatingParagraph: false);
                     text.Append('\a');
                     paragraphFormats.Add(new LegacyDocWritableParagraph(finalParagraphStart, text.Length - finalParagraphStart, paragraphFormatting));
@@ -1073,6 +1074,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             List<LegacyDocWritableParagraph> paragraphFormats,
             TableCell? cell,
             IReadOnlyDictionary<string, ushort> styleIndexes,
+            LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
             out int finalParagraphStart) {
@@ -1105,14 +1107,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             for (int index = 0; index < paragraphs.Count - 1; index++) {
                 int paragraphStart = text.Length;
-                LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCellParagraph(text, runs, paragraphs[index], styleIndexes, footnotes, endnotes)
+                LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCellParagraph(text, runs, paragraphs[index], styleIndexes, tableStyleParagraphFormatting, footnotes, endnotes)
                     .WithTableMarkers(isTableTerminatingParagraph: false);
                 text.Append('\r');
                 paragraphFormats.Add(new LegacyDocWritableParagraph(paragraphStart, text.Length - paragraphStart, paragraphFormatting));
             }
 
             finalParagraphStart = text.Length;
-            return AppendTableCellParagraph(text, runs, paragraphs[paragraphs.Count - 1], styleIndexes, footnotes, endnotes);
+            return AppendTableCellParagraph(text, runs, paragraphs[paragraphs.Count - 1], styleIndexes, tableStyleParagraphFormatting, footnotes, endnotes);
         }
 
         private static void ThrowIfUnsupportedTableCellProperties(TableCellProperties cellProperties) {
@@ -1158,8 +1160,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritableParagraphFormatting AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, Paragraph paragraph, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
-            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
+        private static LegacyDocWritableParagraphFormatting AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, Paragraph paragraph, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes)
+                .WithInheritedParagraphFormatting(tableStyleParagraphFormatting);
 
             foreach (OpenXmlElement child in paragraph.ChildElements) {
                 switch (child) {
