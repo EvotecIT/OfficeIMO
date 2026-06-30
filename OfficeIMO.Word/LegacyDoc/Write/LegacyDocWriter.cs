@@ -25,6 +25,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmCFCaps = 0x083B;
         private const ushort SprmCFVanish = 0x083C;
         private const ushort SprmCFEmboss = 0x0858;
+        private const ushort SprmCFSpec = 0x0855;
         private const ushort SprmCHighlight = 0x2A0C;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCIss = 0x2A48;
@@ -34,6 +35,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmCCv = 0x6870;
         private const ushort SprmPJc = 0x2461;
         private const ushort DefaultPcdFlags = 0x0310;
+        private const ushort FootnotePcdFlags = 0x0330;
         private const ushort WordDocumentMagic = 0xA5EC;
         private const ushort Word97FibVersion = 0x00C1;
         private const ushort Word97FibBackVersion = 0x00BF;
@@ -43,8 +45,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort FibRgFcLcb97Size = 0x00B7;
         private const ushort OneTableStreamFlag = 0x0200;
         private const ushort ExtendedCharacterFlag = 0x1000;
+        private const ushort DefaultFibFlags = 0x1200;
         private const int FcPlcfSedOffset = 0xCA;
         private const int LcbPlcfSedOffset = 0xCE;
+        private const int FcPlcffndRefOffset = 0xAA;
+        private const int LcbPlcffndRefOffset = 0xAE;
+        private const int FcPlcffndTxtOffset = 0xB2;
+        private const int LcbPlcffndTxtOffset = 0xB6;
         private const int FcStshfOffset = 0xA2;
         private const int LcbStshfOffset = 0xA6;
         private const int FcDopOffset = 0x192;
@@ -57,6 +64,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int LcbPlcfHddOffset = 0xF6;
         private const int DopBaseLength = 8;
         private const ushort FacingPagesDopFlag = 0x0001;
+        private static readonly byte[] PlainParagraphPapx = { 0x00, 0x01, 0x00, 0x00 };
+        private static readonly byte[] FootnoteTextParagraphPapx = { 0x00, 0x01, 0x23, 0x00 };
 
         internal static byte[] WriteDocument(WordDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
@@ -125,6 +134,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var text = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var paragraphFormats = new List<LegacyDocWritableParagraph>();
+            LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!);
             LegacyDocWritableStyleSheet styleSheet = CreateWritableStyleSheet(mainPart!, body);
             LegacyDocSectionFormat finalSectionFormat = LegacyDocSectionFormat.Default;
             var sections = new List<LegacyDocWritableSection>();
@@ -134,7 +144,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Paragraph paragraph:
                         if (!IsPureSectionBreakParagraph(paragraph)) {
-                            AppendParagraph(text, runs, paragraphFormats, paragraph, styleSheet.StyleIndexes);
+                            AppendParagraph(text, runs, paragraphFormats, paragraph, styleSheet.StyleIndexes, footnotes);
                             bodyContentCount++;
                         }
 
@@ -147,7 +157,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Table table:
-                        AppendTable(text, runs, paragraphFormats, table, styleSheet.StyleIndexes);
+                        AppendTable(text, runs, paragraphFormats, table, styleSheet.StyleIndexes, footnotes);
                         bodyContentCount++;
                         break;
                     case SectionProperties sectionProperties:
@@ -163,8 +173,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             AddSection(sections, text.Length, finalSectionFormat.WithSectionBreakType(pendingSectionBreakType));
-            LegacyDocWritableHeaderFooterStories headerFooterStories = BuildHeaderFooterStories(document, mainPart!);
-            return new LegacyDocWritableBody(text.ToString(), runs, paragraphFormats, sections, styleSheet, headerFooterStories, HasEvenAndOddHeaders(mainPart!));
+            footnotes.ThrowIfUnreferencedFootnotesRemain();
+            LegacyDocWritableHeaderFooterStories headerFooterStories = BuildHeaderFooterStories(document, mainPart!, footnotes.HasReferences);
+            LegacyDocWritableFootnoteStories footnoteStories = footnotes.CreateStories(text.Length, headerFooterStories.Text.Length, footnotes.HasReferences ? 1 : 0);
+            return new LegacyDocWritableBody(text.ToString(), runs, paragraphFormats, sections, styleSheet, footnoteStories, headerFooterStories, HasEvenAndOddHeaders(mainPart!));
         }
 
         private static bool HasEvenAndOddHeaders(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {
@@ -179,8 +191,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             ThrowIfUnsupportedReviewMarkup(mainPart);
 
-            if (HasUserFootnotes(mainPart) || HasUserEndnotes(mainPart)) {
-                throw new NotSupportedException("Native DOC saving currently supports body paragraphs only. Footnotes and endnotes are not supported yet.");
+            if (HasUserEndnotes(mainPart)) {
+                throw new NotSupportedException("Native DOC saving currently supports simple footnotes, but endnotes are not supported yet.");
             }
 
             if (mainPart.ImageParts.Any()) {
@@ -226,14 +238,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     || body.Descendants<CommentReference>().Any());
         }
 
-        private static bool HasUserFootnotes(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {
-            var footnotes = mainPart.FootnotesPart?.Footnotes;
-            return footnotes != null && footnotes.Elements<Footnote>().Any(footnote => footnote.Type == null);
-        }
-
         private static bool HasUserEndnotes(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {
             var endnotes = mainPart.EndnotesPart?.Endnotes;
-            return endnotes != null && endnotes.Elements<Endnote>().Any(endnote => endnote.Type == null);
+            return endnotes != null && endnotes.Elements<Endnote>().Any(IsUserEndnote);
+        }
+
+        private static bool IsUserEndnote(Endnote endnote) {
+            return endnote.Type == null || endnote.Type.Value == FootnoteEndnoteValues.Normal;
         }
 
         private static bool IsPureSectionBreakParagraph(Paragraph paragraph) {
@@ -259,7 +270,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             sections.Add(new LegacyDocWritableSection(endCharacter, format));
         }
 
-        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, Paragraph paragraph, IReadOnlyDictionary<string, ushort> styleIndexes) {
+        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, Paragraph paragraph, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes) {
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
             int paragraphStart = text.Length;
 
@@ -268,7 +279,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case ParagraphProperties:
                         break;
                     case Run run:
-                        AppendSupportedRunText(text, runs, run);
+                        AppendSupportedRunText(text, runs, run, footnotes);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports only text runs with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
@@ -282,9 +293,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static byte[] CreateWordDocumentStream(LegacyDocWritableBody body) {
-            bool compressedText = CanWriteCompressedText(body.FullText);
+            bool compressedText = CanWriteCompressedText(body.StoredText);
             int bytesPerCharacter = compressedText ? 1 : 2;
-            byte[] textBytes = compressedText ? EncodeCompressedText(body.FullText) : Encoding.Unicode.GetBytes(body.FullText);
+            byte[] textBytes = compressedText ? EncodeCompressedText(body.StoredText) : Encoding.Unicode.GetBytes(body.StoredText);
             byte[] fontTable = CreateFontTable(body.FontFamilies);
             int chpxFkpOffset = body.HasCharacterFormatting
                 ? AlignToSector(TextOffset + textBytes.Length)
@@ -306,7 +317,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteUInt16(stream, 0x00, WordDocumentMagic);
             WriteUInt16(stream, 0x02, Word97FibVersion);
             WriteUInt16(stream, 0x06, DefaultLanguageId);
-            WriteUInt16(stream, 0x0A, OneTableStreamFlag | ExtendedCharacterFlag);
+            WriteUInt16(stream, 0x0A, DefaultFibFlags);
             WriteUInt16(stream, 0x0C, Word97FibBackVersion);
             WriteInt32(stream, 0x18, TextOffset);
             WriteInt32(stream, 0x1C, TextOffset + textBytes.Length);
@@ -314,6 +325,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteUInt16(stream, 0x3C, DefaultLanguageId);
             WriteUInt16(stream, 0x3E, FibRgLw97DwordCount);
             WriteInt32(stream, 0x4C, body.Text.Length);
+            WriteInt32(stream, 0x50, body.FootnoteText.Length);
             WriteInt32(stream, 0x54, body.HeaderFooterText.Length);
             WriteUInt16(stream, 0x98, FibRgFcLcb97Size);
             WriteInt32(stream, FcStshfOffset, body.HasStyleSheet ? body.StyleSheetOffsetInTableStream : 0);
@@ -324,12 +336,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteInt32(stream, LcbPlcfBtePapxOffset, body.HasParagraphFormatting ? PapxPlcLength : 0);
             WriteInt32(stream, FcPlcfSedOffset, body.HasSectionDescriptors ? body.SedPlcOffsetInTableStream : 0);
             WriteInt32(stream, LcbPlcfSedOffset, body.HasSectionDescriptors ? body.SedPlcLength : 0);
+            WriteInt32(stream, FcPlcffndRefOffset, body.HasFootnotes ? body.PlcffndRefOffsetInTableStream : 0);
+            WriteInt32(stream, LcbPlcffndRefOffset, body.HasFootnotes ? body.PlcffndRef.Length : 0);
+            WriteInt32(stream, FcPlcffndTxtOffset, body.HasFootnotes ? body.PlcffndTxtOffsetInTableStream : 0);
+            WriteInt32(stream, LcbPlcffndTxtOffset, body.HasFootnotes ? body.PlcffndTxt.Length : 0);
             WriteInt32(stream, FcPlcfHddOffset, body.HasHeaderFooterStories ? body.PlcfHddOffsetInTableStream : 0);
             WriteInt32(stream, LcbPlcfHddOffset, body.HasHeaderFooterStories ? body.PlcfHdd.Length : 0);
             WriteInt32(stream, FcSttbfFfnOffset, body.HasFontTable ? body.FontTableOffsetInTableStream : 0);
             WriteInt32(stream, LcbSttbfFfnOffset, fontTable.Length);
             WriteInt32(stream, FcDopOffset, body.HasDocumentOptions ? body.DopOffsetInTableStream : 0);
-            WriteInt32(stream, LcbDopOffset, body.HasDocumentOptions ? DopBaseLength : 0);
+            WriteInt32(stream, LcbDopOffset, body.HasDocumentOptions ? body.DopLength : 0);
             WriteInt32(stream, 0x1A2, 0);
             WriteInt32(stream, 0x1A6, ClxLength);
             Buffer.BlockCopy(textBytes, 0, stream, TextOffset, textBytes.Length);
@@ -356,23 +372,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static byte[] CreateTableStream(LegacyDocWritableBody body) {
             byte[] fontTable = CreateFontTable(body.FontFamilies);
-            bool compressedText = CanWriteCompressedText(body.FullText);
+            bool compressedText = CanWriteCompressedText(body.StoredText);
             int bytesPerCharacter = compressedText ? 1 : 2;
-            int textByteLength = checked(body.FullText.Length * bytesPerCharacter);
-            int bodyTextByteLength = checked(body.Text.Length * bytesPerCharacter);
+            int textByteLength = checked(body.StoredText.Length * bytesPerCharacter);
+            int pieceTableByteLength = checked(body.PieceTableCharacterCount * bytesPerCharacter);
             var table = new byte[body.FontTableOffsetInTableStream + fontTable.Length];
             table[0] = 0x02;
             WriteInt32(table, 1, 16);
             WriteInt32(table, 5, 0);
-            WriteInt32(table, 9, body.FullText.Length);
-            WriteUInt16(table, 13, DefaultPcdFlags);
+            WriteInt32(table, 9, body.PieceTableCharacterCount);
+            WriteUInt16(table, 13, body.HasFootnotes ? FootnotePcdFlags : DefaultPcdFlags);
             WriteUInt32(table, 15, compressedText ? CompressedTextFlag | (uint)(TextOffset * 2) : TextOffset);
             WriteUInt16(table, 19, 0);
 
             if (body.HasCharacterFormatting) {
                 int chpxFkpOffset = AlignToSector(TextOffset + textByteLength);
                 WriteInt32(table, ClxLength, TextOffset);
-                WriteInt32(table, ClxLength + 4, TextOffset + bodyTextByteLength);
+                WriteInt32(table, ClxLength + 4, TextOffset + pieceTableByteLength);
                 WriteInt32(table, ClxLength + 8, chpxFkpOffset / OleSectorSize);
             }
 
@@ -382,7 +398,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     : 0;
                 int papxFkpOffset = AlignToSector(body.HasCharacterFormatting ? chpxFkpOffset + OleSectorSize : TextOffset + textByteLength);
                 WriteInt32(table, body.PapxPlcOffsetInTableStream, TextOffset);
-                WriteInt32(table, body.PapxPlcOffsetInTableStream + 4, TextOffset + bodyTextByteLength);
+                WriteInt32(table, body.PapxPlcOffsetInTableStream + 4, TextOffset + pieceTableByteLength);
                 WriteInt32(table, body.PapxPlcOffsetInTableStream + 8, papxFkpOffset / OleSectorSize);
             }
 
@@ -399,6 +415,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ? chpxFkpOffset + OleSectorSize
                         : TextOffset + textByteLength);
                 WritePlcfSed(table, body.SedPlcOffsetInTableStream, CreateSectionRecords(body, sepxOffset));
+            }
+
+            if (body.HasFootnotes) {
+                Buffer.BlockCopy(body.PlcffndRef, 0, table, body.PlcffndRefOffsetInTableStream, body.PlcffndRef.Length);
+                Buffer.BlockCopy(body.PlcffndTxt, 0, table, body.PlcffndTxtOffsetInTableStream, body.PlcffndTxt.Length);
             }
 
             if (body.HasHeaderFooterStories) {
@@ -422,7 +443,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static byte[] CreateDopBase(LegacyDocWritableBody body) {
-            var dop = new byte[DopBaseLength];
+            var dop = new byte[body.DopLength];
             if (body.FacingPages) {
                 WriteUInt16(dop, 0, FacingPagesDopFlag);
             }
@@ -513,6 +534,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs,
                 IReadOnlyList<LegacyDocWritableSection> sections,
                 LegacyDocWritableStyleSheet styleSheet,
+                LegacyDocWritableFootnoteStories footnoteStories,
                 LegacyDocWritableHeaderFooterStories headerFooterStories,
                 bool facingPages) {
                 Text = text;
@@ -520,8 +542,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 FormattedParagraphs = formattedParagraphs;
                 Sections = sections;
                 StyleSheet = styleSheet;
+                FootnoteText = footnoteStories.Text;
+                PlcffndRef = footnoteStories.PlcffndRef;
+                PlcffndTxt = footnoteStories.PlcffndTxt;
+                FootnoteMarkerPositions = footnoteStories.MarkerPositions;
                 HeaderFooterText = headerFooterStories.Text;
                 PlcfHdd = headerFooterStories.PlcfHdd;
+                HeaderFooterMarkerPositions = headerFooterStories.MarkerPositions;
                 FacingPages = facingPages;
                 FontFamilies = styleSheet.FontFamilies
                     .Concat(formattedRuns.Select(run => run.Formatting.FontFamily))
@@ -538,7 +565,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal string HeaderFooterText { get; }
 
-            internal string FullText => Text + HeaderFooterText;
+            internal string FootnoteText { get; }
+
+            internal string FullText => Text + FootnoteText + HeaderFooterText;
+
+            internal string StoredText => HasFootnotes ? FullText + "\r" : FullText;
+
+            internal int PieceTableCharacterCount => HasFootnotes ? FullText.Length + 1 : FullText.Length;
+
+            internal byte[] PlcffndRef { get; }
+
+            internal byte[] PlcffndTxt { get; }
+
+            internal IReadOnlyList<int> FootnoteMarkerPositions { get; }
+
+            internal IReadOnlyList<int> HeaderFooterMarkerPositions { get; }
 
             internal byte[] PlcfHdd { get; }
 
@@ -558,7 +599,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasCharacterFormatting => FormattedRuns.Count > 0;
 
-            internal bool HasParagraphFormatting => FormattedParagraphs.Count > 0;
+            internal bool HasParagraphFormatting => FormattedParagraphs.Count > 0 || HasFootnotes;
 
             internal bool HasFontTable => FontFamilies.Count > 0;
 
@@ -568,7 +609,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasHeaderFooterStories => HeaderFooterText.Length > 0 && PlcfHdd.Length > 0;
 
+            internal bool HasFootnotes => FootnoteText.Length > 0 && PlcffndRef.Length > 0 && PlcffndTxt.Length > 0;
+
             internal bool HasDocumentOptions => FacingPages;
+
+            internal int DopLength => DopBaseLength;
 
             internal int PapxPlcOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0);
 
@@ -578,13 +623,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             private int AfterSectionDataOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0) + (HasParagraphFormatting ? PapxPlcLength : 0) + (HasSectionDescriptors ? SedPlcLength : 0);
 
-            internal int PlcfHddOffsetInTableStream => AfterSectionDataOffsetInTableStream;
+            internal int PlcffndRefOffsetInTableStream => AfterSectionDataOffsetInTableStream;
 
-            private int AfterHeaderFooterDataOffsetInTableStream => AfterSectionDataOffsetInTableStream + (HasHeaderFooterStories ? PlcfHdd.Length : 0);
+            internal int PlcffndTxtOffsetInTableStream => AfterSectionDataOffsetInTableStream + (HasFootnotes ? PlcffndRef.Length : 0);
+
+            private int AfterFootnoteDataOffsetInTableStream => AfterSectionDataOffsetInTableStream + (HasFootnotes ? PlcffndRef.Length + PlcffndTxt.Length : 0);
+
+            internal int PlcfHddOffsetInTableStream => AfterFootnoteDataOffsetInTableStream;
+
+            private int AfterHeaderFooterDataOffsetInTableStream => AfterFootnoteDataOffsetInTableStream + (HasHeaderFooterStories ? PlcfHdd.Length : 0);
 
             internal int DopOffsetInTableStream => HasDocumentOptions ? AlignToEven(AfterHeaderFooterDataOffsetInTableStream) : AfterHeaderFooterDataOffsetInTableStream;
 
-            private int AfterDocumentOptionsOffsetInTableStream => HasDocumentOptions ? DopOffsetInTableStream + DopBaseLength : AfterHeaderFooterDataOffsetInTableStream;
+            private int AfterDocumentOptionsOffsetInTableStream => HasDocumentOptions ? DopOffsetInTableStream + DopLength : AfterHeaderFooterDataOffsetInTableStream;
 
             internal int StyleSheetOffsetInTableStream => HasStyleSheet ? AlignToEven(AfterDocumentOptionsOffsetInTableStream) : AfterDocumentOptionsOffsetInTableStream;
 
@@ -595,7 +646,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal IReadOnlyList<LegacyDocWritableSegment> CreateFormattingSegments() {
                 var segments = new List<LegacyDocWritableSegment>();
                 int character = 0;
-                foreach (LegacyDocWritableRun run in FormattedRuns.OrderBy(item => item.StartCharacter)) {
+                foreach (LegacyDocWritableRun run in CreateFormattedRuns().OrderBy(item => item.StartCharacter)) {
                     if (run.StartCharacter > character) {
                         AddSegment(segments, character, run.StartCharacter - character, LegacyDocWritableFormatting.Plain);
                     }
@@ -604,11 +655,31 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     character = run.EndCharacter;
                 }
 
-                if (character < Text.Length) {
-                    AddSegment(segments, character, Text.Length - character, LegacyDocWritableFormatting.Plain);
+                if (character < PieceTableCharacterCount) {
+                    AddSegment(segments, character, PieceTableCharacterCount - character, LegacyDocWritableFormatting.Plain);
                 }
 
                 return segments;
+            }
+
+            private IReadOnlyList<LegacyDocWritableRun> CreateFormattedRuns() {
+                if (FootnoteMarkerPositions.Count == 0 && HeaderFooterMarkerPositions.Count == 0) {
+                    return FormattedRuns;
+                }
+
+                var runs = new List<LegacyDocWritableRun>(FormattedRuns.Count + FootnoteMarkerPositions.Count + HeaderFooterMarkerPositions.Count);
+                runs.AddRange(FormattedRuns);
+                int footnoteStartCharacter = Text.Length;
+                foreach (int markerPosition in FootnoteMarkerPositions) {
+                    runs.Add(new LegacyDocWritableRun(footnoteStartCharacter + markerPosition, 1, LegacyDocWritableFormatting.SpecialCharacter));
+                }
+
+                int headerFooterStartCharacter = Text.Length + FootnoteText.Length;
+                foreach (int markerPosition in HeaderFooterMarkerPositions) {
+                    runs.Add(new LegacyDocWritableRun(headerFooterStartCharacter + markerPosition, 1, LegacyDocWritableFormatting.SpecialCharacter));
+                }
+
+                return runs;
             }
 
             private static void AddSegment(
@@ -632,6 +703,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             internal IReadOnlyList<LegacyDocWritableParagraphSegment> CreateParagraphSegments() {
+                if (HasFootnotes) {
+                    return CreateFootnoteAwareParagraphSegments();
+                }
+
                 var segments = new List<LegacyDocWritableParagraphSegment>();
                 int character = 0;
                 foreach (LegacyDocWritableParagraph paragraph in FormattedParagraphs.OrderBy(item => item.StartCharacter)) {
@@ -643,11 +718,94 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     character = paragraph.EndCharacter;
                 }
 
-                if (character < Text.Length) {
-                    AddParagraphSegment(segments, character, Text.Length - character, LegacyDocWritableParagraphFormatting.Plain);
+                if (character < PieceTableCharacterCount) {
+                    AddParagraphSegment(segments, character, PieceTableCharacterCount - character, LegacyDocWritableParagraphFormatting.Plain);
                 }
 
                 return segments;
+            }
+
+            private IReadOnlyList<LegacyDocWritableParagraphSegment> CreateFootnoteAwareParagraphSegments() {
+                var segments = new List<LegacyDocWritableParagraphSegment>();
+                AddBodyParagraphSegments(segments);
+                AddStoryParagraphSegments(
+                    segments,
+                    FootnoteText,
+                    Text.Length,
+                    paragraph => paragraph.Length > 0 && paragraph[0] == LegacyDocFootnoteReader.FootnoteReferenceCharacter
+                        ? FootnoteTextParagraphPapx
+                        : PlainParagraphPapx);
+                AddStoryParagraphSegments(segments, HeaderFooterText, Text.Length + FootnoteText.Length, _ => PlainParagraphPapx);
+                AddRawParagraphSegment(segments, FullText.Length, PieceTableCharacterCount - FullText.Length, PlainParagraphPapx);
+                return segments;
+            }
+
+            private void AddBodyParagraphSegments(List<LegacyDocWritableParagraphSegment> segments) {
+                var formattedParagraphs = FormattedParagraphs
+                    .OrderBy(item => item.StartCharacter)
+                    .ToArray();
+                int formattedIndex = 0;
+                AddStoryParagraphSegments(
+                    segments,
+                    Text,
+                    0,
+                    paragraph => {
+                        while (formattedIndex < formattedParagraphs.Length
+                            && formattedParagraphs[formattedIndex].EndCharacter <= paragraph.Start) {
+                            formattedIndex++;
+                        }
+
+                        if (formattedIndex < formattedParagraphs.Length
+                            && formattedParagraphs[formattedIndex].StartCharacter == paragraph.Start
+                            && formattedParagraphs[formattedIndex].Length == paragraph.Length) {
+                            return formattedParagraphs[formattedIndex].Formatting;
+                        }
+
+                        return PlainParagraphPapx;
+                    });
+            }
+
+            private static void AddStoryParagraphSegments(
+                List<LegacyDocWritableParagraphSegment> segments,
+                string story,
+                int storyStart,
+                Func<LegacyDocWritableParagraphRange, object> selectParagraphFormat) {
+                int paragraphStart = 0;
+                for (int index = 0; index < story.Length; index++) {
+                    if (story[index] != '\r') {
+                        continue;
+                    }
+
+                    AddStoryParagraphSegment(segments, story, storyStart, paragraphStart, index + 1, selectParagraphFormat);
+                    paragraphStart = index + 1;
+                }
+
+                if (paragraphStart < story.Length) {
+                    AddStoryParagraphSegment(segments, story, storyStart, paragraphStart, story.Length, selectParagraphFormat);
+                }
+            }
+
+            private static void AddStoryParagraphSegment(
+                List<LegacyDocWritableParagraphSegment> segments,
+                string story,
+                int storyStart,
+                int paragraphStart,
+                int paragraphEnd,
+                Func<LegacyDocWritableParagraphRange, object> selectParagraphFormat) {
+                int length = paragraphEnd - paragraphStart;
+                if (length <= 0) {
+                    return;
+                }
+
+                var paragraph = new LegacyDocWritableParagraphRange(storyStart + paragraphStart, length, story.Substring(paragraphStart, length));
+                object paragraphFormat = selectParagraphFormat(paragraph);
+                if (paragraphFormat is LegacyDocWritableParagraphFormatting formatting) {
+                    AddParagraphSegment(segments, paragraph.Start, paragraph.Length, formatting);
+                } else if (paragraphFormat is byte[] papxOverride) {
+                    AddRawParagraphSegment(segments, paragraph.Start, paragraph.Length, papxOverride);
+                } else {
+                    throw new InvalidOperationException("The generated DOC paragraph segment formatter returned an unsupported value.");
+                }
             }
 
             private static void AddParagraphSegment(
@@ -661,7 +819,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 if (segments.Count > 0) {
                     LegacyDocWritableParagraphSegment previous = segments[segments.Count - 1];
-                    if (previous.EndCharacter == startCharacter && previous.Formatting.Equals(formatting)) {
+                    if (previous.EndCharacter == startCharacter && previous.CanMergeWith(formatting)) {
                         segments[segments.Count - 1] = previous.Extend(length);
                         return;
                     }
@@ -669,6 +827,34 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 segments.Add(new LegacyDocWritableParagraphSegment(startCharacter, length, formatting));
             }
+
+            private static void AddRawParagraphSegment(
+                List<LegacyDocWritableParagraphSegment> segments,
+                int startCharacter,
+                int length,
+                byte[] papxOverride) {
+                if (length <= 0) {
+                    return;
+                }
+
+                segments.Add(new LegacyDocWritableParagraphSegment(startCharacter, length, papxOverride));
+            }
+        }
+
+        private readonly struct LegacyDocWritableParagraphRange {
+            internal LegacyDocWritableParagraphRange(int start, int length, string text) {
+                Start = start;
+                Length = length;
+                Text = text;
+            }
+
+            internal int Start { get; }
+
+            internal int Length { get; }
+
+            internal string Text { get; }
+
+            internal char this[int index] => Text[index];
         }
 
         private readonly struct LegacyDocWritableSection {

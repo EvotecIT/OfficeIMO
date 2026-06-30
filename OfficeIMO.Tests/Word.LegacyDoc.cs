@@ -1599,6 +1599,67 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSimpleFootnotesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Body with native note");
+                    paragraph.AddFootNote("Native footnote");
+
+                    document.Save(docPath);
+                }
+
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                int ccpText = BitConverter.ToInt32(wordDocumentStream, 0x4C);
+                int ccpFtn = BitConverter.ToInt32(wordDocumentStream, 0x50);
+                int fcPlcffndRef = BitConverter.ToInt32(wordDocumentStream, 0xAA);
+                int lcbPlcffndRef = BitConverter.ToInt32(wordDocumentStream, 0xAE);
+                int fcPlcffndTxt = BitConverter.ToInt32(wordDocumentStream, 0xB2);
+                int lcbPlcffndTxt = BitConverter.ToInt32(wordDocumentStream, 0xB6);
+                Assert.Equal("Body with native note".Length + 2, ccpText);
+                Assert.Equal("Native footnote".Length + 4, ccpFtn);
+                Assert.Equal(13, BitConverter.ToInt32(wordDocumentStream, 0x54));
+                Assert.Equal(10, lcbPlcffndRef);
+                Assert.Equal(12, lcbPlcffndTxt);
+                Assert.Equal("Body with native note".Length, BitConverter.ToInt32(tableStream, fcPlcffndRef));
+                Assert.Equal(ccpText + ccpFtn + BitConverter.ToInt32(wordDocumentStream, 0x54) + 1, BitConverter.ToInt32(tableStream, fcPlcffndRef + 4));
+                Assert.Equal(0, BitConverter.ToInt32(tableStream, fcPlcffndTxt));
+                Assert.Equal(ccpFtn - 1, BitConverter.ToInt32(tableStream, fcPlcffndTxt + 4));
+                Assert.Equal(ccpFtn + 2, BitConverter.ToInt32(tableStream, fcPlcffndTxt + 8));
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Body with native note", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
+                WordFootNote footnote = Assert.Single(reloaded.FootNotes);
+                Assert.Equal("Native footnote", footnote.Paragraphs![1].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksEndnotesBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph paragraph = document.AddParagraph("Body with endnote");
+                paragraph.AddEndNote("Native endnote");
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("endnotes are not supported", exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocFirstAndEvenHeaderFooterAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

@@ -59,13 +59,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return false;
             }
 
-            if (referencePositions.Length == 0 || textPositions.Length != referencePositions.Length + 1) {
+            if (referencePositions.Length == 0 || textPositions.Length < referencePositions.Length + 1) {
                 warning = "The footnote reference and text PLCs do not contain matching simple footnote ranges.";
                 referencePositions = Array.Empty<int>();
                 textPositions = Array.Empty<int>();
                 return false;
             }
 
+            textPositions = textPositions.Take(referencePositions.Length + 1).ToArray();
             int previousTextPosition = -1;
             for (int index = 0; index < textPositions.Length; index++) {
                 int position = textPositions[index];
@@ -170,8 +171,19 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             return text
                 .Split(new[] { '\r' }, StringSplitOptions.None)
+                .Select((paragraph, index) => index == 0 ? StripLeadingFootnoteReferenceMark(paragraph) : paragraph)
                 .Where(paragraph => paragraph.Length > 0)
                 .ToArray();
+        }
+
+        private static string StripLeadingFootnoteReferenceMark(string paragraph) {
+            if (string.IsNullOrEmpty(paragraph) || paragraph[0] != FootnoteReferenceCharacter) {
+                return paragraph;
+            }
+
+            return paragraph.Length > 1 && paragraph[1] == ' '
+                ? paragraph.Substring(2)
+                : paragraph.Substring(1);
         }
     }
 }

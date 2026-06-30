@@ -1,10 +1,16 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run) {
+        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes) {
+            if (run.Elements<FootnoteReference>().Any()) {
+                AppendFootnoteReferenceRun(text, runs, footnotes, run);
+                return;
+            }
+
             LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties);
 
             foreach (OpenXmlElement child in run.ChildElements) {
@@ -20,10 +26,38 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Break breakNode:
                         AppendSupportedBreak(text, runs, breakNode, formatting);
                         break;
+                    case FootnoteReference footnoteReference:
+                        AppendFootnoteReference(text, runs, footnotes, footnoteReference);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports text, tabs, line breaks, and page breaks only. Unsupported run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports text, tabs, line breaks, page breaks, and simple footnote references only. Unsupported run element: {child.LocalName}.");
                 }
             }
+        }
+
+        private static void AppendFootnoteReferenceRun(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableFootnotes footnotes, Run run) {
+            foreach (OpenXmlElement child in run.ChildElements) {
+                switch (child) {
+                    case RunProperties:
+                        break;
+                    case FootnoteReference footnoteReference:
+                        AppendFootnoteReference(text, runs, footnotes, footnoteReference);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports footnote reference runs only when they contain footnote references. Unsupported footnote reference run element: {child.LocalName}.");
+                }
+            }
+        }
+
+        private static void AppendFootnoteReference(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableFootnotes footnotes, FootnoteReference footnoteReference) {
+            long? id = footnoteReference.Id?.Value;
+            if (id == null || id.Value <= 0) {
+                throw new NotSupportedException("Native DOC saving supports footnote references only when they use a positive identifier.");
+            }
+
+            int referencePosition = text.Length;
+            footnotes.AddReference(id.Value, referencePosition);
+            AppendFormattedText(text, runs, LegacyDocFootnoteReader.FootnoteReferenceCharacter.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
         }
 
         private static void AppendSupportedBreak(StringBuilder text, List<LegacyDocWritableRun> runs, Break breakNode, LegacyDocWritableFormatting formatting) {
@@ -129,7 +163,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
             }
 
-            return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, false, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
         }
 
         private static bool IsEnabled(OnOffType property) {
@@ -412,6 +446,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmCFVanish, 1);
             }
 
+            if (formatting.Special) {
+                AddSingleByteSprm(grpprl, SprmCFSpec, 1);
+            }
+
             if (formatting.Caps == 1) {
                 AddSingleByteSprm(grpprl, SprmCFCaps, 1);
             } else if (formatting.Caps == 2) {
@@ -511,9 +549,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableFormatting : IEquatable<LegacyDocWritableFormatting> {
-            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null);
+            internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null);
+            internal static readonly LegacyDocWritableFormatting SpecialCharacter = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, true, null, null, null, null, null, null, null);
 
-            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily) {
+            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, bool special, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily) {
                 Bold = bold;
                 Italic = italic;
                 Strike = strike;
@@ -523,6 +562,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 Emboss = emboss;
                 Imprint = imprint;
                 Hidden = hidden;
+                Special = special;
                 Caps = caps;
                 VerticalPosition = verticalPosition;
                 Underline = underline;
@@ -550,6 +590,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool Hidden { get; }
 
+            internal bool Special { get; }
+
             internal byte? Caps { get; }
 
             internal byte? VerticalPosition { get; }
@@ -564,7 +606,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal string? FontFamily { get; }
 
-            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
+            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
 
             public bool Equals(LegacyDocWritableFormatting other) {
                 return Bold == other.Bold
@@ -576,6 +618,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     && Emboss == other.Emboss
                     && Imprint == other.Imprint
                     && Hidden == other.Hidden
+                    && Special == other.Special
                     && Caps == other.Caps
                     && VerticalPosition == other.VerticalPosition
                     && Underline == other.Underline
@@ -600,6 +643,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 hash = (hash * 31) + Emboss.GetHashCode();
                 hash = (hash * 31) + Imprint.GetHashCode();
                 hash = (hash * 31) + Hidden.GetHashCode();
+                hash = (hash * 31) + Special.GetHashCode();
                 hash = (hash * 31) + Caps.GetHashCode();
                 hash = (hash * 31) + VerticalPosition.GetHashCode();
                 hash = (hash * 31) + Underline.GetHashCode();

@@ -427,6 +427,9 @@ just to reserve names.
   - [x] Project simple footnote reference/text PLCs into normal OfficeIMO
     footnotes and preserve the projected content through normal DOCX save/reload,
     while keeping malformed footnote PLCs preserve-only.
+  - [x] Write simple authored footnote references and text bodies with native
+    DOC `PlcffndRef`/`PlcffndTxt` records, then reload them through the legacy
+    reader while keeping endnote bodies blocked.
   - [ ] Add section breaks inside richer body shapes, headers, footers,
     footnotes, and endnotes as separate fixture-backed slices.
 - [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
@@ -635,11 +638,10 @@ just to reserve names.
     committed.
   - [x] Write simple section footnote placement and footnote/endnote numbering
     settings, then reload them through the legacy reader while continuing to
-    block endnote placement and actual note bodies before native `.doc` bytes
-    are committed.
-  - [x] Keep authored footnote/endnote bodies blocked in native `.doc` save while
-    the reader-side simple footnote body projection exists but native DOC note
-    writer PLC/FIB support is still pending.
+    block endnote placement before native `.doc` bytes are committed.
+  - [x] Write simple authored footnote references and text bodies through native
+    DOC save, then reload them through the legacy reader while continuing to
+    block endnote bodies before native `.doc` bytes are committed.
   - [x] Keep blocking unsupported final-section properties before native `.doc`
     bytes are committed so unimplemented section features are not silently
     dropped.

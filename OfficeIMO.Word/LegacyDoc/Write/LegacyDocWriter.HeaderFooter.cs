@@ -7,19 +7,30 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
         private const int HeaderFooterSeparatorStoryCount = 6;
         private const int HeaderFooterStoriesPerSection = 6;
+        private const string HeaderFooterAutoNumberSeparatorStory = "\u0003\r\r";
+        private const string HeaderFooterContinuationSeparatorStory = "\u0004\r\r";
+        private const string HeaderFooterSeparatorTerminator = "\r";
 
-        private static LegacyDocWritableHeaderFooterStories BuildHeaderFooterStories(WordDocument document, MainDocumentPart mainPart) {
-            if (!mainPart.HeaderParts.Any() && !mainPart.FooterParts.Any()) {
+        private static LegacyDocWritableHeaderFooterStories BuildHeaderFooterStories(WordDocument document, MainDocumentPart mainPart, bool includeDefaultSeparators) {
+            if (!includeDefaultSeparators && !mainPart.HeaderParts.Any() && !mainPart.FooterParts.Any()) {
                 return LegacyDocWritableHeaderFooterStories.Empty;
             }
 
-            if (document.Sections.Count == 0) {
+            if (!includeDefaultSeparators && document.Sections.Count == 0) {
                 return LegacyDocWritableHeaderFooterStories.Empty;
             }
 
-            string[] stories = new string[HeaderFooterSeparatorStoryCount + (document.Sections.Count * HeaderFooterStoriesPerSection)];
+            int sectionCount = Math.Max(document.Sections.Count, 1);
+            string[] stories = new string[HeaderFooterSeparatorStoryCount + (sectionCount * HeaderFooterStoriesPerSection)];
             for (int storyIndex = 0; storyIndex < stories.Length; storyIndex++) {
                 stories[storyIndex] = string.Empty;
+            }
+
+            if (includeDefaultSeparators) {
+                stories[0] = HeaderFooterAutoNumberSeparatorStory;
+                stories[1] = HeaderFooterContinuationSeparatorStory;
+                stories[3] = HeaderFooterAutoNumberSeparatorStory;
+                stories[4] = HeaderFooterContinuationSeparatorStory;
             }
 
             for (int sectionIndex = 0; sectionIndex < document.Sections.Count; sectionIndex++) {
@@ -34,25 +45,40 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             ThrowIfUnreferencedHeaderFooterContent(mainPart, document.Sections.Select(section => section._sectionProperties));
-            if (stories.All(string.IsNullOrEmpty)) {
+            if (!includeDefaultSeparators && stories.All(string.IsNullOrEmpty)) {
                 return LegacyDocWritableHeaderFooterStories.Empty;
             }
 
             var text = new StringBuilder();
             var characterPositions = new List<int>(stories.Length + 2);
+            var markerPositions = new List<int>();
             foreach (string story in stories) {
                 characterPositions.Add(text.Length);
+                AddHeaderFooterSpecialCharacterPositions(text.Length, story, markerPositions);
                 text.Append(story);
             }
 
-            characterPositions.Add(text.Length);
-            characterPositions.Add(text.Length);
+            if (includeDefaultSeparators) {
+                text.Append(HeaderFooterSeparatorTerminator);
+            }
+
+            characterPositions.Add(includeDefaultSeparators ? text.Length - HeaderFooterSeparatorTerminator.Length : text.Length);
+            characterPositions.Add(includeDefaultSeparators ? text.Length + 2 : text.Length);
             byte[] plcfHdd = new byte[characterPositions.Count * 4];
             for (int index = 0; index < characterPositions.Count; index++) {
                 WriteInt32(plcfHdd, index * 4, characterPositions[index]);
             }
 
-            return new LegacyDocWritableHeaderFooterStories(text.ToString(), plcfHdd);
+            return new LegacyDocWritableHeaderFooterStories(text.ToString(), plcfHdd, markerPositions);
+        }
+
+        private static void AddHeaderFooterSpecialCharacterPositions(int storyStart, string story, List<int> markerPositions) {
+            for (int index = 0; index < story.Length; index++) {
+                char character = story[index];
+                if (character == '\u0003' || character == '\u0004') {
+                    markerPositions.Add(storyStart + index);
+                }
+            }
         }
 
         private static string? ReadHeaderStory(MainDocumentPart mainPart, SectionProperties sectionProperties, HeaderFooterValues type) {
@@ -264,16 +290,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableHeaderFooterStories {
-            internal static LegacyDocWritableHeaderFooterStories Empty { get; } = new LegacyDocWritableHeaderFooterStories(string.Empty, Array.Empty<byte>());
+            internal static LegacyDocWritableHeaderFooterStories Empty { get; } = new LegacyDocWritableHeaderFooterStories(string.Empty, Array.Empty<byte>(), Array.Empty<int>());
 
-            internal LegacyDocWritableHeaderFooterStories(string text, byte[] plcfHdd) {
+            internal LegacyDocWritableHeaderFooterStories(string text, byte[] plcfHdd, IReadOnlyList<int> markerPositions) {
                 Text = text;
                 PlcfHdd = plcfHdd;
+                MarkerPositions = markerPositions;
             }
 
             internal string Text { get; }
 
             internal byte[] PlcfHdd { get; }
+
+            internal IReadOnlyList<int> MarkerPositions { get; }
         }
     }
 }

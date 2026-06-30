@@ -62,15 +62,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     continue;
                 }
 
-                byte[] papx = CreatePapx(segment.Formatting);
-                papxOffset -= papx.Length;
-                papxOffset = papxOffset % 2 == 0 ? papxOffset : papxOffset - 1;
-                if (pageOffset + papxOffset <= (rgbxOffset + (segments.Count * PapxFkpBxLength)) || papxOffset / 2 > byte.MaxValue) {
-                    throw new NotSupportedException("Native DOC saving currently supports paragraph formatting only when it fits in one paragraph-format page.");
+                byte[]? papx = segment.PapxOverride;
+                if (papx == null && segment.Formatting.HasFormatting) {
+                    papx = CreatePapx(segment.Formatting);
                 }
 
-                Buffer.BlockCopy(papx, 0, stream, pageOffset + papxOffset, papx.Length);
-                stream[rgbxOffset + (index * PapxFkpBxLength)] = (byte)(papxOffset / 2);
+                if (papx != null) {
+                    papxOffset -= papx.Length;
+                    papxOffset = papxOffset % 2 == 0 ? papxOffset : papxOffset - 1;
+                    if (pageOffset + papxOffset <= (rgbxOffset + (segments.Count * PapxFkpBxLength)) || papxOffset / 2 > byte.MaxValue) {
+                        throw new NotSupportedException("Native DOC saving currently supports paragraph formatting only when it fits in one paragraph-format page.");
+                    }
+
+                    Buffer.BlockCopy(papx, 0, stream, pageOffset + papxOffset, papx.Length);
+                    stream[rgbxOffset + (index * PapxFkpBxLength)] = (byte)(papxOffset / 2);
+                }
             }
 
             LegacyDocWritableParagraphSegment lastSegment = segments[segments.Count - 1];
@@ -1338,6 +1344,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StartCharacter = startCharacter;
             Length = length;
             Formatting = formatting;
+            PapxOverride = null;
+        }
+
+        internal LegacyDocWritableParagraphSegment(int startCharacter, int length, byte[] papxOverride) {
+            StartCharacter = startCharacter;
+            Length = length;
+            Formatting = LegacyDocWritableParagraphFormatting.Plain;
+            PapxOverride = papxOverride;
         }
 
         internal int StartCharacter { get; }
@@ -1348,8 +1362,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal LegacyDocWritableParagraphFormatting Formatting { get; }
 
+        internal byte[]? PapxOverride { get; }
+
         internal LegacyDocWritableParagraphSegment Extend(int additionalLength) {
-            return new LegacyDocWritableParagraphSegment(StartCharacter, Length + additionalLength, Formatting);
+            return PapxOverride == null
+                ? new LegacyDocWritableParagraphSegment(StartCharacter, Length + additionalLength, Formatting)
+                : new LegacyDocWritableParagraphSegment(StartCharacter, Length + additionalLength, PapxOverride);
+        }
+
+        internal bool CanMergeWith(LegacyDocWritableParagraphFormatting formatting) {
+            return PapxOverride == null && Formatting.Equals(formatting);
         }
     }
 }

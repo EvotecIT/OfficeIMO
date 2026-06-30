@@ -62,6 +62,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_NativeFootnoteSaveOpensInDesktopWordWhenRequested() {
+            if (GetType() != typeof(Word)) {
+                return;
+            }
+
+            if (!IsLegacyDocComValidationRequested()) {
+                return;
+            }
+
+            Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
+            Assert.True(IsWordComAvailable(), "Legacy DOC COM validation requires Microsoft Word COM automation.");
+
+            string directory = Path.Combine(_directoryWithFiles, "LegacyDocCom", GetCurrentTargetFrameworkLabel());
+            Directory.CreateDirectory(directory);
+            string nativeDocPath = Path.Combine(directory, "officeimo-native-footnote.doc");
+            DeleteIfExists(nativeDocPath);
+
+            using (WordDocument document = WordDocument.Create()) {
+                WordParagraph paragraph = document.AddParagraph("Body with desktop Word footnote");
+                paragraph.AddFootNote("Desktop Word footnote");
+                document.Save(nativeDocPath);
+            }
+
+            AssertDocumentsOpenViaWordComWhenAvailable(new[] { nativeDocPath }, "The OfficeIMO native legacy DOC footnote output did not open through desktop Word.");
+        }
+
+        [Fact]
         public void LegacyDoc_ComGeneratedCustomParagraphStyle_ImportsStylesheetStyleWhenRequested() {
             if (GetType() != typeof(Word)) {
                 return;
