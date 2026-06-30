@@ -708,6 +708,9 @@ just to reserve names.
     and italic header/footer runs through the legacy reader.
   - [x] Preserve tabs and text-wrapping breaks inside native-written simple
     header/footer story text, then reload them as real Word tab and break runs.
+  - [x] Read and write supported simple paragraph formatting inside
+    header/footer story paragraphs through native DOC PAPX records, then reload
+    alignment, spacing, and indentation through the legacy reader.
   - [x] Read and write the native first-page section flag (`sprmSFTitlePage`)
     so first-page header/footer intent is represented in SEPX, not only in the
     header/footer story slots.

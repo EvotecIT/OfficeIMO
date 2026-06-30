@@ -19,13 +19,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     }
 
     internal sealed class LegacyDocHeaderFooterParagraph {
-        internal LegacyDocHeaderFooterParagraph(IReadOnlyList<LegacyDocTextRun> runs) {
+        internal LegacyDocHeaderFooterParagraph(IReadOnlyList<LegacyDocTextRun> runs, LegacyDocParagraphFormat format) {
             Runs = runs.Count == 0
                 ? Array.Empty<LegacyDocTextRun>()
                 : runs.ToArray();
+            Format = format;
         }
 
         internal IReadOnlyList<LegacyDocTextRun> Runs { get; }
+
+        internal LegacyDocParagraphFormat Format { get; }
 
         internal string Text => string.Concat(Runs.Select(run => run.Text));
     }

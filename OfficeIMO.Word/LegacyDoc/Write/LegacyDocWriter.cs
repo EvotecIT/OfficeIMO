@@ -185,7 +185,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             footnotes.ThrowIfUnreferencedFootnotesRemain();
             endnotes.ThrowIfUnreferencedEndnotesRemain();
             bool hasNoteReferences = footnotes.HasReferences || endnotes.HasReferences;
-            LegacyDocWritableHeaderFooterStories headerFooterStories = BuildHeaderFooterStories(document, mainPart!, hasNoteReferences);
+            LegacyDocWritableHeaderFooterStories headerFooterStories = BuildHeaderFooterStories(document, mainPart!, hasNoteReferences, styleSheet.StyleIndexes);
             int terminalCharacterPadding = hasNoteReferences ? 1 : 0;
             LegacyDocWritableFootnoteStories footnoteStories = footnotes.CreateStories(text.Length, headerFooterStories.Text.Length, terminalCharacterPadding);
             LegacyDocWritableEndnoteStories endnoteStories = endnotes.CreateStories(text.Length, footnoteStories.Text.Length, headerFooterStories.Text.Length, terminalCharacterPadding);
@@ -595,6 +595,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PlcfHdd = headerFooterStories.PlcfHdd;
                 HeaderFooterMarkerPositions = headerFooterStories.MarkerPositions;
                 HeaderFooterFormattedRuns = headerFooterStories.FormattedRuns;
+                HeaderFooterFormattedParagraphs = headerFooterStories.FormattedParagraphs;
                 FacingPages = facingPages;
                 EndnotePosition = endnotePosition;
                 FontFamilies = styleSheet.FontFamilies
@@ -647,6 +648,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal IReadOnlyList<LegacyDocWritableRun> HeaderFooterFormattedRuns { get; }
 
+            internal IReadOnlyList<LegacyDocWritableParagraph> HeaderFooterFormattedParagraphs { get; }
+
             internal byte[] PlcfHdd { get; }
 
             internal bool FacingPages { get; }
@@ -667,7 +670,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasCharacterFormatting => FormattedRuns.Count > 0 || FootnoteFormattedRuns.Count > 0 || HeaderFooterFormattedRuns.Count > 0 || EndnoteFormattedRuns.Count > 0;
 
-            internal bool HasParagraphFormatting => FormattedParagraphs.Count > 0 || HasNoteStories;
+            internal bool HasParagraphFormatting => FormattedParagraphs.Count > 0 || HeaderFooterFormattedParagraphs.Count > 0 || HasNoteStories;
 
             internal bool HasFontTable => FontFamilies.Count > 0;
 
@@ -808,7 +811,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             internal IReadOnlyList<LegacyDocWritableParagraphSegment> CreateParagraphSegments() {
-                if (HasNoteStories) {
+                if (HasNoteStories || HeaderFooterFormattedParagraphs.Count > 0) {
                     return CreateFootnoteAwareParagraphSegments();
                 }
 
@@ -840,7 +843,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     paragraph => paragraph.Length > 0 && paragraph[0] == LegacyDocFootnoteReader.FootnoteReferenceCharacter
                         ? FootnoteTextParagraphPapx
                         : PlainParagraphPapx);
-                AddStoryParagraphSegments(segments, HeaderFooterText, Text.Length + FootnoteText.Length, _ => PlainParagraphPapx);
+                AddStoryParagraphSegments(segments, HeaderFooterText, Text.Length + FootnoteText.Length, CreateHeaderFooterParagraphFormatter());
                 AddStoryParagraphSegments(
                     segments,
                     EndnoteText,
@@ -850,6 +853,32 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         : PlainParagraphPapx);
                 AddRawParagraphSegment(segments, FullText.Length, PieceTableCharacterCount - FullText.Length, PlainParagraphPapx);
                 return segments;
+            }
+
+            private Func<LegacyDocWritableParagraphRange, object> CreateHeaderFooterParagraphFormatter() {
+                if (HeaderFooterFormattedParagraphs.Count == 0) {
+                    return _ => PlainParagraphPapx;
+                }
+
+                LegacyDocWritableParagraph[] formattedParagraphs = HeaderFooterFormattedParagraphs
+                    .OrderBy(item => item.StartCharacter)
+                    .ToArray();
+                int headerFooterStartCharacter = Text.Length + FootnoteText.Length;
+                int formattedIndex = 0;
+                return paragraph => {
+                    while (formattedIndex < formattedParagraphs.Length
+                        && headerFooterStartCharacter + formattedParagraphs[formattedIndex].EndCharacter <= paragraph.Start) {
+                        formattedIndex++;
+                    }
+
+                    if (formattedIndex < formattedParagraphs.Length
+                        && headerFooterStartCharacter + formattedParagraphs[formattedIndex].StartCharacter == paragraph.Start
+                        && formattedParagraphs[formattedIndex].Length == paragraph.Length) {
+                        return formattedParagraphs[formattedIndex].Formatting;
+                    }
+
+                    return PlainParagraphPapx;
+                };
             }
 
             private void AddBodyParagraphSegments(List<LegacyDocWritableParagraphSegment> segments) {

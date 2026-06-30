@@ -98,7 +98,7 @@ namespace OfficeIMO.Word {
             }
 
             ApplyLegacyDocDocumentOptions(document, legacyDocument);
-            AddLegacyDocHeaderFooterStories(document, legacyDocument.HeaderFooterStories);
+            AddLegacyDocHeaderFooterStories(document, legacyDocument.HeaderFooterStories, legacyDocument.StyleSheet);
             document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument);
             return document;
         }
@@ -113,7 +113,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void AddLegacyDocHeaderFooterStories(WordDocument document, IReadOnlyList<LegacyDocHeaderFooterStory> stories) {
+        private static void AddLegacyDocHeaderFooterStories(WordDocument document, IReadOnlyList<LegacyDocHeaderFooterStory> stories, LegacyDocStyleSheet styleSheet) {
             foreach (LegacyDocHeaderFooterStory story in stories) {
                 if (story.SectionIndex < 0 || story.SectionIndex >= document.Sections.Count || story.Paragraphs.Count == 0) {
                     continue;
@@ -129,6 +129,7 @@ namespace OfficeIMO.Word {
 
                 foreach (LegacyDocHeaderFooterParagraph sourceParagraph in story.Paragraphs) {
                     WordParagraph paragraph = target.AddParagraph(sourceParagraph.Text);
+                    ApplyLegacyDocParagraphFormatting(paragraph, sourceParagraph.Format, styleSheet);
                     ReplaceLegacyDocParagraphRuns(paragraph, sourceParagraph.Runs, LegacyDocNoteProjection.Empty);
                 }
             }

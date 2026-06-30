@@ -185,7 +185,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-ENDNOTE-PLC-INVALID", endnoteWarning);
             }
 
-            HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, formattingRanges, out string? headerFooterWarning);
+            HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, out string? headerFooterWarning);
             if (headerFooterWarning != null) {
                 AddWarning("DOC-PLCFHDD-INVALID", headerFooterWarning);
                 if (options.ReportUnsupportedFeatures) {

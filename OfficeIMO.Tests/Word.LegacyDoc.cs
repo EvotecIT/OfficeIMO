@@ -1238,6 +1238,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "Left", "Right", "Next" }, paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
         }
 
+        private static void AssertHeaderFooterParagraphFormatting(WordParagraph paragraph, JustificationValues expectedAlignment) {
+            Assert.Equal(expectedAlignment, paragraph.ParagraphAlignment);
+            Assert.Equal(240, paragraph.LineSpacingBefore);
+            Assert.Equal(120, paragraph.LineSpacingAfter);
+            Assert.Equal(360, paragraph.LineSpacing);
+            Assert.Equal(720, paragraph.IndentationBefore);
+            Assert.Equal(360, paragraph.IndentationAfter);
+            Assert.Equal(240, paragraph.IndentationFirstLine);
+        }
+
 
         [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_DoesNotProjectUnsupportedStoryTextIntoBody() {
@@ -1820,6 +1830,50 @@ namespace OfficeIMO.Tests {
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
                 AssertHeaderFooterTabsAndBreaks(reloadedSection.Header.Default!.Paragraphs);
                 AssertHeaderFooterTabsAndBreaks(reloadedSection.Footer.Default!.Paragraphs);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderFooterParagraphFormattingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body with formatted header footer paragraphs");
+                    WordSection section = document.Sections[0];
+                    WordParagraph header = section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Formatted header");
+                    header.ParagraphAlignment = JustificationValues.Center;
+                    header.LineSpacingBefore = 240;
+                    header.LineSpacingAfter = 120;
+                    header.LineSpacing = 360;
+                    header.IndentationBefore = 720;
+                    header.IndentationAfter = 360;
+                    header.IndentationFirstLine = 240;
+
+                    WordParagraph footer = section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Formatted footer");
+                    footer.ParagraphAlignment = JustificationValues.Right;
+                    footer.LineSpacingBefore = 240;
+                    footer.LineSpacingAfter = 120;
+                    footer.LineSpacing = 360;
+                    footer.IndentationBefore = 720;
+                    footer.IndentationAfter = 360;
+                    footer.IndentationFirstLine = 240;
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                WordParagraph headerParagraph = Assert.Single(reloadedSection.Header.Default!.Paragraphs);
+                WordParagraph footerParagraph = Assert.Single(reloadedSection.Footer.Default!.Paragraphs);
+                Assert.Equal("Formatted header", headerParagraph.Text);
+                Assert.Equal("Formatted footer", footerParagraph.Text);
+                AssertHeaderFooterParagraphFormatting(headerParagraph, JustificationValues.Center);
+                AssertHeaderFooterParagraphFormatting(footerParagraph, JustificationValues.Right);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -4537,7 +4591,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedHeaderParagraphFormattingBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedHeaderParagraphPropertiesBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
@@ -4546,11 +4600,16 @@ namespace OfficeIMO.Tests {
                 document.AddHeadersAndFooters();
                 WordParagraph headerParagraph = document.Sections[0].Header.Default!.AddParagraph();
                 headerParagraph.AddText("Rich header");
-                headerParagraph.ParagraphAlignment = JustificationValues.Center;
+                ParagraphProperties? paragraphProperties = headerParagraph._paragraph.GetFirstChild<ParagraphProperties>();
+                if (paragraphProperties == null) {
+                    paragraphProperties = headerParagraph._paragraph.PrependChild(new ParagraphProperties());
+                }
+
+                paragraphProperties.Append(new NumberingProperties());
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("unformatted text paragraphs in headers", exception.Message);
+                Assert.Contains("Unsupported paragraph property: numPr", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

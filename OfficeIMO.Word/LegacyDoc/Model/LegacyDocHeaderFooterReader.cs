@@ -10,6 +10,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocTextContent textContent,
             LegacyDocFib fib,
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
+            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
             out string? warning) {
             warning = null;
             if (fib.CcpHdd == 0 || fib.LcbPlcfHdd == 0) {
@@ -59,7 +60,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     textContent.AllCharacters,
                     headerBaseCharacterPosition + startCharacter,
                     headerBaseCharacterPosition + endCharacter,
-                    formattingRanges);
+                    formattingRanges,
+                    paragraphFormattingRanges);
                 if (paragraphs.Count == 0) {
                     continue;
                 }
@@ -104,7 +106,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTextCharacter> characters,
             int startCharacter,
             int endCharacter,
-            IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges) {
+            IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
+            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges) {
             if (endCharacter <= startCharacter) {
                 return Array.Empty<LegacyDocHeaderFooterParagraph>();
             }
@@ -127,7 +130,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 char normalized = character.Character == '\a' ? '\r' : character.Character;
                 if (normalized == '\r') {
-                    AddCurrentParagraph();
+                    AddCurrentParagraph(GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset));
                     continue;
                 }
 
@@ -144,7 +147,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     character.CharacterPosition);
             }
 
-            AddCurrentParagraph();
+            AddCurrentParagraph(LegacyDocParagraphFormat.Default);
             return paragraphs;
 
             void AppendRunCharacter(char value, LegacyDocCharacterFormat format, int characterPosition) {
@@ -158,10 +161,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 runCharacterPositions.Add(characterPosition);
             }
 
-            void AddCurrentParagraph() {
+            void AddCurrentParagraph(LegacyDocParagraphFormat format) {
                 FlushRun();
                 if (currentRuns.Count > 0) {
-                    paragraphs.Add(new LegacyDocHeaderFooterParagraph(currentRuns.ToArray()));
+                    paragraphs.Add(new LegacyDocHeaderFooterParagraph(currentRuns.ToArray(), format));
                     currentRuns.Clear();
                 }
 
@@ -205,6 +208,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             return LegacyDocCharacterFormat.Default;
+        }
+
+        private static LegacyDocParagraphFormat GetParagraphFormatForFileOffset(IReadOnlyList<LegacyDocParagraphFormatRange> ranges, int fileOffset) {
+            for (int i = 0; i < ranges.Count; i++) {
+                if (ranges[i].Contains(fileOffset)) {
+                    return ranges[i].Format;
+                }
+            }
+
+            return LegacyDocParagraphFormat.Default;
         }
     }
 }
