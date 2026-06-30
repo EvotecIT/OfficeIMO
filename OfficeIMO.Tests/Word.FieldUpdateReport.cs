@@ -149,6 +149,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_PreservesSignificantResultWhitespace() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.SignificantWhitespace.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Padded quote: ")._paragraph.Append(BuildSimpleField(" QUOTE \" padded value \" ", "stale"));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                AssertUpdated(report, WordFieldType.Quote, " padded value ");
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+                Text text = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Descendants<SimpleField>().Single().Descendants<Text>());
+                Assert.Equal(" padded value ", text.Text);
+                Assert.Equal(SpaceProcessingModeValues.Preserve, text.Space?.Value);
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_PreservesPageCountBehaviorAndReportsUnsupportedFields() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.PagesAndUnsupported.docx");
 

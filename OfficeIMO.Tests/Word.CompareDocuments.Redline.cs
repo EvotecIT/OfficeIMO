@@ -79,6 +79,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureRedlineTracksFeatureFindingsWhenTextFindingsAreDisabled() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_feature_without_text_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                AddNestedRunContentControl(document, "Contoso");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_feature_without_text_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                AddNestedRunContentControl(document, "Fabrikam");
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_feature_without_text_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests",
+                    TrackTextFindings = false,
+                    TrackFeatureFindings = true
+                });
+
+            Assert.Contains(result.Findings, finding => finding.Scope == WordComparisonScope.ContentControl);
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Body body = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+            SdtRun innerControl = body.Descendants<SdtRun>().Last();
+            Assert.Contains(innerControl.Descendants<InsertedRun>(), run => run.InnerText == "Fabrikam" && run.Author?.Value == "OfficeIMO Tests");
+            Assert.Contains(innerControl.Descendants<DeletedRun>(), run => run.InnerText == "Contoso" && run.Author?.Value == "OfficeIMO Tests");
+        }
+
+        [Fact]
         public void CompareStructureRedlineCanKeepReviewAndFormattingFindingsReportOnly() {
             string reviewSourcePath = Path.Combine(_directoryWithFiles, "compare_redline_review_policy_source.docx");
             using (WordDocument document = WordDocument.Create(reviewSourcePath)) {
