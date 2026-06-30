@@ -198,6 +198,7 @@ public static partial class MarkdownReader {
         clone.SourceTextMap = state.SourceTextMap;
         clone.ListMarkerIndentOffset = state.ListMarkerIndentOffset;
         clone.SuppressBlockGenericAttributes = state.SuppressBlockGenericAttributes;
+        clone.SuppressHeadingGenericAttributes = state.SuppressHeadingGenericAttributes;
         clone.IsMarkdigDefinitionListBody = state.IsMarkdigDefinitionListBody;
         foreach (var line in state.LazyQuoteContinuationLines) clone.LazyQuoteContinuationLines.Add(line);
         foreach (var line in state.QuoteContainerLines) clone.QuoteContainerLines.Add(line);

@@ -118,6 +118,7 @@ public sealed class MarkdownReaderState {
     internal MarkdownSourceTextMap? SourceTextMap { get; set; }
     internal int ListMarkerIndentOffset { get; set; }
     internal bool SuppressBlockGenericAttributes { get; set; }
+    internal bool SuppressHeadingGenericAttributes { get; set; }
     internal bool IsMarkdigDefinitionListBody { get; set; }
     internal MarkdownPendingGenericAttributeBlock? PendingGenericAttributeBlock { get; set; }
     internal HashSet<int> LazyQuoteContinuationLines { get; } = new HashSet<int>();

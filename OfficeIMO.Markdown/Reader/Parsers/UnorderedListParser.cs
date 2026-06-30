@@ -7,6 +7,7 @@ public static partial class MarkdownReader {
             if (!IsUnorderedListLine(lines[i], out int level0Abs, out var isTask, out var done, out var firstContent)) return false;
             if (!TryGetUnorderedListMarkerInfo(lines[i], out int firstMarkerIndent, out _, out char firstMarker)) return false;
             if (options.StrictListIndentation && firstMarkerIndent - state.ListMarkerIndentOffset > 3) return false;
+            using var headingAttributeScope = SuppressHeadingGenericAttributesInListItems(state);
             if (isTask && !options.TaskLists) {
                 isTask = false;
                 done = false;

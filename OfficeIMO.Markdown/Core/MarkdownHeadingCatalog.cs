@@ -29,6 +29,10 @@ internal sealed class MarkdownHeadingCatalog {
             return string.Empty;
         }
 
+        if (heading is HeadingBlock { SuppressAutoIdentifier: true }) {
+            return string.Empty;
+        }
+
         if (HeadingSlugs.TryGetValue(heading, out var slug)) {
             return slug;
         }
@@ -48,9 +52,11 @@ internal sealed class MarkdownHeadingCatalog {
                 continue;
             }
 
-            var slug = slugRegistry == null
-                ? MarkdownSlug.Generate(heading.Text, style)
-                : MarkdownSlug.Generate(heading.Text, style, slugRegistry);
+            var slug = heading is HeadingBlock { SuppressAutoIdentifier: true }
+                ? string.Empty
+                : slugRegistry == null
+                    ? MarkdownSlug.Generate(heading.Text, style)
+                    : MarkdownSlug.Generate(heading.Text, style, slugRegistry);
 
             slugs[heading] = slug;
             headings.Add(new HeadingEntry(idx, heading, slug));

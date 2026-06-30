@@ -21,6 +21,7 @@ public static partial class MarkdownReader {
             if (!IsOrderedListLine(lines[i], out int lvl0Abs, out int startNum, out var firstContent)) return false;
             if (!TryGetOrderedListMarkerInfo(lines[i], out int firstMarkerIndent, out _, out _, out char firstDelimiter)) return false;
             if (options.StrictListIndentation && firstMarkerIndent - state.ListMarkerIndentOffset > 3) return false;
+            using var headingAttributeScope = SuppressHeadingGenericAttributesInListItems(state);
             var ol = new OrderedListBlock { Start = startNum };
             var continuationIndentsByLevel = options.StrictListIndentation ? new List<int>() : null;
             int firstContinuationIndent = GetListContinuationIndent(lines[i]);

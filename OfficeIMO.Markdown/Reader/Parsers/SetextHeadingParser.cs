@@ -25,7 +25,7 @@ public static partial class MarkdownReader {
             MarkdownAttributeSet parsedAttributes = MarkdownAttributeSet.Empty;
             MarkdownSourceSpan? attributeSpan = null;
             string? attributeSourceText = null;
-            if (ShouldParseBlockGenericAttributes(options, state)
+            if (ShouldParseHeadingGenericAttributes(options, state)
                 && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(headingText, out var textWithoutAttributeBlock, out parsedAttributes, out var attributeStart, out var attributeEnd, requireLeadingWhitespace: true)) {
                 headingText = textWithoutAttributeBlock;
                 effectiveHeadingEnd = contentStart + attributeStart;
@@ -45,6 +45,9 @@ public static partial class MarkdownReader {
 
             var sourceMap = BuildInlineSourceMapForSingleLine(headingText, state.SourceLineOffset + i + 1, contentStart + 1, state);
             var heading = new HeadingBlock(level, ParseInlines(headingText, options, state, sourceMap));
+            if (ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(headingText, options, state)) {
+                heading.SuppressAutomaticIdentifier();
+            }
             heading.SetAttributes(parsedAttributes);
             MarkdownGenericAttributeSourceSpans.Set(heading, attributeSourceText, attributeSpan);
             var markerStartColumn = next.IndexOf(t, StringComparison.Ordinal) + 1;

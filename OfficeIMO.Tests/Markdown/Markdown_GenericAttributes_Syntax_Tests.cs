@@ -1301,6 +1301,58 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void ListItem_Heading_GenericAttributes_Remain_Literal_While_FencedCode_Attributes_Stay_SourceBacked() {
+        const string markdown = "- # Heading {#h .wide}\n- ```cs {#code .wide}\n  x\n  ```\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var heading = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.Heading);
+        var headingText = Assert.Single(heading.Descendants(), node => node.Kind == MarkdownSyntaxKind.HeadingText);
+
+        Assert.Equal("Heading {#h .wide}", headingText.Literal);
+        Assert.DoesNotContain(heading.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        var code = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.CodeBlock);
+
+        Assert.Equal("code", code.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, code.Attributes.Classes);
+
+        var html = result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Contains("<h1>Heading {#h .wide}</h1>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"h\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"code\"", html, StringComparison.Ordinal);
+        Assert.Contains("wide", html, StringComparison.Ordinal);
+        Assert.Contains("language-cs", html, StringComparison.Ordinal);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var list = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(native.Blocks));
+        var nativeHeading = Assert.IsType<MarkdownNativeHeadingBlock>(Assert.Single(list.Items[0].Children));
+        var nativeCode = Assert.IsType<MarkdownNativeCodeBlock>(Assert.Single(list.Items[1].Children));
+        var fields = native.EnumerateBlockSourceFields("attributes").ToArray();
+        var codeAttributeField = Assert.Single(fields);
+
+        Assert.Equal("Heading {#h .wide}", nativeHeading.Text);
+        Assert.True(nativeHeading.Heading.Attributes.IsEmpty);
+        Assert.Equal("code", nativeCode.ElementId);
+        Assert.Equal(new[] { "wide" }, nativeCode.Classes);
+        Assert.Same(nativeCode, codeAttributeField.Block);
+        Assert.Equal("{#code .wide}", codeAttributeField.Value);
+    }
+
+    [Fact]
     public void DefinitionListTerm_GenericAttributes_Are_SourceBacked() {
         const string markdown = "Term {#term .wide}\n:   Definition {#def .wide}\n";
         var options = new MarkdownReaderOptions {

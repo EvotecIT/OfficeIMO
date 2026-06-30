@@ -59,7 +59,7 @@ public static partial class MarkdownReader {
                 MarkdownAttributeSet headingAttributes = MarkdownAttributeSet.Empty;
                 MarkdownSourceSpan? headingAttributeSpan = null;
                 string? headingAttributeSourceText = null;
-                if (ShouldParseBlockGenericAttributes(options, state) && contentLines.Count > 0) {
+                if (ShouldParseHeadingGenericAttributes(options, state) && contentLines.Count > 0) {
                     var lastContentLineIndex = contentLines.Count - 1;
                     if (MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
                         contentLines[lastContentLineIndex],
@@ -86,6 +86,10 @@ public static partial class MarkdownReader {
 
                 var (headingInlineText, headingSourceMap) = JoinParagraphLinesWithSourceMap(contentLines, state.SourceLineOffset + i, options, state);
                 var heading = new HeadingBlock(level, ParseInlines(headingInlineText, options, state, headingSourceMap));
+                if (contentLines.Count > 0
+                    && ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(contentLines[contentLines.Count - 1], options, state)) {
+                    heading.SuppressAutomaticIdentifier();
+                }
                 heading.SetAttributes(headingAttributes);
                 MarkdownGenericAttributeSourceSpans.Set(heading, headingAttributeSourceText, headingAttributeSpan);
                 var underline = paragraphLines[paragraphLines.Count - 1] ?? string.Empty;

@@ -31,6 +31,7 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     internal int ClosingMarkerSourceLineOffset { get; private set; }
     internal int ClosingMarkerSourceStartColumn { get; private set; }
     internal int ClosingMarkerSourceEndColumn { get; private set; }
+    internal bool SuppressAutoIdentifier { get; private set; }
     /// <summary>Source span for the ATX opening marker token when parsed from markdown.</summary>
     public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; private set; }
     /// <summary>Exact ATX opening marker token when parsed from markdown.</summary>
@@ -114,6 +115,10 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         ClosingMarkerText = new string('#', ClosingMarkerSourceEndColumn - ClosingMarkerSourceStartColumn + 1);
     }
 
+    internal void SuppressAutomaticIdentifier() {
+        SuppressAutoIdentifier = true;
+    }
+
     internal void OffsetRelativeSourceInfoLines(int lineOffsetDelta) {
         if (lineOffsetDelta <= 0) {
             return;
@@ -145,12 +150,12 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     string IMarkdownBlock.RenderMarkdown() => new string('#', Level) + " " + Inlines.RenderMarkdown() + MarkdownAttributeBlockRenderer.RenderTrailing(Attributes);
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
-        var id = MarkdownSlug.Generate(Text, MarkdownHeadingIdentifierStyle.OfficeIMO);
+        var id = SuppressAutoIdentifier ? string.Empty : MarkdownSlug.Generate(Text, MarkdownHeadingIdentifierStyle.OfficeIMO);
         return $"<h{Level}{MarkdownHtmlAttributes.Render(Attributes, null, id)}>{Inlines.RenderHtml()}</h{Level}>";
     }
 
     string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
-        var id = context.Options.AutoHeadingIdentifiers
+        var id = !SuppressAutoIdentifier && context.Options.AutoHeadingIdentifiers
             ? context.HeadingCatalog.GetHeadingAnchor(this)
             : string.Empty;
 

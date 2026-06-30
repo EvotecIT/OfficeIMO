@@ -350,6 +350,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "tilde-fenced-code-attribute-only-info-string", "~~~{#code .wide}\nvar x = 1;\n~~~" };
         yield return new object[] { "standalone-attribute-before-unordered-list", "{#list .wide}\n- item" };
         yield return new object[] { "standalone-attribute-before-ordered-list", "{#list .wide}\n1. item" };
+        yield return new object[] { "unordered-list-heading-attribute-stays-literal", "- # Heading {#h .wide}" };
+        yield return new object[] { "ordered-list-heading-attribute-stays-literal", "1. # Heading {#h .wide}" };
+        yield return new object[] { "loose-list-nested-heading-attribute-stays-literal", "- item\n\n  # Heading {#h .wide}" };
         yield return new object[] { "standalone-attribute-before-inline-image-paragraph", "{#img .wide}\n![Alt](image.png)" };
         yield return new object[] { "standalone-attribute-before-blockquote-stays-literal", "{#q .wide}\n> quote" };
         yield return new object[] { "standalone-attribute-before-html-block", "{#html .wide}\n<div>raw</div>" };

@@ -212,6 +212,41 @@ public static partial class MarkdownReader {
     private static bool ShouldParseBlockGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state) =>
         options?.GenericAttributes == true && state?.SuppressBlockGenericAttributes != true;
 
+    private static bool ShouldParseHeadingGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state) =>
+        ShouldParseBlockGenericAttributes(options, state) && state?.SuppressHeadingGenericAttributes != true;
+
+    private static bool ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(
+        string text,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state) =>
+        options?.GenericAttributes == true
+        && state?.SuppressHeadingGenericAttributes == true
+        && MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
+            text,
+            out _,
+            out _,
+            out _,
+            out _,
+            requireLeadingWhitespace: true);
+
+    private static SuppressHeadingGenericAttributesScope SuppressHeadingGenericAttributesInListItems(MarkdownReaderState state) =>
+        new SuppressHeadingGenericAttributesScope(state);
+
+    private readonly struct SuppressHeadingGenericAttributesScope : System.IDisposable {
+        private readonly MarkdownReaderState _state;
+        private readonly bool _previousValue;
+
+        internal SuppressHeadingGenericAttributesScope(MarkdownReaderState state) {
+            _state = state;
+            _previousValue = state.SuppressHeadingGenericAttributes;
+            state.SuppressHeadingGenericAttributes = true;
+        }
+
+        public void Dispose() {
+            _state.SuppressHeadingGenericAttributes = _previousValue;
+        }
+    }
+
     private static IReadOnlyList<MarkdownSyntaxNode>? GetDetailsBodySyntaxChildren(DetailsBlock detailsBlock, MarkdownSyntaxNode node) {
         if (node.Children.Count == 0) {
             return null;

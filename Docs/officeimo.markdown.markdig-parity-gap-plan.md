@@ -176,6 +176,7 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
     - [x] No-space paragraph attributes now match Markdig for unmatched trailing backtick runs while valid code spans still own inline attributes.
     - [x] ATX heading generic attributes now match Markdig when a closing marker appears before or after the attribute block, with source-backed closing-marker and `attributes` native fields.
     - [x] Fenced-code info-string attributes now parse attribute-only, language-plus-attribute, and opaque-info-prefix forms as metadata; ordinary code blocks render only the explicit `{...}` attribute block on `<code>` like Markdig while preserving opaque fence options for hosts, and expose source-backed native/snapshot `attributes` fields for code and semantic fenced blocks.
+    - [x] List-contained ATX and loose nested headings now keep trailing generic attributes literal like Markdig, suppress automatic ids derived from that literal marker, and preserve fenced-code attributes inside list items with native source-field proof.
   - [ ] Keep writer behavior and source edits stable across attributed shapes.
 - [x] Decide and close `UseAlertBlocks`.
   - [x] Add focused Markdig comparison proof for no-title note, list, and custom alert rendering through an opt-in Markdig-style HTML fallback.
