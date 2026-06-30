@@ -10,7 +10,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static LegacyDocWritableParagraphFormatting ReadSupportedStyleParagraphFormatting(StyleParagraphProperties? paragraphProperties) =>
             ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false);
 
-        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormattingCore(OpenXmlCompositeElement? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes, bool allowParagraphStyleId) {
+        private static LegacyDocWritableParagraphFormatting ReadSupportedBuiltInStyleParagraphFormatting(ushort styleIndex, StyleParagraphProperties? paragraphProperties) =>
+            ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false, builtInStyleIndex: styleIndex);
+
+        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormattingCore(OpenXmlCompositeElement? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes, bool allowParagraphStyleId, ushort? builtInStyleIndex = null) {
             if (paragraphProperties == null || !paragraphProperties.HasChildren) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
@@ -64,6 +67,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case Tabs tabs:
                         tabStops = ReadSupportedTabStops(tabs);
+                        break;
+                    case OutlineLevel outlineLevel:
+                        ReadSupportedBuiltInOutlineLevel(outlineLevel, builtInStyleIndex);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, alignment, spacing, indentation, pagination flags, tab stops, and palette-backed paragraph shading. Unsupported paragraph property: {property.LocalName}.");
@@ -125,6 +131,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return new LegacyDocParagraphShading(fillColorHex);
+        }
+
+        private static void ReadSupportedBuiltInOutlineLevel(OutlineLevel outlineLevel, ushort? builtInStyleIndex) {
+            if (builtInStyleIndex == null || builtInStyleIndex.Value == 0 || builtInStyleIndex.Value > 9) {
+                throw new NotSupportedException("Native DOC saving currently supports outline-level style formatting only for built-in Heading styles.");
+            }
+
+            int expectedLevel = builtInStyleIndex.Value - 1;
+            int level = outlineLevel.Val?.Value ?? expectedLevel;
+            if (level != expectedLevel) {
+                throw new NotSupportedException($"Native DOC saving supports built-in Heading style outline levels only when they match the heading level. Expected outline level {expectedLevel}, got {level}.");
+            }
         }
 
         private static IReadOnlyList<LegacyDocTabStop> ReadSupportedTabStops(Tabs tabs) {

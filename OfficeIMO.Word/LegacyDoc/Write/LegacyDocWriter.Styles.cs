@@ -10,25 +10,34 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static readonly IReadOnlyDictionary<string, ushort> EmptyStyleIndexes = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
 
         private static LegacyDocWritableStyleSheet CreateWritableStyleSheet(MainDocumentPart mainPart, Body body) {
-            string[] customStyleIds = body.Descendants<ParagraphStyleId>()
+            string[] usedStyleIds = body.Descendants<ParagraphStyleId>()
                 .Select(style => style.Val?.Value)
                 .Where(styleId => !string.IsNullOrWhiteSpace(styleId))
                 .Select(styleId => styleId!)
                 .Where(styleId => !string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase))
-                .Where(styleId => !TryMapBuiltInParagraphStyleIndex(styleId, out _))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
+            ushort[] usedBuiltInStyleIndexes = usedStyleIds
+                .Select(styleId => TryMapBuiltInParagraphStyleIndex(styleId, out ushort styleIndex) ? (ushort?)styleIndex : null)
+                .Where(styleIndex => styleIndex != null)
+                .Select(styleIndex => styleIndex!.Value)
+                .Distinct()
+                .OrderBy(styleIndex => styleIndex)
+                .ToArray();
+            string[] customStyleIds = usedStyleIds
+                .Where(styleId => !TryMapBuiltInParagraphStyleIndex(styleId, out _))
+                .ToArray();
 
-            if (customStyleIds.Length == 0) {
+            if (usedBuiltInStyleIndexes.Length == 0 && customStyleIds.Length == 0) {
                 return LegacyDocWritableStyleSheet.Empty;
             }
 
             Styles? styles = mainPart.StyleDefinitionsPart?.Styles;
-            if (styles == null) {
+            if (styles == null && customStyleIds.Length > 0) {
                 throw new NotSupportedException("Native DOC saving cannot write custom paragraph styles because the document has no style definitions part.");
             }
 
-            Dictionary<string, Style> paragraphStyles = styles.Elements<Style>()
+            Dictionary<string, Style> paragraphStyles = (styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
                 .Where(style => style.Type?.Value == StyleValues.Paragraph)
                 .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
                 .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
@@ -41,17 +50,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddCustomStyleWithBase(styleId, paragraphStyles, orderedStyleIds, visited, visiting);
             }
 
+            Dictionary<ushort, Style> builtInStyles = ReadUsedBuiltInStyles(usedBuiltInStyleIndexes, paragraphStyles);
             var styleIndexes = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
             for (int index = 0; index < orderedStyleIds.Count; index++) {
                 styleIndexes[orderedStyleIds[index]] = checked((ushort)(10 + index));
             }
 
-            IReadOnlyList<string> fontFamilies = ReadStyleFontFamilies(orderedStyleIds, paragraphStyles);
+            IReadOnlyList<string> fontFamilies = ReadStyleFontFamilies(builtInStyles.Values, orderedStyleIds, paragraphStyles);
             var fontFamilyIndexes = fontFamilies
                 .Select((fontFamily, index) => new { fontFamily, index })
                 .ToDictionary(item => item.fontFamily, item => item.index, StringComparer.OrdinalIgnoreCase);
 
-            byte[] bytes = CreateWritableStyleSheetBytes(orderedStyleIds, paragraphStyles, styleIndexes, fontFamilies, fontFamilyIndexes);
+            byte[] bytes = CreateWritableStyleSheetBytes(builtInStyles, orderedStyleIds, paragraphStyles, styleIndexes, fontFamilies, fontFamilyIndexes);
             return new LegacyDocWritableStyleSheet(bytes, styleIndexes, fontFamilies);
         }
 
@@ -88,9 +98,33 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             orderedStyleIds.Add(styleId);
         }
 
-        private static IReadOnlyList<string> ReadStyleFontFamilies(IReadOnlyList<string> styleIds, IReadOnlyDictionary<string, Style> paragraphStyles) {
-            return styleIds
-                .Select(styleId => paragraphStyles[styleId].StyleRunProperties)
+        private static Dictionary<ushort, Style> ReadUsedBuiltInStyles(ushort[] usedBuiltInStyleIndexes, IReadOnlyDictionary<string, Style> paragraphStyles) {
+            var builtInStyles = new Dictionary<ushort, Style>();
+            foreach (ushort styleIndex in usedBuiltInStyleIndexes) {
+                string styleId = GetBuiltInParagraphStyleId(styleIndex);
+                if (!paragraphStyles.TryGetValue(styleId, out Style? style)) {
+                    continue;
+                }
+
+                string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+                if (!string.IsNullOrWhiteSpace(baseStyleId)
+                    && !string.Equals(baseStyleId, "Normal", StringComparison.OrdinalIgnoreCase)
+                    && !TryMapBuiltInParagraphStyleIndex(baseStyleId!, out _)) {
+                    throw new NotSupportedException($"Native DOC saving cannot write built-in paragraph style '{styleId}' because basedOn style '{baseStyleId}' is not supported.");
+                }
+
+                _ = ReadSupportedBuiltInStyleParagraphFormatting(styleIndex, style.StyleParagraphProperties);
+                _ = ReadSupportedRunFormatting(style.StyleRunProperties);
+                builtInStyles[styleIndex] = style;
+            }
+
+            return builtInStyles;
+        }
+
+        private static IReadOnlyList<string> ReadStyleFontFamilies(IEnumerable<Style> builtInStyles, IReadOnlyList<string> styleIds, IReadOnlyDictionary<string, Style> paragraphStyles) {
+            return builtInStyles
+                .Concat(styleIds.Select(styleId => paragraphStyles[styleId]))
+                .Select(style => style.StyleRunProperties)
                 .Select(ReadSupportedRunFormatting)
                 .Select(formatting => formatting.FontFamily)
                 .Where(fontFamily => !string.IsNullOrWhiteSpace(fontFamily))
@@ -100,17 +134,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static byte[] CreateWritableStyleSheetBytes(
+            IReadOnlyDictionary<ushort, Style> builtInStyles,
             IReadOnlyList<string> customStyleIds,
             IReadOnlyDictionary<string, Style> paragraphStyles,
             IReadOnlyDictionary<string, ushort> styleIndexes,
             IReadOnlyList<string> fontFamilies,
             IReadOnlyDictionary<string, int> fontFamilyIndexes) {
             var styleRecords = new List<byte[]>(10 + customStyleIds.Count) {
-                CreateParagraphStyleRecord(0, NoBaseStyleIndex, "Normal", Array.Empty<byte>(), Array.Empty<byte>())
+                CreateBuiltInParagraphStyleRecord(0, builtInStyles, fontFamilyIndexes)
             };
 
             for (ushort index = 1; index <= 9; index++) {
-                styleRecords.Add(CreateParagraphStyleRecord(index, 0, "heading " + index.ToString(System.Globalization.CultureInfo.InvariantCulture), Array.Empty<byte>(), Array.Empty<byte>()));
+                styleRecords.Add(CreateBuiltInParagraphStyleRecord(index, builtInStyles, fontFamilyIndexes));
             }
 
             foreach (string styleId in customStyleIds) {
@@ -145,6 +180,38 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return stream.ToArray();
         }
 
+        private static byte[] CreateBuiltInParagraphStyleRecord(ushort styleIndex, IReadOnlyDictionary<ushort, Style> builtInStyles, IReadOnlyDictionary<string, int> fontFamilyIndexes) {
+            if (!builtInStyles.TryGetValue(styleIndex, out Style? style)) {
+                ushort baseStyleIndex = styleIndex == 0 ? NoBaseStyleIndex : (ushort)0;
+                return CreateParagraphStyleRecord(styleIndex, baseStyleIndex, GetBuiltInParagraphStyleName(styleIndex), Array.Empty<byte>(), Array.Empty<byte>());
+            }
+
+            ushort basedOnStyleIndex = ResolveBuiltInBaseStyleIndex(style);
+            string styleName = ReadStyleName(style, GetBuiltInParagraphStyleName(styleIndex));
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedBuiltInStyleParagraphFormatting(styleIndex, style.StyleParagraphProperties);
+            LegacyDocWritableFormatting characterFormatting = ReadSupportedRunFormatting(style.StyleRunProperties);
+            byte[] paragraphUpx = LegacyDocParagraphFormattingWriter.CreateStyleParagraphUpx(paragraphFormatting);
+            byte[] characterUpx = CreateStyleCharacterUpx(characterFormatting, fontFamilyIndexes);
+            return CreateParagraphStyleRecord(styleIndex, basedOnStyleIndex, styleName, paragraphUpx, characterUpx);
+        }
+
+        private static ushort ResolveBuiltInBaseStyleIndex(Style style) {
+            string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+            if (string.IsNullOrWhiteSpace(baseStyleId)) {
+                return string.Equals(style.StyleId?.Value, "Normal", StringComparison.OrdinalIgnoreCase) ? NoBaseStyleIndex : (ushort)0;
+            }
+
+            if (string.Equals(baseStyleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
+                return 0;
+            }
+
+            if (TryMapBuiltInParagraphStyleIndex(baseStyleId!, out ushort builtInStyleIndex)) {
+                return builtInStyleIndex;
+            }
+
+            throw new NotSupportedException($"Native DOC saving cannot write built-in paragraph style '{style.StyleId?.Value}' because basedOn style '{baseStyleId}' is not supported.");
+        }
+
         private static ushort ResolveBaseStyleIndex(Style style, IReadOnlyDictionary<string, ushort> styleIndexes) {
             string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
             if (string.IsNullOrWhiteSpace(baseStyleId)) {
@@ -169,6 +236,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static string ReadStyleName(Style style, string styleId) {
             string? name = style.StyleName?.Val?.Value;
             return string.IsNullOrWhiteSpace(name) ? styleId : name!;
+        }
+
+        private static string GetBuiltInParagraphStyleId(ushort styleIndex) {
+            if (styleIndex == 0) {
+                return "Normal";
+            }
+
+            return "Heading" + styleIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static string GetBuiltInParagraphStyleName(ushort styleIndex) {
+            if (styleIndex == 0) {
+                return "Normal";
+            }
+
+            return "heading " + styleIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static byte[] CreateParagraphStyleRecord(ushort sti, ushort baseStyleIndex, string name, byte[] paragraphUpx, byte[] characterUpx) {

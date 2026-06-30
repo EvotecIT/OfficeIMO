@@ -1994,6 +1994,91 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBuiltInStyleFormattingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    Style headingStyle = styles.Elements<Style>().FirstOrDefault(style => style.StyleId == headingStyleId)
+                        ?? new Style { Type = StyleValues.Paragraph, StyleId = headingStyleId };
+                    if (headingStyle.Parent == null) {
+                        styles.Append(headingStyle);
+                    }
+
+                    headingStyle.StyleParagraphProperties = new StyleParagraphProperties(
+                        new Justification { Val = JustificationValues.Center },
+                        new SpacingBetweenLines { Before = "120", After = "240" });
+                    headingStyle.StyleRunProperties = new StyleRunProperties(
+                        new Bold(),
+                        new Underline { Val = UnderlineValues.Single },
+                        new Color { Val = "336699" },
+                        new FontSize { Val = "32" },
+                        new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" });
+
+                    document.AddParagraph("Styled built-in paragraph").SetStyle(WordParagraphStyles.Heading1);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Styled built-in paragraph", paragraph.Text);
+                Assert.Equal(headingStyleId, paragraph.StyleId);
+
+                Styles stylesAfterReload = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style headingStyleAfterReload = Assert.Single(stylesAfterReload.Elements<Style>(), style => style.StyleId == headingStyleId);
+                StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(headingStyleAfterReload.StyleParagraphProperties);
+                Assert.Equal(JustificationValues.Center, paragraphProperties.GetFirstChild<Justification>()!.Val!.Value);
+                SpacingBetweenLines spacing = Assert.IsType<SpacingBetweenLines>(paragraphProperties.GetFirstChild<SpacingBetweenLines>());
+                Assert.Equal("120", spacing.Before!.Value);
+                Assert.Equal("240", spacing.After!.Value);
+
+                StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(headingStyleAfterReload.StyleRunProperties);
+                Assert.NotNull(runProperties.GetFirstChild<Bold>());
+                Assert.NotNull(runProperties.GetFirstChild<BoldComplexScript>());
+                Assert.Equal(UnderlineValues.Single, runProperties.GetFirstChild<Underline>()!.Val!.Value);
+                Assert.Equal("336699", runProperties.GetFirstChild<Color>()!.Val!.Value);
+                Assert.Equal("32", runProperties.GetFirstChild<FontSize>()!.Val!.Value);
+                Assert.Equal("32", runProperties.GetFirstChild<FontSizeComplexScript>()!.Val!.Value);
+                RunFonts runFonts = Assert.IsType<RunFonts>(runProperties.GetFirstChild<RunFonts>());
+                Assert.Equal("Courier New", runFonts.Ascii!.Value);
+                Assert.Equal("Courier New", runFonts.HighAnsi!.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedBuiltInStyleFormattingBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style headingStyle = styles.Elements<Style>().FirstOrDefault(style => style.StyleId == headingStyleId)
+                    ?? new Style { Type = StyleValues.Paragraph, StyleId = headingStyleId };
+                if (headingStyle.Parent == null) {
+                    styles.Append(headingStyle);
+                }
+
+                headingStyle.StyleParagraphProperties = new StyleParagraphProperties(new NumberingProperties());
+                document.AddParagraph("Unsupported built-in style").SetStyle(WordParagraphStyles.Heading1);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("unsupported paragraph property", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocSimpleTableAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

@@ -487,6 +487,10 @@ just to reserve names.
     including supported style-level paragraph/run formatting and font-table
     references, then reload them through the legacy reader while blocking
     unsupported style formatting before file bytes are committed.
+  - [x] Write supported built-in paragraph style-level formatting into native
+    DOC STSH records for used Heading styles, then reload them through the
+    legacy reader while blocking unsupported used built-in style formatting
+    before file bytes are committed.
   - [x] Write direct paragraph tab-stop PAPX records, including clear stops,
     and reload them through the legacy reader.
   - [x] Project imported tab characters and native-written tabs as real Word
