@@ -632,6 +632,76 @@ Lead[^1]
     }
 
     [Fact]
+    public void Block_Render_Extensions_Report_Original_Source_Slice_Failure_Reasons() {
+        const string markdown = "> Alpha\r\n";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown).Document;
+        MarkdownOriginalSourceSliceFailureReason markdownReason = MarkdownOriginalSourceSliceFailureReason.None;
+        MarkdownOriginalSourceSliceFailureReason htmlReason = MarkdownOriginalSourceSliceFailureReason.None;
+
+        var writeOptions = new MarkdownWriteOptions { OutputLineEnding = "\n" };
+        writeOptions.BlockRenderExtensions.Add(MarkdownBlockMarkdownRenderExtension.CreateContextual(
+            "quote-original-failure-markdown",
+            typeof(QuoteBlock),
+            (block, context) => {
+                context.TryCreateOriginalSourceSlice(block, out _, out markdownReason);
+                return "> markdown-reason:" + markdownReason;
+            }));
+
+        var rendered = document.ToMarkdown(writeOptions);
+
+        var htmlOptions = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
+        htmlOptions.BlockRenderExtensions.Add(MarkdownBlockHtmlRenderExtension.CreateContextual(
+            "quote-original-failure-html",
+            typeof(QuoteBlock),
+            (block, context) => {
+                context.TryCreateOriginalSourceSlice(block, out _, out htmlReason);
+                return "<aside data-reason=\"" + htmlReason + "\"></aside>";
+            }));
+
+        var html = document.ToHtmlFragment(htmlOptions);
+
+        Assert.Contains("> markdown-reason:OriginalMarkdownNotPreserved", rendered, StringComparison.Ordinal);
+        Assert.Contains("<aside data-reason=\"OriginalMarkdownNotPreserved\"></aside>", html, StringComparison.Ordinal);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved, markdownReason);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved, htmlReason);
+    }
+
+    [Fact]
+    public void Inline_Render_Extensions_Report_Original_Source_Slice_Failure_Reasons() {
+        const string markdown = "Use `code` now.";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown).Document;
+        MarkdownOriginalSourceSliceFailureReason markdownReason = MarkdownOriginalSourceSliceFailureReason.None;
+        MarkdownOriginalSourceSliceFailureReason htmlReason = MarkdownOriginalSourceSliceFailureReason.None;
+
+        var writeOptions = new MarkdownWriteOptions { OutputLineEnding = "\n" };
+        writeOptions.InlineRenderExtensions.Add(MarkdownInlineMarkdownRenderExtension.CreateContextual(
+            "code-original-failure-markdown",
+            typeof(CodeSpanInline),
+            (inline, context) => {
+                context.TryCreateOriginalSourceSlice(inline, out _, out markdownReason);
+                return "`" + markdownReason + "`";
+            }));
+
+        var rendered = document.ToMarkdown(writeOptions);
+
+        var htmlOptions = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
+        htmlOptions.InlineRenderExtensions.Add(MarkdownInlineHtmlRenderExtension.CreateContextual(
+            "code-original-failure-html",
+            typeof(CodeSpanInline),
+            (inline, context) => {
+                context.TryCreateOriginalSourceSlice(inline, out _, out htmlReason);
+                return "<kbd data-reason=\"" + htmlReason + "\">code</kbd>";
+            }));
+
+        var html = document.ToHtmlFragment(htmlOptions);
+
+        Assert.Equal("Use `OriginalMarkdownNotPreserved` now.\n", rendered);
+        Assert.Contains("<p>Use <kbd data-reason=\"OriginalMarkdownNotPreserved\">code</kbd> now.</p>", html, StringComparison.Ordinal);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved, markdownReason);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved, htmlReason);
+    }
+
+    [Fact]
     public void Markdown_Inline_Render_Extension_Can_Create_Source_Slices_From_Metadata_Source_Spans() {
         const string markdown = "Go [there](https://example.com \"Example\") now.";
         var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;

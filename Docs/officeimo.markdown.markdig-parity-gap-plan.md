@@ -74,11 +74,12 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [ ] `UseGlobalization`
   - [ ] `UsePragmaLines`
 - [ ] Renderer/writer/security seams are still incomplete.
-  - [ ] Build source-aware extension seams for custom block/inlines, transforms, renderers, and writers.
+  - [x] Build source-aware extension seams for custom block/inlines, transforms, renderers, and writers.
     - [x] Custom block parser contexts can materialize normalized source slices for claimed spans and line ranges without rescanning raw Markdown.
     - [x] Custom inline parser contexts can materialize normalized source slices for claimed inline ranges without rescanning raw Markdown.
     - [x] Inline transform contexts can materialize normalized source slices for parsed inline nodes and spans without rescanning raw Markdown.
     - [x] Document transforms can materialize normalized and original source slices for parsed model objects, syntax nodes, and source spans without rescanning raw Markdown.
+    - [x] Block/inline HTML render contexts and Markdown writer contexts can materialize normalized/original source slices, including original-source failure reasons, without rescanning raw Markdown.
   - [ ] Separate raw HTML grammar from policy: CommonMark parsing, GFM tag filtering, OfficeIMO allow/strip/escape/sanitize modes, URL policy, source metadata, and Markdown writing.
   - [ ] Bound renderer-owned rows before parser work starts: `UseDiagrams`, `UseFigures`, `UseMathematics`, `UseMediaLinks`, and `UseReferralLinks`.
 - [ ] Performance parity is intentionally last.
@@ -235,11 +236,12 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 
 ## P4 - Keep Renderer, Writer, Extension, And Security Policy Explicit
 
-- [ ] Build source-aware extension seams for custom blocks, inlines, transforms, renderers, and writers so downstream code does not rescan strings.
+- [x] Build source-aware extension seams for custom blocks, inlines, transforms, renderers, and writers so downstream code does not rescan strings.
   - [x] Custom block parser contexts expose normalized source-slice helpers for parser-created spans and relative line ranges.
   - [x] Custom inline parser contexts expose normalized source-slice helpers for parser-created inline spans.
   - [x] Inline-transform contexts expose normalized source-slice helpers for source-backed inline nodes and spans.
   - [x] Document-transform contexts expose normalized/original source-slice helpers for associated model objects, syntax nodes, and source spans, sharing the same original-source mapping as parse results.
+  - [x] Block/inline HTML renderer contexts and Markdown writer contexts expose normalized/original source-slice helpers plus original-source failure reasons for parsed model objects, syntax nodes, and token spans.
 - [ ] Separate raw HTML grammar from security policy.
   - [ ] CommonMark raw HTML parsing.
   - [ ] GFM tag filtering.

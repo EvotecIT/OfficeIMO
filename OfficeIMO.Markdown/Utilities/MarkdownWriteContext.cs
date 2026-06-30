@@ -126,38 +126,71 @@ public sealed class MarkdownWriteContext {
     /// Creates an original-input source slice for the final syntax node associated with a parsed model object.
     /// </summary>
     public bool TryCreateOriginalSourceSlice(object associatedObject, out MarkdownSourceSlice slice) {
+        return TryCreateOriginalSourceSlice(associatedObject, out slice, out _);
+    }
+
+    /// <summary>
+    /// Creates an original-input source slice for the final syntax node associated with a parsed model object.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(
+        object associatedObject,
+        out MarkdownSourceSlice slice,
+        out MarkdownOriginalSourceSliceFailureReason failureReason) {
         var parseResult = Document.ParseResult;
         if (parseResult == null) {
             slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved;
             return false;
         }
 
-        return parseResult.TryCreateOriginalSourceSlice(associatedObject, out slice);
+        return parseResult.TryCreateOriginalSourceSlice(associatedObject, out slice, out failureReason);
     }
 
     /// <summary>
     /// Creates an original-input source slice for the supplied final syntax node.
     /// </summary>
     public bool TryCreateOriginalSourceSlice(MarkdownSyntaxNode syntaxNode, out MarkdownSourceSlice slice) {
+        return TryCreateOriginalSourceSlice(syntaxNode, out slice, out _);
+    }
+
+    /// <summary>
+    /// Creates an original-input source slice for the supplied final syntax node.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(
+        MarkdownSyntaxNode syntaxNode,
+        out MarkdownSourceSlice slice,
+        out MarkdownOriginalSourceSliceFailureReason failureReason) {
         var parseResult = Document.ParseResult;
         if (parseResult == null) {
             slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved;
             return false;
         }
 
-        return parseResult.TryCreateOriginalSourceSlice(syntaxNode, out slice);
+        return parseResult.TryCreateOriginalSourceSlice(syntaxNode, out slice, out failureReason);
     }
 
     /// <summary>
     /// Creates an original-input source slice for a token or field source span captured during parsing.
     /// </summary>
     public bool TryCreateOriginalSourceSlice(MarkdownSourceSpan sourceSpan, out MarkdownSourceSlice slice) {
+        return TryCreateOriginalSourceSlice(sourceSpan, out slice, out _);
+    }
+
+    /// <summary>
+    /// Creates an original-input source slice for a token or field source span captured during parsing.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(
+        MarkdownSourceSpan sourceSpan,
+        out MarkdownSourceSlice slice,
+        out MarkdownOriginalSourceSliceFailureReason failureReason) {
         var parseResult = Document.ParseResult;
         if (parseResult == null) {
             slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved;
             return false;
         }
 
-        return parseResult.TryCreateOriginalSourceSlice(sourceSpan, out slice);
+        return parseResult.TryCreateOriginalSourceSlice(sourceSpan, out slice, out failureReason);
     }
 }
