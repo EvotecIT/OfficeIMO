@@ -6,6 +6,14 @@ using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
+        private static readonly IReadOnlyDictionary<string, ushort> FootnoteParagraphStyleIndexes = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase) {
+            ["FootnoteText"] = NoteTextParagraphStyleIndex
+        };
+
+        private static readonly IReadOnlyDictionary<string, ushort> EndnoteParagraphStyleIndexes = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase) {
+            ["EndnoteText"] = NoteTextParagraphStyleIndex
+        };
+
         private static LegacyDocWritableFootnotes ReadSupportedFootnotes(MainDocumentPart mainPart) {
             Footnotes? footnotes = mainPart.FootnotesPart?.Footnotes;
             if (footnotes == null) {
@@ -42,19 +50,27 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static LegacyDocWritableNoteStory ReadSimpleFootnoteStory(Footnote footnote, long id) {
             var builder = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
+            var formattedParagraphs = new List<LegacyDocWritableParagraph>();
             builder.Append(LegacyDocFootnoteReader.FootnoteReferenceCharacter);
             builder.Append(' ');
             bool hasBodyText = false;
+            bool isFirstParagraph = true;
             foreach (OpenXmlElement child in footnote.ChildElements) {
                 switch (child) {
                     case Paragraph paragraph:
-                        string paragraphText = ReadSimpleFootnoteParagraph(paragraph, id, runs, builder.Length);
+                        int paragraphStart = isFirstParagraph ? 0 : builder.Length;
+                        LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleFootnoteParagraph(paragraph, id, runs, builder.Length, isFirstParagraph, out string paragraphText);
                         if (!string.IsNullOrEmpty(paragraphText)) {
                             hasBodyText = true;
                         }
 
                         builder.Append(paragraphText);
                         builder.Append('\r');
+                        if (paragraphFormatting.HasFormatting) {
+                            formattedParagraphs.Add(new LegacyDocWritableParagraph(paragraphStart, builder.Length - paragraphStart, paragraphFormatting));
+                        }
+
+                        isFirstParagraph = false;
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only. Unsupported footnote element: {child.LocalName}.");
@@ -66,15 +82,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             builder.Append('\r');
-            return new LegacyDocWritableNoteStory(builder.ToString(), runs);
+            return new LegacyDocWritableNoteStory(builder.ToString(), runs, formattedParagraphs);
         }
 
-        private static string ReadSimpleFootnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, int storyStart) {
+        private static LegacyDocWritableParagraphFormatting ReadSimpleFootnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, int storyStart, bool isFirstParagraph, out string paragraphText) {
             var builder = new StringBuilder();
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph.ParagraphProperties, id, "footnote", FootnoteParagraphStyleIndexes);
+            if (isFirstParagraph && paragraphFormatting.HasFormatting && paragraphFormatting.StyleIndex == null) {
+                paragraphFormatting = paragraphFormatting.WithStyleIndex(NoteTextParagraphStyleIndex);
+            }
+
             foreach (OpenXmlElement child in paragraph.ChildElements) {
                 switch (child) {
-                    case ParagraphProperties paragraphProperties:
-                        ThrowIfUnsupportedFootnoteParagraphProperties(paragraphProperties, id);
+                    case ParagraphProperties:
                         break;
                     case Run run:
                         AppendSimpleFootnoteRun(builder, runs, run, id, storyStart);
@@ -84,23 +104,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
             }
 
-            return builder.ToString();
+            paragraphText = builder.ToString();
+            return paragraphFormatting;
         }
 
-        private static void ThrowIfUnsupportedFootnoteParagraphProperties(ParagraphProperties paragraphProperties, long id) {
-            foreach (OpenXmlElement property in paragraphProperties.ChildElements) {
-                switch (property) {
-                    case ParagraphStyleId paragraphStyleId:
-                        string? value = paragraphStyleId.Val?.Value;
-                        if (string.IsNullOrWhiteSpace(value)
-                            || string.Equals(value, "FootnoteText", StringComparison.OrdinalIgnoreCase)) {
-                            break;
-                        }
-
-                        throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with the FootnoteText paragraph style.");
-                    default:
-                        throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only without paragraph formatting. Unsupported footnote paragraph property: {property.LocalName}.");
-                }
+        private static LegacyDocWritableParagraphFormatting ReadSupportedNoteParagraphFormatting(
+            ParagraphProperties? paragraphProperties,
+            long id,
+            string noteKind,
+            IReadOnlyDictionary<string, ushort> noteStyleIndexes) {
+            try {
+                return ReadSupportedParagraphFormatting(paragraphProperties, noteStyleIndexes);
+            } catch (NotSupportedException exception) {
+                throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' only with supported paragraph formatting. {exception.Message}", exception);
             }
         }
 
@@ -197,6 +213,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 var text = new StringBuilder();
                 var runs = new List<LegacyDocWritableRun>();
+                var paragraphs = new List<LegacyDocWritableParagraph>();
                 var textPositions = new List<int>(_references.Count + 2);
                 var markerPositions = new List<int>(_references.Count);
                 for (int index = 0; index < _references.Count; index++) {
@@ -206,6 +223,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     markerPositions.Add(text.Length);
                     foreach (LegacyDocWritableRun run in story.FormattedRuns) {
                         runs.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting));
+                    }
+
+                    foreach (LegacyDocWritableParagraph paragraph in story.FormattedParagraphs) {
+                        paragraphs.Add(new LegacyDocWritableParagraph(text.Length + paragraph.StartCharacter, paragraph.Length, paragraph.Formatting));
                     }
 
                     text.Append(story.Text);
@@ -218,7 +239,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     CreateFootnoteReferencePlc(_references, bodyCharacterCount + text.Length + headerFooterCharacterCount + terminalCharacterPadding),
                     CreateFootnoteTextPlc(textPositions),
                     markerPositions,
-                    runs);
+                    runs,
+                    paragraphs);
             }
 
             private static byte[] CreateFootnoteReferencePlc(IReadOnlyList<LegacyDocWritableFootnoteReference> references, int terminalCharacterPosition) {
@@ -257,14 +279,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableFootnoteStories {
-            internal static readonly LegacyDocWritableFootnoteStories Empty = new LegacyDocWritableFootnoteStories(string.Empty, Array.Empty<byte>(), Array.Empty<byte>(), Array.Empty<int>(), Array.Empty<LegacyDocWritableRun>());
+            internal static readonly LegacyDocWritableFootnoteStories Empty = new LegacyDocWritableFootnoteStories(string.Empty, Array.Empty<byte>(), Array.Empty<byte>(), Array.Empty<int>(), Array.Empty<LegacyDocWritableRun>(), Array.Empty<LegacyDocWritableParagraph>());
 
-            internal LegacyDocWritableFootnoteStories(string text, byte[] plcffndRef, byte[] plcffndTxt, IReadOnlyList<int> markerPositions, IReadOnlyList<LegacyDocWritableRun> formattedRuns) {
+            internal LegacyDocWritableFootnoteStories(string text, byte[] plcffndRef, byte[] plcffndTxt, IReadOnlyList<int> markerPositions, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs) {
                 Text = text;
                 PlcffndRef = plcffndRef;
                 PlcffndTxt = plcffndTxt;
                 MarkerPositions = markerPositions;
                 FormattedRuns = formattedRuns;
+                FormattedParagraphs = formattedParagraphs;
             }
 
             internal string Text { get; }
@@ -276,17 +299,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal IReadOnlyList<int> MarkerPositions { get; }
 
             internal IReadOnlyList<LegacyDocWritableRun> FormattedRuns { get; }
+
+            internal IReadOnlyList<LegacyDocWritableParagraph> FormattedParagraphs { get; }
         }
 
         private readonly struct LegacyDocWritableNoteStory {
-            internal LegacyDocWritableNoteStory(string text, IReadOnlyList<LegacyDocWritableRun> formattedRuns) {
+            internal LegacyDocWritableNoteStory(string text, IReadOnlyList<LegacyDocWritableRun> formattedRuns, IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs) {
                 Text = text;
                 FormattedRuns = formattedRuns;
+                FormattedParagraphs = formattedParagraphs;
             }
 
             internal string Text { get; }
 
             internal IReadOnlyList<LegacyDocWritableRun> FormattedRuns { get; }
+
+            internal IReadOnlyList<LegacyDocWritableParagraph> FormattedParagraphs { get; }
         }
 
         private static void AppendFormattedNoteText(

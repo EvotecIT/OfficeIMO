@@ -80,7 +80,7 @@ namespace OfficeIMO.Word {
                 ? document.Sections[0]
                 : new WordSection(document, null!, null!);
             ApplyLegacyDocSectionFormatting(section, legacyDocument.SectionFormat);
-            LegacyDocNoteProjection notes = LegacyDocNoteProjection.Create(legacyDocument.Footnotes, legacyDocument.Endnotes);
+            LegacyDocNoteProjection notes = LegacyDocNoteProjection.Create(legacyDocument.Footnotes, legacyDocument.Endnotes, legacyDocument.StyleSheet);
 
             if (legacyDocument.BodyBlocks.Count == 0) {
                 section.AddParagraph();
@@ -668,13 +668,13 @@ namespace OfficeIMO.Word {
             }
 
             if (notes.TryGetFootnote(characterPosition.Value, out LegacyDocFootnote? footnote)) {
-                AddLegacyDocFootnoteReference(paragraph, footnote!);
+                AddLegacyDocFootnoteReference(paragraph, footnote!, notes.StyleSheet);
             } else if (notes.TryGetEndnote(characterPosition.Value, out LegacyDocEndnote? endnote)) {
-                AddLegacyDocEndnoteReference(paragraph, endnote!);
+                AddLegacyDocEndnoteReference(paragraph, endnote!, notes.StyleSheet);
             }
         }
 
-        private static void AddLegacyDocFootnoteReference(WordParagraph paragraph, LegacyDocFootnote footnote) {
+        private static void AddLegacyDocFootnoteReference(WordParagraph paragraph, LegacyDocFootnote footnote, LegacyDocStyleSheet styleSheet) {
             if (footnote.ParagraphRuns.Count == 0) {
                 return;
             }
@@ -686,14 +686,16 @@ namespace OfficeIMO.Word {
             }
 
             ReplaceLegacyDocNoteParagraphRuns(noteParagraphs[0], footnote.ParagraphRuns[0], keepNoteReferenceMark: true, LegacyDocNoteProjection.Empty);
+            ApplyLegacyDocParagraphFormatting(noteParagraphs[0], footnote.ParagraphRuns[0].Format, styleSheet);
             WordParagraph lastParagraph = noteParagraphs[0];
             for (int index = 1; index < footnote.ParagraphRuns.Count; index++) {
                 lastParagraph = lastParagraph.AddParagraph(footnote.ParagraphRuns[index].Text);
                 ReplaceLegacyDocNoteParagraphRuns(lastParagraph, footnote.ParagraphRuns[index], keepNoteReferenceMark: false, LegacyDocNoteProjection.Empty);
+                ApplyLegacyDocParagraphFormatting(lastParagraph, footnote.ParagraphRuns[index].Format, styleSheet);
             }
         }
 
-        private static void AddLegacyDocEndnoteReference(WordParagraph paragraph, LegacyDocEndnote endnote) {
+        private static void AddLegacyDocEndnoteReference(WordParagraph paragraph, LegacyDocEndnote endnote, LegacyDocStyleSheet styleSheet) {
             if (endnote.ParagraphRuns.Count == 0) {
                 return;
             }
@@ -705,10 +707,12 @@ namespace OfficeIMO.Word {
             }
 
             ReplaceLegacyDocNoteParagraphRuns(noteParagraphs[0], endnote.ParagraphRuns[0], keepNoteReferenceMark: true, LegacyDocNoteProjection.Empty);
+            ApplyLegacyDocParagraphFormatting(noteParagraphs[0], endnote.ParagraphRuns[0].Format, styleSheet);
             WordParagraph lastParagraph = noteParagraphs[0];
             for (int index = 1; index < endnote.ParagraphRuns.Count; index++) {
                 lastParagraph = lastParagraph.AddParagraph(endnote.ParagraphRuns[index].Text);
                 ReplaceLegacyDocNoteParagraphRuns(lastParagraph, endnote.ParagraphRuns[index], keepNoteReferenceMark: false, LegacyDocNoteProjection.Empty);
+                ApplyLegacyDocParagraphFormatting(lastParagraph, endnote.ParagraphRuns[index].Format, styleSheet);
             }
         }
 
@@ -743,24 +747,30 @@ namespace OfficeIMO.Word {
 
             private LegacyDocNoteProjection(
                 IReadOnlyDictionary<int, LegacyDocFootnote> footnotesByReferencePosition,
-                IReadOnlyDictionary<int, LegacyDocEndnote> endnotesByReferencePosition) {
+                IReadOnlyDictionary<int, LegacyDocEndnote> endnotesByReferencePosition,
+                LegacyDocStyleSheet styleSheet) {
                 _footnotesByReferencePosition = footnotesByReferencePosition;
                 _endnotesByReferencePosition = endnotesByReferencePosition;
+                StyleSheet = styleSheet;
             }
 
-            internal static LegacyDocNoteProjection Create(IReadOnlyList<LegacyDocFootnote> footnotes, IReadOnlyList<LegacyDocEndnote> endnotes) {
+            internal static LegacyDocNoteProjection Create(IReadOnlyList<LegacyDocFootnote> footnotes, IReadOnlyList<LegacyDocEndnote> endnotes, LegacyDocStyleSheet styleSheet) {
                 return new LegacyDocNoteProjection(
                     footnotes
                         .GroupBy(footnote => footnote.ReferenceCharacterPosition)
                         .ToDictionary(group => group.Key, group => group.First()),
                     endnotes
                         .GroupBy(endnote => endnote.ReferenceCharacterPosition)
-                        .ToDictionary(group => group.Key, group => group.First()));
+                        .ToDictionary(group => group.Key, group => group.First()),
+                    styleSheet);
             }
 
             internal static LegacyDocNoteProjection Empty { get; } = new LegacyDocNoteProjection(
                 new Dictionary<int, LegacyDocFootnote>(),
-                new Dictionary<int, LegacyDocEndnote>());
+                new Dictionary<int, LegacyDocEndnote>(),
+                LegacyDocStyleSheet.Empty);
+
+            internal LegacyDocStyleSheet StyleSheet { get; }
 
             internal bool TryGetFootnote(int referenceCharacterPosition, out LegacyDocFootnote? footnote) {
                 return _footnotesByReferencePosition.TryGetValue(referenceCharacterPosition, out footnote);

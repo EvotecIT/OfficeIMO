@@ -71,8 +71,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int DopBaseEndnotePlacementOffset = 52;
         private const int DopBaseEndnotePlacementShift = 16;
         private const ushort FacingPagesDopFlag = 0x0001;
+        private const ushort NoteTextParagraphStyleIndex = 0x0023;
         private static readonly byte[] PlainParagraphPapx = { 0x00, 0x01, 0x00, 0x00 };
-        private static readonly byte[] FootnoteTextParagraphPapx = { 0x00, 0x01, 0x23, 0x00 };
+        private static readonly byte[] FootnoteTextParagraphPapx = { 0x00, 0x01, (byte)NoteTextParagraphStyleIndex, (byte)(NoteTextParagraphStyleIndex >> 8) };
 
         internal static byte[] WriteDocument(WordDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
@@ -586,11 +587,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PlcffndTxt = footnoteStories.PlcffndTxt;
                 FootnoteMarkerPositions = footnoteStories.MarkerPositions;
                 FootnoteFormattedRuns = footnoteStories.FormattedRuns;
+                FootnoteFormattedParagraphs = footnoteStories.FormattedParagraphs;
                 EndnoteText = endnoteStories.Text;
                 PlcfendRef = endnoteStories.PlcfendRef;
                 PlcfendTxt = endnoteStories.PlcfendTxt;
                 EndnoteMarkerPositions = endnoteStories.MarkerPositions;
                 EndnoteFormattedRuns = endnoteStories.FormattedRuns;
+                EndnoteFormattedParagraphs = endnoteStories.FormattedParagraphs;
                 HeaderFooterText = headerFooterStories.Text;
                 PlcfHdd = headerFooterStories.PlcfHdd;
                 HeaderFooterMarkerPositions = headerFooterStories.MarkerPositions;
@@ -636,6 +639,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal IReadOnlyList<LegacyDocWritableRun> FootnoteFormattedRuns { get; }
 
+            internal IReadOnlyList<LegacyDocWritableParagraph> FootnoteFormattedParagraphs { get; }
+
             internal byte[] PlcfendRef { get; }
 
             internal byte[] PlcfendTxt { get; }
@@ -643,6 +648,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal IReadOnlyList<int> EndnoteMarkerPositions { get; }
 
             internal IReadOnlyList<LegacyDocWritableRun> EndnoteFormattedRuns { get; }
+
+            internal IReadOnlyList<LegacyDocWritableParagraph> EndnoteFormattedParagraphs { get; }
 
             internal IReadOnlyList<int> HeaderFooterMarkerPositions { get; }
 
@@ -670,7 +677,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasCharacterFormatting => FormattedRuns.Count > 0 || FootnoteFormattedRuns.Count > 0 || HeaderFooterFormattedRuns.Count > 0 || EndnoteFormattedRuns.Count > 0;
 
-            internal bool HasParagraphFormatting => FormattedParagraphs.Count > 0 || HeaderFooterFormattedParagraphs.Count > 0 || HasNoteStories;
+            internal bool HasParagraphFormatting => FormattedParagraphs.Count > 0 || FootnoteFormattedParagraphs.Count > 0 || HeaderFooterFormattedParagraphs.Count > 0 || EndnoteFormattedParagraphs.Count > 0 || HasNoteStories;
 
             internal bool HasFontTable => FontFamilies.Count > 0;
 
@@ -840,19 +847,50 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     segments,
                     FootnoteText,
                     Text.Length,
-                    paragraph => paragraph.Length > 0 && paragraph[0] == LegacyDocFootnoteReader.FootnoteReferenceCharacter
-                        ? FootnoteTextParagraphPapx
-                        : PlainParagraphPapx);
+                    CreateNoteParagraphFormatter(FootnoteFormattedParagraphs, Text.Length));
                 AddStoryParagraphSegments(segments, HeaderFooterText, Text.Length + FootnoteText.Length, CreateHeaderFooterParagraphFormatter());
                 AddStoryParagraphSegments(
                     segments,
                     EndnoteText,
                     Text.Length + FootnoteText.Length + HeaderFooterText.Length,
-                    paragraph => paragraph.Length > 0 && paragraph[0] == LegacyDocFootnoteReader.FootnoteReferenceCharacter
-                        ? FootnoteTextParagraphPapx
-                        : PlainParagraphPapx);
+                    CreateNoteParagraphFormatter(EndnoteFormattedParagraphs, Text.Length + FootnoteText.Length + HeaderFooterText.Length));
                 AddRawParagraphSegment(segments, FullText.Length, PieceTableCharacterCount - FullText.Length, PlainParagraphPapx);
                 return segments;
+            }
+
+            private static Func<LegacyDocWritableParagraphRange, object> CreateNoteParagraphFormatter(IReadOnlyList<LegacyDocWritableParagraph> storyFormattedParagraphs, int storyStartCharacter) {
+                if (storyFormattedParagraphs.Count == 0) {
+                    return CreatePlainNoteParagraphFormatter();
+                }
+
+                LegacyDocWritableParagraph[] formattedParagraphs = storyFormattedParagraphs
+                    .OrderBy(item => item.StartCharacter)
+                    .ToArray();
+                int formattedIndex = 0;
+                return paragraph => {
+                    while (formattedIndex < formattedParagraphs.Length
+                        && storyStartCharacter + formattedParagraphs[formattedIndex].EndCharacter <= paragraph.Start) {
+                        formattedIndex++;
+                    }
+
+                    if (formattedIndex < formattedParagraphs.Length
+                        && storyStartCharacter + formattedParagraphs[formattedIndex].StartCharacter == paragraph.Start
+                        && formattedParagraphs[formattedIndex].Length == paragraph.Length) {
+                        return formattedParagraphs[formattedIndex].Formatting;
+                    }
+
+                    return CreatePlainNoteParagraphFormat(paragraph);
+                };
+            }
+
+            private static Func<LegacyDocWritableParagraphRange, object> CreatePlainNoteParagraphFormatter() {
+                return CreatePlainNoteParagraphFormat;
+            }
+
+            private static object CreatePlainNoteParagraphFormat(LegacyDocWritableParagraphRange paragraph) {
+                return paragraph.Length > 0 && paragraph.Text[0] == LegacyDocFootnoteReader.FootnoteReferenceCharacter
+                    ? FootnoteTextParagraphPapx
+                    : PlainParagraphPapx;
             }
 
             private Func<LegacyDocWritableParagraphRange, object> CreateHeaderFooterParagraphFormatter() {

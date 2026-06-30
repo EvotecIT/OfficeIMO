@@ -430,6 +430,9 @@ just to reserve names.
   - [x] Project supported direct run formatting inside simple footnote story
     text through DOC CHPX records and preserve those runs through normal DOCX
     save/reload.
+  - [x] Project supported paragraph formatting inside simple footnote and
+    endnote story paragraphs through DOC PAPX records and preserve alignment,
+    spacing, and indentation through normal DOCX save/reload.
   - [x] Write simple authored footnote references and text bodies with native
     DOC `PlcffndRef`/`PlcffndTxt` records, then reload them through the legacy
     reader.
@@ -681,6 +684,9 @@ just to reserve names.
   - [x] Write supported direct run formatting inside authored footnote and
     endnote text bodies through native DOC CHPX records, then reload the note
     text and supported direct run formatting through the legacy reader.
+  - [x] Write supported paragraph formatting inside authored footnote and
+    endnote text bodies through native DOC PAPX records, then reload alignment,
+    spacing, and indentation through the legacy reader.
   - [x] Keep blocking unsupported final-section properties before native `.doc`
     bytes are committed so unimplemented section features are not silently
     dropped.

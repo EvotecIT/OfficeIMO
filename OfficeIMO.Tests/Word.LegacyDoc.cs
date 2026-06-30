@@ -1248,6 +1248,21 @@ namespace OfficeIMO.Tests {
             Assert.Equal(240, paragraph.IndentationFirstLine);
         }
 
+        private static void ApplyNoteParagraphFormatting(WordParagraph paragraph, JustificationValues alignment) {
+            paragraph.ParagraphAlignment = alignment;
+            paragraph.LineSpacingBefore = 240;
+            paragraph.LineSpacingAfter = 120;
+            paragraph.LineSpacing = 360;
+            paragraph.IndentationBefore = 720;
+            paragraph.IndentationAfter = 360;
+            paragraph.IndentationFirstLine = 240;
+        }
+
+        private static void AssertNoteParagraphFormatting(IReadOnlyList<WordParagraph> paragraphs, string expectedText, JustificationValues expectedAlignment) {
+            WordParagraph paragraph = Assert.Single(paragraphs, noteParagraph => noteParagraph.Text == expectedText);
+            AssertHeaderFooterParagraphFormatting(paragraph, expectedAlignment);
+        }
+
 
         [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_DoesNotProjectUnsupportedStoryTextIntoBody() {
@@ -2044,6 +2059,38 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 AssertFormattedNoteRuns(endnote.Paragraphs!);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedNoteParagraphsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string bodyText = "Body with paragraph-formatted notes";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph(bodyText);
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Centered footnote");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Centered footnote");
+                    ApplyNoteParagraphFormatting(footnoteBody, JustificationValues.Center);
+
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Right endnote");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Right endnote");
+                    ApplyNoteParagraphFormatting(endnoteBody, JustificationValues.Right);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
+                WordFootNote footnote = Assert.Single(reloaded.FootNotes);
+                AssertNoteParagraphFormatting(footnote.Paragraphs!, "Centered footnote", JustificationValues.Center);
+                WordEndNote endnote = Assert.Single(reloaded.EndNotes);
+                AssertNoteParagraphFormatting(endnote.Paragraphs!, "Right endnote", JustificationValues.Right);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -4609,6 +4656,32 @@ namespace OfficeIMO.Tests {
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
+                Assert.Contains("Unsupported paragraph property: numPr", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedNoteParagraphPropertiesBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph paragraph = document.AddParagraph("Body");
+                WordParagraph footnoteReference = paragraph.AddFootNote("Rich footnote");
+                WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Rich footnote");
+                ParagraphProperties? paragraphProperties = footnoteBody._paragraph.GetFirstChild<ParagraphProperties>();
+                if (paragraphProperties == null) {
+                    paragraphProperties = footnoteBody._paragraph.PrependChild(new ParagraphProperties());
+                }
+
+                paragraphProperties.Append(new NumberingProperties());
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("supported paragraph formatting", exception.Message);
                 Assert.Contains("Unsupported paragraph property: numPr", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {

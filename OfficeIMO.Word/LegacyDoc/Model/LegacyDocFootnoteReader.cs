@@ -32,7 +32,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     out _);
         }
 
-        internal static IReadOnlyList<LegacyDocFootnote> Read(byte[] tableStream, LegacyDocTextContent textContent, LegacyDocFib fib, IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges, out string? warning) {
+        internal static IReadOnlyList<LegacyDocFootnote> Read(
+            byte[] tableStream,
+            LegacyDocTextContent textContent,
+            LegacyDocFib fib,
+            IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
+            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
+            out string? warning) {
             warning = null;
             if (fib.CcpFtn == 0) {
                 return Array.Empty<LegacyDocFootnote>();
@@ -66,7 +72,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     textContent.AllCharacters,
                     footnoteBaseCharacterPosition + startCharacter,
                     footnoteBaseCharacterPosition + endCharacter,
-                    formattingRanges);
+                    formattingRanges,
+                    paragraphFormattingRanges);
                 if (paragraphs.Count == 0) {
                     continue;
                 }
@@ -77,7 +84,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return footnotes;
         }
 
-        internal static IReadOnlyList<LegacyDocEndnote> ReadEndnotes(byte[] tableStream, LegacyDocTextContent textContent, LegacyDocFib fib, IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges, out string? warning) {
+        internal static IReadOnlyList<LegacyDocEndnote> ReadEndnotes(
+            byte[] tableStream,
+            LegacyDocTextContent textContent,
+            LegacyDocFib fib,
+            IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
+            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
+            out string? warning) {
             warning = null;
             if (fib.CcpEdn == 0) {
                 return Array.Empty<LegacyDocEndnote>();
@@ -111,7 +124,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     textContent.AllCharacters,
                     endnoteBaseCharacterPosition + startCharacter,
                     endnoteBaseCharacterPosition + endCharacter,
-                    formattingRanges);
+                    formattingRanges,
+                    paragraphFormattingRanges);
                 if (paragraphs.Count == 0) {
                     continue;
                 }
@@ -228,7 +242,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocTextCharacter> characters,
             int startCharacter,
             int endCharacter,
-            IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges) {
+            IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
+            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges) {
             if (endCharacter <= startCharacter) {
                 return Array.Empty<LegacyDocNoteParagraph>();
             }
@@ -267,7 +282,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 atParagraphStart = false;
                 if (normalized == '\r') {
-                    AddCurrentParagraph();
+                    AddCurrentParagraph(GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset));
                     isFirstParagraph = false;
                     atParagraphStart = true;
                     skipOptionalReferenceSpace = false;
@@ -284,7 +299,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     character.CharacterPosition);
             }
 
-            AddCurrentParagraph();
+            AddCurrentParagraph(LegacyDocParagraphFormat.Default);
             return paragraphs;
 
             void AppendRunCharacter(char value, LegacyDocCharacterFormat format, int characterPosition) {
@@ -298,10 +313,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 runCharacterPositions.Add(characterPosition);
             }
 
-            void AddCurrentParagraph() {
+            void AddCurrentParagraph(LegacyDocParagraphFormat format) {
                 FlushRun();
                 if (currentRuns.Count > 0) {
-                    paragraphs.Add(new LegacyDocNoteParagraph(currentRuns.ToArray()));
+                    paragraphs.Add(new LegacyDocNoteParagraph(currentRuns.ToArray(), format));
                     currentRuns.Clear();
                 }
 
@@ -345,6 +360,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             return LegacyDocCharacterFormat.Default;
+        }
+
+        private static LegacyDocParagraphFormat GetParagraphFormatForFileOffset(IReadOnlyList<LegacyDocParagraphFormatRange> ranges, int fileOffset) {
+            for (int i = 0; i < ranges.Count; i++) {
+                if (ranges[i].Contains(fileOffset)) {
+                    return ranges[i].Format;
+                }
+            }
+
+            return LegacyDocParagraphFormat.Default;
         }
     }
 }

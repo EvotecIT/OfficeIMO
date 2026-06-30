@@ -994,6 +994,48 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || ParagraphShading != null
             || ParagraphBorders != null;
 
+        internal LegacyDocWritableParagraphFormatting WithStyleIndex(ushort styleIndex) {
+            return new LegacyDocWritableParagraphFormatting(
+                Alignment,
+                styleIndex,
+                SpacingBeforeTwips,
+                SpacingAfterTwips,
+                LineSpacingTwips,
+                LeftIndentTwips,
+                RightIndentTwips,
+                FirstLineIndentTwips,
+                KeepLinesTogether,
+                KeepWithNext,
+                PageBreakBefore,
+                AvoidWidowAndOrphan,
+                IsInTable,
+                IsTableTerminatingParagraph,
+                TabStops,
+                TableCellWidthsTwips,
+                TableLeftIndentTwips,
+                TableRowHeightTwips,
+                TableRowHeightIsExact,
+                TableRowCantSplit,
+                TableRowIsHeader,
+                TableAlignment,
+                TablePreferredWidth,
+                TableAutofit,
+                TableCellHorizontalMerges,
+                TableCellVerticalMerges,
+                TableCellVerticalAlignments,
+                TableCellTextDirections,
+                TableCellFitTexts,
+                TableCellNoWraps,
+                TableCellHideMarks,
+                TableCellMargins,
+                TableCellShadings,
+                TableCellBorders,
+                ParagraphShading,
+                ParagraphBorders,
+                DefaultTableCellMargins,
+                DefaultTableCellSpacingTwips);
+        }
+
         internal LegacyDocWritableParagraphFormatting WithTableMarkers(
             bool isTableTerminatingParagraph,
             IReadOnlyList<int>? tableCellWidthsTwips = null,
