@@ -204,8 +204,12 @@ public enum MarkdownSyntaxKind {
     AbbreviationTitle,
     /// <summary>Details/disclosure block.</summary>
     Details,
+    /// <summary>Opening <c>&lt;details&gt;</c> tag token for a details block.</summary>
+    DetailsOpeningTag,
     /// <summary>Summary node inside a details block.</summary>
     Summary,
+    /// <summary>Closing <c>&lt;/details&gt;</c> tag token for a details block.</summary>
+    DetailsClosingTag,
     /// <summary>Front matter block.</summary>
     FrontMatter,
     /// <summary>Opening fence marker token for a front matter block.</summary>

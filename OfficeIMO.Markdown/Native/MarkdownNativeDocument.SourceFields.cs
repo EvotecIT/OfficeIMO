@@ -174,12 +174,20 @@ public sealed partial class MarkdownNativeDocument {
 
                 break;
             case MarkdownNativeDetailsBlock details:
+                if (details.OpeningTagSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("detailsOpeningTag", details.OpeningTag, details.OpeningTagSourceSpan.Value, details);
+                }
+
                 if (details.SummarySourceSpan.HasValue) {
                     yield return new MarkdownNativeBlockSourceField("summary", details.Summary, details.SummarySourceSpan.Value, details);
                 }
 
                 if (details.BodySourceSpan.HasValue) {
                     yield return new MarkdownNativeBlockSourceField("detailsBody", null, details.BodySourceSpan.Value, details);
+                }
+
+                if (details.ClosingTagSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("detailsClosingTag", details.ClosingTag, details.ClosingTagSourceSpan.Value, details);
                 }
 
                 break;

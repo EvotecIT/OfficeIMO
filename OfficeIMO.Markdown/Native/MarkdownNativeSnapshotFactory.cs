@@ -128,7 +128,11 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.Inlines = FromInlines(details.SummaryInlineRuns);
                 snapshot.Children = FromBlocks(details.Children);
                 snapshot.Fields = Fields(("open", details.Open ? "true" : "false"));
-                snapshot.FieldSourceSpans = FieldSpans(("summary", details.SummarySourceSpan), ("detailsBody", details.BodySourceSpan));
+                snapshot.FieldSourceSpans = FieldSpans(
+                    ("detailsOpeningTag", details.OpeningTagSourceSpan),
+                    ("summary", details.SummarySourceSpan),
+                    ("detailsBody", details.BodySourceSpan),
+                    ("detailsClosingTag", details.ClosingTagSourceSpan));
                 break;
             case MarkdownNativeDefinitionListBlock definitionList:
                 snapshot.Markdown = RenderBlock(definitionList.DefinitionList);

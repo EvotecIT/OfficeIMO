@@ -289,14 +289,20 @@ public static partial class MarkdownReader {
             return null;
         }
 
-        var bodyStartIndex = detailsBlock.Summary != null && node.Children.Count > 0 ? 1 : 0;
-        if (bodyStartIndex >= node.Children.Count) {
-            return null;
+        var bodyChildren = new List<MarkdownSyntaxNode>();
+        for (int i = 0; i < node.Children.Count; i++) {
+            var child = node.Children[i];
+            if (child.Kind == MarkdownSyntaxKind.DetailsOpeningTag ||
+                child.Kind == MarkdownSyntaxKind.DetailsClosingTag ||
+                child.AssociatedObject is SummaryBlock) {
+                continue;
+            }
+
+            bodyChildren.Add(child);
         }
 
-        var bodyChildren = new MarkdownSyntaxNode[node.Children.Count - bodyStartIndex];
-        for (int i = bodyStartIndex; i < node.Children.Count; i++) {
-            bodyChildren[i - bodyStartIndex] = node.Children[i];
+        if (bodyChildren.Count == 0) {
+            return null;
         }
 
         return bodyChildren;

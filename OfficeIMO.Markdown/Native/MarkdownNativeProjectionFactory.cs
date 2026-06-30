@@ -20,7 +20,10 @@ internal static class MarkdownNativeProjectionFactory {
             HorizontalRuleBlock horizontalRule => new MarkdownNativeThematicBreakBlock(horizontalRule, syntaxNode),
             SemanticFencedBlock visual => new MarkdownNativeVisualBlock(visual, syntaxNode),
             TableBlock table => new MarkdownNativeTableBlock(table, syntaxNode, diagnostics),
-            DetailsBlock details => new MarkdownNativeDetailsBlock(details, syntaxNode, CreateChildren(syntaxNode, diagnostics, static node => node.AssociatedObject is not SummaryBlock)),
+            DetailsBlock details => new MarkdownNativeDetailsBlock(details, syntaxNode, CreateChildren(syntaxNode, diagnostics, static node =>
+                node.AssociatedObject is not SummaryBlock &&
+                node.Kind != MarkdownSyntaxKind.DetailsOpeningTag &&
+                node.Kind != MarkdownSyntaxKind.DetailsClosingTag)),
             DefinitionListBlock definitionList => new MarkdownNativeDefinitionListBlock(definitionList, syntaxNode, diagnostics),
             FootnoteDefinitionBlock footnote => new MarkdownNativeFootnoteDefinitionBlock(footnote, syntaxNode, CreateChildren(syntaxNode, diagnostics)),
             FrontMatterBlock frontMatter => new MarkdownNativeFrontMatterBlock(frontMatter, syntaxNode),

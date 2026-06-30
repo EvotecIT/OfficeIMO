@@ -229,6 +229,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [ ] Complete delimiter-token coverage for extension nodes.
   - [x] Raw inline HTML fragments now expose exact native/snapshot `html` metadata and source edits so editor hosts can address the raw tag without rescanning paragraph text.
   - [x] Raw HTML block comments, tag frames, CDATA, declarations, and processing instructions expose source-backed opening/body/closing tag or marker fields with snapshot and source-edit proof.
+  - [x] Structured details blocks now carry source-backed opening and closing tag syntax/native fields with snapshots, position lookup, and source-edit proof.
   - [x] Pipe-table alignment rows now expose per-column `alignmentCell` native/snapshot source fields with occurrence indexes and source edits, so editor hosts can target one alignment marker without rewriting the whole row.
   - [x] Escaped-character markers, decoded entity source text, and hard-break markers now expose native inline metadata, source-order snapshot metadata fields, source slices, position lookup, and source edits.
   - [x] Inline link and image opening, separator, and closing delimiters now expose source-order native metadata snapshots, position lookup, and source edits.

@@ -183,6 +183,9 @@ public static partial class MarkdownReader {
             int tagEnd = htmlContent.IndexOf('>');
             if (tagEnd < 0) return false;
 
+            int openingStart = htmlContent.IndexOf('<');
+            if (openingStart < 0 || openingStart > tagEnd) return false;
+
             string openTag = htmlContent.Substring(0, tagEnd + 1).Trim();
             if (!openTag.StartsWith("<details", StringComparison.OrdinalIgnoreCase)) return false;
 
@@ -221,10 +224,49 @@ public static partial class MarkdownReader {
             var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(body, options, state, bodyLineOffset);
             block = new DetailsBlock(summary, childBlocks, isOpen) {
                 InsertBlankLineAfterSummary = body.StartsWith("\n\n", StringComparison.Ordinal),
-                InsertBlankLineBeforeClosing = body.EndsWith("\n\n", StringComparison.Ordinal)
+                InsertBlankLineBeforeClosing = body.EndsWith("\n\n", StringComparison.Ordinal),
+                OpeningTag = htmlContent.Substring(openingStart, tagEnd - openingStart + 1),
+                ClosingTag = htmlContent.Substring(closeIdx, "</details>".Length),
+                OpeningTagSourceSpan = CreateDetailsSourceSpan(state, htmlContent, startLineIndex, openingStart, tagEnd),
+                ClosingTagSourceSpan = CreateDetailsSourceSpan(state, htmlContent, startLineIndex, closeIdx, closeIdx + "</details>".Length - 1)
             };
             block.SyntaxChildren = syntaxChildren;
             return true;
+        }
+
+        private static MarkdownSourceSpan CreateDetailsSourceSpan(
+            MarkdownReaderState state,
+            string htmlContent,
+            int startLineIndex,
+            int startIndexInclusive,
+            int endIndexInclusive) {
+            GetDetailsSourcePosition(htmlContent, startIndexInclusive, out int startLineOffset, out int startColumnOffset);
+            GetDetailsSourcePosition(htmlContent, endIndexInclusive, out int endLineOffset, out int endColumnOffset);
+
+            int absoluteStartLine = state.SourceLineOffset + startLineIndex + startLineOffset + 1;
+            int absoluteEndLine = state.SourceLineOffset + startLineIndex + endLineOffset + 1;
+
+            return CreateSpan(
+                state,
+                absoluteStartLine,
+                startColumnOffset + 1,
+                absoluteEndLine,
+                endColumnOffset + 1);
+        }
+
+        private static void GetDetailsSourcePosition(string htmlContent, int index, out int lineOffset, out int columnOffset) {
+            int clampedIndex = Math.Max(0, Math.Min(index, Math.Max(0, htmlContent.Length - 1)));
+            lineOffset = 0;
+            int lineStart = 0;
+
+            for (int i = 0; i < clampedIndex; i++) {
+                if (htmlContent[i] == '\n') {
+                    lineOffset++;
+                    lineStart = i + 1;
+                }
+            }
+
+            columnOffset = clampedIndex - lineStart;
         }
 
         private static int CountNewLines(string text, int start, int length) {

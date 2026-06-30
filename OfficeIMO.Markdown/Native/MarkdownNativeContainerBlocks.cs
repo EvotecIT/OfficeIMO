@@ -121,6 +121,10 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
         : base(MarkdownNativeBlockKind.Details, details, syntaxNode) {
         Details = details;
         Open = details.Open;
+        OpeningTag = details.OpeningTag;
+        ClosingTag = details.ClosingTag;
+        OpeningTagSourceSpan = details.OpeningTagSourceSpan;
+        ClosingTagSourceSpan = details.ClosingTagSourceSpan;
         SummaryInlines = details.Summary?.Inlines;
         Summary = SummaryInlines == null ? null : InlinePlainText.Extract(SummaryInlines);
         SummarySourceSpan = details.Summary?.SourceSpan ?? FindSummarySourceSpan(syntaxNode);
@@ -134,6 +138,18 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
 
     /// <summary>Whether the details element is initially expanded.</summary>
     public bool Open { get; }
+
+    /// <summary>Exact parsed details opening tag when available.</summary>
+    public string? OpeningTag { get; }
+
+    /// <summary>Exact parsed details closing tag when available.</summary>
+    public string? ClosingTag { get; }
+
+    /// <summary>Source span for the parsed details opening tag when available.</summary>
+    public MarkdownSourceSpan? OpeningTagSourceSpan { get; }
+
+    /// <summary>Source span for the parsed details closing tag when available.</summary>
+    public MarkdownSourceSpan? ClosingTagSourceSpan { get; }
 
     /// <summary>Plain-text summary when available.</summary>
     public string? Summary { get; }

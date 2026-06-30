@@ -23,6 +23,18 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     /// <summary>Whether the details element is initially expanded.</summary>
     public bool Open { get; set; }
 
+    /// <summary>Exact source opening tag for parsed details blocks, when available.</summary>
+    internal string? OpeningTag { get; set; }
+
+    /// <summary>Exact source closing tag for parsed details blocks, when available.</summary>
+    internal string? ClosingTag { get; set; }
+
+    /// <summary>Source span for the parsed details opening tag, when available.</summary>
+    internal MarkdownSourceSpan? OpeningTagSourceSpan { get; set; }
+
+    /// <summary>Source span for the parsed details closing tag, when available.</summary>
+    internal MarkdownSourceSpan? ClosingTagSourceSpan { get; set; }
+
     /// <summary>Creates an empty details block.</summary>
     public DetailsBlock() {
     }
@@ -81,13 +93,23 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
         var nodes = new List<MarkdownSyntaxNode>();
+        if (OpeningTagSourceSpan.HasValue) {
+            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.DetailsOpeningTag, OpeningTagSourceSpan, OpeningTag));
+        }
+
         if (Summary != null) {
             nodes.Add(MarkdownBlockSyntaxBuilder.BuildBlock(Summary));
         }
+
         var bodyChildren = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, ChildBlocks);
         for (int i = 0; i < bodyChildren.Count; i++) {
             nodes.Add(bodyChildren[i]);
         }
+
+        if (ClosingTagSourceSpan.HasValue) {
+            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.DetailsClosingTag, ClosingTagSourceSpan, ClosingTag));
+        }
+
         return nodes;
     }
 

@@ -741,31 +741,55 @@ Inside
         var details = Assert.IsType<MarkdownNativeDetailsBlock>(native.Blocks[1]);
 
         Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 11), callout.BodySourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 9), details.OpeningTagSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(7, 1, 7, 6), details.BodySourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(8, 1, 8, 10), details.ClosingTagSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 9), Assert.Single(details.SyntaxNode.Children, child => child.Kind == MarkdownSyntaxKind.DetailsOpeningTag).SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(8, 1, 8, 10), Assert.Single(details.SyntaxNode.Children, child => child.Kind == MarkdownSyntaxKind.DetailsClosingTag).SourceSpan);
 
         var calloutBody = Assert.Single(native.EnumerateBlockSourceFields("calloutBody"));
         Assert.Same(callout, calloutBody.Block);
         Assert.Equal("Body line", calloutBody.Value);
         Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 11), calloutBody.SourceSpan);
 
+        var detailsOpeningTag = Assert.Single(native.EnumerateBlockSourceFields("detailsOpeningTag"));
+        Assert.Same(details, detailsOpeningTag.Block);
+        Assert.Equal("<details>", detailsOpeningTag.Value);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 9), detailsOpeningTag.SourceSpan);
+
         var detailsBody = Assert.Single(native.EnumerateBlockSourceFields("detailsBody"));
         Assert.Same(details, detailsBody.Block);
         Assert.Null(detailsBody.Value);
         Assert.Equal(new MarkdownSourceSpan(7, 1, 7, 6), detailsBody.SourceSpan);
 
+        var detailsClosingTag = Assert.Single(native.EnumerateBlockSourceFields("detailsClosingTag"));
+        Assert.Same(details, detailsClosingTag.Block);
+        Assert.Equal("</details>", detailsClosingTag.Value);
+        Assert.Equal(new MarkdownSourceSpan(8, 1, 8, 10), detailsClosingTag.SourceSpan);
+
         Assert.Equal("calloutBody", native.FindBlockSourceFieldAtPosition(2, 4)!.Name);
+        Assert.Equal("detailsOpeningTag", native.FindBlockSourceFieldAtPosition(4, 3)!.Name);
         Assert.Equal("detailsBody", native.FindBlockSourceFieldAtPosition(7, 3)!.Name);
+        Assert.Equal("detailsClosingTag", native.FindBlockSourceFieldAtPosition(8, 3)!.Name);
 
         var snapshot = native.ToSnapshot();
         Assert.Equal(3, snapshot.Blocks[0].FieldSourceSpans["calloutBody"]!.StartColumn);
         Assert.Equal(11, snapshot.Blocks[0].FieldSourceSpans["calloutBody"]!.EndColumn);
+        Assert.Equal(1, snapshot.Blocks[1].FieldSourceSpans["detailsOpeningTag"]!.StartColumn);
+        Assert.Equal(9, snapshot.Blocks[1].FieldSourceSpans["detailsOpeningTag"]!.EndColumn);
         Assert.Equal(1, snapshot.Blocks[1].FieldSourceSpans["detailsBody"]!.StartColumn);
         Assert.Equal(6, snapshot.Blocks[1].FieldSourceSpans["detailsBody"]!.EndColumn);
+        Assert.Equal(1, snapshot.Blocks[1].FieldSourceSpans["detailsClosingTag"]!.StartColumn);
+        Assert.Equal(10, snapshot.Blocks[1].FieldSourceSpans["detailsClosingTag"]!.EndColumn);
         Assert.Contains(snapshot.Blocks[0].SourceFields, field => field.Name == "calloutBody" && field.Value == "Body line");
+        Assert.Contains(snapshot.Blocks[1].SourceFields, field => field.Name == "detailsOpeningTag" && field.Value == "<details>");
         Assert.Contains(snapshot.Blocks[1].SourceFields, field => field.Name == "detailsBody" && field.Value == null);
+        Assert.Contains(snapshot.Blocks[1].SourceFields, field => field.Name == "detailsClosingTag" && field.Value == "</details>");
 
         Assert.Contains("> Updated", native.CreateReplaceEdit(calloutBody, "Updated").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("<details open>", native.CreateReplaceEdit(detailsOpeningTag, "<details open>").Apply(native.SourceMarkdown), StringComparison.Ordinal);
         Assert.Contains("Outside", native.CreateReplaceEdit(detailsBody, "Outside").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("</section>", native.CreateReplaceEdit(detailsClosingTag, "</section>").Apply(native.SourceMarkdown), StringComparison.Ordinal);
     }
 
     [Fact]
